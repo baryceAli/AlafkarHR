@@ -1,0 +1,54 @@
+﻿@inject ToastService ToastService
+
+@* 
+    How to use it
+    1. Add the class: ToastService
+    2. register it in DI: builder.Services.AddScoped<ToastService>();
+    3. Inject in your page: @inject ToastService ToastService
+    4. Add to your layout page <AppToast />
+    5. Use anywhere
+        ToastService.Show(new ToastMessage
+        {
+            Message = "Saved successfully",
+            Type = "success"
+        }); 
+*@
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    @foreach (var toast in toasts)
+    {
+        <div class="toast show mb-2 text-white @(GetClass(toast.Type))">
+            <div class="toast-body">
+                @toast.Message
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ToastMessage> toasts = new();
+
+    protected override void OnInitialized()
+    {
+        ToastService.OnShow += ShowToast;
+    }
+
+    private void ShowToast(ToastMessage message)
+    {
+        toasts.Add(message);
+        StateHasChanged();
+
+        _ = Task.Delay(3000).ContinueWith(_ =>
+        {
+            toasts.Remove(message);
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private string GetClass(string type) => type switch
+    {
+        "error" => "bg-danger",
+        "warning" => "bg-warning",
+        _ => "bg-success"
+    };
+}

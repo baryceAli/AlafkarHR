@@ -1,0 +1,116 @@
+﻿@using AlAfkarERP.Shared.Utilities
+@inject ModalService ModalService
+@inject SharedDataService SharedDataService
+
+@* 
+    How to use it 
+    1. Create class: ModalService
+    2. register it in DI: builder.Services.AddScoped<ModalService>();
+    3. inject in your page @inject ModalService ModalService
+    4. Add to your layout page: <AppModal/>
+    5. Add this in your page
+        await ModalService.ShowAsync(new ModalOptions
+        {
+            Title = "Error",
+            Message = "Something went wrong",
+            Details = "response.Error.Detail",
+            IsError = true,
+            OnOk = OnModalButtonClicked
+        });
+
+    6. use as Confirmation Dialog
+        await ModalService.ShowAsync(new ModalOptions
+        {
+            Title = "Confirm Delete",
+            Message = "Are you sure you want to delete this package?",
+            ShowCancel = true,
+            OkText = "Yes",
+            CancelText = "No",
+
+            OnOk = async () =>
+            {
+                // await ProductService.DeletePackageAsync(Id.Value);
+
+                ToastService.Show(new ToastMessage
+                {
+                    Message = "Deleted successfully",
+                    Type = "success"
+                });
+
+                // NavigationManager.NavigateTo($"/Product/Form/{ProductId}");
+            }
+        });
+*@
+@if (isVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)" dir=@(SharedDataService.Language == "Ar" ? "rtl" : "ltr")>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header @(options.IsError ? "bg-danger text-white" : "bg-primary text-white")">
+                    <h5 class="modal-title">@options.Title</h5>
+                </div>
+                <div class="modal-body">
+                    <p>@options.Message</p>
+                    @if (!string.IsNullOrWhiteSpace(options.Details))
+                    {
+                        <small class="text-muted">@options.Details</small>
+                    }
+                </div>
+                <div class="modal-footer">
+                    @if (options.ShowCancel)
+                    {
+                        <button class="btn btn-secondary" @onclick="HandleCancel">
+                            @options.CancelText
+                        </button>
+                    }
+
+                    <button class="btn btn-light" @onclick="HandleOk">
+                        @options.OkText
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isVisible;
+    private ModalOptions options = new();
+
+    protected override void OnInitialized()
+    {
+        ModalService.OnShow += Show;
+        ModalService.OnHide += Hide;
+    }
+
+    private Task Show(ModalOptions opts)
+    {
+        options = opts;
+        isVisible = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task Hide()
+    {
+        isVisible = false;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task HandleOk()
+    {
+        if (options.OnOk != null)
+            await options.OnOk();
+
+        await ModalService.HideAsync();
+    }
+
+    private async Task HandleCancel()
+    {
+        if (options.OnCancel != null)
+            await options.OnCancel();
+
+        await ModalService.HideAsync();
+    }
+}

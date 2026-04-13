@@ -1,0 +1,192 @@
+﻿@typeparam TItem
+
+<div class="position-relative" dir="ltr">
+    <div class="input-group">
+        <span class="input-group-text bg-white border-end-0">
+            <!-- simple inline magnifier SVG to avoid external icon dependency -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M11.742 10.344a6.5 6.5 0 10-1.397 1.398h-.001l3.85 3.85a1 1 0 001.415-1.415l-3.85-3.85zm-5.242.656a5 5 0 110-10 5 5 0 010 10z"/>
+            </svg>
+        </span>
+
+        <input class="form-control border-start-0"
+               @bind="SearchText"
+               @bind:event="oninput"
+               @onfocus="ShowDropdown"
+               @onblur="HideDropdown"
+               @onkeydown="OnKeyDown"
+               placeholder="@PlaceHolder"
+               aria-expanded="@isOpen"
+               role="combobox"/>
+
+        <button class="btn btn-outline-secondary" type="button" title="Clear" @onclick="Clear" disabled="@string.IsNullOrWhiteSpace(searchText)">
+            &times;
+        </button>
+    </div>
+
+    @if (isOpen)
+    {
+        <div class="dropdown-menu show w-100 mt-1 p-0 shadow-sm autocomplete-menu mb-3" style="z-index:1000;" role="listbox" aria-label="Search results">
+            @if (filteredItems.Any())
+            {
+                @foreach (var item in filteredItems.Select((value, idx) => (value, idx)))
+                {
+                    var it = item.value;
+                    var idx = item.idx;
+                    <button type="button"
+                            class="dropdown-item d-flex justify-content-between align-items-center @((idx == selectedIndex) ? "active" : "")"
+                            @onclick="() => SelectItem(it)"
+                            @onmousedown:preventDefault="true"
+                            role="option"
+                            aria-selected="@(idx == selectedIndex)">
+                        <span>@GetItemText(it)</span>
+                    </button>
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                <div class="dropdown-item text-muted text-center">No results found</div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    /* component-scoped styling to improve appearance using Bootstrap primitives */
+    .autocomplete-menu {
+        max-height: 14rem;
+        overflow-y: auto;
+        border-radius: .375rem;
+    }
+
+    /* subtle hover/focus for items */
+    .autocomplete-menu .dropdown-item:hover,
+    .autocomplete-menu .dropdown-item.active {
+        background-color: rgba(13,110,253,.08); /* bootstrap primary 10% tint */
+        color: #0d6efd;
+    }
+
+    /* keep the input-group icon visually connected */
+    .input-group .input-group-text svg {
+        display: block;
+    }
+</style>
+
+@code {
+    private string searchText = string.Empty;
+    private List<TItem> filteredItems = new();
+    private bool isOpen = false;
+    private int selectedIndex = -1;
+
+    [Parameter] public List<TItem> Items { get; set; } = new();
+    [Parameter] public Func<TItem, string> ItemText { get; set; } = default!;
+    [Parameter] public EventCallback<TItem> OnSelected { get; set; }
+    [Parameter] public string? PlaceHolder { get; set; } = "Type to search ...";
+    [Parameter] public string? cssClass { get; set; } = "Type to search ...";
+    private async Task ShowDropdown()
+    {
+        isOpen = true;
+        await Filter();
+    }
+
+    private async Task HideDropdown()
+    {
+        await Task.Delay(200); // allow click
+        isOpen = false;
+        selectedIndex = -1;
+    }
+
+    private async Task Filter()
+    {
+        // ✅ Case 1: empty search → show ALL items (limited)
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            filteredItems = Items
+                .Take(10)
+                .ToList();
+
+            isOpen = filteredItems.Any();
+            selectedIndex = isOpen ? 0 : -1;
+
+            return;
+        }
+
+        // ✅ Case 2: normal filtering
+        filteredItems = Items
+            .Where(x => ItemText(x)
+            .Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .Take(10)
+            .ToList();
+
+        isOpen = filteredItems.Any();
+        selectedIndex = isOpen ? 0 : -1;
+    }
+
+    private async Task SelectItem(TItem item)
+    {
+        searchText = ItemText(item);
+        isOpen = false;
+        selectedIndex = -1;
+        await OnSelected.InvokeAsync(item);
+    }
+
+    private string SearchText
+    {
+        get => searchText;
+        set
+        {
+            searchText = value;
+            _ = Filter();
+        }
+    }
+
+    private string GetItemText(TItem item)
+    {
+        return ItemText?.Invoke(item) ?? item?.ToString() ?? string.Empty;
+    }
+
+    private void Clear()
+    {
+        searchText = string.Empty;
+        filteredItems.Clear();
+        isOpen = false;
+        selectedIndex = -1;
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (!isOpen) return;
+
+        if (e.Key == "ArrowDown")
+        {
+            if (filteredItems.Any())
+            {
+                selectedIndex = Math.Min(selectedIndex + 1, filteredItems.Count - 1);
+                StateHasChanged();
+            }
+            // e.PreventDefault();
+        }
+        else if (e.Key == "ArrowUp")
+        {
+            if (filteredItems.Any())
+            {
+                selectedIndex = Math.Max(selectedIndex - 1, 0);
+                StateHasChanged();
+            }
+            // e.PreventDefault();
+        }
+        else if (e.Key == "Enter")
+        {
+            if (selectedIndex >= 0 && selectedIndex < filteredItems.Count)
+            {
+                await SelectItem(filteredItems[selectedIndex]);
+            }
+        }
+        else if (e.Key == "Escape")
+        {
+            isOpen = false;
+            selectedIndex = -1;
+            StateHasChanged();
+        }
+    }
+}

@@ -1,0 +1,259 @@
+﻿@typeparam T
+
+@if (isVisible)
+{
+    <div class="modal-backdrop fade show"></div>
+
+    <div class="modal show d-block" tabindex="-1" style="z-index:1055;">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+
+                <!-- Header -->
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">@Options?.Title</h5>
+                    <button class="btn-close" @onclick="Cancel"></button>
+                </div>
+
+                <!-- Body -->
+                <div class="modal-body">
+
+                    <!-- Search -->
+                    <input class="form-control mb-3"
+                           placeholder="Search..."
+                           @bind="SearchTerm"
+                           @bind:event="oninput"
+                           @onkeydown="HandleKeyDown" />
+
+                    <!-- Table -->
+                    <div style="max-height:400px; overflow:auto">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    @if (Options.MultiSelect)
+                                    {
+                                        <th></th>
+                                    }
+                                    @foreach (var col in Options.Columns)
+                                    {
+                                        <th>@col.Header</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < items.Count; i++)
+                                {
+                                    var item = items[i];
+                                    var isActive = i == activeIndex;
+
+                                    <tr class="@(isActive ? "table-primary" : "")"
+                                        style="cursor:pointer"
+                                        @onclick="() => Select(item, i)">
+
+                                        @if (Options.MultiSelect)
+                                        {
+                                            <td>
+                                                <input type="checkbox"
+                                                       checked="@selectedItems.Contains(item)"
+                                                       @onclick:stopPropagation="true"
+                                                       @onchange="() => Toggle(item)" />
+                                            </td>
+                                        }
+
+                                        @foreach (var col in Options.Columns)
+                                        {
+                                            <td>@col.Value(item)</td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+
+                        @if (isLoading)
+                        {
+                            <div class="text-center p-2">Loading...</div>
+                        }
+                    </div>
+
+                </div>
+
+                <!-- Footer -->
+                <div class="modal-footer">
+                    @if (Options.MultiSelect)
+                    {
+                        <button class="btn btn-primary" @onclick="ConfirmMulti">Select</button>
+                    }
+                    <button class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isVisible;
+    private List<T> items = new();
+    private HashSet<T> selectedItems = new();
+
+    private string searchTerm = "";
+    private int page = 1;
+    private bool isLoading;
+    private int activeIndex = -1;
+
+    private CancellationTokenSource? debounceCts;
+
+    private TaskCompletionSource<T?>? singleTcs;
+    private TaskCompletionSource<List<T>?>? multiTcs;
+
+    public SearchModalOptions<T> Options { get; set; } = default!;
+
+    // 🔥 PUBLIC API
+    public async Task<T?> ShowAsync(SearchModalOptions<T> options)
+    {
+        Options = options;
+        Options.MultiSelect = false;
+
+        singleTcs = new TaskCompletionSource<T?>();
+
+        await Open();
+
+        return await singleTcs.Task;
+    }
+
+    public async Task<List<T>?> ShowMultiAsync(SearchModalOptions<T> options)
+    {
+        Options = options;
+        Options.MultiSelect = true;
+
+        multiTcs = new TaskCompletionSource<List<T>?>();
+
+        await Open();
+
+        return await multiTcs.Task;
+    }
+
+    private async Task Open()
+    {
+        isVisible = true;
+
+        searchTerm = "";
+        page = 1;
+        items.Clear();
+        selectedItems.Clear();
+        activeIndex = -1;
+
+        await InvokeAsync(StateHasChanged);
+
+        _ = LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        await InvokeAsync(StateHasChanged);
+
+        // 🔥 LOCAL SEARCH MODE
+        if (Options.Data != null)
+        {
+            IEnumerable<T> query = Options.Data;
+
+            if (!string.IsNullOrWhiteSpace(searchTerm) && Options.SearchSelectors.Any())
+            {
+                query = query.Where(item =>
+                    Options.SearchSelectors.Any(selector =>
+                        (selector(item) ?? "")
+                            .Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                    ));
+            }
+
+            items = query
+                .Skip((page - 1) * Options.PageSize)
+                .Take(Options.PageSize)
+                .ToList();
+        }
+        else
+        {
+            // 🔥 REMOTE SEARCH MODE (existing behavior)
+            // var result = await Options.SearchFunc!(searchTerm, page, Options.PageSize);
+            // items = result.Items;
+        }
+
+        isLoading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+    private async Task OnSearchChanged()
+    {
+        debounceCts?.Cancel();
+        debounceCts = new();
+
+        try
+        {
+            await Task.Delay(400, debounceCts.Token);
+            page = 1;
+            await LoadData();
+        }
+        catch { }
+    }
+
+    private string SearchTerm
+    {
+        get => searchTerm;
+        set
+        {
+            if (searchTerm != value)
+            {
+                searchTerm = value;
+                _ = OnSearchChanged();
+            }
+        }
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "ArrowDown")
+            activeIndex = Math.Min(activeIndex + 1, items.Count - 1);
+
+        else if (e.Key == "ArrowUp")
+            activeIndex = Math.Max(activeIndex - 1, 0);
+
+        else if (e.Key == "Enter" && activeIndex >= 0)
+            _ = Select(items[activeIndex], activeIndex);
+    }
+
+    private async Task Select(T item, int index)
+    {
+        activeIndex = index;
+
+        if (!Options.MultiSelect)
+        {
+            singleTcs?.TrySetResult(item);
+            await Close();
+        }
+    }
+
+    private void Toggle(T item)
+    {
+        if (!selectedItems.Add(item))
+            selectedItems.Remove(item);
+    }
+
+    private async Task ConfirmMulti()
+    {
+        multiTcs?.TrySetResult(selectedItems.ToList());
+        await Close();
+    }
+
+    private async Task Cancel()
+    {
+        singleTcs?.TrySetResult(default);
+        multiTcs?.TrySetResult(null);
+
+        await Close();
+    }
+
+    private Task Close()
+    {
+        isVisible = false;
+        return InvokeAsync(StateHasChanged);
+    }
+}

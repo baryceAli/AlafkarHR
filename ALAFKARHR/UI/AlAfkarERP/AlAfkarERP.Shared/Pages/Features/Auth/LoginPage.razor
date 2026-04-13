@@ -1,0 +1,94 @@
+﻿@layout AuthLayout
+@page "/login"
+
+
+@using AlAfkarERP.Shared.Dtos.Auth
+@using AlAfkarERP.Shared.Services.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.IdentityModel.JsonWebTokens
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<div class="container d-flex justify-content-center align-items-center min-vh-100">
+    <div class="card shadow-lg border-0 w-100" style="max-width: 600px;">
+
+        <!-- Card Header -->
+        <div class="card-header bg-primary text-white text-center">
+            <h3 class="mb-0">Login to Your Account</h3>
+        </div>
+
+        <!-- Card Body -->
+        <div class="card-body p-4 bg-light rounded-bottom">
+            <EditForm Model="@login" OnValidSubmit="HandleLogin">
+                <DataAnnotationsValidator />
+
+                <div class="mb-3">
+                    <label for="userName" class="form-label">User name</label>
+                    <InputText id="userName" class="form-control" @bind-Value="login.Email" placeholder="Enter email" />
+                    <ValidationMessage For="@(() => login.Email)" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <InputText id="password" type="password" class="form-control" @bind-Value="login.Password" placeholder="Password" />
+                    <ValidationMessage For="@(() => login.Password)" />
+                </div>
+
+                @* <div class="mb-3 form-check">
+                    <InputCheckbox id="rememberMe" class="form-check-input" @bind-Value="rememberMe" />
+                    <label class="form-check-label" for="rememberMe">Remember me</label>
+                </div> *@
+
+                <div class="d-grid mb-3">
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </div>
+
+                <div class="text-center mb-2">
+                    <a href="/User/ForgetPassword" class="text-decoration-none">Forgot your password?</a>
+                </div>
+
+                <div class="text-center">
+                    <span>Don’t have an account?</span>
+                    <a href="/Register" class="text-decoration-none ms-1">Create one</a>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+
+
+@* <button class="btn btn-primary" @onclick="Login">Login</button> *@
+@code {
+
+    private LoginDto login = new LoginDto();
+
+    private async Task HandleLogin()
+    {
+        var result = await AuthService.LoginAsync("baryce@gmail.com", "Admin@123");
+        if (result)
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+            if (authState.User.Identity.IsAuthenticated)
+            {
+                if(authState.User.Claims.Any(c=>c.Type==JwtRegisteredClaimNames.Typ && c.Value == UserType.SystemUser.ToString()))
+                {
+                    NavigationManager.NavigateTo("/AdminDashboard");
+                    return;
+                }
+                NavigationManager.NavigateTo("/");
+            }
+            // var user = authState.User;
+            // Console.WriteLine($"User is authenticated: {user.Identity.IsAuthenticated}");
+            // Console.WriteLine($"User name: {user.Identity.Name}");
+        }
+        else
+        {
+            Console.WriteLine("Login failed");
+        }
+    }
+
+}
