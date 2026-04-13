@@ -1,0 +1,14 @@
+🔄 9. Leave Flow (REAL WORKFLOW)
+Step 1: Employee requests leave
+LeaveRequest → Pending
+Step 2: Manager approves
+LeaveApproval created
+Status → Approved
+Step 3: System updates balance
+LeaveBalance.Use(days)
+LeaveTransaction (Usage)
+Step 4: Attendance integration
+AttendanceDay → marked as Leave (NOT absent)
+Step 5: Payroll integration
+If Paid → no deduction  
+If Unpaid → salary deduction

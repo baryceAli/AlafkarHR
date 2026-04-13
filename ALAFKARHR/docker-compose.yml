@@ -1,0 +1,14 @@
+services:
+  alafkar_hr_db:
+    image: postgres:17
+
+volumes:
+  postgres_alafkar_hr_db:
+  
+
+    # api:
+  #   image: ${DOCKER_REGISTRY-}api
+  #   build:
+  #     context: .
+  #     dockerfile: src/Bootstraper/Api/Dockerfile
+

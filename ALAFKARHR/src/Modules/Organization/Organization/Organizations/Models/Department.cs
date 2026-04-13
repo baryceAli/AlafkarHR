@@ -1,0 +1,63 @@
+﻿using Shared.DDD;
+
+namespace Organization.Organizations.Models;
+
+public class Department:Entity<Guid>
+{
+    public string Name { get; private set; }
+    public string NameEng { get; private set; }
+    public Guid AdministraitonId { get; private set; }
+    public Administration Administration { get; private set; }
+    public Guid? HeadOfDepartment { get; private set; }
+
+
+    public string Code { get; private set; }
+    public Guid? ParentDepartmentId { get; private set; } // hierarchy
+    public Department? ParentDepartment { get; private set; }
+    public bool IsActive { get; private set; }
+
+    public Guid CompanyId { get; private set; }
+    public Company Company { get; private set; }
+    private Department() { }
+
+    public static Department Create(Guid id,
+        string name,
+        string nameEng,
+        Guid administrationId,
+        Guid headOfDepartment,
+        Guid companyId,
+        string createdBy)
+    {
+        return new Department
+        {
+            Id = id,
+            Name = name,
+            NameEng = nameEng,
+            AdministraitonId = administrationId,
+            HeadOfDepartment = headOfDepartment,
+            CompanyId = companyId,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = createdBy
+        };
+    }
+    public void Update(
+        string name,
+        string nameEng,
+        Guid administrationId,
+        Guid headOfDepartment,
+        string modifiedBy)
+    {
+        Name=name;
+        NameEng=nameEng;
+        AdministraitonId=administrationId;
+        HeadOfDepartment=headOfDepartment;
+        ModifiedAt= DateTime.UtcNow;
+        ModifiedBy=modifiedBy;
+    }
+    public void Remove(string deletedBy)
+    {
+        DeletedBy=deletedBy;
+        DeletedAt=DateTime.UtcNow;
+        IsDeleted = true;
+    }
+}
