@@ -74,11 +74,11 @@
 
             if (authState.User.Identity.IsAuthenticated)
             {
-                if(authState.User.Claims.Any(c=>c.Type==JwtRegisteredClaimNames.Typ && c.Value == UserType.SystemUser.ToString()))
-                {
-                    NavigationManager.NavigateTo("/AdminDashboard");
-                    return;
-                }
+                // if(authState.User.Claims.Any(c=>c.Type==JwtRegisteredClaimNames.Typ && c.Value == UserType.SystemUser.ToString()))
+                // {
+                //     NavigationManager.NavigateTo("/AdminDashboard");
+                //     return;
+                // }
                 NavigationManager.NavigateTo("/");
             }
             // var user = authState.User;

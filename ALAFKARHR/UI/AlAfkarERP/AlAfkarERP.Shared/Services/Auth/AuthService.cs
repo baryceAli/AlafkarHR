@@ -27,7 +27,7 @@ public class AuthService : IAuthService
 
     public async Task<bool> LoginAsync(string email, string password)
     {
-        var response = await _http.PostAsJsonAsync($"{_apiConfigOptions.BaseURL}/api{_apiConfigOptions.Version}/auth/login", new { email, password });
+        var response = await _http.PostAsJsonAsync($"{_apiConfigOptions.BaseURL}/api/{_apiConfigOptions.Version}/auth/login", new { email, password });
 
         if (!response.IsSuccessStatusCode) return false;
 
