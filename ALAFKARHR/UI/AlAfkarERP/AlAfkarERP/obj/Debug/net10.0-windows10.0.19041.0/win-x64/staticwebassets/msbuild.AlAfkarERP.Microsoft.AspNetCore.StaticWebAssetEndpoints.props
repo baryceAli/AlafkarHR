@@ -1,5 +1,17 @@
 ﻿<Project>
   <ItemGroup>
+    <StaticWebAssetEndpoint Include="AlAfkarERP.6pzqt9brmm.styles.css">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\AlAfkarERP.styles.css'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"6pzqt9brmm"},{"Name":"integrity","Value":"sha256-xleRvjD8d2z/hInK/yEECBtnmi/NHo0mfPOKCGVWYxA="},{"Name":"label","Value":"AlAfkarERP.styles.css"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"85"},{"Name":"Content-Type","Value":"text/css"},{"Name":"ETag","Value":"\u0022xleRvjD8d2z/hInK/yEECBtnmi/NHo0mfPOKCGVWYxA=\u0022"},{"Name":"Last-Modified","Value":"Tue, 14 Apr 2026 03:39:22 GMT"},{"Name":"Link","Value":"\u003C_content/AlAfkarERP.Shared/AlAfkarERP.Shared.60qpx393jf.bundle.scp.css\u003E; rel=\u0022preload\u0022; as=\u0022style\u0022"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="AlAfkarERP.styles.css">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\AlAfkarERP.styles.css'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-xleRvjD8d2z/hInK/yEECBtnmi/NHo0mfPOKCGVWYxA="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"85"},{"Name":"Content-Type","Value":"text/css"},{"Name":"ETag","Value":"\u0022xleRvjD8d2z/hInK/yEECBtnmi/NHo0mfPOKCGVWYxA=\u0022"},{"Name":"Last-Modified","Value":"Tue, 14 Apr 2026 03:39:22 GMT"},{"Name":"Link","Value":"\u003C_content/AlAfkarERP.Shared/AlAfkarERP.Shared.60qpx393jf.bundle.scp.css\u003E; rel=\u0022preload\u0022; as=\u0022style\u0022"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
     <StaticWebAssetEndpoint Include="app.css">
       <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\app.css'))</AssetFile>
       <Selectors><![CDATA[[]]]></Selectors>

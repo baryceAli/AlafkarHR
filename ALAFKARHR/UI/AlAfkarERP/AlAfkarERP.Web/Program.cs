@@ -1,4 +1,5 @@
 using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Pages.Features.Company.Services;
 using AlAfkarERP.Shared.Pages.Reuable;
 using AlAfkarERP.Shared.Services.Auth;
 using AlAfkarERP.Shared.Utilities;
@@ -18,7 +19,7 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddSingleton<SharedDataService>();
 
-//builder.Services.AddTransient<AuthMessageHandler>();
+builder.Services.AddTransient<AuthMessageHandler>();
 
 builder.Services.AddScoped<ModalService>();
 builder.Services.AddScoped<ToastService>();
@@ -28,14 +29,46 @@ builder.Services.AddScoped<SearchModalService>();
 
 builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
-builder.Services.AddScoped<IAuthService, AuthService>();
 
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddHttpClient("AlAfkarERP", client =>
 {
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
+
+builder.Services.AddScoped<ICompanyService, CompanyService>();
+builder.Services.AddHttpClient<ICompanyService, CompanyService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+
+builder.Services.AddScoped<IBranchService, BranchService>();
+builder.Services.AddHttpClient<IBranchService, BranchService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+
+builder.Services.AddScoped<IAdministrationService, AdministrationService>();
+builder.Services.AddHttpClient<IAdministrationService, AdministrationService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+
+builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddHttpClient<IDepartmentService, DepartmentService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+
+
 var app = builder.Build();
+
+
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

@@ -1,17 +1,17 @@
-﻿using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
+﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Organization.Data;
+using Organization.Data.Seed;
 using Shared.Data;
+using Shared.Data.Seed;
 
 namespace Organization;
 
 public static class OrganizationModule
 {
 
-    public static IServiceCollection AddCatalogModule(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddOrganizationModule(this IServiceCollection services, IConfiguration configuration)
     {
         // Add services to the container.
 
@@ -34,13 +34,13 @@ public static class OrganizationModule
             //options.UseSqlServer(connectionString);
         });
 
-        //services.AddScoped<IDataSeeder<CoreHRDbContext>, CatalogDataSeeder>();
+        services.AddScoped<IDataSeeder<OrganizationDbContext>, OrganizationDataSeeder>();
 
 
         return services;
     }
 
-    public static IApplicationBuilder UseCatalogModule(this IApplicationBuilder app, IWebHostEnvironment env)
+    public static IApplicationBuilder UseOrganizationModule(this IApplicationBuilder app, IWebHostEnvironment env)
     {
         //application.use
 

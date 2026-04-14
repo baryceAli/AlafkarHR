@@ -1698,6 +1698,22 @@
           "bin/placeholder/Auth.dll": {}
         }
       },
+      "Organization/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore": "10.0.0",
+          "Microsoft.EntityFrameworkCore.Relational": "10.0.0",
+          "Shared": "1.0.0",
+          "Shared.Contracts": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/Organization.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Organization.dll": {}
+        }
+      },
       "Shared/1.0.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
@@ -4304,6 +4320,11 @@
       "path": "../../Modules/Auth/Auth/Auth.csproj",
       "msbuildProject": "../../Modules/Auth/Auth/Auth.csproj"
     },
+    "Organization/1.0.0": {
+      "type": "project",
+      "path": "../../Modules/Organization/Organization/Organization.csproj",
+      "msbuildProject": "../../Modules/Organization/Organization/Organization.csproj"
+    },
     "Shared/1.0.0": {
       "type": "project",
       "path": "../../Shared/Shared/Shared.csproj",
@@ -4320,7 +4341,8 @@
       "Auth >= 1.0.0",
       "Microsoft.AspNetCore.OpenApi >= 10.0.5",
       "Microsoft.EntityFrameworkCore.Design >= 10.0.0",
-      "Microsoft.VisualStudio.Azure.Containers.Tools.Targets >= 1.23.0"
+      "Microsoft.VisualStudio.Azure.Containers.Tools.Targets >= 1.23.0",
+      "Organization >= 1.0.0"
     ]
   },
   "packageFolders": {
@@ -4358,6 +4380,9 @@
           "projectReferences": {
             "D:\\Development\\AlAfkar\\HR\\ALAFKARHR\\src\\Modules\\Auth\\Auth\\Auth.csproj": {
               "projectPath": "D:\\Development\\AlAfkar\\HR\\ALAFKARHR\\src\\Modules\\Auth\\Auth\\Auth.csproj"
+            },
+            "D:\\Development\\AlAfkar\\HR\\ALAFKARHR\\src\\Modules\\Organization\\Organization\\Organization.csproj": {
+              "projectPath": "D:\\Development\\AlAfkar\\HR\\ALAFKARHR\\src\\Modules\\Organization\\Organization\\Organization.csproj"
             }
           }
         }

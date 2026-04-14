@@ -4,7 +4,7 @@ namespace Organization.Organizations.Models;
 
 public class Administration:Entity<Guid>
 {
-    public string Name { get; private set; }
+    public string Name { get;private set; }
     public string NameEng { get; private set; }
     public Guid BranchId { get; private set; }
     public Branch Branch { get; private set; }
@@ -56,14 +56,12 @@ public class Administration:Entity<Guid>
     public void Update(
         string name,
         string nameEng,
-        Guid branchId,
         string modifiedBy)
     {
         ArgumentNullException.ThrowIfNullOrEmpty(name, "Name is required");
         ArgumentNullException.ThrowIfNullOrEmpty(nameEng, "NameEng is required");
         Name = name; 
         NameEng=nameEng; 
-        BranchId=branchId;
         ModifiedAt=DateTime.UtcNow;
         ModifiedBy=modifiedBy;
     }

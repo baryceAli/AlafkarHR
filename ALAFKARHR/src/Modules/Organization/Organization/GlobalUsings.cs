@@ -1,3 +1,20 @@
 ﻿
 global using Microsoft.EntityFrameworkCore;
 global using System.Reflection;
+global using AlAfkarERP.Shared.Pages.Features.Company.Dtos;
+global using FluentValidation;
+global using Mapster;
+global using Microsoft.AspNetCore.Http;
+global using Organization.Data;
+global using Organization.Organizations.Models;
+global using Shared.Contracts.CQRS;
+global using System.Security.Claims;
+global using Shared.Exceptions;
+global using Carter;
+global using Microsoft.AspNetCore.Routing;
+global using MediatR;
+global using Microsoft.AspNetCore.Builder;
+global using Organization.Organizations.Config;
+global using Shared.Contracts.Permissions;
+global using Microsoft.AspNetCore.Mvc;
+global using Shared.Pagination;

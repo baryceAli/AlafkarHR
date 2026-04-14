@@ -46,8 +46,12 @@ public class Branch : Entity<Guid>
         string nameEng,
         string location,
         double longitude,
-        double latitude
-        , Guid companyId,
+        double latitude,
+        string code,
+        string phone,
+        string email,
+        bool isMainBranch,
+        Guid companyId,
         string createdBy)
     {
         return new Branch
@@ -58,6 +62,10 @@ public class Branch : Entity<Guid>
             Location = location,
             Longitude = longitude,
             Latitude = latitude,
+            Code=code,
+            Phone = phone,
+            Email = email,
+            IsMainBranch = isMainBranch,
             CompanyId = companyId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
@@ -70,6 +78,10 @@ public class Branch : Entity<Guid>
         string location,
         double longitude,
         double latitude,
+        string code,
+        string phone,
+        string email,
+        bool isMainBranch,
         string modifiedBy)
     {
         Name = name;
@@ -77,6 +89,10 @@ public class Branch : Entity<Guid>
         Location = location;
         Longitude = longitude;
         Latitude = latitude;
+        Code= code;
+        Phone = phone;
+        Email= email;
+        IsMainBranch= isMainBranch;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }

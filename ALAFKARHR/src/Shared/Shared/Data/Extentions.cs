@@ -27,7 +27,7 @@ public static class Extentions
                 }
 
                 isFirstModule = false;
-
+                //context.Database.Migrate();
                 // ✅ Only runs AFTER migration succeeds
                 var seeders = scope.ServiceProvider.GetServices<IDataSeeder<TContext>>();
                 foreach (var seeder in seeders)

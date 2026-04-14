@@ -1,5 +1,6 @@
 using Auth;
 using Carter;
+using Organization;
 using Shared.Exceptions.Handler;
 using Shared.Extentions;
 
@@ -19,17 +20,20 @@ builder.Services.AddDataProtection();
 
 
 var authAssembly = typeof(AuthModule).Assembly;
+var organizationAssembly = typeof(OrganizationModule).Assembly;
 //var catalogAssembly = typeof(CatalogModule).Assembly;
 //var basketAssembly = typeof(BasketModule).Assembly;
 //var inventoryAssembly = typeof(InventoryModule).Assembly;
 builder.Services.AddCarterWithAssemblies(
-                        authAssembly);
+                        authAssembly,
+                        organizationAssembly);
 //catalogAssembly,
 //basketAssembly,
 //inventoryAssembly);
 
 builder.Services.AddMediatRWithAssemblies(
-                        authAssembly);
+                        authAssembly,
+                        organizationAssembly);
 //catalogAssembly,
 //basketAssembly,
 //inventoryAssembly);
@@ -39,7 +43,8 @@ builder.Services.AddMediatRWithAssemblies(
 
 #region Module Service: Auth, Catalog, ShoppingCart, Ordering
 builder.Services
-        .AddAuthModule(builder.Configuration);
+        .AddAuthModule(builder.Configuration)
+        .AddOrganizationModule(builder.Configuration);
         //.AddCatalogModule(builder.Configuration)
         //.AddBasketModule(builder.Configuration)
         //.AddInventoryModule(builder.Configuration);
@@ -66,7 +71,8 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app
-    .UseAuthModule(app.Environment);
+    .UseAuthModule(app.Environment)
+    .UseOrganizationModule(app.Environment);
     //.UseCatalogModule(app.Environment)
     //.UseBasketModule(app.Environment)
     //.UseInventoryModule(app.Environment);

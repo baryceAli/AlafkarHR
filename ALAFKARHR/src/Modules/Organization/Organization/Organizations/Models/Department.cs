@@ -24,7 +24,7 @@ public class Department:Entity<Guid>
         string name,
         string nameEng,
         Guid administrationId,
-        Guid headOfDepartment,
+        Guid? headOfDepartment,
         Guid companyId,
         string createdBy)
     {
@@ -43,16 +43,22 @@ public class Department:Entity<Guid>
     public void Update(
         string name,
         string nameEng,
-        Guid administrationId,
-        Guid headOfDepartment,
+        //Guid administrationId,
+        //Guid headOfDepartment,
         string modifiedBy)
     {
         Name=name;
         NameEng=nameEng;
-        AdministraitonId=administrationId;
-        HeadOfDepartment=headOfDepartment;
+        //AdministraitonId=administrationId;
+        //HeadOfDepartment=headOfDepartment;
         ModifiedAt= DateTime.UtcNow;
         ModifiedBy=modifiedBy;
+    }
+    public void AssignHeadOfDepartment(Guid headOfDepartment, string modifiedBy)
+    {
+        HeadOfDepartment = headOfDepartment;
+        ModifiedBy=modifiedBy.Trim();
+        ModifiedAt = DateTime.UtcNow;
     }
     public void Remove(string deletedBy)
     {

@@ -159,8 +159,8 @@
 @code {
     [Parameter] public List<TItem> Items { get; set; } = new();
     [Parameter] public List<ColumnDefinition<TItem>> Columns { get; set; } = new();
-    [Parameter] public EventCallback<TItem> OnView { get; set; }
-    [Parameter] public EventCallback<TItem> OnEdit { get; set; }
+    // [Parameter] public EventCallback<TItem> OnView { get; set; }
+    // [Parameter] public EventCallback<TItem> OnEdit { get; set; }
     [Parameter] public string Language { get; set; } = "En";
     bool IsArabic => Language == "Ar";
     string Direction => IsArabic ? "rtl" : "ltr";

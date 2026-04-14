@@ -10,7 +10,8 @@
         "dependencies": {
           "Auth": "1.0.0",
           "Microsoft.AspNetCore.OpenApi": "10.0.5",
-          "Microsoft.EntityFrameworkCore.Design": "10.0.0"
+          "Microsoft.EntityFrameworkCore.Design": "10.0.0",
+          "Organization": "1.0.0"
         },
         "runtime": {
           "Api.dll": {}
@@ -1016,6 +1017,20 @@
           }
         }
       },
+      "Organization/1.0.0": {
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore": "10.0.0",
+          "Microsoft.EntityFrameworkCore.Relational": "10.0.0",
+          "Shared": "1.0.0",
+          "Shared.Contracts": "1.0.0"
+        },
+        "runtime": {
+          "Organization.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
       "Shared/1.0.0": {
         "dependencies": {
           "Carter": "10.0.0",
@@ -1508,6 +1523,11 @@
       "hashPath": "system.windows.extensions.9.0.0.nupkg.sha512"
     },
     "Auth/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Organization/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

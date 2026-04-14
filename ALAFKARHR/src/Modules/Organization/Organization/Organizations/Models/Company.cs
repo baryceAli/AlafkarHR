@@ -2,11 +2,11 @@
 using Shared.DDD;
 namespace Organization.Organizations.Models;
 
-public class Company:Aggregate<Guid>
+public class Company : Aggregate<Guid>
 {
     public string Name { get; private set; }
     public string NameEng { get; private set; }
-    public string Logo{ get; private set; }
+    public string Logo { get; private set; }
     public string HqLocation { get; private set; }
     public double HqLongitude { get; private set; }
     public double HqLatitude { get; private set; }
@@ -23,10 +23,10 @@ public class Company:Aggregate<Guid>
 
 
 
-    private readonly List<Branch> _branches=new();
-    public IReadOnlyCollection<Branch> Branches=> _branches;
+    private readonly List<Branch> _branches = new();
+    public IReadOnlyCollection<Branch> Branches => _branches;
 
-    private Company(){}
+    private Company() { }
 
 
     public void AddBranch(Branch branch)
@@ -44,7 +44,7 @@ public class Company:Aggregate<Guid>
         if (_branches.Any(b => b.Id == branch.Id))
             throw new Exception("Branch already exists");
 
-        _branches.Add( branch);
+        _branches.Add(branch);
     }
     public void RemoveBranch(Branch branch)
     {
@@ -53,13 +53,19 @@ public class Company:Aggregate<Guid>
 
 
     public static Company Create(
-        string name, 
-        string nameEng, 
-        string logo, 
-        string hqLocation, 
-        double hqLongitude, 
+        Guid id,
+        string name,
+        string nameEng,
+        string logo,
+        string hqLocation,
+        double hqLongitude,
         double hqLatitude,
-        string vatNo, 
+        string vatNo,
+        string code,
+        string currency,
+        string email,
+        string phone,
+        string timeZone,
         string createdBy)
     {
 
@@ -68,6 +74,7 @@ public class Company:Aggregate<Guid>
         ArgumentNullException.ThrowIfNullOrEmpty(vatNo, "VatNo is required");
         return new Company
         {
+            Id = id,
             Name = name,
             NameEng = nameEng,
             Logo = logo,
@@ -75,6 +82,11 @@ public class Company:Aggregate<Guid>
             HqLongitude = hqLongitude,
             HqLatitude = hqLatitude,
             VatNo = vatNo,
+            Code=code,
+            Currency=currency,
+            Email=email,
+            Phone=phone,
+            TimeZone=timeZone,
             CreatedBy = createdBy,
             CreatedAt = DateTime.UtcNow,
         };
@@ -92,12 +104,12 @@ public class Company:Aggregate<Guid>
     {
         Name = name;
         NameEng = nameEng;
-        Logo= logo;
-        HqLocation=hqLocation;
+        Logo = logo;
+        HqLocation = hqLocation;
         HqLongitude = hqLongitude;
         HqLatitude = hqLatitude;
-        VatNo= vatNo;
-        ModifiedAt= DateTime.UtcNow;
+        VatNo = vatNo;
+        ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }
     public void Remove(string deletedBy)
