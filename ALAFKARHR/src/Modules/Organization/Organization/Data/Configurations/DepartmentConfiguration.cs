@@ -21,12 +21,12 @@ public class DepartmentConfiguration : IEntityTypeConfiguration<Department>
             .IsRequired()
             .HasMaxLength(200);
 
-        builder.Property(x => x.AdministraitonId)
+        builder.Property(x => x.AdministrationId)
             .IsRequired();
 
         builder.HasOne(x => x.Administration)
     .WithMany(x => x.Departments)
-    .HasForeignKey(x => x.AdministraitonId)
+    .HasForeignKey(x => x.AdministrationId)
     .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(x => x.ParentDepartment)
@@ -35,7 +35,7 @@ public class DepartmentConfiguration : IEntityTypeConfiguration<Department>
     .OnDelete(DeleteBehavior.Restrict);
         // 🔍 Indexes
 
-        builder.HasIndex(x => x.AdministraitonId);
+        builder.HasIndex(x => x.AdministrationId);
         builder.HasIndex(x => x.CompanyId);
         builder.HasIndex(x => new { x.CompanyId, x.Code }).IsUnique();
 

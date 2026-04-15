@@ -1,4 +1,8 @@
-﻿<div class="bg-dark text-white d-flex flex-column p-2" style="width: 250px;">
+﻿@using AlAfkarERP.Shared.Utilities
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+
+<div class="bg-dark text-white d-flex flex-column p-2" style="width: 250px;">
 
     <!-- Logo -->
     <div class="text-center mb-3">
@@ -16,9 +20,9 @@
         </li>
 
         <li class="nav-item">
-            <NavLink href="/zInventory" class="nav-link text-white">
+            <NavLink href="/Company/List" class="nav-link text-white">
                 <i class="bi bi-box-seam me-2"></i>
-                Inventory
+                @(SharedDataService.SelectViewLang("Organizational Structure","الهيكل التنظيمي"))
             </NavLink>
         </li>
 

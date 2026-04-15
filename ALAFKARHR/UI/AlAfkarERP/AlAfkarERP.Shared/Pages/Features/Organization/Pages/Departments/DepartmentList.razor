@@ -1,0 +1,119 @@
+﻿@page "/Organization/Department/List"
+@using AlAfkarERP.Shared.Pages.Features.Company.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject IBranchService BranchService
+@inject IDepartmentService DepartmentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+
+<!-- Departments -->
+<div class="card p-3">
+    <h5>Departments</h5>
+
+    <button class="btn btn-sm btn-primary mb-2" @onclick="AddDepartmentRow">+ Add Department</button>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Administration</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in departments)
+            {
+                <tr>
+                    @if (editingDepartmentId == d.Id)
+                    {
+                        <td><InputText class="form-control" @bind-Value="d.Name" /></td>
+                        <td>
+                            <select class="form-select" @bind="d.AdministrationId">
+                                @foreach (var a in administrations)
+                                {
+                                    <option value="@a.Id">@a.Name</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <button class="btn btn-success btn-sm" @onclick="() => SaveDepartment(d)">Save</button>
+                            <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>@d.Name</td>
+                        @* <td>@d.AdministrationName</td> *@
+                        <td>
+                            <button class="btn btn-warning btn-sm" @onclick="() => EditDepartment(d.Id)">Edit</button>
+                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteDepartment(d.Id)">Delete</button>
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+
+@code {
+    private List<BranchDto> branches = new();
+    private Guid companyId;
+
+    private List<AdministrationDto> administrations = new();
+    private Guid? editingAdministrationId;
+
+    private List<DepartmentDto> departments = new();
+
+    private Guid? editingDepartmentId;
+
+    private AuthenticationState AuthState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+
+        var branchResponse = await BranchService.GetByCompanyIdAsync(companyId,0,100);
+        if (branchResponse.IsSuccess)
+        {
+            branches = branchResponse.Data?.Data?.ToList() ?? [];
+        }
+    }
+
+    // Department
+    void AddDepartmentRow()
+    {
+        var newItem = new DepartmentDto();
+        departments.Insert(0, newItem);
+        editingDepartmentId = newItem.Id;
+    }
+
+    void EditDepartment(Guid id) => editingDepartmentId = id;
+
+    async Task SaveDepartment(DepartmentDto d)
+    {
+        await DepartmentService.CreateAsync(d);
+        var deptResponse = await DepartmentService.GetByAdministrationAsync(d.AdministrationId);
+        if (deptResponse.IsSuccess)
+        {
+            departments = deptResponse.Data?.ToList() ?? [];
+        }
+        editingDepartmentId = null;
+    }
+
+    async Task DeleteDepartment(Guid id)
+    {
+        await DepartmentService.DeleteAsync(id);
+        departments.RemoveAll(x => x.Id == id);
+    }
+
+    void CancelEdit()
+    {
+        editingDepartmentId = null;
+    }
+}

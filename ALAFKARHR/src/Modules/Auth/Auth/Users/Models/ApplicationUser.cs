@@ -13,11 +13,21 @@ public class ApplicationUser
     public bool? IsOtpConfirmed { get; set; }
     public OTPType OtpType { get; set; }
     public DateTime OtpExpiration { get; set; }
-
+    public Guid CompanyId { get; set; }
+    //public Guid? EmployeeId { get; set; }
     public IReadOnlyCollection<RefreshToken> RefreshTokens => _refreshTokens.AsReadOnly();
 
     private ApplicationUser() { }
-    public static ApplicationUser Create(Guid id, string userName, string email, string phoneNumber, UserType userType, string otp, OTPType otpType, DateTime otpExpiration)
+    public static ApplicationUser Create(
+        Guid id, 
+        string userName, 
+        string email, 
+        string phoneNumber, 
+        UserType userType, 
+        string otp, 
+        OTPType otpType, 
+        DateTime otpExpiration,
+        Guid companyId)
     {
         ArgumentException.ThrowIfNullOrEmpty(userName);
         ArgumentException.ThrowIfNullOrEmpty(email);
@@ -33,7 +43,9 @@ public class ApplicationUser
             UserType = userType,
             Otp = otp,
             OtpType = otpType,
-            OtpExpiration = otpExpiration
+            OtpExpiration = otpExpiration,
+            CompanyId= companyId,
+            //EmployeeId= employeeId
         };
         applicationUser.AddDomainEvent(new UserRegistredEvent(applicationUser));
         return applicationUser;

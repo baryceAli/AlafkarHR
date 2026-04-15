@@ -1,0 +1,76 @@
+﻿// Blazor Page: Company Details with Inline Editing (No Modals)
+@page "/Company/List"
+@using AlAfkarERP.Shared.Pages.Features.Company.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject ICompanyService CompanyService
+@inject IBranchService BranchService
+@inject IAdministrationService AdministrationService
+@inject IDepartmentService DepartmentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h3 class="mb-3">Company Details</h3>
+
+@if (company == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="card p-3 mb-3">
+        <h4>@company.Name</h4>
+        <div class="text-muted">@company.Code | @company.Currency</div>
+    </div>
+
+    <div class="card mt-5 p-4">
+        <h5>Company Information</h5>
+
+        <div class="mb-2">
+            <label>Name</label>
+            <InputText class="form-control" @bind-Value="company.Name" />
+        </div>
+
+        <div class="mb-2">
+            <label>Code</label>
+            <InputText class="form-control" @bind-Value="company.Code" />
+        </div>
+
+        <div class="mb-2">
+            <label>Currency</label>
+            <InputText class="form-control" @bind-Value="company.Currency" />
+        </div>
+
+        <button class="btn btn-primary mt-2" @onclick="Save">
+            Save Changes
+        </button>
+    </div>
+
+
+}
+
+@code {
+    private Guid Id { get; set; }
+    private AuthenticationState AuthState;
+    private CompanyDto? company;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        var compId = AuthState.User?.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value ?? "";
+        var comResult = await CompanyService.GetByIdAsync(Guid.Parse(compId));
+        if (comResult.IsSuccess)
+        {
+            company = comResult.Data;
+        }
+        
+    }
+
+    async Task Save()
+    {
+        await CompanyService.UpdateAsync(company);
+    }
+    
+    
+}

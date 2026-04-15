@@ -36,9 +36,9 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
 
         // 🔗 One-to-Many (Organization -> Branches)
         builder.HasMany(x => x.Branches)
-            .WithOne() // no navigation back yet
-            .HasForeignKey(x => x.CompanyId)
-            .OnDelete(DeleteBehavior.Cascade);
+    .WithOne(x => x.Company)
+    .HasForeignKey(x => x.CompanyId)
+    .OnDelete(DeleteBehavior.Cascade);
 
         // 🔍 Indexes
         builder.HasIndex(x => x.Name);

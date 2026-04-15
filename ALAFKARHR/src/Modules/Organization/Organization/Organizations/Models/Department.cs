@@ -6,7 +6,7 @@ public class Department:Entity<Guid>
 {
     public string Name { get; private set; }
     public string NameEng { get; private set; }
-    public Guid AdministraitonId { get; private set; }
+    public Guid AdministrationId { get; private set; }
     public Administration Administration { get; private set; }
     public Guid? HeadOfDepartment { get; private set; }
 
@@ -33,7 +33,7 @@ public class Department:Entity<Guid>
             Id = id,
             Name = name,
             NameEng = nameEng,
-            AdministraitonId = administrationId,
+            AdministrationId = administrationId,
             HeadOfDepartment = headOfDepartment,
             CompanyId = companyId,
             CreatedAt = DateTime.UtcNow,

@@ -14,7 +14,7 @@ public class Administration:Entity<Guid>
     public bool IsActive { get; private set; }
 
     public Guid CompanyId { get; private set; }
-    public Company Company { get; private set; }
+
 
     private readonly List<Department> _departments = new();
     public IReadOnlyCollection<Department> Departments=> _departments;

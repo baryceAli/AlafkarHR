@@ -33,7 +33,9 @@ public class RegisterUserHandler(UserManager<ApplicationUser> userManager, IMess
             command.Register.UserType,
             GenerateOTP.Generate(oTPOptions.Value.Length),
             OTPType.ConfirmEmail,
-            DateTime.UtcNow.AddMinutes(oTPOptions.Value.ExpirationMinutes));
+            DateTime.UtcNow.AddMinutes(oTPOptions.Value.ExpirationMinutes),
+            command.Register.CompanyId
+            );
         
         var result = await userManager.CreateAsync(userToCreate, command.Register.Password);
         

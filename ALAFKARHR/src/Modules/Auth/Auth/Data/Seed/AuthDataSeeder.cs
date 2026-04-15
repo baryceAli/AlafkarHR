@@ -72,7 +72,8 @@ public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManage
                 UserType.SystemUser,
                 GenerateOTP.Generate(oTPOptions.Value.Length),
                                  OTPType.ConfirmEmail,
-                DateTime.UtcNow.AddMinutes(oTPOptions.Value.ExpirationMinutes));
+                DateTime.UtcNow.AddMinutes(oTPOptions.Value.ExpirationMinutes),
+                Guid.Parse("4c3d205f-7e2b-42c2-a081-1700b229d91e"));
             var result = await userManager.CreateAsync(userToRegister, "Admin@123");
             if (result.Succeeded)
             {

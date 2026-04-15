@@ -1,6 +1,6 @@
 ﻿using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Pages.Features.Company.Dtos;
-using AlAfkarERP.Shared.Pages.Reuable;
+//using AlAfkarERP.Shared.Pages.Reuable2;
 using AlAfkarERP.Shared.Services;
 using System.Net.Http.Json;
 
@@ -34,16 +34,16 @@ public class BranchService : BaseApiService, IBranchService
         return await SendAsync<UpdateDeleteResponseDto>(request, null);
     }
 
-    public async Task<ApiResult<PagedResult<BranchDto>>> GetAsync(int pageIndex, int pageSize)
+    public async Task<ApiResult<PaginatedResult<BranchDto>>> GetAsync(int pageIndex, int pageSize)
     {
-        var request = new HttpRequestMessage(HttpMethod.Delete, $"{_path}?pageIndex{pageIndex}&pageSize={pageSize}");
-        return await SendAsync<PagedResult<BranchDto>>(request, "branchList");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}?PageIndex={pageIndex}&PageSize={pageSize}");
+        return await SendAsync<PaginatedResult<BranchDto>>(request, "branchList");
     }
 
-    public async Task<ApiResult<List<BranchDto>>> GetByCompanyIdAsync(Guid companyId)
+    public async Task<ApiResult<PaginatedResult<BranchDto>>> GetByCompanyIdAsync(Guid companyId, int pageIndex, int pageSize)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/GetByCompanyId/{companyId}");
-        return await SendAsync<List<BranchDto>>(request, "BranchList");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/GetByCompanyId/{companyId}?PageIndex={pageIndex}&PageSize={pageSize}");
+        return await SendAsync<PaginatedResult<BranchDto>>(request, "branchList");
     }
 
     public async Task<ApiResult<BranchDto>> GetByIdAsync(Guid Id)

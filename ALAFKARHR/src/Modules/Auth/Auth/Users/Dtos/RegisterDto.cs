@@ -7,7 +7,9 @@ public record RegisterDto
         string Email,
         string PhoneNumber,
         string Password,
-        UserType UserType
+        UserType UserType,
+        Guid CompanyId,
+        Guid? EmployeeId
     );
 
 

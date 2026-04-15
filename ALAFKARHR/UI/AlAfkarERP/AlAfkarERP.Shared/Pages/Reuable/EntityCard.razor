@@ -1,0 +1,32 @@
+﻿<div class="card entity-card shadow-sm" @onclick="Navigate">
+    <div class="card-body">
+        <h5 class="card-title">@Title</h5>
+        <p class="card-text text-muted">@Subtitle</p>
+    </div>
+</div>
+<style>
+
+    .entity-card {
+        cursor: pointer;
+        transition: 0.2s;
+        border-radius: 12px;
+    }
+
+        .entity-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+</style>
+@code {
+    [Parameter] public string Title { get; set; }
+    [Parameter] public string Subtitle { get; set; }
+    [Parameter] public string Url { get; set; }
+
+    [Inject] NavigationManager Nav { get; set; }
+
+    void Navigate()
+    {
+        if (!string.IsNullOrEmpty(Url))
+            Nav.NavigateTo(Url);
+    }
+}

@@ -31,7 +31,9 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Typ,user.UserType.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
-            new Claim(ClaimTypes.Name, user.UserName ?? "")
+            new Claim(ClaimTypes.Name, user.UserName ?? ""),
+            new Claim("company_id", user.CompanyId.ToString()),
+            //new Claim("employee_id", user.EmployeeId?.ToString()??"")
         };
 
         // ✅ Get Roles

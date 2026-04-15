@@ -32,7 +32,6 @@ public class OrganizationDbContext:DbContext
         // modelBuilder.Entity<Branch>().HasQueryFilter(x => x.TenantId == _tenantId);
 
 
-
         base.OnModelCreating(builder);
     }
 }

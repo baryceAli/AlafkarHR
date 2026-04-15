@@ -1,0 +1,173 @@
+﻿@* @page "/organization/Branch/Form" *@
+@page "/organization/Branch/Form/{Id:guid?}"
+@using AlAfkarERP.Shared.Pages.Features.Company.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject IBranchService BranchService
+@inject ToastService ToastService
+@inject ModalService ModalService
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+
+<h3>@SharedDataService.SelectViewLang("Branches", "الفروع")</h3>
+<section>
+
+    <EditForm Model="branchDto" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+        <div class="form-group row">
+            <label for="inputName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
+            <div class="col-sm-10">
+                <InputText class="form-control" id="inputName" placeholder=@SharedDataService.SelectViewLang("Name", "الاسم") @bind-Value="branchDto.Name" />
+                <ValidationMessage For="() => branchDto.Name" />
+            </div>
+        </div>
+
+        <div class="form-group row">
+            <label for="inputNameEng" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("English Name", "الاسم بالانجليزية")</label>
+            <div class="col-sm-10">
+                <InputText class="form-control" id="inputNameEng"
+                           @bind-Value="branchDto.NameEng"
+                           placeholder=@SharedDataService.SelectViewLang("English Name", "الاسم بالانجليزية") />
+                <ValidationMessage For="() => branchDto.NameEng" />
+            </div>
+        </div>
+    
+        <div class="form-group row">
+            <label for="inputLocation" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Location", "الموقع")</label>
+            <div class="col-sm-10">
+                <InputText class="form-control" id="inputLocation" placeholder=@SharedDataService.SelectViewLang("Location", "الموقع") @bind-Value="branchDto.Location" />
+                <ValidationMessage For="() => branchDto.Location" />
+            </div>
+        </div>
+    
+        <div class="form-group row">
+            <label for="inputLocation" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Longitude", "خط الطول")</label>
+            <div class="col-sm-10">
+                <InputNumber class="form-control" id="inputLongitude"
+                             @bind-Value="branchDto.Longitude"
+                             placeholder=@SharedDataService.SelectViewLang("Longitude", "خط الطول") />
+                <ValidationMessage For="() => branchDto.Longitude" />
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="inputLocation" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Latitude", "خط العرض")</label>
+            <div class="col-sm-10">
+                <InputNumber class="form-control" id="inputLatitude"
+                             @bind-Value="branchDto.Latitude"
+                             placeholder=@SharedDataService.SelectViewLang("Latitude", "خط العرض") />
+                <ValidationMessage For="() => branchDto.Latitude" />
+            </div>
+        </div>
+    
+        <div class="form-group row">
+            <label for="inputPhone" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Phone", "الهاتف")</label>
+            <div class="col-sm-10">
+                <InputText class="form-control" id="inputPhone"
+                           @bind-Value="branchDto.Phone"
+                           placeholder=@SharedDataService.SelectViewLang("Phone", "الهاتف") />
+                <ValidationMessage For="() => branchDto.Phone" />
+            </div>
+        </div>
+    
+        <div class="form-group row">
+            <label for="inputEmail" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Email", "الايميل")</label>
+            <div class="col-sm-10">
+                <InputText class="form-control" id="inputEmail"
+                           @bind-Value="branchDto.Email"
+                           placeholder=@SharedDataService.SelectViewLang("Email", "الايميل") />
+                <ValidationMessage For="() => branchDto.Email" />
+            </div>
+        </div>
+    
+
+        <div class="form-group row">
+            <div class="col-sm-2">Checkbox</div>
+            <div class="col-sm-10">
+                <div class="form-check">
+                    <input class="form-check-input" checked="@branchDto.IsMainBranch" @bind-value="branchDto.IsMainBranch" type="checkbox" id="gridCheck1">
+                        <label class="form-check-label" for="gridCheck1">
+                            @SharedDataService.SelectViewLang("Main Branch?", "الفرع الرئيسي؟")
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group row">
+                <div class="col-sm-10">
+                    <button type="submit" class="btn btn-primary">@SharedDataService.SelectViewLang("Save", "حفظ")</button>
+                    <button type="button" class="btn btn-secondary" @onclick="OnCancel">@SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>
+                </div>
+            </div>
+        </EditForm>
+
+    </section>
+@code {
+
+    [Parameter] public Guid? Id { get; set; }
+    private BranchDto branchDto = new();
+    private Guid companyId;
+    private AuthenticationState AuthState;
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+        // branchDto.IsMainBranch = true;
+    }
+    private async Task HandleSubmit()
+    {
+        if (!Id.HasValue)
+        {
+            //Insert new
+            Random random = new Random();
+            branchDto.Code = branchDto.NameEng.Substring(0, 1) + random.Next(100, 999).ToString();
+            branchDto.CompanyId = companyId;
+            var bResponse = await BranchService.CreateAsync(branchDto);
+            if (bResponse.IsSuccess)
+            {
+                //
+                ToastService.Show(new ToastMessage
+                {
+                    Message = "Saved successfully",
+                    Type = "success"
+                });
+                NavigationManager.NavigateTo("Organization/Branch/List");
+            }
+            else
+            {
+                await ModalService.ShowAsync(new ModalOptions
+                {
+                    Title = "Error",
+                    Message = "Something went wrong",
+                    Details = bResponse.Error?.Detail ?? "",
+                    IsError = true,
+                    OnOk = async () =>
+                    {
+
+                    }
+                });
+
+                // ToastService.Show(new ToastMessage
+                // {
+                //     Message = "An Error has occured, please try again later",
+                //     Type = "error"
+                // });
+
+            }
+        }
+        else
+        {
+            //Update
+
+        }
+        // return Task.CompletedTask;
+    }
+
+    private void OnCancel()
+    {
+        NavigationManager.NavigateTo("/Organization/Branch/List");
+    }
+}

@@ -61,7 +61,6 @@ namespace Organization.Data.Migrations
                     Email = table.Column<string>(type: "text", nullable: false),
                     IsMainBranch = table.Column<bool>(type: "boolean", nullable: false),
                     CompanyId = table.Column<Guid>(type: "uuid", nullable: false),
-                    CompanyId1 = table.Column<Guid>(type: "uuid", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedBy = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     ModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -80,13 +79,6 @@ namespace Organization.Data.Migrations
                         principalTable: "Companies",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Branches_Companies_CompanyId1",
-                        column: x => x.CompanyId1,
-                        principalSchema: "Organization",
-                        principalTable: "Companies",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -98,7 +90,6 @@ namespace Organization.Data.Migrations
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     NameEng = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     BranchId = table.Column<Guid>(type: "uuid", nullable: false),
-                    BranchId1 = table.Column<Guid>(type: "uuid", nullable: false),
                     Code = table.Column<string>(type: "text", nullable: false),
                     ManagerId = table.Column<Guid>(type: "uuid", nullable: true),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
@@ -122,19 +113,12 @@ namespace Organization.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Administrations_Branches_BranchId1",
-                        column: x => x.BranchId1,
-                        principalSchema: "Organization",
-                        principalTable: "Branches",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
                         name: "FK_Administrations_Companies_CompanyId",
                         column: x => x.CompanyId,
                         principalSchema: "Organization",
                         principalTable: "Companies",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -145,7 +129,7 @@ namespace Organization.Data.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     NameEng = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    AdministraitonId = table.Column<Guid>(type: "uuid", nullable: false),
+                    AdministrationId = table.Column<Guid>(type: "uuid", nullable: false),
                     HeadOfDepartment = table.Column<Guid>(type: "uuid", nullable: true),
                     Code = table.Column<string>(type: "text", nullable: false),
                     ParentDepartmentId = table.Column<Guid>(type: "uuid", nullable: true),
@@ -163,8 +147,8 @@ namespace Organization.Data.Migrations
                 {
                     table.PrimaryKey("PK_Departments", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Departments_Administrations_AdministraitonId",
-                        column: x => x.AdministraitonId,
+                        name: "FK_Departments_Administrations_AdministrationId",
+                        column: x => x.AdministrationId,
                         principalSchema: "Organization",
                         principalTable: "Administrations",
                         principalColumn: "Id",
@@ -190,12 +174,6 @@ namespace Organization.Data.Migrations
                 schema: "Organization",
                 table: "Administrations",
                 column: "BranchId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Administrations_BranchId1",
-                schema: "Organization",
-                table: "Administrations",
-                column: "BranchId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Administrations_CompanyId",
@@ -230,12 +208,6 @@ namespace Organization.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Branches_CompanyId1",
-                schema: "Organization",
-                table: "Branches",
-                column: "CompanyId1");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Companies_Code",
                 schema: "Organization",
                 table: "Companies",
@@ -256,10 +228,10 @@ namespace Organization.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Departments_AdministraitonId",
+                name: "IX_Departments_AdministrationId",
                 schema: "Organization",
                 table: "Departments",
-                column: "AdministraitonId");
+                column: "AdministrationId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Departments_CompanyId",

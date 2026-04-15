@@ -32,9 +32,6 @@ namespace Organization.Data.Migrations
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("BranchId1")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasColumnType("text");
@@ -86,8 +83,6 @@ namespace Organization.Data.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.HasIndex("BranchId1");
-
                     b.HasIndex("CompanyId");
 
                     b.HasIndex("CompanyId", "BranchId")
@@ -107,9 +102,6 @@ namespace Organization.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<Guid>("CompanyId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CompanyId1")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("CreatedAt")
@@ -175,8 +167,6 @@ namespace Organization.Data.Migrations
                     b.HasIndex("Code");
 
                     b.HasIndex("CompanyId");
-
-                    b.HasIndex("CompanyId1");
 
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
@@ -286,7 +276,7 @@ namespace Organization.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("AdministraitonId")
+                    b.Property<Guid>("AdministrationId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Code")
@@ -341,7 +331,7 @@ namespace Organization.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AdministraitonId");
+                    b.HasIndex("AdministrationId");
 
                     b.HasIndex("CompanyId");
 
@@ -355,40 +345,26 @@ namespace Organization.Data.Migrations
 
             modelBuilder.Entity("Organization.Organizations.Models.Administration", b =>
                 {
-                    b.HasOne("Organization.Organizations.Models.Branch", null)
+                    b.HasOne("Organization.Organizations.Models.Branch", "Branch")
                         .WithMany("Administrations")
                         .HasForeignKey("BranchId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Organization.Organizations.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId1")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Organization.Organizations.Models.Company", "Company")
+                    b.HasOne("Organization.Organizations.Models.Company", null)
                         .WithMany()
                         .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Branch");
-
-                    b.Navigation("Company");
                 });
 
             modelBuilder.Entity("Organization.Organizations.Models.Branch", b =>
                 {
-                    b.HasOne("Organization.Organizations.Models.Company", null)
+                    b.HasOne("Organization.Organizations.Models.Company", "Company")
                         .WithMany("Branches")
                         .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Organization.Organizations.Models.Company", "Company")
-                        .WithMany()
-                        .HasForeignKey("CompanyId1")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -399,7 +375,7 @@ namespace Organization.Data.Migrations
                 {
                     b.HasOne("Organization.Organizations.Models.Administration", "Administration")
                         .WithMany("Departments")
-                        .HasForeignKey("AdministraitonId")
+                        .HasForeignKey("AdministrationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 

@@ -1,6 +1,6 @@
 ﻿using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Pages.Features.Company.Dtos;
-using AlAfkarERP.Shared.Pages.Reuable;
+using AlAfkarERP.Shared.Pages.Reuable2;
 using AlAfkarERP.Shared.Services;
 using System.Net.Http.Json;
 

@@ -13,19 +13,10 @@
 @* 3. *@
 @* URL *@
 @* new {Id = u.AdministrativeDivisionId,Name = administrativeDivisionList.First(ad => ad.AdministrativeDivisionId == u.AdministrativeDivisionId).Name,URL="AdministrativeDivision/Details"} *@
-
-@using FluentValidation
-@using FluentValidation.Results
-
-
 @inject IJSRuntime JS
 <div dir="@Direction">
     <div class="card">
-        <div class="mb-2">
-            <button class="btn btn-success btn-sm" @onclick="StartCreate">
-                @(IsArabic ? "إضافة" : "Add New")
-            </button>
-        </div>
+
         <table class="table table-striped">
             <thead>
                 <tr>
@@ -62,67 +53,21 @@
             <tbody>
                 @if (PagedItems.Any())
                 {
-                    @if (IsCreating)
-                    {
-                        <tr class="table-success">
-                            @foreach (var column in Columns.Where(c => !c.isHidden && !c.IsActionColumn))
-                            {
-                                <td>
-                                    <input class="form-control"
-                                           @onchange="e => SetNewValue(column, e.Value?.ToString())" />
-                                </td>
-                            }
-
-                            <td>
-                                <button class="btn btn-success btn-sm" @onclick="SaveNew">Save</button>
-                                <button class="btn btn-secondary btn-sm" @onclick="CancelCreate">Cancel</button>
-                            </td>
-                        </tr>
-                    }
                     @foreach (var item in PagedItems)
                     {
                         <tr>
                             <!-- Normal Columns -->
                             @foreach (var column in Columns.Where(c => !c.isHidden && !c.IsActionColumn))
                             {
-                                <td>@column.RenderCell(item, EditingItem, ValidationErrors)</td>
+                                <td>@column.RenderCell(item)</td>
                             }
 
                             <!-- Actions Column -->
                             @if (Columns.Any(c => c.IsActionColumn))
                             {
                                 var actionColumn = Columns.First(c => c.IsActionColumn);
-                                var actions = new List<RowAction<TItem>>();
+                                var actions = actionColumn.Actions?.Invoke(item) ?? new();
 
-                                actions.Add(new RowAction<TItem>
-                                {
-                                    Text = IsArabic ? "تعديل" : "Edit",
-                                    CssClass = "btn btn-warning btn-sm",
-                                    Visible = _ => !EqualityComparer<TItem>.Default.Equals(EditingItem, item),
-                                    OnClick = EventCallback.Factory.Create<TItem>(this, StartEdit)
-                                });
-
-                                actions.Add(new RowAction<TItem>
-                                {
-                                    Text = IsArabic ? "حفظ" : "Save",
-                                    CssClass = "btn btn-success btn-sm",
-                                    Visible = _ => EqualityComparer<TItem>.Default.Equals(EditingItem, item),
-                                    OnClick = EventCallback.Factory.Create<TItem>(this, SaveEdit)
-                                });
-
-                                actions.Add(new RowAction<TItem>
-                                {
-                                    Text = IsArabic ? "حذف" : "Delete",
-                                    CssClass = "btn btn-danger btn-sm",
-                                    ConfirmMessage = _ => IsArabic ? "هل أنت متأكد؟" : "Are you sure?",
-                                    OnClick = EventCallback.Factory.Create<TItem>(this, DeleteItem)
-                                });
-
-                                // 👉 Merge user actions
-                                if (actionColumn.Actions != null)
-                                {
-                                    actions.AddRange(actionColumn.Actions(item));
-                                }
                                 <td>
                                     <div class="btn-group">
                                         @foreach (var action in actions)
@@ -214,93 +159,11 @@
 @code {
     [Parameter] public List<TItem> Items { get; set; } = new();
     [Parameter] public List<ColumnDefinition<TItem>> Columns { get; set; } = new();
-    
+    // [Parameter] public EventCallback<TItem> OnView { get; set; }
+    // [Parameter] public EventCallback<TItem> OnEdit { get; set; }
     [Parameter] public string Language { get; set; } = "En";
     bool IsArabic => Language == "Ar";
     string Direction => IsArabic ? "rtl" : "ltr";
-
-    #region Crud
-
-    TItem? EditingItem;
-    TItem? NewItem;
-    bool IsCreating => NewItem != null;
-
-    [Parameter] public EventCallback<TItem> OnCreate { get; set; }
-    [Parameter] public EventCallback<TItem> OnUpdate { get; set; }
-    [Parameter] public EventCallback<TItem> OnDelete { get; set; }
-    [Parameter] public Func<TItem>? CreateNewItem { get; set; }
-    [Parameter] public IValidator<TItem>? Validator { get; set; }
-    void StartCreate()
-    {
-        if (CreateNewItem != null)
-            NewItem = CreateNewItem();
-    }
-
-    async Task SaveNew()
-    {
-        if (NewItem != null)
-        {
-            await OnCreate.InvokeAsync(NewItem);
-            NewItem = default;
-        }
-    }
-
-    void CancelCreate() => NewItem = default;
-
-    void StartEdit(TItem item)
-    {
-        EditingItem = item;
-    }
-
-    async Task SaveEdit(TItem item)
-    {
-        ValidationErrors.Clear(); // 🔥 important
-
-        if (Validator is not null)
-        {
-            var result = await Validator.ValidateAsync(item);
-
-            if (!result.IsValid)
-            {
-                ValidationErrors = result.Errors
-                    .GroupBy(e => e.PropertyName)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.First().ErrorMessage
-                    );
-
-                return;
-            }
-        }
-
-        await OnUpdate.InvokeAsync(item);
-        EditingItem = default;
-    }
-
-    void CancelEdit() => EditingItem = default;
-
-    async Task DeleteItem(TItem item)
-    {
-        await OnDelete.InvokeAsync(item);
-    }
-
-
-    void SetNewValue(ColumnDefinition<TItem> column, string? value)
-    {
-        if (NewItem == null) return;
-
-        var prop = typeof(TItem).GetProperty(column.Property);
-        if (prop != null && prop.CanWrite)
-        {
-            var converted = Convert.ChangeType(value, prop.PropertyType);
-            column.SetValue?.Invoke(NewItem, converted);
-            // prop.SetValue(NewItem, converted);
-        }
-    }
-
-    Dictionary<string, string?> ValidationErrors = new();
-    #endregion Crud
-
 
     int CurrentPage = 1;
     int PageSize = 10;
@@ -371,30 +234,14 @@
         public string Property { get; set; } = "";
         public string? SearchValue { get; set; }
         public bool isHidden { get; set; } = false;
-
         public Func<T, object?> GetValue { get; set; } = _ => null!;
-        public Action<T, object?>? SetValue { get; set; }   // ✅ NEW (important)
-
-        public ColumnType Type { get; set; } = ColumnType.Text;
-
-        // Select support
-        public List<SelectOption>? Options { get; set; }
-
-        // Validation
-        public Func<object?, string?>? Validator { get; set; }
-
-
-        // public Func<T, object?> GetValue { get; set; } = _ => null!;
         public Func<T, RenderFragment>? CellTemplate { get; set; }
         
         // 🔥 NEW: multiple actions
         public Func<T, List<RowAction<T>>>? Actions { get; set; }
         public bool IsActionColumn => Actions != null; // ✅ NEW
 
-        public RenderFragment RenderCell(
-            T item,
-            T? editingItem,
-            Dictionary<string, string?> validationErrors) => builder =>
+        public RenderFragment RenderCell(T item) => builder =>
         {
             var value = GetValue(item);
             var valueStr = value?.ToString() ?? string.Empty;
@@ -512,128 +359,7 @@
             }
             else
             {
-                if (EqualityComparer<T>.Default.Equals(item, editingItem))
-                {
-                    switch (Type)
-                    {
-                        case ColumnType.Text:
-                            builder.OpenElement(0, "input");
-                            builder.AddAttribute(1, "class", "form-control");
-                            builder.AddAttribute(2, "value", valueStr);
-                            builder.AddAttribute(3, "onchange",
-                                EventCallback.Factory.Create<ChangeEventArgs>(this, e =>
-                                {
-                                    var val = e.Value?.ToString();
-
-                                    SetValue?.Invoke(item, val);
-
-                                    validationErrors.Remove(Property);
-                                    var error = Validator?.Invoke(val);
-                                    validationErrors[Property] = error;
-                                }));
-                            builder.CloseElement();
-                            break;
-
-                        case ColumnType.Number:
-                            builder.OpenElement(0, "input");
-                            builder.AddAttribute(1, "type", "number");
-                            builder.AddAttribute(2, "class", "form-control");
-                            builder.AddAttribute(3, "value", valueStr);
-                            builder.AddAttribute(4, "onchange",
-                                EventCallback.Factory.Create<ChangeEventArgs>(this, e =>
-                                {
-                                    if (int.TryParse(e.Value?.ToString(), out var val))
-                                    {
-                                        SetValue?.Invoke(item, val);
-
-                                        validationErrors.Remove(Property);
-                                        var error = Validator?.Invoke(val);
-                                        validationErrors[Property] = error;
-                                    }
-                                }));
-                            builder.CloseElement();
-                            break;
-
-                        case ColumnType.Date:
-                            builder.OpenElement(0, "input");
-                            builder.AddAttribute(1, "type", "date");
-                            builder.AddAttribute(2, "class", "form-control");
-                            builder.AddAttribute(3, "value", value is DateTime dt ? dt.ToString("yyyy-MM-dd") : "");
-                            builder.AddAttribute(4, "onchange",
-                                EventCallback.Factory.Create<ChangeEventArgs>(this, e =>
-                                {
-                                    if (DateTime.TryParse(e.Value?.ToString(), out var val))
-                                    {
-                                        SetValue?.Invoke(item, val);
-
-                                        validationErrors.Remove(Property);
-                                        var error = Validator?.Invoke(val);
-                                        validationErrors[Property] = error;
-                                    }
-                                }));
-                            builder.CloseElement();
-                            break;
-
-                        case ColumnType.Checkbox:
-                            builder.OpenElement(0, "input");
-                            builder.AddAttribute(1, "type", "checkbox");
-                            builder.AddAttribute(2, "checked", value is bool b && b);
-                            builder.AddAttribute(3, "onchange",
-                                EventCallback.Factory.Create<ChangeEventArgs>(this, e =>
-                                {
-                                    var val = (bool)e.Value!;
-                                    SetValue?.Invoke(item, val);
-
-                                    validationErrors.Remove(Property);
-                                    var error = Validator?.Invoke(val);
-                                    validationErrors[Property] = error;
-                                }));
-                            builder.CloseElement();
-                            break;
-
-                        case ColumnType.Select:
-                            builder.OpenElement(0, "select");
-                            builder.AddAttribute(1, "class", "form-control");
-
-                            foreach (var opt in Options ?? new())
-                            {
-                                builder.OpenElement(2, "option");
-                                builder.AddAttribute(3, "value", opt.Value);
-                                if (opt.Value == valueStr)
-                                    builder.AddAttribute(4, "selected", true);
-
-                                builder.AddContent(5, opt.Text);
-                                builder.CloseElement();
-                            }
-
-                            builder.AddAttribute(6, "onchange",
-                                EventCallback.Factory.Create<ChangeEventArgs>(this, e =>
-                                {
-                                    var val = e.Value?.ToString();
-                                    SetValue?.Invoke(item, val);
-
-                                    validationErrors.Remove(Property);
-                                    var error = Validator?.Invoke(val);
-                                    validationErrors[Property] = error;
-                                }));
-
-                            builder.CloseElement();
-                            break;
-                    }
-
-                    // 🔥 GLOBAL VALIDATION UI (applies to ALL types)
-                    if (validationErrors.ContainsKey(Property) && validationErrors[Property] != null)
-                    {
-                        builder.OpenElement(100, "div");
-                        builder.AddAttribute(101, "class", "text-danger small");
-                        builder.AddContent(102, validationErrors[Property]);
-                        builder.CloseElement();
-                    }
-                }
-                else
-                {
-                    builder.AddContent(11, valueStr);
-                }
+                builder.AddContent(6, valueStr);
             }
         };
 
@@ -642,19 +368,8 @@
     }
 
 
-    public enum ColumnType
-    {
-        Text,
-        Number,
-        Date,
-        Checkbox,
-        Select
-    }
-    public class SelectOption
-    {
-        public string Value { get; set; } = "";
-        public string Text { get; set; } = "";
-    }
+
+
 }
 
 

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Organization.Organizations.Models;
 
 namespace Organization.Data.Configurations;
+
 public class AdministrationConfiguration : IEntityTypeConfiguration<Administration>
 {
     public void Configure(EntityTypeBuilder<Administration> builder)
@@ -23,16 +24,17 @@ public class AdministrationConfiguration : IEntityTypeConfiguration<Administrati
         builder.Property(x => x.BranchId).IsRequired();
         builder.Property(x => x.CompanyId).IsRequired();
 
-        // 🔗 Administration -> Departments
-        builder.HasMany(x => x.Departments)
-            .WithOne()
-            .HasForeignKey(x => x.AdministraitonId)
-            .OnDelete(DeleteBehavior.Restrict); // 🔴 important
+
 
         builder.HasOne(x => x.Branch)
     .WithMany(x => x.Administrations)
     .HasForeignKey(x => x.BranchId)
     .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne<Company>()
+    .WithMany()
+    .HasForeignKey(x => x.CompanyId)
+    .OnDelete(DeleteBehavior.Restrict);
 
         // 🔍 Indexes
         builder.HasIndex(x => x.CompanyId);

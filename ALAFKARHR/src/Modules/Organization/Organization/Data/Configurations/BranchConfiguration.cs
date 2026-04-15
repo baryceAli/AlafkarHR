@@ -32,11 +32,7 @@ public class BranchConfiguration : IEntityTypeConfiguration<Branch>
         // 🔗 Shadow FK (until you add OrganizationId property)
         //builder.Property<Guid>("CompanyId");
 
-        // 🔗 Branch -> Administrations
-        builder.HasMany(x => x.Administrations)
-            .WithOne()
-            .HasForeignKey(x => x.BranchId)
-            .OnDelete(DeleteBehavior.Cascade);
+
 
         // 🔍 Indexes
         builder.HasIndex(x => x.CompanyId);

@@ -1,4 +1,4 @@
-﻿namespace AlAfkarERP.Shared.Pages.Reuable;
+﻿namespace AlAfkarERP.Shared.Pages.Reuable2;
 
 public class LoadingService
 {

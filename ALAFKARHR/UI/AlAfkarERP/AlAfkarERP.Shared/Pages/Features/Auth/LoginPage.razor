@@ -64,10 +64,14 @@
 @code {
 
     private LoginDto login = new LoginDto();
-
+    protected override void OnInitialized()
+    {
+        login.Email = "baryce@gmail.com";
+        login.Password = "Admin@123";
+    }
     private async Task HandleLogin()
     {
-        var result = await AuthService.LoginAsync("baryce@gmail.com", "Admin@123");
+        var result = await AuthService.LoginAsync(login.Email, login.Password);
         if (result)
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();

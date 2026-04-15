@@ -10,7 +10,7 @@ public class GetDepartmentsByAdministrationIdHandler(OrganizationDbContext dbCon
     {
         var departments = await dbContext.Departments
             .AsNoTracking()
-            .Where(x => x.AdministraitonId == request.AdministrationId)
+            .Where(x => x.AdministrationId == request.AdministrationId)
             .ToListAsync(cancellationToken);
 
         return new GetDepartmentsByAdministrationIdResult(departments.Adapt<List<DepartmentDto>>());
