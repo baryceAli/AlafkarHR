@@ -3,7 +3,7 @@ namespace EmployeeModule;
 
 public static class EmployeesModule
 {
-    public static IServiceCollection AddCatalogModule(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddEmployeeModule(this IServiceCollection services, IConfiguration configuration)
     {
         // Add services to the container.
 
@@ -32,7 +32,7 @@ public static class EmployeesModule
         return services;
     }
 
-    public static IApplicationBuilder UseCatalogModule(this IApplicationBuilder app, IWebHostEnvironment env)
+    public static IApplicationBuilder UseEmployeeModule(this IApplicationBuilder app, IWebHostEnvironment env)
     {
         //application.use
 

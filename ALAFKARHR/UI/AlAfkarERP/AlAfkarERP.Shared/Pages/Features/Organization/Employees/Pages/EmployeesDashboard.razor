@@ -1,0 +1,45 @@
+﻿@page "/Organization/Employee/Dashboard"
+@using AlAfkarERP.Shared.Utilities
+@inject SharedDataService SharedDataService
+<h3>EmployeesDashboard</h3>
+
+
+<div class="row g-3 mt-4">
+
+    <div class="col-md-4">
+        <a href="/Organization/Branch/List" class="text-decoration-none">
+            <div class="card text-white bg-primary shadow h-100">
+                <div class="card-body text-center">
+                    @* <h6>Branches</h6> *@
+                    <h3>@SharedDataService.SelectViewLang("Positions", "المسمى الوظيفي")</h3>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <a href="/Organization/Administration/List" class="text-decoration-none">
+            <div class="card text-white bg-success shadow h-100">
+                <div class="card-body text-center">
+                    @* <h6>Admins</h6> *@
+                    <h3>@SharedDataService.SelectViewLang("Qualifications", "المؤهلات")</h3>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <a href="/Organization/Department/List" class="text-decoration-none">
+            <div class="card text-white bg-warning shadow h-100">
+                <div class="card-body text-center">
+                    @* <h6>Departments</h6> *@
+                    <h3>@SharedDataService.SelectViewLang("Employees", "الموظفون")</h3>
+                </div>
+            </div>
+        </a>
+    </div>
+
+</div>
+@code {
+
+}

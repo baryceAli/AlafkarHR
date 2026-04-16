@@ -8,9 +8,10 @@ public class Employee:Aggregate<Guid>
     public string EmployeeNo { get; private set; }
 
     public string FirstName { get; private set; }
+    public string MiddleName { get; private set; }
     public string LastName { get; private set; }
 
-    public string FullName => $"{FirstName} {LastName}";
+    public string FullName => $"{FirstName} {MiddleName} {LastName}";
 
     public string Email { get; private set; }
     public string Phone { get; private set; }
@@ -36,10 +37,10 @@ public class Employee:Aggregate<Guid>
 
     // 🔗 Job info
     public Guid PositionId { get; private set; }
-    public Position Position { get; private set; }
+    //public Position Position { get; private set; }
 
     public Guid? ManagerId { get; private set; }
-    public Employee? Manager { get; private set; }
+    //public Employee? Manager { get; private set; }
 
     // 🔐 System
     public string Code { get; private set; }
@@ -50,6 +51,7 @@ public class Employee:Aggregate<Guid>
         Guid id,
         string employeeNo,
         string firstName,
+        string middleName,
         string lastName,
         string email,
         string phone,
@@ -68,6 +70,7 @@ public class Employee:Aggregate<Guid>
             Id = id,
             EmployeeNo = employeeNo,
             FirstName = firstName,
+            MiddleName = middleName,
             LastName = lastName,
             Email = email,
             Phone = phone,
@@ -87,6 +90,22 @@ public class Employee:Aggregate<Guid>
         };
     }
 
+    public void Update(
+        string firstName,
+        string middleName,
+        string lastName,
+        string email,
+        string phone,
+        string modifiedBy)
+    {
+        FirstName = firstName;
+        MiddleName= middleName;
+        LastName = lastName;
+        Email = email;
+        Phone = phone;
+        ModifiedBy= modifiedBy;
+        ModifiedAt = DateTime.UtcNow;
+    }
     public void AssignManager(Guid managerId)
     {
         ManagerId = managerId;
@@ -98,10 +117,14 @@ public class Employee:Aggregate<Guid>
         BranchId = branchId;
         AdministrationId = administrationId;
         DepartmentId = departmentId;
-
         ModifiedAt = DateTime.UtcNow;
     }
-
+    public void ChangePosition(Guid positionId, string modifiedBy)
+    {
+        PositionId = positionId;
+        ModifiedBy = modifiedBy;
+        ModifiedAt=DateTime.UtcNow;
+    }
     public void Terminate(string reason, string modifiedBy)
     {
         IsActive = false;

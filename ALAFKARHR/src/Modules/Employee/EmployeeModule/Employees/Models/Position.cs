@@ -24,4 +24,16 @@ public class Position:Entity<Guid>
             CompanyId = companyId
         };
     }
+
+    public void Update(
+        string title,
+        decimal baseSalary,
+        string modifiedBy
+        )
+    {
+        Title = title;
+        BaseSalary= baseSalary;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
 }

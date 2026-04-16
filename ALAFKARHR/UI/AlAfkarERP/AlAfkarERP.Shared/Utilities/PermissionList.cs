@@ -6,6 +6,10 @@ public static class PermissionList
     {
         List<string> list =
         [
+            ..CompanyPermissions.Permissions,
+            ..BranchPermissions.Permissions,
+            ..AdministrationPermissions.Permissions,
+            ..DepartmentPermissions.Permissions,
             .. CategoryPermissions.Permissions,
             .. BrandPermissions.Permissions,
             .. UnitPermissions.Permissions,
@@ -23,6 +27,132 @@ public static class PermissionList
 
 
         return list;
+
+    }
+    public static class EmployeePermissions
+    {
+
+        public static string GroupName { get; set; } = "Employees.Employee";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
+
+    }
+    public static class PositionPermissions
+    {
+
+        public static string GroupName { get; set; } = "Employees.Position";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
+
+    }
+    public static class CompanyPermissions
+    {
+
+        public static string GroupName { get; set; } = "Organization.Company";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
+
+    }
+    public static class BranchPermissions
+    {
+
+        public static string GroupName { get; set; } = "Organization.Branch";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
+
+    }
+    public static class AdministrationPermissions
+    {
+
+        public static string GroupName { get; set; } = "Organization.Administration";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
+
+    }
+    public static class DepartmentPermissions
+    {
+
+        public static string GroupName { get; set; } = "Organization.Department";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
 
     }
     public static class CategoryPermissions

@@ -1,5 +1,6 @@
 using Auth;
 using Carter;
+using EmployeeModule;
 using Organization;
 using Shared.Exceptions.Handler;
 using Shared.Extentions;
@@ -21,19 +22,21 @@ builder.Services.AddDataProtection();
 
 var authAssembly = typeof(AuthModule).Assembly;
 var organizationAssembly = typeof(OrganizationModule).Assembly;
-//var catalogAssembly = typeof(CatalogModule).Assembly;
-//var basketAssembly = typeof(BasketModule).Assembly;
-//var inventoryAssembly = typeof(InventoryModule).Assembly;
+var employeeAssembly = typeof(EmployeesModule).Assembly;
+
+
 builder.Services.AddCarterWithAssemblies(
                         authAssembly,
-                        organizationAssembly);
+                        organizationAssembly,
+                        employeeAssembly);
 //catalogAssembly,
 //basketAssembly,
 //inventoryAssembly);
 
 builder.Services.AddMediatRWithAssemblies(
                         authAssembly,
-                        organizationAssembly);
+                        organizationAssembly,
+                        employeeAssembly);
 //catalogAssembly,
 //basketAssembly,
 //inventoryAssembly);
@@ -44,13 +47,8 @@ builder.Services.AddMediatRWithAssemblies(
 #region Module Service: Auth, Catalog, ShoppingCart, Ordering
 builder.Services
         .AddAuthModule(builder.Configuration)
-        .AddOrganizationModule(builder.Configuration);
-        //.AddCatalogModule(builder.Configuration)
-        //.AddBasketModule(builder.Configuration)
-        //.AddInventoryModule(builder.Configuration);
-
-//.AddBasketModule(builder.Configuration)
-//.AddOrderingModule(builder.Configuration);
+        .AddOrganizationModule(builder.Configuration)
+        .AddEmployeeModule(builder.Configuration);
 #endregion
 
 
@@ -72,13 +70,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 app
     .UseAuthModule(app.Environment)
-    .UseOrganizationModule(app.Environment);
-    //.UseCatalogModule(app.Environment)
-    //.UseBasketModule(app.Environment)
-    //.UseInventoryModule(app.Environment);
-//.UseCatalogModule()
-//.UseBasketModule()
-//.UseOrderingModule();
+    .UseOrganizationModule(app.Environment)
+    .UseEmployeeModule(app.Environment);
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())
