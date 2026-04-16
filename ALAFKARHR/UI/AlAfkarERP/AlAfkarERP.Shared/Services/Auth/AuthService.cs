@@ -1,8 +1,11 @@
 ﻿using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Dtos.Auth;
+using AlAfkarERP.Shared.Pages.Features.Auth.Dtos;
 using AlAfkarERP.Shared.Utilities;
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Xml.Linq;
 
 namespace AlAfkarERP.Shared.Services.Auth;
 
@@ -72,5 +75,53 @@ public class AuthService : IAuthService
     {
         await _tokenService.ClearTokensAsync();
         _authStateProvider.NotifyUserLogout();
+    }
+
+    public async Task<ApiResult<PaginatedResult<UserDto>>> GetAsync(int pageIndex, int pageSize)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get,$"{_apiConfigOptions.BaseURL}/api/{_apiConfigOptions.Version}/auth/users");
+        try
+        {
+            var response = await _http.SendAsync(request);
+
+            var content = await response.Content.ReadAsStringAsync();
+
+            // ❌ NOT success
+            if (!response.IsSuccessStatusCode)
+            {
+                ErrorResponseDto? error = null;
+
+                try
+                {
+                    error = DeserializeAPIResponse.Deserialize<ErrorResponseDto>(content, "userList");
+                }
+                catch
+                {
+                    error = new ErrorResponseDto
+                    {
+                        Status = (int)response.StatusCode,
+                        Title = "Request failed",
+                        Detail = content
+                    };
+                }
+
+                return ApiResult<PaginatedResult<UserDto>>.Failure(error!);
+            }
+
+            // ✅ success
+            var result = DeserializeAPIResponse.Deserialize<PaginatedResult<UserDto>>(content, "userList");
+
+            return ApiResult<PaginatedResult<UserDto>>.Success(result);
+        }
+        catch (Exception ex)
+        {
+            return ApiResult<PaginatedResult<UserDto>>.Failure(new ErrorResponseDto
+            {
+                Status = 500,
+                Title = "Client Error",
+                Detail = ex.Message
+            });
+        }
+
     }
 }

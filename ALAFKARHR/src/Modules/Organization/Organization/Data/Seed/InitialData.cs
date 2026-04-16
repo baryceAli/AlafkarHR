@@ -1,7 +1,4 @@
-﻿using AlAfkarERP.Shared.Pages.Features.Company.Dtos;
-using Organization.Organizations.Models;
-
-namespace Organization.Data.Seed;
+﻿namespace Organization.Data.Seed;
 
 public class InitialData
 {

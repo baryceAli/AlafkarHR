@@ -39,7 +39,7 @@ public class AdministrationConfiguration : IEntityTypeConfiguration<Administrati
         // 🔍 Indexes
         builder.HasIndex(x => x.CompanyId);
         builder.HasIndex(x => x.BranchId);
-        builder.HasIndex(x => new { x.CompanyId, x.BranchId }).IsUnique();
+        builder.HasIndex(x => new { x.CompanyId, x.BranchId });
 
         // 🧾 Audit
         builder.Property(x => x.CreatedBy).HasMaxLength(100);

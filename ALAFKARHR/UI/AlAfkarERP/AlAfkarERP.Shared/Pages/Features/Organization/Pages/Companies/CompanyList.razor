@@ -10,7 +10,7 @@
 @inject IAdministrationService AdministrationService
 @inject IDepartmentService DepartmentService
 @inject AuthenticationStateProvider AuthenticationStateProvider
-
+@inject SharedDataService SharedDataService
 <h3 class="mb-3">Company Details</h3>
 
 @if (company == null)
@@ -46,8 +46,42 @@ else
             Save Changes
         </button>
     </div>
+    <div class="row g-3 mt-4">
 
+        <div class="col-md-4">
+            <a href="/Organization/Branch/List" class="text-decoration-none">
+                <div class="card text-white bg-primary shadow h-100">
+                    <div class="card-body text-center">
+                        @* <h6>Branches</h6> *@
+                        <h3>@SharedDataService.SelectViewLang("Branches","الفروع")</h3>
+                    </div>
+                </div>
+            </a>
+        </div>
 
+        <div class="col-md-4">
+            <a href="/Organization/Administration/List" class="text-decoration-none">
+                <div class="card text-white bg-success shadow h-100">
+                    <div class="card-body text-center">
+                        @* <h6>Admins</h6> *@
+                        <h3>@SharedDataService.SelectViewLang("Administrations","الإدارات")</h3>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4">
+            <a href="/Organization/Department/List" class="text-decoration-none">
+                <div class="card text-white bg-warning shadow h-100">
+                    <div class="card-body text-center">
+                        @* <h6>Departments</h6> *@
+                        <h3>@SharedDataService.SelectViewLang("Departments", "الاقسام")</h3>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+    </div>
 }
 
 @code {
@@ -71,6 +105,6 @@ else
     {
         await CompanyService.UpdateAsync(company);
     }
-    
+
     
 }

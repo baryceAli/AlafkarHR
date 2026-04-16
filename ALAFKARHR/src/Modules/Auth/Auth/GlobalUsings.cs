@@ -27,3 +27,5 @@ global using System.IdentityModel.Tokens.Jwt;
 global using System.Security.Claims;
 global using Auth.Users.Events;
 global using Microsoft.Extensions.Options;
+global using Auth.Helpers;
+global using Shared.Contracts.Messaging;

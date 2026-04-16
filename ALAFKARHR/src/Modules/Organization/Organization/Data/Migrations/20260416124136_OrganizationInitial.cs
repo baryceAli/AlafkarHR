@@ -160,13 +160,6 @@ namespace Organization.Data.Migrations
                         principalTable: "Companies",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Departments_Departments_ParentDepartmentId",
-                        column: x => x.ParentDepartmentId,
-                        principalSchema: "Organization",
-                        principalTable: "Departments",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
@@ -185,8 +178,7 @@ namespace Organization.Data.Migrations
                 name: "IX_Administrations_CompanyId_BranchId",
                 schema: "Organization",
                 table: "Administrations",
-                columns: new[] { "CompanyId", "BranchId" },
-                unique: true);
+                columns: new[] { "CompanyId", "BranchId" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Branches_Code",
@@ -245,12 +237,6 @@ namespace Organization.Data.Migrations
                 table: "Departments",
                 columns: new[] { "CompanyId", "Code" },
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Departments_ParentDepartmentId",
-                schema: "Organization",
-                table: "Departments",
-                column: "ParentDepartmentId");
         }
 
         /// <inheritdoc />

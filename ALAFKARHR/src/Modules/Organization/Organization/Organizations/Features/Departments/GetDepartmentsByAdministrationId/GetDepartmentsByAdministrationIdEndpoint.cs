@@ -1,15 +1,16 @@
-﻿namespace Organization.Organizations.Features.Departments.GetDepartmentsByAdministrationId;
+﻿
+namespace Organization.Organizations.Features.Departments.GetDepartmentsByAdministrationId;
 
 
-public record GetDepartmentsByAdministrationIdResponse(List<DepartmentDto> DepartmentList);
+public record GetDepartmentsByAdministrationIdResponse(PaginatedResult<DepartmentDto> DepartmentList);
 public class GetDepartmentsByAdministrationIdEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapGet($"{Utils.ROUTE_PATTERN}/{Utils.DepartmentEndpoint}" + "getByAdministrationId/{administrationId}",
-            async (Guid adminstrationId, ISender sender) =>
+        app.MapGet($"{Utils.ROUTE_PATTERN}/{Utils.DepartmentEndpoint}" + "/getByAdministrationId/{administrationId:guid}",
+            async ([FromRoute]Guid administrationId,[AsParameters]PaginationRequest request, ISender sender) =>
         {
-            var result = await sender.Send(new GetDepartmentsByAdministrationIdQuery(adminstrationId));
+            var result = await sender.Send(new GetDepartmentsByAdministrationIdQuery(administrationId,request));
             return Results.Ok(result.Adapt<GetDepartmentsByAdministrationIdResponse>());
 
         })

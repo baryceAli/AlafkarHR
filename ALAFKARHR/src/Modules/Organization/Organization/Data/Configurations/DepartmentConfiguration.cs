@@ -29,11 +29,7 @@ public class DepartmentConfiguration : IEntityTypeConfiguration<Department>
     .HasForeignKey(x => x.AdministrationId)
     .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(x => x.ParentDepartment)
-    .WithMany()
-    .HasForeignKey(x => x.ParentDepartmentId)
-    .OnDelete(DeleteBehavior.Restrict);
-        // 🔍 Indexes
+        
 
         builder.HasIndex(x => x.AdministrationId);
         builder.HasIndex(x => x.CompanyId);

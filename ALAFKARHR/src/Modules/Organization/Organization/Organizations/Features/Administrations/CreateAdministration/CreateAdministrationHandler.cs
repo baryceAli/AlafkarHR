@@ -26,7 +26,10 @@ public class CreateAdministrationHandler(OrganizationDbContext dbContext, IHttpC
             Guid.NewGuid(),
             request.Administration.Name,
             request.Administration.NameEng,
+            request.Administration.Code,
             request.Administration.BranchId,
+            request.Administration.ManagerId,
+            request.Administration.IsActive,
             request.Administration.CompanyId,
             userId);
 

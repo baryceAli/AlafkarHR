@@ -13,7 +13,7 @@ public class Department:Entity<Guid>
 
     public string Code { get; private set; }
     public Guid? ParentDepartmentId { get; private set; } // hierarchy
-    public Department? ParentDepartment { get; private set; }
+    //public Department? ParentDepartment { get; private set; }
     public bool IsActive { get; private set; }
 
     public Guid CompanyId { get; private set; }
@@ -23,9 +23,12 @@ public class Department:Entity<Guid>
     public static Department Create(Guid id,
         string name,
         string nameEng,
+        string code,
         Guid administrationId,
         Guid? headOfDepartment,
         Guid companyId,
+        bool isActive,
+        Guid? parentDepartmentId,
         string createdBy)
     {
         return new Department
@@ -33,9 +36,12 @@ public class Department:Entity<Guid>
             Id = id,
             Name = name,
             NameEng = nameEng,
+            Code = code,
             AdministrationId = administrationId,
             HeadOfDepartment = headOfDepartment,
             CompanyId = companyId,
+            IsActive = isActive,
+            ParentDepartmentId = parentDepartmentId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
@@ -44,13 +50,15 @@ public class Department:Entity<Guid>
         string name,
         string nameEng,
         //Guid administrationId,
-        //Guid headOfDepartment,
+        Guid? headOfDepartment,
+        bool isActive,
         string modifiedBy)
     {
         Name=name;
         NameEng=nameEng;
         //AdministraitonId=administrationId;
-        //HeadOfDepartment=headOfDepartment;
+        HeadOfDepartment = headOfDepartment;
+        IsActive = isActive;
         ModifiedAt= DateTime.UtcNow;
         ModifiedBy=modifiedBy;
     }

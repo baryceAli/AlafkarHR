@@ -1,7 +1,6 @@
 ﻿
 global using Microsoft.EntityFrameworkCore;
 global using System.Reflection;
-global using AlAfkarERP.Shared.Pages.Features.Company.Dtos;
 global using FluentValidation;
 global using Mapster;
 global using Microsoft.AspNetCore.Http;
@@ -18,3 +17,4 @@ global using Organization.Organizations.Config;
 global using Shared.Contracts.Permissions;
 global using Microsoft.AspNetCore.Mvc;
 global using Shared.Pagination;
+global using AlAfkarERP.Shared.Pages.Features.Company.Dtos;

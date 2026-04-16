@@ -1,8 +1,4 @@
-﻿
-using Auth.Helpers;
-using Shared.Contracts.Messaging;
-
-namespace Auth.Users.Features.RegisterUser;
+﻿namespace Auth.Users.Features.RegisterUser;
 
 public record RegisterUserCommand(RegisterDto Register) : ICommand<RegisterUserResult>;
 public record RegisterUserResult(Guid Id);

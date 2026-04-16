@@ -32,9 +32,12 @@ public class CreateDepartmentHandler(OrganizationDbContext dbContext, IHttpConte
             Guid.NewGuid(),
             request.Department.Name,
             request.Department.NameEng,
+            request.Department.Code,
             request.Department.AdministrationId,
             request.Department.HeadOfDepartment,
             request.Department.CompanyId,
+            request.Department.IsActive,
+            request.Department.HeadOfDepartment,
             userId);
 
         await dbContext.Departments.AddAsync(department, cancellationToken);

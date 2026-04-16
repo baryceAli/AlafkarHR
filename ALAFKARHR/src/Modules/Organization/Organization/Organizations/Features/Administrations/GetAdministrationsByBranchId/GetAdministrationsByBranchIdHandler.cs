@@ -1,17 +1,17 @@
 ﻿using Organization.Organizations.Features.Administrations.GetAdministrations;
 
-namespace Organization.Organizations.Features.Departments.GetDepartments;
+namespace Organization.Organizations.Features.Administrations.GetAdministrationsByBranchId;
 
-
-public record GetDepartmentsQuery(PaginationRequest PaginationRequest) : IQuery<GetDepartmentsResult>;
-public record GetDepartmentsResult(PaginatedResult<DepartmentDto> DepartmentList);
-public class GetDepartmentsHandler(OrganizationDbContext dbContext)
-    : IQueryHandler<GetDepartmentsQuery, GetDepartmentsResult>
+public record GetAdministrationsByBranchIdQuery(Guid BranchId, PaginationRequest PaginationRequest) : IQuery<GetAdministrationsByBranchIdResult>;
+public record GetAdministrationsByBranchIdResult(PaginatedResult<AdministrationDto> AdministrationList);
+public class GetAdministrationsByBranchIdHandler(OrganizationDbContext dbContext) 
+    : IQueryHandler<GetAdministrationsByBranchIdQuery, GetAdministrationsByBranchIdResult>
 {
-    public async Task<GetDepartmentsResult> Handle(GetDepartmentsQuery request, CancellationToken cancellationToken)
+    public async Task<GetAdministrationsByBranchIdResult> Handle(GetAdministrationsByBranchIdQuery request, CancellationToken cancellationToken)
     {
-        var query = dbContext.Departments.AsNoTracking().AsQueryable();
+        var query = dbContext.Administrations.AsNoTracking().AsQueryable();
 
+        query=query.Where(adm=> adm.BranchId==request.BranchId);
         // 🔍 Search
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
         {
@@ -29,21 +29,22 @@ public class GetDepartmentsHandler(OrganizationDbContext dbContext)
         long count = await query.LongCountAsync(cancellationToken);
 
         // 📄 Pagination
-        var departments = await query
+        var administrations = await query
             .OrderBy(b => b.Name) // default sorting (important!)
             .Skip(request.PaginationRequest.PageIndex * request.PaginationRequest.PageSize)
             .Take(request.PaginationRequest.PageSize)
             .ToListAsync(cancellationToken);
 
-        return new GetDepartmentsResult(
-            new PaginatedResult<DepartmentDto>(
+        return new GetAdministrationsByBranchIdResult(
+            new PaginatedResult<AdministrationDto>(
                 request.PaginationRequest.PageIndex,
                 request.PaginationRequest.PageSize,
                 count,
-                departments.Adapt<List<DepartmentDto>>()
+                administrations.Adapt<List<AdministrationDto>>()
             )
         );
-    
-    
+
+
+
     }
 }

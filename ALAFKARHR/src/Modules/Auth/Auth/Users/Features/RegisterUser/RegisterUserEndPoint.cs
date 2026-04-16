@@ -1,4 +1,6 @@
 ﻿
+
+
 namespace Auth.Users.Features.RegisterUser;
 public record RegisterUserRequest(RegisterDto Register);
 public record RegisterUserResponse(Guid Id);

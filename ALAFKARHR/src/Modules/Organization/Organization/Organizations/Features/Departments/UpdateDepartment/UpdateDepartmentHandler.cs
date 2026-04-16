@@ -23,6 +23,8 @@ public class UpdateDepartmentHandler(OrganizationDbContext dbContext, IHttpConte
         department.Update(
             request.Department.Name,
             request.Department.NameEng,
+            request.Department.HeadOfDepartment,
+            request.Department.IsActive,
             userId);
 
         await dbContext.SaveChangesAsync();

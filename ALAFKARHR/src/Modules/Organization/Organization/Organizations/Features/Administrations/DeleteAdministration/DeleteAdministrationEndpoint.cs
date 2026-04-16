@@ -6,7 +6,7 @@ public class DeleteAdministrationEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapDelete($"{Utils.ROUTE_PATTERN}/{Utils.AdministrationEndpoint}/" + "{id:guid}", async ([FromRoute] Guid id, ISender sender) =>
+        app.MapDelete($"{Utils.ROUTE_PATTERN}/{Utils.AdministrationEndpoint}" + "/{id:guid}", async ([FromRoute] Guid id, ISender sender) =>
         {
             var result = await sender.Send(new DeleteAdministrationCommand(id));
             return Results.Ok(result.Adapt<DeleteAdministrationResponse>());

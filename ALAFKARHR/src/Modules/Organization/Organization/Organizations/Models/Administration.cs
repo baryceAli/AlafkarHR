@@ -35,19 +35,26 @@ public class Administration:Entity<Guid>
     public static Administration Create(Guid id,
         string name,
         string nameEng,
+        string code,
         Guid branchId,
+        Guid?managerId,
+        bool isActive,
         Guid comapnyId,
         string createdBy)
     {
 
         ArgumentNullException.ThrowIfNullOrEmpty(name, "Name is required");
         ArgumentNullException.ThrowIfNullOrEmpty(nameEng, "NameEng is required");
+        ArgumentNullException.ThrowIfNullOrEmpty(code, "Code is required");
         return new Administration
         {
             Id = id,
             Name = name,
             NameEng = nameEng,
+            Code = code,
             BranchId = branchId,
+            ManagerId=managerId,
+            IsActive=isActive,
             CompanyId = comapnyId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
@@ -56,12 +63,16 @@ public class Administration:Entity<Guid>
     public void Update(
         string name,
         string nameEng,
+        bool isActive,
+        Guid? managerId,
         string modifiedBy)
     {
         ArgumentNullException.ThrowIfNullOrEmpty(name, "Name is required");
         ArgumentNullException.ThrowIfNullOrEmpty(nameEng, "NameEng is required");
         Name = name; 
-        NameEng=nameEng; 
+        NameEng=nameEng;
+        IsActive = isActive;
+        ManagerId = managerId;
         ModifiedAt=DateTime.UtcNow;
         ModifiedBy=modifiedBy;
     }

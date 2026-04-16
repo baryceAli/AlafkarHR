@@ -12,7 +12,7 @@ using Organization.Data;
 namespace Organization.Data.Migrations
 {
     [DbContext(typeof(OrganizationDbContext))]
-    [Migration("20260415104720_OrganizationInitial")]
+    [Migration("20260416124136_OrganizationInitial")]
     partial class OrganizationInitial
     {
         /// <inheritdoc />
@@ -88,8 +88,7 @@ namespace Organization.Data.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.HasIndex("CompanyId", "BranchId")
-                        .IsUnique();
+                    b.HasIndex("CompanyId", "BranchId");
 
                     b.ToTable("Administrations", "Organization");
                 });
@@ -338,8 +337,6 @@ namespace Organization.Data.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.HasIndex("ParentDepartmentId");
-
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
@@ -388,16 +385,9 @@ namespace Organization.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Organization.Organizations.Models.Department", "ParentDepartment")
-                        .WithMany()
-                        .HasForeignKey("ParentDepartmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("Administration");
 
                     b.Navigation("Company");
-
-                    b.Navigation("ParentDepartment");
                 });
 
             modelBuilder.Entity("Organization.Organizations.Models.Administration", b =>

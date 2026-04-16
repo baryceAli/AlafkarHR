@@ -17,13 +17,13 @@ public class DepartmentService : BaseApiService, IDepartmentService
         _path = $"{apiConfig.BaseURL}/api/{apiConfig.Version}/organization/departments";
     }
 
-    public async Task<ApiResult<DepartmentDto>> CreateAsync(DepartmentDto company)
+    public async Task<ApiResult<DepartmentDto>> CreateAsync(DepartmentDto department)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, _path)
         {
             Content= JsonContent.Create(new 
             {
-                Company=company
+                Department=department
             })
         };
         return await SendAsync<DepartmentDto>(request, "createdDepartment");
@@ -35,16 +35,22 @@ public class DepartmentService : BaseApiService, IDepartmentService
         return await SendAsync<UpdateDeleteResponseDto>(request, null);
     }
 
-    public async Task<ApiResult<PagedResult<DepartmentDto>>> GetAsync(int pageIndex, int pageSize)
+    public async Task<ApiResult<PaginatedResult<DepartmentDto>>> GetAsync(int pageIndex, int pageSize)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}?PageIndex={pageIndex}&PageSize={pageSize}");
-        return await SendAsync<PagedResult<DepartmentDto>>(request, "departmentList");
+        return await SendAsync<PaginatedResult<DepartmentDto>>(request, "departmentList");
     }
 
     public async Task<ApiResult<List<DepartmentDto>>> GetByAdministrationAsync(Guid administrationId)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/getByAdministrationId/{administrationId}");
         return await SendAsync<List<DepartmentDto>>(request, "departmentList");
+    }
+
+    public async Task<ApiResult<PaginatedResult<DepartmentDto>>> GetByAdministrationAsync(Guid AdministrationId, int pageIndex, int pageSize)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/getByAdministrationId/{AdministrationId}?pageIndex={pageIndex}&pageSize={pageSize}");
+        return await SendAsync<PaginatedResult<DepartmentDto>>(request, "departmentList");
     }
 
     public async Task<ApiResult<DepartmentDto>> GetByIdAsync(Guid Id)

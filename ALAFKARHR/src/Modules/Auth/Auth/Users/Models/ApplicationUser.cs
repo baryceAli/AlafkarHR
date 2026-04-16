@@ -1,5 +1,4 @@
-﻿
-namespace Auth.Users.Models;
+﻿namespace Auth.Users.Models;
 
 public class ApplicationUser
     : IdentityUser<Guid>, IAggregateRoot

@@ -22,6 +22,8 @@ public class UpdateAdministrationHandler(OrganizationDbContext dbContext, IHttpC
         administration.Update(
             request.Administration.Name,
             request.Administration.NameEng,
+            request.Administration.IsActive,
+            request.Administration.ManagerId,
             userId);
 
         await dbContext.SaveChangesAsync();

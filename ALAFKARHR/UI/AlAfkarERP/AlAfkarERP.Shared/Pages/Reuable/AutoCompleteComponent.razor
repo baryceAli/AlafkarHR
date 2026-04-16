@@ -1,6 +1,8 @@
-﻿@typeparam TItem
-
+﻿@using AlAfkarERP.Shared.Utilities
+@typeparam TItem
+@inject SharedDataService SharedDataService
 <div class="position-relative" dir="ltr">
+@* <div class="position-relative"> *@
     <div class="input-group">
         <span class="input-group-text bg-white border-end-0">
             <!-- simple inline magnifier SVG to avoid external icon dependency -->
@@ -33,7 +35,7 @@
                 {
                     var it = item.value;
                     var idx = item.idx;
-                    <button type="button"
+                    <button type="button" dir="@SharedDataService.PageDirection"
                             class="dropdown-item d-flex justify-content-between align-items-center @((idx == selectedIndex) ? "active" : "")"
                             @onclick="() => SelectItem(it)"
                             @onmousedown:preventDefault="true"
