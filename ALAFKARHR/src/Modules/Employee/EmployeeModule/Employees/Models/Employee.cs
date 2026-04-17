@@ -21,7 +21,7 @@ public class Employee:Aggregate<Guid>
 
     public DateTime HireDate { get; private set; }
     public DateTime? EndDate { get; private set; }
-
+    public string? EndReason { get; private set; }
     public bool IsActive { get; private set; }
 
     // 🔗 Organization structure
@@ -39,8 +39,8 @@ public class Employee:Aggregate<Guid>
     public Guid PositionId { get; private set; }
     public Position Position { get; private set; }
 
-    public Guid? ManagerId { get; private set; }
-    public Employee? Manager { get; private set; }
+    //public Guid? ManagerId { get; private set; }
+    //public Employee? Manager { get; private set; }
 
     // 🔐 System
     public string Code { get; private set; }
@@ -107,17 +107,18 @@ public class Employee:Aggregate<Guid>
         ModifiedBy= modifiedBy;
         ModifiedAt = DateTime.UtcNow;
     }
-    public void AssignManager(Guid managerId)
-    {
-        ManagerId = managerId;
-        ModifiedAt = DateTime.UtcNow;
-    }
+    //public void AssignManager(Guid managerId)
+    //{
+    //    //ManagerId = managerId;
+    //    ModifiedAt = DateTime.UtcNow;
+    //}
 
-    public void TransferDepartment(Guid branchId, Guid administrationId, Guid departmentId)
+    public void TransferDepartment( Guid branchId, Guid administrationId, Guid departmentId, string modifiedBy)
     {
         BranchId = branchId;
         AdministrationId = administrationId;
         DepartmentId = departmentId;
+        ModifiedBy = modifiedBy;
         ModifiedAt = DateTime.UtcNow;
     }
     public void ChangePosition(Guid positionId, string modifiedBy)
@@ -130,6 +131,7 @@ public class Employee:Aggregate<Guid>
     {
         IsActive = false;
         EndDate = DateTime.UtcNow;
+        EndReason = reason;
         ModifiedBy = modifiedBy;
         ModifiedAt = DateTime.UtcNow;
     }

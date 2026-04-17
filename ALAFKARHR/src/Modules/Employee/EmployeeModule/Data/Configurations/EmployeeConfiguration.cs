@@ -41,10 +41,10 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
             .HasForeignKey(x => x.PositionId);
 
         // 👤 Self Reference (Manager)
-        builder.HasOne(x => x.Manager)
-            .WithMany()
-            .HasForeignKey(x => x.ManagerId)
-            .OnDelete(DeleteBehavior.Restrict);
+        //builder.HasOne(x => x.Manager)
+        //    .WithMany()
+        //    .HasForeignKey(x => x.ManagerId)
+        //    .OnDelete(DeleteBehavior.Restrict);
 
         // 🔍 Indexes (VERY IMPORTANT)
         builder.HasIndex(x => x.EmployeeNo).IsUnique();
