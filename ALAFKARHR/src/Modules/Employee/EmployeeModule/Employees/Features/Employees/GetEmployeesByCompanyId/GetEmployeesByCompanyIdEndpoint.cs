@@ -9,7 +9,7 @@ public class GetEmployeesByCompanyIdEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapGet($"{Utils.URL_PATTERN}/{Utils.Employee_Endpoint}/company" + "/companyId", async ([FromRoute] Guid companyId, [AsParameters] PaginationRequest request, ISender sender) =>
+        app.MapGet($"{Utils.URL_PATTERN}/{Utils.Employee_Endpoint}/company" + "/{companyId}", async ([FromRoute] Guid companyId, [AsParameters] PaginationRequest request, ISender sender) =>
         {
             var result = await sender.Send(new GetEmployeesByCompanyIdQuery(companyId, request));
             return Results.Ok(result.Adapt<GetEmployeesByCompanyIdResponse>());

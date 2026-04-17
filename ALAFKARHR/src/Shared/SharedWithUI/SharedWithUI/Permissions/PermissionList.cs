@@ -6,6 +6,9 @@ public static class PermissionList
     {
         List<string> list =
         [
+
+            ..EmployeePermissions.Permissions,
+            ..PositionPermissions.Permissions,
             ..CompanyPermissions.Permissions,
             ..BranchPermissions.Permissions,
             ..AdministrationPermissions.Permissions,

@@ -1,5 +1,6 @@
 using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Pages.Features.Company.Services;
+using AlAfkarERP.Shared.Pages.Features.Employees.Services;
 using AlAfkarERP.Shared.Pages.Reuable2;
 using AlAfkarERP.Shared.Services.Auth;
 using AlAfkarERP.Shared.Utilities;
@@ -65,6 +66,12 @@ builder.Services.AddHttpClient<IDepartmentService, DepartmentService>(client =>
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
 
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+builder.Services.AddHttpClient<IEmployeeService, EmployeeService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
 
 var app = builder.Build();
 

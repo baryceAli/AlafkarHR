@@ -1,0 +1,47 @@
+﻿@using AlAfkarERP.Shared.Utilities
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+
+<div class="bg-dark text-white d-flex flex-column p-2" style="width: 250px;">
+
+    <!-- Logo -->
+    <div class="text-center mb-3">
+        <h5 class="fw-bold">ERP System</h5>
+    </div>
+
+    <!-- Menu -->
+    <ul class="nav nav-pills flex-column">
+
+        <li class="nav-item">
+            <NavLink href="/" class="nav-link text-white" Match="NavLinkMatch.All">
+                <i class="bi bi-speedometer2 me-2"></i>
+                Home
+            </NavLink>
+        </li>
+
+        <li class="nav-item">
+            <NavLink href="/Employee/Dashboard" class="nav-link text-white">
+                <i class="bi bi-box-seam me-2"></i>
+                @(SharedDataService.SelectViewLang("Employees Dashboard","لوحة العرض"))
+            </NavLink>
+        </li>
+        
+        <li class="nav-item">
+            <NavLink href="/Employee/Employee/List" class="nav-link text-white">
+                <i class="bi bi-box-seam me-2"></i>
+                @(SharedDataService.SelectViewLang("Employees", "الموظفين"))
+            </NavLink>
+        </li>
+        
+        <li class="nav-item">
+            <NavLink href="/Employee/Position/List" class="nav-link text-white">
+                <i class="bi bi-box-seam me-2"></i>
+                @(SharedDataService.SelectViewLang("Positions", "الموقع الوظيفي"))
+            </NavLink>
+        </li>
+
+        
+
+    </ul>
+
+</div>

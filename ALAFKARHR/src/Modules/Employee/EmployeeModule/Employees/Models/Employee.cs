@@ -3,7 +3,7 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace EmployeeModule.Employees.Models;
 
-public class Employee:Aggregate<Guid>
+public class Employee : Aggregate<Guid>
 {
     public string EmployeeNo { get; private set; }
 
@@ -29,7 +29,6 @@ public class Employee:Aggregate<Guid>
     public Guid BranchId { get; private set; }
     public Guid AdministrationId { get; private set; }
     public Guid DepartmentId { get; private set; }
-
     //public Company Company { get; private set; }
     //public Branch Branch { get; private set; }
     //public Administration Administration { get; private set; }
@@ -63,9 +62,22 @@ public class Employee:Aggregate<Guid>
         Guid administrationId,
         Guid departmentId,
         Guid positionId,
-       //Position position,
+        //Position position,
         string createdBy)
     {
+        
+
+        if (string.IsNullOrEmpty(employeeNo) ||
+            string.IsNullOrEmpty(firstName) ||
+            string.IsNullOrEmpty(middleName) ||
+            string.IsNullOrEmpty(lastName) ||
+            string.IsNullOrEmpty(email) ||
+            string.IsNullOrEmpty(phone) ||
+            string.IsNullOrEmpty(nationalId))
+        {
+            throw new ArgumentNullException("Please make sure you passed all required Data");
+        }
+
         return new Employee
         {
             Id = id,
@@ -85,7 +97,6 @@ public class Employee:Aggregate<Guid>
             AdministrationId = administrationId,
             DepartmentId = departmentId,
             PositionId = positionId,
-
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
@@ -99,12 +110,13 @@ public class Employee:Aggregate<Guid>
         string phone,
         string modifiedBy)
     {
+
         FirstName = firstName;
-        MiddleName= middleName;
+        MiddleName = middleName;
         LastName = lastName;
         Email = email;
         Phone = phone;
-        ModifiedBy= modifiedBy;
+        ModifiedBy = modifiedBy;
         ModifiedAt = DateTime.UtcNow;
     }
     //public void AssignManager(Guid managerId)
@@ -113,7 +125,7 @@ public class Employee:Aggregate<Guid>
     //    ModifiedAt = DateTime.UtcNow;
     //}
 
-    public void TransferDepartment( Guid branchId, Guid administrationId, Guid departmentId, string modifiedBy)
+    public void TransferDepartment(Guid branchId, Guid administrationId, Guid departmentId, string modifiedBy)
     {
         BranchId = branchId;
         AdministrationId = administrationId;
@@ -125,7 +137,7 @@ public class Employee:Aggregate<Guid>
     {
         PositionId = positionId;
         ModifiedBy = modifiedBy;
-        ModifiedAt=DateTime.UtcNow;
+        ModifiedAt = DateTime.UtcNow;
     }
     public void Terminate(string reason, string modifiedBy)
     {

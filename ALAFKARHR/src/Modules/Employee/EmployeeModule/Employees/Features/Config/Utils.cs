@@ -8,5 +8,6 @@ namespace EmployeeModule.Employees.Features.Config
     {
         public readonly static string URL_PATTERN = "/api/v1/Employee";
         public readonly static string Employee_Endpoint = "Employees";
+        public readonly static string Position_Endpoint = "Positions";
     }
 }

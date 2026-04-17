@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Security.Principal;
 
 namespace SharedWithUI.Employees.Dtos;
 
@@ -88,5 +89,4 @@ public class EmployeeDto
 
     // 🔐 System
     public string Code { get; set; }
-
 }

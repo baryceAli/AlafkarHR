@@ -6,6 +6,9 @@ public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManage
 
     public async Task SeedAllAsync(AuthDbContext dbContext)
     {
+        
+
+        
         var role = await roleManager.FindByNameAsync("SystemUser");
         if (role is null)
         {

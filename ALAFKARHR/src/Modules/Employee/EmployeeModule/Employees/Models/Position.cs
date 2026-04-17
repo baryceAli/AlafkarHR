@@ -13,7 +13,7 @@ public class Position:Entity<Guid>
 
     private Position() { }
 
-    public static Position Create(Guid id, string title, string code, decimal baseSalary, Guid companyId)
+    public static Position Create(Guid id, string title, string code, decimal baseSalary, Guid companyId, string createdBy)
     {
         return new Position
         {
@@ -21,7 +21,9 @@ public class Position:Entity<Guid>
             Title = title,
             Code = code,
             BaseSalary = baseSalary,
-            CompanyId = companyId
+            CompanyId = companyId,
+            CreatedBy = createdBy,
+            CreatedAt = DateTime.UtcNow
         };
     }
 
@@ -35,5 +37,11 @@ public class Position:Entity<Guid>
         BaseSalary= baseSalary;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
+    }
+    public void Remove(Guid id, string deletedBy)
+    {
+        IsDeleted = true;
+        DeletedBy = deletedBy;
+        DeletedAt = DateTime.UtcNow;
     }
 }

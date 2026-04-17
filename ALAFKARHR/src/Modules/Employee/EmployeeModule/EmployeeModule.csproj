@@ -9,10 +9,14 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Shared.Contracts\Shared.Contracts.csproj" />
     <ProjectReference Include="..\..\..\Shared\Shared\Shared.csproj" />
+    <ProjectReference Include="..\..\Auth\Auth.Contracts\Auth.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Employees\Features\Features\" />
+    <Folder Include="Employees\Features\Positions\GetPositions\" />
+    <Folder Include="Employees\Features\Positions\GetPositionById\" />
+    <Folder Include="Employees\Features\Positions\UpdatePosition\" />
   </ItemGroup>
 
 </Project>

@@ -1,7 +1,7 @@
-﻿namespace Auth.Users.Features.RegisterUser;
+﻿using Auth.Contracts.Features.RegisterUser;
 
-public record RegisterUserCommand(RegisterDto Register) : ICommand<RegisterUserResult>;
-public record RegisterUserResult(Guid Id);
+namespace Auth.Users.Features.RegisterUser;
+
 
 public class RegisterUserCommandValidator : AbstractValidator<RegisterUserCommand>
 {

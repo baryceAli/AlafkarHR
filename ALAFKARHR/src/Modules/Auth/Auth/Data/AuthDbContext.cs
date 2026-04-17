@@ -12,6 +12,10 @@ public class AuthDbContext:IdentityDbContext<ApplicationUser, IdentityRole<Guid>
     protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.HasDefaultSchema("Auth");
+        
+         //✅ Ensure schema exists
+        //builder.HasAnnotation("Relational:Schema", "Auth");
+
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         base.OnModelCreating(builder);
     }

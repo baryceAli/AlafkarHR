@@ -20,51 +20,34 @@
         </li>
 
         <li class="nav-item">
-            <NavLink href="/Organization/Company/List" class="nav-link text-white">
+            <NavLink href="/Employee/Dashboard" class="nav-link text-white">
                 <i class="bi bi-box-seam me-2"></i>
                 @(SharedDataService.SelectViewLang("Organizational Structure","الهيكل التنظيمي"))
             </NavLink>
         </li>
 
         <li class="nav-item">
-            <NavLink href="/Employee/Dashboard" class="nav-link text-white">
+            <NavLink href="/Organization/Branch/List" class="nav-link text-white">
                 <i class="bi bi-box-seam me-2"></i>
-                @(SharedDataService.SelectViewLang("Employees", "الموظفين"))
+                @(SharedDataService.SelectViewLang("Branches", "الفروع"))
             </NavLink>
         </li>
 
         <li class="nav-item">
-            <NavLink href="/zproducts" class="nav-link text-white">
+            <NavLink href="/Organization/Administration/List" class="nav-link text-white">
                 <i class="bi bi-tags me-2"></i>
-                Products
+                @SharedDataService.SelectViewLang("Administrations","الإدارات")
             </NavLink>
         </li>
 
         <li class="nav-item">
-            <NavLink href="/zWarehouse" class="nav-link text-white">
+            <NavLink href="/Organization/Department/List" class="nav-link text-white">
                 <i class="bi bi-building me-2"></i>
-                Warehouses
+                @SharedDataService.SelectViewLang("Departments","الأقسام")
             </NavLink>
         </li>
 
-        <li class="nav-item">
-            <NavLink href="/zstock-movements" class="nav-link text-white">
-                <i class="bi bi-arrow-left-right me-2"></i>
-                Stock Movements
-            </NavLink>
-        </li>
-        <li class="nav-item">
-            <NavLink href="/zreports" class="nav-link text-white">
-                <i class="bi bi-arrow-left-right me-2"></i>
-                Reports
-            </NavLink>
-        </li>
-        <li class="nav-item">
-            <NavLink href="/movements" class="nav-link text-white">
-                <i class="bi bi-arrow-left-right me-2"></i>
-                Settings
-            </NavLink>
-        </li>
+        
     </ul>
 
 </div>
