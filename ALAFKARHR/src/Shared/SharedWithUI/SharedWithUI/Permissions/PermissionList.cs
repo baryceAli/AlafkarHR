@@ -1,4 +1,4 @@
-﻿namespace Shared.Contracts.Permissions;
+﻿namespace SharedWithUI.Permissions;
 
 public static class PermissionList
 {

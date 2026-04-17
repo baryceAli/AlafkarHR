@@ -1,6 +1,6 @@
 ﻿namespace AlAfkarERP.Shared.Utilities;
 
-public static class PermissionList
+public static class PermissionList1
 {
     public static List<string> GetAll()
     {

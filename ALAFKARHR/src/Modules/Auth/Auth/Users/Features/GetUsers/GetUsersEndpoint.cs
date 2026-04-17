@@ -1,5 +1,4 @@
-﻿using Auth.Contracts.Dtos;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shared.Pagination;
 
 namespace Auth.Users.Features.GetUsers;

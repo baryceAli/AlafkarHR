@@ -1,6 +1,4 @@
-﻿using Organization.Organizations.Features.Administrations.GetAdministrations;
-
-namespace Organization.Organizations.Features.Administrations.GetAdministrationsByBranchId;
+﻿namespace Organization.Organizations.Features.Administrations.GetAdministrationsByBranchId;
 
 public record GetAdministrationsByBranchIdQuery(Guid BranchId, PaginationRequest PaginationRequest) : IQuery<GetAdministrationsByBranchIdResult>;
 public record GetAdministrationsByBranchIdResult(PaginatedResult<AdministrationDto> AdministrationList);

@@ -1,5 +1,4 @@
-﻿using Auth.Contracts.Dtos;
-using Auth.Contracts.Features.GetUserById;
+﻿using Auth.Contracts.Features.GetUserById;
 using Shared.Exceptions;
 
 namespace Auth.Users.Features.GetUserById;

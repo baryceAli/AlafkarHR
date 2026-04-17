@@ -88,7 +88,7 @@ public static class AuthModule
         services.AddAuthorization();
         services.AddAuthorization(options =>
         {
-            foreach (var permissions in Shared.Contracts.Permissions.PermissionList.GetAll())
+            foreach (var permissions in SharedWithUI.Permissions.PermissionList.GetAll())
             {
                 options.AddPolicy(permissions, policy => policy.AddRequirements(new PermissionRequirement(permissions)));
             }

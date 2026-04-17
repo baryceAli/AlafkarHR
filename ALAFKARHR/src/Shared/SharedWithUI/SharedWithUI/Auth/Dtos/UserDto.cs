@@ -1,5 +1,5 @@
 ﻿
-namespace Auth.Contracts.Dtos
+namespace SharedWithUI.Auth.Dtos
 {
     public class UserDto
     {

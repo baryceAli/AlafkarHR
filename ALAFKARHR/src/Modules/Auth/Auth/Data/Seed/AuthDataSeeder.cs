@@ -1,7 +1,4 @@
-﻿using Auth.Helpers;
-using Shared.Contracts.Permissions;
-
-namespace Auth.Data.Seed;
+﻿namespace Auth.Data.Seed;
 
 public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole<Guid>> roleManager, IOptions<OTPOptions >oTPOptions)
     : IDataSeeder<AuthDbContext>

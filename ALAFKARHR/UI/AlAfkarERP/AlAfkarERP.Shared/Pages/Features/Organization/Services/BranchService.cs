@@ -2,7 +2,7 @@
 //using AlAfkarERP.Shared.Pages.Reuable2;
 using AlAfkarERP.Shared.Services;
 using System.Net.Http.Json;
-using AlAfkarERP.Shared.Pages.Features.Company.Dtos;
+using SharedWithUI.Organization.Dtos;
 
 namespace AlAfkarERP.Shared.Pages.Features.Company.Services;
 

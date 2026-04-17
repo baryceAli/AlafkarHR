@@ -29,3 +29,5 @@ global using Auth.Users.Events;
 global using Microsoft.Extensions.Options;
 global using Auth.Helpers;
 global using Shared.Contracts.Messaging;
+global using SharedWithUI.Permissions;
+global using SharedWithUI.Auth.Dtos;

@@ -1,5 +1,5 @@
-﻿using Auth.Contracts.Dtos;
-using Shared.Contracts.CQRS;
+﻿using Shared.Contracts.CQRS;
+using SharedWithUI.Auth.Dtos;
 
 namespace Auth.Contracts.Features.GetUserById;
 

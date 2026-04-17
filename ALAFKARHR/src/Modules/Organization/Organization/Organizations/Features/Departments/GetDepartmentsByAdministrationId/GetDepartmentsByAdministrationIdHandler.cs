@@ -1,7 +1,4 @@
-﻿using AlAfkarERP.Shared.Pages.Features.Company.Dtos;
-using Organization.Organizations.Features.Departments.GetDepartments;
-
-namespace Organization.Organizations.Features.Departments.GetDepartmentsByAdministrationId;
+﻿namespace Organization.Organizations.Features.Departments.GetDepartmentsByAdministrationId;
 
 
 public record GetDepartmentsByAdministrationIdQuery(Guid AdministrationId,PaginationRequest PaginationRequest) : IQuery<GetDepartmentsByAdministrationIdResult>;

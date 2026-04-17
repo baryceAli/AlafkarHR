@@ -1,4 +1,4 @@
-﻿namespace AlAfkarERP.Shared.Pages.Features.Company.Dtos;
+﻿namespace SharedWithUI.Organization.Dtos;
 
 public class DepartmentDto
 {

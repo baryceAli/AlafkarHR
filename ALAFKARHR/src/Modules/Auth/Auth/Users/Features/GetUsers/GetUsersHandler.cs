@@ -1,5 +1,4 @@
-﻿using Auth.Contracts.Dtos;
-using Shared.Pagination;
+﻿using Shared.Pagination;
 
 namespace Auth.Users.Features.GetUsers;
 

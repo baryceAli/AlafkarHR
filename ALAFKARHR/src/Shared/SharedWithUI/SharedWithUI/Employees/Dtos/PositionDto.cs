@@ -1,4 +1,4 @@
-﻿namespace EmployeeModule.Employees.Dtos;
+﻿namespace SharedWithUI.Employees.Dtos;
 
 public class PositionDto
 {

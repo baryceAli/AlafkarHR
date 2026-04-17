@@ -1,6 +1,4 @@
-﻿using AlAfkarERP.Shared.Pages.Features.Company.Dtos;
-
-namespace Organization.Organizations.Features.Departments.GetDepartments;
+﻿namespace Organization.Organizations.Features.Departments.GetDepartments;
 
 
 

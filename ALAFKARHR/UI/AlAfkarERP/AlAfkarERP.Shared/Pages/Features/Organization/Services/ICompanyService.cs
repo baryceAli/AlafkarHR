@@ -1,6 +1,6 @@
 ﻿using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Pages.Reuable2;
-using AlAfkarERP.Shared.Pages.Features.Company.Dtos;
+using SharedWithUI.Organization.Dtos;
 
 namespace AlAfkarERP.Shared.Pages.Features.Company.Services;
 

@@ -1,4 +1,4 @@
-﻿namespace AlAfkarERP.Shared.Dtos.Auth;
+﻿namespace SharedWithUI.Auth.Dtos;
 
 public class LoginDto {
     //(string Email, string Password);

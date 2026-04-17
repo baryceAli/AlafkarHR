@@ -1,4 +1,4 @@
-﻿namespace Auth.Users.Dtos;
+﻿namespace SharedWithUI.Auth.Dtos;
 
 public enum UserType
 {

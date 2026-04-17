@@ -1,4 +1,4 @@
-﻿namespace AlAfkarERP.Shared.Pages.Features.Company.Dtos;
+﻿namespace SharedWithUI.Organization.Dtos;
 
 public class AdministrationDto
 {
@@ -6,6 +6,7 @@ public class AdministrationDto
     public string Name { get; set; }
     public string NameEng { get; set; }
     public Guid BranchId { get; set; }
+    
     //public Branch Branch { get; private set; }
 
     public string Code { get; set; }

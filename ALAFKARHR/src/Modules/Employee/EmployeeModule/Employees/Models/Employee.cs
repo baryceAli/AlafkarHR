@@ -37,10 +37,10 @@ public class Employee:Aggregate<Guid>
 
     // 🔗 Job info
     public Guid PositionId { get; private set; }
-    //public Position Position { get; private set; }
+    public Position Position { get; private set; }
 
     public Guid? ManagerId { get; private set; }
-    //public Employee? Manager { get; private set; }
+    public Employee? Manager { get; private set; }
 
     // 🔐 System
     public string Code { get; private set; }
@@ -63,6 +63,7 @@ public class Employee:Aggregate<Guid>
         Guid administrationId,
         Guid departmentId,
         Guid positionId,
+       //Position position,
         string createdBy)
     {
         return new Employee
