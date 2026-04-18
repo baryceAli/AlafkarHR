@@ -25,7 +25,9 @@ public class GetEmployeesByCompanyIdHandler(EmployeeDbContext dbContext)
                 b.MiddleName.ToLower().Contains(search) ||
                 b.LastName.ToLower().Contains(search) ||
                 (b.Email != null && b.Email.ToLower().Contains(search)) ||
-                (b.Phone != null && b.Phone.Contains(search))
+                (b.Phone != null && b.Phone.Contains(search))||
+                b.Code.ToLower().Contains(search)
+
             );
         }
 
@@ -33,9 +35,10 @@ public class GetEmployeesByCompanyIdHandler(EmployeeDbContext dbContext)
         long count = await query.LongCountAsync(cancellationToken);
 
         // 📄 Pagination
-        var branches = await query
-            .OrderBy(b => b.FullName) // default sorting (important!)
-            .Skip(request.PaginationRequest.PageIndex * request.PaginationRequest.PageSize)
+        var employees = await query
+            .OrderBy(b => b.FirstName) // default sorting (important!)
+            .ThenBy(b => b.MiddleName)
+            .ThenBy(b => b.LastName).Skip(request.PaginationRequest.PageIndex * request.PaginationRequest.PageSize)
             .Take(request.PaginationRequest.PageSize)
             .ToListAsync(cancellationToken);
 
@@ -44,7 +47,7 @@ public class GetEmployeesByCompanyIdHandler(EmployeeDbContext dbContext)
                 request.PaginationRequest.PageIndex,
                 request.PaginationRequest.PageSize,
                 count,
-                branches.Adapt<List<EmployeeDto>>()
+                employees.Adapt<List<EmployeeDto>>()
             )
         );
     }

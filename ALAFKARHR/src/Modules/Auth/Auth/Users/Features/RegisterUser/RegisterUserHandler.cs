@@ -10,7 +10,7 @@ public class RegisterUserCommandValidator : AbstractValidator<RegisterUserComman
         RuleFor(x => x.Register.UserName).NotEmpty().WithMessage("UserName is required");
         RuleFor(x => x.Register.Email).NotEmpty().WithMessage("Email is required");
         RuleFor(x => x.Register.PhoneNumber).NotEmpty().WithMessage("PhoneNumber is required");
-        RuleFor(x => x.Register.UserType).NotEmpty().WithMessage("UserType is required");
+        //RuleFor(x => x.Register.UserType).NotEmpty().WithMessage("UserType is required");
         RuleFor(x => x.Register.UserType).IsInEnum().WithMessage("UserType must be SystemUser, Driver, or Customer");
     }
 }
@@ -20,7 +20,7 @@ public class RegisterUserHandler(UserManager<ApplicationUser> userManager, IMess
     public async Task<RegisterUserResult> Handle(RegisterUserCommand command, CancellationToken cancellationToken)
     {
         //var GenerateOTP = new GenerateOTP(oTPOptions);
-        var user = command.Register.Adapt<ApplicationUser>();
+        //var user = command.Register.Adapt<ApplicationUser>();
         var userToCreate = ApplicationUser.Create(
             Guid.NewGuid(),
             command.Register.UserName,
@@ -39,7 +39,7 @@ public class RegisterUserHandler(UserManager<ApplicationUser> userManager, IMess
             throw new Exception(string.Join("Register user, ", result.Errors.Select(e => e.Description)));
 
 
-        var registeredUser = await userManager.FindByNameAsync(user.UserName);
+        var registeredUser = await userManager.FindByNameAsync(command.Register.UserName);
 
         //send it to email
             await emailSender.SendAsync(registeredUser!.Email!, "Confirm your email", $"{registeredUser.Otp}");

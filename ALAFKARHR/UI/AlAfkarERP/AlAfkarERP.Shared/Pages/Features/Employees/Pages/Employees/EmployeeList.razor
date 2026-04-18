@@ -15,7 +15,7 @@
 @inject IBranchService BranchService
 @inject IAdministrationService AdministrationService
 @inject IDepartmentService DepartmentService
-
+@inject IPositionService PositionService
 @inject ToastService ToastService
 @inject ModalService ModalService
 
@@ -124,24 +124,18 @@
                     {
                     }
                         -->
-                    <th>@SharedDataService.SelectViewLang("EmployeeNo", "الرقم الوظيفي")</th>
-                    <th @onclick="() => Sort(nameof(EmployeeDto.FullName))">
-                        <span class=@(sortAscending)?"bi bi-file-earmark-plus-fill":"bi bi-file-earmark-plus")></span>
-                        @SharedDataService.SelectViewLang("Name", "الاسم")
-                    </th>
-                    <th>@SharedDataService.SelectViewLang("DOB", "الميلاد")</th>
-                    <th>@SharedDataService.SelectViewLang("Email", "الايميل")</th>
-                    <th>@SharedDataService.SelectViewLang("Phone", "الهاتف")</th>
-                    <th>@SharedDataService.SelectViewLang("Hire Date", "تاريخ التعيين")</th>
-                    <th @onclick="() => Sort(nameof(EmployeeDto.PositionName))">@SharedDataService.SelectViewLang("Position", "المسمى الوظيفي")</th>
-                
+                    
+
                     <td>@emp.EmployeeNo</td>
                     <td>@emp.FullName</td>
-                    <td>@emp.DateOfBirth</td>
+                    <td>@emp.DateOfBirth.ToString("yyyy/MM/dd")</td>
                     <td>@emp.Email</td>
                     <td>@emp.Phone</td>
-                    <td>@emp.HireDate</td>
-                    <td>@emp.PositionName</td>
+                    <td>@emp.HireDate.ToString("yyyy/MM/dd")</td>
+                    <td>@(SharedDataService.SelectViewLang(
+                        positions.FirstOrDefault(p => p.Id == emp.PositionId)?.TitleEng ?? "", 
+                        positions.FirstOrDefault(p => p.Id == emp.PositionId)?.Title?? ""))
+                    </td>
                     
                     <td>
                         <button class="btn btn-warning btn-sm" @onclick="() => EditBranch(emp.Id)">@SharedDataService.SelectViewLang("Edit", "تعديل")</button>
@@ -177,7 +171,7 @@
     private List<BranchDto> branches = new();
     private List<AdministrationDto> administrations = [];
     private List<DepartmentDto> departments = [];
-
+    private List<PositionDto> positions = [];
     private List<EmployeeDto> employees = [];
     // private Guid? editingEmployeeId;
 
@@ -189,6 +183,11 @@
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
         companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
 
+        var posRes = await PositionService.GetAsync(companyId, 0, 1000);
+        if (posRes.IsSuccess)
+        {
+            positions = posRes.Data?.Data?.ToList() ?? [];
+        }
         await LoadEmployees();
         // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
         // if (branchResponse.IsSuccess)

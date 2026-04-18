@@ -1,4 +1,5 @@
 ﻿using Shared.DDD;
+using SharedWithUI.Employees.Enums;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace EmployeeModule.Employees.Models;
@@ -44,6 +45,9 @@ public class Employee : Aggregate<Guid>
     // 🔐 System
     public string Code { get; private set; }
 
+    public EmployeeStatus   Status { get; private set; }
+    public IdentityType IdentityType { get; private set; }
+    public Gender Gender { get; private set; }
     private Employee() { }
 
     public static Employee Create(
@@ -62,7 +66,9 @@ public class Employee : Aggregate<Guid>
         Guid administrationId,
         Guid departmentId,
         Guid positionId,
-        //Position position,
+        IdentityType identityType,
+        Gender gender,
+        string code,
         string createdBy)
     {
         
@@ -97,6 +103,13 @@ public class Employee : Aggregate<Guid>
             AdministrationId = administrationId,
             DepartmentId = departmentId,
             PositionId = positionId,
+
+            Status=EmployeeStatus.Active,
+            Gender=gender,
+            IdentityType = identityType,
+
+            Code = code,
+
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
@@ -141,9 +154,17 @@ public class Employee : Aggregate<Guid>
     }
     public void Terminate(string reason, string modifiedBy)
     {
+        if (string.IsNullOrWhiteSpace(reason)) throw new ArgumentNullException("Reason is required");
+
         IsActive = false;
         EndDate = DateTime.UtcNow;
         EndReason = reason;
+        ModifiedBy = modifiedBy;
+        ModifiedAt = DateTime.UtcNow;
+    }
+    public void ChangeStatus(EmployeeStatus status, string modifiedBy)
+    {
+        Status = status;
         ModifiedBy = modifiedBy;
         ModifiedAt = DateTime.UtcNow;
     }

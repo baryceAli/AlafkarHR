@@ -5,9 +5,11 @@
 @using AlAfkarERP.Shared.Pages.Features.Employees.Layout
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @using AlAfkarERP.Shared.Pages.Reuable
+@using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Employees.Enums
 
 @inject IBranchService BranchService
 @inject IAdministrationService AdministrationService
@@ -16,6 +18,9 @@
 @inject IPositionService PositionService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
+@inject ToastService ToastService
+@inject ModalService ModalService
+
 @inject SharedDataService SharedDataService
 @inject NavigationManager NavigationManager
 
@@ -23,55 +28,59 @@
 <h3>@title</h3>
 <section>
     <EditForm Model="employee" OnValidSubmit="HandleSubmit">
-        <DataAnnotationsValidator/>
+        <DataAnnotationsValidator />
+        <ValidationSummary />
         <section>
-            <div class="mb-3 row">
-                <label for="branch" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Select Branch", "اختر الفرع")</label>
-                <div class="col-sm-10">
-                    <AutoCompleteComponent
-                        TItem="BranchDto"
-                        Items="branches"
-                        ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
-                        OnSelected="OnBranchSelected">
-                    </AutoCompleteComponent>
+            @if (!Id.HasValue)
+            {
+                <div class="mb-3 row">
+                    <label for="branch" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Select Branch", "اختر الفرع")</label>
+                    <div class="col-sm-10">
+                        <AutoCompleteComponent TItem="BranchDto"
+                                               Items="branches"
+                                               ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
+                                               OnSelected="OnBranchSelected">
+                        </AutoCompleteComponent>
+                        <ValidationMessage For="() => employee.BranchId" />
+                    </div>
                 </div>
-            </div>
-            
 
-            <div class="mb-3 row">
-                <label for="admin" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Select Administration", "اختر الإدارة")</label>
-                <div class="col-sm-10">
-                    <AutoCompleteComponent
-                        TItem="AdministrationDto"
-                        Items="administrations"
-                        ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
-                        OnSelected="OnAdministrationSelected">
-                    </AutoCompleteComponent>
-                </div>
-            </div>
-            
-            <div class="mb-3 row">
-                <label for="admin" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Select Department", "اختر القسم")</label>
-                <div class="col-sm-10">
-                    <AutoCompleteComponent TItem="DepartmentDto"
-                                           Items="departments"
-                                           ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
-                                           OnSelected="OnDepartmentSelected">
-                    </AutoCompleteComponent>
-                </div>
-            </div>
 
+                <div class="mb-3 row">
+                    <label for="admin" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Select Administration", "اختر الإدارة")</label>
+                    <div class="col-sm-10">
+                        <AutoCompleteComponent TItem="AdministrationDto"
+                                               Items="administrations"
+                                               ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
+                                               OnSelected="OnAdministrationSelected">
+                        </AutoCompleteComponent>
+                        <ValidationMessage For="() => employee.AdministrationId" />
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label for="admin" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Select Department", "اختر القسم")</label>
+                    <div class="col-sm-10">
+                        <AutoCompleteComponent TItem="DepartmentDto"
+                                               Items="departments"
+                                               ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
+                                               OnSelected="OnDepartmentSelected">
+                        </AutoCompleteComponent>
+                        <ValidationMessage For="() => employee.DepartmentId" />
+                    </div>
+                </div>
+            }
             <div class="mb-3 row">
                 <label for="inputEmployeeNo" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Employee No", "الرقم الوظيفي")</label>
                 <div class="col-sm-10">
-                    <InputText class="form-control" id="inputEmployeeNo" @bind-Value="employee.EmployeeNo"/>
-                    <ValidationMessage For="()=> employee.EmployeeNo"/>
+                    <InputText class="form-control" id="inputEmployeeNo" @bind-Value="employee.EmployeeNo" disabled=@(Id.HasValue ? "ture" : "false") />
+                    <ValidationMessage For="() => employee.EmployeeNo" />
                 </div>
             </div>
             <div class="mb-3 row">
-                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("First Name","الاسم الاول")</label>
+                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("First Name", "الاسم الاول")</label>
                 <div class="col-sm-10">
-                    <InputText  class="form-control" id="inputFirstName" @bind-Value="employee.FirstName"/>
+                    <InputText class="form-control" id="inputFirstName" @bind-Value="employee.FirstName" />
                     <ValidationMessage For="() => employee.FirstName" />
                 </div>
             </div>
@@ -100,24 +109,44 @@
                 <label for="NationalId" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("NationalId", "رقم الهوية")</label>
                 <div class="col-sm-10">
                     <InputText class="form-control" id="NationalId" @bind-Value="employee.NationalId" />
-                    <ValidationMessage For="() => employee.Phone" />
-                </div>
-            </div>
-            <div class="mb-3 row">
-                <label for="NationalId" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Identity type", "نوع الهوية")</label>
-                <div class="col-sm-10">
-                    <InputText class="form-control" id="NationalId" @bind-Value="employee.NationalId" />
-                    <ValidationMessage For="() => employee.Phone" />
-                </div>
-            </div>
-            <div class="mb-3 row">
-                <label for="NationalId" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Gender", "النوع")</label>
-                <div class="col-sm-10">
-                    <InputText class="form-control" id="NationalId" @bind-Value="employee.NationalId" />
-                    <ValidationMessage For="() => employee.Phone" />
+                    <ValidationMessage For="() => employee.NationalId" />
                 </div>
             </div>
             
+            <div class="mb-3 row">
+                <label class="col-sm-2 col-form-label">
+                    @SharedDataService.SelectViewLang("Identity Type", "نوع الهوية")
+                </label>
+                <div class="col-sm-10">
+                    <InputSelect class="form-control" @bind-Value="employee.IdentityType">
+                        @foreach (var type in Enum.GetValues<IdentityType>())
+                        {
+                            <option value="@type">
+                                @GetIdentityTypeDisplay(type)
+                            </option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="() => employee.IdentityType" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="col-sm-2 col-form-label">
+                    @SharedDataService.SelectViewLang("Gender", "النوع")
+                </label>
+                <div class="col-sm-10">
+                    <InputSelect class="form-control" @bind-Value="employee.Gender">
+                        @foreach (var gender in Enum.GetValues<Gender>())
+                        {
+                            <option value="@gender">
+                                @GetGenderDisplay(gender)
+                            </option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="() => employee.Gender" />
+                </div>
+            </div>
+
             <div class="mb-3 row">
                 <label for="Email" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Email", "الايميل")</label>
                 <div class="col-sm-10">
@@ -139,19 +168,31 @@
                     <ValidationMessage For="() => employee.HireDate" />
                 </div>
             </div>
-            <div class="mb-3 row">
-                <label for="position" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Select Position", "اختر المسمى الوظيفي")</label>
-                <div class="col-sm-10">
-                    <AutoCompleteComponent TItem="PositionDto"
-                                           Items="positions"
-                                           ItemText="(b=> SharedDataService.SelectViewLang(b.TitleEng,b.Title))"
-                                           OnSelected="OnPositionSelected">
-                    </AutoCompleteComponent>
+            @if (!Id.HasValue)
+            {
+                
+                <div class="mb-3 row">
+                    <label for="position" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Select Position", "اختر المسمى الوظيفي")</label>
+                    <div class="col-sm-10">
+                        <AutoCompleteComponent TItem="PositionDto"
+                                               Items="positions"
+                                               ItemText="(b=> SharedDataService.SelectViewLang(b.TitleEng,b.Title))"
+                                               OnSelected="OnPositionSelected">
+                        </AutoCompleteComponent>
+                        <ValidationMessage For="() => employee.PositionId" />
+                    </div>
                 </div>
-            </div>
+            }
 
             
             
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-floppy2-fill m-1"></i>
+                @(Id.HasValue ? SharedDataService.SelectViewLang("تعديل", "Update") : SharedDataService.SelectViewLang("حفظ", "Save"))
+            </button>
+            <button type="button" class="btn btn-dark" @onclick="onCancel"><i class="bi bi-stop-circle-fill"></i> @(SharedDataService.Language == "Ar" ? "إلغاء" : "Cancel")</button>
+
+               
 
         </section>
 
@@ -167,19 +208,20 @@
     private List<DepartmentDto> departments = [];
     private List<PositionDto> positions = [];
 
-    private EmployeeDto employee=new() { HireDate=DateTime.Now, DateOfBirth=DateTime.Now.AddYears(-20)};
+    private EmployeeDto employee = new();
 
     private Guid companyId;
 
-    private string title ;
+    private string title;
     private AuthenticationState AuthState;
     protected override async Task OnInitializedAsync()
     {
-        title = SharedDataService.SelectViewLang("New Employee", "موظف جديد");
 
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-        companyId =Guid.Parse( AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
 
+        ResetEmployee();
+        title = SharedDataService.SelectViewLang("New Employee", "موظف جديد");
         var bResponse = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
         if (bResponse.IsSuccess)
         {
@@ -202,7 +244,18 @@
             else
             {
                 //show employee not found msg and return to employee list page
-
+                await ModalService.ShowAsync(
+                    new ModalOptions
+                    {
+                        Title = SharedDataService.SelectViewLang("Edit Employee", "تعديل بيانات موظف"),
+                        Message = SharedDataService.SelectViewLang("Employee not found", "لم يتم العثور على بيانات الموظف"),
+                        IsError = false,
+                        OnOk = async () =>
+                        {
+                            NavigationManager.NavigateTo("/Employee/Employee/List");
+                        }
+                    }
+                );
             }
         }
         else
@@ -210,9 +263,94 @@
 
         }
     }
-    private Task HandleSubmit()
+    private void ResetEmployee()
     {
-        return Task.CompletedTask;
+        employee = new()
+        {
+            CompanyId = companyId,
+            HireDate = DateTime.UtcNow,
+            DateOfBirth = DateTime.UtcNow.AddYears(-20),
+            Gender = Gender.Male,
+            IdentityType = IdentityType.Iqama
+            // IsActive = true,
+
+        };
+    }
+    private async Task HandleSubmit()
+    {
+        if (!Id.HasValue || Id == Guid.Empty)
+        {
+            //Create
+
+            var empResponse = await EmployeeService.CreateAsync(employee);
+            if (empResponse.IsSuccess)
+            {
+                //show success toast
+                ToastService.Show(
+                    new ToastMessage
+                    {
+                        Message = "Employee Created successfully",
+                        Type = "Success"
+                    }
+                );
+                //Reset Fields
+                ResetEmployee();
+            }
+            else
+            {
+                //Show Error message
+                await ModalService.ShowAsync(
+                    new ModalOptions
+                    {
+                        Title = SharedDataService.SelectViewLang("Add Employee", "إضافة موظف"),
+                        Message = SharedDataService.SelectViewLang("An error has occured, please try again", "حدث خطأ أثناء ما، الرجاء المحاولة مرة أخرى"),
+                        Details = empResponse.Error?.Detail ?? "",
+                        IsError = true,
+                        OnOk = async () =>
+                        {
+
+                        }
+                    }
+               );
+
+            }
+        }
+        else
+        {
+            //Update
+            var empResp = await EmployeeService.UpdateAsync(employee);
+            if (empResp.IsSuccess)
+            {
+                ToastService.Show(
+                    new ToastMessage
+                    {
+                        Message = SharedDataService
+                                        .SelectViewLang("Employee's data has been modified successfully", "تم تعديل بيانات الموظف بنجاح"),
+                        Type = "Success"
+
+                    }
+                );
+
+                NavigationManager.NavigateTo("/Employee/Employee/List");
+            }
+            else
+            {
+                await ModalService.ShowAsync(
+                    new ModalOptions
+                    {
+                        Title = SharedDataService.SelectViewLang("Add Employee", "إضافة موظف"),
+                        Message = SharedDataService.SelectViewLang("An Error has occured, please try again", "حدث خطأ ما، الرجاء المحاولة مرة أخرى"),
+                        Details = empResp.Error?.Detail ?? "",
+                        IsError = true,
+                        OnOk = async () =>
+                        {
+
+                        }
+                    }
+                );
+            }
+        }
+
     }
     private BranchDto selectedBranch = new();
     private async Task OnBranchSelected(BranchDto branch)
@@ -222,13 +360,16 @@
         if (admResponse.IsSuccess)
         {
             administrations = admResponse.Data?.Data?.ToList() ?? [];
+
         }
+        employee.BranchId = selectedBranch.Id;
     }
 
-    private PositionDto selectedPosition= new();
+    private PositionDto selectedPosition = new();
     private async Task OnPositionSelected(PositionDto position)
     {
-        selectedPosition= position;
+        selectedPosition = position;
+        employee.PositionId = selectedPosition.Id;
         // var posResponse = await AdministrationService.GetByBranchAsync(position.Id, 0, 1000);
         // if (posResponse.IsSuccess)
         // {
@@ -245,10 +386,37 @@
         {
             departments = deptResponse.Data?.Data?.ToList() ?? [];
         }
+        employee.AdministrationId = selectedAdministration.Id;
     }
     private DepartmentDto selectedDepartment = new();
     private void OnDepartmentSelected(DepartmentDto department)
     {
-        selectedDepartment= department;
+        selectedDepartment = department;
+        employee.DepartmentId = selectedDepartment.Id;
+    }
+
+    private string GetIdentityTypeDisplay(IdentityType type)
+    {
+        return type switch
+        {
+            IdentityType.Iqama => SharedDataService.SelectViewLang("Iqama", "إقامة"),
+            IdentityType.Passpord => SharedDataService.SelectViewLang("Passport", "جواز سفر"),
+            IdentityType.DrivingLicense => SharedDataService.SelectViewLang("Driving License", "رخصة قيادة"),
+            _ => type.ToString()
+        };
+    }
+    private string GetGenderDisplay(Gender gender)
+    {
+        return gender switch
+        {
+            Gender.Male => SharedDataService.SelectViewLang("Male", "ذكر"),
+            Gender.Female => SharedDataService.SelectViewLang("Female", "أنثى"),
+            _ => gender.ToString()
+        };
+    }
+    
+    private void onCancel()
+    {
+        NavigationManager.NavigateTo("/Employee/Employee/List");
     }
 }

@@ -5,7 +5,7 @@ namespace AlAfkarERP.Shared.Pages.Features.Employees.Services;
 
 public interface IEmployeeService
 {
-    public Task<ApiResult<EmployeeDto>> GreateAsync(EmployeeDto employee);
+    public Task<ApiResult<EmployeeDto>> CreateAsync(EmployeeDto employee);
     public Task<ApiResult<UpdateDeleteResponseDto>> UpdateAsync(EmployeeDto employee);
     public Task<ApiResult<UpdateDeleteResponseDto>> DeleteAsync(Guid id);
 

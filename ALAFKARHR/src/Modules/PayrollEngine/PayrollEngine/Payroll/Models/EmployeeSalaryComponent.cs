@@ -1,4 +1,4 @@
-﻿namespace PayrollEngine.Payroll.Models.Enums;
+﻿namespace PayrollEngine.Payroll.Models;
 
 
 public class PayrollCalculator

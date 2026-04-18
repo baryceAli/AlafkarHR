@@ -49,7 +49,8 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         // 🔍 Indexes (VERY IMPORTANT)
         builder.HasIndex(x => x.EmployeeNo).IsUnique();
         builder.HasIndex(x => x.NationalId).IsUnique();
-        builder.HasIndex(x => x.Email);
+        builder.HasIndex(x => x.Email).IsUnique();
+        builder.HasIndex(x => x.Phone).IsUnique();
 
         builder.HasIndex(x => new { x.CompanyId, x.EmployeeNo });
 

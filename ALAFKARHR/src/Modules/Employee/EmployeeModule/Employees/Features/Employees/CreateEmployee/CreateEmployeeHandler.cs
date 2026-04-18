@@ -3,6 +3,7 @@ using EmployeeModule.Employees.Models;
 using FluentValidation;
 using Shared.Contracts.CQRS;
 using SharedWithUI.Auth.Dtos;
+using SharedWithUI.General;
 using System.Security.Claims;
 
 namespace EmployeeModule.Employees.Features.Employees.CreateEmployee;
@@ -11,7 +12,15 @@ public record CreateEmployeeCommand(EmployeeDto Employee) : ICommand<CreateEmplo
 public record CreateEmployeeResult(EmployeeDto CreatedEmployee);
 public class CreateEmployeeCommandValidator : AbstractValidator<CreateEmployeeCommand>
 {
-
+    public CreateEmployeeCommandValidator()
+    {
+        RuleFor(e=> e.Employee.FirstName).NotEmpty().WithMessage("FirstName is required");
+        RuleFor(e=> e.Employee.MiddleName).NotEmpty().WithMessage("MiddleName is required");
+        RuleFor(e=> e.Employee.LastName).NotEmpty().WithMessage("LastName is required");
+        RuleFor(e=> e.Employee.Phone).NotEmpty().WithMessage("Phone is required");
+        RuleFor(e=> e.Employee.Email).NotEmpty().WithMessage("Email is required");
+        RuleFor(e=> e.Employee.EmployeeNo).NotEmpty().WithMessage("EmployeeNo is required");
+    }
 }
 public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<CreateEmployeeCommand, CreateEmployeeResult>
@@ -23,8 +32,9 @@ public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
                     .FindFirst(ClaimTypes.NameIdentifier)?
                     .Value ??
                     throw new UnauthorizedAccessException("User is not authenticated");
-        
-        
+
+        Random rnd = new Random();
+        string code = rnd.Next(100, 9999).ToString();
         var employee = Employee.Create(
             Guid.NewGuid(),
             request.Employee.EmployeeNo,
@@ -33,14 +43,17 @@ public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             request.Employee.LastName,
             request.Employee.Email,
             request.Employee.Phone,
-            request.Employee.DateOfBirth,
+            DateTimeToUTC.ToUtc(request.Employee.DateOfBirth),
             request.Employee.NationalId,
-            request.Employee.HireDate,
+            DateTimeToUTC.ToUtc( request.Employee.HireDate),
             request.Employee.CompanyId!.Value,
             request.Employee.BranchId!.Value,
             request.Employee.AdministrationId!.Value,
             request.Employee.DepartmentId!.Value,
             request.Employee.PositionId!.Value,
+            request.Employee.IdentityType,
+            request.Employee.Gender,
+            code,
             userId);
         await dbContext.Employees.AddAsync(employee, cancellationToken);
 

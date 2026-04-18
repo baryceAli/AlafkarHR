@@ -15,6 +15,18 @@ public class EmployeeService :BaseApiService, IEmployeeService
         _path = $"api/{_apiConfig.Version}/Employee/Employees";
     }
 
+    public async Task<ApiResult<EmployeeDto>> CreateAsync(EmployeeDto employee)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}")
+        {
+            Content = JsonContent.Create(new
+            {
+                Employee = employee
+            })
+        };
+        return await SendAsync<EmployeeDto>(request, "createdEmployee");
+    }
+
     public async Task<ApiResult<UpdateDeleteResponseDto>> ChangePositionAsync(ChangePositionDto changePosition)
     {
         var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/ChangePosition")
@@ -41,52 +53,41 @@ public class EmployeeService :BaseApiService, IEmployeeService
 
     public async Task<ApiResult<PaginatedResult<EmployeeDto>>> GetByAdministrationAsync(Guid administrationId, int pageIndex, int pageSize)
     {
-        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/administration/{administrationId}?pageIndex={pageIndex}&pageSize={pageSize}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/administration/{administrationId}?pageIndex={pageIndex}&pageSize={pageSize}");
         return await SendAsync<PaginatedResult<EmployeeDto>>(request, "employeeList");
     }
 
     public async Task<ApiResult<PaginatedResult<EmployeeDto>>> GetByBranchAsync(Guid branchId, int pageIndex, int pageSize)
     {
-        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/branch/{branchId}?pageIndex={pageIndex}&pageSize={pageSize}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/branch/{branchId}?pageIndex={pageIndex}&pageSize={pageSize}");
         return await SendAsync<PaginatedResult<EmployeeDto>>(request, "employeeList");
     }
 
     public async Task<ApiResult<PaginatedResult<EmployeeDto>>> GetByCompanyIdAsync(Guid companyId, int pageIndex, int pageSize)
     {
-        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/company/{companyId}?pageIndex={pageIndex}&pageSize={pageSize}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/company/{companyId}?pageIndex={pageIndex}&pageSize={pageSize}");
         return await SendAsync<PaginatedResult<EmployeeDto>>(request, "employeeList");
     }
 
     public async Task<ApiResult<PaginatedResult<EmployeeDto>>> GetByDepartmentAsync(Guid departmentId, int pageIndex, int pageSize)
     {
-        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/department/{departmentId}?pageIndex={pageIndex}&pageSize={pageSize}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/department/{departmentId}?pageIndex={pageIndex}&pageSize={pageSize}");
         return await SendAsync<PaginatedResult<EmployeeDto>>(request, "employeeList");
     }
 
     public async Task<ApiResult<EmployeeDto>> GetByIdAsync(Guid id)
     {
-        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/{id}");
-        return await SendAsync<EmployeeDto>(request, "employeeList");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/{id}");
+        return await SendAsync<EmployeeDto>(request, "employee");
     }
 
     public async Task<ApiResult<PaginatedResult<EmployeeDto>>> GetByPositionAsync(Guid positionId, int pageIndex, int pageSize)
     {
-        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/position/{positionId}?pageIndex={pageIndex}&pageSize={pageSize}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/position/{positionId}?pageIndex={pageIndex}&pageSize={pageSize}");
         return await SendAsync<PaginatedResult<EmployeeDto>>(request, "employeeList");
     }
 
-    public async Task<ApiResult<EmployeeDto>> GreateAsync(EmployeeDto employee)
-    {
-        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}")
-        {
-            Content = JsonContent.Create(new
-            {
-                ChangePosition = employee
-            })
-        };
-        return await SendAsync<EmployeeDto>(request, "employee");
-    }
-
+    
     public async Task<ApiResult<UpdateDeleteResponseDto>> TerminateEmployeeAsync(TerminateEmployeeDto terminateEmployee)
     {
         var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/Terminate")
@@ -117,7 +118,7 @@ public class EmployeeService :BaseApiService, IEmployeeService
         {
             Content = JsonContent.Create(new
             {
-                ChangePosition = employee
+                Employee = employee
             })
         };
         return await SendAsync<UpdateDeleteResponseDto>(request, null);
