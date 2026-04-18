@@ -1,4 +1,6 @@
-﻿namespace EmployeeModule.Employees.Features.Employees.GetEmployeeById;
+﻿using EmployeeModule.Employees.Config;
+
+namespace EmployeeModule.Employees.Features.Employees.GetEmployeeById;
 
 
 public record GetEmployeeByIdResponse(EmployeeDto Employee);

@@ -2,24 +2,24 @@
 
 namespace Payroll.Salaries.Models;
 
-public class SalaryComponent:Entity<Guid>
+public class Contract:Entity<Guid>
 {
     public string Name { get; set; }
     public string NameEng { get; set; }
-    public string? Notes { get; set; }
-    public bool IsTaxable { get; private set; }
-    public bool IsEarning { get; private set; } // earning vs deduction
-    private SalaryComponent(){}
+    public string? Description { get; set; }
+    //public bool IsTaxable { get; private set; }
+    //public bool IsEarning { get; private set; } // earning vs deduction
+    private Contract(){}
 
-    public static SalaryComponent Create(Guid id, string name, string nameEng, string? notes,string createdBy)
+    public static Contract Create(Guid id, string name, string nameEng, string? description,string createdBy)
     {
         if(string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException("Name is required");
-        return new SalaryComponent
+        return new Contract
         {
             Id = id,
             Name = name,
             NameEng = nameEng,
-            Notes = notes,
+            Description = description,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
@@ -28,7 +28,7 @@ public class SalaryComponent:Entity<Guid>
     {
         Name=name;
         NameEng=nameEng;
-        Notes=notes;
+        Description=notes;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }

@@ -1,4 +1,6 @@
-﻿namespace EmployeeModule.Employees.Features.Positions.UpdatePosition;
+﻿using EmployeeModule.Employees.Config;
+
+namespace EmployeeModule.Employees.Features.Positions.UpdatePosition;
 
 
 public record UpdatePositionRequest(PositionDto Position);

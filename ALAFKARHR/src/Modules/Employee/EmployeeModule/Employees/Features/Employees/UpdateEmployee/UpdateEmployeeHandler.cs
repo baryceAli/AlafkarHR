@@ -47,10 +47,20 @@ public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
         
         employee.Update(
             request.Employee.FirstName,
+            request.Employee.FirstNameEng,
             request.Employee.MiddleName,
+            request.Employee.MiddleNameEng,
             request.Employee.LastName,
+            request.Employee.LastNameEng,
             request.Employee.Email,
             request.Employee.Phone,
+            request.Employee.Address,
+            request.Employee.MaritalStatus,
+            request.Employee.EmploymentType,
+            request.Employee.Qualification,
+            request.Employee.SpecializationId,
+            request.Employee.AcademicInstituteId,
+            request.Employee.GraduationYear,
             userId);
 
         await dbContext.SaveChangesAsync(cancellationToken);

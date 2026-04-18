@@ -29,6 +29,13 @@ namespace EmployeeModule.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("AcademicInstituteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<Guid>("AdministrationId")
                         .HasColumnType("uuid");
 
@@ -70,6 +77,9 @@ namespace EmployeeModule.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<int>("EmploymentType")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -81,7 +91,14 @@ namespace EmployeeModule.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("FirstNameEng")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<int>("Gender")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GraduationYear")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("HireDate")
@@ -101,7 +118,18 @@ namespace EmployeeModule.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("LastNameEng")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("MaritalStatus")
+                        .HasColumnType("integer");
+
                     b.Property<string>("MiddleName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("MiddleNameEng")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -116,12 +144,22 @@ namespace EmployeeModule.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("Nationality")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
                     b.Property<Guid>("PositionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Qualification")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SpecializationId")
                         .HasColumnType("uuid");
 
                     b.Property<int>("Status")
@@ -133,12 +171,16 @@ namespace EmployeeModule.Data.Migrations
 
                     b.HasIndex("DepartmentId");
 
-                    b.HasIndex("Email");
+                    b.HasIndex("Email")
+                        .IsUnique();
 
                     b.HasIndex("EmployeeNo")
                         .IsUnique();
 
                     b.HasIndex("NationalId")
+                        .IsUnique();
+
+                    b.HasIndex("Phone")
                         .IsUnique();
 
                     b.HasIndex("PositionId");

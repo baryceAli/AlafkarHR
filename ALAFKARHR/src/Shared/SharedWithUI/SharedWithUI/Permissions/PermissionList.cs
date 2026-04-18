@@ -6,7 +6,8 @@ public static class PermissionList
     {
         List<string> list =
         [
-
+            ..AcademicInistitutionPermissions.Permissions,
+            ..SpecializationPermissions.Permissions,
             ..EmployeePermissions.Permissions,
             ..PositionPermissions.Permissions,
             ..CompanyPermissions.Permissions,
@@ -51,6 +52,50 @@ public static class PermissionList
             };
 
     }
+    public static class AcademicInistitutionPermissions
+    {
+
+        public static string GroupName { get; set; } = "Employees.AcademicInistitution";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
+
+    }
+
+    public static class SpecializationPermissions
+    {
+
+        public static string GroupName { get; set; } = "Employees.Specialization";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
+
+    }
+    
     public static class PositionPermissions
     {
 

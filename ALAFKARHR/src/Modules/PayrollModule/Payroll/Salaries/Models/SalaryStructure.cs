@@ -10,8 +10,8 @@ public class SalaryStructure : Aggregate<Guid>
     public DateTime? ActiveFrom { get; set; }
     public bool IsActive { get; set; }
 
-    private readonly List<SalaryStructureComponent> _salaryStrucutreComponents = new();
-    public IReadOnlyCollection<SalaryStructureComponent> SalaryStrucutreComponents => _salaryStrucutreComponents;
+    private readonly List<Component> _salaryStrucutreComponents = new();
+    public IReadOnlyCollection<Component> SalaryStrucutreComponents => _salaryStrucutreComponents;
 
     public SalaryStructure() { }
 

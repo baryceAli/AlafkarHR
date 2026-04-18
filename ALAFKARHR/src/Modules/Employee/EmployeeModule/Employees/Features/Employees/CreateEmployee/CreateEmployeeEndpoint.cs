@@ -1,4 +1,6 @@
-﻿namespace EmployeeModule.Employees.Features.Employees.CreateEmployee;
+﻿using EmployeeModule.Employees.Config;
+
+namespace EmployeeModule.Employees.Features.Employees.CreateEmployee;
 
 
 public record CreateEmployeeRequest(EmployeeDto Employee);

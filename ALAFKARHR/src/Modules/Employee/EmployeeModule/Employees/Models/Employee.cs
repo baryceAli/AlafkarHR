@@ -9,10 +9,14 @@ public class Employee : Aggregate<Guid>
     public string EmployeeNo { get; private set; }
 
     public string FirstName { get; private set; }
+    public string FirstNameEng { get; private set; }
     public string MiddleName { get; private set; }
+    public string MiddleNameEng { get; private set; }
     public string LastName { get; private set; }
+    public string LastNameEng { get; private set; }
 
     public string FullName => $"{FirstName} {MiddleName} {LastName}";
+    public string FullNameEng => $"{FirstNameEng} {MiddleNameEng} {LastNameEng}";
 
     public string Email { get; private set; }
     public string Phone { get; private set; }
@@ -45,17 +49,29 @@ public class Employee : Aggregate<Guid>
     // 🔐 System
     public string Code { get; private set; }
 
-    public EmployeeStatus   Status { get; private set; }
+    public EmployeeStatus Status { get; private set; }
     public IdentityType IdentityType { get; private set; }
     public Gender Gender { get; private set; }
+
+    public string Nationality { get; set; }
+    public string Address { get; set; }
+    public MaritalStatus MaritalStatus { get; set; }
+    public EmploymentType EmploymentType { get; set; }
+    public Qualification Qualification { get; set; }
+    public Guid SpecializationId { get; set; }
+    public Guid AcademicInstituteId { get; set; }
+    public int GraduationYear { get; set; }
     private Employee() { }
 
     public static Employee Create(
         Guid id,
         string employeeNo,
         string firstName,
+        string firstNameEng,
         string middleName,
+        string middleNameEng,
         string lastName,
+        string lastNameEng,
         string email,
         string phone,
         DateTime dateOfBirth,
@@ -69,17 +85,35 @@ public class Employee : Aggregate<Guid>
         IdentityType identityType,
         Gender gender,
         string code,
+        string nationality,
+        string address,
+        MaritalStatus maritalStatus,
+        EmploymentType employmentType,
+
+        Qualification qualification,
+        Guid specializationId,
+        Guid academicInstituteId,
+        int graduationYear,
+
+
         string createdBy)
     {
-        
+
 
         if (string.IsNullOrEmpty(employeeNo) ||
             string.IsNullOrEmpty(firstName) ||
+            string.IsNullOrEmpty(firstNameEng) ||
             string.IsNullOrEmpty(middleName) ||
+            string.IsNullOrEmpty(middleNameEng) ||
             string.IsNullOrEmpty(lastName) ||
+            string.IsNullOrEmpty(lastNameEng) ||
             string.IsNullOrEmpty(email) ||
             string.IsNullOrEmpty(phone) ||
-            string.IsNullOrEmpty(nationalId))
+            string.IsNullOrEmpty(nationalId) ||
+            string.IsNullOrEmpty(nationality) ||
+            string.IsNullOrEmpty(address)
+            //string.IsNullOrEmpty(maritalStatus) ||
+            )
         {
             throw new ArgumentNullException("Please make sure you passed all required Data");
         }
@@ -89,8 +123,11 @@ public class Employee : Aggregate<Guid>
             Id = id,
             EmployeeNo = employeeNo,
             FirstName = firstName,
+            FirstNameEng = firstNameEng,
             MiddleName = middleName,
+            MiddleNameEng = middleNameEng,
             LastName = lastName,
+            LastNameEng = lastNameEng,
             Email = email,
             Phone = phone,
             DateOfBirth = dateOfBirth,
@@ -104,31 +141,61 @@ public class Employee : Aggregate<Guid>
             DepartmentId = departmentId,
             PositionId = positionId,
 
-            Status=EmployeeStatus.Active,
-            Gender=gender,
+            Status = EmployeeStatus.Active,
+            Gender = gender,
             IdentityType = identityType,
 
             Code = code,
 
+            Nationality = nationality,
+            Address = address,
+            MaritalStatus = maritalStatus,
+            EmploymentType = employmentType,
             CreatedAt = DateTime.UtcNow,
+
+
+            Qualification = qualification,
+            SpecializationId = specializationId,
+            AcademicInstituteId = academicInstituteId,
+            GraduationYear = graduationYear,
             CreatedBy = createdBy
         };
     }
 
     public void Update(
         string firstName,
+        string firstNameEng,
         string middleName,
+        string middleNameEng,
         string lastName,
+        string lastNameEng,
         string email,
         string phone,
+        string address,
+        MaritalStatus maritalStatus,
+        EmploymentType employmentType,
+        Qualification qualification,
+        Guid specializationId,
+        Guid academicInstituteId,
+        int graduationYear,
         string modifiedBy)
     {
 
         FirstName = firstName;
+        FirstNameEng = firstNameEng;
         MiddleName = middleName;
+        MiddleNameEng = middleNameEng;
         LastName = lastName;
+        LastNameEng = lastNameEng;
         Email = email;
         Phone = phone;
+        Address = address;
+        MaritalStatus = maritalStatus;
+        EmploymentType = employmentType;
+        Qualification= qualification;
+        SpecializationId = specializationId;
+        AcademicInstituteId= academicInstituteId;
+        GraduationYear= graduationYear;
         ModifiedBy = modifiedBy;
         ModifiedAt = DateTime.UtcNow;
     }

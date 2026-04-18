@@ -15,13 +15,25 @@ public class EmployeeDto
     [Required(ErrorMessage ="FirstName is required")]
     public string FirstName { get; set; }
 
+    
+    [Required(ErrorMessage = "FirstNameEng is required")]
+    public string FirstNameEng { get; set; }
 
     [Required(ErrorMessage ="MiddleName is required")]
     public string MiddleName { get; set; }
 
 
+    [Required(ErrorMessage = "MiddleNameEnd is required")]
+    public string MiddleNameEng { get; set; }
+
+
     [Required(ErrorMessage = "LastName is required")]
     public string LastName { get; set; }
+
+    
+    [Required(ErrorMessage = "LastNameEng is required")]
+    public string LastNameEng { get; set; }
+
 
     public string FullName => $"{FirstName} {MiddleName} {LastName}";
 
@@ -94,4 +106,12 @@ public class EmployeeDto
     public IdentityType IdentityType { get; set; }
     public Gender Gender { get; set; }
 
+    public string Nationality { get; set; }
+    public string Address { get; set; }
+    public MaritalStatus MaritalStatus { get; set; }
+    public EmploymentType EmploymentType { get; set; }
+    public Qualification Qualification { get; set; }
+    public Guid SpecializationId { get; set; }
+    public Guid AcademicInstituteId { get; set; }
+    public int GraduationYear { get; set; }
 }

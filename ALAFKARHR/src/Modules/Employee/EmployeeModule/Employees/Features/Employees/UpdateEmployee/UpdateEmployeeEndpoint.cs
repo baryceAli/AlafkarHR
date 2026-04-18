@@ -1,4 +1,6 @@
-﻿namespace EmployeeModule.Employees.Features.Employees.UpdateEmployee;
+﻿using EmployeeModule.Employees.Config;
+
+namespace EmployeeModule.Employees.Features.Employees.UpdateEmployee;
 
 
 public record UpdateEmployeeRequest(EmployeeDto Employee);

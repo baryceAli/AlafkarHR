@@ -10,7 +10,7 @@ public class PayrollDbContext:DbContext
 
 
     public DbSet<SalaryStructure> SalaryStructures => Set<SalaryStructure>();
-    public DbSet<SalaryComponent> SalaryComponents => Set<SalaryComponent>();
+    public DbSet<Contract> SalaryComponents => Set<Contract>();
     protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.HasDefaultSchema("Payroll");

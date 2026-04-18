@@ -1,4 +1,6 @@
-﻿namespace EmployeeModule.Employees.Features.Employees.TerminateEmployee;
+﻿using EmployeeModule.Employees.Config;
+
+namespace EmployeeModule.Employees.Features.Employees.TerminateEmployee;
 
 
 

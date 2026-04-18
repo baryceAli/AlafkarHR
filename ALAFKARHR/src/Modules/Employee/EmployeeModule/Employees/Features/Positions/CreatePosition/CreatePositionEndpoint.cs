@@ -1,4 +1,6 @@
-﻿namespace EmployeeModule.Employees.Features.Positions.CreatePosition;
+﻿using EmployeeModule.Employees.Config;
+
+namespace EmployeeModule.Employees.Features.Positions.CreatePosition;
 
 public record CreatePositionRequest(PositionDto Position);
 public record CreatePositionResponse(PositionDto CreatedPosition);

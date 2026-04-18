@@ -1,4 +1,6 @@
-﻿namespace EmployeeModule.Employees.Features.Positions.GetPositionById;
+﻿using EmployeeModule.Employees.Config;
+
+namespace EmployeeModule.Employees.Features.Positions.GetPositionById;
 
 
 public record GetPositionByIdResponse(PositionDto Position);

@@ -1,4 +1,6 @@
-﻿namespace EmployeeModule.Employees.Features.Employees.TransferDepartment;
+﻿using EmployeeModule.Employees.Config;
+
+namespace EmployeeModule.Employees.Features.Employees.TransferDepartment;
 
 
 public record TransferDepartmentRequest(TransferDepartmentDto TransferDepartment);

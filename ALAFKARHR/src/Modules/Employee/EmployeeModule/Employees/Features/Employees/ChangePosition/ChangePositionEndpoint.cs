@@ -1,4 +1,6 @@
-﻿namespace EmployeeModule.Employees.Features.Employees.ChangePosition;
+﻿using EmployeeModule.Employees.Config;
+
+namespace EmployeeModule.Employees.Features.Employees.ChangePosition;
 
 public record ChangePositionRequest(ChangePositionDto ChangePosition);
 public record ChangePositionResponse(bool IsSuccess);

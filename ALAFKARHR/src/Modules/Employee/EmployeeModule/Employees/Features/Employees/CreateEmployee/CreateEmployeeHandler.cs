@@ -20,6 +20,10 @@ public class CreateEmployeeCommandValidator : AbstractValidator<CreateEmployeeCo
         RuleFor(e=> e.Employee.Phone).NotEmpty().WithMessage("Phone is required");
         RuleFor(e=> e.Employee.Email).NotEmpty().WithMessage("Email is required");
         RuleFor(e=> e.Employee.EmployeeNo).NotEmpty().WithMessage("EmployeeNo is required");
+        RuleFor(e=> e.Employee.Nationality).NotEmpty().WithMessage("Nationality is required");
+        RuleFor(e=> e.Employee.Address).NotEmpty().WithMessage("Address is required");
+        RuleFor(e=> e.Employee.MaritalStatus).IsInEnum().WithMessage("MartialStatus Should be in Single, Married, Devoreced or Widowed");
+        RuleFor(e=> e.Employee.EmploymentType).NotEmpty().WithMessage("EmploymentType Should be in Full, Parttime or Remote");
     }
 }
 public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
@@ -39,8 +43,11 @@ public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             Guid.NewGuid(),
             request.Employee.EmployeeNo,
             request.Employee.FirstName,
+            request.Employee.FirstNameEng,
             request.Employee.MiddleName,
+            request.Employee.MiddleNameEng,
             request.Employee.LastName,
+            request.Employee.LastNameEng,
             request.Employee.Email,
             request.Employee.Phone,
             DateTimeToUTC.ToUtc(request.Employee.DateOfBirth),
@@ -54,6 +61,14 @@ public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             request.Employee.IdentityType,
             request.Employee.Gender,
             code,
+            request.Employee.Nationality,
+            request.Employee.Address,
+            request.Employee.MaritalStatus,
+            request.Employee.EmploymentType,
+            request.Employee.Qualification,
+            request.Employee.SpecializationId,
+            request.Employee.AcademicInstituteId,
+            request.Employee.GraduationYear,
             userId);
         await dbContext.Employees.AddAsync(employee, cancellationToken);
 

@@ -1,4 +1,6 @@
-﻿namespace EmployeeModule.Employees.Features.Positions.DeletePosition;
+﻿using EmployeeModule.Employees.Config;
+
+namespace EmployeeModule.Employees.Features.Positions.DeletePosition;
 
 public record DeletePositionResponse(bool IsSuccess);
 public class DeletePositionEndpoint : ICarterModule

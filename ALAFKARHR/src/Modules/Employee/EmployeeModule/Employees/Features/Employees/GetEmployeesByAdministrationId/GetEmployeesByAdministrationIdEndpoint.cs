@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using EmployeeModule.Employees.Config;
+using Microsoft.AspNetCore.Mvc;
 using Shared.Pagination;
 
 namespace EmployeeModule.Employees.Features.Employees.GetEmployeesByAdministrationId;
