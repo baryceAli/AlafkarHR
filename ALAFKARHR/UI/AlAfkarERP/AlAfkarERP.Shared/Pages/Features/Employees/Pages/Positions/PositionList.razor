@@ -1,14 +1,16 @@
-﻿@layout Organization.Layout.OrganizationLayout
-@page "/Organization/Branch/List"
-@using AlAfkarERP.Shared.Pages.Features.Company.Services
-@* @using AlAfkarERP.Shared.Pages.Reuable *@
+﻿@layout EmployeeLayout
+@page "/Employee/Position/List"
+@using AlAfkarERP.Shared.Pages.Features.Employees.Layout
+
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Employees.Dtos
 @using SharedWithUI.Permissions
 
 
-@inject IBranchService BranchService
+@inject IPositionService PositionService
 @inject ToastService ToastService
 @inject ModalService ModalService
 
@@ -20,12 +22,12 @@
 
 
 <!-- Branches -->
-<h5>@SharedDataService.SelectViewLang("Branches Management", "ادارة الفروع")</h5>
+<h5>@SharedDataService.SelectViewLang("Positions Management", "ادارة الموقع الوظيفي")</h5>
 
 @* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
 <button class="btn btn-primary mb-3"
         @onclick="CreateNew"
-        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BranchPermissions.Create}") ? true : false)>
+        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.PositionPermissions.Create}") ? true : false)>
     <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
 </button>
 
@@ -78,53 +80,47 @@
     <table class="table">
         <thead>
             <tr>
-                <th @onclick="() => Sort(nameof(BranchDto.Name))">
-                    <span class=@(sortAscending)?"bi bi-file-earmark-plus-fill":"bi bi-file-earmark-plus")></span> 
-                    @SharedDataService.SelectViewLang("Name","الاسم")
+                <th @onclick="() => Sort(nameof(PositionDto.Title))">
+                    <span class=@(sortAscending)?"bi bi-file-earmark-plus-fill":"bi bi-file-earmark-plus")></span>
+                    @SharedDataService.SelectViewLang("Title", "المسمى الوظيفي")
                 </th>
-                <th @onclick="() => Sort(nameof(BranchDto.NameEng))">@SharedDataService.SelectViewLang("NameEng","الاسم بالانجليزية")</th>
-                <th>@SharedDataService.SelectViewLang("Phone", "الهاتف")</th>
-                <th @onclick="() => Sort(nameof(BranchDto.Email))">Email</th>
-                <th @onclick="() => Sort(nameof(BranchDto.Location))">Location</th>
-                <th>@SharedDataService.SelectViewLang("Longitude", "خط الطول")</th>
-                <th>@SharedDataService.SelectViewLang("Latitude", "خط العرض")</th>
-                <th>@SharedDataService.SelectViewLang("Main branch?", "فرع رئيسي؟")</th>
+                <th @onclick="() => Sort(nameof(PositionDto.TitleEng))">
+                    <span class=@(sortAscending)?"bi bi-file-earmark-plus-fill":"bi bi-file-earmark-plus")></span>
+                    @SharedDataService.SelectViewLang("Title Eng", "المسمى الوظيفي بالانجليزية")
+                </th>
+                <th @onclick="() => Sort(nameof(PositionDto.BaseSalary))">@SharedDataService.SelectViewLang("Base Salary", "الراتب الاساسي")</th>
                 <th></th>
             </tr>
         </thead>
         <tbody>
             @* @foreach (var b in branches) *@
-            @foreach (var b in ProcessedBranches)
+            @foreach (var position in ProcessedBranches)
             {
                 <tr>
-                    @if (editingBranchId == b.Id)
+                    @if (editingPositionId == position.Id)
                     {
-                        <td><InputText class="form-control" @bind-Value="b.Name" /></td>
-                        <td><InputText class="form-control" @bind-Value="b.NameEng" /></td>
-                        <td><InputText class="form-control" @bind-Value="b.Phone" /></td>
-                        <td><InputText class="form-control" @bind-Value="b.Email" /></td>
-                        <td><InputText class="form-control" @bind-Value="b.Location" /></td>
-                        <td><InputNumber class="form-control" @bind-Value="b.Longitude" /></td>
-                        <td><InputNumber class="form-control" @bind-Value="b.Latitude" /></td>
-                        <td><InputCheckbox class="form-check-input" @bind-Value="b.IsMainBranch" /></td>
+                        <td><InputText class="form-control" @bind-Value="position.Title" /></td>
+                        <td><InputText class="form-control" @bind-Value="position.TitleEng" /></td>
+                        <td><InputNumber class="form-control" @bind-Value="position.BaseSalary" /></td>
                         <td>
-                            <button class="btn btn-success btn-sm" @onclick="() => SaveBranch(b)">Save</button>
+                            <button class="btn btn-success btn-sm" @onclick="() => SavePosition(position)">Save</button>
                             <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
                         </td>
                     }
                     else
                     {
-                        <td>@b.Name</td>
-                        <td>@b.NameEng</td>
-                        <td>@b.Phone</td>
-                        <td>@b.Email</td>
-                        <td>@b.Location</td>
-                        <td>@b.Longitude</td>
-                        <td>@b.Latitude</td>
-                        <td>@b.IsMainBranch</td>
+                        <td>@position.Title</td>
+                        <td>@position.TitleEng</td>
+                        <td>@position.BaseSalary</td>
                         <td>
-                            <button class="btn btn-warning btn-sm" @onclick="() => EditBranch(b.Id)">@SharedDataService.SelectViewLang("Edit", "تعديل")</button>
-                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteBranch(b)">@SharedDataService.SelectViewLang("Delete", "حذف")</button>
+                            <button class="btn btn-warning btn-sm"
+                                    @onclick="() => EditPosition(position.Id)">
+                                @SharedDataService.SelectViewLang("Edit", "تعديل")
+                            </button>
+                            <button class="btn btn-danger btn-sm"
+                                    @onclick="() => DeletePosition(position)">
+                                @SharedDataService.SelectViewLang("Delete", "حذف")
+                            </button>
                         </td>
                     }
                 </tr>
@@ -151,8 +147,8 @@
 </div>
 
 @code {
-    private List<BranchDto> branches = new();
-    private Guid? editingBranchId;
+    private List<PositionDto> positions = new();
+    private Guid? editingPositionId;
     private Guid companyId;
     private AuthenticationState AuthState;
     protected override async Task OnInitializedAsync()
@@ -160,7 +156,7 @@
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
         companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
 
-        await LoadBranches();
+        await LoadPositions();
         // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
         // if (branchResponse.IsSuccess)
         // {
@@ -170,28 +166,28 @@
     // Branch
     void CreateNew()
     {
-        var newItem = new BranchDto();
-        branches.Insert(0, newItem);
-        editingBranchId = newItem.Id;
+        var newItem = new PositionDto();
+        positions.Insert(0, newItem);
+        editingPositionId = newItem.Id;
     }
 
-    void EditBranch(Guid id) => editingBranchId = id;
+    void EditPosition(Guid id) => editingPositionId = id;
 
-    async Task SaveBranch(BranchDto b)
+    async Task SavePosition(PositionDto p)
     {
-        if (b.Id == Guid.Empty)
+        if (p.Id == Guid.Empty)
         {
             Random rnd = new Random();
-            b.Code = b.NameEng.Substring(0, 1) + rnd.Next(100, 999);
-            b.CompanyId = companyId;
+            p.Code = p.Title.Substring(0, 1) + rnd.Next(100, 999);
+            p.CompanyId = companyId;
 
-            var bResponse = await BranchService.CreateAsync(b);
+            var bResponse = await PositionService.CreateAsync(p);
             if (bResponse.IsSuccess)
             {
                 //show success
                 ToastService.Show(new ToastMessage
                 {
-                    Message = SharedDataService.SelectViewLang("Branch has been created successfully", "تم انشاء الفرع بنجاح"),
+                    Message = SharedDataService.SelectViewLang("Position has been created successfully", "تم انشاء الموقع الوظيفي بنجاح"),
                     Type = "success"
                 });
 
@@ -209,13 +205,13 @@
         else
         {
 
-            var bresponse = await BranchService.UpdateAsync(b);
+            var bresponse = await PositionService.UpdateAsync(p);
             if (bresponse.IsSuccess)
             {
                 //show success
                 ToastService.Show(new ToastMessage
                 {
-                    Message = SharedDataService.SelectViewLang("Branch has been Edited successfully", "تم تعديل الفرع بنجاح"),
+                    Message = SharedDataService.SelectViewLang("Position has been Edited successfully", "تم تعديل الموقع الوظيفي بنجاح"),
                     Type = "success"
                 });
             }
@@ -230,28 +226,29 @@
             }
         }
 
-        await LoadBranches();
+        await LoadPositions();
         // var response = await BranchService.GetByCompanyIdAsync(companyId);
         // if (response.IsSuccess)
         // {
         //     branches = response.Data?.ToList() ?? [];
         // }
-        editingBranchId = null;
+        editingPositionId = null;
     }
 
-    async Task DeleteBranch(BranchDto branch)
+    async Task DeletePosition(PositionDto position)
     {
         await ModalService.ShowAsync(new ModalOptions
         {
             Title = SharedDataService.SelectViewLang("Confirm Delete", "تأكيد عملية الحذف"),
-            Message = SharedDataService.SelectViewLang($"Are you sure you want to delete this branch: {branch.NameEng}?", $"هل ترغب فعلا في حذف الفرع: {branch.Name}؟"),
+            Message = SharedDataService.SelectViewLang($"Are you sure you want to delete this Position: {position.Title}?",
+                                                        $"هل ترغب فعلا في حذف المسمى الوظيفي: {position.Title}؟"),
             ShowCancel = true,
             OkText = SharedDataService.SelectViewLang("Yes", "نعم"),
             CancelText = SharedDataService.SelectViewLang("No", "لا"),
 
             OnOk = async () =>
             {
-                var brResponse = await BranchService.DeleteAsync(branch.Id);
+                var brResponse = await PositionService.DeleteAsync(position.Id);
                 if (brResponse.IsSuccess)
                 {
 
@@ -261,7 +258,8 @@
                         Type = "success"
                     });
 
-                    await LoadBranches();
+                    await LoadPositions();
+                    await InvokeAsync(StateHasChanged);
                     // var response = await BranchService.GetByCompanyIdAsync(companyId);
                     // if (response.IsSuccess)
                     // {
@@ -273,7 +271,7 @@
                 {
                     ToastService.Show(new ToastMessage
                     {
-                        Message = SharedDataService.SelectViewLang("Fail to delete the branch", "فشلت عملية الحذف"),
+                        Message = SharedDataService.SelectViewLang("Fail to delete the position", "فشلت عملية الحذف"),
                         Type = "error"
                     });
                 }
@@ -286,17 +284,17 @@
     }
     void CancelEdit()
     {
-        if (editingBranchId == null || editingBranchId == Guid.Empty)
+        if (editingPositionId == null || editingPositionId == Guid.Empty)
         {
-            var brToRemove = branches.FirstOrDefault(b => b.Id == editingBranchId);
+            var brToRemove = positions.FirstOrDefault(b => b.Id == editingPositionId);
             if (brToRemove != null)
             {
-                branches.Remove(brToRemove);
+                positions.Remove(brToRemove);
             }
 
         }
 
-        editingBranchId = null;
+        editingPositionId = null;
     }
 
     #region Table Helpers
@@ -306,24 +304,24 @@
     private string searchText = "";
 
     // Sorting
-    private string sortColumn = nameof(BranchDto.Name);
+    private string sortColumn = nameof(PositionDto.Title);
     private bool sortAscending = true;
 
     // Pagination
     private int pageSize = 5;
     private int pageIndex = 0;
-    private async Task LoadBranches()
+    private async Task LoadPositions()
     {
         // var request = new PaginationRequest(pageIndex, pageSize, searchText);
 
-        var response = await BranchService.GetByCompanyIdAsync(companyId, pageIndex, pageSize);//,searchText);
+        var response = await PositionService.GetAsync(companyId, pageIndex, pageSize);//,searchText);
 
         if (response.IsSuccess)
         {
             // var result = response.Data!.Data;
 
             // branches = result.Data.ToList();
-            branches = response.Data?.Data.ToList() ?? [];
+            positions = response.Data?.Data.ToList() ?? [];
             // TotalPages = (int)response.Data!.Count;
             TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
         }
@@ -332,22 +330,22 @@
     {
         pageSize = int.Parse(e.Value!.ToString()!);
         pageIndex = 0;
-        await LoadBranches();
+        await LoadPositions();
     }
-    private IEnumerable<BranchDto> ProcessedBranches =>
-    branches
+    private IEnumerable<PositionDto> ProcessedBranches =>
+    positions
         // 🔍 Search
         .Where(b =>
             string.IsNullOrWhiteSpace(searchText) ||
-            (b.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (b.NameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (b.Email?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+            (b.Title?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (b.Code?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
         )
 
+        
         // 🎯 Filter
-        .Where(b =>
-            filterMainBranch == null || b.IsMainBranch == filterMainBranch
-        )
+        // .Where(b =>
+        //     filterMainBranch == null || b.IsMainBranch == filterMainBranch
+        // )
 
         // 🔃 Sorting
         .OrderByDynamic(sortColumn, sortAscending)
@@ -374,7 +372,7 @@
         if (pageIndex < TotalPages - 1)
         {
             pageIndex++;
-            await LoadBranches();
+            await LoadPositions();
         }
     }
 
@@ -386,7 +384,7 @@
         if (pageIndex > 0)
         {
             pageIndex--;
-            await LoadBranches();
+            await LoadPositions();
         }
     }
 

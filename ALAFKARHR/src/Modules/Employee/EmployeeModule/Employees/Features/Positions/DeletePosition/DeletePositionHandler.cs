@@ -23,7 +23,9 @@ public class DeletePositionHandler(EmployeeDbContext dbContext, IHttpContextAcce
                     .Value ??
                     throw new UnauthorizedAccessException("User is not authenticated");
 
-        position.Remove(request.Id, userId);
+        position.Remove(userId);
+        await dbContext.SaveChangesAsync();
+
         return new DeletePositionResult(true);
     }
 }

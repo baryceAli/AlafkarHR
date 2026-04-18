@@ -38,6 +38,7 @@ builder.Services.AddHttpClient("AlAfkarERP", client =>
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
 
+#region Organization Module Services
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddHttpClient<ICompanyService, CompanyService>(client =>
 {
@@ -65,13 +66,26 @@ builder.Services.AddHttpClient<IDepartmentService, DepartmentService>(client =>
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
+#endregion Organization Module Services
 
+
+#region Employees Module Services
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddHttpClient<IEmployeeService, EmployeeService>(client =>
 {
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
+
+
+builder.Services.AddScoped<IPositionService, PositionService>();
+builder.Services.AddHttpClient<IPositionService, PositionService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+#endregion Employees Module Services
+
 
 var app = builder.Build();
 

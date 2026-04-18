@@ -1,4 +1,7 @@
 ﻿
+using EmployeeModule.Data.Seed;
+using Shared.Data.Seed;
+
 namespace EmployeeModule;
 
 public static class EmployeesModule
@@ -26,7 +29,7 @@ public static class EmployeesModule
             //options.UseSqlServer(connectionString);
         });
 
-        //services.AddScoped<IDataSeeder<CoreHRDbContext>, CatalogDataSeeder>();
+        services.AddScoped<IDataSeeder<EmployeeDbContext>, EmployeeDataSeeder>();
 
 
         return services;

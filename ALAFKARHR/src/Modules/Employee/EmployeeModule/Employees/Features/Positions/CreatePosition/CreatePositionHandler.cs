@@ -14,7 +14,8 @@ public class CreatePositionCommandValidator : AbstractValidator<CreatePositionCo
     public CreatePositionCommandValidator()
     {
         RuleFor(p=> p.Position.Title).NotEmpty().WithMessage("Title is required");
-        RuleFor(p => p.Position.BaseSalary).LessThanOrEqualTo(0).WithMessage("BaseSalary must be greator than 0");
+        RuleFor(p=> p.Position.TitleEng).NotEmpty().WithMessage("TitleEng is required");
+        RuleFor(p => p.Position.BaseSalary).GreaterThan(0).WithMessage("BaseSalary must be greator than 0");
     }
 }
 public class CreatePositionHandler(EmployeeDbContext dbContext, IHttpContextAccessor httpContextAccessor)
@@ -31,6 +32,7 @@ public class CreatePositionHandler(EmployeeDbContext dbContext, IHttpContextAcce
         var position = Position.Create(
                 Guid.NewGuid(),
                 request.Position.Title,
+                request.Position.TitleEng,
                 request.Position.Code,
                 request.Position.BaseSalary,
                 request.Position.CompanyId,

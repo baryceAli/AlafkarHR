@@ -13,7 +13,7 @@
 @inject IAdministrationService AdministrationService
 @inject IDepartmentService DepartmentService
 @inject IEmployeeService EmployeeService
-
+@inject IPositionService PositionService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 @inject SharedDataService SharedDataService
@@ -140,15 +140,22 @@
                 </div>
             </div>
             <div class="mb-3 row">
-                <label for="Phone" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Position", "المسمى الوظيفي")</label>
+                <label for="position" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Select Position", "اختر المسمى الوظيفي")</label>
                 <div class="col-sm-10">
-                    <InputText class="form-control" id="Phone" @bind-Value="employee.Phone" />
-                    <ValidationMessage For="() => employee.Phone" />
+                    <AutoCompleteComponent TItem="PositionDto"
+                                           Items="positions"
+                                           ItemText="(b=> SharedDataService.SelectViewLang(b.TitleEng,b.Title))"
+                                           OnSelected="OnPositionSelected">
+                    </AutoCompleteComponent>
                 </div>
             </div>
+
+            
             
 
         </section>
+
+        <!--buttons-->
     </EditForm>
 </section>
 @code {
@@ -179,7 +186,11 @@
             branches = bResponse.Data?.Data?.ToList() ?? [];
         }
 
-
+        var posResponse = await PositionService.GetAsync(companyId, 0, 1000);
+        if (posResponse.IsSuccess)
+        {
+            positions = posResponse.Data?.Data?.ToList() ?? [];
+        }
         if (Id.HasValue)
         {
             title = SharedDataService.SelectViewLang("Edit Employee", "تعديل بيانات موظف");
@@ -212,6 +223,17 @@
         {
             administrations = admResponse.Data?.Data?.ToList() ?? [];
         }
+    }
+
+    private PositionDto selectedPosition= new();
+    private async Task OnPositionSelected(PositionDto position)
+    {
+        selectedPosition= position;
+        // var posResponse = await AdministrationService.GetByBranchAsync(position.Id, 0, 1000);
+        // if (posResponse.IsSuccess)
+        // {
+        //     administrations = posResponse.Data?.Data?.ToList() ?? [];
+        // }
     }
 
     private AdministrationDto selectedAdministration = new();
