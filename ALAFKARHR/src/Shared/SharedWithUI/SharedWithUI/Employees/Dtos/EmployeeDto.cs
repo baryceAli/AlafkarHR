@@ -106,12 +106,17 @@ public class EmployeeDto
     public IdentityType IdentityType { get; set; }
     public Gender Gender { get; set; }
 
+    [Required(ErrorMessage ="Nationality is required")]
     public string Nationality { get; set; }
+
+    [Required(ErrorMessage ="Address is required")]
     public string Address { get; set; }
     public MaritalStatus MaritalStatus { get; set; }
     public EmploymentType EmploymentType { get; set; }
     public Qualification Qualification { get; set; }
     public Guid SpecializationId { get; set; }
     public Guid AcademicInstituteId { get; set; }
+    [Required(ErrorMessage ="Graduation year is required")]
+    [Range(1,100000)]
     public int GraduationYear { get; set; }
 }

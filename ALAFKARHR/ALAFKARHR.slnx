@@ -42,7 +42,9 @@
   <Folder Name="/src/UI/">
     <Project Path="UI/AlAfkarERP/AlAfkarERP.Shared/AlAfkarERP.Shared.csproj" Id="ea5b1237-a6a5-4b54-8c06-95734c4de967" />
     <Project Path="UI/AlAfkarERP/AlAfkarERP.Web/AlAfkarERP.Web.csproj" Id="d8a1be39-932a-40e8-a4b2-0c1160aa66dd" />
-    <Project Path="UI/AlAfkarERP/AlAfkarERP/AlAfkarERP.csproj" Id="2b6b2c4f-47d8-4646-b8d1-422697376698" />
+    <Project Path="UI/AlAfkarERP/AlAfkarERP/AlAfkarERP.csproj" Id="2b6b2c4f-47d8-4646-b8d1-422697376698">
+      <Deploy Solution="Debug|*" />
+    </Project>
   </Folder>
   <Project Path="docker-compose.dcproj">
     <Build />

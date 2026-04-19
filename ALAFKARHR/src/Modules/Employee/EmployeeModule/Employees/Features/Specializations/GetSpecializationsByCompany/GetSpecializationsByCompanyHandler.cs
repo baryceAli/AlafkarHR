@@ -1,17 +1,17 @@
 ﻿using Shared.Contracts.CQRS;
 using Shared.Pagination;
 
-namespace EmployeeModule.Employees.Features.Specializations.GetSpecializations;
+namespace EmployeeModule.Employees.Features.Specializations.GetSpecializationsByCompany;
 
-public record GetSpecializationsQuery(Guid CompanyId, PaginationRequest PaginationRequest) : IQuery<GetSpecializationsResult>;
-public record GetSpecializationsResult(PaginatedResult<SpecializationDto> SpecializationList);
-public class GetSpecializationsHandler(EmployeeDbContext dbContext)
-    : IQueryHandler<GetSpecializationsQuery, GetSpecializationsResult>
+public record GetSpecializationsByCompanyQuery(Guid CompanyId, PaginationRequest PaginationRequest) : IQuery<GetSpecializationsByCompanyResult>;
+public record GetSpecializationsByCompanyResult(PaginatedResult<SpecializationDto> SpecializationList);
+public class GetSpecializationsByCompanyHandler(EmployeeDbContext dbContext)
+    : IQueryHandler<GetSpecializationsByCompanyQuery, GetSpecializationsByCompanyResult>
 {
-    public async Task<GetSpecializationsResult> Handle(GetSpecializationsQuery request, CancellationToken cancellationToken)
+    public async Task<GetSpecializationsByCompanyResult> Handle(GetSpecializationsByCompanyQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.Specializations.AsQueryable();
-        query = query.Where(s => s.CompanyId == request.CompanyId);
+        query = query.Where(s => s.CompanyId == request.CompanyId && s.IsDeleted==false);
 
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
         {
@@ -30,7 +30,7 @@ public class GetSpecializationsHandler(EmployeeDbContext dbContext)
                             .Take(request.PaginationRequest.PageSize)
                             .ToListAsync(cancellationToken);
 
-        return new GetSpecializationsResult(
+        return new GetSpecializationsByCompanyResult(
             new PaginatedResult<SpecializationDto>(
                 request.PaginationRequest.PageIndex,
                 request.PaginationRequest.PageSize,

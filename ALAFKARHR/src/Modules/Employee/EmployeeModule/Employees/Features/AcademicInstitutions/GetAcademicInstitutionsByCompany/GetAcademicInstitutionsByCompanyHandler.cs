@@ -1,17 +1,17 @@
 ﻿using Shared.Contracts.CQRS;
 using Shared.Pagination;
 
-namespace EmployeeModule.Employees.Features.AcademicInstitutions.GetAcademicInstitutions;
+namespace EmployeeModule.Employees.Features.AcademicInstitutions.GetAcademicInstitutionsByCompany;
 
-public record GetAcademicInstitutionsQuery(Guid CompanyId, PaginationRequest PaginationRequest) : IQuery<GetAcademicInstitutionsResult>;
-public record GetAcademicInstitutionsResult(PaginatedResult<AcademicInstitutionDto> AcademicInstitutionList);
-public class GetAcademicInstitutionsHandler(EmployeeDbContext dbContext)
-    : IQueryHandler<GetAcademicInstitutionsQuery, GetAcademicInstitutionsResult>
+public record GetAcademicInstitutionsByCompanyQuery(Guid CompanyId, PaginationRequest PaginationRequest) : IQuery<GetAcademicInstitutionsByCompanyResult>;
+public record GetAcademicInstitutionsByCompanyResult(PaginatedResult<AcademicInstitutionDto> AcademicInstitutionList);
+public class GetAcademicInstitutionsByCompanyHandler(EmployeeDbContext dbContext)
+    : IQueryHandler<GetAcademicInstitutionsByCompanyQuery, GetAcademicInstitutionsByCompanyResult>
 {
-    public async Task<GetAcademicInstitutionsResult> Handle(GetAcademicInstitutionsQuery request, CancellationToken cancellationToken)
+    public async Task<GetAcademicInstitutionsByCompanyResult> Handle(GetAcademicInstitutionsByCompanyQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.AcademicInstitutions.AsQueryable();
-        query=query.Where(a=> a.CompanyId==request.CompanyId);
+        query=query.Where(a=> a.CompanyId==request.CompanyId && a.IsDeleted==false);
 
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
         {
@@ -30,7 +30,7 @@ public class GetAcademicInstitutionsHandler(EmployeeDbContext dbContext)
                             .Take(request.PaginationRequest.PageSize)
                             .ToListAsync(cancellationToken);
 
-        return new GetAcademicInstitutionsResult(
+        return new GetAcademicInstitutionsByCompanyResult(
                         new PaginatedResult<AcademicInstitutionDto>(
                             request.PaginationRequest.PageIndex,
                             request.PaginationRequest.PageSize, 

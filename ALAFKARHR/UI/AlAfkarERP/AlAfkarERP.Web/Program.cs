@@ -84,6 +84,22 @@ builder.Services.AddHttpClient<IPositionService, PositionService>(client =>
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
+
+builder.Services.AddScoped<IAcademicInistitutionService, AcademicInistitutionService>();
+builder.Services.AddHttpClient<IAcademicInistitutionService, AcademicInistitutionService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+
+builder.Services.AddScoped<ISpecializationService, SpecializationService>();
+builder.Services.AddHttpClient<ISpecializationService, SpecializationService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+
+
 #endregion Employees Module Services
 
 

@@ -178,6 +178,7 @@ public class Employee : Aggregate<Guid>
         Guid specializationId,
         Guid academicInstituteId,
         int graduationYear,
+        //string nationality,
         string modifiedBy)
     {
 
@@ -196,6 +197,7 @@ public class Employee : Aggregate<Guid>
         SpecializationId = specializationId;
         AcademicInstituteId= academicInstituteId;
         GraduationYear= graduationYear;
+        //Nationality= nationality;
         ModifiedBy = modifiedBy;
         ModifiedAt = DateTime.UtcNow;
     }

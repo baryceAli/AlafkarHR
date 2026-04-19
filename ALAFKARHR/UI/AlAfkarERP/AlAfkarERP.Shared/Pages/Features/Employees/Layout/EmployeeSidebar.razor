@@ -36,11 +36,23 @@
         <li class="nav-item">
             <NavLink href="/Employee/Position/List" class="nav-link text-white">
                 <i class="bi bi-box-seam me-2"></i>
-                @(SharedDataService.SelectViewLang("Positions", "الموقع الوظيفي"))
+                @(SharedDataService.SelectViewLang("Positions", "المسمى الوظيفي"))
             </NavLink>
         </li>
 
-        
+        <li class="nav-item">
+            <NavLink href="/Employee/AcademicInistitution/List" class="nav-link text-white">
+                <i class="bi bi-box-seam me-2"></i>
+                @(SharedDataService.SelectViewLang("Academic Institution", "المؤسسة التعليمية"))
+            </NavLink>
+        </li>
+
+        <li class="nav-item">
+            <NavLink href="/Employee/Specialization/List" class="nav-link text-white">
+                <i class="bi bi-box-seam me-2"></i>
+                @(SharedDataService.SelectViewLang("Specialization", "التخصص العلمي"))
+            </NavLink>
+        </li>
 
     </ul>
 

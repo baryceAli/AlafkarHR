@@ -11,7 +11,8 @@ public class CreateAcademicInstitutionEndpoint : ICarterModule
         app.MapPost($"{Utils.URL_PATTERN}/{Utils.AcademicInstitution_Endpoint}", async (CreateAcademicInstitutionRequest request, ISender sender) =>
         {
             var result = await sender.Send(request.Adapt<CreateAcademicInstitutionCommand>());
-            return Results.Created($"{Utils.URL_PATTERN}/{Utils.AcademicInstitution_Endpoint}/{result.CreatedAcademicInstitute.Id}", result.Adapt<CreateAcademicInstitutionResponse>());
+            
+            return Results.Created($"{Utils.URL_PATTERN}/{Utils.AcademicInstitution_Endpoint}/{result.CreatedAcademicInstitute.Id}", new CreateAcademicInstitutionResponse(result.CreatedAcademicInstitute));
         })
             .WithName("CreateAcademicInstitution")
             .Produces<CreateAcademicInstitutionResponse>(StatusCodes.Status201Created)

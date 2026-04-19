@@ -28,7 +28,12 @@ public class CreateSpecializationHandler(EmployeeDbContext dbContext, IHttpConte
                         .Value ??
                         throw new UnauthorizedAccessException("User is not authenticated");
 
-        var specialization=Specialization.Create(Guid.NewGuid(),request.Specialization.Name,request.Specialization.NameEng,userId);
+        var specialization=Specialization.Create(
+                                    Guid.NewGuid(),
+                                    request.Specialization.Name,
+                                    request.Specialization.NameEng,
+                                    request.Specialization.CompanyId,
+                                    userId);
 
         await dbContext.Specializations.AddAsync(specialization, cancellationToken);
 

@@ -27,15 +27,17 @@ public class CreateAcademicInstitutionHandler(EmployeeDbContext dbContext, IHttp
                         .Value ??
                         throw new UnauthorizedAccessException("User is not authenticated");
 
-        var academicInstitute = Models.AcademicInstitution.Create(
+        var academicInstitution = Models.AcademicInstitution.Create(
             Guid.NewGuid(),
             request.AcademicInstitution.Name,
             request.AcademicInstitution.NameEng,
+            request.AcademicInstitution.CompanyId,
             userId);
 
-        await dbContext.AcademicInstitutions.AddAsync(academicInstitute,cancellationToken);
+        await dbContext.AcademicInstitutions.AddAsync(academicInstitution,cancellationToken);
         await dbContext.SaveChangesAsync();
 
-        return new CreateAcademicInstitutionResult(academicInstitute.Adapt<AcademicInstitutionDto>());
+        var createdAcademicInstitution=academicInstitution.Adapt<AcademicInstitutionDto>();
+        return new CreateAcademicInstitutionResult(createdAcademicInstitution);
     }
 }

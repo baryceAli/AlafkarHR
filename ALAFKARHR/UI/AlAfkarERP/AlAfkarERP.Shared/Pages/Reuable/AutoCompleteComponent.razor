@@ -11,7 +11,7 @@
             </svg>
         </span>
 
-        <input class="form-control border-start-0"
+        <input class=@(SharedDataService.Language =="Ar"?"form-control border-start-0 text-end":"form-control border-start-0 text-start")
                @bind="SearchText"
                @bind:event="oninput"
                @onfocus="ShowDropdown"
@@ -82,9 +82,19 @@
 
     [Parameter] public List<TItem> Items { get; set; } = new();
     [Parameter] public Func<TItem, string> ItemText { get; set; } = default!;
-    [Parameter] public EventCallback<TItem> OnSelected { get; set; }
+    // [Parameter] public EventCallback<TItem> OnSelected { get; set; }
     [Parameter] public string? PlaceHolder { get; set; } = "Type to search ...";
     [Parameter] public string? cssClass { get; set; } = "Type to search ...";
+
+    [Parameter] public TItem? Value { get; set; }
+    [Parameter] public EventCallback<TItem?> ValueChanged { get; set; }
+    protected override void OnParametersSet()
+    {
+        if (Value != null)
+        {
+            searchText = ItemText(Value);
+        }
+    }
     private async Task ShowDropdown()
     {
         isOpen = true;
@@ -129,7 +139,12 @@
         searchText = ItemText(item);
         isOpen = false;
         selectedIndex = -1;
-        await OnSelected.InvokeAsync(item);
+     
+        
+        Value = item;
+
+        await ValueChanged.InvokeAsync(item);
+        // await OnSelected.InvokeAsync(item);
     }
 
     private string SearchText

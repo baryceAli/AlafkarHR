@@ -16,6 +16,9 @@
 @inject IDepartmentService DepartmentService
 @inject IEmployeeService EmployeeService
 @inject IPositionService PositionService
+@inject IAcademicInistitutionService AcademicInistitutionService
+@inject ISpecializationService SpecializationService
+
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 @inject ToastService ToastService
@@ -33,8 +36,8 @@
         <section>
             @if (!Id.HasValue)
             {
+                <!--Position Information-->
                 <div class="card mb-3">
-                    <!--Employment Position Information-->
                     <div class="card-header">
                         @SharedDataService.SelectViewLang("Employment Position Information", "بيانات الموقع الوظيفي")
                     </div>
@@ -45,8 +48,9 @@
                             <div class="col-sm-10">
                                 <AutoCompleteComponent TItem="BranchDto"
                                                        Items="branches"
+                                                       Value="selectedBranch"
                                                        ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
-                                                       OnSelected="OnBranchSelected">
+                                                       ValueChanged="OnBranchSelected">
                                 </AutoCompleteComponent>
                                 <ValidationMessage For="() => employee.BranchId" />
                             </div>
@@ -58,8 +62,9 @@
                             <div class="col-sm-10">
                                 <AutoCompleteComponent TItem="AdministrationDto"
                                                        Items="administrations"
+                                                       Value="selectedAdministration"
                                                        ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
-                                                       OnSelected="OnAdministrationSelected">
+                                                       ValueChanged="OnAdministrationSelected">
                                 </AutoCompleteComponent>
                                 <ValidationMessage For="() => employee.AdministrationId" />
                             </div>
@@ -70,18 +75,20 @@
                             <div class="col-sm-10">
                                 <AutoCompleteComponent TItem="DepartmentDto"
                                                        Items="departments"
+                                                       Value="selectedDepartment"
                                                        ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
-                                                       OnSelected="OnDepartmentSelected">
+                                                       ValueChanged="OnDepartmentSelected">
                                 </AutoCompleteComponent>
                                 <ValidationMessage For="() => employee.DepartmentId" />
                             </div>
                         </div>
                     </div>
-                </div><!--Personal Information-->
+                </div>
+                <!--Position Information-->
             }
 
+            <!--Personal Information-->
             <div class="card mb-3">
-                <!--Personal Information-->
                 <div class="card-header">
                     @SharedDataService.SelectViewLang("Personal information", "المعلومات الشخصية")
                 </div>
@@ -143,13 +150,35 @@
                     </div>
 
                     
-                    <div class="mb-3 row">
-                        <label for="DateOfBirth" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Date Of Birth", "تاريخ الميلاد")</label>
-                        <div class="col-sm-10">
-                            <InputDate class="form-control" id="DateOfBirth" @bind-Value="employee.DateOfBirth" />
-                            <ValidationMessage For="() => employee.DateOfBirth" />
+                    @if (!Id.HasValue)
+                    {
+                        <div class="mb-3 row">
+                            <label for="DateOfBirth" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Date Of Birth", "تاريخ الميلاد")</label>
+                            <div class="col-sm-10">
+                                <InputDate class="form-control" id="DateOfBirth" @bind-Value="employee.DateOfBirth" />
+                                <ValidationMessage For="() => employee.DateOfBirth" />
+                            </div>
                         </div>
-                    </div>
+                        
+                        <div class="mb-3 row">
+                            <label class="col-sm-2 col-form-label">
+                                @SharedDataService.SelectViewLang("Nationality", "الجنسية")
+                            </label>
+                            <div class="col-sm-10">
+                                <InputSelect class="form-control" @bind-Value="employee.Nationality">
+                                    @foreach (var nationality in Enum.GetValues<Nationality>())
+                                    {
+                                        <option value="@nationality">
+                                            @NationalityTranslator.GetDisplay(nationality, SharedDataService.Language)
+                                        </option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="() => employee.Nationality" />
+                            </div>
+                        </div>
+
+                    }
+
                     <div class="mb-3 row">
                         <label for="NationalId" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("NationalId", "رقم الهوية")</label>
                         <div class="col-sm-10">
@@ -175,22 +204,28 @@
                         </div>
                     </div>
 
-                    <div class="mb-3 row">
-                        <label class="col-sm-2 col-form-label">
-                            @SharedDataService.SelectViewLang("Gender", "النوع")
-                        </label>
-                        <div class="col-sm-10">
-                            <InputSelect class="form-control" @bind-Value="employee.Gender">
-                                @foreach (var gender in Enum.GetValues<Gender>())
-                                {
-                                    <option value="@gender">
-                                        @GetGenderDisplay(gender)
-                                    </option>
-                                }
-                            </InputSelect>
-                            <ValidationMessage For="() => employee.Gender" />
+                    @if (!Id.HasValue)
+                    {
+
+                        <div class="mb-3 row">
+                            <label class="col-sm-2 col-form-label">
+                                @SharedDataService.SelectViewLang("Gender", "النوع")
+                            </label>
+                            <div class="col-sm-10">
+                                <InputSelect class="form-control" @bind-Value="employee.Gender">
+                                    @foreach (var gender in Enum.GetValues<Gender>())
+                                    {
+                                        <option value="@gender">
+                                            @GetGenderDisplay(gender)
+                                        </option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="() => employee.Gender" />
+                            </div>
                         </div>
-                    </div>
+                    }
+
+
                     <div class="mb-3 row">
                         <label class="col-sm-2 col-form-label">
                             @SharedDataService.SelectViewLang("Marital status", "الحالة الاجتماعية")
@@ -223,14 +258,81 @@
                         </div>
                     </div>
             
+                    <div class="mb-3 row">
+                        <label for="Address" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Address", "العنوان الحالي")</label>
+                        <div class="col-sm-10">
+                            <InputText class="form-control" id="Address" @bind-Value="employee.Address" />
+                            <ValidationMessage For="() => employee.Address" />
+                        </div>
+                    </div>
+            
                 </div>
-            </div><!--Personal Information-->
+            </div>
+            <!--Personal Information-->
             <!--Qualifications-->
             <div class="card mb-3">
                 <div class="card-header">
                     @SharedDataService.SelectViewLang("Scientific Qualifications", "المؤهلات العلمية")
                 </div>
                 <div class="card-body">
+                    <div class="mb-3 row">
+                        <label class="col-sm-2 col-form-label">
+                            @SharedDataService.SelectViewLang("Qualification", "الدرجة العلمية")
+                        </label>
+                        <div class="col-sm-10">
+                            <InputSelect class="form-control" @bind-Value="employee.Qualification">
+                                @foreach (var qualification in Enum.GetValues<Qualification>())
+                                {
+                                    <option value="@qualification">
+                                        @GetQualificationDisplay(qualification)
+                                    </option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="() => employee.IdentityType" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label for="specialization" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Specialization", "التخصص")</label>
+                        <div class="col-sm-10">
+                            <AutoCompleteComponent TItem="SpecializationDto"
+                                                   Items="specializations"
+                                                   Value="selectedSpecialization"
+                                                   ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
+                                                   ValueChanged="OnSpecializationSelected">
+                            </AutoCompleteComponent>
+                                
+                            <ValidationMessage For="() => employee.SpecializationId" />
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label for="academicInistitution" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Academic Institution", "جهة الدراسة")</label>
+                        <div class="col-sm-10">
+                            <AutoCompleteComponent TItem="AcademicInstitutionDto"
+                                                   Items="academicInstitutions"
+                                                   Value="selectedAcademicInistitution"
+                                                   ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
+                                                   ValueChanged="OnAcademicInistitutionSelected">
+                            </AutoCompleteComponent>
+                            
+                            <ValidationMessage For="() => employee.AcademicInstituteId" />
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label for="branch" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Graduation Year", "سنة التخرج")</label>
+                        <div class="col-sm-10">
+                            <InputSelect class="form-control" @bind-Value="employee.GraduationYear">
+                                @foreach (var gy in graduationYears.ToList())
+                                {
+                                    <option value="@gy">
+                                        @gy
+                                    </option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="() => employee.GraduationYear" />
+                        </div>
+                    </div>
+                    
                 </div>
             </div>
             <!--Qualifications-->
@@ -255,21 +357,24 @@
                             <ValidationMessage For="() => employee.HireDate" />
                         </div>
                     </div>
-                    @if (!Id.HasValue)
-                    {
-                
-                        <div class="mb-3 row">
-                            <label for="position" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Select Position", "اختر المسمى الوظيفي")</label>
-                            <div class="col-sm-10">
-                                <AutoCompleteComponent TItem="PositionDto"
-                                                       Items="positions"
-                                                       ItemText="(b=> SharedDataService.SelectViewLang(b.TitleEng,b.Title))"
-                                                       OnSelected="OnPositionSelected">
-                                </AutoCompleteComponent>
-                                <ValidationMessage For="() => employee.PositionId" />
-                            </div>
-                        </div>
+                    @* @if (!Id.HasValue)
+                    { 
                     }
+                    *@
+                
+                    <div class="mb-3 row">
+                        <label for="position" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Select Position", "اختر المسمى الوظيفي")</label>
+                        <div class="col-sm-10">
+                            <AutoCompleteComponent TItem="PositionDto"
+                                                   Items="positions"
+                                                   Value="selectedPosition"
+                                                   ValueChanged="OnPositionSelected"
+                                                   ItemText="(b=> SharedDataService.SelectViewLang(b.TitleEng,b.Title))">
+                                @* OnSelected="OnPositionSelected" *@
+                            </AutoCompleteComponent>
+                            <ValidationMessage For="() => employee.PositionId" />
+                        </div>
+                    </div>
 
                     <div class="mb-3 row">
                         <label class="col-sm-2 col-form-label">
@@ -292,12 +397,15 @@
             </div>
 
             
-            
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-floppy2-fill m-1"></i>
-                @(Id.HasValue ? SharedDataService.SelectViewLang("تعديل", "Update") : SharedDataService.SelectViewLang("حفظ", "Save"))
-            </button>
-            <button type="button" class="btn btn-dark" @onclick="onCancel"><i class="bi bi-stop-circle-fill"></i> @(SharedDataService.Language == "Ar" ? "إلغاء" : "Cancel")</button>
+            <div class="card mb-3">
+                <div class="card-body">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-floppy2-fill m-1"></i>
+                        @(Id.HasValue ? SharedDataService.SelectViewLang("تعديل", "Update") : SharedDataService.SelectViewLang("حفظ", "Save"))
+                    </button>
+                    <button type="button" class="btn btn-dark" @onclick="onCancel"><i class="bi bi-stop-circle-fill"></i> @(SharedDataService.Language == "Ar" ? "إلغاء" : "Cancel")</button>
+                </div>
+            </div>
 
                
 
@@ -314,7 +422,9 @@
     private List<AdministrationDto> administrations = [];
     private List<DepartmentDto> departments = [];
     private List<PositionDto> positions = [];
-
+    private List<AcademicInstitutionDto> academicInstitutions = [];
+    private List<SpecializationDto> specializations = [];
+    private List<int> graduationYears = [];
     private EmployeeDto employee = new();
 
     private Guid companyId;
@@ -340,6 +450,25 @@
         {
             positions = posResponse.Data?.Data?.ToList() ?? [];
         }
+        var academicResponse = await AcademicInistitutionService.GetByCompanyAsync(companyId, 0, 1000);
+        if (academicResponse.IsSuccess)
+        {
+            academicInstitutions = academicResponse.Data?.Data?.ToList() ?? [];
+        }
+
+        var specResponse = await SpecializationService.GetByCompanyAsync(companyId, 0, 1000);
+        if (specResponse.IsSuccess)
+        {
+            specializations = specResponse.Data?.Data?.ToList() ?? [];
+        }
+
+        int thisYear = DateTime.Now.Year;
+
+        graduationYears = Enumerable
+            .Range(thisYear - 30, 31) // start, count
+            .Reverse()
+            .ToList();
+
         if (Id.HasValue)
         {
             title = SharedDataService.SelectViewLang("Edit Employee", "تعديل بيانات موظف");
@@ -347,6 +476,11 @@
             if (empResponse.IsSuccess)
             {
                 employee = empResponse.Data;
+                selectedPosition = positions.FirstOrDefault(p => p.Id == employee.PositionId);
+                selectedAcademicInistitution = academicInstitutions.FirstOrDefault(a => a.Id == employee.AcademicInstituteId);
+                selectedSpecialization = specializations.FirstOrDefault(s => s.Id == employee.SpecializationId);
+
+                StateHasChanged();
             }
             else
             {
@@ -377,9 +511,14 @@
             CompanyId = companyId,
             HireDate = DateTime.UtcNow,
             DateOfBirth = DateTime.UtcNow.AddYears(-20),
+            Nationality = NationalityTranslator.GetDisplay(Nationality.SaudiArabian, SharedDataService.Language),
+            IdentityType = IdentityType.Iqama,
             Gender = Gender.Male,
-            IdentityType = IdentityType.Iqama
-            // IsActive = true,
+            MaritalStatus = MaritalStatus.Single,
+            Qualification = Qualification.Bachelor,
+            GraduationYear = DateTime.Now.Year - 1,
+            EmploymentType = EmploymentType.Full
+
 
         };
     }
@@ -459,9 +598,11 @@
         }
 
     }
-    private BranchDto selectedBranch = new();
-    private async Task OnBranchSelected(BranchDto branch)
+    private BranchDto? selectedBranch;
+    private async Task OnBranchSelected(BranchDto? branch)
     {
+
+        selectedAdministration = new AdministrationDto();
         selectedBranch = branch;
         var admResponse = await AdministrationService.GetByBranchAsync(branch.Id, 0, 1000);
         if (admResponse.IsSuccess)
@@ -470,36 +611,54 @@
 
         }
         employee.BranchId = selectedBranch.Id;
+        StateHasChanged();
     }
 
-    private PositionDto selectedPosition = new();
-    private async Task OnPositionSelected(PositionDto position)
-    {
-        selectedPosition = position;
-        employee.PositionId = selectedPosition.Id;
-        // var posResponse = await AdministrationService.GetByBranchAsync(position.Id, 0, 1000);
-        // if (posResponse.IsSuccess)
-        // {
-        //     administrations = posResponse.Data?.Data?.ToList() ?? [];
-        // }
-    }
-
-    private AdministrationDto selectedAdministration = new();
+    private AdministrationDto? selectedAdministration;
     private async Task OnAdministrationSelected(AdministrationDto administration)
     {
+        selectedDepartment = new DepartmentDto();
         selectedAdministration = administration;
         var deptResponse = await DepartmentService.GetByAdministrationAsync(administration.Id, 0, 1000);
         if (deptResponse.IsSuccess)
         {
+
             departments = deptResponse.Data?.Data?.ToList() ?? [];
         }
         employee.AdministrationId = selectedAdministration.Id;
+        StateHasChanged();
     }
     private DepartmentDto selectedDepartment = new();
     private void OnDepartmentSelected(DepartmentDto department)
     {
         selectedDepartment = department;
         employee.DepartmentId = selectedDepartment.Id;
+    }
+    private AcademicInstitutionDto? selectedAcademicInistitution;
+    private async Task OnAcademicInistitutionSelected(AcademicInstitutionDto academic)
+    {
+        selectedAcademicInistitution = academic;
+
+
+        employee.AcademicInstituteId = selectedAcademicInistitution.Id;
+    }
+    private PositionDto? selectedPosition;
+    private async Task OnPositionSelected(PositionDto position)
+    {
+        selectedPosition = position;
+        employee.PositionId = selectedPosition.Id;
+    }
+
+
+
+
+    
+    private SpecializationDto? selectedSpecialization;
+    private async Task OnSpecializationSelected(SpecializationDto specialization)
+    {
+        selectedSpecialization = specialization;
+
+        employee.SpecializationId = selectedSpecialization.Id;
     }
 
     private string GetIdentityTypeDisplay(IdentityType type)
@@ -521,6 +680,20 @@
             _ => gender.ToString()
         };
     }
+    
+    private string GetQualificationDisplay(Qualification qualification)
+    {
+        return qualification switch
+        {
+            Qualification.None => SharedDataService.SelectViewLang("None", "لا يوجد"),
+            Qualification.HighSchool => SharedDataService.SelectViewLang("High School", "ثانوية عامة"),
+            Qualification.Bachelor => SharedDataService.SelectViewLang("Bachelor", "بكالوريوس"),
+            Qualification.Master => SharedDataService.SelectViewLang("Master", "ماجستير"),
+            Qualification.PHD => SharedDataService.SelectViewLang("PHD", "دكتوراه"),
+            _ => qualification.ToString()
+        };
+    }
+    
     private string GetMaritalStatusDisplay(MaritalStatus maritalStatus)
     {
         return maritalStatus switch

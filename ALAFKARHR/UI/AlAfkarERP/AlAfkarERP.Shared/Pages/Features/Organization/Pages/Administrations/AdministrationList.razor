@@ -33,8 +33,9 @@
         <label for="Products" class="form-label">@(SharedDataService.Language == "Ar" ? "اختر الفرع" : "Select Branch")</label>
         <AutoCompleteComponent TItem="BranchDto"
                                Items="branches"
+                               Value="selectedBranch"
                                ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
-                               OnSelected="OnBranchSelected">
+                               ValueChanged="OnBranchSelected">
         </AutoCompleteComponent>
     </div>
 </div>
@@ -116,9 +117,10 @@
                                 @* <label for="Products" class="form-label">@(SharedDataService.Language == "Ar" ? "مدير الادارة" : "Manager")</label> *@
                                 <AutoCompleteComponent TItem="UserDto"
                                                        Items="users"
+                                                       Value="manager"
                                                        PlaceHolder="search manager ..."
                                                        ItemText='(p=> p.UserName)'
-                                                       OnSelected="OnUserSelected">
+                                                       ValueChanged="OnUserSelected">
                                 </AutoCompleteComponent>
                             </div>
                         </td>
@@ -126,7 +128,7 @@
                         @* <td><InputText class="form-control" @bind-Value="admin.BranchId.ToString()" /></td> *@
                         @* <td><InputText class="form-control" @bind-Value="admin.ManagerId.ToString()" /></td> *@
                         <td>
-                            <button class="btn btn-success btn-sm" @onclick="async () => SaveAdministration(admin)">Save</button>
+                            <button class="btn btn-success btn-sm" @onclick="async () => await SaveAdministration(admin)">Save</button>
                             <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
                         </td>
                     }
@@ -203,6 +205,7 @@
             StateHasChanged();
         }
     }
+    
     private async Task OnUserSelected(UserDto user)
     {
         manager = user;

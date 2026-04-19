@@ -3,7 +3,7 @@
 namespace EmployeeModule.Employees.Features.Specializations.UpdateSpecialization;
 
 
-public record UpdateSpecializationRequest(SpecializationDto specialization);
+public record UpdateSpecializationRequest(SpecializationDto Specialization);
 public record UpdateSpecializationResponse(bool IsSuccess);
 public class UpdateSpecializationEndpoint : ICarterModule
 {

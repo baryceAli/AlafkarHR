@@ -8,7 +8,7 @@ global using Shared.Data;
 global using Microsoft.EntityFrameworkCore;
 global using Carter;
 global using SharedWithUI.Employees.Dtos;
-global using EmployeeModule.Employees.Features.Config;
+global using EmployeeModule.Employees.Config;
 global using Mapster;
 global using MediatR;
 global using Microsoft.AspNetCore.Http;
