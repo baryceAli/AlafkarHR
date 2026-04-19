@@ -82,7 +82,7 @@
                     <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
                     @SharedDataService.SelectViewLang("Name", "الاسم")
                 </th>
-                <th @onclick="() => Sort(nameof(BranchDto.NameEng))">@SharedDataService.SelectViewLang("NameEng","الاسم بالانجليزية")</th>
+                <th @onclick="() => Sort(nameof(BranchDto.NameEng))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
                 <th>@SharedDataService.SelectViewLang("Phone", "الهاتف")</th>
                 <th @onclick="() => Sort(nameof(BranchDto.Email))">Email</th>
                 <th @onclick="() => Sort(nameof(BranchDto.Location))">Location</th>
@@ -94,40 +94,74 @@
         </thead>
         <tbody>
             @* @foreach (var b in branches) *@
-            @foreach (var b in ProcessedBranches)
+            @foreach (var branch in ProcessedBranches)
             {
-                <tr>
-                    @if (editingBranchId == b.Id)
-                    {
-                        <td><InputText class="form-control" @bind-Value="b.Name" /></td>
-                        <td><InputText class="form-control" @bind-Value="b.NameEng" /></td>
-                        <td><InputText class="form-control" @bind-Value="b.Phone" /></td>
-                        <td><InputText class="form-control" @bind-Value="b.Email" /></td>
-                        <td><InputText class="form-control" @bind-Value="b.Location" /></td>
-                        <td><InputNumber class="form-control" @bind-Value="b.Longitude" /></td>
-                        <td><InputNumber class="form-control" @bind-Value="b.Latitude" /></td>
-                        <td><InputCheckbox class="form-check-input" @bind-Value="b.IsMainBranch" /></td>
-                        <td>
-                            <button class="btn btn-success btn-sm" @onclick="() => SaveBranch(b)">Save</button>
-                            <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                @if (editingBranchId == branch.Id)
+                {
+                    <tr>
+                        <td colspan="9">
+                            <EditForm Model=" editingBranchId" OnValidSubmit="() => SaveBranch(branch)">
+                                <DataAnnotationsValidator />
+                                @* <InputHidden @bind-Value="branch.Id"/> *@
+                                <div class="row">
+
+                                    <div class="col">
+                                        <InputText class="form-control" @bind-Value="branch.Name" />
+                                        <ValidationMessage For="() => branch.Name" />
+                                    </div>
+                                    <div class="col">
+                                        <InputText class="form-control" @bind-Value="branch.NameEng" />
+                                        <ValidationMessage For="() => branch.NameEng" />
+                                    </div>
+                                    <div class="col">
+                                        <InputText class="form-control" @bind-Value="branch.Phone" />
+                                        <ValidationMessage For="() => branch.Phone" />
+                                    </div>
+                                    <div class="col">
+                                        <InputText class="form-control" @bind-Value="branch.Email" />
+                                        <ValidationMessage For="() => branch.Email" />
+                                    </div>
+                                    <div class="col">
+                                        <InputText class="form-control" @bind-Value="branch.Location" />
+                                        <ValidationMessage For="() => branch.Location" />
+                                    </div>
+                                    <div class="col">
+                                        <InputNumber class="form-control" @bind-Value="branch.Longitude" />
+                                        <ValidationMessage For="() => branch.Longitude" />
+                                    </div>
+                                    <div class="col">
+                                        <InputNumber class="form-control" @bind-Value="branch.Latitude" />
+                                        <ValidationMessage For="() => branch.Latitude" />
+                                    </div>
+                                    <div class="col">
+                                        <InputCheckbox class="form-check-input" @bind-Value="branch.IsMainBranch" />
+                                    </div>
+                                    <div class="col">
+                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                    </div>
+                                </div>
+                            </EditForm>
                         </td>
-                    }
-                    else
-                    {
-                        <td>@b.Name</td>
-                        <td>@b.NameEng</td>
-                        <td>@b.Phone</td>
-                        <td>@b.Email</td>
-                        <td>@b.Location</td>
-                        <td>@b.Longitude</td>
-                        <td>@b.Latitude</td>
-                        <td>@b.IsMainBranch</td>
+                    </tr>
+                }
+                else
+                {
+                    <tr>
+                        <td>@branch.Name</td>
+                        <td>@branch.NameEng</td>
+                        <td>@branch.Phone</td>
+                        <td>@branch.Email</td>
+                        <td>@branch.Location</td>
+                        <td>@branch.Longitude</td>
+                        <td>@branch.Latitude</td>
+                        <td>@branch.IsMainBranch</td>
                         <td>
-                            <button class="btn btn-warning btn-sm" @onclick="() => EditBranch(b.Id)">@SharedDataService.SelectViewLang("Edit", "تعديل")</button>
-                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteBranch(b)">@SharedDataService.SelectViewLang("Delete", "حذف")</button>
+                            <button class="btn btn-warning btn-sm" @onclick="() => EditBranch(branch.Id)">@SharedDataService.SelectViewLang("Edit", "تعديل")</button>
+                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteBranch(branch)">@SharedDataService.SelectViewLang("Delete", "حذف")</button>
                         </td>
-                    }
-                </tr>
+                    </tr>
+                }
             }
         </tbody>
     </table>
@@ -170,22 +204,25 @@
     // Branch
     void CreateNew()
     {
-        var newItem = new BranchDto();
+        var newItem = new BranchDto()
+        {
+            Id = Guid.Empty
+        };
         branches.Insert(0, newItem);
         editingBranchId = newItem.Id;
     }
 
     void EditBranch(Guid id) => editingBranchId = id;
 
-    async Task SaveBranch(BranchDto b)
+    async Task SaveBranch(BranchDto branch)
     {
-        if (b.Id == Guid.Empty)
+        if (branch.Id==null || branch.Id == Guid.Empty)
         {
             Random rnd = new Random();
-            b.Code = b.NameEng.Substring(0, 1) + rnd.Next(100, 999);
-            b.CompanyId = companyId;
+            branch.Code = branch.NameEng.Substring(0, 1) + rnd.Next(100, 999);
+            branch.CompanyId = companyId;
 
-            var bResponse = await BranchService.CreateAsync(b);
+            var bResponse = await BranchService.CreateAsync(branch);
             if (bResponse.IsSuccess)
             {
                 //show success
@@ -209,7 +246,7 @@
         else
         {
 
-            var bresponse = await BranchService.UpdateAsync(b);
+            var bresponse = await BranchService.UpdateAsync(branch);
             if (bresponse.IsSuccess)
             {
                 //show success
@@ -286,10 +323,10 @@
     }
     async Task CancelEdit()
     {
+
         
-
-
         //new
+        // branch
         var item = branches.FirstOrDefault(x => x.Id == editingBranchId);
 
         if (item != null && item.Id != Guid.Empty)
@@ -307,7 +344,7 @@
             branches.Remove(item);
         }
 
-        editingBranchId= null;
+        editingBranchId = null;
     }
 
     #region Table Helpers
@@ -412,4 +449,5 @@
         }
     }
     #endregion Table helpers
+
 }
