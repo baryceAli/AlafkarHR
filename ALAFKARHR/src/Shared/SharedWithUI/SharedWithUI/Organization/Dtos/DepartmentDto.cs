@@ -5,8 +5,16 @@ namespace SharedWithUI.Organization.Dtos;
 public class DepartmentDto
 {
     public Guid Id { get; set; }
+
+
+    [Required(ErrorMessage ="Name is required")]
     public string Name { get; set; }
+    
+    
+    [Required(ErrorMessage ="NameEng is required")]
     public string NameEng { get; set; }
+
+
     [Required(ErrorMessage ="Administration is required")]
     public Guid? AdministrationId { get; set; }
     //public Administration Administration { get; private set; }

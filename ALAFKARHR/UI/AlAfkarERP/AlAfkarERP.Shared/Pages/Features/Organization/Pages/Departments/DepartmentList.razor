@@ -106,7 +106,10 @@
     <table class="table">
         <thead>
             <tr>
-                <th @onclick="() => Sort(nameof(DepartmentDto.Name))"><span class=@(sortAscending)?"bi bi-file-earmark-plus-fill":"bi bi-file-earmark-plus")></span> Name</th>
+                <th @onclick="() => Sort(nameof(DepartmentDto.Name))">
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                    Name
+                </th>
                 <th @onclick="() => Sort(nameof(DepartmentDto.NameEng))">NameEng</th>
                 @* <th @onclick="() => Sort(nameof(AdministrationDto.BranchId))">Branch</th> *@
                 <th @onclick="() => Sort(nameof(DepartmentDto.HeadOfDepartment))">@SharedDataService.SelectViewLang("Head of Dept.", "رئيس القسم")</th>
@@ -118,45 +121,51 @@
             @* @foreach (var b in branches) *@
             @foreach (var dept in ProcessedAdministrations)
             {
-                <tr>
-                    @if (editingDepartment == dept.Id)
-                    {
+                @if (editingDepartmentId == dept.Id)
+                {
+                    <tr>
+                        <td colspan="5">
+                            <EditForm Model="dept" OnValidSubmit="async () =>await SaveAdministration(dept)">
+                                <div class="row">
 
-                        <td><InputText class="form-control" @bind-Value="dept.Name" /></td>
-                        <td><InputText class="form-control" @bind-Value="dept.NameEng" /></td>
-                        <td>
-                            <div class="mb-3">
-                                @* <label for="Products" class="form-label">@(SharedDataService.Language == "Ar" ? "مدير الادارة" : "Manager")</label> *@
-                                <AutoCompleteComponent TItem="UserDto"
-                                                       Items="users"
-                                                       Value="manager"
-                                                       PlaceHolder="search manager ..."
-                                                       ItemText='(p=> p.UserName)'
-                                                       ValueChanged="OnUserSelected">
-                                </AutoCompleteComponent>
-                            </div>
+                                    <div class="col"><InputText class="form-control" @bind-Value="dept.Name" /></div>
+                                    <div class="col"><InputText class="form-control" @bind-Value="dept.NameEng" /></div>
+                                    <div class="col">
+                                        <div class="mb-3">
+                                            <AutoCompleteComponent TItem="UserDto"
+                                                                   Items="users"
+                                                                   Value="manager"
+                                                                   PlaceHolder="search manager ..."
+                                                                   ItemText='(p=> p.UserName)'
+                                                                   ValueChanged="OnUserSelected">
+                                            </AutoCompleteComponent>
+                                        </div>
+                                    </div>
+                                    <div class="col"><InputCheckbox class="form-check-input" @bind-Value="dept.IsActive" /></div>
+                                    @* <td><InputText class="form-control" @bind-Value="admin.BranchId.ToString()" /></td> *@
+                                    @* <td><InputText class="form-control" @bind-Value="admin.ManagerId.ToString()" /></td> *@
+                                    <div class="col">
+                                        <button type="submit" class="btn btn-success btn-sm" >Save</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                    </div>
+                                </div>
+                            </EditForm>
                         </td>
-                        <td><InputCheckbox class="form-check-input" @bind-Value="dept.IsActive" /></td>
-                        @* <td><InputText class="form-control" @bind-Value="admin.BranchId.ToString()" /></td> *@
-                        @* <td><InputText class="form-control" @bind-Value="admin.ManagerId.ToString()" /></td> *@
-                        <td>
-                            <button class="btn btn-success btn-sm" @onclick="async () => SaveAdministration(dept)">Save</button>
-                            <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
-                        </td>
-                    }
-                    else
-                    {
+                    </tr>
+                }
+                else
+                {
+                    <tr>
                         <td>@dept.Name</td>
                         <td>@dept.NameEng</td>
-                        @* <td>@admin.BranchId</td> *@
                         <td>@(users.FirstOrDefault(u => u.Id == dept.HeadOfDepartment)?.UserName ?? "")</td>
                         <td>@dept.IsActive</td>
                         <td>
                             <button class="btn btn-warning btn-sm" @onclick="() => EditAdministration(dept)">@SharedDataService.SelectViewLang("Edit", "تعديل")</button>
                             <button class="btn btn-danger btn-sm" @onclick="() => DeleteDepartment(dept)">@SharedDataService.SelectViewLang("Delete", "حذف")</button>
                         </td>
-                    }
-                </tr>
+                    </tr>
+                }
             }
         </tbody>
     </table>
@@ -185,8 +194,9 @@
     private List<AdministrationDto> administrations = [];
     private List<DepartmentDto> departments = new();
     private List<UserDto> users = [];
-    private UserDto manager = new();
-    private Guid? editingDepartment;
+    private UserDto? manager;
+    private Guid? editingDepartmentId;
+    private bool isNew = false;
     private Guid companyId;
     private AuthenticationState AuthState;
     protected override async Task OnInitializedAsync()
@@ -207,7 +217,7 @@
             branches = branchResponse.Data?.Data?.ToList() ?? [];
         }
     }
-    BranchDto? selectedBranch ;
+    BranchDto? selectedBranch;
     private async Task OnBranchSelected(BranchDto branch)
     {
         selectedAdministration = new AdministrationDto();
@@ -219,17 +229,17 @@
             {
                 administrations = admResponse.Data?.Data?.ToList() ?? [];
             }
-            
+
 
             await LoadDepartments();
             StateHasChanged();
         }
     }
 
-    AdministrationDto? selectedAdministration ;
+    AdministrationDto? selectedAdministration;
     private async Task OnAdministrationSelected(AdministrationDto admin)
     {
-        
+
         selectedAdministration = admin;
         if (selectedAdministration != null && selectedAdministration.Id != Guid.Empty)
         {
@@ -237,7 +247,7 @@
             StateHasChanged();
         }
     }
-    
+
     private async Task OnUserSelected(UserDto user)
     {
         manager = user;
@@ -252,7 +262,7 @@
     async Task CreateNew()
     {
 
-        if (selectedAdministration == null || selectedAdministration.Id == Guid.Empty )
+        if (selectedAdministration == null || selectedAdministration.Id == Guid.Empty)
         {
             await ModalService.ShowAsync(new ModalOptions
             {
@@ -272,27 +282,34 @@
 
             return;
         }
-        var newItem = new DepartmentDto();
+        var newItem = new DepartmentDto()
+        {
+            Id = Guid.NewGuid()
+        };
         departments.Insert(0, newItem);
-        editingDepartment = newItem.Id;
+        editingDepartmentId = newItem.Id;
+        manager = null;
+        isNew = true;
     }
 
     void EditAdministration(DepartmentDto dept)
     {
 
-        editingDepartment = dept.Id;
+        editingDepartmentId = dept.Id;
+        manager = users?.FirstOrDefault(u => u.Id == dept.HeadOfDepartment) ?? null;
+        isNew = false;
     }
 
     async Task SaveAdministration(DepartmentDto dept)
     {
-        if (dept.Id == Guid.Empty)
+        if (dept.Id == editingDepartmentId && isNew)
         {
             Random rnd = new Random();
             dept.Code = dept.NameEng.Substring(0, 1) + rnd.Next(100, 999);
             dept.CompanyId = companyId;
-            
-            dept.AdministrationId = selectedAdministration?.Id??null;
-            dept.HeadOfDepartment = manager?.Id?? null;
+
+            dept.AdministrationId = selectedAdministration?.Id ?? null;
+            dept.HeadOfDepartment = manager?.Id ?? null;
             var bResponse = await DepartmentService.CreateAsync(dept);
             if (bResponse.IsSuccess)
             {
@@ -312,6 +329,7 @@
                     Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
                     Type = "error"
                 });
+                return;
             }
         }
         else
@@ -340,6 +358,7 @@
                     Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
                     Type = "error"
                 });
+                return;
             }
         }
 
@@ -349,7 +368,8 @@
         // {
         //     branches = response.Data?.ToList() ?? [];
         // }
-        editingDepartment = null;
+        editingDepartmentId = null;
+        isNew = false;
         StateHasChanged();
     }
 
@@ -399,19 +419,35 @@
 
 
     }
-    void CancelEdit()
+    async Task CancelEdit()
     {
-        if (editingDepartment == null || editingDepartment == Guid.Empty)
+        if (selectedAdministration == null || selectedAdministration.Id == Guid.Empty)
         {
-            var brToRemove = departments.FirstOrDefault(b => b.Id == editingDepartment);
-            if (brToRemove != null)
-            {
-                departments.Remove(brToRemove);
-            }
-
+            departments = [];
+            isNew = false;
+            return;
         }
+        // editingDepartmentId = null;
+        // isNew = false;
 
-        editingDepartment = null;
+        var item = departments.FirstOrDefault(x => x.Id == editingDepartmentId);
+        if (item != null && !isNew)
+        {
+            var deptRes = await DepartmentService.GetByAdministrationAsync(selectedAdministration.Id, 0, 1000);
+            if (deptRes.IsSuccess)
+            {
+                departments = deptRes.Data?.Data?.ToList() ?? [];
+            }
+        }
+        else
+        {
+            // new record → remove it
+            departments.Remove(item);
+        }
+        editingDepartmentId = null;
+        isNew = false;
+
+        
     }
 
     #region Table Helpers
@@ -522,4 +558,5 @@
         }
     }
     #endregion Table helpers
+
 }

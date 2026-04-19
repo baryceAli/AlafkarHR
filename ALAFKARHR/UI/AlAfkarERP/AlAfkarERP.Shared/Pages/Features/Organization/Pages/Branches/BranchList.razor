@@ -188,6 +188,7 @@
     private List<BranchDto> branches = new();
     private Guid? editingBranchId;
     private Guid companyId;
+    private bool isEdit = false;
     private AuthenticationState AuthState;
     protected override async Task OnInitializedAsync()
     {
@@ -206,18 +207,24 @@
     {
         var newItem = new BranchDto()
         {
-            Id = Guid.Empty
+            Id = Guid.NewGuid()
         };
         branches.Insert(0, newItem);
         editingBranchId = newItem.Id;
+        isEdit = false;
     }
 
-    void EditBranch(Guid id) => editingBranchId = id;
-
+    void EditBranch(Guid id) 
+    {
+        editingBranchId = id;
+        isEdit = true;
+    }
     async Task SaveBranch(BranchDto branch)
     {
-        if (branch.Id==null || branch.Id == Guid.Empty)
+        if (branch.Id == editingBranchId && !isEdit)
         {
+            //Create new
+
             Random rnd = new Random();
             branch.Code = branch.NameEng.Substring(0, 1) + rnd.Next(100, 999);
             branch.CompanyId = companyId;
@@ -245,6 +252,7 @@
         }
         else
         {
+            //Edit
 
             var bresponse = await BranchService.UpdateAsync(branch);
             if (bresponse.IsSuccess)
@@ -324,7 +332,7 @@
     async Task CancelEdit()
     {
 
-        
+
         //new
         // branch
         var item = branches.FirstOrDefault(x => x.Id == editingBranchId);
@@ -343,7 +351,7 @@
             // new record → remove it
             branches.Remove(item);
         }
-
+        isEdit = false;
         editingBranchId = null;
     }
 

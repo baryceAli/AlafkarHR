@@ -406,18 +406,14 @@
 
         //new
         isEdit = false;
-        // editingAdministrationId = null;
         if (selectedBranch == null || selectedBranch.Id == Guid.Empty)
         {
             administrations = [];
-            // editingAdministrationId = null;
-            // newAdministrationId = null;
             return;
         }
         var item = administrations.FirstOrDefault(x => x.Id == editingAdministrationId);
-        if (item != null && item.Id != Guid.Empty)
+        if (item != null && isEdit)
         {
-            // existing record → keep it
             var adminRes = await AdministrationService.GetByBranchAsync(selectedBranch.Id, 0, 1000);
             if (adminRes.IsSuccess)
             {
