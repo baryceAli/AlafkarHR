@@ -27,6 +27,22 @@ public class DepartmentDto
     public bool IsActive { get; set; }
 
     public Guid CompanyId { get; set; }
+
+
+
+    [Required(ErrorMessage ="Location is required")]
+    public string Location { get; set; }
+
+
+
+    [Required(ErrorMessage ="Longitude is required")]
+    [Range(0.1,100,ErrorMessage ="Longitude must be greator than 0")]
+    public double Longitude { get; set; }
+    
+    
+    [Required(ErrorMessage = "Latitude is required")]
+    [Range(0.1,100,ErrorMessage = "Latitude must be greator than 0")]
+    public double Latitude { get; set; }
     //public Company Company { get; private set; }
 
 }

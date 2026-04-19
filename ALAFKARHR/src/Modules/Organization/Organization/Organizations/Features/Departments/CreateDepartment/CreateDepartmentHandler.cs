@@ -38,6 +38,9 @@ public class CreateDepartmentHandler(OrganizationDbContext dbContext, IHttpConte
             request.Department.CompanyId,
             request.Department.IsActive,
             request.Department.HeadOfDepartment,
+            request.Department.Location,
+            request.Department.Longitude,
+            request.Department.Latitude,
             userId);
 
         await dbContext.Departments.AddAsync(department, cancellationToken);

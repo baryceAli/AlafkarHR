@@ -25,6 +25,9 @@ public class UpdateDepartmentHandler(OrganizationDbContext dbContext, IHttpConte
             request.Department.NameEng,
             request.Department.HeadOfDepartment,
             request.Department.IsActive,
+            request.Department.Location,
+            request.Department.Longitude,
+            request.Department.Latitude,
             userId);
 
         await dbContext.SaveChangesAsync();

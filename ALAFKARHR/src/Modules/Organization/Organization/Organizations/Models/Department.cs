@@ -18,6 +18,11 @@ public class Department:Entity<Guid>
 
     public Guid CompanyId { get; private set; }
     public Company Company { get; private set; }
+
+
+    public string Location { get; private set; }
+    public double Longitude { get; private set; }
+    public double Latitude { get; private set; }
     private Department() { }
 
     public static Department Create(Guid id,
@@ -29,6 +34,9 @@ public class Department:Entity<Guid>
         Guid companyId,
         bool isActive,
         Guid? parentDepartmentId,
+        string location,
+        double longitude,
+        double latitude,
         string createdBy)
     {
         return new Department
@@ -43,15 +51,20 @@ public class Department:Entity<Guid>
             IsActive = isActive,
             ParentDepartmentId = parentDepartmentId,
             CreatedAt = DateTime.UtcNow,
+            Location = location,
+            Longitude = longitude,
+            Latitude = latitude,
             CreatedBy = createdBy
         };
     }
     public void Update(
         string name,
         string nameEng,
-        //Guid administrationId,
         Guid? headOfDepartment,
         bool isActive,
+        string location,
+        double longitude,
+        double latitude,
         string modifiedBy)
     {
         Name=name;
@@ -59,6 +72,9 @@ public class Department:Entity<Guid>
         //AdministraitonId=administrationId;
         HeadOfDepartment = headOfDepartment;
         IsActive = isActive;
+        Location = location;
+        Longitude = longitude;
+        Latitude = latitude;
         ModifiedAt= DateTime.UtcNow;
         ModifiedBy=modifiedBy;
     }
