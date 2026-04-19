@@ -40,6 +40,16 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
             .WithMany()
             .HasForeignKey(x => x.PositionId);
 
+        builder.Property(x => x.DepartmentId)
+       .IsRequired(false);
+
+       // builder.HasOne<Department>()
+       //.WithMany()
+       //.HasForeignKey(x => x.DepartmentId)
+       //.IsRequired(false)
+       //.OnDelete(DeleteBehavior.Restrict);
+
+
         // 👤 Self Reference (Manager)
         //builder.HasOne(x => x.Manager)
         //    .WithMany()
@@ -55,6 +65,8 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.HasIndex(x => new { x.CompanyId, x.EmployeeNo });
 
         builder.HasIndex(x => x.DepartmentId);
+        builder.HasIndex(x => x.AdministrationId);
+        builder.HasIndex(x => x.CompanyId);
         builder.HasIndex(x => x.BranchId);
         builder.HasIndex(x => x.PositionId);
     }

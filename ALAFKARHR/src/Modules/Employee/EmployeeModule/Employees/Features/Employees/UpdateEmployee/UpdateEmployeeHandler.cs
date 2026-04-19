@@ -58,8 +58,8 @@ public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             request.Employee.MaritalStatus,
             request.Employee.EmploymentType,
             request.Employee.Qualification,
-            request.Employee.SpecializationId,
-            request.Employee.AcademicInstituteId,
+            request.Employee.SpecializationId.Value,
+            request.Employee.AcademicInstituteId.Value,
             request.Employee.GraduationYear,
             userId);
 

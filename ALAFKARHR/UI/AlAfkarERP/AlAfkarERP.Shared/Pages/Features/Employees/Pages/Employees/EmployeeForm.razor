@@ -517,8 +517,8 @@
             MaritalStatus = MaritalStatus.Single,
             Qualification = Qualification.Bachelor,
             GraduationYear = DateTime.Now.Year - 1,
-            EmploymentType = EmploymentType.Full
-
+            EmploymentType = EmploymentType.Full,
+            
 
         };
     }
@@ -610,7 +610,7 @@
             administrations = admResponse.Data?.Data?.ToList() ?? [];
 
         }
-        employee.BranchId = selectedBranch.Id;
+        employee.BranchId = selectedBranch?.Id??null;
         StateHasChanged();
     }
 
@@ -625,14 +625,14 @@
 
             departments = deptResponse.Data?.Data?.ToList() ?? [];
         }
-        employee.AdministrationId = selectedAdministration.Id;
+        employee.AdministrationId = selectedAdministration?.Id??null;
         StateHasChanged();
     }
     private DepartmentDto selectedDepartment = new();
     private void OnDepartmentSelected(DepartmentDto department)
     {
         selectedDepartment = department;
-        employee.DepartmentId = selectedDepartment.Id;
+        employee.DepartmentId = selectedDepartment?.Id??null;
     }
     private AcademicInstitutionDto? selectedAcademicInistitution;
     private async Task OnAcademicInistitutionSelected(AcademicInstitutionDto academic)
@@ -640,13 +640,13 @@
         selectedAcademicInistitution = academic;
 
 
-        employee.AcademicInstituteId = selectedAcademicInistitution.Id;
+        employee.AcademicInstituteId = selectedAcademicInistitution?.Id??null;
     }
     private PositionDto? selectedPosition;
     private async Task OnPositionSelected(PositionDto position)
     {
         selectedPosition = position;
-        employee.PositionId = selectedPosition.Id;
+        employee.PositionId = selectedPosition?.Id??null;
     }
 
 
@@ -658,7 +658,7 @@
     {
         selectedSpecialization = specialization;
 
-        employee.SpecializationId = selectedSpecialization.Id;
+        employee.SpecializationId = selectedSpecialization?.Id??null;
     }
 
     private string GetIdentityTypeDisplay(IdentityType type)

@@ -1,11 +1,21 @@
-﻿namespace SharedWithUI.Organization.Dtos;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace SharedWithUI.Organization.Dtos;
 
 public class AdministrationDto
 {
     public Guid Id { get; set; }
+
+    
+    [Required(ErrorMessage ="Name is required")]
     public string Name { get; set; }
+
+
+    [Required(ErrorMessage = "Name is required")]
     public string NameEng { get; set; }
-    public Guid BranchId { get; set; }
+
+    [Required(ErrorMessage ="Branch is required")]
+    public Guid? BranchId { get; set; }
     
     //public Branch Branch { get; private set; }
 

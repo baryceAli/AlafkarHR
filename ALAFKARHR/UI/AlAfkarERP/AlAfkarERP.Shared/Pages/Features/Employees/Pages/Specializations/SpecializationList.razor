@@ -4,6 +4,7 @@
 
 
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.Organization.Pages.Administrations
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
@@ -82,11 +83,11 @@
         <thead>
             <tr>
                 <th @onclick="() => Sort(nameof(SpecializationDto.Name))">
-                    <span class=@(sortAscending)?"bi bi-file-earmark-plus-fill":"bi bi-file-earmark-plus")></span>
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
                     @SharedDataService.SelectViewLang("Name", "الاسم")
                 </th>
                 <th @onclick="() => Sort(nameof(SpecializationDto.NameEng))">
-                    <span class=@(sortAscending)?"bi bi-file-earmark-plus-fill":"bi bi-file-earmark-plus")></span>
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
                     @SharedDataService.SelectViewLang("Name (Eng.)", "الاسم بالانجليزية")
                 </th>
                 <th></th>
@@ -96,18 +97,34 @@
             @* @foreach (var b in branches) *@
             @foreach (var specialization in ProcessedSpecializations)
             {
-                <tr>
-                    @if (editingSpecializationId == specialization.Id)
-                    {
-                        <td><InputText class="form-control" @bind-Value="specialization.Name" /></td>
-                        <td><InputText class="form-control" @bind-Value="specialization.NameEng" /></td>
-                        <td>
-                            <button class="btn btn-success btn-sm" @onclick="() => SaveSpecialization(specialization)">Save</button>
-                            <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                @if (editingSpecializationId == specialization.Id)
+                {
+                    <tr>
+                        <td colspan="3">
+                            <EditForm Model="specialization" OnValidSubmit="() => SaveSpecialization(specialization)">
+                                <DataAnnotationsValidator/>
+                                <div class="row">
+                                    <div class="col">
+                                        <InputText class="form-control" @bind-Value="specialization.Name" />
+                                        <ValidationMessage For="()=> specialization.Name"/>
+                                    </div>
+                                    <div class="col">
+                                        <InputText class="form-control" @bind-Value="specialization.NameEng" />
+                                        <ValidationMessage For="()=> specialization.NameEng"/>
+                                    </div>
+                                    <div class="col">
+                                        <button type="submit" class="btn btn-success btn-sm" >Save</button>
+                                        <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                    </div>
+                                </div>
+                            </EditForm>
                         </td>
-                    }
-                    else
-                    {
+                    </tr>
+                }
+                else
+                {
+                    <tr>
+
                         <td>@specialization.Name</td>
                         <td>@specialization.NameEng</td>
                         <td>
@@ -120,8 +137,8 @@
                                 @SharedDataService.SelectViewLang("Delete", "حذف")
                             </button>
                         </td>
-                    }
-                </tr>
+                    </tr>
+                }
             }
         </tbody>
     </table>
@@ -157,13 +174,18 @@
         await LoadSpecialization();
         
     }
-    // Branch
+    
     void CreateNew()
     {
-        var newItem = new SpecializationDto();
+        var newItem = new SpecializationDto
+        {
+            Id = Guid.NewGuid() // IMPORTANT FIX
+        };
+
         specializations.Insert(0, newItem);
-        editingSpecializationId = newItem.Id;
+        editingSpecializationId= newItem.Id;
     }
+    
 
     void EditSpecialization(Guid id) => editingSpecializationId = id;
 
@@ -272,19 +294,28 @@
 
 
     }
-    void CancelEdit()
+    
+    
+    async Task CancelEdit()
     {
-        if (editingSpecializationId == null || editingSpecializationId == Guid.Empty)
-        {
-            var brToRemove = specializations.FirstOrDefault(b => b.Id == editingSpecializationId);
-            if (brToRemove != null)
-            {
-                specializations.Remove(brToRemove);
-            }
+        var item = specializations.FirstOrDefault(x => x.Id == editingSpecializationId);
 
+        if (item != null && item.Id != Guid.Empty)
+        {
+            // existing record → keep it
+            var specRes = await SpecializationService.GetByCompanyAsync(companyId, 0, 1000);
+            if (specRes.IsSuccess)
+            {
+                specializations = specRes.Data?.Data?.ToList() ?? [];
+            }
+        }
+        else
+        {
+            // new record → remove it
+            specializations.Remove(item);
         }
 
-        editingSpecializationId = null;
+        editingSpecializationId= null;
     }
 
     #region Table Helpers

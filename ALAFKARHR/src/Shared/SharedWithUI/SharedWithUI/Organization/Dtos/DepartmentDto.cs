@@ -1,11 +1,14 @@
-﻿namespace SharedWithUI.Organization.Dtos;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace SharedWithUI.Organization.Dtos;
 
 public class DepartmentDto
 {
     public Guid Id { get; set; }
     public string Name { get; set; }
     public string NameEng { get; set; }
-    public Guid AdministrationId { get; set; }
+    [Required(ErrorMessage ="Administration is required")]
+    public Guid? AdministrationId { get; set; }
     //public Administration Administration { get; private set; }
     public Guid? HeadOfDepartment { get; set; }
 

@@ -33,7 +33,7 @@ public class Employee : Aggregate<Guid>
     public Guid CompanyId { get; private set; }
     public Guid BranchId { get; private set; }
     public Guid AdministrationId { get; private set; }
-    public Guid DepartmentId { get; private set; }
+    public Guid? DepartmentId { get; private set; }
     //public Company Company { get; private set; }
     //public Branch Branch { get; private set; }
     //public Administration Administration { get; private set; }
@@ -80,7 +80,7 @@ public class Employee : Aggregate<Guid>
         Guid companyId,
         Guid branchId,
         Guid administrationId,
-        Guid departmentId,
+        Guid? departmentId,
         Guid positionId,
         IdentityType identityType,
         Gender gender,
@@ -207,7 +207,7 @@ public class Employee : Aggregate<Guid>
     //    ModifiedAt = DateTime.UtcNow;
     //}
 
-    public void TransferDepartment(Guid branchId, Guid administrationId, Guid departmentId, string modifiedBy)
+    public void TransferDepartment(Guid branchId, Guid administrationId, Guid? departmentId, string modifiedBy)
     {
         BranchId = branchId;
         AdministrationId = administrationId;

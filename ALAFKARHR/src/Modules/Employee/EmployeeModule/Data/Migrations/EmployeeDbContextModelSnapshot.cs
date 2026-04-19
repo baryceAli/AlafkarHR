@@ -107,7 +107,7 @@ namespace EmployeeModule.Data.Migrations
                     b.Property<string>("DeletedBy")
                         .HasColumnType("text");
 
-                    b.Property<Guid>("DepartmentId")
+                    b.Property<Guid?>("DepartmentId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Email")
@@ -210,7 +210,11 @@ namespace EmployeeModule.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AdministrationId");
+
                     b.HasIndex("BranchId");
+
+                    b.HasIndex("CompanyId");
 
                     b.HasIndex("DepartmentId");
 

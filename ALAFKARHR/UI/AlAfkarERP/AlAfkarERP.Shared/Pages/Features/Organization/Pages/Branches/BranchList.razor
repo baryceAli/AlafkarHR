@@ -79,8 +79,8 @@
         <thead>
             <tr>
                 <th @onclick="() => Sort(nameof(BranchDto.Name))">
-                    <span class=@(sortAscending)?"bi bi-file-earmark-plus-fill":"bi bi-file-earmark-plus")></span> 
-                    @SharedDataService.SelectViewLang("Name","الاسم")
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                    @SharedDataService.SelectViewLang("Name", "الاسم")
                 </th>
                 <th @onclick="() => Sort(nameof(BranchDto.NameEng))">@SharedDataService.SelectViewLang("NameEng","الاسم بالانجليزية")</th>
                 <th>@SharedDataService.SelectViewLang("Phone", "الهاتف")</th>
@@ -284,19 +284,30 @@
 
 
     }
-    void CancelEdit()
+    async Task CancelEdit()
     {
-        if (editingBranchId == null || editingBranchId == Guid.Empty)
-        {
-            var brToRemove = branches.FirstOrDefault(b => b.Id == editingBranchId);
-            if (brToRemove != null)
-            {
-                branches.Remove(brToRemove);
-            }
+        
 
+
+        //new
+        var item = branches.FirstOrDefault(x => x.Id == editingBranchId);
+
+        if (item != null && item.Id != Guid.Empty)
+        {
+            // existing record → keep it
+            var brRes = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+            if (brRes.IsSuccess)
+            {
+                branches = brRes.Data?.Data?.ToList() ?? [];
+            }
+        }
+        else
+        {
+            // new record → remove it
+            branches.Remove(item);
         }
 
-        editingBranchId = null;
+        editingBranchId= null;
     }
 
     #region Table Helpers

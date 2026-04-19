@@ -139,8 +139,8 @@
         searchText = ItemText(item);
         isOpen = false;
         selectedIndex = -1;
-     
-        
+
+
         Value = item;
 
         await ValueChanged.InvokeAsync(item);
@@ -162,12 +162,16 @@
         return ItemText?.Invoke(item) ?? item?.ToString() ?? string.Empty;
     }
 
-    private void Clear()
+    private async Task Clear()
     {
         searchText = string.Empty;
         filteredItems.Clear();
         isOpen = false;
         selectedIndex = -1;
+
+        Value = default;
+
+        await ValueChanged.InvokeAsync(default);
     }
 
     private async Task OnKeyDown(KeyboardEventArgs e)

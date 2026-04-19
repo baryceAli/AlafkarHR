@@ -15,6 +15,28 @@ namespace EmployeeModule.Data.Migrations
                 name: "Employee");
 
             migrationBuilder.CreateTable(
+                name: "AcademicInstitutions",
+                schema: "Employee",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    NameEng = table.Column<string>(type: "text", nullable: false),
+                    CompanyId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    ModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ModifiedBy = table.Column<string>(type: "text", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AcademicInstitutions", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Positions",
                 schema: "Employee",
                 columns: table => new
@@ -39,6 +61,28 @@ namespace EmployeeModule.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Specializations",
+                schema: "Employee",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    NameEng = table.Column<string>(type: "text", nullable: false),
+                    CompanyId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    ModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ModifiedBy = table.Column<string>(type: "text", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedBy = table.Column<string>(type: "text", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Specializations", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Employees",
                 schema: "Employee",
                 columns: table => new
@@ -46,8 +90,11 @@ namespace EmployeeModule.Data.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     EmployeeNo = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     FirstName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    FirstNameEng = table.Column<string>(type: "text", nullable: false),
                     MiddleName = table.Column<string>(type: "text", nullable: false),
+                    MiddleNameEng = table.Column<string>(type: "text", nullable: false),
                     LastName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    LastNameEng = table.Column<string>(type: "text", nullable: false),
                     Email = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     Phone = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
                     DateOfBirth = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -59,9 +106,20 @@ namespace EmployeeModule.Data.Migrations
                     CompanyId = table.Column<Guid>(type: "uuid", nullable: false),
                     BranchId = table.Column<Guid>(type: "uuid", nullable: false),
                     AdministrationId = table.Column<Guid>(type: "uuid", nullable: false),
-                    DepartmentId = table.Column<Guid>(type: "uuid", nullable: false),
+                    DepartmentId = table.Column<Guid>(type: "uuid", nullable: true),
                     PositionId = table.Column<Guid>(type: "uuid", nullable: false),
                     Code = table.Column<string>(type: "text", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    IdentityType = table.Column<int>(type: "integer", nullable: false),
+                    Gender = table.Column<int>(type: "integer", nullable: false),
+                    Nationality = table.Column<string>(type: "text", nullable: false),
+                    Address = table.Column<string>(type: "text", nullable: false),
+                    MaritalStatus = table.Column<int>(type: "integer", nullable: false),
+                    EmploymentType = table.Column<int>(type: "integer", nullable: false),
+                    Qualification = table.Column<int>(type: "integer", nullable: false),
+                    SpecializationId = table.Column<Guid>(type: "uuid", nullable: false),
+                    AcademicInstituteId = table.Column<Guid>(type: "uuid", nullable: false),
+                    GraduationYear = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedBy = table.Column<string>(type: "text", nullable: true),
                     ModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -83,10 +141,22 @@ namespace EmployeeModule.Data.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Employees_AdministrationId",
+                schema: "Employee",
+                table: "Employees",
+                column: "AdministrationId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Employees_BranchId",
                 schema: "Employee",
                 table: "Employees",
                 column: "BranchId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Employees_CompanyId",
+                schema: "Employee",
+                table: "Employees",
+                column: "CompanyId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Employees_CompanyId_EmployeeNo",
@@ -104,7 +174,8 @@ namespace EmployeeModule.Data.Migrations
                 name: "IX_Employees_Email",
                 schema: "Employee",
                 table: "Employees",
-                column: "Email");
+                column: "Email",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Employees_EmployeeNo",
@@ -118,6 +189,13 @@ namespace EmployeeModule.Data.Migrations
                 schema: "Employee",
                 table: "Employees",
                 column: "NationalId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Employees_Phone",
+                schema: "Employee",
+                table: "Employees",
+                column: "Phone",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -138,7 +216,15 @@ namespace EmployeeModule.Data.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "AcademicInstitutions",
+                schema: "Employee");
+
+            migrationBuilder.DropTable(
                 name: "Employees",
+                schema: "Employee");
+
+            migrationBuilder.DropTable(
+                name: "Specializations",
                 schema: "Employee");
 
             migrationBuilder.DropTable(

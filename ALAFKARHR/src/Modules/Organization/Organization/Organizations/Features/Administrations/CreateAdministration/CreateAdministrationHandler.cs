@@ -27,7 +27,7 @@ public class CreateAdministrationHandler(OrganizationDbContext dbContext, IHttpC
             request.Administration.Name,
             request.Administration.NameEng,
             request.Administration.Code,
-            request.Administration.BranchId,
+            request.Administration.BranchId.Value,
             request.Administration.ManagerId,
             request.Administration.IsActive,
             request.Administration.CompanyId,

@@ -77,51 +77,78 @@
         </div>
 
     </div>
+    
     <table class="table">
         <thead>
             <tr>
                 <th @onclick="() => Sort(nameof(AcademicInstitutionDto.Name))">
-                    <span class=@(sortAscending)?"bi bi-file-earmark-plus-fill":"bi bi-file-earmark-plus")></span>
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
                     @SharedDataService.SelectViewLang("Name", "الاسم")
                 </th>
                 <th @onclick="() => Sort(nameof(AcademicInstitutionDto.NameEng))">
-                    <span class=@(sortAscending)?"bi bi-file-earmark-plus-fill":"bi bi-file-earmark-plus")></span>
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
                     @SharedDataService.SelectViewLang("Name (Eng.)", "الاسم بالانجليزية")
                 </th>
                 <th></th>
             </tr>
         </thead>
         <tbody>
-            @* @foreach (var b in branches) *@
             @foreach (var academic in ProcessedAcademicInistitutions)
             {
-                <tr>
-                    @if (editingAcademicInstitutionId == academic.Id)
-                    {
-                        <td><InputText class="form-control" @bind-Value="academic.Name" /></td>
-                        <td><InputText class="form-control" @bind-Value="academic.NameEng" /></td>
-                        <td>
-                            <button class="btn btn-success btn-sm" @onclick="() => SaveAcademicInstitution(academic)">Save</button>
-                            <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                if (editingAcademicInstitutionId == academic.Id)
+                {
+                    <tr>
+                        <td colspan="3">
+                            <EditForm Model="academic" >
+                                <DataAnnotationsValidator />
+                                @* <ValidationSummary /> *@
+
+                                <div class="row">
+                                    <div class="col">
+                                        <InputText class="form-control" @bind-Value="academic.Name" />
+                                        <ValidationMessage For="() => academic.Name" />
+                                    </div>
+
+                                    <div class="col">
+                                        <InputText class="form-control" @bind-Value="academic.NameEng" />
+                                        <ValidationMessage For="() => academic.NameEng" />
+                                    </div>
+
+                                    <div class="col">
+                                        <button type="button" @onclick="() => SaveAcademicInstitution(academic)" class="btn btn-success btn-sm">
+                                            Save
+                                        </button>
+
+                                        <button type="button"
+                                                class="btn btn-secondary btn-sm"
+                                                @onclick="CancelEdit">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </EditForm>
                         </td>
-                    }
-                    else
-                    {
+                    </tr>
+                }
+                else
+                {
+                    <tr>
                         <td>@academic.Name</td>
                         <td>@academic.NameEng</td>
                         <td>
                             <button class="btn btn-warning btn-sm"
                                     @onclick="() => EditAcademicInstitution(academic.Id)">
-                                @SharedDataService.SelectViewLang("Edit", "تعديل")
+                                Edit
                             </button>
                             <button class="btn btn-danger btn-sm"
                                     @onclick="() => DeleteAcademicInstitution(academic)">
                                 @SharedDataService.SelectViewLang("Delete", "حذف")
                             </button>
                         </td>
-                    }
-                </tr>
+                    </tr>
+                }
             }
+
         </tbody>
     </table>
     <div class="d-flex justify-content-end align-items-center mt-3">
@@ -163,11 +190,14 @@
     // Branch
     void CreateNew()
     {
-        var newItem = new AcademicInstitutionDto();
+        var newItem = new AcademicInstitutionDto
+        {
+            Id = Guid.NewGuid() // IMPORTANT FIX
+        };
+
         academicInstitutions.Insert(0, newItem);
         editingAcademicInstitutionId = newItem.Id;
     }
-
     void EditAcademicInstitution(Guid id) => editingAcademicInstitutionId = id;
 
     async Task SaveAcademicInstitution(AcademicInstitutionDto academic)
@@ -224,7 +254,7 @@
         }
 
         await LoadAcademicInstitutions();
-        
+
         editingAcademicInstitutionId = null;
     }
 
@@ -275,16 +305,30 @@
 
 
     }
-    void CancelEdit()
-    {
-        if (editingAcademicInstitutionId == null || editingAcademicInstitutionId == Guid.Empty)
-        {
-            var brToRemove = academicInstitutions.FirstOrDefault(b => b.Id == editingAcademicInstitutionId);
-            if (brToRemove != null)
-            {
-                academicInstitutions.Remove(brToRemove);
-            }
 
+    async Task CancelEdit()
+    {
+        var item = academicInstitutions.FirstOrDefault(x => x.Id == editingAcademicInstitutionId);
+
+        if (item != null && item.Id != Guid.Empty)
+        {
+            // optional: reload from DB if needed
+            
+        }
+
+        if (item != null && item.Id != Guid.Empty)
+        {
+            // existing record → keep it
+            var acaRes = await AcademicInistitutionService.GetByCompanyAsync(companyId, 0, 1000);
+            if (acaRes.IsSuccess)
+            {
+                academicInstitutions = acaRes.Data?.Data?.ToList() ?? [];
+            }
+        }
+        else
+        {
+            // new record → remove it
+            academicInstitutions.Remove(item);
         }
 
         editingAcademicInstitutionId = null;

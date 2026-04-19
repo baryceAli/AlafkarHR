@@ -79,7 +79,7 @@ public class EmployeeDto
     public string AdministrationName { get; set; }
 
 
-    [Required(ErrorMessage = "Department is required")]
+    //[Required(ErrorMessage = "Department is required")]
     public Guid? DepartmentId { get; set; }
     public string DepartmentName { get; set; }
 
@@ -114,8 +114,12 @@ public class EmployeeDto
     public MaritalStatus MaritalStatus { get; set; }
     public EmploymentType EmploymentType { get; set; }
     public Qualification Qualification { get; set; }
-    public Guid SpecializationId { get; set; }
-    public Guid AcademicInstituteId { get; set; }
+    [Required(ErrorMessage ="Specialization is required")]
+    public Guid? SpecializationId { get; set; }
+
+    [Required(ErrorMessage ="Academic Institute is required")]
+    public Guid? AcademicInstituteId { get; set; }
+    
     [Required(ErrorMessage ="Graduation year is required")]
     [Range(1,100000)]
     public int GraduationYear { get; set; }

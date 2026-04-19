@@ -23,7 +23,7 @@ public class CreateEmployeeCommandValidator : AbstractValidator<CreateEmployeeCo
         RuleFor(e=> e.Employee.Nationality).NotEmpty().WithMessage("Nationality is required");
         RuleFor(e=> e.Employee.Address).NotEmpty().WithMessage("Address is required");
         RuleFor(e=> e.Employee.MaritalStatus).IsInEnum().WithMessage("MartialStatus Should be in Single, Married, Devoreced or Widowed");
-        RuleFor(e=> e.Employee.EmploymentType).NotEmpty().WithMessage("EmploymentType Should be in Full, Parttime or Remote");
+        RuleFor(e=> e.Employee.EmploymentType).IsInEnum().WithMessage("EmploymentType Should be in Full, Parttime or Remote");
     }
 }
 public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
@@ -66,8 +66,8 @@ public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             request.Employee.MaritalStatus,
             request.Employee.EmploymentType,
             request.Employee.Qualification,
-            request.Employee.SpecializationId,
-            request.Employee.AcademicInstituteId,
+            request.Employee.SpecializationId.Value,
+            request.Employee.AcademicInstituteId.Value,
             request.Employee.GraduationYear,
             userId);
         await dbContext.Employees.AddAsync(employee, cancellationToken);

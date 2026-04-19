@@ -81,11 +81,11 @@
         <thead>
             <tr>
                 <th @onclick="() => Sort(nameof(PositionDto.Title))">
-                    <span class=@(sortAscending)?"bi bi-file-earmark-plus-fill":"bi bi-file-earmark-plus")></span>
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
                     @SharedDataService.SelectViewLang("Title", "المسمى الوظيفي")
                 </th>
                 <th @onclick="() => Sort(nameof(PositionDto.TitleEng))">
-                    <span class=@(sortAscending)?"bi bi-file-earmark-plus-fill":"bi bi-file-earmark-plus")></span>
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
                     @SharedDataService.SelectViewLang("Title Eng", "المسمى الوظيفي بالانجليزية")
                 </th>
                 <th @onclick="() => Sort(nameof(PositionDto.BaseSalary))">@SharedDataService.SelectViewLang("Base Salary", "الراتب الاساسي")</th>
@@ -96,19 +96,38 @@
             @* @foreach (var b in branches) *@
             @foreach (var position in ProcessedBranches)
             {
-                <tr>
-                    @if (editingPositionId == position.Id)
-                    {
-                        <td><InputText class="form-control" @bind-Value="position.Title" /></td>
-                        <td><InputText class="form-control" @bind-Value="position.TitleEng" /></td>
-                        <td><InputNumber class="form-control" @bind-Value="position.BaseSalary" /></td>
-                        <td>
-                            <button class="btn btn-success btn-sm" @onclick="() => SavePosition(position)">Save</button>
-                            <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                @if (editingPositionId == position.Id)
+                {
+                    <tr>
+                        <td colspan="3">
+                            <EditForm Model="position" OnValidSubmit="() => SavePosition(position)">
+                                <DataAnnotationsValidator />
+                                <div class="row">
+
+                                    <div class="col">
+                                        <InputText class="form-control" @bind-Value="position.Title" />
+                                        <ValidationMessage For="() => position.Title" />
+                                    </div>
+                                    <div class="col">
+                                        <InputText class="form-control" @bind-Value="position.TitleEng" />
+                                        <ValidationMessage For="() => position.TitleEng" />
+                                    </div>
+                                    <div class="col">
+                                        <InputNumber class="form-control" @bind-Value="position.BaseSalary" />
+                                        <ValidationMessage For="() => position.BaseSalary" />
+                                    </div>
+                                    <div class="col">
+                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
+                                        <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                    </div>
+                                </div>
+                            </EditForm>
                         </td>
-                    }
-                    else
-                    {
+                    </tr>
+                }
+                else
+                {
+                    <tr>
                         <td>@position.Title</td>
                         <td>@position.TitleEng</td>
                         <td>@position.BaseSalary</td>
@@ -122,8 +141,8 @@
                                 @SharedDataService.SelectViewLang("Delete", "حذف")
                             </button>
                         </td>
-                    }
-                </tr>
+                    </tr>
+                }
             }
         </tbody>
     </table>
@@ -163,14 +182,19 @@
         //     branches = branchResponse.Data?.ToList() ?? [];
         // }
     }
-    // Branch
+
     void CreateNew()
     {
-        var newItem = new PositionDto();
+        var newItem = new PositionDto
+        {
+            Id = Guid.NewGuid() // IMPORTANT FIX
+        };
+
         positions.Insert(0, newItem);
         editingPositionId = newItem.Id;
     }
 
+    
     void EditPosition(Guid id) => editingPositionId = id;
 
     async Task SavePosition(PositionDto p)
@@ -282,16 +306,31 @@
 
 
     }
-    void CancelEdit()
-    {
-        if (editingPositionId == null || editingPositionId == Guid.Empty)
-        {
-            var brToRemove = positions.FirstOrDefault(b => b.Id == editingPositionId);
-            if (brToRemove != null)
-            {
-                positions.Remove(brToRemove);
-            }
 
+
+    async Task CancelEdit()
+    {
+        var item = positions.FirstOrDefault(x => x.Id == editingPositionId);
+
+        if (item != null && item.Id != Guid.Empty)
+        {
+            // optional: reload from DB if needed
+            
+        }
+
+        if (item != null && item.Id != Guid.Empty)
+        {
+            // existing record → keep it
+            var posRes = await PositionService.GetAsync(companyId, 0, 1000);
+            if (posRes.IsSuccess)
+            {
+                positions = posRes.Data?.Data?.ToList() ?? [];
+            }
+        }
+        else
+        {
+            // new record → remove it
+            positions.Remove(item);
         }
 
         editingPositionId = null;

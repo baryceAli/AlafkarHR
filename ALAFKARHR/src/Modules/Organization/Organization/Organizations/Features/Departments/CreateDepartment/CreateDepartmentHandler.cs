@@ -33,7 +33,7 @@ public class CreateDepartmentHandler(OrganizationDbContext dbContext, IHttpConte
             request.Department.Name,
             request.Department.NameEng,
             request.Department.Code,
-            request.Department.AdministrationId,
+            request.Department.AdministrationId.Value,
             request.Department.HeadOfDepartment,
             request.Department.CompanyId,
             request.Department.IsActive,

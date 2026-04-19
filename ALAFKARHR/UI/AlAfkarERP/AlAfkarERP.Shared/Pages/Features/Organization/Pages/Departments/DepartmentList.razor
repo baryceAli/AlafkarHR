@@ -290,9 +290,9 @@
             Random rnd = new Random();
             dept.Code = dept.NameEng.Substring(0, 1) + rnd.Next(100, 999);
             dept.CompanyId = companyId;
-            // dept.BranchId = selectedBranch.Id;
-            dept.AdministrationId = selectedAdministration.Id;
-            dept.HeadOfDepartment = manager.Id != Guid.Empty ? manager.Id : null;
+            
+            dept.AdministrationId = selectedAdministration?.Id??null;
+            dept.HeadOfDepartment = manager?.Id?? null;
             var bResponse = await DepartmentService.CreateAsync(dept);
             if (bResponse.IsSuccess)
             {
