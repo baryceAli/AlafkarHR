@@ -99,27 +99,52 @@
                 @if (editingPositionId == position.Id)
                 {
                     <tr>
-                        <td colspan="3">
+                        <td colspan="4">
                             <EditForm Model="position" OnValidSubmit="() => SavePosition(position)">
                                 <DataAnnotationsValidator />
-                                <div class="row">
+                                <div class="row bg-info-subtle p-3">
 
-                                    <div class="col">
-                                        <InputText class="form-control" @bind-Value="position.Title" />
-                                        <ValidationMessage For="() => position.Title" />
+                                    
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Title", "المسمى الوظيفي")</label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="position.Title" />
+                                            <ValidationMessage For="() => position.Title" />
+                                        </div>
                                     </div>
-                                    <div class="col">
-                                        <InputText class="form-control" @bind-Value="position.TitleEng" />
-                                        <ValidationMessage For="() => position.TitleEng" />
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Title (En)", "المسمى الوظيفي (انجليزي)")</label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="position.TitleEng" />
+                                            <ValidationMessage For="() => position.TitleEng" />
+                                         
+                                        </div>
                                     </div>
-                                    <div class="col">
-                                        <InputNumber class="form-control" @bind-Value="position.BaseSalary" />
-                                        <ValidationMessage For="() => position.BaseSalary" />
+
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("BaseSalary", "الراتب الأساسي")</label>
+                                        <div class="col-sm-10">
+                                            <InputNumber class="form-control" @bind-Value="position.BaseSalary" />
+                                            <ValidationMessage For="() => position.BaseSalary" />
+                                        </div>
                                     </div>
-                                    <div class="col">
-                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
-                                        <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+
+
+                                    
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label"></label>
+                                        <div class="col-sm-10">
+                                    
+                                            <button type="submit" class="btn btn-success btn-sm">@SharedDataService.SelectViewLang("Save","حفظ")</button>
+                                            <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">@SharedDataService.SelectViewLang("Cancel","إلغاء")</button>
+                                            
+                                        </div>
                                     </div>
+
+
                                 </div>
                             </EditForm>
                         </td>

@@ -55,4 +55,17 @@ public static class SaveImages
         return fileName;
     }
 
+
+    public static bool IsBase64Image(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return false;
+
+        if (input.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        Span<byte> buffer = new Span<byte>(new byte[input.Length]);
+
+        return Convert.TryFromBase64String(input, buffer, out _);
+    }
 }

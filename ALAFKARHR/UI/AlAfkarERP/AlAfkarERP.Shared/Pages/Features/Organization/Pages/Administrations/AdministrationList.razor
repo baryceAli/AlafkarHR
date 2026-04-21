@@ -115,19 +115,32 @@
                         <td colspan="4">
                             <EditForm Model="admin" OnValidSubmit="async () => await SaveAdministration(admin)">
                                 <DataAnnotationsValidator />
-                                <ValidationSummary/>
-                                <div class="row">
+                                <ValidationSummary />
+                                <div class="row bg-info-subtle p-3">
 
-                                    <div class="col">
-                                        <InputText class="form-control" @bind-Value="admin.Name" />
-                                        <ValidationMessage For="() => admin.Name" />
+                                    
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
+                                        <div class="col-sm-10">
+                                            
+                                            <InputText class="form-control" @bind-Value="admin.Name" />
+                                            <ValidationMessage For="() => admin.Name" />
+
+                                        </div>
                                     </div>
-                                    <div class="col">
-                                        <InputText class="form-control" @bind-Value="admin.NameEng" />
-                                        <ValidationMessage For="() => admin.NameEng" />
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name (En)", "الاسم (انجليزي)")</label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="admin.NameEng" />
+                                            <ValidationMessage For="() => admin.NameEng" />
+                                        </div>
                                     </div>
-                                    <div class="col">
-                                        <div class="mb-3">
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Manager", "مدير الادارة")</label>
+                                        <div class="col-sm-10">
                                             <AutoCompleteComponent TItem="UserDto"
                                                                    Items="users"
                                                                    Value="manager"
@@ -135,10 +148,17 @@
                                                                    ItemText='(p=> p.UserName)'
                                                                    ValueChanged="OnUserSelected">
                                             </AutoCompleteComponent>
-                                            
+                                        
                                         </div>
                                     </div>
-                                    <div class="col"><InputCheckbox class="form-check-input" @bind-Value="admin.IsActive" /></div>
+                                    
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Active?", "فعال؟")</label>
+                                        <div class="col-sm-10">
+                                            <InputCheckbox class="form-check-input" @bind-Value="admin.IsActive" />
+                                        </div>
+                                    </div>
+                                    
                                     <div class="col">
                                         <button type="submit" class="btn btn-success btn-sm">Save</button>
                                         <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
@@ -262,7 +282,7 @@
         var newItem = new AdministrationDto()
         {
             Id = Guid.NewGuid(),
-            BranchId=selectedBranch.Id
+            BranchId = selectedBranch.Id
         };
         administrations.Insert(0, newItem);
         editingAdministrationId = newItem.Id;
@@ -274,7 +294,7 @@
         isEdit = true;
 
         editingAdministrationId = admin.Id;
-        manager = users?.FirstOrDefault(u => u.Id == admin.ManagerId)??null;
+        manager = users?.FirstOrDefault(u => u.Id == admin.ManagerId) ?? null;
     }
 
     async Task SaveAdministration(AdministrationDto admin)

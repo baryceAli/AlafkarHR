@@ -102,20 +102,36 @@
                     <tr>
                         <td colspan="3">
                             <EditForm Model="specialization" OnValidSubmit="() => SaveSpecialization(specialization)">
-                                <DataAnnotationsValidator/>
-                                <div class="row">
-                                    <div class="col">
-                                        <InputText class="form-control" @bind-Value="specialization.Name" />
-                                        <ValidationMessage For="()=> specialization.Name"/>
+                                <DataAnnotationsValidator />
+                                <div class="row bg-info-subtle p-3">
+                                    
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Specialization", "التخصص")</label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="specialization.Name" />
+                                            <ValidationMessage For="() => specialization.Name" />
+                                        </div>
                                     </div>
-                                    <div class="col">
-                                        <InputText class="form-control" @bind-Value="specialization.NameEng" />
-                                        <ValidationMessage For="()=> specialization.NameEng"/>
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Specialization (Eng)", "التخصص (انجليزي)")</label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="specialization.NameEng" />
+                                            <ValidationMessage For="() => specialization.NameEng" />
+                                        </div>
                                     </div>
+
                                     <div class="col">
-                                        <button type="submit" class="btn btn-success btn-sm" >Save</button>
-                                        <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
                                     </div>
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label"></label>
+                                        <div class="col-sm-10">
+                                            <button type="submit" class="btn btn-success btn-sm">@SharedDataService.SelectViewLang("Save", "حفظ")</button>
+                                            <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">@SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </EditForm>
                         </td>
@@ -183,10 +199,10 @@
         };
 
         specializations.Insert(0, newItem);
-        editingSpecializationId= newItem.Id;
+        editingSpecializationId = newItem.Id;
     }
-    
 
+    
     void EditSpecialization(Guid id) => editingSpecializationId = id;
 
     async Task SaveSpecialization(SpecializationDto specialization)
@@ -294,7 +310,7 @@
 
 
     }
-    
+
     
     async Task CancelEdit()
     {
@@ -315,7 +331,7 @@
             specializations.Remove(item);
         }
 
-        editingSpecializationId= null;
+        editingSpecializationId = null;
     }
 
     #region Table Helpers

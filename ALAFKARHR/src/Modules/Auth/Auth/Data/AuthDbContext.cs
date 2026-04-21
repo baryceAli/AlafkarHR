@@ -1,6 +1,6 @@
 ﻿
 namespace Auth.Data;
-//add-migration CatalogInitial -Project Auth -StartupProject Api -OutputDir Data/Migrations -Context AuthDbContext
+//add-migration AuthInitial -Project Auth -StartupProject Api -OutputDir Data/Migrations -Context AuthDbContext
 public class AuthDbContext:IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
 {
     public AuthDbContext(DbContextOptions<AuthDbContext> options)

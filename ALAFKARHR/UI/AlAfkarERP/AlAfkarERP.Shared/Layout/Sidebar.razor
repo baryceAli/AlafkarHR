@@ -15,7 +15,13 @@
         <li class="nav-item">
             <NavLink href="/" class="nav-link text-white" Match="NavLinkMatch.All">
                 <i class="bi bi-speedometer2 me-2"></i>
-                Home
+                @SharedDataService.SelectViewLang("Home","الرئيسية")
+            </NavLink>
+        </li>
+        <li class="nav-item">
+            <NavLink href="/AdminDashboard" class="nav-link text-white">
+                <i class="bi bi-speedometer2 me-2"></i>
+                @SharedDataService.SelectViewLang("Control Panel", "لوحة التحكم")
             </NavLink>
         </li>
 

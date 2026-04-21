@@ -1,7 +1,203 @@
-﻿@page "/"
+﻿@layout LandingPageLayout
+@page "/"
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
-
-Welcome to your new app.
+<main style="margin-top: 80px;">
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-bg">
+            <img alt="Community sharing" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGiwJ6mZ1amOX4x4HzwFk9K9u6Cz6Ob-auP833URPgvMmla5Y1iicA_JB3YBi5uxpy63D4UFqAhYTf90niupWQ0XYLBTJfURnLHP0xD_WBDDP57yvikud7MWTUchsXSp6lf2aFbFg7Qu4EgrlM0utfkVa98h65gATgFZF4Alx0J5Qpt3S50lMBbHApAPtVEZAO56AMtv4MpU4w4_ce4BsMMEUIQ5Q_f8YI7FXWLS83ZmQ3oxAvPJ-FO2oUE4gSCVPZYW3MrDFIt-8" />
+            <div class="hero-overlay"></div>
+        </div>
+        <div class="container position-relative z-1 text-center">
+            @* <span class="badge-premium">الأفكار الناجحة</span> *@
+            <h1 class="display-3 gold-gradient-text fw-light mb-4 tracking-tight">
+                خياركم الأول <br/>
+                لخدمات الإعاشة والسقيا المتكاملة
+            </h1>
+            <p class="lead text-on-surface-variant mx-auto mb-5 fw-light" style="max-width: 700px; line-height: 1.8;">
+                متخصصون في تنفيذ المشاريع الموسمية الخيرية وتقديم الوجبات الساخنة والجافة بأعلى معايير الجودة والإتقان، لننقل عطاءكم بتميز
+            </p>
+            @* <div class="d-flex flex-column flex-sm-row justify-content-center gap-4">
+                <button class="btn btn-gold-solid">START GIVING</button>
+                <button class="btn btn-gold-outline py-3 px-5" style="font-size: 0.75rem;">HOW IT WORKS</button>
+            </div> *@
+        </div>
+    </section>
+    <!-- How It Works -->
+    @if (1 == 10)
+    {
+        
+    <section class="container py-5 my-5">
+        <div class="text-center mb-5 pb-4">
+            <h2 class="text-primary fw-light text-uppercase letter-spacing-lg mb-3">How It Works</h2>
+            <div style="width: 50px; height: 1px; background-color: rgba(212, 175, 55, 0.4); margin: 0 auto;"></div>
+        </div>
+        <div class="row g-5">
+            <div class="col-md-4 text-center step-card">
+                <div class="icon-box">
+                    <span class="material-symbols-outlined text-primary fs-2">shopping_cart</span>
+                </div>
+                <h3 class="h5 text-primary text-uppercase mb-3 letter-spacing-lg">Curate</h3>
+                <p class="text-on-surface-variant fw-light small px-3">Select a curated meal bundle designed to provide nutritional excellence for local families.</p>
+            </div>
+            <div class="col-md-4 text-center step-card">
+                <div class="icon-box">
+                    <span class="material-symbols-outlined text-primary fs-2">restaurant</span>
+                </div>
+                <h3 class="h5 text-primary text-uppercase mb-3 letter-spacing-lg">Prepare</h3>
+                <p class="text-on-surface-variant fw-light small px-3">Our master partners prepare artisanal, nutrient-dense meals with absolute care and respect.</p>
+            </div>
+            <div class="col-md-4 text-center step-card">
+                <div class="icon-box">
+                    <span class="material-symbols-outlined text-primary fs-2">local_shipping</span>
+                </div>
+                <h3 class="h5 text-primary text-uppercase mb-3 letter-spacing-lg">Deliver</h3>
+                <p class="text-on-surface-variant fw-light small px-3">Meals are delivered directly with the dignity and grace every human deserves.</p>
+            </div>
+        </div>
+    </section>
+    }
+    <!-- Food Selection -->
+    <section dir="rtl" class="py-5" style="background-color: var(--surface-container-lowest); border-top: 1px solid rgba(212, 175, 55, 0.1); border-bottom: 1px solid rgba(212, 175, 55, 0.1);">
+        <div class="container py-5">
+            <div class="row align-items-end mb-5">
+                <div class="col-md-8">
+                    <h2 class="text-primary fw-light text-uppercase letter-spacing-xl mb-3">Current Initiatives</h2>
+                    <p class="text-on-surface-variant fw-light mb-0" style="max-width: 450px;">Directly support our community by selecting a specific initiative to fund with excellence.</p>
+                </div>
+                <div class="col-md-4 text-md-end mt-4 mt-md-0">
+                    <a class="text-primary text-decoration-none small text-uppercase letter-spacing-xl" href="#">
+                        VIEW ALL PROJECTS <span class="material-symbols-outlined ms-2" style="font-size: 14px;">arrow_forward</span>
+                    </a>
+                </div>
+            </div>
+            <div class="row g-4">
+                <!-- Bundle 1 -->
+                <div class="col-md-4">
+                    <div class="initiative-card h-100 d-flex flex-column">
+                        <div class="card-img-container">
+                            <img alt="Fresh Produce" src="_content/AlAfkarERP.Shared/images/Meals/alkaramSingleMeal.png" style="object-fit:fill"  />
+                            <div class="label-essential">ESSENTIAL</div>
+                        </div>
+                        <div class="p-5 flex-grow-1 d-flex flex-column">
+                            <h4 class="h5 text-primary text-uppercase mb-3">وجبة الكرم الجافة</h4>
+                            <p class="text-on-surface-variant fw-light small mb-4">الاستلام من المطبخ ويمكن توصيلها مجانا</p>
+                            <div class="mt-auto pt-4 border-top border-dark d-flex justify-content-between align-items-center">
+                                <span class="h4 text-primary fw-light mb-0">5.75 &#xFDFC;</span>
+                                <button class="btn btn-gold-solid py-2 px-4" style="font-size: 10px; letter-spacing: 0.1em;">DONATE</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Bundle 2 -->
+                <div class="col-md-4">
+                    <div class="initiative-card h-100 d-flex flex-column">
+                        <div class="card-img-container">
+                            <img alt="Hot Meal" src="_content/AlAfkarERP.Shared/images/Meals/alkaramSingleMeal.png" style="object-fit:fill" />
+                        </div>
+                        <div class="p-5 flex-grow-1 d-flex flex-column">
+                            <h4 class="h5 text-primary text-uppercase mb-3">وجبة الكرم الجافة (شهر كامل)</h4>
+                            <p class="text-on-surface-variant fw-light small mb-4">الاستلام من المطبخ ويمكن توصيلها مجانا</p>
+                            <div class="mt-auto pt-4 border-top border-dark d-flex justify-content-between align-items-center">
+                                <span class="h4 text-primary fw-light mb-0">161</span>
+                                <button class="btn btn-gold-solid py-2 px-4" style="font-size: 10px; letter-spacing: 0.1em;">DONATE</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Bundle 3 -->
+                <div class="col-md-4">
+                    <div class="initiative-card h-100 d-flex flex-column">
+                        <div class="card-img-container">
+                            <img alt="Backpack Program" src="_content/AlAfkarERP.Shared/images/Meals/AlbarakaHotMeal.png" style="object-fit:fill" />
+                        </div>
+                        <div class="p-5 flex-grow-1 d-flex flex-column">
+                            <h4 class="h5 text-primary text-uppercase mb-3">وجبة البركة الساخنة (بلس)</h4>
+                            <p class="text-on-surface-variant fw-light small mb-4">ربع دجاج  -  رز  -  ماء  -  عصير  -  تمر  -  فاكهة</p>
+                            <div class="mt-auto pt-4 border-top border-dark d-flex justify-content-between align-items-center">
+                                <span class="h4 text-primary fw-light mb-0">12.00</span>
+                                <button class="btn btn-gold-solid py-2 px-4" style="font-size: 10px; letter-spacing: 0.1em;">DONATE</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Impact Section -->
+    <section class="container py-5 my-5">
+        <div class="impact-container">
+            <div class="impact-glow"></div>
+            <div class="row align-items-center position-relative z-1">
+                <div class="col-lg-6 mb-5 mb-lg-0">
+                    <h2 class="display-5 text-primary fw-light mb-4" style="line-height: 1.2;">Transparency as our <br />Legacy.</h2>
+                    <p class="text-on-surface-variant lead fw-light mb-5">We uphold a standard of absolute accountability. Every donation is meticulously managed to ensure it reaches its intended destination with maximum impact.</p>
+                    <button class="btn btn-gold-outline px-4 py-3" style="font-size: 10px; letter-spacing: 0.3em;">OUR IMPACT REPORT</button>
+                </div>
+                <div class="col-lg-6">
+                    <div class="row g-4">
+                        <div class="col-6">
+                            <div class="stat-item">
+                                <div class="h2 text-primary fw-light mb-0">1.2M</div>
+                                <div class="small text-uppercase text-primary opacity-50 letter-spacing-lg">Meals Delivered</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stat-item">
+                                <div class="h2 text-primary fw-light mb-0">45K</div>
+                                <div class="small text-uppercase text-primary opacity-50 letter-spacing-lg">Benefactors</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stat-item">
+                                <div class="h2 text-primary fw-light mb-0">85+</div>
+                                <div class="small text-uppercase text-primary opacity-50 letter-spacing-lg">Institutions</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stat-item">
+                                <div class="h2 text-primary fw-light mb-0">94%</div>
+                                <div class="small text-uppercase text-primary opacity-50 letter-spacing-lg">Efficiency</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Final CTA -->
+    <section class="container py-5 text-center" style="max-width: 800px;">
+        <h2 class="display-5 gold-gradient-text fw-light mb-4">Ready to join the legacy?</h2>
+        <p class="text-on-surface-variant lead fw-light mb-5 px-lg-5">Join a distinguished circle of givers who believe in the power of dignified support. Your contribution is more than a gift; it is a promise.</p>
+        <div class="bg-dark border border-secondary border-opacity-10 p-5 gilded-glow">
+            <h4 class="small text-uppercase text-primary opacity-75 letter-spacing-xl mb-5">Monthly Patronage</h4>
+            <div class="d-flex flex-wrap justify-content-center gap-3 mb-5">
+                <button class="btn btn-patronage">$25/MO</button>
+                <button class="btn btn-patronage active">$50/MO</button>
+                <button class="btn btn-patronage">$100/MO</button>
+                <button class="btn btn-patronage">CUSTOM</button>
+            </div>
+            <button class="btn btn-gold-solid w-100 py-4 letter-spacing-widest">COMMENCE MONTHLY GIVING</button>
+        </div>
+    </section>
+</main>
+<!-- Footer -->
+<footer class="border-top border-secondary border-opacity-10 mt-5 pt-5 pb-5">
+    <div class="container py-5 text-center">
+        <div class="h4 brand-text mb-5">HARVEST HOPE</div>
+        <div class="row g-4 mb-5">
+            <div class="col-6 col-md-3"><a class="footer-link" href="#">OUR MISSION</a></div>
+            <div class="col-6 col-md-3"><a class="footer-link" href="#">PROJECTS</a></div>
+            <div class="col-6 col-md-3"><a class="footer-link" href="#">ANNUAL REPORT</a></div>
+            <div class="col-6 col-md-3"><a class="footer-link" href="#">CONTACT</a></div>
+        </div>
+        <div class="d-flex justify-content-center gap-4 mb-5">
+            <a class="social-icon" href="#"><span class="material-symbols-outlined fs-6">social_leaderboard</span></a>
+            <a class="social-icon" href="#"><span class="material-symbols-outlined fs-6">camera</span></a>
+            <a class="social-icon" href="#"><span class="material-symbols-outlined fs-6">mail</span></a>
+        </div>
+        <div class="small footer-link opacity-50">© 2024 HARVEST HOPE. AN ENDURING LEGACY.</div>
+    </div>
+</footer>

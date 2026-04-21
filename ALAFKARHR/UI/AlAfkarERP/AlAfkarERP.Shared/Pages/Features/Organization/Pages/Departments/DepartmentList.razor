@@ -128,8 +128,9 @@
                 {
                     <tr>
                         <td colspan="8">
-                            <EditForm Model="dept" OnValidSubmit="async () => await SaveAdministration(dept)">
+                            <EditForm Model="dept" OnValidSubmit="async () => await SaveDepartment(dept)">
                                 <DataAnnotationsValidator />
+                                @* <ValidationSummary/> *@
                                 <div class="row bg-info-subtle p-3">
 
 
@@ -229,7 +230,7 @@
                         <td>@dept.Latitude</td>
                         <td>@dept.IsActive</td>
                         <td>
-                            <button class="btn btn-warning btn-sm" @onclick="() => EditAdministration(dept)">@SharedDataService.SelectViewLang("Edit", "تعديل")</button>
+                            <button class="btn btn-warning btn-sm" @onclick="() => EditDepartment(dept)">@SharedDataService.SelectViewLang("Edit", "تعديل")</button>
                             <button class="btn btn-danger btn-sm" @onclick="() => DeleteDepartment(dept)">@SharedDataService.SelectViewLang("Delete", "حذف")</button>
                         </td>
                     </tr>
@@ -354,13 +355,14 @@
         {
             Id = Guid.NewGuid()
         };
+        newItem.AdministrationId = selectedAdministration.Id;
         departments.Insert(0, newItem);
         editingDepartmentId = newItem.Id;
         manager = null;
         isNew = true;
     }
 
-    void EditAdministration(DepartmentDto dept)
+    void EditDepartment(DepartmentDto dept)
     {
 
         editingDepartmentId = dept.Id;
@@ -368,14 +370,14 @@
         isNew = false;
     }
 
-    async Task SaveAdministration(DepartmentDto dept)
+    async Task SaveDepartment(DepartmentDto dept)
     {
         if (dept.Id == editingDepartmentId && isNew)
         {
             Random rnd = new Random();
             dept.Code = dept.NameEng.Substring(0, 1) + rnd.Next(100, 999);
             dept.CompanyId = companyId;
-
+            // dept.AdministrationId=selectedAdministration
             dept.AdministrationId = selectedAdministration?.Id ?? null;
             dept.HeadOfDepartment = manager?.Id ?? null;
             var bResponse = await DepartmentService.CreateAsync(dept);

@@ -47,15 +47,15 @@
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            AuthState = await((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-            if (!AuthState.User.Identity.IsAuthenticated)
-            {
-                NavigationManager.NavigateTo("login");
-            }
-            // NavigationManager.NavigateTo("/login");
-        }
+        // if (firstRender)
+        // {
+        //     AuthState = await((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        //     if (!AuthState.User.Identity.IsAuthenticated)
+        //     {
+        //         NavigationManager.NavigateTo("login");
+        //     }
+        //     // NavigationManager.NavigateTo("/login");
+        // }
     }
     protected override void OnInitialized()
     {

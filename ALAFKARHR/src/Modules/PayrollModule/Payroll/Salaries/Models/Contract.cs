@@ -7,11 +7,13 @@ public class Contract:Entity<Guid>
     public string Name { get; set; }
     public string NameEng { get; set; }
     public string? Description { get; set; }
-    //public bool IsTaxable { get; private set; }
-    //public bool IsEarning { get; private set; } // earning vs deduction
+    public Guid CompanyId { get; set; }
+
+    private readonly List<ContractItem> _Items = new();
+    public IReadOnlyCollection<ContractItem> Items=> _Items.AsReadOnly();
     private Contract(){}
 
-    public static Contract Create(Guid id, string name, string nameEng, string? description,string createdBy)
+    public static Contract Create(Guid id, string name, string nameEng, string? description,Guid companyId,string createdBy)
     {
         if(string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException("Name is required");
         return new Contract
@@ -20,6 +22,7 @@ public class Contract:Entity<Guid>
             Name = name,
             NameEng = nameEng,
             Description = description,
+            CompanyId = companyId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
@@ -39,4 +42,28 @@ public class Contract:Entity<Guid>
         DeletedAt = DateTime.UtcNow;
     }
 
+    public void AddContractItem(Guid componentId,decimal amount)
+    {
+        if (componentId == null || componentId.Equals(Guid.Empty))
+            throw new ArgumentNullException("Component is required");
+
+        if (amount <= 0)
+            throw new ArgumentOutOfRangeException($"Amount ({amount})  must be greator than 0");
+
+
+        var existingItem=_Items.FirstOrDefault(i=>i.ComponentId== componentId);
+        if(existingItem != null)
+            throw new ArgumentException($"Item already exists in the contract: {Id}");
+        
+        var newItem = new ContractItem(Id,componentId,amount, CompanyId);
+        _Items.Add(newItem);
+    }
+
+    public void RemoveItem(Guid componentId)
+    {
+        var existingItem= _Items.FirstOrDefault(i=> i.ComponentId== componentId);
+
+        if(existingItem != null)
+            _Items.Remove(existingItem);
+    }
 }

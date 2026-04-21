@@ -100,42 +100,75 @@
                 {
                     <tr>
                         <td colspan="9">
-                            <EditForm Model=" editingBranchId" OnValidSubmit="() => SaveBranch(branch)">
+                            <EditForm Model="branch" OnValidSubmit="() => SaveBranch(branch)">
                                 <DataAnnotationsValidator />
+                                @* <ValidationSummary/> *@
                                 @* <InputHidden @bind-Value="branch.Id"/> *@
-                                <div class="row">
+                                <div class="row bg-info-subtle p-3">
 
-                                    <div class="col">
-                                        <InputText class="form-control" @bind-Value="branch.Name" />
-                                        <ValidationMessage For="() => branch.Name" />
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="branch.Name" />
+                                            <ValidationMessage For="() => branch.Name" />
+                                        </div>
                                     </div>
-                                    <div class="col">
-                                        <InputText class="form-control" @bind-Value="branch.NameEng" />
-                                        <ValidationMessage For="() => branch.NameEng" />
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name (En)", "الاسم (انجليزي)")</label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="branch.NameEng" />
+                                            <ValidationMessage For="() => branch.NameEng" />
+                                        </div>
                                     </div>
-                                    <div class="col">
-                                        <InputText class="form-control" @bind-Value="branch.Phone" />
-                                        <ValidationMessage For="() => branch.Phone" />
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Phone", "الهاتف")</label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="branch.Phone" />
+                                            <ValidationMessage For="() => branch.Phone" />
+                                        </div>
                                     </div>
-                                    <div class="col">
-                                        <InputText class="form-control" @bind-Value="branch.Email" />
-                                        <ValidationMessage For="() => branch.Email" />
+                                    
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Email", "الايميل")</label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="branch.Email" />
+                                            <ValidationMessage For="() => branch.Email" />
+                                        </div>
                                     </div>
-                                    <div class="col">
-                                        <InputText class="form-control" @bind-Value="branch.Location" />
-                                        <ValidationMessage For="() => branch.Location" />
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Location", "الموقع")</label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="branch.Location" />
+                                            <ValidationMessage For="() => branch.Location" />
+                                        </div>
                                     </div>
-                                    <div class="col">
-                                        <InputNumber class="form-control" @bind-Value="branch.Longitude" />
-                                        <ValidationMessage For="() => branch.Longitude" />
+                                    
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Longitude", "خط الطول")</label>
+                                        <div class="col-sm-10">
+                                            <InputNumber class="form-control" @bind-Value="branch.Longitude" />
+                                            <ValidationMessage For="() => branch.Longitude" />
+                                        </div>
                                     </div>
-                                    <div class="col">
-                                        <InputNumber class="form-control" @bind-Value="branch.Latitude" />
-                                        <ValidationMessage For="() => branch.Latitude" />
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Latitude", "خط العرض")</label>
+                                        <div class="col-sm-10">
+                                            <InputNumber class="form-control" @bind-Value="branch.Latitude" />
+                                            <ValidationMessage For="() => branch.Latitude" />
+                                        </div>
                                     </div>
-                                    <div class="col">
-                                        <InputCheckbox class="form-check-input" @bind-Value="branch.IsMainBranch" />
+                                    
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Main Branch?", "الفرع الرئيسي؟")</label>
+                                        <div class="col-sm-10">
+                                            <InputCheckbox class="form-check-input" @bind-Value="branch.IsMainBranch" />
+                                        </div>
                                     </div>
+                                    
                                     <div class="col">
                                         <button type="submit" class="btn btn-success btn-sm">Save</button>
                                         <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
@@ -209,12 +242,13 @@
         {
             Id = Guid.NewGuid()
         };
+        newItem.Code = "b";
         branches.Insert(0, newItem);
         editingBranchId = newItem.Id;
         isEdit = false;
     }
 
-    void EditBranch(Guid id) 
+    void EditBranch(Guid id)
     {
         editingBranchId = id;
         isEdit = true;

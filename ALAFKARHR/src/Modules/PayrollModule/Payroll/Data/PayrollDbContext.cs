@@ -9,7 +9,7 @@ public class PayrollDbContext:DbContext
     public PayrollDbContext(DbContextOptions<PayrollDbContext> options):base(options){}
 
 
-    public DbSet<SalaryStructure> SalaryStructures => Set<SalaryStructure>();
+    //public DbSet<SalaryStructure> SalaryStructures => Set<SalaryStructure>();
     public DbSet<Contract> SalaryComponents => Set<Contract>();
     protected override void OnModelCreating(ModelBuilder builder)
     {

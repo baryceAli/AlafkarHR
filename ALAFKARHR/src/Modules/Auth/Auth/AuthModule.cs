@@ -37,8 +37,8 @@ public static class AuthModule
         services.AddDbContext<AuthDbContext>((sp, options) =>
         {
             //options.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());
-            options.UseNpgsql(connectionString);
-            //options.UseSqlServer(connectionString);
+            //options.UseNpgsql(connectionString);
+            options.UseSqlServer(connectionString);
         });
 
 

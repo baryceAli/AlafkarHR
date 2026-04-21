@@ -4,4 +4,5 @@ public class ApiConfig
 {
     public string BaseURL { get; set; } = default!;
     public string Version { get; set; } = default!;
+    public string WebSiteURL { get; set; } = default!;
 }

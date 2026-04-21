@@ -1,0 +1,79 @@
+﻿@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using Microsoft.IdentityModel.JsonWebTokens
+@using SharedWithUI.Auth.Dtos
+
+
+@inject SharedDataService SharedDataService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+
+
+
+<nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-4">
+
+    <div class="container-fluid">
+
+        <span class="text-primary fw-bold">Dashboard</span>
+
+        <div class="ms-auto d-flex align-items-center gap-3">
+
+            <button class="btn btn-gold-outline"
+                    @onclick="async () => await SharedDataService.UpdateLanguageAsync()">
+                @(SharedDataService.Language == "Ar" ? "Eng" : "Ar")
+            </button>
+
+            @if (AuthState != null && AuthState.User.Identity.IsAuthenticated)
+            {
+                <div class="dropdown">
+                    <button class="btn btn-gold-outline dropdown-toggle" data-bs-toggle="dropdown">
+                        @(AuthState.User?.Identity?.Name ?? "User")
+                    </button>
+
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item">Profile</a></li>
+                        <li><a class="dropdown-item">Logout</a></li>
+                    </ul>
+                </div>
+            }
+
+        </div>
+    </div>
+</nav>
+
+@code {
+    private AuthenticationState AuthState;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+            // if (!AuthState.User.Identity.IsAuthenticated)
+            // {
+            //     NavigationManager.NavigateTo("login");
+            // }
+            // NavigationManager.NavigateTo("/login");
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+
+    public void OnLogin()
+    {
+        NavigationManager.NavigateTo("/login");
+    }
+}

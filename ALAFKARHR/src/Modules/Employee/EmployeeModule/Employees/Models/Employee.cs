@@ -14,7 +14,7 @@ public class Employee : Aggregate<Guid>
     public string MiddleNameEng { get; private set; }
     public string LastName { get; private set; }
     public string LastNameEng { get; private set; }
-
+    public string? PhotoUrl { get; set; }
     public string FullName => $"{FirstName} {MiddleName} {LastName}";
     public string FullNameEng => $"{FirstNameEng} {MiddleNameEng} {LastNameEng}";
 
@@ -72,6 +72,7 @@ public class Employee : Aggregate<Guid>
         string middleNameEng,
         string lastName,
         string lastNameEng,
+        string? photoUrl,
         string email,
         string phone,
         DateTime dateOfBirth,
@@ -128,6 +129,7 @@ public class Employee : Aggregate<Guid>
             MiddleNameEng = middleNameEng,
             LastName = lastName,
             LastNameEng = lastNameEng,
+            PhotoUrl = photoUrl,
             Email = email,
             Phone = phone,
             DateOfBirth = dateOfBirth,
@@ -169,6 +171,7 @@ public class Employee : Aggregate<Guid>
         string middleNameEng,
         string lastName,
         string lastNameEng,
+        string? photoUrl,
         string email,
         string phone,
         string address,
@@ -188,6 +191,7 @@ public class Employee : Aggregate<Guid>
         MiddleNameEng = middleNameEng;
         LastName = lastName;
         LastNameEng = lastNameEng;
+        PhotoUrl = photoUrl;
         Email = email;
         Phone = phone;
         Address = address;

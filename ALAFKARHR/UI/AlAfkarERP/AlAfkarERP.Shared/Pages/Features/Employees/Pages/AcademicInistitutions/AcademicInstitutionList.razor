@@ -99,32 +99,45 @@
                 {
                     <tr>
                         <td colspan="3">
-                            <EditForm Model="academic" >
+                            <EditForm Model="academic" OnValidSubmit="() => SaveAcademicInstitution(academic)">
                                 <DataAnnotationsValidator />
                                 @* <ValidationSummary /> *@
 
-                                <div class="row">
-                                    <div class="col">
-                                        <InputText class="form-control" @bind-Value="academic.Name" />
-                                        <ValidationMessage For="() => academic.Name" />
+                                <div class="row bg-info-subtle p-3">
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Latitude", "خط العرض")</label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="academic.Name" />
+                                            <ValidationMessage For="() => academic.Name" />
+                                            
+                                        </div>
                                     </div>
 
-                                    <div class="col">
-                                        <InputText class="form-control" @bind-Value="academic.NameEng" />
-                                        <ValidationMessage For="() => academic.NameEng" />
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Latitude", "خط العرض")</label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="academic.NameEng" />
+                                            <ValidationMessage For="() => academic.NameEng" />
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label"></label>
+                                        <div class="col-sm-10">
+                                            <button type="submit"  class="btn btn-success btn-sm">
+                                                @SharedDataService.SelectViewLang("Save", "حفظ")
+                                            </button>
+
+                                            <button type="button"
+                                                    class="btn btn-secondary btn-sm"
+                                                    @onclick="CancelEdit">
+                                                @SharedDataService.SelectViewLang("Cancel", "إلغاء")
+                                            </button>
+                                        </div>
                                     </div>
 
-                                    <div class="col">
-                                        <button type="button" @onclick="() => SaveAcademicInstitution(academic)" class="btn btn-success btn-sm">
-                                            Save
-                                        </button>
-
-                                        <button type="button"
-                                                class="btn btn-secondary btn-sm"
-                                                @onclick="CancelEdit">
-                                            Cancel
-                                        </button>
-                                    </div>
+                                    
                                 </div>
                             </EditForm>
                         </td>

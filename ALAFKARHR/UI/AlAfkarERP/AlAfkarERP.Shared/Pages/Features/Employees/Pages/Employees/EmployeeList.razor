@@ -1,4 +1,5 @@
 ﻿@layout EmployeeLayout
+@* @layout NewLayout *@
 @page "/Employee/Employee/List"
 
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
@@ -138,6 +139,8 @@
                     </td>
                     
                     <td>
+                        <a class="btn btn-warning btn-sm" href="Employee/Employee/view/{@emp.Id}">@SharedDataService.SelectViewLang("View", "عرض")</a>
+                        <a class="btn btn-warning btn-sm" href="Employee/Employee/QR/{@emp.Id}">@SharedDataService.SelectViewLang("View QR", "QR Code")</a>
                         <button class="btn btn-warning btn-sm" @onclick="() => EditBranch(emp.Id)">@SharedDataService.SelectViewLang("Edit", "تعديل")</button>
                         <button class="btn btn-danger btn-sm" @onclick="() => DeleteEmployee(emp)">@SharedDataService.SelectViewLang("Delete", "حذف")</button>
                     </td>

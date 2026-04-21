@@ -2,8 +2,10 @@
 using FluentValidation;
 using Shared.Contracts.CQRS;
 using Shared.Exceptions;
+using Shared.SaveImages;
 using System.Security.Claims;
 using System.Windows.Input;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace EmployeeModule.Employees.Features.Employees.UpdateEmployee;
 
@@ -34,17 +36,31 @@ public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
         if (position is null)
             throw new NotFoundException($"Position not found: {request.Employee.PositionId}");
 
-        var userId = httpContextAccessor.HttpContext?
-                        .User?
-                        .FindFirst(ClaimTypes.NameIdentifier)?
-                        .Value ??
-                        throw new UnauthorizedAccessException("User is not authenticated");
         var employee=await dbContext.Employees.FirstOrDefaultAsync(e=> e.Id==request.Employee.Id, cancellationToken);
         if (employee is null)
             throw new NotFoundException($"Employee not found: {request.Employee.Id}");
 
 
-        
+        var userId = httpContextAccessor.HttpContext?
+                        .User?
+                        .FindFirst(ClaimTypes.NameIdentifier)?
+                        .Value ??
+                        throw new UnauthorizedAccessException("User is not authenticated");
+
+
+        string finalImagePath = employee.PhotoUrl;
+        var incomingImage = request.Employee.PhotoUrl;
+
+        if (!string.IsNullOrWhiteSpace(incomingImage))
+        {
+            if (SaveImages.IsBase64Image(incomingImage))
+            {
+                string[] PATH_SEGEMNT = ["wwwroot", "Images", "Employees"];
+                finalImagePath = SaveImages.SaveBase64Image($"{employee.Id}", PATH_SEGEMNT, request.Employee.PhotoUrl);
+            }
+        }
+
+
         employee.Update(
             request.Employee.FirstName,
             request.Employee.FirstNameEng,
@@ -52,6 +68,7 @@ public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             request.Employee.MiddleNameEng,
             request.Employee.LastName,
             request.Employee.LastNameEng,
+            finalImagePath,
             request.Employee.Email,
             request.Employee.Phone,
             request.Employee.Address,

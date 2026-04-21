@@ -25,8 +25,8 @@ public static class EmployeesModule
         services.AddDbContext<EmployeeDbContext>((sp, options) =>
         {
             //options.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());
-            options.UseNpgsql(connectionString);
-            //options.UseSqlServer(connectionString);
+            //options.UseNpgsql(connectionString);
+            options.UseSqlServer(connectionString);
         });
 
         services.AddScoped<IDataSeeder<EmployeeDbContext>, EmployeeDataSeeder>();

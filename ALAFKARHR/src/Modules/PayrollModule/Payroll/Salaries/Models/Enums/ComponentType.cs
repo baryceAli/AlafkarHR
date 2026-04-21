@@ -4,5 +4,5 @@ public enum ComponentType
     Basic,
     Allowance,
     Deduction,
-    Bonus
+    
 }

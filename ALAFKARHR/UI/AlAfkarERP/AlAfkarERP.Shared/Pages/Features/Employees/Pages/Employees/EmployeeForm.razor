@@ -1,6 +1,7 @@
 ﻿@layout EmployeeLayout
 @page "/Employee/Employee/Form/{Id:guid?}"
 
+@using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Employees.Layout
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
@@ -18,7 +19,7 @@
 @inject IPositionService PositionService
 @inject IAcademicInistitutionService AcademicInistitutionService
 @inject ISpecializationService SpecializationService
-
+@inject ApiConfig ApiConfig
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 @inject ToastService ToastService
@@ -93,6 +94,31 @@
                     @SharedDataService.SelectViewLang("Personal information", "المعلومات الشخصية")
                 </div>
                 <div class="card-body">
+                    @* emp photo *@
+                    <div class="mb-3 row">
+                        <label for="DateOfBirth" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Photo", "الصورة")</label>
+                        <div class="col-sm-10">
+                            <label for="profileUpload" style="cursor:pointer;">
+                                <img src="@(string.IsNullOrEmpty(employee?.PhotoUrl)
+                                    ? "_content/AlAfkarERP.Shared/images/empPlaceholder.png"
+                                    : (employee.PhotoUrl.Contains("data:")
+                                        ? employee.PhotoUrl
+                                        : $"{ApiConfig.BaseURL}/Images/Employees/{employee.PhotoUrl}"))"
+                                     alt="Add product image"
+                                     height="50"
+                                     width="50"
+                                     class="card-img-top" />
+
+                            </label>
+
+                            <InputFile id="profileUpload"
+                                       style="display:none"
+                                       OnChange="OnEmployeeImageSelected"
+                                       accept="image/*" />
+                            <ValidationMessage For="@(() => employee.PhotoUrl)" class="text-danger" />
+                        </div>
+                    </div>
+                        
                     <!--Name Arabic-->
                     <div class="mb-3 row">
                         <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Employee Name (Ar)", "اسم الموظف (ع)")</label>
@@ -720,4 +746,20 @@
     {
         NavigationManager.NavigateTo("/Employee/Employee/List");
     }
+
+    private async Task OnEmployeeImageSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var base64 = Convert.ToBase64String(ms.ToArray());
+
+            // Store a clean Base64 string with prefix (no extra whitespace)
+            employee.PhotoUrl= $"data:{file.ContentType};base64,{base64}".Trim();
+        }
+    }
+
 }

@@ -1,0 +1,78 @@
+﻿@layout LandingPageLayout
+@page "/Employee/Employee/QR/{Id:guid?}"
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using QRCoder
+@using SharedWithUI.Employees.Dtos
+
+@inject IEmployeeService EmployeeService
+@inject ApiConfig ApiConfig
+
+<main class="d-flex justify-content-center align-items-center" style="height: 100vh;">
+   
+    @* <main style="margin-top: 80px;"> *@
+    @if (employee != null)
+    {
+        <div class="card" style="width: 18rem;margin-top:100px;">
+            <img src="@QrImage"
+                class="card-img-top" alt="...">
+            <div class="card-body">
+                <h5 class="card-title text-center">@(employee?.FirstName ?? "") @employee.MiddleName @employee.LastName</h5>
+                @* <p class="card-text">@employee.Address</p> *@
+                @* <a href="#" class="btn btn-primary">Go somewhere</a> *@
+            </div>
+        </div>
+    }
+    else if (isLoading)
+    {
+        <div class="card" style="width: 18rem;margin-top:100px;">
+            <img src="_content/AlAfkarERP.Shared/images/empPlaceholder.png" class="card-img-top" alt="...">
+            <div class="card-body">
+                <h5 class="card-title">يتم جلب الـ QR الرجاء الانتظار</h5>
+                <p class="card-text"></p>
+                @* <a href="#" class="btn btn-primary">Go somewhere</a> *@
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card" style="width: 18rem;margin-top:100px;">
+            <img src="_content/AlAfkarERP.Shared/images/empPlaceholder.png" class="card-img-top" alt="...">
+            <div class="card-body">
+                <h5 class="card-title">لم يتم العثور على الموظف</h5>
+                <p class="card-text"></p>
+                @* <a href="#" class="btn btn-primary">Go somewhere</a> *@
+            </div>
+        </div>
+    }
+</main>
+
+@code {
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private EmployeeDto? employee;
+    string QrImage="";
+    bool isLoading = true;
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (Id.HasValue)
+        {
+            var empRes = await EmployeeService.GetByIdAsync(Id.Value);
+            if (empRes.IsSuccess)
+            {
+                employee = empRes.Data ?? null;
+
+                using var qrGenerator = new QRCodeGenerator();
+                using var qrData = qrGenerator.CreateQrCode($"{ApiConfig.WebSiteURL}/Employee/Employee/view/{employee.Id}", QRCodeGenerator.ECCLevel.Q);
+
+                var pngQr = new PngByteQRCode(qrData);
+                byte[] qrCodeBytes = pngQr.GetGraphic(20);
+
+                QrImage= $"data:image/png;base64,{Convert.ToBase64String(qrCodeBytes)}";
+            }
+            isLoading = false;
+        }
+    }
+}

@@ -1,0 +1,59 @@
+:root {
+    --primary: #D4AF37;
+    --background: #0a0a0a;
+    --surface: #111;
+}
+
+/* GLOBAL */
+body {
+    background-color: var(--background);
+    color: white;
+    font-family: 'Noto Serif', serif;
+}
+
+/* SIDEBAR */
+.sidebar-premium {
+    width: 250px;
+    background: #0e0e0e;
+    border-right: 1px solid rgba(212,175,55,0.1);
+}
+
+/* LINKS */
+.sidebar-link {
+    color: #aaa;
+    transition: all 0.3s;
+}
+
+    .sidebar-link:hover {
+        color: var(--primary);
+        background: rgba(212,175,55,0.05);
+    }
+
+    .sidebar-link.active {
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+/* NAVBAR */
+.navbar-custom {
+    background-color: rgba(0,0,0,0.9);
+    border-bottom: 1px solid rgba(212,175,55,0.2);
+    backdrop-filter: blur(10px);
+}
+
+/* BRAND */
+.brand-text {
+    color: var(--primary);
+    letter-spacing: 0.3em;
+}
+
+/* BUTTON */
+.btn-gold-outline {
+    color: var(--primary);
+    border: 1px solid rgba(212,175,55,0.4);
+    background: transparent;
+}
+
+    .btn-gold-outline:hover {
+        background: rgba(212,175,55,0.1);
+    }

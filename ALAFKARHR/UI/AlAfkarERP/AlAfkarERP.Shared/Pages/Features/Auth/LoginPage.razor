@@ -1,12 +1,15 @@
-﻿@layout AuthLayout
+﻿@* @layout NewLayout *@
+
+@layout AuthNewLayout
 @page "/login"
 
-
+@using AlAfkarERP.Shared.Pages.Features.Auth.Layout
 @using AlAfkarERP.Shared.Dtos.Auth
 @using AlAfkarERP.Shared.Services.Auth
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.IdentityModel.JsonWebTokens
 @using SharedWithUI.Auth.Dtos
+@using System.Security.Claims
 
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IAuthService AuthService
@@ -79,11 +82,12 @@
 
             if (authState.User.Identity.IsAuthenticated)
             {
-                // if(authState.User.Claims.Any(c=>c.Type==JwtRegisteredClaimNames.Typ && c.Value == UserType.SystemUser.ToString()))
-                // {
-                //     NavigationManager.NavigateTo("/AdminDashboard");
-                //     return;
-                // }
+                if(authState.User.Claims.Any(c=>c.Type==JwtRegisteredClaimNames.Typ && c.Value == UserType.SystemUser.ToString()))
+                {
+                    NavigationManager.NavigateTo("/AdminDashboard");
+                    return;
+                }
+                
                 NavigationManager.NavigateTo("/");
             }
             // var user = authState.User;
