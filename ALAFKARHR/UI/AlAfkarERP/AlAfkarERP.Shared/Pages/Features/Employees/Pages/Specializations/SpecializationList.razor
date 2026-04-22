@@ -22,7 +22,11 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.SpecializationPermissions.View}")){
+    <div class="alert alert-warning">
+    <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page","ليس لديك الصلاحيات لعرض هذه الصفحة")</span>
+</div>
+}
 <!-- Branches -->
 <h5>@SharedDataService.SelectViewLang("Specialization Management", "ادارة التخصص العلمي")</h5>
 
@@ -145,11 +149,13 @@
                         <td>@specialization.NameEng</td>
                         <td>
                             <button class="btn btn-warning btn-sm"
-                                    @onclick="() => EditSpecialization(specialization.Id)">
+                                    @onclick="() => EditSpecialization(specialization.Id)"
+                                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.SpecializationPermissions.Edit}"))>
                                 @SharedDataService.SelectViewLang("Edit", "تعديل")
                             </button>
                             <button class="btn btn-danger btn-sm"
-                                    @onclick="() => DeleteSpecialization(specialization)">
+                                    @onclick="() => DeleteSpecialization(specialization)"
+                                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.SpecializationPermissions.Delete}"))>
                                 @SharedDataService.SelectViewLang("Delete", "حذف")
                             </button>
                         </td>

@@ -11,6 +11,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Employees.Dtos
 @using SharedWithUI.Employees.Enums
+@using SharedWithUI.Permissions
 
 @inject IBranchService BranchService
 @inject IAdministrationService AdministrationService
@@ -28,7 +29,17 @@
 @inject SharedDataService SharedDataService
 @inject NavigationManager NavigationManager
 
-
+@if (!AuthState.User.Claims.Any(c => c.Value == PermissionList.EmployeePermissions.Create) ||
+    !AuthState.User.Claims.Any(c => c.Value == PermissionList.EmployeePermissions.Edit))
+{
+    <div class="alert alert-warning">
+        <span>
+            @SharedDataService.SelectViewLang("You don't have permissions to view this page",
+            "ليس لديك الصلاحية لعرض هذه الصفحة")
+        </span>
+    </div>
+    return;
+}
 <h3>@title</h3>
 <section>
     <EditForm Model="employee" OnValidSubmit="HandleSubmit">
@@ -427,7 +438,9 @@
                 <div class="card-body">
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-floppy2-fill m-1"></i>
+                        
                         @(Id.HasValue ? SharedDataService.SelectViewLang("تعديل", "Update") : SharedDataService.SelectViewLang("حفظ", "Save"))
+                    
                     </button>
                     <button type="button" class="btn btn-dark" @onclick="onCancel"><i class="bi bi-stop-circle-fill"></i> @(SharedDataService.Language == "Ar" ? "إلغاء" : "Cancel")</button>
                 </div>

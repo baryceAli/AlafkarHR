@@ -7,6 +7,7 @@
 @using AlAfkarERP.Shared.Dtos.Auth
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Services.Auth
+@using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.IdentityModel.JsonWebTokens
 @using SharedWithUI.Auth.Dtos
@@ -16,6 +17,7 @@
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject ModalService ModalService
+@inject SharedDataService SharedDataService
 
 <div class="container d-flex justify-content-center align-items-center min-vh-100">
     <div class="card shadow-lg border-0 w-100" style="max-width: 600px;">
@@ -84,7 +86,7 @@
 
             if (authState.User.Identity.IsAuthenticated)
             {
-                if(authState.User.Claims.Any(c=>c.Type==JwtRegisteredClaimNames.Typ && c.Value == UserType.SystemUser.ToString()))
+                if (authState.User.Claims.Any(c => c.Type == JwtRegisteredClaimNames.Typ && c.Value == UserType.SystemUser.ToString()))
                 {
                     NavigationManager.NavigateTo("/AdminDashboard", true);
                     return;
@@ -100,12 +102,16 @@
         {
             await ModalService.ShowAsync(
                 new ModalOptions
-                    {
-                        IsError = true,
-                        Title = "Login",
-                        Message = "Error has occured",
-                        Details = result.ToString()
-                    }
+                {
+                    IsError = true,
+                    Title = SharedDataService.SelectViewLang("Login","تسجيل دخول"),
+                    Message = SharedDataService.SelectViewLang("Credentials are incorrect."
+                                    , "بيانات الدخول غير صحيحة."),
+                    Details = SharedDataService.SelectViewLang("Please reenter credentials and try again"
+                                    , "يرجى إعادة ادخال البيانات والمحاولة مرة أخرى"),
+                    OkText=SharedDataService.SelectViewLang("OK","موافق"),
+                                    OnOk = async () => { },
+                }
             );
             // Console.WriteLine("Login failed");
         }

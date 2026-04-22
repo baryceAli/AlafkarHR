@@ -24,6 +24,16 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.DepartmentPermissions.Create}"))
+{
+    <div class="alert alert-warning">
+        <span>
+            @SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحيات لعرض هذه الصفحة")
+        </span>
+    </div>
+
+    return;
+}
 
 <!-- Branches -->
 <h5>@SharedDataService.SelectViewLang("Departments Management", "ادارة الأقسام")</h5>
@@ -53,7 +63,7 @@
 </div>
 <button class="btn btn-primary mb-3"
         @onclick="CreateNew"
-        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Create}") ? true : false)>
+        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.DepartmentPermissions.Create}") ? true : false)>
     <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
 </button>
 
@@ -171,7 +181,6 @@
 
                                     
                                     <div class="col">
-                                        
                                     </div>
 
                                     <div class="mb-3 row">
@@ -211,8 +220,9 @@
 
 
                                     <div class="col">
-                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
-                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                        <button type="submit" 
+                                            class="btn btn-success btn-sm">@SharedDataService.SelectViewLang("Save","حفظ")</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">@SharedDataService.SelectViewLang("Cancel","إلغاء")</button>
                                     </div>
                                 </div>
                             </EditForm>
@@ -230,8 +240,14 @@
                         <td>@dept.Latitude</td>
                         <td>@dept.IsActive</td>
                         <td>
-                            <button class="btn btn-warning btn-sm" @onclick="() => EditDepartment(dept)">@SharedDataService.SelectViewLang("Edit", "تعديل")</button>
-                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteDepartment(dept)">@SharedDataService.SelectViewLang("Delete", "حذف")</button>
+                            <button class="btn btn-warning btn-sm" 
+                            @onclick="() => EditDepartment(dept)"
+                            disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.DepartmentPermissions.Edit}"))>
+                            @SharedDataService.SelectViewLang("Edit", "تعديل")</button>
+                            <button 
+                                class="btn btn-danger btn-sm" @onclick="() => DeleteDepartment(dept)"
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.DepartmentPermissions.Delete}"))>
+                                @SharedDataService.SelectViewLang("Delete", "حذف")</button>
                         </td>
                     </tr>
                 }

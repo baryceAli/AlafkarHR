@@ -21,6 +21,14 @@
 @inject SharedDataService SharedDataService
 
 
+@if (!AuthState.User.Claims.Any(c => c.Value == PermissionList.PositionPermissions.View))
+{
+    <div class="alert alert-warning">
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page","ليس لديك الصلاحيات لعرض هذه الصفحة")</span>
+    </div>
+    return;
+}
+
 <!-- Branches -->
 <h5>@SharedDataService.SelectViewLang("Positions Management", "ادارة الموقع الوظيفي")</h5>
 
@@ -158,11 +166,13 @@
                         <td>@position.BaseSalary</td>
                         <td>
                             <button class="btn btn-warning btn-sm"
-                                    @onclick="() => EditPosition(position.Id)">
+                                    @onclick="() => EditPosition(position.Id)"
+                                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.PositionPermissions.Edit))>
                                 @SharedDataService.SelectViewLang("Edit", "تعديل")
                             </button>
                             <button class="btn btn-danger btn-sm"
-                                    @onclick="() => DeletePosition(position)">
+                                    @onclick="() => DeletePosition(position)"
+                                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.PositionPermissions.Delete))>
                                 @SharedDataService.SelectViewLang("Delete", "حذف")
                             </button>
                         </td>

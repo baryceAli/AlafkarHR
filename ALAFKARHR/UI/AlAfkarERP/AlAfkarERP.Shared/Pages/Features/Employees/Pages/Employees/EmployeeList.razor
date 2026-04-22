@@ -27,6 +27,16 @@
 @inject SharedDataService SharedDataService
 
 
+
+@if (!AuthState.User.Claims.Any(c => c.Value == PermissionList.EmployeePermissions.View))
+{
+    <div class="alert alert-warning">
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page","ليس لديك الصلاحيات لعرض هذه الصفحة")</span>
+    </div>
+
+    return;
+}
+
 <!-- Branches -->
 <h5>@SharedDataService.SelectViewLang("Employees Management", "ادارة الموظفين")</h5>
 
@@ -141,8 +151,17 @@
                     <td>
                         <a class="btn btn-warning btn-sm" href="Employee/Employee/view/@emp.Id">@SharedDataService.SelectViewLang("View", "عرض")</a>
                         <a class="btn btn-warning btn-sm" href="Employee/Employee/QR/@emp.Id">@SharedDataService.SelectViewLang("View QR", "QR Code")</a>
-                        <button class="btn btn-warning btn-sm" @onclick="() => EditBranch(emp.Id)">@SharedDataService.SelectViewLang("Edit", "تعديل")</button>
-                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteEmployee(emp)">@SharedDataService.SelectViewLang("Delete", "حذف")</button>
+                        <button class="btn btn-warning btn-sm" 
+                            @onclick="() => EditBranch(emp.Id)"
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.EmployeePermissions.Edit))>
+                            @SharedDataService.SelectViewLang("Edit", "تعديل")
+                            </button>
+                        <button 
+                            class="btn btn-danger btn-sm" 
+                            @onclick="() => DeleteEmployee(emp)"
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.EmployeePermissions.Delete))>
+                            @SharedDataService.SelectViewLang("Delete", "حذف")
+                        </button>
                     </td>
 
                     

@@ -18,6 +18,12 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.SpecializationPermissions.Create}"))
+{
+    <div class="alert alert-warning">
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
+    </div>
+}
 
 <!-- Branches -->
 <h5>@SharedDataService.SelectViewLang("Branches Management", "ادارة الفروع")</h5>
@@ -190,8 +196,12 @@
                         <td>@branch.Latitude</td>
                         <td>@branch.IsMainBranch</td>
                         <td>
-                            <button class="btn btn-warning btn-sm" @onclick="() => EditBranch(branch.Id)">@SharedDataService.SelectViewLang("Edit", "تعديل")</button>
-                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteBranch(branch)">@SharedDataService.SelectViewLang("Delete", "حذف")</button>
+                            <button class="btn btn-warning btn-sm" 
+                                @onclick="() => EditBranch(branch.Id)"
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BranchPermissions.Edit}"))>@SharedDataService.SelectViewLang("Edit", "تعديل")</button>
+                            <button class="btn btn-danger btn-sm" 
+                                @onclick="() => DeleteBranch(branch)"
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BranchPermissions.Delete}"))>@SharedDataService.SelectViewLang("Delete", "حذف")</button>
                         </td>
                     </tr>
                 }

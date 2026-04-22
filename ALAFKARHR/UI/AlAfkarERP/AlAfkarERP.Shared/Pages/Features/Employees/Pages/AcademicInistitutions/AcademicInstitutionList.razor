@@ -20,14 +20,24 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-
+@if(!AuthState.User.Claims.Any(c=> c.Value == PermissionList.AcademicInistitutionPermissions.Create) ||
+    !AuthState.User.Claims.Any(c=> c.Value==PermissionList.AcademicInistitutionPermissions.Edit))
+{
+    <div class="alert alert-warning">
+        <span>
+            @SharedDataService.SelectViewLang("You don't have permissions to view this page",
+            "ليس لديك الصلاحية لعرض هذه الصفحة")
+        </span>
+    </div>
+    return;
+}
 <!-- Branches -->
 <h5>@SharedDataService.SelectViewLang("Academic Inistitution Management", "ادارة المؤسسة التعليمية")</h5>
 
 @* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
 <button class="btn btn-primary mb-3"
         @onclick="CreateNew"
-        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.AcademicInistitutionPermissions.Create}") ? true : false)>
+        disabled="@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.AcademicInistitutionPermissions.Create))">
     <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
 </button>
 
@@ -150,10 +160,12 @@
                         <td>@academic.NameEng</td>
                         <td>
                             <button class="btn btn-warning btn-sm"
+                                    disabled="@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.AcademicInistitutionPermissions.Edit))"
                                     @onclick="() => EditAcademicInstitution(academic.Id)">
                                 Edit
                             </button>
                             <button class="btn btn-danger btn-sm"
+                                    disabled="@(!AuthState.User.Claims.Any(c=> c.Value==PermissionList.AcademicInistitutionPermissions.Delete))"
                                     @onclick="() => DeleteAcademicInstitution(academic)">
                                 @SharedDataService.SelectViewLang("Delete", "حذف")
                             </button>

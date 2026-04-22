@@ -24,6 +24,14 @@
 @inject SharedDataService SharedDataService
 
 
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.SpecializationPermissions.View}"))
+{
+    <div class="alr alert-warning">
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحيات لعرض هذه الصفحة")</span>
+    </div>
+
+    return;
+}
 <!-- Branches -->
 <h5>@SharedDataService.SelectViewLang("Administrations Management", "ادارة الإدارات")</h5>
 
@@ -41,7 +49,7 @@
 </div>
 <button class="btn btn-primary mb-3"
         @onclick="CreateNew"
-        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Create}") ? true : false)>
+        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.AdministrationPermissions.Create}") ? true : false)>
     <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
 </button>
 
@@ -177,8 +185,16 @@
                         <td>@(users.FirstOrDefault(u => u.Id == admin.ManagerId)?.UserName ?? "")</td>
                         <td>@admin.IsActive</td>
                         <td>
-                            <button class="btn btn-warning btn-sm" @onclick="() => EditAdministration(admin)">@SharedDataService.SelectViewLang("Edit", "تعديل")</button>
-                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteAdministration(admin)">@SharedDataService.SelectViewLang("Delete", "حذف")</button>
+                            <button class="btn btn-warning btn-sm"
+                                    @onclick="() => EditAdministration(admin)"
+                                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.AdministrationPermissions.Edit}"))>
+                                @SharedDataService.SelectViewLang("Edit", "تعديل")
+                            </button>
+                            <button class="btn btn-danger btn-sm"
+                                    @onclick="() => DeleteAdministration(admin)"
+                                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.AdministrationPermissions.Delete}"))>
+                                @SharedDataService.SelectViewLang("Delete", "حذف")
+                            </button>
                         </td>
                     </tr>
                 }
@@ -236,13 +252,17 @@
     private async Task OnBranchSelected(BranchDto branch)
     {
         selectedBranch = branch;
-        if (selectedBranch != null && selectedBranch.Id != Guid.Empty)
-        {
 
-
-            await LoadAdministrations();
-            StateHasChanged();
-        }
+        await LoadAdministrations();
+        StateHasChanged();
+        
+        // if (selectedBranch != null && selectedBranch.Id != Guid.Empty)
+        // {
+        // }
+        // else
+        // {
+            
+        // }
     }
 
     private async Task OnUserSelected(UserDto? user)
@@ -425,7 +445,6 @@
     {
 
         //new
-        isEdit = false;
         if (selectedBranch == null || selectedBranch.Id == Guid.Empty)
         {
             administrations = [];
@@ -445,6 +464,7 @@
             // new record → remove it
             administrations.Remove(item);
         }
+        isEdit = false;
         editingAdministrationId = null;
         // newAdministrationId = null;
     }
