@@ -14,7 +14,7 @@
 @inject IAuthService AuthService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-@if (AuthState != null && !AuthState.User.Claims.Any(c => c.Value == PermissionList.RolesPermissions.View))
+@if (AuthState != null && !AuthState.User.Claims.Any(c => c.Value == PermissionList.RolesPermissions.Create))
 {
     <div class="alert alert-warning">
         <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page.", "ليس لديك الصلاحيات لعرض هذه الصفحة")</span>

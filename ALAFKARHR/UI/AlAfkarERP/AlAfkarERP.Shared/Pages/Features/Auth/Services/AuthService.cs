@@ -7,41 +7,85 @@ using System.Net.Http.Json;
 
 namespace AlAfkarERP.Shared.Pages.Features.Auth.Services;
 
-public class AuthService : IAuthService
+public class AuthService : AuthBaseApiService, IAuthService
 {
     private readonly HttpClient _http;
+    private readonly string _path;
     private readonly ITokenService _tokenService;
-    private readonly ApiConfig _apiConfigOptions;
+    private readonly ApiConfig _apiConfig;
     private readonly CustomAuthStateProvider _authStateProvider;
 
     public AuthService(HttpClient http,
         ITokenService tokenService,
         AuthenticationStateProvider authStateProvider,
-        //ApiConfig apiConfig,
-        ApiConfig apiConfigOptions)
+        ApiConfig apiConfig) : base(http)
     {
-        _http = http;
+        //_http = http;
         _tokenService = tokenService;
-        _apiConfigOptions = apiConfigOptions;
+        _apiConfig = apiConfig;
+        _path = $"{_apiConfig.BaseURL}/api/{_apiConfig.Version}/auth";
         _authStateProvider = (CustomAuthStateProvider)authStateProvider;
+
     }
-
-    public async Task<bool> LoginAsync(string email, string password)
+    public async Task<ApiResult<LoginResponseDto>> LoginAsync(string email, string password)
     {
-        var response = await _http.PostAsJsonAsync(
-                            $"{_apiConfigOptions.BaseURL}/api/{_apiConfigOptions.Version}/auth/login", 
-                            new { email, password });
+        //var 
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/login")
+        {
+            Content = JsonContent.Create(new
+            {
+                Login = new LoginDto { Email = email, Password = password }
+            })
+        };
 
-        if (!response.IsSuccessStatusCode) return false;
+        var response = await SendAsync<LoginResponseDto>(request, "login");
 
-        var tokens = await response.Content.ReadFromJsonAsync<AuthTokens>();
-
+        if (response.IsSuccess)
+        {
+            AuthTokens tokens = new AuthTokens
+            {
+                AccessToken = response.Data.AccessToken,
+                RefreshToken = response.Data.RefreshToken
+            };
         await _tokenService.SetTokensAsync(tokens);
 
-        _authStateProvider.NotifyUserAuthentication(tokens.AccessToken);
+            _authStateProvider.NotifyUserAuthentication(tokens.AccessToken);
+        }
 
-        return true;
+
+        //return true;
+
+        return response;
+        //var response = await _http.PostAsJsonAsync(
+        //                    $"{_apiConfigOptions.BaseURL}/api/{_apiConfigOptions.Version}/auth/login",
+        //                    new { email, password });
+
+        //if (!response.IsSuccessStatusCode) return false;
+
+        //var tokens = await response.Content.ReadFromJsonAsync<AuthTokens>();
+
+        //await _tokenService.SetTokensAsync(tokens);
+
+        //_authStateProvider.NotifyUserAuthentication(tokens.AccessToken);
+
+        //return true;
     }
+    //public async Task<bool> LoginAsync(string email, string password)
+    //{
+    //    var response = await _http.PostAsJsonAsync(
+    //                        $"{_apiConfigOptions.BaseURL}/api/{_apiConfigOptions.Version}/auth/login", 
+    //                        new { email, password });
+
+    //    if (!response.IsSuccessStatusCode) return false;
+
+    //    var tokens = await response.Content.ReadFromJsonAsync<AuthTokens>();
+
+    //    await _tokenService.SetTokensAsync(tokens);
+
+    //    _authStateProvider.NotifyUserAuthentication(tokens.AccessToken);
+
+    //    return true;
+    //}
 
     // 🔁 Refresh Token Rotation
     public async Task<bool> RefreshTokenAsync()
@@ -49,7 +93,7 @@ public class AuthService : IAuthService
         var tokens = await _tokenService.GetTokensAsync();
         if (tokens == null) return false;
 
-        var response = await _http.PostAsJsonAsync($"{_apiConfigOptions.BaseURL}/api{_apiConfigOptions.Version}/auth/refresh", new
+        var response = await _http.PostAsJsonAsync($"{_apiConfig.BaseURL}/api{_apiConfig.Version}/auth/refresh", new
         {
             accessToken = tokens.AccessToken,
             refreshToken = tokens.RefreshToken
@@ -127,7 +171,7 @@ public class AuthService : IAuthService
 
     public async Task<ApiResult<PaginatedResult<UserDto>>> GetUserAsync(int pageIndex, int pageSize)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiConfigOptions.BaseURL}/api/{_apiConfigOptions.Version}/auth/users");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiConfig.BaseURL}/api/{_apiConfig.Version}/auth/users");
         try
         {
             var response = await _http.SendAsync(request);

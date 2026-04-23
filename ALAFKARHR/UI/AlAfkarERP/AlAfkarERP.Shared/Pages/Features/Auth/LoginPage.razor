@@ -90,7 +90,7 @@
     private async Task HandleLogin()
     {
         var result = await AuthService.LoginAsync(login.Email, login.Password);
-        if (result)
+        if (result.IsSuccess)
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
 

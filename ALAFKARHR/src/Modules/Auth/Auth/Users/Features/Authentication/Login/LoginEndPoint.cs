@@ -1,7 +1,9 @@
 ﻿namespace Auth.Users.Features.Authentication.Login;
 
-public record LoginRequest(string Email, string Password);
-public record LoginResponse(string AccessToken, string RefreshToken);
+//public record LoginRequest(string Email, string Password);
+public record LoginRequest(LoginDto Login);
+//public record LoginResponse(string AccessToken, string RefreshToken);
+public record LoginResponse(LoginResponseDto Login);
 public class LoginEndPoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)

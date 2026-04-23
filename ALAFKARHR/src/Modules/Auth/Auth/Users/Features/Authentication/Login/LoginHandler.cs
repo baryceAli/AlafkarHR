@@ -3,14 +3,18 @@
 namespace Auth.Users.Features.Authentication.Login;
 
 public record LoginCommand(
-    //string UserName,
-    string Email,
-    string Password
+    LoginDto Login
 ) : ICommand<LoginResult>;
+//public record LoginCommand(
+//    //string UserName,
+//    string Email,
+//    string Password
+//) : ICommand<LoginResult>;
 
-public record LoginResult(
-    string AccessToken,
-    string RefreshToken);
+//public record LoginResult(
+//    string AccessToken,
+//    string RefreshToken);
+public record LoginResult(LoginResponseDto Login);
 
 public class LoginHandler(
     AuthDbContext dbContext,
@@ -21,12 +25,12 @@ public class LoginHandler(
 {
     public async Task<LoginResult> Handle(LoginCommand command, CancellationToken cancellationToken)
     {
-        var user = await userManager.FindByEmailAsync(command.Email);
+        var user = await userManager.FindByEmailAsync(command.Login.Email);
 
         if (user == null)
             throw new Exception("Invalid credentials");
 
-        var result = await signInManager.CheckPasswordSignInAsync(user, command.Password, false);
+        var result = await signInManager.CheckPasswordSignInAsync(user, command.Login.Password, false);
 
         if (!result.Succeeded)
             throw new Exception("Invalid credentials");
@@ -52,6 +56,8 @@ public class LoginHandler(
         //dbContext.RefreshTokens.Add(refreshToken);
         //await dbContext.SaveChangesAsync();
         await userManager.UpdateAsync(user);
-        return new LoginResult(accessToken, user.GetActiveRefreshToken(refreshToken.Token).Token);
+
+        //return new LoginResult(accessToken, user.GetActiveRefreshToken(refreshToken.Token).Token);
+        return new LoginResult(new LoginResponseDto {AccessToken= accessToken,RefreshToken= user.GetActiveRefreshToken(refreshToken.Token).Token });
     }
 }
