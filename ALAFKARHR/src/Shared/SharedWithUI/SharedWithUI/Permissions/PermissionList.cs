@@ -37,11 +37,11 @@ public static class PermissionList
     }
     
 
-    public static List<PermissionGroupDto> GetGroupedPermissions()
+    public static List<PermissionGroupDto> GetGroupedPermissions(List<string> permissions)
     {
-        var all = GetAll();
+        //var permissions = GetAll();
 
-        var result = all
+        var result = permissions
             .Select(p =>
             {
                 var parts = p.Split('.');

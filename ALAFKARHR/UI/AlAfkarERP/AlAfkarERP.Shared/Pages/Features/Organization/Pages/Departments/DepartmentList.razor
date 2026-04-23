@@ -289,7 +289,7 @@
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
         companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
 
-        var userResponse = await AuthService.GetAsync(0, 100);
+        var userResponse = await AuthService.GetUserAsync(0, 100);
         if (userResponse.IsSuccess)
         {
             users = userResponse.Data?.Data?.ToList() ?? [];

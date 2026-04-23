@@ -1,6 +1,6 @@
 ﻿namespace Auth.Data.Seed;
 
-public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole<Guid>> roleManager, IOptions<OTPOptions >oTPOptions)
+public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager, IOptions<OTPOptions >oTPOptions)
     : IDataSeeder<AuthDbContext>
 {
 
@@ -12,7 +12,7 @@ public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManage
         var role = await roleManager.FindByNameAsync("SystemUser");
         if (role is null)
         {
-            var result = await roleManager.CreateAsync(new IdentityRole<Guid>() { Name = "SystemUser" });
+            var result = await roleManager.CreateAsync(new ApplicationRole() { Name = "SystemUser" });
             if (result.Succeeded)
             {
                 var addedRole = await roleManager.FindByNameAsync("SystemUser");
@@ -41,7 +41,7 @@ public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManage
         role = await roleManager.FindByNameAsync("Customer");
         if (role is null)
         {
-            var result = await roleManager.CreateAsync(new IdentityRole<Guid>() { Name = "Customer" });
+            var result = await roleManager.CreateAsync(new ApplicationRole() { Name = "Customer" });
             if (result.Succeeded)
             {
                 var msg = "Success";
@@ -51,7 +51,7 @@ public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManage
         role = await roleManager.FindByNameAsync("Driver");
         if (role is null)
         {
-            var result = await roleManager.CreateAsync(new IdentityRole<Guid>() { Name = "Driver" });
+            var result = await roleManager.CreateAsync(new ApplicationRole() { Name = "Driver" });
             if (result.Succeeded)
             {
 

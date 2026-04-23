@@ -52,7 +52,7 @@ public static class AuthModule
             options.Password.RequireLowercase = true;
             options.Password.RequireNonAlphanumeric = false;
         })
-        .AddRoles<IdentityRole<Guid>>()
+        .AddRoles<ApplicationRole>()
         .AddEntityFrameworkStores<AuthDbContext>()
         .AddSignInManager()
         .AddTokenProvider<DataProtectorTokenProvider<ApplicationUser>>("Default")
@@ -88,7 +88,7 @@ public static class AuthModule
         services.AddAuthorization();
         services.AddAuthorization(options =>
         {
-            foreach (var permissions in SharedWithUI.Permissions.PermissionList.GetAll())
+            foreach (var permissions in PermissionList.GetAll())
             {
                 options.AddPolicy(permissions, policy => policy.AddRequirements(new PermissionRequirement(permissions)));
             }

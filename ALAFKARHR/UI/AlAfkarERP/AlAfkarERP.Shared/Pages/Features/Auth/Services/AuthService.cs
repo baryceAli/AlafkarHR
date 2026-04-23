@@ -125,7 +125,7 @@ public class AuthService : IAuthService
 
     //}
 
-    public async Task<ApiResult<PaginatedResult<UserDto>>> GetAsync(int pageIndex, int pageSize)
+    public async Task<ApiResult<PaginatedResult<UserDto>>> GetUserAsync(int pageIndex, int pageSize)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiConfigOptions.BaseURL}/api/{_apiConfigOptions.Version}/auth/users");
         try
@@ -172,12 +172,22 @@ public class AuthService : IAuthService
         }
     }
 
-    public Task<ApiResult<UserDto>> GetById(Guid Id)
+    public Task<ApiResult<UserDto>> GetUserById(Guid Id)
     {
         throw new NotImplementedException();
     }
 
-    public Task<ApiResult<UserDto>> GetByEmployeeId(Guid employeeId)
+    public Task<ApiResult<UserDto>> GetUserByEmployeeId(Guid employeeId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<ApiResult<PaginatedResult<RoleDto>>> GetRoles(int pageIndex, int pageSize)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<ApiResult<PaginatedResult<RoleDto>>> GetRolesByEmployeeId(Guid employeeId, int pageIndex, int pageSize)
     {
         throw new NotImplementedException();
     }

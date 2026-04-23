@@ -12,12 +12,12 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 {
     private readonly JwtOptions _options;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly RoleManager<IdentityRole<Guid>> _roleManager;
+    private readonly RoleManager<ApplicationRole> _roleManager;
 
     public JwtTokenGenerator(
         IOptions<JwtOptions> options,
         UserManager<ApplicationUser> userManager,
-        RoleManager<IdentityRole<Guid>> roleManager)
+        RoleManager<ApplicationRole> roleManager)
     {
         _options = options.Value;
         _userManager = userManager;
