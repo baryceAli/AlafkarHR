@@ -1,7 +1,7 @@
 ﻿using Auth.Contracts.Features.GetUserById;
 using Shared.Exceptions;
 
-namespace Auth.Users.Features.GetUserById;
+namespace Auth.Users.Features.Users.GetUserById;
 
 
 public class GetUserByIdHandler(AuthDbContext dbContext) : IQueryHandler<GetUserByIdQuery, GetUserByIdResult>

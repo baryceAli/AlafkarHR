@@ -1,9 +1,8 @@
 ﻿
-namespace SharedWithUI.Auth.Dtos
+namespace SharedWithUI.Auth.Dtos;
+
+public class UserDto
 {
-    public class UserDto
-    {
-        public Guid Id { get; set; }
-        public string UserName { get; set; }
-    }
+    public Guid Id { get; set; }
+    public string UserName { get; set; }
 }

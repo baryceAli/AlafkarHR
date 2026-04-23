@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Services.Auth;
+﻿using AlAfkarERP.Shared.Pages.Features.Auth.Services;
 using System.Net;
 using System.Net.Http.Headers;
 

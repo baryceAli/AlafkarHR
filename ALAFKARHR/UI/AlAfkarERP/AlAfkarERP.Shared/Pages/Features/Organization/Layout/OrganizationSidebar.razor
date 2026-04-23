@@ -14,47 +14,89 @@
 
         <li class="nav-item">
             <NavLink href="/" class="nav-link text-white" Match="NavLinkMatch.All">
-                <i class="bi bi-speedometer2 me-2"></i>
-                Home
+                <i class="bi bi-house-door me-2"></i>
+                @SharedDataService.SelectViewLang("Home", "الرئيسية")
             </NavLink>
         </li>
-
         <li class="nav-item">
             <NavLink href="/AdminDashboard" class="nav-link text-white">
-                <i class="bi bi-box-seam me-2"></i>
-                @(SharedDataService.SelectViewLang("Control Panel","لوحة التحكم"))
+                <i class="bi bi-speedometer2 me-2"></i>
+                @SharedDataService.SelectViewLang("Control Panel", "لوحة التحكم")
             </NavLink>
         </li>
 
         <li class="nav-item">
+            <NavLink href="/Organization/Dashboard" class="nav-link text-white">
+                <i class="bi bi-diagram-3 me-2"></i>
+                @(SharedDataService.SelectViewLang("Organizational Structure", "الهيكل التنظيمي"))
+            </NavLink>
+        </li>
+
+        
+
+        <li class="nav-item ms-3">
             <NavLink href="/Organization/Company/List" class="nav-link text-white">
-                <i class="bi bi-box-seam me-2"></i>
+                @* <i class="bi bi-box-seam me-2"></i> *@
+                <i class="bi bi-building me-2"></i>
                 @(SharedDataService.SelectViewLang("Company", "بيانات الشركة"))
             </NavLink>
         </li>
 
-        <li class="nav-item">
+        <li class="nav-item ms-3">
             <NavLink href="/Organization/Branch/List" class="nav-link text-white">
-                <i class="bi bi-box-seam me-2"></i>
+                @* <i class="bi bi-box-seam me-2"></i> *@
+                <i class="bi bi-diagram-3 me-2"></i>
                 @(SharedDataService.SelectViewLang("Branches", "الفروع"))
             </NavLink>
         </li>
         
-        <li class="nav-item">
+        <li class="nav-item ms-3">
             <NavLink href="/Organization/Administration/List" class="nav-link text-white">
-                <i class="bi bi-tags me-2"></i>
+                @* <i class="bi bi-tags me-2"></i> *@
+                <i class="bi bi-diagram-2 me-2"></i>
                 @SharedDataService.SelectViewLang("Administrations","الإدارات")
             </NavLink>
         </li>
 
-        <li class="nav-item">
+        <li class="nav-item ms-3">
             <NavLink href="/Organization/Department/List" class="nav-link text-white">
-                <i class="bi bi-building me-2"></i>
+                @* <i class="bi bi-building me-2"></i> *@
+                <i class="bi bi-grid me-2"></i>
                 @SharedDataService.SelectViewLang("Departments","الأقسام")
             </NavLink>
         </li>
 
+
+        <li class="nav-item">
+            <NavLink href="/Employee/Dashboard" class="nav-link text-white">
+                <i class="bi bi-people me-2"></i>
+                @(SharedDataService.SelectViewLang("Human Resource", "الموارد البشرية"))
+            </NavLink>
+        </li>
         
+        <li class="nav-item">
+            <NavLink href="/Auth/Dashboard" class="nav-link text-white">
+                <i class="bi bi-shield-lock me-2"></i>
+                @SharedDataService.SelectViewLang("Security Management", "إدارة الآمان")
+            </NavLink>
+        </li>
+
     </ul>
 
 </div>
+@code{
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

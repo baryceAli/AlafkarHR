@@ -1,4 +1,4 @@
-﻿namespace Auth.Users.Features.ValidateRefreshToken;
+﻿namespace Auth.Users.Features.Authentication.ValidateRefreshToken;
 
 public record RefreshTokenRequest(string AccessToken,string RefreshToken);
 public record RefreshTokenResponse(string NewAccessToken,string NewRefreshToken);

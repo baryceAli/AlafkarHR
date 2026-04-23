@@ -1,9 +1,6 @@
-﻿
+﻿using Auth.Contracts.Features.RegisterUser;
 
-
-using Auth.Contracts.Features.RegisterUser;
-
-namespace Auth.Users.Features.RegisterUser;
+namespace Auth.Users.Features.Authentication.RegisterUser;
 public record RegisterUserRequest(RegisterDto Register);
 public record RegisterUserResponse(Guid Id);
 public class RegisterUserEndPoint : ICarterModule

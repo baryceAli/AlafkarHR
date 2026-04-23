@@ -1,10 +1,83 @@
 ﻿@layout AuthManagementLayout
 @page "/Auth/Role/List"
 @using AlAfkarERP.Shared.Pages.Features.Auth.Layout
+@using AlAfkarERP.Shared.Pages.Features.Auth.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@inject SharedDataService SharedDataService;
+@inject IAuthService AuthService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
+@* @if (AuthState!=null && !AuthState.User.Claims.Any(c => c.Type == PermissionList.RolesPermissions.View))
+{
+    <div class="alert alert-warning">
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page.", "ليس لديك الصلاحيات لعرض هذه الصفحة")</span>
+    </div>
+    return;
 
-<h3>RolesManagement</h3>
+} *@
+
+<h3>@SharedDataService.SelectViewLang("Roles Management", "إدارة الصلاحيات")</h3>
+
+<div class="card">
+    <div class="card-header"></div>
+    <div class="card-body">
+        @foreach (var group in PermissionList.GetGroupedPermissions())
+        {
+            <div class="row mb-3">
+                <div class="col-2 fw-bold">
+                    Group: @group.Group
+                </div>
+
+                <div class="col-10">
+                    @foreach (var entity in group.Entities)
+                    {
+                        <div class="row mb-2">
+                            <div class="col-2">
+                                @entity.Entity
+                            </div>
+
+                            <div class="col-10">
+                                @foreach (var action in entity.Actions)
+                                {
+                                    <label class="me-2">
+                                        <InputCheckbox @bind-Value="isChecked" />
+                                        @action
+                                    </label>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+    </div>
+</div>
 
 @code {
+    private AuthenticationState AuthState;
+    private bool isChecked = false;
+    private List<string> Roles=[];
+    
 
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+    }
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
 }

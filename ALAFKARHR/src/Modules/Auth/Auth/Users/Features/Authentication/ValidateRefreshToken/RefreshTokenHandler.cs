@@ -1,7 +1,6 @@
-﻿
-using Auth.Helpers;
+﻿using Auth.Helpers;
 
-namespace Auth.Users.Features.ValidateRefreshToken;
+namespace Auth.Users.Features.Authentication.ValidateRefreshToken;
 
 public record RefreshTokenCommand(string AccessToken,string RefreshToken) : ICommand<RefreshTokenResult>;
 public record RefreshTokenResult(string NewAccessToken,string NewRefreshToken);

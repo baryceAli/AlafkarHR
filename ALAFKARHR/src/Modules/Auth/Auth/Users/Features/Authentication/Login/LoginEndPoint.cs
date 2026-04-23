@@ -1,5 +1,4 @@
-﻿
-namespace Auth.Users.Features.Login;
+﻿namespace Auth.Users.Features.Authentication.Login;
 
 public record LoginRequest(string Email, string Password);
 public record LoginResponse(string AccessToken, string RefreshToken);

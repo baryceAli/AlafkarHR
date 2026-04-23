@@ -1,4 +1,6 @@
-﻿namespace SharedWithUI.Permissions;
+﻿using SharedWithUI.Auth.Dtos;
+
+namespace SharedWithUI.Permissions;
 
 public static class PermissionList
 {
@@ -6,6 +8,8 @@ public static class PermissionList
     {
         List<string> list =
         [
+            ..UsersPermissions.Permissions,
+            ..RolesPermissions.Permissions,
             ..AcademicInistitutionPermissions.Permissions,
             ..SpecializationPermissions.Permissions,
             ..EmployeePermissions.Permissions,
@@ -30,6 +34,39 @@ public static class PermissionList
 
         return list;
 
+    }
+    
+
+    public static List<PermissionGroupDto> GetGroupedPermissions()
+    {
+        var all = GetAll();
+
+        var result = all
+            .Select(p =>
+            {
+                var parts = p.Split('.');
+                return new
+                {
+                    Group = parts[0],
+                    Entity = parts[1],
+                    Action = parts[2]
+                };
+            })
+            .GroupBy(x => x.Group)
+            .Select(g => new PermissionGroupDto
+            {
+                Group = g.Key,
+                Entities = g
+                    .GroupBy(e => e.Entity)
+                    .Select(e => new PermissionEntityDto
+                    {
+                        Entity = e.Key,
+                        Actions = e.Select(a => a.Action).Distinct().ToList()
+                    }).ToList()
+            })
+            .ToList();
+
+        return result;
     }
     public static class UsersPermissions
     {

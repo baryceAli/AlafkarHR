@@ -3,11 +3,13 @@
 @using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Utilities
 @using SharedWithUI.Employees.Dtos
 
 @inject IEmployeeService EmployeeService
 @inject IPositionService PositionService
 @inject IBranchService BranchService
+@inject SharedDataService SharedDataService
 
 @inject ApiConfig ApiConfig
 
@@ -117,5 +119,19 @@
 
         }
         isLoading = false;
+    }
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }

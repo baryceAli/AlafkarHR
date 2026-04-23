@@ -1,6 +1,6 @@
 ﻿using Auth.Contracts.Features.RegisterUser;
 
-namespace Auth.Users.Features.RegisterUser;
+namespace Auth.Users.Features.Authentication.RegisterUser;
 
 
 public class RegisterUserCommandValidator : AbstractValidator<RegisterUserCommand>

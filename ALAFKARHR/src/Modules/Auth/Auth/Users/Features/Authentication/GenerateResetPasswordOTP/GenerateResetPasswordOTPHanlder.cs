@@ -1,7 +1,7 @@
 ﻿using Auth.Helpers;
 using Shared.Contracts.Messaging;
 
-namespace Auth.Users.Features.GenerateResetPasswordOTP;
+namespace Auth.Users.Features.Authentication.GenerateResetPasswordOTP;
 
 
 public record GenerateResetPasswordOTPCommand(string UserIdentifier, bool IsEmail) : ICommand<GenerateResetPasswordOTPResult>;

@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Shared.Pagination;
 
-namespace Auth.Users.Features.GetUsers;
+namespace Auth.Users.Features.Users.GetUsers;
 
 
 public record GetUsersResponse(PaginatedResult<UserDto> UserList);

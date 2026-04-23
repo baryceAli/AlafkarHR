@@ -2,11 +2,13 @@
 @page "/Employee/Employee/QR/{Id:guid?}"
 @using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Utilities
 @using QRCoder
 @using SharedWithUI.Employees.Dtos
 
 @inject IEmployeeService EmployeeService
 @inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
 
 <main class="d-flex justify-content-center align-items-center" style="height: 100vh;">
    
@@ -74,5 +76,19 @@
             }
             isLoading = false;
         }
+    }
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }

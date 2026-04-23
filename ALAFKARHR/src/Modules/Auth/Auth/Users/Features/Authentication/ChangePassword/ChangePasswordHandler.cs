@@ -1,4 +1,4 @@
-﻿namespace Auth.Users.Features.ChangePassword;
+﻿namespace Auth.Users.Features.Authentication.ChangePassword;
 
 public record ChangePasswordCommand(string UserIdentifier, string CurrentPassword, string NewPassword, string ConfirmNewPassword) : ICommand<ChangePasswordResult>;
 public record ChangePasswordResult(bool IsSuccess);

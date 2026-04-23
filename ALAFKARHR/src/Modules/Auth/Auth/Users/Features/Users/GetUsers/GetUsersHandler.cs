@@ -1,6 +1,6 @@
 ﻿using Shared.Pagination;
 
-namespace Auth.Users.Features.GetUsers;
+namespace Auth.Users.Features.Users.GetUsers;
 
 
 public record GetUsersQuery(PaginationRequest PaginationRequest) : IQuery<GetUsersResult>;

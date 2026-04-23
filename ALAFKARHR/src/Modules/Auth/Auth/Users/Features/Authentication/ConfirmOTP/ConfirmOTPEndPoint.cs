@@ -1,4 +1,5 @@
-﻿namespace Auth.Users.Features.ConfirmOTP;
+﻿
+namespace Auth.Users.Features.Authentication.ConfirmOTP;
 
 public record ConfirmOTPRequest(string UserIdentifier, string OTP);
 public record ConfirmOTPResponse(bool IsConfirmed);

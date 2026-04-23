@@ -1,7 +1,7 @@
 ﻿using AlAfkarERP.Shared.Dtos;
-using AlAfkarERP.Shared.Pages.Features.Auth.Dtos;
+using SharedWithUI.Auth.Dtos;
 
-namespace AlAfkarERP.Shared.Services.Auth;
+namespace AlAfkarERP.Shared.Pages.Features.Auth.Services;
 
 public interface IAuthService
 {
@@ -9,4 +9,6 @@ public interface IAuthService
     Task<bool> RefreshTokenAsync();
     Task LogoutAsync();
     Task<ApiResult<PaginatedResult<UserDto>>> GetAsync(int pageIndex, int pageSize);
+    Task<ApiResult<UserDto>> GetById(Guid Id);
+    Task<ApiResult<UserDto>> GetByEmployeeId(Guid employeeId);
 }

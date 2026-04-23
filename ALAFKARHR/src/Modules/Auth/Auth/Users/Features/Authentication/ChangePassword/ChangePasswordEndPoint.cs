@@ -1,4 +1,4 @@
-﻿namespace Auth.Users.Features.ChangePassword;
+﻿namespace Auth.Users.Features.Authentication.ChangePassword;
 
 public record ChangePasswordRequest(
     string UserIdentifier, 

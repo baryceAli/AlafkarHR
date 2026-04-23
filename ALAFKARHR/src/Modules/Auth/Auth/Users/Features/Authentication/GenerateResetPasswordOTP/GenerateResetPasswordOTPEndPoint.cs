@@ -1,6 +1,10 @@
 ﻿//using Auth.Users.Features.ResetPassword;
 
-namespace Auth.Users.Features.GenerateResetPasswordOTP;
+
+//using Auth.Users.Features.ResetPassword;
+
+
+namespace Auth.Users.Features.Authentication.GenerateResetPasswordOTP;
 
 public record GenerateResetPasswordOTPRequest(string UserIdentifier);
 public record GenerateResetPasswordOTPResponse(bool IsSuccess);

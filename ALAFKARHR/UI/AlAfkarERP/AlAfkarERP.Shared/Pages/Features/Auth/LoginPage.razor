@@ -5,8 +5,8 @@
 
 @using AlAfkarERP.Shared.Pages.Features.Auth.Layout
 @using AlAfkarERP.Shared.Dtos.Auth
+@using AlAfkarERP.Shared.Pages.Features.Auth.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
-@using AlAfkarERP.Shared.Services.Auth
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.IdentityModel.JsonWebTokens
@@ -76,6 +76,16 @@
     {
         // login.Email = "baryce@gmail.com";
         // login.Password = "Admin@123";
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
     }
     private async Task HandleLogin()
     {
@@ -84,7 +94,7 @@
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
 
-            if (authState.User.Identity.IsAuthenticated)
+            if (authState.User.Identity!.IsAuthenticated)
             {
                 if (authState.User.Claims.Any(c => c.Type == JwtRegisteredClaimNames.Typ && c.Value == UserType.SystemUser.ToString()))
                 {
@@ -104,13 +114,13 @@
                 new ModalOptions
                 {
                     IsError = true,
-                    Title = SharedDataService.SelectViewLang("Login","تسجيل دخول"),
+                    Title = SharedDataService.SelectViewLang("Login", "تسجيل دخول"),
                     Message = SharedDataService.SelectViewLang("Credentials are incorrect."
                                     , "بيانات الدخول غير صحيحة."),
                     Details = SharedDataService.SelectViewLang("Please reenter credentials and try again"
                                     , "يرجى إعادة ادخال البيانات والمحاولة مرة أخرى"),
-                    OkText=SharedDataService.SelectViewLang("OK","موافق"),
-                                    OnOk = async () => { },
+                    OkText = SharedDataService.SelectViewLang("OK", "موافق"),
+                    OnOk = async () => { },
                 }
             );
             // Console.WriteLine("Login failed");

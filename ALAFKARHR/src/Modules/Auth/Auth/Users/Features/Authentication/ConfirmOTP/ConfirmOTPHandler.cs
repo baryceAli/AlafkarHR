@@ -1,6 +1,6 @@
 ﻿using Shared.Contracts.Messaging;
 
-namespace Auth.Users.Features.ConfirmOTP;
+namespace Auth.Users.Features.Authentication.ConfirmOTP;
 
 public record ConfirmOTPCommand(string UserIdentifier, string OTP, bool IsEmail) : ICommand<ConfirmOTPResult>;
 public record ConfirmOTPResult(bool IsConfirmed);

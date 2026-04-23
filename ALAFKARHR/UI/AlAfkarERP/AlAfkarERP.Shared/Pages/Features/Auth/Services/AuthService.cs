@@ -1,13 +1,11 @@
 ﻿using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Dtos.Auth;
-using AlAfkarERP.Shared.Pages.Features.Auth.Dtos;
 using AlAfkarERP.Shared.Utilities;
 using Microsoft.AspNetCore.Components.Authorization;
+using SharedWithUI.Auth.Dtos;
 using System.Net.Http.Json;
-using System.Text.Json;
-using System.Xml.Linq;
 
-namespace AlAfkarERP.Shared.Services.Auth;
+namespace AlAfkarERP.Shared.Pages.Features.Auth.Services;
 
 public class AuthService : IAuthService
 {
@@ -30,7 +28,9 @@ public class AuthService : IAuthService
 
     public async Task<bool> LoginAsync(string email, string password)
     {
-        var response = await _http.PostAsJsonAsync($"{_apiConfigOptions.BaseURL}/api/{_apiConfigOptions.Version}/auth/login", new { email, password });
+        var response = await _http.PostAsJsonAsync(
+                            $"{_apiConfigOptions.BaseURL}/api/{_apiConfigOptions.Version}/auth/login", 
+                            new { email, password });
 
         if (!response.IsSuccessStatusCode) return false;
 
@@ -77,9 +77,57 @@ public class AuthService : IAuthService
         _authStateProvider.NotifyUserLogout();
     }
 
+    //public async Task<ApiResult<PaginatedResult<UserDto>>> GetAsync(int pageIndex, int pageSize)
+    //{
+    //    var request = new HttpRequestMessage(HttpMethod.Get,$"{_apiConfigOptions.BaseURL}/api/{_apiConfigOptions.Version}/auth/users");
+    //    try
+    //    {
+    //        var response = await _http.SendAsync(request);
+
+    //        var content = await response.Content.ReadAsStringAsync();
+
+    //        // ❌ NOT success
+    //        if (!response.IsSuccessStatusCode)
+    //        {
+    //            ErrorResponseDto? error = null;
+
+    //            try
+    //            {
+    //                error = DeserializeAPIResponse.Deserialize<ErrorResponseDto>(content, "userList");
+    //            }
+    //            catch
+    //            {
+    //                error = new ErrorResponseDto
+    //                {
+    //                    Status = (int)response.StatusCode,
+    //                    Title = "Request failed",
+    //                    Detail = content
+    //                };
+    //            }
+
+    //            return ApiResult<PaginatedResult<UserDto>>.Failure(error!);
+    //        }
+
+    //        // ✅ success
+    //        var result = DeserializeAPIResponse.Deserialize<PaginatedResult<UserDto>>(content, "userList");
+
+    //        return ApiResult<PaginatedResult<UserDto>>.Success(result);
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        return ApiResult<PaginatedResult<UserDto>>.Failure(new ErrorResponseDto
+    //        {
+    //            Status = 500,
+    //            Title = "Client Error",
+    //            Detail = ex.Message
+    //        });
+    //    }
+
+    //}
+
     public async Task<ApiResult<PaginatedResult<UserDto>>> GetAsync(int pageIndex, int pageSize)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get,$"{_apiConfigOptions.BaseURL}/api/{_apiConfigOptions.Version}/auth/users");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiConfigOptions.BaseURL}/api/{_apiConfigOptions.Version}/auth/users");
         try
         {
             var response = await _http.SendAsync(request);
@@ -122,6 +170,15 @@ public class AuthService : IAuthService
                 Detail = ex.Message
             });
         }
+    }
 
+    public Task<ApiResult<UserDto>> GetById(Guid Id)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<ApiResult<UserDto>> GetByEmployeeId(Guid employeeId)
+    {
+        throw new NotImplementedException();
     }
 }

@@ -774,5 +774,18 @@
             employee.PhotoUrl= $"data:{file.ContentType};base64,{base64}".Trim();
         }
     }
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
 
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
 }

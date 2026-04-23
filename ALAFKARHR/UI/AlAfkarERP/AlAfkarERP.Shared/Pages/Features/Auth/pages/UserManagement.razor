@@ -1,10 +1,25 @@
 ﻿@layout AuthManagementLayout
 @page "/Auth/User/List"
+@inject SharedDataService SharedDataService
 
 @using AlAfkarERP.Shared.Pages.Features.Auth.Layout
+@using AlAfkarERP.Shared.Utilities
 
 <h3>UserManagement</h3>
 
 @code {
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
 
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
 }

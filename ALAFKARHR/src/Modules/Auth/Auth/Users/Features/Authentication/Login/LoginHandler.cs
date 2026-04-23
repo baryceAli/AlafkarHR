@@ -1,7 +1,6 @@
-﻿
-using Auth.Helpers;
+﻿using Auth.Helpers;
 
-namespace Auth.Users.Features.Login;
+namespace Auth.Users.Features.Authentication.Login;
 
 public record LoginCommand(
     //string UserName,

@@ -1,4 +1,7 @@
-﻿@inherits LayoutComponentBase
+﻿@using AlAfkarERP.Shared.Utilities
+@inherits LayoutComponentBase
+
+@inject SharedDataService SharedDataService
 
 <div class="d-flex vh-100 justify-content-center align-items-center bg-light">
 
@@ -7,3 +10,20 @@
     </div>
 
 </div>
+
+@code{
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

@@ -1,13 +1,13 @@
 ﻿@layout Organization.Layout.OrganizationLayout
 @page "/Organization/Administration/List"
-@using AlAfkarERP.Shared.Pages.Features.Auth.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Auth.Services
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @* @using AlAfkarERP.Shared.Pages.Reuable *@
 @using AlAfkarERP.Shared.Pages.Reuable
 @using AlAfkarERP.Shared.Pages.Reuable2
-@using AlAfkarERP.Shared.Services.Auth
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Auth.Dtos
 @using SharedWithUI.Permissions
 
 
@@ -578,4 +578,18 @@
     }
     #endregion Table helpers
 
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
 }
