@@ -17,7 +17,7 @@ public class CreateRoleHanlder(RoleManager<ApplicationRole> roleManager)
 
 
         var identityRole =
-            new ApplicationRole() { Name=request.Role.RoleName, CompanyId=request.Role.CompanyId};
+            new ApplicationRole() { Name=request.Role.RoleName, CompanyId=request.Role.CompanyId.Value};
 
         var result = await roleManager.CreateAsync(identityRole);
         ApplicationRole? createdRole;

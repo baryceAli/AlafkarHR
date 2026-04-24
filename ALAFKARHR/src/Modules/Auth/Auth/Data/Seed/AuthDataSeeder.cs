@@ -12,7 +12,7 @@ public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManage
         var role = await roleManager.FindByNameAsync("SystemUser");
         if (role is null)
         {
-            var result = await roleManager.CreateAsync(new ApplicationRole() { Name = "SystemUser" });
+            var result = await roleManager.CreateAsync(new ApplicationRole() { Name = "SystemUser",CompanyId= Guid.Parse("4c3d205f-7e2b-42c2-a081-1700b229d91e") });
             if (result.Succeeded)
             {
                 var addedRole = await roleManager.FindByNameAsync("SystemUser");
@@ -41,7 +41,7 @@ public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManage
         role = await roleManager.FindByNameAsync("Customer");
         if (role is null)
         {
-            var result = await roleManager.CreateAsync(new ApplicationRole() { Name = "Customer" });
+            var result = await roleManager.CreateAsync(new ApplicationRole() { Name = "Customer",CompanyId= Guid.Parse("4c3d205f-7e2b-42c2-a081-1700b229d91e") });
             if (result.Succeeded)
             {
                 var msg = "Success";
@@ -51,7 +51,7 @@ public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManage
         role = await roleManager.FindByNameAsync("Driver");
         if (role is null)
         {
-            var result = await roleManager.CreateAsync(new ApplicationRole() { Name = "Driver" });
+            var result = await roleManager.CreateAsync(new ApplicationRole() { Name = "Driver" , CompanyId = Guid.Parse("4c3d205f-7e2b-42c2-a081-1700b229d91e") });
             if (result.Succeeded)
             {
 
@@ -65,7 +65,7 @@ public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManage
         {
 
             var userToRegister = ApplicationUser.Create(
-                Guid.NewGuid(), 
+                Guid.NewGuid(),
                 "Admin", 
                 "baryce@gmail.com", 
                 "0507804458",

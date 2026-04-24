@@ -3,14 +3,14 @@
 namespace Auth.Users.Features.Users.GetUsers;
 
 
-public record GetUsersQuery(PaginationRequest PaginationRequest) : IQuery<GetUsersResult>;
+public record GetUsersQuery(Guid CompanyId,PaginationRequest PaginationRequest) : IQuery<GetUsersResult>;
 public record GetUsersResult(PaginatedResult<UserDto> UserList);
 public class GetUsersHandler(AuthDbContext dbContext) : IQueryHandler<GetUsersQuery, GetUsersResult>
 {
     public async Task<GetUsersResult> Handle(GetUsersQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.Users.AsNoTracking().AsQueryable();
-
+        query=query.Where(u=> u.CompanyId==request.CompanyId);
         // 🔍 Search
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
         {

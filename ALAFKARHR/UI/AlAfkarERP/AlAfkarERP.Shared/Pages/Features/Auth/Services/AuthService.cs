@@ -51,43 +51,9 @@ public class AuthService : AuthBaseApiService, IAuthService
 
             _authStateProvider.NotifyUserAuthentication(tokens.AccessToken);
         }
-
-
-        //return true;
-
         return response;
-        //var response = await _http.PostAsJsonAsync(
-        //                    $"{_apiConfigOptions.BaseURL}/api/{_apiConfigOptions.Version}/auth/login",
-        //                    new { email, password });
-
-        //if (!response.IsSuccessStatusCode) return false;
-
-        //var tokens = await response.Content.ReadFromJsonAsync<AuthTokens>();
-
-        //await _tokenService.SetTokensAsync(tokens);
-
-        //_authStateProvider.NotifyUserAuthentication(tokens.AccessToken);
-
-        //return true;
     }
-    //public async Task<bool> LoginAsync(string email, string password)
-    //{
-    //    var response = await _http.PostAsJsonAsync(
-    //                        $"{_apiConfigOptions.BaseURL}/api/{_apiConfigOptions.Version}/auth/login", 
-    //                        new { email, password });
-
-    //    if (!response.IsSuccessStatusCode) return false;
-
-    //    var tokens = await response.Content.ReadFromJsonAsync<AuthTokens>();
-
-    //    await _tokenService.SetTokensAsync(tokens);
-
-    //    _authStateProvider.NotifyUserAuthentication(tokens.AccessToken);
-
-    //    return true;
-    //}
-
-    // 🔁 Refresh Token Rotation
+    
     public async Task<bool> RefreshTokenAsync()
     {
         var tokens = await _tokenService.GetTokensAsync();
@@ -121,57 +87,11 @@ public class AuthService : AuthBaseApiService, IAuthService
         _authStateProvider.NotifyUserLogout();
     }
 
-    //public async Task<ApiResult<PaginatedResult<UserDto>>> GetAsync(int pageIndex, int pageSize)
-    //{
-    //    var request = new HttpRequestMessage(HttpMethod.Get,$"{_apiConfigOptions.BaseURL}/api/{_apiConfigOptions.Version}/auth/users");
-    //    try
-    //    {
-    //        var response = await _http.SendAsync(request);
-
-    //        var content = await response.Content.ReadAsStringAsync();
-
-    //        // ❌ NOT success
-    //        if (!response.IsSuccessStatusCode)
-    //        {
-    //            ErrorResponseDto? error = null;
-
-    //            try
-    //            {
-    //                error = DeserializeAPIResponse.Deserialize<ErrorResponseDto>(content, "userList");
-    //            }
-    //            catch
-    //            {
-    //                error = new ErrorResponseDto
-    //                {
-    //                    Status = (int)response.StatusCode,
-    //                    Title = "Request failed",
-    //                    Detail = content
-    //                };
-    //            }
-
-    //            return ApiResult<PaginatedResult<UserDto>>.Failure(error!);
-    //        }
-
-    //        // ✅ success
-    //        var result = DeserializeAPIResponse.Deserialize<PaginatedResult<UserDto>>(content, "userList");
-
-    //        return ApiResult<PaginatedResult<UserDto>>.Success(result);
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return ApiResult<PaginatedResult<UserDto>>.Failure(new ErrorResponseDto
-    //        {
-    //            Status = 500,
-    //            Title = "Client Error",
-    //            Detail = ex.Message
-    //        });
-    //    }
-
-    //}
-
-    public async Task<ApiResult<PaginatedResult<UserDto>>> GetUserAsync(int pageIndex, int pageSize)
+    
+    public async Task<ApiResult<PaginatedResult<UserDto>>> GetUsersAsync(Guid companyId,int pageIndex, int pageSize)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiConfig.BaseURL}/api/{_apiConfig.Version}/auth/users");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/company/{companyId}/users");
+        return await SendAsync<PaginatedResult<UserDto>>(request, "userList");
         try
         {
             var response = await _http.SendAsync(request);
@@ -226,13 +146,5 @@ public class AuthService : AuthBaseApiService, IAuthService
         throw new NotImplementedException();
     }
 
-    public Task<ApiResult<PaginatedResult<RoleDto>>> GetRoles(int pageIndex, int pageSize)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<ApiResult<PaginatedResult<RoleDto>>> GetRolesByEmployeeId(Guid employeeId, int pageIndex, int pageSize)
-    {
-        throw new NotImplementedException();
-    }
+    
 }

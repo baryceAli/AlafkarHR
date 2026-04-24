@@ -4,10 +4,13 @@
 @using AlAfkarERP.Shared.Pages.Features.Auth.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Auth.Dtos
 @using SharedWithUI.Permissions
 @inject SharedDataService SharedDataService;
-@inject IAuthService AuthService
+@inject IRoleService RoleService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+
 
 @if (AuthState != null && !AuthState.User.Claims.Any(c => c.Value == PermissionList.RolesPermissions.View))
 {
@@ -18,68 +21,53 @@
 
 }
 
-<h3>@SharedDataService.SelectViewLang("Roles Management", "إدارة الصلاحيات")</h3>
+<div class="text-black">
+
+    <h3>@SharedDataService.SelectViewLang("Roles Management", "إدارة الصلاحيات")</h3>
+    <button class="btn btn-primary mb-3">Create new</button>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <td>@SharedDataService.SelectViewLang("Role", "الصلاحية")</td>
+                <td>Actions</td>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var role in roles)
+            {
+                <tr>
+                    <td>@role.RoleName</td>
+                    <td>
+                        <button @onclick='() => { NavigationManager.NavigateTo($"/Auth/Role/Form/{role.RoleName}"); }' class="btn btn-warning">Edit</button>
+                        <button class="btn btn-danger">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+
 
 @foreach (var group in PermissionList.GetGroupedPermissions(PermissionList.GetAll()))
 {
-    <div class="card mb-3" dir="ltr">
-        <div class="card-header">
-            <div class="row">
-                <div class="col-3">
-                    Group: @group.Group
-                </div>
-                <div class="col-9"></div>
-            </div>
-        </div>
-        <div class="card-body">
-            <div class="row mb-3">
-                <div class="col-3 fw-bold">
-                </div>
-
-                <div class="col-9">
-                    @foreach (var entity in group.Entities)
-                    {
-                        <div class="row mb-2">
-                            <div class="col-3">
-                                @entity.Entity
-                            </div>
-
-                            <div class="col-9">
-                                @foreach (var action in entity.Actions)
-                                {
-                                    var permission = $"{group.Group}.{entity.Entity}.{action}";
-
-                                    <label class="mx-2">
-                                        <InputCheckbox @bind-Value="SelectedPermissions[permission]"
-                                                       @onclick="() => { SelectedPermissions[permission] = !SelectedPermissions[permission]; }" />
-                                        @action
-                                    </label>
-                                }
-                            </div>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-    </div>
+    
 }
 
 
 @code {
     private AuthenticationState AuthState;
-    private bool isChecked = false;
-    private List<string> Roles = [];
-    private Dictionary<string, bool> SelectedPermissions = new();
+    private List<RoleDto> roles = [];
     protected override async Task OnInitializedAsync()
     {
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-        foreach (var p in PermissionList.GetAll())
+        // Guid companyId =
+        Guid.TryParse(AuthState.User?.Claims?.FirstOrDefault(c => c.Type == "company_id")?.Value, out Guid companyId);
+        var roleRes = await RoleService.GetRoles(companyId, 0, 1000);
+        if (roleRes.IsSuccess)
         {
-            SelectedPermissions[p] = false;
+            roles = roleRes.Data?.ToList() ?? [];
         }
-        // var cl = PermissionList.GetAll();
-        // var res = AuthState.User.Claims.Any(c => c.Value == PermissionList.RolesPermissions.View);
-
     }
     public void CheckedBoxChanged(ChangeEventArgs e)
     {

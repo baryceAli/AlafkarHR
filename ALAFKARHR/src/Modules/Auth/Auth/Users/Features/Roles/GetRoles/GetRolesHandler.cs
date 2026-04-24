@@ -9,7 +9,8 @@ public class GetRolesHandler(RoleManager<ApplicationRole> roleManager)
 {
     public async Task<GetRolesResult> Handle(GetRolesQuery request, CancellationToken cancellationToken)
     {
-        var roles= await roleManager.Roles.ToListAsync(cancellationToken);
+        var rolesDb= await roleManager.Roles.ToListAsync(cancellationToken);
+        var roles= rolesDb.Where(r => r.CompanyId==request.companyId).ToList();
         List<RoleDto> rolesResult = new List<RoleDto>();
         foreach (var role in roles)
         {

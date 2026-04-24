@@ -9,9 +9,9 @@ public class GetUsersEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/v1/auth/users", async ([AsParameters] PaginationRequest request, [FromServices] ISender sender) =>
+        app.MapGet("/api/v1/auth/company/{companyId}/users", async ([FromRoute]Guid companyId, [AsParameters] PaginationRequest request, [FromServices] ISender sender) =>
         {
-            var result = await sender.Send(new GetUsersQuery(request));
+            var result = await sender.Send(new GetUsersQuery(companyId,request));
             return Results.Ok(result.Adapt<GetUsersResult>());
         })
             .WithName("GetUsers")

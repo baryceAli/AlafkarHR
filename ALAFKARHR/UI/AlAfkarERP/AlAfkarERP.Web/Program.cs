@@ -38,6 +38,13 @@ builder.Services.AddHttpClient("AlAfkarERP", client =>
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
 
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddHttpClient<IRoleService, RoleService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+
 #region Organization Module Services
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddHttpClient<ICompanyService, CompanyService>(client =>

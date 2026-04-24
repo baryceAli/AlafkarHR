@@ -8,7 +8,7 @@ public class GetRolesEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/v1/auth/roles/{companyId}", async ([FromRoute] Guid companyId, ISender sender) =>
+        app.MapGet("/api/v1/auth/roles/company/{companyId}", async ([FromRoute] Guid companyId, ISender sender) =>
         {
             var result = await sender.Send(new GetRolesQuery(companyId));
             return Results.Ok(new GetRolesResponse(result.RoleList));

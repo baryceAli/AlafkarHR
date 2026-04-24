@@ -1,5 +1,6 @@
 ﻿@layout AuthManagementLayout
 @page "/Auth/Role/Form"
+@page "/Auth/Role/Form/{RoleName}"
 @using AlAfkarERP.Shared.Pages.Features.Auth.Layout
 @using AlAfkarERP.Shared.Pages.Features.Auth.Services
 
@@ -11,7 +12,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Permissions
 @inject SharedDataService SharedDataService;
-@inject IAuthService AuthService
+@inject IRoleService RoleService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 @if (AuthState != null && !AuthState.User.Claims.Any(c => c.Value == PermissionList.RolesPermissions.Create))
@@ -48,19 +49,23 @@
                             <div class="col-3">
                                 @entity.Entity
                             </div>
+                            @if (SelectedPermissions.Any())
+                            {
+                                
+                                <div class="col-9">
+                                    @foreach (var action in entity.Actions)
+                                    {
+                                        var permission = $"{group.Group}.{entity.Entity}.{action}";
 
-                            <div class="col-9">
-                                @foreach (var action in entity.Actions)
-                                {
-                                    var permission = $"{group.Group}.{entity.Entity}.{action}";
-
-                                    <label class="mx-2">
-                                        <InputCheckbox @bind-Value="SelectedPermissions[permission]"
-                                                       @onclick="() => { SelectedPermissions[permission] = !SelectedPermissions[permission]; }" />
-                                        @action
-                                    </label>
-                                }
-                            </div>
+                                        <label class="mx-2">
+                                            <InputCheckbox @bind-Value="SelectedPermissions[permission]"
+                                            @onclick="()=>OnCheckBoxClicked(permission)" />
+                                            @action
+                                        </label>
+                                                           @* @onclick="() => { SelectedPermissions[permission] = !SelectedPermissions[permission]; }" /> *@
+                                    }
+                                </div>
+                            }
                         </div>
                     }
                 </div>
@@ -71,24 +76,54 @@
 
 
 @code {
+
+    [Parameter]
+    public string? RoleName { get; set; }
     private AuthenticationState AuthState;
     private bool isChecked = false;
     private List<string> Roles = [];
     private Dictionary<string, bool> SelectedPermissions = new();
+    // private List<string> CurrentRolePermissions = [];
     protected override async Task OnInitializedAsync()
     {
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-        foreach (var p in PermissionList.GetAll())
+
+        // if (string.IsNullOrWhiteSpace(RoleName))
+        // {
+        // return;
+        // }
+        var roleRes = await RoleService.GetByName(RoleName);
+        if (roleRes.IsSuccess)
         {
-            SelectedPermissions[p] = false;
+            var role = roleRes.Data;
+            // CurrentRolePermissions = new List<string>();
+            // CurrentRolePermissions.AddRange(roleRes.Data.Permissions);
+            foreach (var p in PermissionList.GetAll())
+            {
+                SelectedPermissions[p] = false;
+                SelectedPermissions[p] = role.Permissions.Any(r => r == p);
+            }
         }
+        else
+        {
+            foreach (var p in PermissionList.GetAll())
+            {
+                SelectedPermissions[p] = false;
+            }
+            
+        }
+
         // var cl = PermissionList.GetAll();
         // var res = AuthState.User.Claims.Any(c => c.Value == PermissionList.RolesPermissions.View);
 
     }
-    public void CheckedBoxChanged(ChangeEventArgs e)
+    private void OnCheckBoxClicked(string policy)
     {
-        var eee = e.Value;
+        SelectedPermissions[policy] = !SelectedPermissions[policy];
+
+        // saveIt to db
+
+
         // if ()
         // {
             
