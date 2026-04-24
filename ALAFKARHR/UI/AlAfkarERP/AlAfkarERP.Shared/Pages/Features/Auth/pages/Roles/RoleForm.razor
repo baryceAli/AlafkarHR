@@ -8,12 +8,17 @@
 
 @using AlAfkarERP.Shared.Pages.Features.Auth.Layout
 @using AlAfkarERP.Shared.Pages.Features.Auth.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Auth.Dtos
 @using SharedWithUI.Permissions
 @inject SharedDataService SharedDataService;
 @inject IRoleService RoleService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ModalService ModalService
+@inject ToastService ToastService
+@inject NavigationManager NavigationManager
 
 @if (AuthState != null && !AuthState.User.Claims.Any(c => c.Value == PermissionList.RolesPermissions.Create))
 {
@@ -24,70 +29,101 @@
 
 }
 
-<h3>@SharedDataService.SelectViewLang("Roles Management", "إدارة الصلاحيات")</h3>
-
-@foreach (var group in PermissionList.GetGroupedPermissions(PermissionList.GetAll()))
-{
-    <div class="card mb-3" dir="ltr">
-        <div class="card-header">
+<h3 class="text-black">@SharedDataService.SelectViewLang("Roles Management", "إدارة الصلاحيات")</h3>
+<EditForm Model="roleDto" OnValidSubmit="ApplyChanges">
+    <DataAnnotationsValidator />
+    @* <ValidationSummary/> *@
+    <div class="mb-3 row">
+        <label for="inputFirstName" class="col-sm-2 col-form-label text-black">@SharedDataService.SelectViewLang("Role Name", "اسم الصلاحية")</label>
+        <div class="col-sm-10">
             <div class="row">
-                <div class="col-3">
-                    Group: @group.Group
-                </div>
-                <div class="col-9"></div>
-            </div>
-        </div>
-        <div class="card-body">
-            <div class="row mb-3">
-                <div class="col-3 fw-bold">
-                </div>
+                <div class="col-8">
 
-                <div class="col-9">
-                    @foreach (var entity in group.Entities)
-                    {
-                        <div class="row mb-2">
-                            <div class="col-3">
-                                @entity.Entity
-                            </div>
-                            @if (SelectedPermissions.Any())
-                            {
-                                
-                                <div class="col-9">
-                                    @foreach (var action in entity.Actions)
-                                    {
-                                        var permission = $"{group.Group}.{entity.Entity}.{action}";
+                    <InputText class="form-control" @bind-Value="roleDto.RoleName" disabled="@isEdit" />
+                    <ValidationMessage For="() => roleDto.RoleName" />
+                </div>
+                <div class="col-4">
 
-                                        <label class="mx-2">
-                                            <InputCheckbox @bind-Value="SelectedPermissions[permission]"
-                                            @onclick="()=>OnCheckBoxClicked(permission)" />
-                                            @action
-                                        </label>
-                                                           @* @onclick="() => { SelectedPermissions[permission] = !SelectedPermissions[permission]; }" /> *@
-                                    }
-                                </div>
-                            }
-                        </div>
-                    }
+                    <button type="submit" class="col-6 btn btn-primary">@SharedDataService.SelectViewLang("Apply Change", "حفظ التعديلات")</button>
                 </div>
             </div>
+                                            
         </div>
     </div>
-}
+
+    @foreach (var group in PermissionList.GetGroupedPermissions(PermissionList.GetAll()))
+    @* @foreach (var group in PermissionList.GetGroupedPermissions(roleDto.Permissions)) *@
+    {
+        <div class="card mb-3" dir="ltr">
+            <div class="card-header">
+                <div class="row">
+                    <div class="col-12">
+                        Group: @group.Group
+                    </div>
+                    @* <div class="col-6"></div> *@
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    @* <div class="col-sm-1 col-3 fw-bold">
+                    </div> *@
+
+                    <div class="col-sm-12 col-12">
+                        @{
+                            bool index = true;
+                        }
+                        @foreach (var entity in group.Entities)
+                        {
+                            index = !index;
+                            @* ENTITY AND POLICIES  *@
+                            <div class="row mb-2">
+                                <div class="col-5">
+                                    @entity.Entity
+                                </div>
+                                @if (SelectedPermissions.Any())
+                                {
+                                    @* <div class=@( index==true ? "col-7 bg-dark-subtle" : "col-7")> *@
+                                    <div class=@( index==true ? "col-7" : "col-7")>
+                                        @foreach (var action in entity.Actions)
+                                        {
+                                            var permission = $"{group.Group}.{entity.Entity}.{action}";
+
+                                            <label class="mx-2">
+                                                <InputCheckbox @bind-Value="SelectedPermissions[permission]"
+                                                               @onclick="() => OnCheckBoxClicked(permission)" />
+                                                @action
+                                            </label>
+                                            @* @onclick="() => { SelectedPermissions[permission] = !SelectedPermissions[permission]; }" /> *@
+                                        }
+                                    </div>
+                                    @* index = index + 1; *@
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 
 
+</EditForm>
 @code {
 
     [Parameter]
     public string? RoleName { get; set; }
+    private bool isEdit = false;
     private AuthenticationState AuthState;
-    private bool isChecked = false;
+    // private bool isChecked = false;
     private List<string> Roles = [];
     private Dictionary<string, bool> SelectedPermissions = new();
     // private List<string> CurrentRolePermissions = [];
+    private Guid companyId;
+    RoleDto roleDto = new RoleDto();
     protected override async Task OnInitializedAsync()
     {
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-
+        Guid.TryParse(AuthState.User?.Claims?.FirstOrDefault(c => c.Type == "company_id")?.Value ?? "", out companyId);
         // if (string.IsNullOrWhiteSpace(RoleName))
         // {
         // return;
@@ -95,6 +131,7 @@
         var roleRes = await RoleService.GetByName(RoleName);
         if (roleRes.IsSuccess)
         {
+            isEdit = true;
             var role = roleRes.Data;
             // CurrentRolePermissions = new List<string>();
             // CurrentRolePermissions.AddRange(roleRes.Data.Permissions);
@@ -106,15 +143,92 @@
         }
         else
         {
+            isEdit = false;
             foreach (var p in PermissionList.GetAll())
             {
                 SelectedPermissions[p] = false;
             }
-            
-        }
 
+        }
+        roleDto = new RoleDto
+        {
+            RoleName = RoleName,
+            CompanyId = companyId,
+            Permissions = PermissionList.GetAll()
+        };
         // var cl = PermissionList.GetAll();
         // var res = AuthState.User.Claims.Any(c => c.Value == PermissionList.RolesPermissions.View);
+
+    }
+    private async Task ApplyChanges()
+    {
+        if (!isEdit && RoleName == roleDto.RoleName)
+        {
+            //Show error message and stop processing: role with name is already exist
+
+            await ModalService.ShowAsync(
+                new ModalOptions
+                {
+                    Title = SharedDataService.SelectViewLang("Roles Management", "إدارة الصلاحيات"),
+                    IsError = true,
+                    Message = SharedDataService
+                        .SelectViewLang($"Role ({roleDto.RoleName} is already exist, please change the name and try again)",
+                            $"الصلاحية ({roleDto.RoleName}) موجودة مسبقا، الرجاء قم بتغيير الاسم والمحاولة مرة أخرى"),
+                    OnOk = async () =>
+                    {
+
+                    }
+
+                });
+            return;
+        }
+        List<string> rolePermissions = new List<string>();
+        foreach (var permission in PermissionList.GetAll())
+        {
+            // var val = SelectedPermissions[permission];
+            if (SelectedPermissions[permission])
+            {
+                rolePermissions.Add(permission);
+            }
+            roleDto.Permissions = new List<string>(rolePermissions);
+
+        }
+
+        var res = await RoleService.CreateAsync(roleDto);
+        if (res.IsSuccess)
+        {
+            await ModalService.ShowAsync(
+                new ModalOptions
+                {
+                    Title = SharedDataService.SelectViewLang("Roles Management", "إدارة الصلاحيات"),
+                    Message = SharedDataService
+                                .SelectViewLang("Changed has been applied successfully",
+                                "تم تطبيق التعديلات بنجاح"),
+                    IsError = false,
+                    OnOk = async () =>
+                    {
+
+                    }
+                });
+            NavigationManager.NavigateTo("/Auth/Role/List");
+            return;
+        }
+        else
+        {
+            await ModalService.ShowAsync(
+                new ModalOptions
+                {
+                    Title = SharedDataService.SelectViewLang("Roles Management", "إدارة الصلاحيات"),
+                    Message = SharedDataService
+                                .SelectViewLang("An error has occured, please try again later.",
+                                "حدثت مشكلة أثناء محاولة تطبيق التعديلات، الرجاء المحاولة مرة أخرى"),
+                    IsError = true,
+                    OnOk = async () =>
+                    {
+                    
+                    }
+                });
+        }
 
     }
     private void OnCheckBoxClicked(string policy)
