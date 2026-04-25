@@ -1,19 +1,27 @@
-﻿namespace SharedWithUI.Catalog.Dtos;
+﻿using System.ComponentModel.DataAnnotations;
 
-public record ProductDto(
-    Guid Id,
-    Guid CategoryId,
-    string CategoryName,
-    string CategoryNameEng,
-    Guid BrandId,
-    string BrandName,
-    string BrandNameEng,
-    Guid UnitId,
-    string UnitName,
-    string UnitNameEng,
-    string Name,
-    string NameEng,
-    decimal Price,
-    string ImageUrl,
-    List<ProductSkuDto> ProductSkus
-);
+namespace SharedWithUI.Catalog.Dtos;
+
+public class ProductDto
+{
+    public Guid Id { get; set; }
+    public Guid CategoryId { get; set; }
+    public string CategoryName { get; set; }
+    public string CategoryNameEng { get; set; }
+    public Guid BrandId { get; set; }
+    public string BrandName { get; set; }
+    public string BrandNameEng { get; set; }
+    public Guid UnitId { get; set; }
+    public string UnitName { get; set; }
+    public string UnitNameEng { get; set; }
+    public string Name { get; set; }
+    public string NameEng { get; set; }
+    public decimal Price { get; set; }
+    public string ImageUrl { get; set; }
+
+    [Required(ErrorMessage = "Company is required")]
+    public Guid? CompanyId { get; set; }
+
+    public List<ProductSkuDto> ProductSkus { get; set; }
+
+}

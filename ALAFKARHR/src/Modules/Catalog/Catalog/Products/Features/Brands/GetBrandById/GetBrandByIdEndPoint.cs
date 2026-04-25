@@ -1,9 +1,4 @@
-﻿using Carter;
-using Catalog.Products.Features.Products.CreateProduct;
-using Mapster;
-using MediatR;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
+﻿using MediatR;
 
 namespace Catalog.Products.Features.Brands.GetBrandById;
 

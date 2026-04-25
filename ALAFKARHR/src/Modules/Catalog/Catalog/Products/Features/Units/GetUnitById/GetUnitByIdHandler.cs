@@ -1,6 +1,4 @@
-﻿using Mapster;
-
-namespace Catalog.Products.Features.Units.GetUnitById;
+﻿namespace Catalog.Products.Features.Units.GetUnitById;
 
 public record GetUnitByIdQuery(Guid Id) : IQuery<GetUnitByIdResult>;
 public record GetUnitByIdResult(UnitDto Unit);

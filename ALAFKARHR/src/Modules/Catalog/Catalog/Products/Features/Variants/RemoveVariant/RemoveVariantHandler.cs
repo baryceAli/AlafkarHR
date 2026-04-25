@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
-
-namespace Catalog.Products.Features.Variants.RemoveVariant;
+﻿namespace Catalog.Products.Features.Variants.RemoveVariant;
 
 public record RemoveVariantCommand(Guid id) : ICommand<RemoveVariantResult>;
 public record RemoveVariantResult(bool IsSuccess);

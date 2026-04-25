@@ -1,6 +1,4 @@
-﻿using Mapster;
-
-namespace Catalog.Products.Features.ProductPackages.GetProductPackages;
+﻿namespace Catalog.Products.Features.ProductPackages.GetProductPackages;
 
 
 public record GetProductPackagesQuery(PaginationRequest PaginationRequest) : IQuery<GetProductPackagesResult>;

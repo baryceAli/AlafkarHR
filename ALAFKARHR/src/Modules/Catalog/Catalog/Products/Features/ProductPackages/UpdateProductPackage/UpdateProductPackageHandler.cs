@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
-
-namespace Catalog.Products.Features.ProductPackages.UpdateProductPackage;
+﻿namespace Catalog.Products.Features.ProductPackages.UpdateProductPackage;
 
 public record UpdateProductPackageCommand(ProductPackageDto ProductPackage) : ICommand<UpdateProductPackageResult>;
 public record UpdateProductPackageResult(bool IsSuccess);

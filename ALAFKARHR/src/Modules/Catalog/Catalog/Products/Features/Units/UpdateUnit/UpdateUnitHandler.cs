@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
-
-namespace Catalog.Products.Features.Units.UpdateUnit;
+﻿namespace Catalog.Products.Features.Units.UpdateUnit;
 
 
 public record UpdateUnitCommand(UnitDto Unit) : ICommand<UpdateUnitResult>;

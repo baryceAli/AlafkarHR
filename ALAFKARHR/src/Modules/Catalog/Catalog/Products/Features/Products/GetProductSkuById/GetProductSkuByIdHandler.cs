@@ -1,6 +1,4 @@
-﻿using Mapster;
-
-namespace Catalog.Products.Features.Products.GetProductSkuById;
+﻿namespace Catalog.Products.Features.Products.GetProductSkuById;
 
 public record GetProductSkuByIdQuery(Guid Id):IQuery<GetProductSkuByIdResult>;
 public record GetProductSkuByIdResult(ProductSkuDto ProductSku);

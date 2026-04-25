@@ -7,6 +7,7 @@ public class ProductPackage : Aggregate<Guid>
     public string Name { get; private set; }
     public string NameEng { get;private set; } 
     public double UnitsCount { get; private set; }
+    public Guid CompanyId { get; private set; }
     //public decimal PackagePrice { get; set; }
 
     //this price is calculated price* unitRate --> the price value will come from product or ProductVariant if available
@@ -19,7 +20,8 @@ public class ProductPackage : Aggregate<Guid>
                             string name, 
                             string nameEng, 
                             double unitsCount, 
-                            decimal packagePrice,
+                            Guid companyId,
+                            //decimal packagePrice,
                             string createdBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -31,6 +33,7 @@ public class ProductPackage : Aggregate<Guid>
         Name = name;
         NameEng = nameEng;
         UnitsCount = unitsCount;
+        CompanyId = companyId;
         CreatedAt = DateTime.UtcNow;
         CreatedBy = createdBy;
     }
@@ -56,6 +59,7 @@ public class ProductPackage : Aggregate<Guid>
         string name,
         string nameEng,
         double unitsCount,
+        Guid companyId,
         string createdBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -70,6 +74,7 @@ public class ProductPackage : Aggregate<Guid>
             Name = name,
             NameEng = nameEng,
             UnitsCount = unitsCount,
+            CompanyId=companyId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };

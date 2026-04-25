@@ -1,7 +1,4 @@
-﻿using Catalog.Products.Features.Variants.CreateVariant;
-using Mapster;
-
-namespace Catalog.Products.Features.Variants.GetVariantById;
+﻿namespace Catalog.Products.Features.Variants.GetVariantById;
 
 public record GetVariantByIdQuery(Guid Id) : IQuery<GetVariantByIdResult>;
 public record GetVariantByIdResult(VariantDto Variant);

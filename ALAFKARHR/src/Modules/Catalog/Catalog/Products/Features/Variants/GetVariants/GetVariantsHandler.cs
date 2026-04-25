@@ -1,6 +1,4 @@
-﻿using Mapster;
-
-namespace Catalog.Products.Features.Variants.GetVariants;
+﻿namespace Catalog.Products.Features.Variants.GetVariants;
 
 public record GetVariantsQuery(PaginationRequest PaginationRequest) : IQuery<GetVariantsResult>;
 public record GetVariantsResult(PaginatedResult<VariantDto> VariantList);

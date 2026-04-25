@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
-
-namespace Catalog.Products.Features.Variants.UpdateVariant;
+﻿namespace Catalog.Products.Features.Variants.UpdateVariant;
 
 
 public record UpdateVariantCommand(VariantDto Variant):ICommand<UpdateVariantResult>;

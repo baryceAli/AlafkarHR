@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
-
-namespace Catalog.Products.Features.Variants.CreateVariant;
+﻿namespace Catalog.Products.Features.Variants.CreateVariant;
 
 public record CreateVariantCommand(VariantDto Variant) : ICommand<CreateVariantResult>;
 public record CreateVariantResult(Guid Id);
@@ -26,7 +23,8 @@ public class CreateVariantHandler (CatalogDbContext dbContext, IHttpContextAcces
         var variant = Variant.Create(
             Guid.NewGuid(),
             command.Variant.Name,
-            command.Variant.NameEng,
+            command.Variant.NameEng, 
+            Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),
             userId,
             command.Variant.Description
             );

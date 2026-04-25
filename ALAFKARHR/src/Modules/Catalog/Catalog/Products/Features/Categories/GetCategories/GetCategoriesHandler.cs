@@ -1,6 +1,4 @@
-﻿using Mapster;
-
-namespace Catalog.Products.Features.Categories.GetCategories;
+﻿namespace Catalog.Products.Features.Categories.GetCategories;
 
 public record GetCategoriesQuery(PaginationRequest PaginationRequest) : IQuery<GetCategoriesResult>;
 public record GetCategoriesResult(PaginatedResult<CategoryDto> CategoryList);

@@ -1,6 +1,4 @@
-﻿using Mapster;
-
-namespace Catalog.Products.Features.Products.SearchProducts
+﻿namespace Catalog.Products.Features.Products.SearchProducts
 {
     public record SearchProductsQuery(string term) : IQuery<SearchProductsResult>;
     public record SearchProductsResult(List<ProductDto> ProductList);

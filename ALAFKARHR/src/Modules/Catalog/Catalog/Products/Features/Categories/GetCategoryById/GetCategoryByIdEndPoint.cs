@@ -1,8 +1,4 @@
-﻿using Carter;
-using Mapster;
-using MediatR;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
+﻿using MediatR;
 
 namespace Catalog.Products.Features.Categories.GetCategoryById;
 

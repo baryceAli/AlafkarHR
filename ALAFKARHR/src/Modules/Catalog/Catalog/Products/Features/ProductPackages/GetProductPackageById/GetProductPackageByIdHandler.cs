@@ -1,6 +1,4 @@
-﻿using Mapster;
-
-namespace Catalog.Products.Features.ProductPackages.GetProductPackageById;
+﻿namespace Catalog.Products.Features.ProductPackages.GetProductPackageById;
 
 public record GetProductPackageByIdQuery(Guid Id):IQuery<GetProductPackageByIdResult>;
 public record GetProductPackageByIdResult(ProductPackageDto ProductPackage);

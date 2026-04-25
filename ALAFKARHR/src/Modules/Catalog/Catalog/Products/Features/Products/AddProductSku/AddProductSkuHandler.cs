@@ -1,6 +1,4 @@
 ﻿using Catalog.Products.Helpers;
-using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
 
 namespace Catalog.Products.Features.Products.AddProductSku;
 
@@ -78,9 +76,9 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
 
         var productSku = ProductSKU.Create(
             Guid.NewGuid(),
-            command.ProductSku.ProductId,
-            command.ProductSku.VariantId,
-            command.ProductSku.PackageId,
+            command.ProductSku.ProductId.Value,
+            command.ProductSku.VariantId.Value,
+            command.ProductSku.PackageId.Value,
             command.ProductSku.VariantValue,
             command.ProductSku.Price,
             finalSku,

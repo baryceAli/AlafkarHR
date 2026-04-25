@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
-
-namespace Catalog.Products.Features.Units.RemoveUnit;
+﻿namespace Catalog.Products.Features.Units.RemoveUnit;
 
 public record RemoveUnitCommand(Guid Id) : ICommand<RemoveUnitResult>;
 public record RemoveUnitResult(bool IsSuccess);

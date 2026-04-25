@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
-
-namespace Catalog.Products.Features.Products.UpdateProductSku;
+﻿namespace Catalog.Products.Features.Products.UpdateProductSku;
 
 public record UpdateProductSkuCommand(ProductSkuDto ProductSku) : ICommand<UpdateProductSkuResult>;
 public record UpdateProductSkuResult(bool IsSuccess);

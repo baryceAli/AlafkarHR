@@ -1,12 +1,25 @@
-﻿namespace SharedWithUI.Catalog.Dtos;
+﻿using System.ComponentModel.DataAnnotations;
 
-public record ProductPackageDto(
-    Guid Id,
-    string Name,
-    string NameEng,
-    double UnitsCount
-    //decimal PackagePrice
-);
-//public double QuantityPerPackage { get; private set; }
-//public decimal PackagePrice { get; set; }
-//public bool ShowOnStore { get; set; }
+namespace SharedWithUI.Catalog.Dtos;
+
+public class ProductPackageDto
+{
+    public Guid Id { get; set; }
+    
+    [Required(ErrorMessage ="Name is required")]
+    public string Name { get; set; }
+
+    [Required(ErrorMessage = "NameEng is required")]
+    public string NameEng { get; set; }
+
+    [Required(ErrorMessage = "UnitsCount is required")]
+    [Range(0.01,1000000,ErrorMessage = "UnitsCount must be greator than 0")]
+    public double UnitsCount { get; set; }
+
+
+    [Required(ErrorMessage = "Company is required")]
+    public Guid? CompanyId { get; set; }
+
+}
+
+

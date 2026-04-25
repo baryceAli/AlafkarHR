@@ -1,5 +1,4 @@
-﻿
-using MediatR;
+﻿using MediatR;
 
 namespace Catalog.Products.Features.Brands.RemoveBrand;
 

@@ -1,9 +1,4 @@
-﻿using Carter;
-using Mapster;
-using MediatR;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing;
+﻿using MediatR;
 
 namespace Catalog.Products.Features.Products.RemoveProductSku;
 

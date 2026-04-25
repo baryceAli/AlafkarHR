@@ -45,7 +45,7 @@ public class CatalogDataSeeder : IDataSeeder<CatalogDbContext>
                 var productId = prod.Id;
                 string[] PATH_SEGEMNT = ["wwwroot", "Images", "Products"];
                 var img = SaveImages.SaveBase64Image($"{productId}", PATH_SEGEMNT, prod.ImageUrl);
-                var p = Product.Create(productId, prod.Name, prod.NameEng, prod.Price, prod.BrandId, prod.CategoryId, prod.UnitId, img, prod.CreatedBy);
+                var p = Product.Create(productId, prod.Name, prod.NameEng, prod.Price, prod.BrandId, prod.CategoryId, prod.UnitId, Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), img, prod.CreatedBy);
                 dbContext.Products.Add(p);
                 await dbContext.SaveChangesAsync();
             }

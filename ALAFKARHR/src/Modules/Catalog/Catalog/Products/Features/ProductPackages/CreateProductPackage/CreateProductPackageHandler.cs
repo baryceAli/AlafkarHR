@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
-
-namespace Catalog.Products.Features.ProductPackages.CreateProductPackage;
+﻿namespace Catalog.Products.Features.ProductPackages.CreateProductPackage;
 
 public record AddProductPackageCommand(ProductPackageDto ProductPackage) : ICommand<AddProductPackageResult>;
 public record AddProductPackageResult(Guid Id);
@@ -30,7 +27,8 @@ public class CreateProductPackageHandler(CatalogDbContext dbContext, IHttpContex
             Guid.NewGuid(),
             command.ProductPackage.Name,
             command.ProductPackage.NameEng,
-            command.ProductPackage.UnitsCount,
+            command.ProductPackage.UnitsCount, 
+            Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),
             userId);
 
         dbContext.ProductPackages.Add(prdpkg);

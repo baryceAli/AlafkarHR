@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Shared.SaveImages;
-using System.Security.Claims;
+﻿using Shared.SaveImages;
 
 namespace Catalog.Products.Features.Products.UpdateProduct;
 

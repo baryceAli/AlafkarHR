@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
-
-namespace Catalog.Products.Features.Categories.CreateCategory;
+﻿namespace Catalog.Products.Features.Categories.CreateCategory;
 
 public record CreateCategoryCommand(CategoryDto Category) : ICommand<CreateCategoryResult>;
 public record CreateCategoryResult(Guid Id);
@@ -23,7 +20,7 @@ public class CreateCategoryHandler (CatalogDbContext dbContext, IHttpContextAcce
         var user = httpContextAccessor.HttpContext?.User;
         var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-        var category = Category.Create(Guid.NewGuid(), command.Category.Name,command.Category.NameEng, command.Category.Description, userId);
+        var category = Category.Create(Guid.NewGuid(), command.Category.Name,command.Category.NameEng, Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), command.Category.Description, userId);
         dbContext.Categories.Add(category);
         await dbContext.SaveChangesAsync(cancellationToken);
 

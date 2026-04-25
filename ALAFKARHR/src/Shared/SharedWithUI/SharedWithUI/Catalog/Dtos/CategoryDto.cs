@@ -1,3 +1,23 @@
-﻿namespace SharedWithUI.Catalog.Dtos;
+﻿using System.ComponentModel.DataAnnotations;
 
-public record CategoryDto(Guid Id, string Name, string NameEng, string? Description);
+namespace SharedWithUI.Catalog.Dtos;
+
+public class CategoryDto
+{
+    public Guid Id { get; set; }
+    
+    
+    [Required(ErrorMessage ="Name is required")]
+    public string Name { get; set; } = default!;
+    
+    
+    [Required(ErrorMessage = "NameEng is required")]
+    public string NameEng { get; set; } = default!;
+
+
+    [Required(ErrorMessage = "Company is required")]
+    public Guid? CompanyId { get; set; }
+    public string? Description { get; set; }
+
+
+        }

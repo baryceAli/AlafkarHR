@@ -1,9 +1,4 @@
-﻿using Catalog.Products.Features.Products.CreateProduct;
-using Mapster;
-using Microsoft.AspNetCore.Http;
-using Microsoft.IdentityModel.JsonWebTokens;
-using System.Security.Claims;
-
+﻿
 namespace Catalog.Products.Features.Brands.CreateBrand;
 
 public record CreateBrandCommand(BrandDto Brand) : ICommand<CreateBrandResult>;
@@ -25,7 +20,7 @@ public class CreateBrandHandler (CatalogDbContext dbContext, IHttpContextAccesso
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
         //var userEmail = user?.FindFirst(ClaimTypes.Email)?.Value;
 
-        var brand = Brand.Create(Guid.NewGuid(), command.Brand.Name,command.Brand.NameEng, userId, command.Brand.Description);
+        var brand = Brand.Create(Guid.NewGuid(), command.Brand.Name,command.Brand.NameEng, Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), userId, command.Brand.Description);
         await dbContext.AddAsync(brand);
         await dbContext.SaveChangesAsync(cancellationToken);
 

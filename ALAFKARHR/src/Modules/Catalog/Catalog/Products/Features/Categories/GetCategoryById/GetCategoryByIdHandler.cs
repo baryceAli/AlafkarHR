@@ -1,6 +1,4 @@
-﻿using Mapster;
-
-namespace Catalog.Products.Features.Categories.GetCategoryById;
+﻿namespace Catalog.Products.Features.Categories.GetCategoryById;
 
 public record GetCategoryByIdQuery(Guid Id):IQuery<GetCategoryByIdResult>;
 public record GetCategoryByIdResult(CategoryDto Category);

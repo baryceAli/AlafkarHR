@@ -20,3 +20,4 @@ global using Microsoft.AspNetCore.Http;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.Routing;
 global using SharedWithUI.Permissions;
+global using System.Security.Claims;

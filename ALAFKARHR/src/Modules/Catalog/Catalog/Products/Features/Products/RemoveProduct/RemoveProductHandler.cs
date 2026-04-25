@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
-
-namespace Catalog.Products.Features.Products.RemoveProduct;
+﻿namespace Catalog.Products.Features.Products.RemoveProduct;
 
 public record RemoveProductCommand(Guid Id, string DeletedBy):ICommand<RemoveProductResult>;
 public record RemoveProductResult(bool IsSuccess);

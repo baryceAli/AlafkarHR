@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
-
-namespace Catalog.Products.Features.Brands.UpdateBrand;
+﻿namespace Catalog.Products.Features.Brands.UpdateBrand;
 
 public record UpdateBrandCommand(BrandDto Brand) : ICommand<UpdateBrandResult>;
 public record UpdateBrandResult(bool IsSuccess);

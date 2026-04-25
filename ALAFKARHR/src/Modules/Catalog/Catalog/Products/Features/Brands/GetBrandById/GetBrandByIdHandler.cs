@@ -1,7 +1,4 @@
-﻿using Mapster;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
-
-namespace Catalog.Products.Features.Brands.GetBrandById;
+﻿namespace Catalog.Products.Features.Brands.GetBrandById;
 
 public record GetBrandByIdQuery(Guid Id) : IQuery<GetBrandByIdResult>;
 public record GetBrandByIdResult(BrandDto Brand);

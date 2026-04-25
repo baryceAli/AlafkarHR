@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
-
-namespace Catalog.Products.Features.Categories.UpdateCategory;
+﻿namespace Catalog.Products.Features.Categories.UpdateCategory;
 
 public record UpdateCategoryCommand(CategoryDto Category) : ICommand<UpdateCategoryResult>;
 public record UpdateCategoryResult(bool IsSuccess);

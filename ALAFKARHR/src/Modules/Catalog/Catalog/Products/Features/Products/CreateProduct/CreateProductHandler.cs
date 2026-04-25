@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Shared.SaveImages;
-using System.Security.Claims;
+﻿using Shared.SaveImages;
 
 namespace Catalog.Products.Features.Products.CreateProduct;
 
@@ -38,9 +36,10 @@ public class CreateProductHandler(CatalogDbContext dbContext, IHttpContextAccess
                 command.Product.Name,
                 command.Product.NameEng,
                 command.Product.Price,
-                command.Product.BrandId,
-                command.Product.CategoryId,
-                command.Product.UnitId,
+                command.Product.BrandId.Value,
+                command.Product.CategoryId.Value,
+                command.Product.UnitId.Value,
+                Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),
                 img,
                 userId);
 

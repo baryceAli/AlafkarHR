@@ -9,10 +9,10 @@ public class Product : Aggregate<Guid>
 
     public Guid UnitId { get; private set; }
     public string Name { get; private set; } = default!;
-    public string NameEng { get; set; } = default!;
+    public string NameEng { get; private set; } = default!;
     public decimal Price { get; private set; }
-    public string ImageUrl { get; set; } = default!;
-
+    public string ImageUrl { get; private set; } = default!;
+    public Guid CompanyId { get; private set; }
 
     private readonly List<ProductSKU> _productSkus = new();
     public IReadOnlyCollection<ProductSKU> ProductSkus => _productSkus;
@@ -22,7 +22,7 @@ public class Product : Aggregate<Guid>
 
 
     private Product() { }
-    public static Product Create(Guid id, string name, string nameEng, decimal price, Guid brandId, Guid categoryId, Guid unitId, string imagePath, string createdBy)
+    public static Product Create(Guid id, string name, string nameEng, decimal price, Guid brandId, Guid categoryId, Guid unitId,Guid companyId, string imagePath, string createdBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(nameEng);
@@ -41,6 +41,7 @@ public class Product : Aggregate<Guid>
             BrandId = brandId,
             CategoryId = categoryId,
             UnitId = unitId,
+            CompanyId = companyId,
             ImageUrl = imagePath,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy

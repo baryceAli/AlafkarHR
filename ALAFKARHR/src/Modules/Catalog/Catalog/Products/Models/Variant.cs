@@ -2,38 +2,41 @@
 
 public class Variant : Aggregate<Guid>
 {
-    public string Name { get; private set; } = string.Empty;
-    public string NameEng { get; set; } = default!;
-
-    public string? Description { get; private set; } = string.Empty;
+    public string Name { get; private set; } = default!;
+    public string NameEng { get; private set; } = default!;
+    public Guid CompanyId { get; private set; }
+    public string? Description { get; private set; } = default!;
 
     private Variant() { }
 
-    internal Variant(Guid id, string name, string nameEng, string createdBy, string? description = "")
+    internal Variant(Guid id, string name, string nameEng,Guid companyId, string createdBy, string? description = "")
     {
         Id = id;
         Name = name;
         NameEng = nameEng;
         Description = description;
+        CompanyId = companyId;
         CreatedAt = DateTime.UtcNow;
         CreatedBy = createdBy;
     }
 
     [JsonConstructor]
-    public Variant(Guid id, string name, string nameEng, string? description = "")
+    public Variant(Guid id, string name, string nameEng,Guid companyId, string? description = "")
     {
         Id = id;
         Name = name;
         NameEng = nameEng;
+        CompanyId= companyId;
         Description = description;
     }
-    public static Variant Create(Guid id, string name, string nameEng, string createdBy, string? description = "")
+    public static Variant Create(Guid id, string name, string nameEng,Guid companyId, string createdBy, string? description = "")
     {
         return new Variant()
         {
             Id = id,
             Name = name,
             NameEng = nameEng,
+            CompanyId=companyId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy,
             Description = description

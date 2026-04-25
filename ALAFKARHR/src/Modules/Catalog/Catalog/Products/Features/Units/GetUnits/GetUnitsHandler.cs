@@ -1,6 +1,4 @@
-﻿using Mapster;
-
-namespace Catalog.Products.Features.Units.GetUnits;
+﻿namespace Catalog.Products.Features.Units.GetUnits;
 
 public record GetUnitsQuery(PaginationRequest PaginationRequest) : IQuery<GetUnitsResult>;
 public record GetUnitsResult(PaginatedResult<UnitDto> UnitList);

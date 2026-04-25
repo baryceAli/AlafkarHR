@@ -1,9 +1,5 @@
-﻿using Carter;
-using Catalog.Products.Features.Products.CreateProduct;
-using Mapster;
+﻿using Catalog.Products.Features.Products.CreateProduct;
 using MediatR;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
 
 namespace Catalog.Products.Features.Products.GetProductById;
 

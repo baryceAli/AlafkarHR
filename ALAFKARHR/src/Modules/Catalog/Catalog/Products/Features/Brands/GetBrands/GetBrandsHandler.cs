@@ -1,6 +1,4 @@
-﻿using Mapster;
-
-namespace Catalog.Products.Features.Brands.GetBrands;
+﻿namespace Catalog.Products.Features.Brands.GetBrands;
 
 public record GetBrandsQuery(PaginationRequest PaginationRequest) : ICommand<GetBrandsResult>;
 public record GetBrandsResult(PaginatedResult<BrandDto> Brands);

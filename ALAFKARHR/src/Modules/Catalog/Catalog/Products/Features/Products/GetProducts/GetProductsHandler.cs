@@ -1,6 +1,4 @@
-﻿using Mapster;
-
-namespace Catalog.Products.Features.Products.GetProducts;
+﻿namespace Catalog.Products.Features.Products.GetProducts;
 
 
 public record GetProductsQuery(PaginationRequest PaginationRequest) : IQuery<GetProductsResult>;
@@ -24,40 +22,42 @@ public class GetProductsHandler(CatalogDbContext dbContext)
             join u in dbContext.Units on p.UnitId equals u.Id
 
             where p.DeletedAt == null
-            
-            select new ProductDto(
-                p.Id,
-                c.Id,
-                c.Name,
-                c.NameEng,
-                b.Id,
-                b.Name,
-                b.NameEng,
-                u.Id,
-                u.UnitName,
-                u.UnitNameEng,
-                p.Name,
-                p.NameEng,
-                p.Price,
-                p.ImageUrl,
+
+            select new ProductDto
+            {
+                Id = p.Id,
+                CategoryId = c.Id,
+                CategoryName = c.Name,
+                CategoryNameEng = c.NameEng,
+                BrandId = b.Id,
+                BrandName = b.Name,
+                BrandNameEng = b.NameEng,
+                UnitId = u.Id,
+                UnitName = u.UnitName,
+                UnitNameEng = u.UnitNameEng,
+                Name = p.Name,
+                NameEng = p.NameEng,
+                Price = p.Price,
+                ImageUrl = p.ImageUrl,
 
                 // ✅ FIX HERE
-                p.ProductSkus
-                    .Where(v=> v.DeletedAt==null)
-                    .Select(v => new ProductSkuDto(
-                        v.Id,
-                        v.VariantId,
-                        v.ProductId,
-                        v.PackageId,
-                        v.Sku,
-                        v.SkuEng,
-                        v.VariantValue,
-                        v.Price,
-                        v.ShowOnStore
-                    ))
-                    .ToList()
+                ProductSkus = p.ProductSkus
+        .Where(v => v.DeletedAt == null)
+        .Select(v => new ProductSkuDto
+        {
+            Id = v.Id,
+            VariantId = v.VariantId,
+            ProductId = v.ProductId,
+            PackageId = v.PackageId,
+            Sku = v.Sku,
+            SkuEng = v.SkuEng,
+            VariantValue = v.VariantValue,
+            Price = v.Price,
+            ShowOnStore = v.ShowOnStore
+        })
+        .ToList()
 
-            )
+            }
             )
             .AsNoTracking()
             .ToListAsync();

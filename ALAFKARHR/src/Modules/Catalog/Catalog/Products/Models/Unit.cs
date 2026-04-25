@@ -3,26 +3,28 @@
 public class Unit : Aggregate<Guid>
 {
     public string UnitName { get; private set; } = string.Empty;
-    public string UnitNameEng { get; set; } = default!;
-
+    public string UnitNameEng { get; private set; } = default!;
+    public Guid CompanyId { get; set; }
     private Unit() { }
 
-    internal Unit(Guid id,string unitName, string unitNameEng, string createdBy)
+    internal Unit(Guid id,string unitName, string unitNameEng, string createdBy, Guid companyId)
     {
         Id = id;
         UnitName = unitName;
         UnitNameEng = unitNameEng;
         CreatedAt = DateTime.UtcNow;
         CreatedBy = createdBy;
+        CompanyId = companyId;
     }
     [JsonConstructor]
-    public Unit(Guid id,string unitName, string unitNameEng)
+    public Unit(Guid id,string unitName, string unitNameEng, Guid companyId)
     {
         Id = id;
         UnitName = unitName;
         UnitNameEng = unitNameEng;
+        CompanyId=companyId;
     }
-    public static Unit Create(Guid id,string unitName, string unitNameEng, string createdBy)
+    public static Unit Create(Guid id,string unitName, string unitNameEng,Guid companyId, string createdBy)
     {
         ArgumentNullException.ThrowIfNullOrEmpty(unitName);
         ArgumentNullException.ThrowIfNullOrEmpty(unitNameEng);
@@ -31,6 +33,7 @@ public class Unit : Aggregate<Guid>
             Id = id,
             UnitName = unitName,
             UnitNameEng = unitNameEng,
+            CompanyId= companyId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
