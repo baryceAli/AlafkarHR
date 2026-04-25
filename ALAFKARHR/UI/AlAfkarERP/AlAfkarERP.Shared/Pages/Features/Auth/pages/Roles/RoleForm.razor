@@ -113,6 +113,8 @@
     [Parameter]
     public string? RoleName { get; set; }
     private bool isEdit = false;
+    // [CascadingParameter]
+    // private Task<AuthenticationState> AuthStateTask { get; set; }
     private AuthenticationState AuthState;
     // private bool isChecked = false;
     private List<string> Roles = [];
@@ -122,7 +124,12 @@
     RoleDto roleDto = new RoleDto();
     protected override async Task OnInitializedAsync()
     {
+        // if (!authState.User.Identity.IsAuthenticated)
+        // {
+        //     NavigationManager.NavigateTo("/");
+        // }
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        // var authState = await AuthStateTask;
         Guid.TryParse(AuthState.User?.Claims?.FirstOrDefault(c => c.Type == "company_id")?.Value ?? "", out companyId);
         // if (string.IsNullOrWhiteSpace(RoleName))
         // {

@@ -48,7 +48,7 @@
 
             <ul class="dropdown-menu dropdown-menu-end">
                 <li><a class="dropdown-item">Profile</a></li>
-                <li><a class="dropdown-item">Logout</a></li>
+                <li><a @onclick='async()=>{await ((CustomAuthStateProvider)AuthenticationStateProvider).NotifyUserLogout(); NavigationManager.NavigateTo("/",true);}' class="dropdown-item">Logout</a></li>
             </ul>
         </div>
 

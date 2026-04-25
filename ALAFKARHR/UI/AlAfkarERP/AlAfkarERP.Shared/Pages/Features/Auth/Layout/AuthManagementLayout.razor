@@ -52,7 +52,7 @@
             AuthState = await((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
             if (!AuthState.User.Identity.IsAuthenticated)
             {
-                NavigationManager.NavigateTo("login");
+                NavigationManager.NavigateTo("login",true);
             }
             // NavigationManager.NavigateTo("/login");
         }

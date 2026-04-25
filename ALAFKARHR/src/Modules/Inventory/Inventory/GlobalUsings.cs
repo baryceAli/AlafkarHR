@@ -1,0 +1,16 @@
+﻿global using SharedWithUI.Inventory.Dtos;
+global using Shared.Contracts.CQRS;
+global using Inventory.Warehouses.Models;
+global using FluentValidation;
+global using Carter;
+global using MediatR;
+global using Microsoft.AspNetCore.Builder;
+global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Routing;
+global using Inventory.Data;
+global using Mapster;
+global using Microsoft.EntityFrameworkCore;
+global using Shared.Pagination;
+global using Microsoft.AspNetCore.Mvc;
+global using System.Security.Claims;
+global using SharedWithUI.Permissions;
