@@ -31,3 +31,4 @@ global using Auth.Helpers;
 global using Shared.Contracts.Messaging;
 global using SharedWithUI.Permissions;
 global using SharedWithUI.Auth.Dtos;
+global using Shared.Exceptions;

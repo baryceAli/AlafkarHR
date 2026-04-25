@@ -39,6 +39,7 @@
                     <td>@role.RoleName</td>
                     <td>
                         <button @onclick='() => { NavigationManager.NavigateTo($"/Auth/Role/Form/{role.RoleName}"); }' class="btn btn-warning">Edit</button>
+                        <button @onclick='() => { NavigationManager.NavigateTo($"/Auth/Role/AddUser/{role.RoleName}"); }' class="btn btn-warning">Edit</button>
                         <button class="btn btn-danger">Delete</button>
                     </td>
                 </tr>

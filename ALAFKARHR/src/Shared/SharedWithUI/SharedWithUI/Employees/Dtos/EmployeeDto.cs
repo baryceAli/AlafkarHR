@@ -102,6 +102,7 @@ public class EmployeeDto
     //public Employee? Manager { get; private set; }
 
     // 🔐 System
+    [Required(ErrorMessage ="Code is required")]
     public string Code { get; set; }
 
     public IdentityType IdentityType { get; set; }

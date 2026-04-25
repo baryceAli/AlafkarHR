@@ -45,6 +45,14 @@ builder.Services.AddHttpClient<IRoleService, RoleService>(client =>
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
 
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddHttpClient<IUserService, UserService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+
+
 #region Organization Module Services
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddHttpClient<ICompanyService, CompanyService>(client =>

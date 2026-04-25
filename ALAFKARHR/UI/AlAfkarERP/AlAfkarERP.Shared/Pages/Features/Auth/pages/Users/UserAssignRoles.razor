@@ -1,0 +1,121 @@
+﻿@layout AuthManagementLayout
+@page "/Auth/User/AssignRoleTemp"
+@using AlAfkarERP.Shared.Pages.Features.Auth.Services
+@using AlAfkarERP.Shared.Pages.Reuable
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using AlAfkarERP.Shared.Pages.Features.Auth.Layout
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Auth.Dtos
+
+@inject IRoleService RoleService
+@inject IUserService UserService
+@inject SharedDataService SharedDataService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject ModalService ModalService
+
+
+<h3>@SharedDataService.SelectViewLang("Assign role to users", "تعيين الصلاحية لمستخدمين")</h3>
+<div>
+    @* Auto complete for users *@
+    <div class="mb-3">
+        <label for="Users" class="form-label">@(SharedDataService.Language == "Ar" ? "اختر المستخدم" : "Select User")</label>
+        <AutoCompleteComponent TItem="UserDto"
+                               Items="users"
+                               ItemText="(u=>u.UserName)"
+                               Value="selectedUser"
+                               PlaceHolder="search users ..."
+                               ValueChanged="OnUserValueChanged" />
+    </div>
+    @* Auto complete for rols *@
+    <div class="mb-3">
+        <label for="Roles" class="form-label">@(SharedDataService.Language == "Ar" ? "اختر صلاحية" : "Select Role")</label>
+        <AutoCompleteComponent TItem="RoleDto"
+                               Items="roles"
+                               ItemText="(r=>r.RoleName)"
+                               Value="selectedRole"
+                               PlaceHolder="search roles ..."
+                               ValueChanged="OnRoleValueChanged" />
+    </div>
+    
+</div>
+
+
+
+
+@code {
+    // [Parameter]
+    // public string RoleName { get; set; }
+    private List<UserDto> users = [];
+    private List<RoleDto> roles = [];
+    private List<RoleDto> userRoles = [];
+    private UserDto? selectedUser;
+    private RoleDto? selectedRole;
+    AuthenticationState AuthState;
+    Guid companyId;
+    protected override async Task OnInitializedAsync()
+    {
+        // if (string.IsNullOrWhiteSpace(RoleName))
+        // {
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        Guid.TryParse(AuthState.User?.Claims?.FirstOrDefault(c => c.Type == "company_id")?.Value ?? "", out companyId);
+        var userRes = await UserService.GetUsersByCompany(companyId, 0, 1000);
+        if (userRes.IsSuccess)
+        {
+            users = userRes.Data?.Data?.ToList() ?? [];
+        }
+
+        var roleRes = await RoleService.GetRoles(companyId, 0, 1000);
+        if (roleRes.IsSuccess)
+        {
+            roles = roleRes.Data?.ToList() ?? [];
+        }
+        await InvokeAsync(StateHasChanged);
+        // await ModalService.ShowAsync(
+        //     new ModalOptions
+        //     {
+        //         Title = SharedDataService.SelectViewLang("Role Management", "ادارة الصلاحيات"),
+        //         IsError = true,
+        //         Message = SharedDataService.SelectViewLang("No Role selected", "لم يتم اختيار صلاحية"),
+        //         OnOk = async () =>
+        //         {
+        //             NavigationManager.NavigateTo("/Auth/Role/List");
+        //             return;
+        //         }
+        //     });
+        // return;
+
+    }
+    private async Task OnUserValueChanged(UserDto user)
+    {
+        return;
+        var roleRes = await RoleService.GetRolesByUserName(user.UserName);
+        if (roleRes.IsSuccess)
+        {
+            userRoles = roleRes.Data?.ToList() ?? [];
+        }
+    }
+    private async Task OnRoleValueChanged(RoleDto role)
+    {
+        // var roleRes = await RoleService.GetRoles(companyId, 0, 1000);
+        // if (roleRes.IsSuccess)
+        // {
+        //     userRoles = roleRes.Data?.ToList() ?? [];
+        // }
+    }
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

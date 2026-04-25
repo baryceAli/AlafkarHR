@@ -7,7 +7,7 @@ using System.Xml.Linq;
 
 namespace AlAfkarERP.Shared.Pages.Features.Auth.Services;
 
-public class RoleService:BaseApiService, IRoleService
+public class RoleService : BaseApiService, IRoleService
 {
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
@@ -18,6 +18,18 @@ public class RoleService:BaseApiService, IRoleService
         _path = $"api/{_apiConfig.Version}/auth";
     }
 
+    public async Task<ApiResult<UpdateDeleteResponseDto>> AssignRole(UserRoleDto userRole)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/Users/AssignRole")
+        {
+            Content = JsonContent.Create(new
+            {
+                UserRole = userRole
+            })
+        };
+        return await SendAsync<UpdateDeleteResponseDto>(request, null);
+    }
+
     public async Task<ApiResult<CreateResponseDto>> CreateAsync(RoleDto role)
     {
         ///api/v1/auth/roles/{roleName}
@@ -25,7 +37,7 @@ public class RoleService:BaseApiService, IRoleService
         {
             Content = JsonContent.Create(new
             {
-                Role=role
+                Role = role
             })
         };
         return await SendAsync<CreateResponseDto>(request, null);
@@ -44,8 +56,21 @@ public class RoleService:BaseApiService, IRoleService
         return await SendAsync<List<RoleDto>>(request, "roleList");
     }
 
-    public Task<ApiResult<List<RoleDto>>> GetRolesByEmployeeId(Guid employeeId, int pageIndex, int pageSize)
+    public async Task<ApiResult<List<RoleDto>>> GetRolesByUserName(string userName)
+    {///api/v1/auth/roles/GetByUserName/{userName}
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/roles/GetByUserName/{userName}");
+        return await SendAsync<List<RoleDto>>(request, "roleList");
+    }
+
+    public async Task<ApiResult<UpdateDeleteResponseDto>> UnassignRole(UserRoleDto removeRolesFromUser)
     {
-        throw new NotImplementedException();
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/Users/unassignRole")
+        {
+            Content = JsonContent.Create(new
+            {
+                UserRole = removeRolesFromUser
+            })
+        };
+        return await SendAsync<UpdateDeleteResponseDto>(request, null);
     }
 }

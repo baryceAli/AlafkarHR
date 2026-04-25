@@ -59,15 +59,21 @@
                 @(SharedDataService.SelectViewLang("Roles Management", "إدارة الصلاحيات"))
             </NavLink>
         </li>
-
+        
         <li class="nav-item ms-3">
+            <NavLink href="/Auth/User/AssignRole" class="nav-link text-white">
+                <i class="bi bi-person-lines-fill me-2"></i>
+                @(SharedDataService.SelectViewLang("Assign users roles", "تعيين صلاحيات المستخدمين"))
+            </NavLink>
+        </li>
+
+        @* <li class="nav-item ms-3">
             <NavLink href="/Auth/User/List" class="nav-link text-white">
                 <i class="bi bi-person-lines-fill me-2"></i>
                 @(SharedDataService.SelectViewLang("Users Management", "إدارة المستخدمين"))
             </NavLink>
-        </li>
+        </li> *@
 
-        
     </ul>
 
 </div>

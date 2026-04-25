@@ -15,6 +15,7 @@
 @inject IDepartmentService DepartmentService
 @inject IAdministrationService AdministrationService
 @inject IAuthService AuthService
+@inject IUserService UserService
 @inject ToastService ToastService
 @inject ModalService ModalService
 
@@ -289,7 +290,7 @@
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
         companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
 
-        var userResponse = await AuthService.GetUsersAsync(companyId,0, 100);
+        var userResponse = await UserService.GetUsersByCompany(companyId,0, 100);
         if (userResponse.IsSuccess)
         {
             users = userResponse.Data?.Data?.ToList() ?? [];

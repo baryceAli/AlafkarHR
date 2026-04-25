@@ -7,7 +7,7 @@ namespace SharedWithUI.Auth.Dtos
 {
     public class RoleDto
     {
-        [Required(ErrorMessage ="Role name is required")]
+        //[Required(ErrorMessage ="Role name is required")]
         public string RoleName { get; set; }
 
 

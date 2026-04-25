@@ -146,5 +146,8 @@ public class AuthService : AuthBaseApiService, IAuthService
         throw new NotImplementedException();
     }
 
-    
+    public Task<ApiResult<bool>> AssignUserToRole()
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -1,0 +1,30 @@
+﻿@page "/Auth/User/Form"
+@page "/Auth/User/Form/{Id}"
+@using AlAfkarERP.Shared.Utilities
+<h3>UserForm</h3>
+
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+    protected override Task OnInitializedAsync()
+    {
+        return base.OnInitializedAsync();
+    }
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

@@ -19,6 +19,7 @@ public class CreateEmployeeCommandValidator : AbstractValidator<CreateEmployeeCo
         RuleFor(e => e.Employee.FirstName).NotEmpty().WithMessage("FirstName is required");
         RuleFor(e => e.Employee.MiddleName).NotEmpty().WithMessage("MiddleName is required");
         RuleFor(e => e.Employee.LastName).NotEmpty().WithMessage("LastName is required");
+        RuleFor(e => e.Employee.Code).NotEmpty().WithMessage("Code is required");
         RuleFor(e => e.Employee.Phone).NotEmpty().WithMessage("Phone is required");
         RuleFor(e => e.Employee.Email).NotEmpty().WithMessage("Email is required");
         RuleFor(e => e.Employee.EmployeeNo).NotEmpty().WithMessage("EmployeeNo is required");
@@ -39,8 +40,8 @@ public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
                     .Value ??
                     throw new UnauthorizedAccessException("User is not authenticated");
 
-        Random rnd = new Random();
-        string code = rnd.Next(100, 9999).ToString();
+        //Random rnd = new Random();
+        //string code = rnd.Next(100, 9999).ToString();
 
 
         string? empPhoto="";
@@ -75,7 +76,7 @@ public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             request.Employee.PositionId!.Value,
             request.Employee.IdentityType,
             request.Employee.Gender,
-            code,
+            request.Employee.Code,
             request.Employee.Nationality,
             request.Employee.Address,
             request.Employee.MaritalStatus,
@@ -94,10 +95,10 @@ public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
 
         RegisterDto register = new RegisterDto(
                 Guid.NewGuid(),
-                request.Employee.EmployeeNo,
+                request.Employee.Code,
                 request.Employee.Email,
                 request.Employee.Phone,
-                "User@123!",
+                "User@123",
                 UserType.SystemUser,
                 request.Employee.CompanyId.Value,
                 employee.Id
