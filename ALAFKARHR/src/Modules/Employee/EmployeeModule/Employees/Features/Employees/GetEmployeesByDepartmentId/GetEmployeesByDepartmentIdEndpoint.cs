@@ -19,6 +19,7 @@ public class GetEmployeesByDepartmentIdEndpoint : ICarterModule
             .Produces<GetEmployeesByDepartmentIdResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("GetEmployeesByDepartmentId")
-            .WithDescription("GetEmployeesByDepartmentId");
+            .WithDescription("GetEmployeesByDepartmentId")
+            .RequireAuthorization(PermissionList.EmployeePermissions.View);
     }
 }

@@ -17,7 +17,8 @@ public class GetAdministrationsEndpoint : ICarterModule
             .Produces<GetAdministrationsResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("GetAdministrations")
-            .WithDescription("GetAdministrations");
+            .WithDescription("GetAdministrations")
+            .RequireAuthorization(PermissionList.AdministrationPermissions.View);
 
     }
 }

@@ -22,6 +22,7 @@ public class TerminateEmployeeEndpoint : ICarterModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("TerminateEmployee")
             .WithDescription("TerminateEmployee")
+            .RequireAuthorization(PermissionList.EmployeePermissions.Edit)
             .RequireAuthorization(PermissionList.EmployeePermissions.Edit);
     }
 }

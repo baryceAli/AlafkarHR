@@ -18,6 +18,7 @@ public class GetDepartmentsByAdministrationIdEndpoint : ICarterModule
             .Produces<GetDepartmentsByAdministrationIdResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("GetDepartmentsByAdministrationId")
-            .WithDescription("GetDepartmentsByAdministrationId");
+            .WithDescription("GetDepartmentsByAdministrationId")
+            .RequireAuthorization(PermissionList.DepartmentPermissions.View);
     }
 }

@@ -17,7 +17,8 @@ public class GetAdministrationsByBranchIdEndpoint : ICarterModule
             .Produces<GetAdministrationsResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("GetAdministrationsByBranchId")
-            .WithDescription("GetAdministrationsByBranchId");
+            .WithDescription("GetAdministrationsByBranchId")
+            .RequireAuthorization(PermissionList.AdministrationPermissions.View);
 
     }
 }

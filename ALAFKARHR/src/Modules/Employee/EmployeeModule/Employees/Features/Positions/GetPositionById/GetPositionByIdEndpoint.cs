@@ -18,6 +18,7 @@ public class GetPositionByIdEndpoint : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("GetPositionById")
-            .WithDescription("GetPositionById");
+            .WithDescription("GetPositionById")
+            .RequireAuthorization(PermissionList.PositionPermissions.View);
     }
 }

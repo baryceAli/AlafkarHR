@@ -17,6 +17,7 @@ public class GetCompaniesEndpoint : ICarterModule
             .Produces<GetCompaniesResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("GetCompanies")
-            .WithDescription("GetCompanies");
+            .WithDescription("GetCompanies")
+            .RequireAuthorization(PermissionList.CompanyPermissions.View);
     }
 }

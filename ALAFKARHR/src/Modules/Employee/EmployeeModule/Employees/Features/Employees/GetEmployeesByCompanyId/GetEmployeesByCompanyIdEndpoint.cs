@@ -19,7 +19,8 @@ public class GetEmployeesByCompanyIdEndpoint : ICarterModule
             .Produces<GetEmployeesByCompanyIdResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("GetEmployeesByCompanyId")
-            .WithDescription("GetEmployeesByCompanyId");
+            .WithDescription("GetEmployeesByCompanyId")
+            .RequireAuthorization(PermissionList.EmployeePermissions.View);
 
     }
 }

@@ -20,6 +20,7 @@ public class GetEmployeesByBranchIdEndpoint : ICarterModule
             .Produces<GetEmployeesByBranchIdResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("GetEmployeesByBranchId")
-            .WithDescription("GetEmployeesByBranchId");
+            .WithDescription("GetEmployeesByBranchId")
+            .RequireAuthorization(PermissionList.EmployeePermissions.View);
     }
 }

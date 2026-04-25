@@ -19,6 +19,7 @@ public class GetPositionsEndpoint : ICarterModule
             .Produces<GetPositionsResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("GetPositions")
-            .WithDescription("GetPositions");
+            .WithDescription("GetPositions")
+            .RequireAuthorization(PermissionList.PositionPermissions.View);
     }
 }

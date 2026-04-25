@@ -15,6 +15,7 @@ public class GetCompanyByIdEndpoint : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("GetCompanyById")
-            .WithDescription("GetCompanyById");
+            .WithDescription("GetCompanyById")
+            .RequireAuthorization(PermissionList.CompanyPermissions.View);
     }
 }

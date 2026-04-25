@@ -16,6 +16,7 @@ public class GetDepartmentsEndpoint : ICarterModule
             .Produces<GetDepartmentsResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("GetDepartments")
-            .WithDescription("GetDepartments");
+            .WithDescription("GetDepartments")
+            .RequireAuthorization(PermissionList.DepartmentPermissions.View);
     }
 }

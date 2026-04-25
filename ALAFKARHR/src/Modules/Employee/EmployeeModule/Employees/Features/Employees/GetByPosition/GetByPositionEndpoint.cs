@@ -20,6 +20,7 @@ public class GetByPositionEndpoint : ICarterModule
             .Produces<GetByPositionResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("GetByPosition")
-            .WithDescription("GetByPosition");
+            .WithDescription("GetByPosition")
+            .RequireAuthorization(PermissionList.EmployeePermissions.View);
     }
 }

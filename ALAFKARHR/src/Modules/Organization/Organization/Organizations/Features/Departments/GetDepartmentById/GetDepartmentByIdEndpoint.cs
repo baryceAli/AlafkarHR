@@ -17,6 +17,7 @@ public class GetDepartmentByIdEndpoint : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("GetDepartmentById")
-            .WithDescription("GetDepartmentById");
+            .WithDescription("GetDepartmentById")
+            .RequireAuthorization(PermissionList.DepartmentPermissions.View);
     }
 }

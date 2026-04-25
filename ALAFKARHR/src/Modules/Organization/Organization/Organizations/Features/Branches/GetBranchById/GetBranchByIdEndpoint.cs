@@ -17,6 +17,7 @@ public class GetBranchByIdEndpoint : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("GetBranchById")
-            .WithDescription("GetBranchById");
+            .WithDescription("GetBranchById")
+            .RequireAuthorization(PermissionList.BranchPermissions.View);
     }
 }

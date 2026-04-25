@@ -15,6 +15,7 @@ public class GetBranchesEndpoint : ICarterModule
             .Produces<GetBranchesResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("GetBranches")
-            .WithDescription("GetBranches");
+            .WithDescription("GetBranches")
+            .RequireAuthorization(PermissionList.BranchPermissions.View);
     }
 }

@@ -16,6 +16,7 @@ public class GetAdministrationByIdEndpoint : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("GetAdministrationById")
-            .WithDescription("GetAdministrationById");
+            .WithDescription("GetAdministrationById")
+            .RequireAuthorization(PermissionList.AdministrationPermissions.View);
     }
 }
