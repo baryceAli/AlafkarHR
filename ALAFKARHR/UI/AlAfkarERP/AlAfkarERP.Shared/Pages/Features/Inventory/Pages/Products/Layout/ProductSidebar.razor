@@ -45,12 +45,36 @@
                 @(SharedDataService.SelectViewLang("Inventory", "المستودعات"))
             </NavLink>
         </li>
+        
+        @* <li class=" nav-item ms-3">
+            <NavLink href="/Inventory/Product/ProductDashboard" class="nav-link text-white">
+                <i class="bi bi-people me-2"></i>
+                @(SharedDataService.SelectViewLang("Products Management", "ادارة المنتجات"))
+            </NavLink>
+            
+        </li> *@
         <li class="nav-item ms-3">
             <NavLink href="/Inventory/Product/ProductDashboard" class="nav-link text-white">
                 <i class="bi bi-people me-2"></i>
                 @(SharedDataService.SelectViewLang("Products Management", "ادارة المنتجات"))
             </NavLink>
+            <ul class="nav nav-pills flex-column ms-3">
+                <li class="nav-item ms-3">
+                    <NavLink href="/Inventory/Product/Brand/List" class="nav-link text-white">
+                        <i class="bi bi-people me-2"></i>
+                        @(SharedDataService.SelectViewLang("Brand", "العلامة التجارية"))
+                    </NavLink>
+                </li>
+                <li class="nav-item ms-3">
+                    <NavLink href="/Inventory/Product/Category/List" class="nav-link text-white">
+                        <i class="bi bi-people me-2"></i>
+                        @(SharedDataService.SelectViewLang("Categories", "الأصناف"))
+                    </NavLink>
+                </li>
+
+            </ul>
         </li>
+        
         <li class="nav-item ms-3">
             <NavLink href="/Inventory/InventoryDashboard" class="nav-link text-white">
                 <i class="bi bi-people me-2"></i>
