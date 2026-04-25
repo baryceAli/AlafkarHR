@@ -1,6 +1,8 @@
 using Auth;
 using Carter;
+using Catalog;
 using EmployeeModule;
+using Inventory;
 using Organization;
 using Shared.Exceptions.Handler;
 using Shared.Extentions;
@@ -23,12 +25,16 @@ builder.Services.AddDataProtection();
 var authAssembly = typeof(AuthModule).Assembly;
 var organizationAssembly = typeof(OrganizationModule).Assembly;
 var employeeAssembly = typeof(EmployeesModule).Assembly;
+var catalogAssembly = typeof(CatalogModule).Assembly;
+var inventoryAssembly = typeof(InventoryModule).Assembly;
 
 
 builder.Services.AddCarterWithAssemblies(
                         authAssembly,
                         organizationAssembly,
-                        employeeAssembly);
+                        employeeAssembly,
+                        catalogAssembly,
+                        inventoryAssembly);
 //catalogAssembly,
 //basketAssembly,
 //inventoryAssembly);
@@ -36,7 +42,9 @@ builder.Services.AddCarterWithAssemblies(
 builder.Services.AddMediatRWithAssemblies(
                         authAssembly,
                         organizationAssembly,
-                        employeeAssembly);
+                        employeeAssembly,
+                        catalogAssembly,
+                        inventoryAssembly);
 //catalogAssembly,
 //basketAssembly,
 //inventoryAssembly);
@@ -48,7 +56,9 @@ builder.Services.AddMediatRWithAssemblies(
 builder.Services
         .AddAuthModule(builder.Configuration)
         .AddOrganizationModule(builder.Configuration)
-        .AddEmployeeModule(builder.Configuration);
+        .AddEmployeeModule(builder.Configuration)
+        .AddCatalogModule(builder.Configuration)
+        .AddInventoryModule(builder.Configuration);
 #endregion
 
 
@@ -71,7 +81,9 @@ app.UseAuthorization();
 app
     .UseAuthModule(app.Environment)
     .UseOrganizationModule(app.Environment)
-    .UseEmployeeModule(app.Environment);
+    .UseEmployeeModule(app.Environment)
+    .UseCatalogModule(app.Environment)
+    .UseInventoryModule(app.Environment);
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())

@@ -1,7 +1,7 @@
 ﻿
 namespace Catalog.Data.Configurations;
 
-public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductSKU>
+public class ProductSKUConfiguration : IEntityTypeConfiguration<ProductSKU>
 {
     public void Configure(EntityTypeBuilder<ProductSKU> builder)
     {
@@ -15,6 +15,9 @@ public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductSKU>
 
         builder.HasIndex(x => x.Sku)
             .IsUnique();
+
+        builder.Property(x => x.Price)
+            .HasColumnType("decimal(18,2)");
 
         builder
             .HasOne<Variant>()
