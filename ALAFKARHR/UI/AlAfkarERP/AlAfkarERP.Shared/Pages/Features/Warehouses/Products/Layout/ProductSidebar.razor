@@ -40,21 +40,38 @@
             </NavLink>
         </li>
         <li class="nav-item">
-            <NavLink href="/Inventory/Dashboard" class="nav-link text-white">
+            <NavLink href="/Warehouse/Dashboard" class="nav-link text-white">
                 <i class="bi bi-people me-2"></i>
-                @(SharedDataService.SelectViewLang("Inventory", "المستودعات"))
+                @(SharedDataService.SelectViewLang("Warehouses", "المستودعات"))
             </NavLink>
         </li>
+        
         <li class="nav-item ms-3">
-            <NavLink href="/Inventory/Product/ProductDashboard" class="nav-link text-white">
+            <NavLink href="/Warehouse/Product/Dashboard" class="nav-link text-white">
                 <i class="bi bi-people me-2"></i>
                 @(SharedDataService.SelectViewLang("Products Management", "ادارة المنتجات"))
             </NavLink>
+            <ul class="nav nav-pills flex-column ms-3">
+                <li class="nav-item ms-3">
+                    <NavLink href="/Warehouse/Product/Brand/List" class="nav-link text-white">
+                        <i class="bi bi-people me-2"></i>
+                        @(SharedDataService.SelectViewLang("Brand", "العلامة التجارية"))
+                    </NavLink>
+                </li>
+                <li class="nav-item ms-3">
+                    <NavLink href="/Warehouse/Product/Category/List" class="nav-link text-white">
+                        <i class="bi bi-people me-2"></i>
+                        @(SharedDataService.SelectViewLang("Categories", "الأصناف"))
+                    </NavLink>
+                </li>
+
+            </ul>
         </li>
+        
         <li class="nav-item ms-3">
-            <NavLink href="/Inventory/InventoryDashboard" class="nav-link text-white">
+            <NavLink href="/Warehouse/Inventory/Dashboard" class="nav-link text-white">
                 <i class="bi bi-people me-2"></i>
-                @(SharedDataService.SelectViewLang("Products Management", "ادارة المستودعات"))
+                @(SharedDataService.SelectViewLang("Inventory Management", "ادارة المخزون"))
             </NavLink>
         </li>
 
