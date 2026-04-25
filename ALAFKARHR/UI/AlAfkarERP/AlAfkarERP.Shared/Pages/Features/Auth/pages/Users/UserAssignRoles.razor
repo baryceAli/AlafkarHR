@@ -1,109 +1,518 @@
 ﻿@layout AuthManagementLayout
-@page "/Auth/User/AssignRoleTemp"
+@page "/Auth/User/AssignRole"
+@using AlAfkarERP.Shared.Pages.Features.Auth.Layout
+@* @using AlAfkarERP.Shared.Pages.Reuable *@
 @using AlAfkarERP.Shared.Pages.Features.Auth.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @using AlAfkarERP.Shared.Pages.Reuable
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
-@using AlAfkarERP.Shared.Pages.Features.Auth.Layout
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Auth.Dtos
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Permissions
+
 
 @inject IRoleService RoleService
 @inject IUserService UserService
-@inject SharedDataService SharedDataService
-@inject AuthenticationStateProvider AuthenticationStateProvider
-@inject NavigationManager NavigationManager
+@inject IEmployeeService EmployeeService
+@inject ToastService ToastService
 @inject ModalService ModalService
 
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
+
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.RolesPermissions.Create}"))
+{
+    <div class="alert alert-warning">
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
+    </div>
+}
+
+<!-- Branches -->
 <h3>@SharedDataService.SelectViewLang("Assign role to users", "تعيين الصلاحية لمستخدمين")</h3>
-<div>
-    @* Auto complete for users *@
-    <div class="mb-3">
-        <label for="Users" class="form-label">@(SharedDataService.Language == "Ar" ? "اختر المستخدم" : "Select User")</label>
-        <AutoCompleteComponent TItem="UserDto"
-                               Items="users"
-                               ItemText="(u=>u.UserName)"
-                               Value="selectedUser"
-                               PlaceHolder="search users ..."
-                               ValueChanged="OnUserValueChanged" />
-    </div>
-    @* Auto complete for rols *@
-    <div class="mb-3">
-        <label for="Roles" class="form-label">@(SharedDataService.Language == "Ar" ? "اختر صلاحية" : "Select Role")</label>
-        <AutoCompleteComponent TItem="RoleDto"
-                               Items="roles"
-                               ItemText="(r=>r.RoleName)"
-                               Value="selectedRole"
-                               PlaceHolder="search roles ..."
-                               ValueChanged="OnRoleValueChanged" />
-    </div>
-    
+@* Auto complete for users *@
+<div class="mb-3">
+    <label for="Users" class="form-label">@(SharedDataService.Language == "Ar" ? "اختر المستخدم" : "Select User")</label>
+    <AutoCompleteComponent TItem="EmployeeDto"
+                           Items="employees"
+                           ItemText='(e=> SharedDataService.SelectViewLang($"{e.FirstNameEng} {e.MiddleNameEng} {e.LastNameEng}",
+                                                                                                                                     $"{e.FirstName} {e.MiddleName} {e.LastName}"))'
+                       Value="selectedEmployee"
+                       PlaceHolder="search users ..."
+                       ValueChanged="OnUserValueChanged" />
 </div>
 
 
 
 
+@* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
+<button class="btn btn-primary mb-3"
+        @onclick="CreateNew"
+        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.RolesPermissions.Create}") ? true : false)>
+    <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
+</button>
+
+<div class="card p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <!--
+
+        Export to xls and pdf
+        <div class="d-flex gap-2">
+
+            <button class="btn btn-success btn-sm" @onclick="ExportToExcel">
+                <i class="bi bi-file-earmark-excel"></i> Excel
+            </button>
+
+            <button class="btn btn-danger btn-sm" @onclick="ExportToPdf">
+                <i class="bi bi-file-earmark-pdf"></i> PDF
+            </button>
+
+        </div>
+        -->
+        <!-- 🔍 Search -->
+        <div>
+            <input class="form-control"
+                   placeholder="Search..."
+                   @bind="searchText" />
+        </div>
+
+        <!--
+
+        🎯 Filter
+        <div class="col-md-3">
+            <select class="form-select" @bind="filterMainBranch">
+                <option value="">All</option>
+                <option value="true">Main Branch</option>
+                <option value="false">Not Main</option>
+            </select>
+        </div>
+        -->
+        <!-- 📄 Page Size -->
+        <div>
+            @* <select class="form-select" @bind="pageSize"> *@
+            <select class="form-select" @onchange="OnPageSizeChanged">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+            </select>
+        </div>
+
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th @onclick="() => Sort(nameof(RoleDto.RoleName))">
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                    @SharedDataService.SelectViewLang("Role", "الصلاحية")
+                </th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @* @foreach (var b in branches) *@
+            @foreach (var role in ProcessedRoles)
+            {
+                @if (editingRole!=null && editingRole.RoleName == role.RoleName)
+                {
+                    <tr>
+                        <td colspan="9">
+                            <EditForm Model="role" OnValidSubmit="() => SaveRole(role)">
+                                <DataAnnotationsValidator />
+                                <ValidationSummary />
+                                @* <InputHidden @bind-Value="branch.Id"/> *@
+                                <div class="row bg-info-subtle p-3">
+
+                                    
+                                    <div class="mb-3">
+                                        <label for="Roles" class="form-label">@(SharedDataService.Language == "Ar" ? "اختر صلاحية" : "Select Role")</label>
+                                        <AutoCompleteComponent TItem="RoleDto"
+                                                               Items="GetUnassignedRoles(allRoles,userAssignedRoles)"
+                                                               ItemText="(r=>r.RoleName)"
+                                                               Value="selectedRole"
+                                                               PlaceHolder="search roles ..."
+                                                               ValueChanged="OnRoleValueChanged" />
+                                        <ValidationMessage For="@(() => role.RoleName)" />
+                                    </div>
+    
+                                    <div class="col">
+                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                    </div>
+                                </div>
+                            </EditForm>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    <tr>
+                        <td>@role.RoleName</td>
+                        
+                        <td>
+                            @* <button class="btn btn-warning btn-sm"
+                                    @onclick="() => EditRole(role)"
+                                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BranchPermissions.Edit}"))>
+                                @SharedDataService.SelectViewLang("Edit", "تعديل")
+                            </button> *@
+                            <button class="btn btn-danger btn-sm"
+                                    @onclick="() => RemoveRole(role)"
+                                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.RolesPermissions.Delete}"))>
+                                @SharedDataService.SelectViewLang("Delete", "حذف")
+                            </button>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+    <div class="d-flex justify-content-end align-items-center mt-3">
+
+        <button class="btn btn-sm btn-secondary"
+                @onclick="PrevPage"
+                disabled="@(pageIndex == 1)">
+            Previous
+        </button>
+
+        <span class="mx-3">Page @(pageIndex + 1) of @TotalPages @(TotalPages == 1 ? "" : "Pages")</span>
+
+        <button class="btn btn-sm btn-secondary"
+                @onclick="NextPage"
+                disabled="@(pageIndex >= TotalPages)">
+            Next
+        </button>
+
+    </div>
+</div>
+
 @code {
-    // [Parameter]
-    // public string RoleName { get; set; }
-    private List<UserDto> users = [];
-    private List<RoleDto> roles = [];
-    private List<RoleDto> userRoles = [];
-    private UserDto? selectedUser;
-    private RoleDto? selectedRole;
-    AuthenticationState AuthState;
-    Guid companyId;
+    private List<RoleDto> userAssignedRoles = new();
+    private List<RoleDto> userUnassignedRoles = new();
+    private List<RoleDto> allRoles = new();
+    private RoleDto selectedRole;
+    private List<EmployeeDto> employees = [];
+    private EmployeeDto? selectedEmployee;
+    private RoleDto? editingRole;
+    // private RoleDto? roleToSave;
+    private Guid companyId;
+    private bool isEdit = false;
+    private AuthenticationState AuthState;
     protected override async Task OnInitializedAsync()
     {
-        // if (string.IsNullOrWhiteSpace(RoleName))
-        // {
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-        Guid.TryParse(AuthState.User?.Claims?.FirstOrDefault(c => c.Type == "company_id")?.Value ?? "", out companyId);
-        var userRes = await UserService.GetUsersByCompany(companyId, 0, 1000);
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+
+        var userRes = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 10000);
         if (userRes.IsSuccess)
         {
-            users = userRes.Data?.Data?.ToList() ?? [];
+            employees = userRes.Data?.Data?.ToList() ?? [];
         }
-
-        var roleRes = await RoleService.GetRoles(companyId, 0, 1000);
+        var roleRes = await RoleService.GetRoles(companyId, 0, 10000);
         if (roleRes.IsSuccess)
         {
-            roles = roleRes.Data?.ToList() ?? [];
+            allRoles = roleRes.Data?.ToList() ?? [];
         }
-        await InvokeAsync(StateHasChanged);
-        // await ModalService.ShowAsync(
-        //     new ModalOptions
-        //     {
-        //         Title = SharedDataService.SelectViewLang("Role Management", "ادارة الصلاحيات"),
-        //         IsError = true,
-        //         Message = SharedDataService.SelectViewLang("No Role selected", "لم يتم اختيار صلاحية"),
-        //         OnOk = async () =>
-        //         {
-        //             NavigationManager.NavigateTo("/Auth/Role/List");
-        //             return;
-        //         }
-        //     });
-        // return;
+        await LoadRoles();
+        // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
+        // if (branchResponse.IsSuccess)
+        // {
+        //     branches = branchResponse.Data?.ToList() ?? [];
+        // }
+    }
+    // Branch
+    void CreateNew()
+    {
+        var roleToSave = new RoleDto()
+        {
+            RoleName = string.Empty,
+            CompanyId = companyId,
+            Permissions = []
+        };
+
+        userAssignedRoles.Insert(0, roleToSave);
+        editingRole = roleToSave;
+        isEdit = false;
+    }
+
+    // void EditRole(RoleDto role)
+    // {
+    //     roleToSave = role;
+    //     editingRoleName = role.RoleName;
+
+    //     isEdit = true;
+    // }
+    async Task SaveRole(RoleDto role)
+    {
+        if (selectedRole == null || string.IsNullOrWhiteSpace(selectedRole.RoleName))
+        {
+            await ModalService.ShowAsync(new ModalOptions
+            {
+                Title = SharedDataService.SelectViewLang("Create New", "إنشاء جديد"),
+                IsError = true,
+                Message = SharedDataService.SelectViewLang("Please select role to continue", "يرجى اختيار صلاحية للاستمرار"),
+                OnOk = async () => { }
+            });
+            return;
+        }
+
+        role.CompanyId = companyId;
+        UserRoleDto userRole = new UserRoleDto
+        {
+            UserName = selectedEmployee.Code,
+            RoleName = selectedRole.RoleName
+        };
+        var bResponse = await RoleService.AssignRole(userRole);
+        if (bResponse.IsSuccess)
+        {
+            selectedRole = new RoleDto();
+            //show success
+            ToastService.Show(new ToastMessage
+            {
+                Message = SharedDataService.SelectViewLang("Role has been assigned successfully", "تم تعيين الصلاحية  بنجاح"),
+                Type = "success"
+            });
+
+            await LoadRoles();
+            editingRole = null;
+
+        }
+        else
+        {
+            // how fail
+            ToastService.Show(new ToastMessage
+            {
+                Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
+                Type = "error"
+            });
+        }
+
+        editingRole = null;
 
     }
-    private async Task OnUserValueChanged(UserDto user)
+
+    async Task RemoveRole(RoleDto role)
     {
-        return;
-        var roleRes = await RoleService.GetRolesByUserName(user.UserName);
-        if (roleRes.IsSuccess)
+        await ModalService.ShowAsync(new ModalOptions
         {
-            userRoles = roleRes.Data?.ToList() ?? [];
+            Title = SharedDataService.SelectViewLang("Confirm unassign roles", "تأكيد إلغاء التعيين"),
+            Message = SharedDataService.SelectViewLang($"Are you sure you want to unassign this role: {role.RoleName}?", $"هل ترغب فعلا في إلغاء تعيين الصلاحية: {role.RoleName}؟"),
+            ShowCancel = true,
+            OkText = SharedDataService.SelectViewLang("Yes", "نعم"),
+            CancelText = SharedDataService.SelectViewLang("No", "لا"),
+
+            OnOk = async () =>
+            {
+                UserRoleDto userRole = new UserRoleDto { UserName = selectedEmployee.Code, RoleName = role.RoleName };
+                var brResponse = await RoleService.UnassignRole(userRole);
+                if (brResponse.IsSuccess)
+                {
+
+                    ToastService.Show(new ToastMessage
+                    {
+                        Message = SharedDataService.SelectViewLang("Role unassigned successfully", "تم إلغاء تعيين الصلاحية بنجاح"),
+                        Type = "success"
+                    });
+
+                    await LoadRoles();
+                    await InvokeAsync(StateHasChanged);
+                    // var response = await BranchService.GetByCompanyIdAsync(companyId);
+                    // if (response.IsSuccess)
+                    // {
+                    //     branches = response.Data?.ToList() ?? [];
+                    //     await InvokeAsync(StateHasChanged);
+                    // }
+                }
+                else
+                {
+                    ToastService.Show(new ToastMessage
+                    {
+                        Message = SharedDataService.SelectViewLang("Fail to unassign the role", "فشلت عملية إلغاء تعيين الصلاحية"),
+                        Type = "error"
+                    });
+                }
+
+
+            }
+        });
+
+
+    }
+    async Task CancelEdit()
+    {
+
+
+        //new
+        // branch
+        var item = userAssignedRoles.FirstOrDefault(x => x.RoleName == editingRole.RoleName);
+
+        if (item != null && !string.IsNullOrEmpty(item.RoleName))
+        {
+            // existing record → keep it
+            await LoadRoles();
+            // var brRes = await RoleService.GetRolesByUserName(companyId, 0, 1000);
+            // if (brRes.IsSuccess)
+            // {
+            //     userAssignedRoles = brRes.Data?.ToList() ?? [];
+            // }
         }
+        else
+        {
+            // new record → remove it
+            userAssignedRoles.Remove(item);
+        }
+        isEdit = false;
+        selectedRole = new RoleDto();
+        // roleToSave = null;
+        editingRole = null;
+    }
+
+    #region Table Helpers
+
+
+    // Searching
+    private string searchText = "";
+
+    // Sorting
+    private string sortColumn = nameof(RoleDto.RoleName);
+    private bool sortAscending = true;
+
+    // Pagination
+    private int pageSize = 5;
+    private int pageIndex = 0;
+    private async Task LoadRoles()
+    {
+        // var request = new PaginationRequest(pageIndex, pageSize, searchText);
+        if (selectedEmployee == null)
+            return;
+        var response = await RoleService.GetRolesByUserName(selectedEmployee.Code);//,searchText);
+
+        if (response.IsSuccess)
+        {
+            // var result = response.Data!.Data;
+
+            // branches = result.Data.ToList();
+            userAssignedRoles = response.Data?.ToList() ?? [];
+
+            // var usr = GetUnassignedRoles(allRoles, userAssignedRoles);
+            // TotalPages = (int)response.Data!.Count;
+            TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
+        }
+    }
+    async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        pageSize = int.Parse(e.Value!.ToString()!);
+        pageIndex = 0;
+        await LoadRoles();
+    }
+    private IEnumerable<RoleDto> ProcessedRoles =>
+    userAssignedRoles
+        // 🔍 Search
+        .Where(b =>
+            string.IsNullOrWhiteSpace(searchText) ||
+            (b.RoleName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+        // (b.NameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        // (b.Email?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+        )
+
+        // 🎯 Filter
+        // .Where(b =>
+        //     filterMainBranch == null || b.IsMainBranch == filterMainBranch
+        // )
+
+        // 🔃 Sorting
+        .OrderByDynamic(sortColumn, sortAscending)
+
+        // 📄 Pagination
+        .Skip((pageIndex) * pageSize)
+        .Take(pageSize);
+
+
+
+    // Filtering example
+    private bool? filterMainBranch = null;
+    // private long totalCount = 0;
+    private int TotalPages = 1;
+    // private int TotalPages =>
+    // (int)Math.Ceiling(
+    //     totalCount/ (double)pageSize);
+
+    async Task NextPage()
+    {
+        // if (currentPage < TotalPages)
+        //     currentPage++;
+
+        if (pageIndex < TotalPages - 1)
+        {
+            pageIndex++;
+            await LoadRoles();
+        }
+    }
+
+    async Task PrevPage()
+    {
+        // if (pageIndex > 1)
+        //     pageIndex--;
+
+        if (pageIndex > 0)
+        {
+            pageIndex--;
+            await LoadRoles();
+        }
+    }
+
+    void Sort(string column)
+    {
+        if (sortColumn == column)
+            sortAscending = !sortAscending;
+        else
+        {
+            sortColumn = column;
+            sortAscending = true;
+        }
+    }
+    #endregion Table helpers
+
+    private async Task OnUserValueChanged(EmployeeDto employee)
+    {
+        selectedEmployee = employee;
+        await LoadRoles();
+        // var userRes = await RoleService.GetRolesByEmployeeId(user.Id, 0, 1000);
+        // if (userRes.IsSuccess)
+        // {
+        //     userAssignedRoles = userRes.Data?.ToList() ?? [];
+        // }
     }
     private async Task OnRoleValueChanged(RoleDto role)
     {
-        // var roleRes = await RoleService.GetRoles(companyId, 0, 1000);
-        // if (roleRes.IsSuccess)
-        // {
-        //     userRoles = roleRes.Data?.ToList() ?? [];
-        // }
+        selectedRole = role;
+
+        // 🔥 CRITICAL: bind to form model
+        var editingItem = userAssignedRoles.FirstOrDefault(x => x.RoleName == editingRole.RoleName);
+
+        if (editingItem != null)
+        {
+            editingItem.RoleName = role.RoleName;
+        }
     }
+    private List<RoleDto> GetUnassignedRoles(
+        List<RoleDto> allRoles,
+        List<RoleDto> assignedRoles)
+    {
+        var assigned = assignedRoles
+            .Select(r => r.RoleName)
+            .ToHashSet();
+      
+            userUnassignedRoles =
+         allRoles
+            .Where(r => !assigned.Contains(r.RoleName))
+            .ToList();
+
+        return userUnassignedRoles;
+    }
+
     protected override void OnInitialized()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
