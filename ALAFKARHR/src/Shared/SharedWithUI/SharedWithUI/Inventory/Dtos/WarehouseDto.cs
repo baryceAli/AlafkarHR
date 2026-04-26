@@ -7,5 +7,6 @@ public record WarehouseDto(
     string Location,
     string? Address,
     double Longitude,
-    double Latitude
+    double Latitude,
+    Guid CompanyId
     );

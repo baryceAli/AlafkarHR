@@ -2,6 +2,7 @@ using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Pages.Features.Auth.Services;
 using AlAfkarERP.Shared.Pages.Features.Company.Services;
 using AlAfkarERP.Shared.Pages.Features.Employees.Services;
+using AlAfkarERP.Shared.Pages.Features.Warehouses.Services;
 using AlAfkarERP.Shared.Pages.Reuable2;
 using AlAfkarERP.Shared.Utilities;
 using AlAfkarERP.Web.Components;
@@ -116,6 +117,17 @@ builder.Services.AddHttpClient<ISpecializationService, SpecializationService>(cl
 
 
 #endregion Employees Module Services
+
+#region Warehouses Module Services
+builder.Services.AddScoped<IBrandService, BrandService>();
+builder.Services.AddHttpClient<IBrandService, BrandService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+
+
+#endregion Warehouses Module Services
 
 
 var app = builder.Build();

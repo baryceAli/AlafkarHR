@@ -17,21 +17,21 @@ public class GetBatchesHandler(InventoryDbContext dbContext) : IQueryHandler<Get
         var data = await q
             .Skip(request.Request.PageIndex * request.Request.PageSize)
             .Take(request.Request.PageSize)
-            .Select(b => new BatchDto(
-                b.Id,
+            .Select(b => new BatchDto{
+                Id= b.Id,
                 //b.WarehouseId,
-                b.ProductId,
-                b.ProductSkuId,
-                b.BatchNumber,
-                b.ManufacturingDate,
-                b.ExpiryDate,
-                b.CreatedAt ?? DateTime.MinValue,
-                b.CreatedBy ?? string.Empty,
-                b.ModifiedAt,
-                b.ModifiedBy,
-                b.DeletedAt,
-                b.DeletedBy
-            ))
+                ProductId= b.ProductId,
+                ProductSkuId= b.ProductSkuId,
+                BatchNumber= b.BatchNumber,
+               ManufacturingDate= b.ManufacturingDate,
+                ExpiryDate= b.ExpiryDate,
+                CreatedAt= b.CreatedAt ?? DateTime.MinValue,
+                CreatedBy= b.CreatedBy ?? string.Empty,
+                LastModified= b.ModifiedAt,
+                LastModifiedBy= b.ModifiedBy,
+                DeletedAt= b.DeletedAt,
+                DeletedBy= b.DeletedBy
+            })
             .ToListAsync(cancellationToken);
             //data.OrderBy(x => x.ProductId);
 

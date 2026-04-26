@@ -37,7 +37,8 @@ public class CreateBatchHandler (InventoryDbContext dbContext, IHttpContextAcces
                         request.Batch.ProductId,
                         request.Batch.BatchNumber,
                         request.Batch.ManufacturingDate,
-                        request.Batch.ExpiryDate, 
+                        request.Batch.ExpiryDate,
+                        request.Batch.CompanyId.Value,
                         userId);
 
         await dbContext.Batches.AddAsync(batch, cancellationToken);

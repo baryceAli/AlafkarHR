@@ -1,15 +1,16 @@
 ﻿@layout ProductLayout
 @page "/Warehouse/Product/Brand/List"
-@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Warehouses.Products.Layout
 
+@using AlAfkarERP.Shared.Pages.Features.Warehouses.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
 @using SharedWithUI.Permissions
 
 
-@inject IBranchService BranchService
+@inject IBrandService BrandService
 @inject ToastService ToastService
 @inject ModalService ModalService
 
@@ -19,7 +20,7 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.SpecializationPermissions.Create}"))
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Create}"))
 {
     <div class="alert alert-warning">
         <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
@@ -27,12 +28,12 @@
 }
 
 <!-- Branches -->
-<h5>@SharedDataService.SelectViewLang("Branches Management", "ادارة الفروع")</h5>
+<h5>@SharedDataService.SelectViewLang("Brand Management", "ادارة العلامة التجارية")</h5>
 
 @* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
 <button class="btn btn-primary mb-3"
         @onclick="CreateNew"
-        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BranchPermissions.Create}") ? true : false)>
+        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Create}") ? true : false)>
     <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
 </button>
 
@@ -85,97 +86,55 @@
     <table class="table">
         <thead>
             <tr>
-                <th @onclick="() => Sort(nameof(BranchDto.Name))">
+                <th @onclick="() => Sort(nameof(BrandDto.Name))">
                     <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
                     @SharedDataService.SelectViewLang("Name", "الاسم")
                 </th>
-                <th @onclick="() => Sort(nameof(BranchDto.NameEng))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
-                <th>@SharedDataService.SelectViewLang("Phone", "الهاتف")</th>
-                <th @onclick="() => Sort(nameof(BranchDto.Email))">Email</th>
-                <th @onclick="() => Sort(nameof(BranchDto.Location))">Location</th>
-                <th>@SharedDataService.SelectViewLang("Longitude", "خط الطول")</th>
-                <th>@SharedDataService.SelectViewLang("Latitude", "خط العرض")</th>
-                <th>@SharedDataService.SelectViewLang("Main branch?", "فرع رئيسي؟")</th>
+                <th @onclick="() => Sort(nameof(BrandDto.NameEng))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
+                <th>@SharedDataService.SelectViewLang("Description", "الوصف")</th>
                 <th></th>
             </tr>
         </thead>
         <tbody>
             @* @foreach (var b in branches) *@
-            @foreach (var branch in ProcessedBranches)
+            @foreach (var brand in ProcessedBrands)
             {
-                @if (editingBranchId == branch.Id)
+                @if (editingBrandId == brand.Id)
                 {
                     <tr>
                         <td colspan="9">
-                            <EditForm Model="branch" OnValidSubmit="() => SaveBranch(branch)">
+                            <EditForm Model="brand" OnValidSubmit="() => SaveBrand(brand)">
                                 <DataAnnotationsValidator />
-                                @* <ValidationSummary/> *@
+                                <ValidationSummary/>
                                 @* <InputHidden @bind-Value="branch.Id"/> *@
                                 <div class="row bg-info-subtle p-3">
 
                                     <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
                                         <div class="col-sm-10">
-                                            <InputText class="form-control" @bind-Value="branch.Name" />
-                                            <ValidationMessage For="() => branch.Name" />
+                                            <InputText class="form-control" @bind-Value="brand.Name" />
+                                            <ValidationMessage For="() => brand.Name" />
                                         </div>
                                     </div>
 
                                     <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name (En)", "الاسم (انجليزي)")</label>
                                         <div class="col-sm-10">
-                                            <InputText class="form-control" @bind-Value="branch.NameEng" />
-                                            <ValidationMessage For="() => branch.NameEng" />
+                                            <InputText class="form-control" @bind-Value="brand.NameEng" />
+                                            <ValidationMessage For="() => brand.NameEng" />
                                         </div>
                                     </div>
 
                                     <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Phone", "الهاتف")</label>
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Description", "الوصف")</label>
                                         <div class="col-sm-10">
-                                            <InputText class="form-control" @bind-Value="branch.Phone" />
-                                            <ValidationMessage For="() => branch.Phone" />
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Email", "الايميل")</label>
-                                        <div class="col-sm-10">
-                                            <InputText class="form-control" @bind-Value="branch.Email" />
-                                            <ValidationMessage For="() => branch.Email" />
+                                            <InputTextArea class="form-control" @bind-Value="brand.Description" />
+                                            
                                         </div>
                                     </div>
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Location", "الموقع")</label>
-                                        <div class="col-sm-10">
-                                            <InputText class="form-control" @bind-Value="branch.Location" />
-                                            <ValidationMessage For="() => branch.Location" />
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Longitude", "خط الطول")</label>
-                                        <div class="col-sm-10">
-                                            <InputNumber class="form-control" @bind-Value="branch.Longitude" />
-                                            <ValidationMessage For="() => branch.Longitude" />
-                                        </div>
-                                    </div>
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Latitude", "خط العرض")</label>
-                                        <div class="col-sm-10">
-                                            <InputNumber class="form-control" @bind-Value="branch.Latitude" />
-                                            <ValidationMessage For="() => branch.Latitude" />
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Main Branch?", "الفرع الرئيسي؟")</label>
-                                        <div class="col-sm-10">
-                                            <InputCheckbox class="form-check-input" @bind-Value="branch.IsMainBranch" />
-                                        </div>
-                                    </div>
-                                    
+
                                     <div class="col">
                                         <button type="submit" class="btn btn-success btn-sm">Save</button>
                                         <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
@@ -188,23 +147,18 @@
                 else
                 {
                     <tr>
-                        <td>@branch.Name</td>
-                        <td>@branch.NameEng</td>
-                        <td>@branch.Phone</td>
-                        <td>@branch.Email</td>
-                        <td>@branch.Location</td>
-                        <td>@branch.Longitude</td>
-                        <td>@branch.Latitude</td>
-                        <td>@branch.IsMainBranch</td>
+                        <td>@brand.Name</td>
+                        <td>@brand.NameEng</td>
+                        <td>@brand.Description</td>
                         <td>
                             <button class="btn btn-warning btn-sm"
-                                    @onclick="() => EditBranch(branch.Id)"
-                                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BranchPermissions.Edit}"))>
+                                    @onclick="() => EditBrand(brand.Id)"
+                                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Edit}"))>
                                 @SharedDataService.SelectViewLang("Edit", "تعديل")
                             </button>
                             <button class="btn btn-danger btn-sm"
-                                    @onclick="() => DeleteBranch(branch)"
-                                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BranchPermissions.Delete}"))>
+                                    @onclick="() => DeleteBrand(brand)"
+                                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Delete}"))>
                                 @SharedDataService.SelectViewLang("Delete", "حذف")
                             </button>
                         </td>
@@ -233,8 +187,8 @@
 </div>
 
 @code {
-    private List<BranchDto> branches = new();
-    private Guid? editingBranchId;
+    private List<BrandDto> brands = new();
+    private Guid? editingBrandId;
     private Guid companyId;
     private bool isEdit = false;
     private AuthenticationState AuthState;
@@ -248,7 +202,7 @@
         }
         companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
 
-        await LoadBranches();
+        await LoadBrands();
         // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
         // if (branchResponse.IsSuccess)
         // {
@@ -258,38 +212,38 @@
     // Branch
     void CreateNew()
     {
-        var newItem = new BranchDto()
+        var newItem = new BrandDto()
         {
             Id = Guid.NewGuid()
         };
-        newItem.Code = "b";
-        branches.Insert(0, newItem);
-        editingBranchId = newItem.Id;
+        newItem.CompanyId = companyId;
+        brands.Insert(0, newItem);
+        editingBrandId = newItem.Id;
         isEdit = false;
     }
 
-    void EditBranch(Guid id)
+    void EditBrand(Guid id)
     {
-        editingBranchId = id;
+        editingBrandId = id;
         isEdit = true;
     }
-    async Task SaveBranch(BranchDto branch)
+    async Task SaveBrand(BrandDto brand)
     {
-        if (branch.Id == editingBranchId && !isEdit)
+        if (brand.Id == editingBrandId && !isEdit)
         {
             //Create new
 
             Random rnd = new Random();
-            branch.Code = branch.NameEng.Substring(0, 1) + rnd.Next(100, 999);
-            branch.CompanyId = companyId;
+            
+            brand.CompanyId = companyId;
 
-            var bResponse = await BranchService.CreateAsync(branch);
+            var bResponse = await BrandService.CreateAsync(brand);
             if (bResponse.IsSuccess)
             {
                 //show success
                 ToastService.Show(new ToastMessage
                 {
-                    Message = SharedDataService.SelectViewLang("Branch has been created successfully", "تم انشاء الفرع بنجاح"),
+                    Message = SharedDataService.SelectViewLang("Brand has been created successfully", "تم العلامة التجارية بنجاح"),
                     Type = "success"
                 });
 
@@ -308,13 +262,13 @@
         {
             //Edit
 
-            var bresponse = await BranchService.UpdateAsync(branch);
+            var bresponse = await BrandService.UpdateAsync(brand);
             if (bresponse.IsSuccess)
             {
                 //show success
                 ToastService.Show(new ToastMessage
                 {
-                    Message = SharedDataService.SelectViewLang("Branch has been Edited successfully", "تم تعديل الفرع بنجاح"),
+                    Message = SharedDataService.SelectViewLang("Brand has been Edited successfully", "تم تعديل العلامة التجارية بنجاح"),
                     Type = "success"
                 });
             }
@@ -329,28 +283,28 @@
             }
         }
 
-        await LoadBranches();
+        await LoadBrands();
         // var response = await BranchService.GetByCompanyIdAsync(companyId);
         // if (response.IsSuccess)
         // {
         //     branches = response.Data?.ToList() ?? [];
         // }
-        editingBranchId = null;
+        editingBrandId = null;
     }
 
-    async Task DeleteBranch(BranchDto branch)
+    async Task DeleteBrand(BrandDto brand)
     {
         await ModalService.ShowAsync(new ModalOptions
         {
             Title = SharedDataService.SelectViewLang("Confirm Delete", "تأكيد عملية الحذف"),
-            Message = SharedDataService.SelectViewLang($"Are you sure you want to delete this branch: {branch.NameEng}?", $"هل ترغب فعلا في حذف الفرع: {branch.Name}؟"),
+            Message = SharedDataService.SelectViewLang($"Are you sure you want to delete this brand: {brand.NameEng}?", $"هل ترغب فعلا في حذف العلامة التجارية: {brand.Name}؟"),
             ShowCancel = true,
             OkText = SharedDataService.SelectViewLang("Yes", "نعم"),
             CancelText = SharedDataService.SelectViewLang("No", "لا"),
 
             OnOk = async () =>
             {
-                var brResponse = await BranchService.DeleteAsync(branch.Id);
+                var brResponse = await BrandService.DeleteAsync(brand.Id);
                 if (brResponse.IsSuccess)
                 {
 
@@ -360,7 +314,7 @@
                         Type = "success"
                     });
 
-                    await LoadBranches();
+                    await LoadBrands();
                     // var response = await BranchService.GetByCompanyIdAsync(companyId);
                     // if (response.IsSuccess)
                     // {
@@ -372,7 +326,7 @@
                 {
                     ToastService.Show(new ToastMessage
                     {
-                        Message = SharedDataService.SelectViewLang("Fail to delete the branch", "فشلت عملية الحذف"),
+                        Message = SharedDataService.SelectViewLang("Fail to delete the brand", "فشلت عملية الحذف"),
                         Type = "error"
                     });
                 }
@@ -389,24 +343,24 @@
 
         //new
         // branch
-        var item = branches.FirstOrDefault(x => x.Id == editingBranchId);
+        var item = brands.FirstOrDefault(x => x.Id == editingBrandId);
 
         if (item != null && item.Id != Guid.Empty)
         {
             // existing record → keep it
-            var brRes = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+            var brRes = await BrandService.GetByCompanyIdAsync(companyId, 0, 1000);
             if (brRes.IsSuccess)
             {
-                branches = brRes.Data?.Data?.ToList() ?? [];
+                brands = brRes.Data?.Data?.ToList() ?? [];
             }
         }
         else
         {
             // new record → remove it
-            branches.Remove(item);
+            brands.Remove(item);
         }
         isEdit = false;
-        editingBranchId = null;
+        editingBrandId = null;
     }
 
     #region Table Helpers
@@ -422,18 +376,18 @@
     // Pagination
     private int pageSize = 5;
     private int pageIndex = 0;
-    private async Task LoadBranches()
+    private async Task LoadBrands()
     {
         // var request = new PaginationRequest(pageIndex, pageSize, searchText);
 
-        var response = await BranchService.GetByCompanyIdAsync(companyId, pageIndex, pageSize);//,searchText);
+        var response = await BrandService.GetByCompanyIdAsync(companyId, pageIndex, pageSize);//,searchText);
 
         if (response.IsSuccess)
         {
             // var result = response.Data!.Data;
 
             // branches = result.Data.ToList();
-            branches = response.Data?.Data.ToList() ?? [];
+            brands = response.Data?.Data.ToList() ?? [];
             // TotalPages = (int)response.Data!.Count;
             TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
         }
@@ -442,22 +396,22 @@
     {
         pageSize = int.Parse(e.Value!.ToString()!);
         pageIndex = 0;
-        await LoadBranches();
+        await LoadBrands();
     }
-    private IEnumerable<BranchDto> ProcessedBranches =>
-    branches
+    private IEnumerable<BrandDto> ProcessedBrands =>
+    brands
         // 🔍 Search
         .Where(b =>
             string.IsNullOrWhiteSpace(searchText) ||
             (b.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (b.NameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (b.Email?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+            (b.NameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) 
+            
         )
 
         // 🎯 Filter
-        .Where(b =>
-            filterMainBranch == null || b.IsMainBranch == filterMainBranch
-        )
+        // .Where(b =>
+        //     filterMainBranch == null || b.IsMainBranch == filterMainBranch
+        // )
 
         // 🔃 Sorting
         .OrderByDynamic(sortColumn, sortAscending)
@@ -469,7 +423,7 @@
 
 
     // Filtering example
-    private bool? filterMainBranch = null;
+    // private bool? filterMainBranch = null;
     // private long totalCount = 0;
     private int TotalPages = 1;
     // private int TotalPages =>
@@ -484,7 +438,7 @@
         if (pageIndex < TotalPages - 1)
         {
             pageIndex++;
-            await LoadBranches();
+            await LoadBrands();
         }
     }
 
@@ -496,7 +450,7 @@
         if (pageIndex > 0)
         {
             pageIndex--;
-            await LoadBranches();
+            await LoadBrands();
         }
     }
 

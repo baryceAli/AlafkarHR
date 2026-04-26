@@ -25,10 +25,15 @@ public class LoginHandler(
 {
     public async Task<LoginResult> Handle(LoginCommand command, CancellationToken cancellationToken)
     {
+        
         var user = await userManager.FindByEmailAsync(command.Login.Email);
 
         if (user == null)
+        {
+            user= await userManager.FindByNameAsync(command.Login.Email);
+            if(user == null)
             throw new Exception("Invalid credentials");
+        }
 
         var result = await signInManager.CheckPasswordSignInAsync(user, command.Login.Password, false);
 

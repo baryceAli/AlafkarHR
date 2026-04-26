@@ -13,56 +13,75 @@
 
 @inject ApiConfig ApiConfig
 
-<main class="d-flex justify-content-center align-items-start mx-3" style="height: 100vh;" dir="rtl">
+<main class="d-flex justify-content-center align-items-center mx-3" style="height: 100vh;" dir="rtl">
    
     @* <main style="margin-top: 80px;"> *@
     @if (employee != null)
     {
-        <div class="card shadow " style="width: 40rem;margin-top:100px;">
+        <div class="card shadow " style="width: 40rem;margin-top:120px;">
             @* <img src="@(string.IsNullOrEmpty(employee?.PhotoUrl)
                                                                  ? "_content/AlAfkarERP.Shared/images/empPlaceholder.png"
                                                                  : (employee.PhotoUrl.Contains("data:")
                                                                      ? employee.PhotoUrl
                                                                      : $"{ApiConfig.BaseURL}/Images/Employees/{employee.PhotoUrl}"))"
                 class="card-img-top" alt="..."> *@
-            <div class="card-body">
+            <div class="card-header" dir="ltr">
                 <div class="row">
-                    <div class="col-3">
-                        اسم الموظف
+                    <div class="col-4 text-start">
+                        <img src="_content/AlAfkarERP.Shared/images/logo/afkarfavicon.ico" alt="Alternate Text" width="56" height="56" />
                     </div>
-                    <div class="col-9">
-
-                        <h5 class="card-title text-center">@(employee?.FirstName ?? "") @employee.MiddleName @employee.LastName</h5>
+                    <div class="col-8 text-end">
+                        <h3><strong>شركة الافكار الناجحة</strong></h3>
+                        @* <p><strong>Successfull Ideas Trading Co.</strong></p> *@
                     </div>
-                </div>
-                <div class="row">
-                    <div class="col-3">رقم الهوية</div>
-                    <div class="col-9">
-                        <p class="card-text text-center">@employee.NationalId</p>
-
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-3">الجنسية</div>
-                    <div class="col-9">
-                        <p class="card-text text-center">@employee.Nationality</p>
-
-                    </div>
-                </div>
-                @if (positions != null && positions.Any())
-                {
                     
-                    <div class="row">
-                        <div class="col-3">الموقع الوظيفي</div>
-                        <div class="col-9">
-                            <p class="card-text text-center">@(branches.FirstOrDefault(p => p.Id == employee.BranchId)?.Name ?? "")</p>
-                        </div>
-                    </div>
-                }
-                @* <a href="#" class="btn btn-primary">Go somewhere</a> *@
+                </div>
+
+                
             </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <tbody>
+                        <tr>
+                            <td>
+                                <strong>اسم الموظف</strong>
+                            </td>
+                            <td>@(employee?.FirstName ?? "") @employee.MiddleName @employee.LastName</td>
+                        </tr>
+                        <tr>
+                            <td><strong>رقم الهوية</strong></td>
+                            <td>@employee.NationalId</td>
+                        </tr>
+                        <tr>
+                            <td><strong>الجنسية</strong></td>
+                            <td>@employee.Nationality</td>
+                        </tr>
+                        @if (positions != null && positions.Any())
+                        {
+                            <tr>
+                                <td style="width:35%;"><strong>الموقع الوظيفي</strong></td>
+                                <td>@(branches.FirstOrDefault(p => p.Id == employee.BranchId)?.Name ?? "") - @branches.FirstOrDefault(b => b.Id == employee.BranchId).Location</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+               
+            </div>
+            <div class="card-footer" dir="ltr">
+                <div class="row">
+                    <div class="col-6 text-start">
+                        <p>info@al-afkar.sa</p>
+                    </div>
+                    <div class="col-6 text-end">
+                        <p>تـ 0580007040</p>
+                    </div>
+                </div>
+            </div>
+        
         </div>
-    } else if (isLoading)
+    }
+    else if (isLoading)
     {
         <div class="card" style="width: 30rem;margin-top:50px;">
             @* <img src="_content/AlAfkarERP.Shared/images/empPlaceholder.png" class="card-img-top" alt="..."> *@
@@ -92,7 +111,7 @@
 
     private EmployeeDto? employee;
     private List<PositionDto> positions = [];
-    private List<BranchDto> branches=[];
+    private List<BranchDto> branches = [];
     private bool isLoading = false;
     protected override async Task OnInitializedAsync()
     {

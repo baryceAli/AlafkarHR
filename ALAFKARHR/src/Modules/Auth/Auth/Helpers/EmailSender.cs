@@ -45,11 +45,16 @@ public class EmailSender : IMessageSender
         }
         catch (SmtpException ex)
         {
-            throw new Exception($"SMTP error: {ex.Message}", ex);
+            //throw new Exception($"SMTP error: {ex.Message}", ex);
         }
         catch (Exception ex)
         {
-            throw new Exception($"Failed to send email: {ex.Message}", ex);
+            //throw new Exception($"Failed to send email: {ex.Message}", ex);
+        }
+        finally
+        {
+            mail.Dispose();
+            client.Dispose();
         }
     }
 

@@ -5,9 +5,9 @@ public class InitialData
     public static IEnumerable<Warehouse> Warehouses =>
        new List<Warehouse>
        {
-            Warehouse.Create(Guid.Parse("8a04f770-054c-4ca5-9daf-131769260025"),"مخزن 1","WH01","Riyadh","Address 1",10.1,13.2,"baryce@gmail.com"),
-            Warehouse.Create(Guid.Parse("301840c7-f355-44b2-acf2-6ee1b9085021"),"مخزن 2","WH02","Jedda","Address 2",11.1,13.2,"baryce@gmail.com"),
-            Warehouse.Create(Guid.Parse("fd8f6600-a6ca-43f3-974c-9e8e49b272d1"),"مخزن 3","WH03","Madina","Address 3",12.1,13.2,"baryce@gmail.com"),
+            Warehouse.Create(Guid.Parse("8a04f770-054c-4ca5-9daf-131769260025"),"مخزن 1","WH01","Riyadh","Address 1",10.1,13.2,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),"baryce@gmail.com"),
+            Warehouse.Create(Guid.Parse("301840c7-f355-44b2-acf2-6ee1b9085021"),"مخزن 2","WH02","Jedda","Address 2",11.1,13.2,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),"baryce@gmail.com"),
+            Warehouse.Create(Guid.Parse("fd8f6600-a6ca-43f3-974c-9e8e49b272d1"),"مخزن 3","WH03","Madina","Address 3",12.1,13.2,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),"baryce@gmail.com"),
        };
 
     //public static IEnumerable<InventoryItem> InventoryItems =>

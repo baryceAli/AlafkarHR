@@ -89,6 +89,8 @@
                 <option value="5">5</option>
                 <option value="10">10</option>
                 <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
             </select>
         </div>
 
@@ -149,19 +151,18 @@
                     </td>
                     
                     <td>
-                        <a class="btn btn-warning btn-sm" href="Employee/Employee/view/@emp.Id">@SharedDataService.SelectViewLang("View", "عرض")</a>
-                        <a class="btn btn-warning btn-sm" href="Employee/Employee/QR/@emp.Id">@SharedDataService.SelectViewLang("View QR", "QR Code")</a>
-                        <button class="btn btn-warning btn-sm" 
+                        <a class="btn btn-warning btn-sm m-2" href="Employee/Employee/view/@emp.Id">@SharedDataService.SelectViewLang("View", "عرض")</a>
+                        <button class="btn btn-warning btn-sm m-2"
                             @onclick="() => EditBranch(emp.Id)"
                                 disabled=@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.EmployeePermissions.Edit))>
                             @SharedDataService.SelectViewLang("Edit", "تعديل")
                             </button>
-                        <button 
-                            class="btn btn-danger btn-sm" 
+                        <button class="btn btn-danger btn-sm m-2"
                             @onclick="() => DeleteEmployee(emp)"
                                 disabled=@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.EmployeePermissions.Delete))>
                             @SharedDataService.SelectViewLang("Delete", "حذف")
                         </button>
+                        <a class="btn btn-warning btn-sm m-2" href="Employee/Employee/QR/@emp.Id">@SharedDataService.SelectViewLang("View QR", "QR Code")</a>
                     </td>
 
                     

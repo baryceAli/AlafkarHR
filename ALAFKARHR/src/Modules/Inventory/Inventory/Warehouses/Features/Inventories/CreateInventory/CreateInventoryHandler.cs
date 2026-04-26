@@ -34,9 +34,9 @@ public class CreateInventoryHandler(InventoryDbContext dbContext, IHttpContextAc
 
 
         var inventory = InventoryAggregate.Create(Guid.NewGuid()
-            , request.Inventory.ProductId,
-            request.Inventory.ProductSkuId,
-            request.Inventory.WarehouseId, userId);
+            , request.Inventory.ProductId.Value,
+            request.Inventory.ProductSkuId.Value,
+            request.Inventory.WarehouseId.Value, userId);
         // Create batch
         var batch = BatchStock.Created(
             Guid.NewGuid(),
@@ -49,10 +49,10 @@ public class CreateInventoryHandler(InventoryDbContext dbContext, IHttpContextAc
         inventory.TransferIn(batch.BatchId, request.Inventory.InitialQuantity, userId);
 
         var stockmovement = StockMovement.Create(Guid.NewGuid(),
-            request.Inventory.WarehouseId,
+            request.Inventory.WarehouseId.Value,
             request.Inventory.InitialBatchId,
-            request.Inventory.ProductId,
-            request.Inventory.ProductSkuId,
+            request.Inventory.ProductId.Value,
+            request.Inventory.ProductSkuId.Value,
             request.Inventory.InitialQuantity, 
             inventory.Id, 
             DateTime.UtcNow,
@@ -63,9 +63,9 @@ public class CreateInventoryHandler(InventoryDbContext dbContext, IHttpContextAc
             "New Inventory Created");
 
         var inventorySnapshot = InventorySnapshot.Create(Guid.NewGuid(),
-            request.Inventory.ProductId,
-            request.Inventory.ProductSkuId,
-            request.Inventory.WarehouseId,
+            request.Inventory.ProductId.Value,
+            request.Inventory.ProductSkuId.Value,
+            request.Inventory.WarehouseId.Value,
             request.Inventory.InitialBatchId,
             request.Inventory.InitialQuantity,
             0,

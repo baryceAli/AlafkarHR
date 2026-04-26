@@ -15,8 +15,11 @@
 
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IAuthService AuthService
-@inject NavigationManager NavigationManager
+
 @inject ModalService ModalService
+@inject LoadingService LoadingService
+
+@inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
 <div class="container d-flex justify-content-center align-items-center min-vh-100">
@@ -89,6 +92,8 @@
     }
     private async Task HandleLogin()
     {
+        LoadingService.Show();
+
         var result = await AuthService.LoginAsync(login.Email, login.Password);
         if (result.IsSuccess)
         {
@@ -96,12 +101,12 @@
 
             if (authState.User.Identity!.IsAuthenticated)
             {
+                    LoadingService.Hide();
                 if (authState.User.Claims.Any(c => c.Type == JwtRegisteredClaimNames.Typ && c.Value == UserType.SystemUser.ToString()))
                 {
                     NavigationManager.NavigateTo("/AdminDashboard", true);
                     return;
                 }
-
                 NavigationManager.NavigateTo("/");
             }
             // var user = authState.User;
@@ -110,6 +115,7 @@
         }
         else
         {
+        LoadingService.Hide();
             await ModalService.ShowAsync(
                 new ModalOptions
                 {

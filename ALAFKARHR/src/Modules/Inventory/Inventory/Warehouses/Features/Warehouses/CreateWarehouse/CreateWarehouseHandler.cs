@@ -34,6 +34,7 @@ public class CreateWarehouseHandler (InventoryDbContext dbContext, IHttpContextA
             request.Warehouse.Address, 
             request.Warehouse.Longitude, 
             request.Warehouse.Latitude,
+            request.Warehouse.CompanyId,
             userId);
 
         await dbContext.Warehouses.AddAsync(warehouse,cancellationToken);

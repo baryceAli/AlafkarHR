@@ -10,10 +10,10 @@ public class Warehouse : Aggregate<Guid>
     public string? Address { get; private set; } = default!;
     public double Longitude { get; private set; }
     public double Latitude { get; private set; }
-
+    public Guid CompanyId { get; set; }
     private Warehouse() { }
 
-    public static Warehouse Create(Guid id, string name, string nameEng, string location, string? address, double longitude, double latitude, string createdBy)
+    public static Warehouse Create(Guid id, string name, string nameEng, string location, string? address, double longitude, double latitude,Guid companyId, string createdBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(name,"Name is required");
         ArgumentException.ThrowIfNullOrEmpty(location,"Location is required");
@@ -26,6 +26,7 @@ public class Warehouse : Aggregate<Guid>
             Address = address,
             Longitude = longitude,
             Latitude = latitude,
+            CompanyId = companyId,
             CreatedBy = createdBy,
             CreatedAt = DateTime.UtcNow,
         };

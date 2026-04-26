@@ -11,7 +11,7 @@ public class Batch : Aggregate<Guid>
     public string BatchNumber { get; private set; }
     public DateTime ManufacturingDate { get; private set; }
     public DateTime ExpiryDate { get; private set; }
-    
+    public Guid CompanyId { get; set; }
     private Batch() { }
     public static Batch Create(Guid id,
         //Guid warehouseId,
@@ -20,6 +20,7 @@ public class Batch : Aggregate<Guid>
         string batchNumber,
         DateTime manufacturingDate,
         DateTime expiryDate,
+        Guid companyId,
         string createdBy)
     {
         
@@ -33,6 +34,7 @@ public class Batch : Aggregate<Guid>
             ManufacturingDate = manufacturingDate,
             ExpiryDate = expiryDate,
             CreatedAt = DateTime.UtcNow,
+            CompanyId = companyId,
             CreatedBy = createdBy
         };
         

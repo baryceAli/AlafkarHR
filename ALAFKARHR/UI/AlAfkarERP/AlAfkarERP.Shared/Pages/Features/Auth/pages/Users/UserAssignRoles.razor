@@ -487,15 +487,20 @@
     }
     private async Task OnRoleValueChanged(RoleDto role)
     {
+        if(role is null)
+        {
+            editingRole = null;
+            return;
+        }
         selectedRole = role;
 
         // 🔥 CRITICAL: bind to form model
-        var editingItem = userAssignedRoles.FirstOrDefault(x => x.RoleName == editingRole.RoleName);
+        // var editingItem = userAssignedRoles.FirstOrDefault(x => x.RoleName == editingRole.RoleName);
 
-        if (editingItem != null)
-        {
-            editingItem.RoleName = role.RoleName;
-        }
+        // if (editingItem != null)
+        // {
+        //     editingItem.RoleName = role.RoleName;
+        // }
     }
     private List<RoleDto> GetUnassignedRoles(
         List<RoleDto> allRoles,
