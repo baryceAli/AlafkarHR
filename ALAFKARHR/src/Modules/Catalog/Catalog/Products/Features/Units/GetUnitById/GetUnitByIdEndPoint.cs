@@ -20,6 +20,7 @@ public class GetUnitByIdEndPoint : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Get Unit By Id")
-            .WithDescription("Get Unit By Id");
+            .WithDescription("Get Unit By Id")
+            .RequireAuthorization(PermissionList.UnitPermissions.View);
     }
 }

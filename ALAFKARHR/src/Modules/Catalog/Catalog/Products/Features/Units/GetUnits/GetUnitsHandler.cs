@@ -8,24 +8,36 @@ public class GetUnitsHandler (CatalogDbContext dbContext)
 {
     public async Task<GetUnitsResult> Handle(GetUnitsQuery request, CancellationToken cancellationToken)
     {
-        var pageIndex= request.PaginationRequest.PageIndex;
-        var pageSize= request.PaginationRequest.PageSize;
-        var count = await dbContext.Units.LongCountAsync(cancellationToken);
 
-        var units = await dbContext.Units
+        var query = dbContext.Units.AsQueryable();
+        query=query.Where(x => x.IsDeleted == false);
+
+
+        if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
+        {
+            query = query.
+                Where(x => 
+                    x.UnitName.ToLower().Contains(request.PaginationRequest.SearchText.ToLower()) || 
+                    x.UnitNameEng.ToLower().Contains(request.PaginationRequest.SearchText.ToLower()));
+        }
+        
+        var count = await query.LongCountAsync(cancellationToken);
+
+
+        var units = await query
                 .AsNoTracking()
-                .Where(x => x.DeletedAt == null)
+                .Where(x => x.IsDeleted==false)
                 .OrderBy(x=> x.UnitName)
-                .Skip(pageIndex)
-                .Take(pageSize)
+                .Skip(request.PaginationRequest.PageSize * request.PaginationRequest.PageIndex)
+                .Take(request.PaginationRequest.PageSize)
                 .ToListAsync();
 
-        var unts = units.Adapt<List<UnitDto>>();
+        var unitsDto = units.Adapt<List<UnitDto>>();
         return new GetUnitsResult(new PaginatedResult<UnitDto>(
-            pageIndex,
-            pageSize,
+            request.PaginationRequest.PageIndex,
+            request.PaginationRequest.PageSize,
             count,
-            unts
+            unitsDto
             ));
 
     }

@@ -21,6 +21,7 @@ public class GetCategoriesByCompanyEndpoint : ICarterModule
             .Produces<GetCategoriesByCompanyResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Get Categories By Company")
-            .WithDescription("Get Categories By Company");
+            .WithDescription("Get Categories By Company")
+            .RequireAuthorization(PermissionList.CategoryPermissions.View);
     }
 }

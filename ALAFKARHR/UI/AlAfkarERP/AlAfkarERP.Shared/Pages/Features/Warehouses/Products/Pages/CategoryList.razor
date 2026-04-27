@@ -99,56 +99,56 @@
             </tr>
         </thead>
         <tbody>
-            @* @foreach (var b in branches) *@
-            @foreach (var category in ProcessedBrands)
+            @if (editingCategoryId != null && editingCategoryId!=Guid.Empty)
             {
-                @if (editingCategoryId == category.Id)
-                {
-                    <tr>
-                        <td colspan="9">
-                            <EditForm Model="category" OnValidSubmit="() => SaveCategory(category)">
-                                <DataAnnotationsValidator />
-                                <ValidationSummary />
-                                @* <InputHidden @bind-Value="branch.Id"/> *@
-                                <div class="row bg-info-subtle p-3">
+                var category = categories.FirstOrDefault(b => b.Id == editingCategoryId);
+                <tr>
+                    <td colspan="9">
+                        <EditForm Model="category" OnValidSubmit="() => SaveCategory(category)">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary />
+                            @* <InputHidden @bind-Value="branch.Id"/> *@
+                            <div class="row bg-info-subtle p-3">
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
-                                        <div class="col-sm-10">
-                                            <InputText class="form-control" @bind-Value="category.Name" />
-                                            <ValidationMessage For="() => category.Name" />
-                                        </div>
-                                    </div>
-
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name (En)", "الاسم (انجليزي)")</label>
-                                        <div class="col-sm-10">
-                                            <InputText class="form-control" @bind-Value="category.NameEng" />
-                                            <ValidationMessage For="() => category.NameEng" />
-                                        </div>
-                                    </div>
-
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Description", "الوصف")</label>
-                                        <div class="col-sm-10">
-                                            <InputTextArea class="form-control" @bind-Value="category.Description" />
-                                            
-                                        </div>
-                                    </div>
-
-
-
-                                    <div class="col">
-                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
-                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                <div class="mb-3 row">
+                                    <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
+                                    <div class="col-sm-10">
+                                        <InputText class="form-control" @bind-Value="category.Name" />
+                                        <ValidationMessage For="() => category.Name" />
                                     </div>
                                 </div>
-                            </EditForm>
-                        </td>
-                    </tr>
-                }
-                else
-                {
+
+                                <div class="mb-3 row">
+                                    <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name (En)", "الاسم (انجليزي)")</label>
+                                    <div class="col-sm-10">
+                                        <InputText class="form-control" @bind-Value="category.NameEng" />
+                                        <ValidationMessage For="() => category.NameEng" />
+                                    </div>
+                                </div>
+
+                                <div class="mb-3 row">
+                                    <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Description", "الوصف")</label>
+                                    <div class="col-sm-10">
+                                        <InputTextArea class="form-control" @bind-Value="category.Description" />
+                                            
+                                    </div>
+                                </div>
+
+
+
+                                <div class="col">
+                                    <button type="submit" class="btn btn-success btn-sm">Save</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                </div>
+                            </div>
+                        </EditForm>
+                    </td>
+                </tr>
+            }
+            @foreach (var category in ProcessedBrands)
+            {
+                
+                
                     <tr>
                         <td>@category.Name</td>
                         <td>@category.NameEng</td>
@@ -166,7 +166,7 @@
                             </button>
                         </td>
                     </tr>
-                }
+                
             }
         </tbody>
     </table>
@@ -197,6 +197,8 @@
     private AuthenticationState AuthState;
     protected override async Task OnInitializedAsync()
     {
+        LoadingService.Show();
+
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
         if (!AuthState.User.Identity.IsAuthenticated)
         {
@@ -206,11 +208,7 @@
         companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
 
         await LoadCategory();
-        // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
-        // if (branchResponse.IsSuccess)
-        // {
-        //     branches = branchResponse.Data?.ToList() ?? [];
-        // }
+        LoadingService.Hide();
     }
     // Branch
     void CreateNew()
@@ -218,7 +216,7 @@
         var newItem = new CategoryDto()
         {
             Id = Guid.NewGuid(),
-            CompanyId=companyId
+            CompanyId = companyId
         };
         categories.Insert(0, newItem);
         editingCategoryId = newItem.Id;
@@ -232,6 +230,7 @@
     }
     async Task SaveCategory(CategoryDto category)
     {
+        LoadingService.Show();
         if (category.Id == editingCategoryId && !isEdit)
         {
             //Create new
@@ -247,7 +246,6 @@
                     Message = SharedDataService.SelectViewLang("Category has been created successfully", "تم إنشاء الصنف بنجاح"),
                     Type = "success"
                 });
-
             }
             else
             {
@@ -288,10 +286,13 @@
 
         editingCategoryId = null;
         await InvokeAsync(StateHasChanged);
+        LoadingService.Hide();
+
     }
 
     async Task DeleteCategory(CategoryDto category)
     {
+        LoadingService.Show();
         await ModalService.ShowAsync(new ModalOptions
         {
             Title = SharedDataService.SelectViewLang("Confirm Delete", "تأكيد عملية الحذف"),
@@ -330,7 +331,7 @@
             }
         });
 
-
+        LoadingService.Hide();
     }
     async Task CancelEdit()
     {

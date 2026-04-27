@@ -20,6 +20,7 @@ public class GetCategoriesEndPoint : ICarterModule
             .Produces<GetCategoriesResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Get Categories")
-            .WithDescription("Get Categories");
+            .WithDescription("Get Categories")
+            .RequireAuthorization(PermissionList.CategoryPermissions.View);
     }
 }

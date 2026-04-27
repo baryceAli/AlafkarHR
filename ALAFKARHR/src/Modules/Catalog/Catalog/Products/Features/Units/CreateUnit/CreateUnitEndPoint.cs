@@ -20,6 +20,7 @@ public class CreateUnitEndPoint : ICarterModule
             .WithName("CreateUnit")
             .Produces<CreateUnitResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
             .WithSummary("Create Unit")
             .WithDescription("Create Unit")
             .RequireAuthorization($"{PermissionList.UnitPermissions.Create}");

@@ -9,7 +9,7 @@ public class GetCategoryByIdHandler (CatalogDbContext dbContext)
 {
     public async Task<GetCategoryByIdResult> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
     {
-        var category=await dbContext.Categories.AsNoTracking().FirstOrDefaultAsync(x=> x.Id==request.Id && x.DeletedAt==null, cancellationToken);
+        var category=await dbContext.Categories.AsNoTracking().FirstOrDefaultAsync(x=> x.Id==request.Id && x.IsDeleted==false, cancellationToken);
         if (category is null)
             throw new Exception($"Category not found: {request.Id}");
 
