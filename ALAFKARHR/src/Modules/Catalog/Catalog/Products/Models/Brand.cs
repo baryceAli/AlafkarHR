@@ -60,6 +60,7 @@ public class Brand : Aggregate<Guid>
     public void Remove(string deletedBy)
     {
         DeletedAt = DateTime.UtcNow;
+        IsDeleted = true;
         DeletedBy = deletedBy;
     }
 }

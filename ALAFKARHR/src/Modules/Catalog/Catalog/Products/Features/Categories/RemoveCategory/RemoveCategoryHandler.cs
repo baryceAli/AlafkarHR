@@ -1,6 +1,6 @@
 ﻿namespace Catalog.Products.Features.Categories.RemoveCategory;
 
-public record RemoveCategoryCommand(Guid Id, string DeletedBy) : ICommand<RemoveCategoryResult>;
+public record RemoveCategoryCommand(Guid Id) : ICommand<RemoveCategoryResult>;
 public record RemoveCategoryResult(bool IsSuccess);
 
 public class RemoveCategoryCommandValidator: AbstractValidator<RemoveCategoryCommand>
@@ -8,7 +8,7 @@ public class RemoveCategoryCommandValidator: AbstractValidator<RemoveCategoryCom
     public RemoveCategoryCommandValidator()
     {
         RuleFor(x=> x.Id).NotEmpty().WithMessage("Id is required");
-        RuleFor(x=> x.DeletedBy).NotEmpty().WithMessage("DeletedBy is required");
+        //RuleFor(x=> x.DeletedBy).NotEmpty().WithMessage("DeletedBy is required");
     }
 }
 public class RemoveCategoryHandler (CatalogDbContext dbContext, IHttpContextAccessor httpContextAccessor)
@@ -16,13 +16,13 @@ public class RemoveCategoryHandler (CatalogDbContext dbContext, IHttpContextAcce
 {
     public async Task<RemoveCategoryResult> Handle(RemoveCategoryCommand request, CancellationToken cancellationToken)
     {
-        var category=await dbContext.Categories.FindAsync([request.Id], cancellationToken);
+        var category=await dbContext.Categories.FirstOrDefaultAsync(c=> c.Id==request.Id, cancellationToken);
         if ((category is null))
             throw new Exception($"Category not found: {request.Id}");
 
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
         var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value??throw new UnauthorizedAccessException("User is not authenticated");
 
         category.Remove(userId);
         await dbContext.SaveChangesAsync();

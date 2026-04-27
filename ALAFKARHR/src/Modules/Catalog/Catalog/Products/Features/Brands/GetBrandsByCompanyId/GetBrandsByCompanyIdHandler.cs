@@ -9,7 +9,7 @@ public class GetBrandsByCompanyIdHandler(CatalogDbContext dbContext)
     public async Task<GetBrandsByCompanyIdResult> Handle(GetBrandsByCompanyIdQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.Brands.AsQueryable();
-        query = query.Where(b => b.CompanyId == request.companyId);
+        query = query.Where(b => b.CompanyId == request.companyId && b.IsDeleted==false);
 
     
         if(!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))

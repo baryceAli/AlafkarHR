@@ -1,13 +1,13 @@
 ﻿namespace Catalog.Products.Features.Brands.RemoveBrand;
 
-public record RemoveBrandCommand(Guid Id, string DeletedBy) : ICommand<RemoveBrandResult>;
+public record RemoveBrandCommand(Guid Id) : ICommand<RemoveBrandResult>;
 public record RemoveBrandResult(bool IsSuccess);
 public class DeleteBrandCommandValidator : AbstractValidator<RemoveBrandCommand>
 {
     public DeleteBrandCommandValidator()
     {
         RuleFor(x => x.Id).NotEmpty().WithMessage("Product Id is required");
-        RuleFor(x => x.DeletedBy).NotEmpty().WithMessage("DeletedBy is required");
+        //RuleFor(x => x.DeletedBy).NotEmpty().WithMessage("DeletedBy is required");
     }
 }
 public class RemoveBrandHandler(CatalogDbContext dbContext, IHttpContextAccessor httpContextAccessor) : ICommandHandler<RemoveBrandCommand, RemoveBrandResult>
@@ -16,7 +16,7 @@ public class RemoveBrandHandler(CatalogDbContext dbContext, IHttpContextAccessor
     {
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
         var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value??throw new UnauthorizedAccessException("User is not authorized");
 
         var brand = await dbContext.Brands.FindAsync([request.Id], cancellationToken);
         if(brand is null)

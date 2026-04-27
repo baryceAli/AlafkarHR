@@ -21,6 +21,7 @@ public class UpdateBrandEndPoint : ICarterModule
             .WithName("UpdateBrand")
             .Produces<UpdateBrandResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Update Brand")
             .WithDescription("Update Brand")

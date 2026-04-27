@@ -234,7 +234,7 @@
             //Create new
 
             Random rnd = new Random();
-            
+
             brand.CompanyId = companyId;
 
             var bResponse = await BrandService.CreateAsync(brand);
@@ -315,12 +315,8 @@
                     });
 
                     await LoadBrands();
-                    // var response = await BranchService.GetByCompanyIdAsync(companyId);
-                    // if (response.IsSuccess)
-                    // {
-                    //     branches = response.Data?.ToList() ?? [];
-                    //     await InvokeAsync(StateHasChanged);
-                    // }
+
+                    await InvokeAsync(StateHasChanged);
                 }
                 else
                 {

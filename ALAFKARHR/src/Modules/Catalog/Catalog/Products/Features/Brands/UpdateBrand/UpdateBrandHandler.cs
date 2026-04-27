@@ -26,7 +26,7 @@ public class UpdateBrandHandler(CatalogDbContext dbContext, IHttpContextAccessor
 
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
         var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value??throw new UnauthorizedAccessException("User is not authorized");
 
         brand.Update(command.Brand.Name,command.Brand.NameEng, userId, command.Brand.Description);
 

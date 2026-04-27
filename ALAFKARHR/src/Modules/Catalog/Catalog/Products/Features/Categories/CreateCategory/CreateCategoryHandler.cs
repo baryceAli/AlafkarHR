@@ -18,7 +18,7 @@ public class CreateCategoryHandler (CatalogDbContext dbContext, IHttpContextAcce
     {
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
         var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value??throw new UnauthorizedAccessException("User is not authenticated");
 
         var category = Category.Create(Guid.NewGuid(), command.Category.Name,command.Category.NameEng, Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), command.Category.Description, userId);
         dbContext.Categories.Add(category);

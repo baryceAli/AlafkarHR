@@ -7,9 +7,9 @@ public class RemoveBrandEndPoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapDelete("/api/v1/brands/{id}", async ([FromRoute]Guid id,[FromServices] ISender sender) =>
+        app.MapDelete("/api/v1/catalog/brands/{id}", async ([FromRoute]Guid id,[FromServices] ISender sender) =>
         {
-            var result = await sender.Send(new RemoveBrandCommand(id, "baryce@gmail.com"));
+            var result = await sender.Send(new RemoveBrandCommand(id));
             var response=result.Adapt<RemoveBrandResponse>();
 
             return Results.Ok(response);
@@ -18,6 +18,7 @@ public class RemoveBrandEndPoint : ICarterModule
             .WithName("RemoveBrand")
             .Produces<RemoveBrandResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Remove Brand")
             .WithDescription("Remove Brand")

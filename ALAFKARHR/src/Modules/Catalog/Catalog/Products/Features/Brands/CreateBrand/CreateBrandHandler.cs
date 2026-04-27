@@ -16,7 +16,7 @@ public class CreateBrandHandler (CatalogDbContext dbContext, IHttpContextAccesso
     public async Task<CreateBrandResult> Handle(CreateBrandCommand command, CancellationToken cancellationToken)
     {
         var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value?? throw new UnauthorizedAccessException("User is not authorized");
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
         //var userEmail = user?.FindFirst(ClaimTypes.Email)?.Value;
 

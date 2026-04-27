@@ -10,7 +10,7 @@ public class RemoveCategoryEndPoint : ICarterModule
     {
         app.MapDelete("/api/v1/catalog/categories/{id}", async ([FromRoute]Guid id, [FromServices]ISender sender) =>
         {
-            var result = await sender.Send(new RemoveCategoryCommand(id, "barye@gmail.com"));
+            var result = await sender.Send(new RemoveCategoryCommand(id));
             var respose =result.Adapt<RemoveCategoryResponse>();
 
             return Results.Ok(respose);

@@ -126,6 +126,12 @@ builder.Services.AddHttpClient<IBrandService, BrandService>(client =>
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
 
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddHttpClient<ICategoryService, CategoryService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
 
 #endregion Warehouses Module Services
 

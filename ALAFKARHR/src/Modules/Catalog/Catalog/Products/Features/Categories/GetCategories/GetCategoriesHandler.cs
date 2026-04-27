@@ -13,7 +13,7 @@ public class GetCategoriesHandler (CatalogDbContext dbContext)
         var totalCount = await dbContext.Categories.LongCountAsync(cancellationToken);
 
         var categories= await dbContext.Categories
-            .Where(x=> x.DeletedAt==null)
+            .Where(x=> x.IsDeleted==false)
             .AsNoTracking()
             .OrderBy(x=> x.Name)
             .Skip(pageSize * pageIndex)

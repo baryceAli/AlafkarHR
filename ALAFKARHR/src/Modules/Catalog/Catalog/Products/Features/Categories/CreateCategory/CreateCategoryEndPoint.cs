@@ -22,6 +22,7 @@ public class CreateCategoryEndPoint : ICarterModule
             .WithName("CreateCategory")
             .Produces<CreateCategoryResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
             .WithSummary("Create Category")
             .WithDescription("Create Category")
             .RequireAuthorization($"{PermissionList.CategoryPermissions.Create}");

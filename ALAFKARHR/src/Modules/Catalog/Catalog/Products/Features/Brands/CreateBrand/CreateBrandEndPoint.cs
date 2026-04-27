@@ -22,6 +22,7 @@ public class CreateBrandEndPoint : ICarterModule
             .WithName("CreateBrand")
             .Produces<CreateBrandResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
             .WithSummary("Create Brand")
             .WithDescription("Create Brand")
             .RequireAuthorization($"{PermissionList.BrandPermissions.Create}");
