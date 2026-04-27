@@ -14,7 +14,7 @@ public class GetEmployeesByBranchIdHandler(EmployeeDbContext dbContext)
     {
         var query = dbContext.Employees.AsNoTracking().AsQueryable();
 
-        query = query.Where(e => e.BranchId == request.BranchId);
+        query = query.Where(e => e.BranchId == request.BranchId && e.IsDeleted == false);
         // 🔍 Search
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
         {

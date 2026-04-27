@@ -13,7 +13,7 @@ public class GetByPositionHandler(EmployeeDbContext dbContext)
     {
         var query = dbContext.Employees.AsNoTracking().AsQueryable();
 
-        query = query.Where(e => e.PositionId== request.PositionId);
+        query = query.Where(e => e.PositionId== request.PositionId && e.IsDeleted==false);
         // 🔍 Search
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
         {

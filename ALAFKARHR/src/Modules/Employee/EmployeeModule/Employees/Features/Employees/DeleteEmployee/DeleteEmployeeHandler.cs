@@ -9,7 +9,7 @@ public class DeleteEmployeeHandler(EmployeeDbContext dbContext) : ICommandHandle
 {
     public async Task<DeleteEmployeeResult> Handle(DeleteEmployeeCommand request, CancellationToken cancellationToken)
     {
-        var employee = await dbContext.Employees.FindAsync(new object[] { request.EmployeeId }, cancellationToken);
+        var employee = await dbContext.Employees.FirstOrDefaultAsync(e=> e.Id== request.EmployeeId , cancellationToken);
         if (employee == null)
             throw new Exception("Employee not found");
         dbContext.Employees.Remove(employee);

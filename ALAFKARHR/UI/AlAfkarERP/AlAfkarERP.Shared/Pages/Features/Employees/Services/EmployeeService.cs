@@ -43,6 +43,9 @@ public class EmployeeService :BaseApiService, IEmployeeService
     {
         var request = new HttpRequestMessage(HttpMethod.Delete, $"{_path}/{id}");
         return await SendAsync<UpdateDeleteResponseDto>(request, null);
+        //var request = new HttpRequestMessage(HttpMethod.Delete, $"{_path}/{id}");
+        //return await SendAsync<UpdateDeleteResponseDto>(request, null);
+
     }
 
     public async Task<ApiResult<PaginatedResult<EmployeeDto>>> GetAsync(int pageIndex, int pageSize)

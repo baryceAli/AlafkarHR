@@ -46,7 +46,7 @@
         <DataAnnotationsValidator />
         <ValidationSummary />
         <section>
-            @if (!Id.HasValue)
+            @if (!Id.HasValue||1==1)
             {
                 <!--Position Information-->
                 <div class="card mb-3">
@@ -196,7 +196,7 @@
                     </div>
 
                     
-                    @if (!Id.HasValue)
+                    @if (!Id.HasValue || 1==1)
                     {
                         <div class="mb-3 row">
                             <label for="DateOfBirth" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Date Of Birth", "تاريخ الميلاد")</label>
@@ -393,8 +393,7 @@
                     <div class="mb-3 row">
                         <label for="inputEmployeeNo" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Employee No", "الرقم الوظيفي")</label>
                         <div class="col-sm-10">
-                            <InputText class="form-control" id="inputEmployeeNo" @bind-Value="employee.EmployeeNo" 
-                            />
+                            <InputText class="form-control" id="inputEmployeeNo" @bind-Value="employee.EmployeeNo" />
                             <ValidationMessage For="() => employee.EmployeeNo" />
                         </div>
                     </div>
@@ -529,7 +528,11 @@
                 selectedPosition = positions.FirstOrDefault(p => p.Id == employee.PositionId);
                 selectedAcademicInistitution = academicInstitutions.FirstOrDefault(a => a.Id == employee.AcademicInstituteId);
                 selectedSpecialization = specializations.FirstOrDefault(s => s.Id == employee.SpecializationId);
-
+                selectedBranch = branches.FirstOrDefault(b => b.Id == employee.BranchId);
+                await OnBranchSelected(selectedBranch);
+                selectedAdministration = administrations.FirstOrDefault(a => a.Id == employee.AdministrationId);
+                await OnAdministrationSelected(selectedAdministration);
+                selectedDepartment = departments.FirstOrDefault(d => d.Id == employee.DepartmentId);
                 StateHasChanged();
             }
             else

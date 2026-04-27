@@ -36,7 +36,7 @@ public enum Nationality
     Bangladeshi,
     SriLankan,
     Nepalese,
-
+    Borma,
     // Southeast Asia
     Filipino,
     Indonesian,

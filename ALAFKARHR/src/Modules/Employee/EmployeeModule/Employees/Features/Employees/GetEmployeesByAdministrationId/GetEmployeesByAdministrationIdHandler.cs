@@ -12,7 +12,7 @@ public class GetEmployeesByAdministrationIdHandler(EmployeeDbContext dbContext)
     {
         var query = dbContext.Employees.AsNoTracking().AsQueryable();
 
-        query = query.Where(e => e.AdministrationId == request.AdministrationId);
+        query = query.Where(e => e.AdministrationId == request.AdministrationId && e.IsDeleted == false);
         // 🔍 Search
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
         {

@@ -14,7 +14,7 @@ public class GetEmployeesByCompanyIdHandler(EmployeeDbContext dbContext)
     {
         var query = dbContext.Employees.AsNoTracking().AsQueryable();
 
-        query = query.Where(e => e.CompanyId == request.CompanyId);
+        query = query.Where(e => e.CompanyId == request.CompanyId && e.IsDeleted == false);
         // 🔍 Search
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
         {

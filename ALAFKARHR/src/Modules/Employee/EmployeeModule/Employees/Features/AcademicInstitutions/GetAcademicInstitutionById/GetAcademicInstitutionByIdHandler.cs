@@ -11,7 +11,7 @@ public class GetAcademicInstitutionByIdHandler(EmployeeDbContext dbContext)
 {
     public async Task<GetAcademicInstitutionByIdResult> Handle(GetAcademicInstitutionByIdQuery request, CancellationToken cancellationToken)
     {
-        var academic=await dbContext.AcademicInstitutions.AsNoTracking().FirstOrDefaultAsync(a=> a.Id==request.Id,cancellationToken);
+        var academic=await dbContext.AcademicInstitutions.AsNoTracking().FirstOrDefaultAsync(a=> a.Id==request.Id&&a.IsDeleted==false,cancellationToken);
         if (academic is null)
             throw new NotFoundException($"Academic Institution not found: {request.Id}");
 

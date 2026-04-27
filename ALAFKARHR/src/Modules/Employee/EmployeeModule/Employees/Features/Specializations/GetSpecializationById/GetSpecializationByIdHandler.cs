@@ -10,7 +10,7 @@ public class GetSpecializationByIdHandler(EmployeeDbContext dbContext) : IQueryH
 {
     public async Task<GetSpecializationByIdResult> Handle(GetSpecializationByIdQuery request, CancellationToken cancellationToken)
     {
-        var spec= await dbContext.Specializations.AsNoTracking().FirstOrDefaultAsync(s=> s.Id==request.Id, cancellationToken);
+        var spec= await dbContext.Specializations.AsNoTracking().FirstOrDefaultAsync(s=> s.Id == request.Id && s.IsDeleted == false, cancellationToken);
         if (spec is null)
             throw new NotFoundException($"Specialization not found: {request.Id}");
 

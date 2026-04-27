@@ -11,7 +11,12 @@ public class GetEmployeeByIdHandler(EmployeeDbContext dbContext)
 {
     public async Task<GetEmployeeByIdResult> Handle(GetEmployeeByIdQuery request, CancellationToken cancellationToken)
     {
-        var employee =await dbContext.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
+        var employee =await dbContext.Employees
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(
+                            e => e.Id == request.Id && 
+                            e.IsDeleted==false ,
+                            cancellationToken);
         if (employee is null)
             throw new NotFoundException($"Employee not found: {request.Id}");
 

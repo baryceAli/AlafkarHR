@@ -318,6 +318,7 @@
                     });
 
                     await LoadEmployees();
+                    await InvokeAsync(StateHasChanged);
                     // var response = await BranchService.GetByCompanyIdAsync(companyId);
                     // if (response.IsSuccess)
                     // {

@@ -13,7 +13,7 @@ public class GetEmployeesByDepartmentIdHandler(EmployeeDbContext dbContext)
     {
         var query = dbContext.Employees.AsNoTracking().AsQueryable();
 
-        query = query.Where(e => e.DepartmentId == request.DepartmentId);
+        query = query.Where(e => e.DepartmentId == request.DepartmentId && e.IsDeleted == false);
         // 🔍 Search
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
         {

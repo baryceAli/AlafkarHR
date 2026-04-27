@@ -1,11 +1,13 @@
-﻿namespace EmployeeModule.Employees.Features.Employees.DeleteEmployee;
+﻿using Microsoft.AspNetCore.Mvc;
+
+namespace EmployeeModule.Employees.Features.Employees.DeleteEmployee;
 
 public record DeleteEmployeeResponse(bool IsSuccess);
 public class DeleteEmployeeEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapDelete("/api/Employee/Employees/{id}", async (Guid id, ISender sender) =>
+        app.MapDelete("/api/v1/Employee/Employees/{id}", async ([FromRoute]Guid id,[FromServices] ISender sender) =>
         {
             var result = await sender.Send(new DeleteEmployeeCommand(id));
             return Results.Ok(result);

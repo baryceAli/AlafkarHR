@@ -9,7 +9,7 @@ public class GetPositionByIdHandler(EmployeeDbContext dbContext) : IQueryHandler
 {
     public async Task<GetPositionByIdResult> Handle(GetPositionByIdQuery request, CancellationToken cancellationToken)
     {
-        var position=await dbContext.Positions.FirstOrDefaultAsync(p=>p.Id==request.Id,cancellationToken);
+        var position=await dbContext.Positions.FirstOrDefaultAsync(p=>p.Id == request.Id && p.IsDeleted == false,cancellationToken);
         if (position is null)
             throw new NotFoundException($"Position not found: {request.Id}");
 

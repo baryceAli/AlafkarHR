@@ -36,6 +36,7 @@ public static class NationalityTranslator
             Nationality.Bangladeshi => lang == "Ar" ? "بنغلاديشي" : "Bangladeshi",
             Nationality.SriLankan => lang == "Ar" ? "سريلانكي" : "Sri Lankan",
             Nationality.Nepalese => lang == "Ar" ? "نيبالي" : "Nepalese",
+            Nationality.Borma=> lang=="Ar"?"بورماوي": "Borma",
 
             // Southeast Asia
             Nationality.Filipino => lang == "Ar" ? "فلبيني" : "Filipino",
