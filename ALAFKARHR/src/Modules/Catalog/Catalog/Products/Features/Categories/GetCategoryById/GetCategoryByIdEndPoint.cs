@@ -19,7 +19,8 @@ public class GetCategoryByIdEndPoint : ICarterModule
             .Produces<GetCategoryByIdResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Get Category By Id")
-            .WithDescription("Get Category By Id");
+            .WithDescription("Get Category By Id")
+            .RequireAuthorization(PermissionList.CategoryPermissions.View);
 
     }
 }

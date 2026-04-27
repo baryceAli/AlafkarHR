@@ -18,6 +18,7 @@ public class GetUnitsEndPoint : ICarterModule
             .Produces<GetUnitsResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Get Units")
-            .WithDescription("Get Units");
+            .WithDescription("Get Units")
+            .RequireAuthorization(PermissionList.UnitPermissions.View);
     }
 }

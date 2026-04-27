@@ -19,6 +19,7 @@ public class GetBrandsEndPoint : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             //.ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Get Brands")
-            .WithDescription("Get Brands");
+            .WithDescription("Get Brands")
+            .RequireAuthorization(PermissionList.BrandPermissions.View);
     }
 }

@@ -7,7 +7,7 @@ public class GetUnitByIdHandler (CatalogDbContext dbContext)
 {
     public async Task<GetUnitByIdResult> Handle(GetUnitByIdQuery query, CancellationToken cancellationToken)
     {
-        var unit= await dbContext.Units.AsNoTracking().FirstOrDefaultAsync(x=> x.Id==query.Id && x.DeletedAt==null);
+        var unit= await dbContext.Units.AsNoTracking().FirstOrDefaultAsync(x=> x.Id==query.Id && x.IsDeleted==false);
         if (unit is null)
             throw new Exception($"Unit not found: {query.Id}");
 
