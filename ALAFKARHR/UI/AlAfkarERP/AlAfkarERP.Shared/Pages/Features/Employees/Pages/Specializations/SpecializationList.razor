@@ -98,11 +98,10 @@
             </tr>
         </thead>
         <tbody>
-            @* @foreach (var b in branches) *@
-            @foreach (var specialization in ProcessedSpecializations)
-            {
-                @if (editingSpecializationId == specialization.Id)
+            @if (editingSpecializationId != null)
                 {
+                    var specialization = specializations.FirstOrDefault(s => s.Id == editingSpecializationId);  
+
                     <tr>
                         <td colspan="3">
                             <EditForm Model="specialization" OnValidSubmit="() => SaveSpecialization(specialization)">
@@ -141,9 +140,11 @@
                         </td>
                     </tr>
                 }
-                else
-                {
-                    <tr>
+                @foreach (var specialization in ProcessedSpecializations.Where(s=> s.Id!= editingSpecializationId))
+            {
+                
+                
+                <tr>
 
                         <td>@specialization.Name</td>
                         <td>@specialization.NameEng</td>
@@ -160,7 +161,7 @@
                             </button>
                         </td>
                     </tr>
-                }
+                
             }
         </tbody>
     </table>

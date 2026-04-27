@@ -132,11 +132,10 @@
             </tr>
         </thead>
         <tbody>
-            @* @foreach (var b in branches) *@
-            @foreach (var dept in ProcessedDepartments)
-            {
-                @if (editingDepartmentId == dept.Id)
+            
+            @if (editingDepartmentId != null)
                 {
+                    var dept = departments.FirstOrDefault(d => d.Id == editingDepartmentId);
                     <tr>
                         <td colspan="8">
                             <EditForm Model="dept" OnValidSubmit="async () => await SaveDepartment(dept)">
@@ -230,9 +229,11 @@
                         </td>
                     </tr>
                 }
-                else
-                {
-                    <tr>
+                
+                @foreach (var dept in ProcessedDepartments.Where(d => d.Id != editingDepartmentId))
+            {
+                
+                <tr>
                         <td>@dept.Name</td>
                         <td>@dept.NameEng</td>
                         <td>@(users.FirstOrDefault(u => u.Id == dept.HeadOfDepartment)?.UserName ?? "")</td>
@@ -251,8 +252,8 @@
                                 @SharedDataService.SelectViewLang("Delete", "حذف")</button>
                         </td>
                     </tr>
+                
                 }
-            }
         </tbody>
     </table>
     <div class="d-flex justify-content-end align-items-center mt-3">

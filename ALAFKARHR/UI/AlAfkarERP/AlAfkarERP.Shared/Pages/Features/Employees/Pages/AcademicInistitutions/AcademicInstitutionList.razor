@@ -20,8 +20,8 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-@if(!AuthState.User.Claims.Any(c=> c.Value == PermissionList.AcademicInistitutionPermissions.Create) ||
-    !AuthState.User.Claims.Any(c=> c.Value==PermissionList.AcademicInistitutionPermissions.Edit))
+@if (!AuthState.User.Claims.Any(c => c.Value == PermissionList.AcademicInistitutionPermissions.Create) ||
+    !AuthState.User.Claims.Any(c => c.Value == PermissionList.AcademicInistitutionPermissions.Edit))
 {
     <div class="alert alert-warning">
         <span>
@@ -103,77 +103,80 @@
             </tr>
         </thead>
         <tbody>
-            @foreach (var academic in ProcessedAcademicInistitutions)
+            @if (editingAcademicInstitutionId != null)
             {
-                if (editingAcademicInstitutionId == academic.Id)
-                {
-                    <tr>
-                        <td colspan="3">
-                            <EditForm Model="academic" OnValidSubmit="() => SaveAcademicInstitution(academic)">
-                                <DataAnnotationsValidator />
-                                @* <ValidationSummary /> *@
+                var academic = academicInstitutions.First(b => b.Id == editingAcademicInstitutionId);
+                <tr>
+                    <td colspan="3">
+                        <EditForm Model="academic" OnValidSubmit="() => SaveAcademicInstitution(academic)">
+                            <DataAnnotationsValidator />
+                            @* <ValidationSummary /> *@
 
-                                <div class="row bg-info-subtle p-3">
+                            <div class="row bg-info-subtle p-3">
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
-                                            @SharedDataService.SelectViewLang("Name (Ar)", "الاسم (ع)")</label>
-                                        <div class="col-sm-10">
-                                            <InputText class="form-control" @bind-Value="academic.Name" />
-                                            <ValidationMessage For="() => academic.Name" />
+                                <div class="mb-3 row">
+                                    <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                        @SharedDataService.SelectViewLang("Name (Ar)", "الاسم (ع)")
+                                    </label>
+                                    <div class="col-sm-10">
+                                        <InputText class="form-control" @bind-Value="academic.Name" />
+                                        <ValidationMessage For="() => academic.Name" />
                                             
-                                        </div>
                                     </div>
-
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
-                                            @SharedDataService.SelectViewLang("Name (eng)", "الاسم (e)")</label>
-                                        <div class="col-sm-10">
-                                            <InputText class="form-control" @bind-Value="academic.NameEng" />
-                                            <ValidationMessage For="() => academic.NameEng" />
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label"></label>
-                                        <div class="col-sm-10">
-                                            <button type="submit"  class="btn btn-success btn-sm">
-                                                @SharedDataService.SelectViewLang("Save", "حفظ")
-                                            </button>
-
-                                            <button type="button"
-                                                    class="btn btn-secondary btn-sm"
-                                                    @onclick="CancelEdit">
-                                                @SharedDataService.SelectViewLang("Cancel", "إلغاء")
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    
                                 </div>
-                            </EditForm>
-                        </td>
-                    </tr>
-                }
-                else
-                {
-                    <tr>
-                        <td>@academic.Name</td>
-                        <td>@academic.NameEng</td>
-                        <td>
-                            <button class="btn btn-warning btn-sm"
-                                    disabled="@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.AcademicInistitutionPermissions.Edit))"
-                                    @onclick="() => EditAcademicInstitution(academic.Id)">
-                                Edit
-                            </button>
-                            <button class="btn btn-danger btn-sm"
-                                    disabled="@(!AuthState.User.Claims.Any(c=> c.Value==PermissionList.AcademicInistitutionPermissions.Delete))"
-                                    @onclick="() => DeleteAcademicInstitution(academic)">
-                                @SharedDataService.SelectViewLang("Delete", "حذف")
-                            </button>
-                        </td>
-                    </tr>
-                }
+
+                                <div class="mb-3 row">
+                                    <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                        @SharedDataService.SelectViewLang("Name (eng)", "الاسم (e)")
+                                    </label>
+                                    <div class="col-sm-10">
+                                        <InputText class="form-control" @bind-Value="academic.NameEng" />
+                                        <ValidationMessage For="() => academic.NameEng" />
+                                    </div>
+                                </div>
+                                    
+                                <div class="mb-3 row">
+                                    <label for="inputFirstName" class="col-sm-2 col-form-label"></label>
+                                    <div class="col-sm-10">
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            @SharedDataService.SelectViewLang("Save", "حفظ")
+                                        </button>
+
+                                        <button type="button"
+                                                class="btn btn-secondary btn-sm"
+                                                @onclick="CancelEdit">
+                                            @SharedDataService.SelectViewLang("Cancel", "إلغاء")
+                                        </button>
+                                    </div>
+                                </div>
+
+                                    
+                            </div>
+                        </EditForm>
+                    </td>
+                </tr>
+            }
+                
+            @foreach (var academic in ProcessedAcademicInistitutions.Where(a=> a.Id!= editingAcademicInstitutionId))
+            {
+                
+                <tr>
+                    <td>@academic.Name</td>
+                    <td>@academic.NameEng</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm"
+                                disabled="@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.AcademicInistitutionPermissions.Edit))"
+                                @onclick="() => EditAcademicInstitution(academic.Id)">
+                            Edit
+                        </button>
+                        <button class="btn btn-danger btn-sm"
+                                disabled="@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.AcademicInistitutionPermissions.Delete))"
+                                @onclick="() => DeleteAcademicInstitution(academic)">
+                            @SharedDataService.SelectViewLang("Delete", "حذف")
+                        </button>
+                    </td>
+                </tr>
+                
             }
 
         </tbody>
