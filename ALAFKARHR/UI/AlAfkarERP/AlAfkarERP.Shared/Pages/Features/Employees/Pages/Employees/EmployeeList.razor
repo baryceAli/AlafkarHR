@@ -31,7 +31,7 @@
 @if (!AuthState.User.Claims.Any(c => c.Value == PermissionList.EmployeePermissions.View))
 {
     <div class="alert alert-warning">
-        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page","ليس لديك الصلاحيات لعرض هذه الصفحة")</span>
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحيات لعرض هذه الصفحة")</span>
     </div>
 
     return;
@@ -114,7 +114,7 @@
         </thead>
         <tbody>
             @* @foreach (var b in branches) *@
-            @foreach (var emp in ProcessedBranches)
+            @foreach (var emp in filteredEmployees)
             {
                 <tr>
                     <!--
@@ -137,28 +137,29 @@
                     {
                     }
                         -->
-                    
 
+                    
                     <td>@emp.EmployeeNo</td>
                     <td>@emp.FullName</td>
                     <td>@emp.DateOfBirth.ToString("yyyy/MM/dd")</td>
                     <td>@emp.Email</td>
                     <td>@emp.Phone</td>
                     <td>@emp.HireDate.ToString("yyyy/MM/dd")</td>
-                    <td>@(SharedDataService.SelectViewLang(
-                        positions.FirstOrDefault(p => p.Id == emp.PositionId)?.TitleEng ?? "", 
-                        positions.FirstOrDefault(p => p.Id == emp.PositionId)?.Title?? ""))
+                    <td>
+                        @(SharedDataService.SelectViewLang(
+                            positions.FirstOrDefault(p => p.Id == emp.PositionId)?.TitleEng ?? "",
+                            positions.FirstOrDefault(p => p.Id == emp.PositionId)?.Title ?? ""))
                     </td>
                     
                     <td>
                         <a class="btn btn-warning btn-sm m-2" href="Employee/Employee/view/@emp.Id">@SharedDataService.SelectViewLang("View", "عرض")</a>
                         <button class="btn btn-warning btn-sm m-2"
-                            @onclick="() => EditBranch(emp.Id)"
+                                @onclick="() => EditBranch(emp.Id)"
                                 disabled=@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.EmployeePermissions.Edit))>
                             @SharedDataService.SelectViewLang("Edit", "تعديل")
-                            </button>
+                        </button>
                         <button class="btn btn-danger btn-sm m-2"
-                            @onclick="() => DeleteEmployee(emp)"
+                                @onclick="() => DeleteEmployee(emp)"
                                 disabled=@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.EmployeePermissions.Delete))>
                             @SharedDataService.SelectViewLang("Delete", "حذف")
                         </button>
@@ -196,6 +197,7 @@
     private List<DepartmentDto> departments = [];
     private List<PositionDto> positions = [];
     private List<EmployeeDto> employees = [];
+    private List<EmployeeDto> filteredEmployees = [];
     // private Guid? editingEmployeeId;
 
     private Guid companyId;
@@ -212,87 +214,21 @@
             positions = posRes.Data?.Data?.ToList() ?? [];
         }
         await LoadEmployees();
-        // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
-        // if (branchResponse.IsSuccess)
-        // {
-        //     branches = branchResponse.Data?.ToList() ?? [];
-        // }
+
     }
     // Branch
     void CreateNew()
     {
         NavigationManager.NavigateTo("/Employee/Employee/Form");
-        // var newItem = new BranchDto();
-        // branches.Insert(0, newItem);
-        // editingEmployeeId = newItem.Id;
+
     }
 
-    void EditBranch(Guid id) 
+    void EditBranch(Guid id)
     {
         NavigationManager.NavigateTo($"/Employee/Employee/Form/{id}");
     }
 
-    async Task SaveBranch(BranchDto b)
-    {
-        // if (b.Id == Guid.Empty)
-        // {
-        //     Random rnd = new Random();
-        //     b.Code = b.NameEng.Substring(0, 1) + rnd.Next(100, 999);
-        //     b.CompanyId = companyId;
 
-        //     var bResponse = await BranchService.CreateAsync(b);
-        //     if (bResponse.IsSuccess)
-        //     {
-        //         //show success
-        //         ToastService.Show(new ToastMessage
-        //         {
-        //             Message = SharedDataService.SelectViewLang("Branch has been created successfully", "تم انشاء الفرع بنجاح"),
-        //             Type = "success"
-        //         });
-
-        //     }
-        //     else
-        //     {
-        //         // how fail
-        //         ToastService.Show(new ToastMessage
-        //         {
-        //             Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
-        //             Type = "error"
-        //         });
-        //     }
-        // }
-        // else
-        // {
-
-        //     var bresponse = await BranchService.UpdateAsync(b);
-        //     if (bresponse.IsSuccess)
-        //     {
-        //         //show success
-        //         ToastService.Show(new ToastMessage
-        //         {
-        //             Message = SharedDataService.SelectViewLang("Branch has been Edited successfully", "تم تعديل الفرع بنجاح"),
-        //             Type = "success"
-        //         });
-        //     }
-        //     else
-        //     {
-        //         // show  fail
-        //         ToastService.Show(new ToastMessage
-        //         {
-        //             Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
-        //             Type = "error"
-        //         });
-        //     }
-        // }
-
-        // await LoadBranches();
-        // // var response = await BranchService.GetByCompanyIdAsync(companyId);
-        // // if (response.IsSuccess)
-        // // {
-        // //     branches = response.Data?.ToList() ?? [];
-        // // }
-        // editingEmployeeId = null;
-    }
 
     async Task DeleteEmployee(EmployeeDto employee)
     {
@@ -373,7 +309,7 @@
     {
         // var request = new PaginationRequest(pageIndex, pageSize, searchText);
 
-        var response = await EmployeeService.GetByCompanyIdAsync(companyId, pageIndex, pageSize);//,searchText);
+        var response = await EmployeeService.GetByCompanyIdAsync(companyId, pageIndex, pageSize,searchText);//,searchText);
 
         if (response.IsSuccess)
         {
@@ -381,6 +317,7 @@
 
             // branches = result.Data.ToList();
             employees = response.Data?.Data.ToList() ?? [];
+            filteredEmployees = new List<EmployeeDto>(employees);
             // TotalPages = (int)response.Data!.Count;
             TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
         }
@@ -391,30 +328,46 @@
         pageIndex = 0;
         await LoadEmployees();
     }
-    private IEnumerable<EmployeeDto> ProcessedBranches =>
-    employees
-        // 🔍 Search
-        .Where(emp =>
-            string.IsNullOrWhiteSpace(searchText) ||
-            (emp.FullName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (emp.EmployeeNo?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (emp.Email?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (emp.PositionName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
-        )
+    private async Task<IEnumerable<EmployeeDto>> ProcessedEmployees()
+    {
+        filteredEmployees = [];
+        List<EmployeeDto> emps = new List<EmployeeDto>();
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
 
-        // 🎯 Filter
-        // .Where(b =>
-        //     filterMainBranch == null || b.IsMainBranch == filterMainBranch
-        // )
+            emps =
+            employees
+            // 🔍 Search
+            .Where(emp =>
+                string.IsNullOrWhiteSpace(searchText) ||
+                (emp.FullName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (emp.EmployeeNo?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (emp.Email?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (emp.PositionName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+            )
 
-        // 🔃 Sorting
-        .OrderByDynamic(sortColumn, sortAscending)
+            // 🎯 Filter
+            // .Where(b =>
+            //     filterMainBranch == null || b.IsMainBranch == filterMainBranch
+            // )
 
-        // 📄 Pagination
-        .Skip((pageIndex) * pageSize)
-        .Take(pageSize);
+            // 🔃 Sorting
+            .OrderByDynamic(sortColumn, sortAscending)
 
+            // 📄 Pagination
+            .Skip((pageIndex) * pageSize)
+            .Take(pageSize).ToList();
+        }
+        else
+        {
 
+            var empRes = await EmployeeService.GetByCompanyIdAsync(companyId, pageIndex, pageSize, searchText);
+            emps = empRes.IsSuccess ? empRes.Data?.Data?.ToList() ?? [] : [];
+            employees = new List<EmployeeDto>(emps);
+            filteredEmployees = new List<EmployeeDto>(emps);
+        }
+        return emps;
+    }
 
     // Filtering example
     private bool? filterMainBranch = null;

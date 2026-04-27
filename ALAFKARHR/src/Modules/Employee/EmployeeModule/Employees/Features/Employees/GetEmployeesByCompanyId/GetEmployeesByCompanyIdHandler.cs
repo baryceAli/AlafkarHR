@@ -13,7 +13,7 @@ public class GetEmployeesByCompanyIdHandler(EmployeeDbContext dbContext)
     public async Task<GetEmployeesByCompanyIdResult> Handle(GetEmployeesByCompanyIdQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.Employees.AsNoTracking().AsQueryable();
-
+       //request.PaginationRequest.SearchText
         query = query.Where(e => e.CompanyId == request.CompanyId && e.IsDeleted == false);
         // 🔍 Search
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
