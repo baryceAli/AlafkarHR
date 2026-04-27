@@ -29,7 +29,7 @@ public class ProductSkuDto
     public Guid? CompanyId { get; set; }
 
 
-    public decimal? Price { get; set; }
+    public decimal Price { get; set; }
     public bool ShowOnStore { get; set; }
     
 

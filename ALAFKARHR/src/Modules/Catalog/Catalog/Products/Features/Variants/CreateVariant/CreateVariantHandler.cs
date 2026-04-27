@@ -25,8 +25,7 @@ public class CreateVariantHandler (CatalogDbContext dbContext, IHttpContextAcces
             command.Variant.Name,
             command.Variant.NameEng, 
             Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),
-            userId,
-            command.Variant.Description
+            userId
             );
 
         dbContext.Variants.Add(variant);

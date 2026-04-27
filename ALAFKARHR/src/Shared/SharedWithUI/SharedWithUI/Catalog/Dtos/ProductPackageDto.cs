@@ -14,7 +14,7 @@ public class ProductPackageDto
 
     [Required(ErrorMessage = "UnitsCount is required")]
     [Range(0.01,1000000,ErrorMessage = "UnitsCount must be greator than 0")]
-    public double UnitsCount { get; set; }
+    public decimal  Quantity { get; set; }
 
 
     [Required(ErrorMessage = "Company is required")]

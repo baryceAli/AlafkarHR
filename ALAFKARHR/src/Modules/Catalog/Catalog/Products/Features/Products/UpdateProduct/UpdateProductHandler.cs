@@ -29,15 +29,15 @@ public class UpdateProductHandler(CatalogDbContext dbContext, IHttpContextAccess
         var user = httpContextAccessor.HttpContext?.User;
         var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-        string finalImagePath = product.ImageUrl;
+        //string finalImagePath = product.ImageUrl;
         var incomingImage = command.Product.ImageUrl;
 
         if (!string.IsNullOrWhiteSpace(incomingImage))
         {
             if (IsBase64Image(incomingImage))
             {
-                string[] PATH_SEGEMNT = ["wwwroot", "Images", "Products"];
-                finalImagePath = SaveImages.SaveBase64Image($"{product.Id}", PATH_SEGEMNT, command.Product.ImageUrl);
+                //string[] PATH_SEGEMNT = ["wwwroot", "Images", "Products"];
+                //finalImagePath = SaveImages.SaveBase64Image($"{product.Id}", PATH_SEGEMNT, command.Product.ImageUrl);
             }
         }
                     
@@ -45,7 +45,10 @@ public class UpdateProductHandler(CatalogDbContext dbContext, IHttpContextAccess
         
 
 
-        product.Update(command.Product.Name, command.Product.NameEng, command.Product.Price, finalImagePath, userId);
+        product.Update(
+            command.Product.Name, 
+            command.Product.NameEng, 
+            userId);
 
         await dbContext.SaveChangesAsync();
 

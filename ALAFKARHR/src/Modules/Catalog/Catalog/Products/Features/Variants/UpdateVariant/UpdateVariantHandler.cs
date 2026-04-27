@@ -25,7 +25,11 @@ public class UpdateVariantHandler (CatalogDbContext dbContext, IHttpContextAcces
         var user = httpContextAccessor.HttpContext?.User;
         var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-        variant.Update(command.Variant.Name, command.Variant.NameEng, userId, command.Variant.Description);
+        variant.Update(
+            command.Variant.Name, 
+            command.Variant.NameEng, 
+            userId 
+            );
 
         await dbContext.SaveChangesAsync();
 

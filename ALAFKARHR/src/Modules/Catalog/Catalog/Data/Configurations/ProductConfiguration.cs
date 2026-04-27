@@ -16,18 +16,14 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .IsRequired()
             .HasMaxLength(200);
 
-        builder.Property(x => x.Price)
-            .HasColumnType("decimal(18,2)");
+        
 
         //builder.HasOne(x=> x.Category)
         builder.HasOne< Category>()
             .WithMany()
             .HasForeignKey(x => x.CategoryId);
 
-        //builder.HasOne(x=> x.Brand)
-        builder.HasOne< Brand>()
-            .WithMany()
-            .HasForeignKey(x => x.BrandId);
+        
 
         builder.HasOne<Unit>()
             .WithMany()

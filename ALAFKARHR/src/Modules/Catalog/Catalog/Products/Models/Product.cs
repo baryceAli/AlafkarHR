@@ -4,74 +4,65 @@ public class Product : Aggregate<Guid>
 {
 
     public Guid CategoryId { get; private set; }
-
-    public Guid BrandId { get; private set; }
-
     public Guid UnitId { get; private set; }
-    public string Name { get; private set; } = default!;
-    public string NameEng { get; private set; } = default!;
-    public decimal Price { get; private set; }
-    public string ImageUrl { get; private set; } = default!;
     public Guid CompanyId { get; private set; }
 
-    private readonly List<ProductSKU> _productSkus = new();
-    public IReadOnlyCollection<ProductSKU> ProductSkus => _productSkus;
+    public string Name { get; private set; } = default!;
+    public string NameEng { get; private set; } = default!;
+
+    private readonly List<ProductSku> _skus = new();
+    public IReadOnlyCollection<ProductSku> Skus => _skus;
 
     //private readonly List<ProductPackage> _packages = new();
     //public IReadOnlyCollection<ProductPackage> Packages => _packages;
 
 
     private Product() { }
-    public static Product Create(Guid id, string name, string nameEng, decimal price, Guid brandId, Guid categoryId, Guid unitId,Guid companyId, string imagePath, string createdBy)
+    public static Product Create(Guid id, 
+        string name, 
+        string nameEng, 
+        Guid categoryId, 
+        Guid unitId,Guid 
+        companyId, 
+        string createdBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(nameEng);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(price);
-        ArgumentException.ThrowIfNullOrEmpty(imagePath);
-        //ArgumentNullException.ThrowIfNull(categoryId);
-        //ArgumentNullException.ThrowIfNull(brandId);
-        //ArgumentNullException.ThrowIfNull(unitId);
-        //ArgumentOutOfRangeException.ThrowIfNegativeOrZero(price);
         var product = new Product
         {
             Id = id,
             Name = name,
             NameEng = nameEng,
-            Price = price,
-            BrandId = brandId,
             CategoryId = categoryId,
             UnitId = unitId,
             CompanyId = companyId,
-            ImageUrl = imagePath,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
         return product;
 
     }
-    public void Update(string name, string nameEng, decimal price, string imagePath, string modifiedBy)
+    public void Update(string name, 
+        string nameEng, 
+        string modifiedBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(nameEng);
-        ArgumentException.ThrowIfNullOrEmpty(imagePath);
         //ArgumentOutOfRangeException.ThrowIfNegativeOrZero(price);
         Name = name;
         NameEng = nameEng;
-        Price = price;
-        ImageUrl = imagePath;
-        //UnitId = unitId;
-        //Description = description;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }
     public void Remove(string deletedBy)
     {
+        IsDeleted = true;
         DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;
     }
-    public void AddProductVariant(ProductSKU variant)
+    public void AddProductVariant(ProductSku variant)
     {
-        _productSkus.Add(variant);
+        _skus.Add(variant);
     }
     //public void RemoveVariant(ProductVariant variant) { _variants.Remove(variant); }
 

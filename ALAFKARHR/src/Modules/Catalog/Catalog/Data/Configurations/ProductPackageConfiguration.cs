@@ -16,8 +16,8 @@ public class ProductPackageConfiguration : IEntityTypeConfiguration<ProductPacka
             .IsRequired()
             .HasMaxLength(100);
 
-        builder.Property(x => x.UnitsCount)
-            .IsRequired();
+        builder.Property(x => x.Quantity)
+            .HasPrecision(18, 2);
 
     }
 }

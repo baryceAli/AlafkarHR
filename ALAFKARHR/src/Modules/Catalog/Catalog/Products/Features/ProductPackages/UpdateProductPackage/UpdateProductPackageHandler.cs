@@ -9,7 +9,7 @@ public class UpdateProductPackageCommandValidator : AbstractValidator<UpdateProd
     {
         RuleFor(x=> x.ProductPackage.Name).NotEmpty().WithMessage("PackageName is required");
         RuleFor(x=> x.ProductPackage.NameEng).NotEmpty().WithMessage("PackageNameEng is required");
-        RuleFor(x => x.ProductPackage.UnitsCount).GreaterThan(0).WithMessage("UnitsCount must be greator than 0");
+        RuleFor(x => x.ProductPackage.Quantity).GreaterThan(0).WithMessage("UnitsCount must be greator than 0");
         //RuleFor(x => x.ProductPackage.PackagePrice).GreaterThan(0).WithMessage("PackagePrice must be greator than 0");
         //RuleFor(x => x.ProductPackage.QuantityPerPackage).GreaterThan(0).WithMessage("UnitRate must be greator than 0");
     }
@@ -30,7 +30,7 @@ public class UpdateProductPackageHandler (CatalogDbContext dbContext, IHttpConte
         package.Update(
             command.ProductPackage.Name, 
             command.ProductPackage.NameEng,
-            command.ProductPackage.UnitsCount,
+            command.ProductPackage.Quantity,
             //command.ProductPackage.PackagePrice, 
             userId);
 

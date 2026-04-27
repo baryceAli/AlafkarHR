@@ -2,37 +2,31 @@
 
 public class ProductPackage : Aggregate<Guid>
 {
-    //public Guid UnitId { get; private set; }
-    //public Guid ProductId { get; private set; }
-    public string Name { get; private set; }
-    public string NameEng { get;private set; } 
-    public double UnitsCount { get; private set; }
-    public Guid CompanyId { get; private set; }
-    //public decimal PackagePrice { get; set; }
-
-    //this price is calculated price* unitRate --> the price value will come from product or ProductVariant if available
-    //public decimal PackagePrice { get; set; }
-
+    public string Name { get; private set; } // 250ml, 1L, 500g
+    public string NameEng { get; private set; } // 250ml, 1L, 500g
+    public decimal Quantity { get; private set; }
+    public Guid UnitId { get; private set; }
+    public Guid CompanyId { get; set; }
     private ProductPackage() { }
 
     internal ProductPackage(Guid id, 
                             //Guid productId, 
                             string name, 
                             string nameEng, 
-                            double unitsCount, 
+                            decimal quantity, 
                             Guid companyId,
                             //decimal packagePrice,
                             string createdBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNullOrEmpty(nameEng);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(unitsCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
         Id = id;
         //UnitId = unitId;
         Name = name;
         NameEng = nameEng;
-        UnitsCount = unitsCount;
+        Quantity = quantity;
         CompanyId = companyId;
         CreatedAt = DateTime.UtcNow;
         CreatedBy = createdBy;
@@ -58,14 +52,13 @@ public class ProductPackage : Aggregate<Guid>
     public static ProductPackage Create(Guid id,
         string name,
         string nameEng,
-        double unitsCount,
+        decimal quantity,
         Guid companyId,
         string createdBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNullOrEmpty(nameEng);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(unitsCount);
-
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
         //UnitId = unitId;
         //ProductId = productId;
         return new ProductPackage
@@ -73,7 +66,7 @@ public class ProductPackage : Aggregate<Guid>
             Id = id,
             Name = name,
             NameEng = nameEng,
-            UnitsCount = unitsCount,
+            Quantity = quantity,
             CompanyId=companyId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
@@ -82,25 +75,26 @@ public class ProductPackage : Aggregate<Guid>
     }
     public void Update(string packageName, 
         string packageNameEng, 
-        double unitsCount, 
+        decimal quantity, 
         //decimal packagePrice, 
         string modifiedBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(packageName);
         ArgumentNullException.ThrowIfNullOrEmpty(packageNameEng);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(unitsCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
         //UnitId = unitId;
         //ProductId = productId;
         Name = packageName;
         NameEng = packageNameEng;
-        UnitsCount = unitsCount;
+        Quantity = quantity;
         //PackagePrice = packagePrice;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }
     public void Remove(string deletedBy)
     {
+        IsDeleted = true;
         DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;
     }

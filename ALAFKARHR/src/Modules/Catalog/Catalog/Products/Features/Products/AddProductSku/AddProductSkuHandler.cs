@@ -25,7 +25,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
         if ((prd is null))
             throw new Exception($"Product not found: {command.ProductSku.ProductId}");
 
-        var brand = await dbContext.Brands.AsNoTracking().FirstOrDefaultAsync(x => x.Id == prd.BrandId);
+        //var brand = await dbContext.Brands.AsNoTracking().FirstOrDefaultAsync(x => x.Id == prd.BrandId);
         var unit = await dbContext.Units.AsNoTracking().FirstOrDefaultAsync(x => x.Id == prd.UnitId);
         var variant = await dbContext.Variants.AsNoTracking().FirstOrDefaultAsync(x => x.Id == command.ProductSku.VariantId);
         var package = await dbContext.ProductPackages.AsNoTracking().FirstOrDefaultAsync(x => x.Id == command.ProductSku.PackageId);
@@ -37,21 +37,20 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
         var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         var baseSku = GenerateSKU.Generate(
-            prd.Name, brand!.Name, variant.Name,
+            prd.Name,
+            "brndName",
+            variant.Name,
             command.ProductSku.VariantValue,
-            unit.UnitName, package.Name);
+            unit.UnitName, 
+            package.Name);
 
         var baseSkuEng = GenerateSKU.Generate(
-            prd.NameEng, brand!.NameEng, variant.NameEng,
+            prd.NameEng, "brndName", variant.NameEng,
             command.ProductSku.VariantValue,
             unit.UnitNameEng, package.NameEng);
 
         // Fetch all similar SKUs in ONE query
-        var existingSkus = await dbContext.ProductSkus
-            .AsNoTracking()
-            .Where(s => s.Sku.StartsWith(baseSku) || s.SkuEng.StartsWith(baseSkuEng))
-            .Select(s => new { s.Sku, s.SkuEng })
-            .ToListAsync();
+        
 
         // Helper to extract max suffix
         int GetNextSuffix(IEnumerable<string> skus, string baseValue)
@@ -67,22 +66,14 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
                 .Max() + 1;
         }
 
-        var nextSkuSuffix = GetNextSuffix(existingSkus.Select(x => x.Sku), baseSku);
-        var nextSkuEngSuffix = GetNextSuffix(existingSkus.Select(x => x.SkuEng), baseSkuEng);
+        
 
-        // Apply suffix only if needed
-        var finalSku = nextSkuSuffix > 1 ? $"{baseSku}-{nextSkuSuffix}" : baseSku;
-        var finalSkuEng = nextSkuEngSuffix > 1 ? $"{baseSkuEng}-{nextSkuEngSuffix}" : baseSkuEng;
-
-        var productSku = ProductSKU.Create(
+        
+        var productSku = ProductSku.Create(
             Guid.NewGuid(),
             command.ProductSku.ProductId.Value,
-            command.ProductSku.VariantId.Value,
             command.ProductSku.PackageId.Value,
-            command.ProductSku.VariantValue,
             command.ProductSku.Price,
-            finalSku,
-            finalSkuEng,
             command.ProductSku.ShowOnStore,
             userId);
 

@@ -9,7 +9,7 @@ public class AddProductPackageCommandValidator : AbstractValidator<AddProductPac
     {
         RuleFor(x => x.ProductPackage.Name).NotEmpty().WithMessage("Name is required");
         RuleFor(x => x.ProductPackage.NameEng).NotEmpty().WithMessage("NameEng is required");
-        RuleFor(x => x.ProductPackage.UnitsCount).GreaterThan(0).WithMessage("UnitRate is required");
+        RuleFor(x => x.ProductPackage.Quantity).GreaterThan(0).WithMessage("UnitRate is required");
     }
 }
 public class CreateProductPackageHandler(CatalogDbContext dbContext, IHttpContextAccessor httpContextAccessor)
@@ -27,7 +27,7 @@ public class CreateProductPackageHandler(CatalogDbContext dbContext, IHttpContex
             Guid.NewGuid(),
             command.ProductPackage.Name,
             command.ProductPackage.NameEng,
-            command.ProductPackage.UnitsCount, 
+            command.ProductPackage.Quantity, 
             Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),
             userId);
 

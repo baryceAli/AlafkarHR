@@ -25,7 +25,10 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
         var user = httpContextAccessor.HttpContext?.User;
         var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-        productSku.Update(command.ProductSku.VariantValue, command.ProductSku.Price,command.ProductSku.ShowOnStore, userId);
+        productSku.Update(
+            command.ProductSku.Price, 
+            command.ProductSku.ShowOnStore, 
+            userId);
         await dbContext.SaveChangesAsync();
 
         return new UpdateProductSkuResult(true);

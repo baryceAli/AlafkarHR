@@ -4,86 +4,69 @@ using Catalog.Products.Helpers;
 
 namespace Catalog.Products.Models;
 
-public class ProductSKU : Entity<Guid>
+public class ProductSku : Entity<Guid>
 {
-    public Guid VariantId { get; private set; }
     public Guid ProductId { get; private set; }
-    public Guid PackageId { get; set; }
-    public string Sku { get; private set; } = default!;
-    public string SkuEng { get; private set; } = default!;
-    public string VariantValue { get; set; } = default!;
-    public decimal? Price { get; set; }
-    //public string Barcode { get; set; }
-    public bool ShowOnStore { get; set; }
+    public Guid BrandId { get; private set; }
 
-    //private readonly List<VariantOption> _options = new();
-    //public IReadOnlyCollection<VariantOption> Options => _options;
+    public Guid PackageId { get; private set; } // optional (size: 250ml, 1L)
 
-    //[Brand]-[Product]-[Variant]
-    //SHOE-NIKE-RED-42
-    //LAP-DELL-I7-16GB
+    public string SkuCode { get; private set; } = default!;
+    public string Barcode { get; private set; } = default!;
 
-    private ProductSKU() { }
+    public decimal Price { get; private set; }
 
-    internal ProductSKU(Guid id, Guid productId,Guid variantId,Guid packageId, string variantValue,decimal?price, string sku,string skuEng,bool showOnStore, string createdBy)
+    public bool ShowOnStore { get; private set; }
+
+    private readonly List<ProductSkuVariant> _variants = new();
+    public IReadOnlyCollection<ProductSkuVariant> Variants => _variants;
+
+    //SKU1 Milk    Almarai Full Cream	2
+    //SKU2 Milk    Almarai No Cream	3
+    //SKU3 Milk    Alsafi Full Cream	1.5
+
+    private ProductSku() { }
+
+    internal ProductSku(Guid id,
+        Guid productId,
+        Guid packageId,
+        decimal price,
+        bool showOnStore,
+        string createdBy)
     {
         Id = id;
         ProductId = productId;
-        VariantId = variantId;
         PackageId = packageId;
-        VariantValue = variantValue;
         //_options = options.ToList();
-        Sku = sku;
-        SkuEng = skuEng;
         Price = price;
         ShowOnStore = showOnStore;
         CreatedAt = DateTime.UtcNow;
         CreatedBy = createdBy;
     }
 
-    //[JsonConstructor]
-    //public ProductVariant(Guid variantId, Guid productId, string variantValue, string sku, string skuEng)
-    //{
-    //    VariantId = variantId;
-    //    ProductId = productId;
-    //    VariantValue = variantValue;
-    //    Sku = sku;
-    //    SkuEng = skuEng;
-    //}
 
-    public static ProductSKU Create(Guid id, Guid productId, Guid variantId,Guid packageId, string variantValue, decimal? price,string sku, string skuEng,bool showOnStore, string createdBy)
+    public static ProductSku Create(Guid id,
+        Guid productId,
+        Guid packageId,
+        decimal price,
+        bool showOnStore,
+        string createdBy)
     {
 
-        return new ProductSKU()
+        return new ProductSku()
         {
             Id = id,
             ProductId = productId,
-            VariantId = variantId,
             PackageId = packageId,
-            VariantValue = variantValue,
             Price = price,
-            Sku = sku,
-            SkuEng= skuEng,
-            ShowOnStore=showOnStore,
+            ShowOnStore = showOnStore,
             CreatedBy = createdBy
         };
-        //Id = id;
-        //ProductId = productId;
-        //VariantId = variantId;
-        //VariantValue = variantValue;
-        ////_options = options.ToList();
-        ////Sku = sKU;
-        //Price = price;
-        //CreatedAt = DateTime.UtcNow;
-        //CreatedBy = createdBy;
+
     }
-    public void Update(string variantValue,decimal? price,bool showOnStore, string modifiedBy)
+    public void Update(decimal price, bool showOnStore, string modifiedBy)
     {
-        ArgumentException.ThrowIfNullOrEmpty(variantValue);
-        //VariantId = variantId;
-        //ProductId = productId;
-        VariantValue = variantValue;
-        Price= price;
+        Price = price;
         ShowOnStore = showOnStore;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
@@ -91,12 +74,13 @@ public class ProductSKU : Entity<Guid>
 
     public void Remove(string deletedBy)
     {
-        DeletedAt=DateTime.UtcNow;
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;
     }
 
-    
+
 }
 
-    
+
 
