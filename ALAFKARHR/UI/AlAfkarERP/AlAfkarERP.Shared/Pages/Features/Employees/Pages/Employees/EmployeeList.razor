@@ -114,7 +114,7 @@
         </thead>
         <tbody>
             @* @foreach (var b in branches) *@
-            @foreach (var emp in filteredEmployees)
+            @foreach (var emp in ProcessedEmployees)
             {
                 <tr>
                     <!--
@@ -154,7 +154,7 @@
                     <td>
                         <a class="btn btn-warning btn-sm m-2" href="Employee/Employee/view/@emp.Id">@SharedDataService.SelectViewLang("View", "عرض")</a>
                         <button class="btn btn-warning btn-sm m-2"
-                                @onclick="() => EditBranch(emp.Id)"
+                                @onclick="() => EditEmployee(emp.Id)"
                                 disabled=@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.EmployeePermissions.Edit))>
                             @SharedDataService.SelectViewLang("Edit", "تعديل")
                         </button>
@@ -197,7 +197,6 @@
     private List<DepartmentDto> departments = [];
     private List<PositionDto> positions = [];
     private List<EmployeeDto> employees = [];
-    private List<EmployeeDto> filteredEmployees = [];
     // private Guid? editingEmployeeId;
 
     private Guid companyId;
@@ -214,22 +213,27 @@
             positions = posRes.Data?.Data?.ToList() ?? [];
         }
         await LoadEmployees();
-
+        // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
+        // if (branchResponse.IsSuccess)
+        // {
+        //     branches = branchResponse.Data?.ToList() ?? [];
+        // }
     }
     // Branch
     void CreateNew()
     {
         NavigationManager.NavigateTo("/Employee/Employee/Form");
-
+        // var newItem = new BranchDto();
+        // branches.Insert(0, newItem);
+        // editingEmployeeId = newItem.Id;
     }
 
-    void EditBranch(Guid id)
+    void EditEmployee(Guid id)
     {
         NavigationManager.NavigateTo($"/Employee/Employee/Form/{id}");
     }
 
-
-
+    
     async Task DeleteEmployee(EmployeeDto employee)
     {
         await ModalService.ShowAsync(new ModalOptions
@@ -309,7 +313,7 @@
     {
         // var request = new PaginationRequest(pageIndex, pageSize, searchText);
 
-        var response = await EmployeeService.GetByCompanyIdAsync(companyId, pageIndex, pageSize,searchText);//,searchText);
+        var response = await EmployeeService.GetByCompanyIdAsync(companyId, pageIndex, pageSize);//,searchText);
 
         if (response.IsSuccess)
         {
@@ -317,7 +321,6 @@
 
             // branches = result.Data.ToList();
             employees = response.Data?.Data.ToList() ?? [];
-            filteredEmployees = new List<EmployeeDto>(employees);
             // TotalPages = (int)response.Data!.Count;
             TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
         }
@@ -328,50 +331,33 @@
         pageIndex = 0;
         await LoadEmployees();
     }
-    private async Task<IEnumerable<EmployeeDto>> ProcessedEmployees()
-    {
-        filteredEmployees = [];
-        List<EmployeeDto> emps = new List<EmployeeDto>();
-        if (string.IsNullOrWhiteSpace(searchText))
-        {
+    private IEnumerable<EmployeeDto> ProcessedEmployees =>
+    employees
+        // 🔍 Search
+        .Where(emp =>
+            string.IsNullOrWhiteSpace(searchText) ||
+            (emp.FullName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (emp.EmployeeNo?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (emp.Email?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (emp.PositionName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+        )
 
-            emps =
-            employees
-            // 🔍 Search
-            .Where(emp =>
-                string.IsNullOrWhiteSpace(searchText) ||
-                (emp.FullName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (emp.EmployeeNo?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (emp.Email?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (emp.PositionName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
-            )
+        // 🎯 Filter
+        // .Where(b =>
+        //     filterMainBranch == null || b.IsMainBranch == filterMainBranch
+        // )
 
-            // 🎯 Filter
-            // .Where(b =>
-            //     filterMainBranch == null || b.IsMainBranch == filterMainBranch
-            // )
+        // 🔃 Sorting
+        .OrderByDynamic(sortColumn, sortAscending)
 
-            // 🔃 Sorting
-            .OrderByDynamic(sortColumn, sortAscending)
+        // 📄 Pagination
+        .Skip((pageIndex) * pageSize)
+        .Take(pageSize);
 
-            // 📄 Pagination
-            .Skip((pageIndex) * pageSize)
-            .Take(pageSize).ToList();
-        }
-        else
-        {
 
-            var empRes = await EmployeeService.GetByCompanyIdAsync(companyId, pageIndex, pageSize, searchText);
-            emps = empRes.IsSuccess ? empRes.Data?.Data?.ToList() ?? [] : [];
-            employees = new List<EmployeeDto>(emps);
-            filteredEmployees = new List<EmployeeDto>(emps);
-        }
-        return emps;
-    }
 
-    // Filtering example
-    private bool? filterMainBranch = null;
-    // private long totalCount = 0;
+    
+        // private long totalCount = 0;
     private int TotalPages = 1;
     // private int TotalPages =>
     // (int)Math.Ceiling(
