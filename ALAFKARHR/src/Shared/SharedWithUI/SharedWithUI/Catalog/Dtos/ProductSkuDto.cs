@@ -5,33 +5,25 @@ namespace SharedWithUI.Catalog.Dtos;
 public class ProductSkuDto
 {
     public Guid Id { get; set; }
+    public Guid ProductId { get; private set; }
+    public Guid BrandId { get; private set; }
 
-    [Required(ErrorMessage ="Variant is required")]
-    public Guid? VariantId { get; set; }
+    public Guid PackageId { get; private set; } // optional (size: 250ml, 1L)
 
-    [Required(ErrorMessage = "Product is required")]
-    public Guid? ProductId { get; set; }
+    public string SkuCode { get; private set; } = default!;
+    public string Barcode { get; private set; } = default!;
 
-    [Required(ErrorMessage = "Package is required")]
-    public Guid? PackageId { get; set; }
+    public decimal Price { get; private set; }
+    public string ImageUrl { get; set; }
 
-    [Required(ErrorMessage = "Sku is required")]
-    public string Sku { get; set; }
+    public bool ShowOnStore { get; private set; }
 
-    [Required(ErrorMessage = "SkuEng is required")]
-    public string SkuEng { get; set; }
-
-    [Required(ErrorMessage = "VariantValue is required")]
-    public string VariantValue { get; set; }
-
-
-    [Required(ErrorMessage = "Company is required")]
-    public Guid? CompanyId { get; set; }
-
-
-    public decimal Price { get; set; }
-    public bool ShowOnStore { get; set; }
+    public List<ProductSkuVariantDto> Variants { get; set; } = new();
     
+
+    //SKU1 Milk    Almarai      Full Cream	    2
+    //SKU2 Milk    Almarai      No Cream	    3
+    //SKU3 Milk    Alsafi       Full Cream	    1.5
 
 }
 

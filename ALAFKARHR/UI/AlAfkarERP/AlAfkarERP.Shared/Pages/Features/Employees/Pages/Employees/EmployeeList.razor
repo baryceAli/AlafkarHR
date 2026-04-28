@@ -176,7 +176,7 @@
 
         <button class="btn btn-sm btn-secondary"
                 @onclick="PrevPage"
-                disabled="@(pageIndex == 1)">
+                disabled="@(pageIndex == 0)">
             Previous
         </button>
 
@@ -233,7 +233,7 @@
         NavigationManager.NavigateTo($"/Employee/Employee/Form/{id}");
     }
 
-    
+
     async Task DeleteEmployee(EmployeeDto employee)
     {
         await ModalService.ShowAsync(new ModalOptions
@@ -348,11 +348,11 @@
         // )
 
         // 🔃 Sorting
-        .OrderByDynamic(sortColumn, sortAscending)
+        .OrderByDynamic(sortColumn, sortAscending);
 
         // 📄 Pagination
-        .Skip((pageIndex) * pageSize)
-        .Take(pageSize);
+        // .Skip((pageIndex) * pageSize)
+        // .Take(pageSize);
 
 
 

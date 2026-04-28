@@ -1,7 +1,6 @@
 ﻿@using AlAfkarERP.Shared.Utilities
 @inject SharedDataService SharedDataService
 @inject NavigationManager NavigationManager
-
 <div class="bg-dark text-white d-flex flex-column p-2" style="width: 250px;">
 
     <!-- Logo -->
@@ -19,7 +18,7 @@
             </NavLink>
         </li>
         <li class="nav-item">
-            <NavLink href="/AdminDashboard" class="nav-link text-white">
+            <NavLink href="/Dashboard" class="nav-link text-white">
                 <i class="bi bi-speedometer2 me-2"></i>
                 @SharedDataService.SelectViewLang("Control Panel", "لوحة التحكم")
             </NavLink>
@@ -40,7 +39,7 @@
         </li>
         <li class="nav-item">
             <NavLink href="/Warehouse/Dashboard" class="nav-link text-white">
-                <i class="bi bi-people me-2"></i>
+                <i class="bi bi-box-seam me-2"></i>
                 @(SharedDataService.SelectViewLang("Inventory", "المستودعات"))
             </NavLink>
         </li>

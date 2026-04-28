@@ -83,6 +83,8 @@
                 <option value="5">5</option>
                 <option value="10">10</option>
                 <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
             </select>
         </div>
 
@@ -185,7 +187,7 @@
 
         <button class="btn btn-sm btn-secondary"
                 @onclick="PrevPage"
-                disabled="@(pageIndex == 1)">
+                disabled="@(pageIndex == 0)">
             Previous
         </button>
 
@@ -343,7 +345,7 @@
         if (item != null && item.Id != Guid.Empty)
         {
             // optional: reload from DB if needed
-            
+
         }
 
         if (item != null && item.Id != Guid.Empty)
@@ -408,18 +410,18 @@
             (b.NameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
         )
 
-        
+
         // 🎯 Filter
         // .Where(b =>
         //     filterMainBranch == null || b.IsMainBranch == filterMainBranch
         // )
 
         // 🔃 Sorting
-        .OrderByDynamic(sortColumn, sortAscending)
+        .OrderByDynamic(sortColumn, sortAscending);
 
         // 📄 Pagination
-        .Skip((pageIndex) * pageSize)
-        .Take(pageSize);
+        // .Skip((pageIndex) * pageSize)
+        // .Take(pageSize);
 
 
 

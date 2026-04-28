@@ -15,6 +15,7 @@ public class ProductSku : Entity<Guid>
     public string Barcode { get; private set; } = default!;
 
     public decimal Price { get; private set; }
+    public string ImageUrl { get; set; }
 
     public bool ShowOnStore { get; private set; }
 
@@ -29,44 +30,63 @@ public class ProductSku : Entity<Guid>
 
     internal ProductSku(Guid id,
         Guid productId,
+        Guid brandId,
         Guid packageId,
+        string skuCode,
+   string barcode,
+   string imageUrl,
         decimal price,
-        bool showOnStore,
-        string createdBy)
+        bool showOnStore
+        )
     {
         Id = id;
         ProductId = productId;
+        BrandId = brandId;
         PackageId = packageId;
+        SkuCode = skuCode;
+        Barcode = barcode;
+        ImageUrl= imageUrl;
         //_options = options.ToList();
         Price = price;
         ShowOnStore = showOnStore;
-        CreatedAt = DateTime.UtcNow;
-        CreatedBy = createdBy;
+
     }
 
-
-    public static ProductSku Create(Guid id,
-        Guid productId,
-        Guid packageId,
-        decimal price,
-        bool showOnStore,
-        string createdBy)
+    public static ProductSku Create(
+    Guid id,
+    Guid productId,
+    Guid brandId,
+    Guid packageId,
+    string skuCode,
+    string skuCodeEng,
+    string barcode,
+    string imageUrl,
+    decimal price,
+    bool showOnStore,
+    string createdBy)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(skuCode);
+        ArgumentException.ThrowIfNullOrWhiteSpace(skuCodeEng);
 
-        return new ProductSku()
+        return new ProductSku
         {
             Id = id,
             ProductId = productId,
+            BrandId = brandId,
             PackageId = packageId,
+            SkuCode = skuCode,
+            ImageUrl = imageUrl,
+            Barcode = barcode,
             Price = price,
             ShowOnStore = showOnStore,
-            CreatedBy = createdBy
+            CreatedBy = createdBy,
+            CreatedAt = DateTime.UtcNow
         };
-
     }
-    public void Update(decimal price, bool showOnStore, string modifiedBy)
+    public void Update(decimal price, bool showOnStore, string imageUrl, string modifiedBy)
     {
         Price = price;
+        ImageUrl= imageUrl;
         ShowOnStore = showOnStore;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
@@ -78,7 +98,13 @@ public class ProductSku : Entity<Guid>
         DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;
     }
+    public void AddVariant(Guid variantId, Guid variantValueId)
+    {
+        if (_variants.Any(v => v.VariantId == variantId))
+            throw new Exception("Variant already exists for this SKU");
 
+        _variants.Add(ProductSkuVariant.Create(Guid.NewGuid(), Id, variantId, variantValueId));
+    }
 
 }
 

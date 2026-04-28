@@ -14,9 +14,12 @@ public class CatalogDbContext : DbContext
     public DbSet<Unit> Units => Set<Unit>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductPackage> ProductPackages => Set<ProductPackage>();
-    public DbSet<Variant> Variants => Set<Variant>();
     public DbSet<ProductSku> ProductSkus => Set<ProductSku>();
+    public DbSet<ProductSkuVariant> ProductSkuVariants => Set<ProductSkuVariant>();
+
+    public DbSet<Variant> Variants => Set<Variant>();
     //public DbSet<ProductPricing> ProductPricings => Set<ProductPricing>();
+    public DbSet<VariantValue> VariantValues => Set<VariantValue>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

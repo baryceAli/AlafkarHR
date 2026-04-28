@@ -13,8 +13,8 @@ public class Product : Aggregate<Guid>
     private readonly List<ProductSku> _skus = new();
     public IReadOnlyCollection<ProductSku> Skus => _skus;
 
-    //private readonly List<ProductPackage> _packages = new();
-    //public IReadOnlyCollection<ProductPackage> Packages => _packages;
+    private readonly List<ProductPackageLink> _packages = new();
+    public IReadOnlyCollection<ProductPackageLink> Packages => _packages;
 
 
     private Product() { }
@@ -63,6 +63,13 @@ public class Product : Aggregate<Guid>
     public void AddProductVariant(ProductSku variant)
     {
         _skus.Add(variant);
+    }
+    public void AddPackage(Guid packageId)
+    {
+        if (_packages.Any(p => p.PackageId == packageId))
+            throw new Exception("Package already added");
+
+        _packages.Add(ProductPackageLink.Create(Id, packageId));
     }
     //public void RemoveVariant(ProductVariant variant) { _variants.Remove(variant); }
 

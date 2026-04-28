@@ -1,8 +1,8 @@
 using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Pages.Features.Auth.Services;
+using AlAfkarERP.Shared.Pages.Features.Catalog.Services;
 using AlAfkarERP.Shared.Pages.Features.Company.Services;
 using AlAfkarERP.Shared.Pages.Features.Employees.Services;
-using AlAfkarERP.Shared.Pages.Features.Warehouses.Services;
 using AlAfkarERP.Shared.Pages.Reuable2;
 using AlAfkarERP.Shared.Utilities;
 using AlAfkarERP.Web.Components;

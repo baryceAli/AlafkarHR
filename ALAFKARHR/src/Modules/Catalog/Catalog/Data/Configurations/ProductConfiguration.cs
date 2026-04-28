@@ -8,25 +8,12 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.HasKey(x => x.Id);
 
-        builder.Property(x => x.Name)
-            .IsRequired()
-            .HasMaxLength(200);
+        builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
+        builder.Property(x => x.NameEng).IsRequired().HasMaxLength(200);
 
-        builder.Property(x => x.NameEng)
-            .IsRequired()
-            .HasMaxLength(200);
-
-        
-
-        //builder.HasOne(x=> x.Category)
-        builder.HasOne< Category>()
-            .WithMany()
-            .HasForeignKey(x => x.CategoryId);
-
-        
-
-        builder.HasOne<Unit>()
-            .WithMany()
-            .HasForeignKey(x => x.UnitId);
+        //builder.HasMany(typeof(ProductSku), "_skus")
+        //    .WithOne()
+        //    .HasForeignKey("ProductId")
+        //    .OnDelete(DeleteBehavior.Cascade);
     }
 }

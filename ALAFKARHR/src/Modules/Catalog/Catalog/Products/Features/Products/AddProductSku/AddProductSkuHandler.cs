@@ -9,7 +9,7 @@ public class AddProductSkuCommandValidator : AbstractValidator<AddProductSkuComm
 {
     public AddProductSkuCommandValidator()
     {
-        RuleFor(x => x.ProductSku.VariantValue).NotEmpty().WithMessage("VariantValue is required");
+        //RuleFor(x => x.ProductSku.VariantValue).NotEmpty().WithMessage("VariantValue is required");
         RuleFor(x => x.ProductSku.Price).GreaterThan(0).WithMessage("Price is required");
     }
 }
@@ -27,7 +27,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
 
         //var brand = await dbContext.Brands.AsNoTracking().FirstOrDefaultAsync(x => x.Id == prd.BrandId);
         var unit = await dbContext.Units.AsNoTracking().FirstOrDefaultAsync(x => x.Id == prd.UnitId);
-        var variant = await dbContext.Variants.AsNoTracking().FirstOrDefaultAsync(x => x.Id == command.ProductSku.VariantId);
+        //var variant = await dbContext.Variants.AsNoTracking().FirstOrDefaultAsync(x => x.Id == command.ProductSku.VariantId);
         var package = await dbContext.ProductPackages.AsNoTracking().FirstOrDefaultAsync(x => x.Id == command.ProductSku.PackageId);
         //if ((brand is null))
         //throw new Exception($"brand not found: {command.ProductVariant.ProductId}");
@@ -39,14 +39,14 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
         var baseSku = GenerateSKU.Generate(
             prd.Name,
             "brndName",
-            variant.Name,
-            command.ProductSku.VariantValue,
+            "variant.Name",
+            "variantValue",
             unit.UnitName, 
             package.Name);
 
         var baseSkuEng = GenerateSKU.Generate(
-            prd.NameEng, "brndName", variant.NameEng,
-            command.ProductSku.VariantValue,
+            prd.NameEng, "brndName", "variant.NameEng",
+            "command.ProductSku.VariantValue",
             unit.UnitNameEng, package.NameEng);
 
         // Fetch all similar SKUs in ONE query
@@ -71,8 +71,13 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
         
         var productSku = ProductSku.Create(
             Guid.NewGuid(),
-            command.ProductSku.ProductId.Value,
-            command.ProductSku.PackageId.Value,
+            command.ProductSku.ProductId,
+            command.ProductSku.BrandId,
+            command.ProductSku.PackageId,
+            baseSku,
+            baseSkuEng,
+            command.ProductSku.Barcode,
+            command.ProductSku.ImageUrl,
             command.ProductSku.Price,
             command.ProductSku.ShowOnStore,
             userId);

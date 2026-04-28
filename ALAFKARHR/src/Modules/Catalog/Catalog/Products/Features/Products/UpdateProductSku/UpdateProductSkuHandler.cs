@@ -8,7 +8,7 @@ public class UpdateProductSkuCommandValidator : AbstractValidator<UpdateProductS
     public UpdateProductSkuCommandValidator()
     {
         RuleFor(x => x.ProductSku.Price).GreaterThan(0).WithMessage("Price must be greator than 0");
-        RuleFor(x => x.ProductSku.VariantValue).NotEmpty().WithMessage("VariantValue is required");
+        //RuleFor(x => x.ProductSku.VariantValue).NotEmpty().WithMessage("VariantValue is required");
         
     }
 }
@@ -27,7 +27,8 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
 
         productSku.Update(
             command.ProductSku.Price, 
-            command.ProductSku.ShowOnStore, 
+            command.ProductSku.ShowOnStore,
+            command.ProductSku.ImageUrl,
             userId);
         await dbContext.SaveChangesAsync();
 

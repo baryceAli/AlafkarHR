@@ -104,7 +104,7 @@
                     LoadingService.Hide();
                 if (authState.User.Claims.Any(c => c.Type == JwtRegisteredClaimNames.Typ && c.Value == UserType.SystemUser.ToString()))
                 {
-                    NavigationManager.NavigateTo("/AdminDashboard", true);
+                    NavigationManager.NavigateTo("/Dashboard", true);
                     return;
                 }
                 NavigationManager.NavigateTo("/");

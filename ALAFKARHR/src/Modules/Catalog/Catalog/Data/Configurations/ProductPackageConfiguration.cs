@@ -8,16 +8,11 @@ public class ProductPackageConfiguration : IEntityTypeConfiguration<ProductPacka
 
         builder.HasKey(x => x.Id);
 
-        builder.Property(x => x.Name)
-            .IsRequired()
-            .HasMaxLength(100);
-
-        builder.Property(x => x.NameEng)
-            .IsRequired()
-            .HasMaxLength(100);
+        builder.Property(x => x.Name).IsRequired().HasMaxLength(100);
+        builder.Property(x => x.NameEng).IsRequired().HasMaxLength(100);
 
         builder.Property(x => x.Quantity)
-            .HasPrecision(18, 2);
+            .HasColumnType("decimal(18,2)");
 
     }
 }

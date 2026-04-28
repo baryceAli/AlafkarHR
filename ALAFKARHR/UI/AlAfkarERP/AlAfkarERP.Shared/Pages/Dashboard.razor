@@ -1,0 +1,23 @@
+﻿@layout AdminLayout
+@page "/Dashboard"
+@using AlAfkarERP.Shared.Utilities
+@inject SharedDataService SharedDataService
+
+<h3>AdminDashboard</h3>
+
+@code {
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

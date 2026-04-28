@@ -11,8 +11,8 @@ public class UpdateProductCommandValidator : AbstractValidator<UpdateProductComm
     {
         RuleFor(x => x.Product.Name).NotEmpty().WithMessage("Name is required");
         RuleFor(x => x.Product.NameEng).NotEmpty().WithMessage("NameEng is required");
-        RuleFor(x => x.Product.ImageUrl).NotEmpty().WithMessage("Image is required");
-        RuleFor(x => x.Product.Price).GreaterThan(0).WithMessage("Price must be greator than 0");
+        //RuleFor(x => x.Product.ImageUrl).NotEmpty().WithMessage("Image is required");
+        //RuleFor(x => x.Product.Price).GreaterThan(0).WithMessage("Price must be greator than 0");
 
     }
 }
@@ -30,16 +30,16 @@ public class UpdateProductHandler(CatalogDbContext dbContext, IHttpContextAccess
         var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         //string finalImagePath = product.ImageUrl;
-        var incomingImage = command.Product.ImageUrl;
+        //var incomingImage = command.Product.ImageUrl;
 
-        if (!string.IsNullOrWhiteSpace(incomingImage))
-        {
-            if (IsBase64Image(incomingImage))
-            {
-                //string[] PATH_SEGEMNT = ["wwwroot", "Images", "Products"];
-                //finalImagePath = SaveImages.SaveBase64Image($"{product.Id}", PATH_SEGEMNT, command.Product.ImageUrl);
-            }
-        }
+        //if (!string.IsNullOrWhiteSpace(incomingImage))
+        //{
+        //    if (IsBase64Image(incomingImage))
+        //    {
+        //        //string[] PATH_SEGEMNT = ["wwwroot", "Images", "Products"];
+        //        //finalImagePath = SaveImages.SaveBase64Image($"{product.Id}", PATH_SEGEMNT, command.Product.ImageUrl);
+        //    }
+        //}
                     
 
         

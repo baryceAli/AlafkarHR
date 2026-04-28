@@ -10,15 +10,15 @@ public class Variant : Aggregate<Guid>
     public IReadOnlyCollection<VariantValue> Values => _values;
     private Variant() { }
 
-    internal Variant(Guid id, string name, string nameEng,Guid companyId, string createdBy)
-    {
-        Id = id;
-        Name = name;
-        NameEng = nameEng;
-        CompanyId = companyId;
-        CreatedAt = DateTime.UtcNow;
-        CreatedBy = createdBy;
-    }
+    //internal Variant(Guid id, string name, string nameEng,Guid companyId)
+    //{
+    //    Id = id;
+    //    Name = name;
+    //    NameEng = nameEng;
+    //    CompanyId = companyId;
+    //    CreatedAt = DateTime.UtcNow;
+    //    //CreatedBy = createdBy;
+    //}
 
     [JsonConstructor]
     public Variant(Guid id, string name, string nameEng,Guid companyId)
