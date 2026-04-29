@@ -17,6 +17,7 @@ public class GetProductSkuByIdEndPoint : ICarterModule
             .Produces<GetProductSkuByIdResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Product Sku")
-            .WithDescription("Product Sku");
+            .WithDescription("Product Sku")
+            .RequireAuthorization(PermissionList.ProductPermissions.View);
     }
 }

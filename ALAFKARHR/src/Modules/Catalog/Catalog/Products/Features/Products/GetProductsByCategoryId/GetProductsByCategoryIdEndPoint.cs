@@ -20,6 +20,7 @@ public class GetProductsByCategoryIdEndPoint : ICarterModule
             .Produces<GetProductsByCategoryIdResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Get Products By Category Id")
-            .WithDescription("Get Products By Category Id");
+            .WithDescription("Get Products By Category Id")
+            .RequireAuthorization(PermissionList.ProductPermissions.View);
     }
 }

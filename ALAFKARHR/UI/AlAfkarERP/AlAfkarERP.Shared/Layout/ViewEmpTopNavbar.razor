@@ -1,0 +1,61 @@
+﻿@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using Microsoft.IdentityModel.JsonWebTokens
+@using SharedWithUI.Auth.Dtos
+
+
+@inject SharedDataService SharedDataService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark navbar-custom fixed-top">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            
+            <a class="brand-text h4 mb-0" href="#">
+                <img src="_content/AlAfkarERP.Shared/images/logo/afkarfavicon.ico" width="60" height="60"/>
+                ALAFKAR</a>
+        </div>
+        
+</div>
+</nav>
+
+
+@code {
+    private AuthenticationState AuthState;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+            // if (!AuthState.User.Identity.IsAuthenticated)
+            // {
+            //     NavigationManager.NavigateTo("login");
+            // }
+            // NavigationManager.NavigateTo("/login");
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+
+    public void OnLogin()
+    {
+        NavigationManager.NavigateTo("/login");
+    }
+}

@@ -17,19 +17,38 @@ public class CreateVariantHandler (CatalogDbContext dbContext, IHttpContextAcces
     public async Task<CreateVariantResult> Handle(CreateVariantCommand command, CancellationToken cancellationToken)
     {
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
-        var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = httpContextAccessor.HttpContext?
+                        .User?.FindFirst(ClaimTypes.NameIdentifier)?
+                        .Value??
+                        throw new UnauthorizedAccessException("User is not authenticated");
+        
+        var newVariant= CreateNewVariant(command.Variant, userId);
+        
+        dbContext.Variants.Add(newVariant);
 
-        var variant = Variant.Create(
-            Guid.NewGuid(),
-            command.Variant.Name,
-            command.Variant.NameEng, 
-            Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),
-            userId
-            );
-
-        dbContext.Variants.Add(variant);
         await dbContext.SaveChangesAsync();
-        return new CreateVariantResult(variant.Id);
+        
+        
+        return new CreateVariantResult(newVariant.Id);
+    }
+
+    private Variant CreateNewVariant(VariantDto variantDto, string userId)
+    {
+        var newVariant = Variant.Create(
+            Guid.NewGuid(),
+            variantDto.Name,
+            variantDto.NameEng,
+            variantDto.CompanyId.Value,
+            userId);
+        variantDto.Values.ForEach(value =>
+        {
+            newVariant.AddVariantValue(
+                
+                value.Value,
+                value.ValueEng,userId);
+        });
+        
+
+        return newVariant;
     }
 }

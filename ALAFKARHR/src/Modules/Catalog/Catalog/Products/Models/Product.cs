@@ -44,6 +44,8 @@ public class Product : Aggregate<Guid>
     }
     public void Update(string name, 
         string nameEng, 
+        Guid categoryId,
+        Guid unitId,
         string modifiedBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -51,6 +53,8 @@ public class Product : Aggregate<Guid>
         //ArgumentOutOfRangeException.ThrowIfNegativeOrZero(price);
         Name = name;
         NameEng = nameEng;
+        CategoryId = categoryId;
+        UnitId = unitId;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }

@@ -16,23 +16,32 @@ public class UpdateVariantHandler (CatalogDbContext dbContext, IHttpContextAcces
 {
     public async Task<UpdateVariantResult> Handle(UpdateVariantCommand command, CancellationToken cancellationToken)
     {
-        var variant = await dbContext.Variants.FindAsync([command.Variant.Id],cancellationToken);
+        var variant = await dbContext.Variants
+                        .Include(x=>x.Values)
+                        .FirstOrDefaultAsync(x => x.Id == command.Variant.Id && !x.IsDeleted, cancellationToken);
 
         if ((variant is null))
             throw new Exception($"Variant not found: {command.Variant.Id}");
 
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
         var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value??throw new UnauthorizedAccessException("User is not authorized");
 
-        variant.Update(
-            command.Variant.Name, 
-            command.Variant.NameEng, 
-            userId 
-            );
+        variant.Update(command.Variant, userId );
 
-        await dbContext.SaveChangesAsync();
-
+        foreach (var entry in dbContext.ChangeTracker.Entries())
+        {
+            Console.WriteLine($"{entry.Entity.GetType().Name} - {entry.State}");
+        }
+        
+        try
+        {
+            await dbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new Exception("This record was modified by another user. Please reload and try again.", ex);
+        }
         return new UpdateVariantResult(true);
     }
 }

@@ -118,7 +118,7 @@ builder.Services.AddHttpClient<ISpecializationService, SpecializationService>(cl
 
 #endregion Employees Module Services
 
-#region Warehouses Module Services
+#region Catalog Module Services
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddHttpClient<IBrandService, BrandService>(client =>
 {
@@ -141,9 +141,21 @@ builder.Services.AddHttpClient<IUnitService, UnitService>(client =>
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
 
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddHttpClient<IProductService, ProductService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
 
+builder.Services.AddScoped<IVariantService, VariantService>();
+builder.Services.AddHttpClient<IVariantService, VariantService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
 
-#endregion Warehouses Module Services
+#endregion Catalog Module Services
 
 
 var app = builder.Build();

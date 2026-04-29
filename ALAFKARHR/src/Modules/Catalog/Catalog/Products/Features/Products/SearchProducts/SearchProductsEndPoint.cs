@@ -17,6 +17,7 @@ public class SearchProductsEndPoint : ICarterModule
             .Produces<SearchProductsResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("SearchProducts")
-            .WithDescription("SearchProducts");
+            .WithDescription("SearchProducts")
+            .RequireAuthorization(PermissionList.ProductPermissions.View);
     }
 }

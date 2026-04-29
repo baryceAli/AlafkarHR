@@ -12,10 +12,10 @@ public class CreateProductCommandValidator : AbstractValidator<CreateProductComm
         RuleFor(x => x.Product.Name).NotEmpty().WithMessage("Name is required");
         RuleFor(x => x.Product.NameEng).NotEmpty().WithMessage("NameEng is required");
         RuleFor(x => x.Product.CategoryId).NotEmpty().WithMessage("Category is required");
-        RuleFor(x => x.Product.BrandId).NotEmpty().WithMessage("Brand is required");
+        //RuleFor(x => x.Product.BrandId).NotEmpty().WithMessage("Brand is required");
         RuleFor(x => x.Product.UnitId).NotEmpty().WithMessage("Unit is required");
-        RuleFor(x => x.Product.ImageUrl).NotEmpty().WithMessage("ImageFile is required");
-        RuleFor(x => x.Product.Price).GreaterThan(0).WithMessage("Price must be greater than 0");
+        //RuleFor(x => x.Product.ImageUrl).NotEmpty().WithMessage("ImageFile is required");
+        //RuleFor(x => x.Product.Price).GreaterThan(0).WithMessage("Price must be greater than 0");
     }
 }
 public class CreateProductHandler(CatalogDbContext dbContext, IHttpContextAccessor httpContextAccessor)
@@ -25,11 +25,11 @@ public class CreateProductHandler(CatalogDbContext dbContext, IHttpContextAccess
     {
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
         var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value??throw new UnauthorizedAccessException("User is not authorized");
 
         var productId = Guid.NewGuid();
-        string[] PATH_SEGEMNT = ["wwwroot", "Images", "Products"];
-        var img = SaveImages.SaveBase64Image($"{productId}", PATH_SEGEMNT, command.Product.ImageUrl);
+        //string[] PATH_SEGEMNT = ["wwwroot", "Images", "Products"];
+        //var img = SaveImages.SaveBase64Image($"{productId}", PATH_SEGEMNT, command.Product.ImageUrl);
 
         var product = Product.Create(
                 productId,

@@ -23,7 +23,7 @@ public class ProductDto
 
 
     [Required(ErrorMessage = "Unit is required")]
-    public Guid UnitId { get;  set; }
+    public Guid? UnitId { get;  set; }
     public string? UnitName { get; set; }
     public string? UnitNameEng { get; set; }
     public Guid CompanyId { get; set; }

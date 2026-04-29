@@ -14,7 +14,7 @@ public class RemoveProductHandler (CatalogDbContext dbContext, IHttpContextAcces
 
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
         var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException("User is not authorized");
 
         product.Remove(userId);
         await dbContext.SaveChangesAsync(cancellationToken);

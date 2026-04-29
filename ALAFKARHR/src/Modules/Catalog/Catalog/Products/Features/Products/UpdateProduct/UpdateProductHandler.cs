@@ -21,13 +21,13 @@ public class UpdateProductHandler(CatalogDbContext dbContext, IHttpContextAccess
 {
     public async Task<UpdateProductResult> Handle(UpdateProductCommand command, CancellationToken cancellationToken)
     {
-        var product = await dbContext.Products.FindAsync([command.Product.Id], cancellationToken);
+        var product = await dbContext.Products.FirstOrDefaultAsync(p=>p.Id== command.Product.Id, cancellationToken);
         if (product is null)
             throw new Exception($"Product not found: {command.Product.Id}");
 
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
         var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException("User is not authorized");
 
         //string finalImagePath = product.ImageUrl;
         //var incomingImage = command.Product.ImageUrl;
@@ -48,6 +48,8 @@ public class UpdateProductHandler(CatalogDbContext dbContext, IHttpContextAccess
         product.Update(
             command.Product.Name, 
             command.Product.NameEng, 
+            command.Product.CategoryId.Value,
+            command.Product.UnitId.Value,
             userId);
 
         await dbContext.SaveChangesAsync();

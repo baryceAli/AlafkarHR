@@ -1,0 +1,572 @@
+﻿@layout ProductLayout
+@page "/Catalog/Variant/List"
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Layout
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Permissions
+@using AlAfkarERP.Shared.Pages.Reuable2
+
+
+@inject IVariantService VariantService
+@inject ToastService ToastService
+@inject ModalService ModalService
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.Create}"))
+{
+    <div class="alert alert-warning">
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
+    </div>
+    return;
+}
+
+<!-- Branches -->
+<h5 class="text-black">@SharedDataService.SelectViewLang("Product Variants", "خيارات المنتج")</h5>
+
+@* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
+<button class="btn btn-primary mb-3"
+        @onclick="CreateNew"
+        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.Create}") ? true : false)>
+    <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
+</button>
+
+<div class="card p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <!--
+
+        Export to xls and pdf
+        <div class="d-flex gap-2">
+
+            <button class="btn btn-success btn-sm" @onclick="ExportToExcel">
+                <i class="bi bi-file-earmark-excel"></i> Excel
+            </button>
+
+            <button class="btn btn-danger btn-sm" @onclick="ExportToPdf">
+                <i class="bi bi-file-earmark-pdf"></i> PDF
+            </button>
+
+        </div>
+        -->
+        <!-- 🔍 Search -->
+        <div>
+            <input class="form-control"
+                   placeholder="Search..."
+                   @bind="searchText" />
+        </div>
+
+        <!--
+
+        🎯 Filter
+        <div class="col-md-3">
+            <select class="form-select" @bind="filterMainBranch">
+                <option value="">All</option>
+                <option value="true">Main Branch</option>
+                <option value="false">Not Main</option>
+            </select>
+        </div>
+        -->
+        <!-- 📄 Page Size -->
+        <div>
+            @* <select class="form-select" @bind="pageSize"> *@
+            <select class="form-select" @onchange="OnPageSizeChanged">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th @onclick="() => Sort(nameof(VariantDto.Name))">
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                    @SharedDataService.SelectViewLang("Name", "الاسم")
+                </th>
+                <th @onclick="() => Sort(nameof(VariantDto.NameEng))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
+                <th>@SharedDataService.SelectViewLang("Values", "القيم")</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            
+            @if (editingVariantId != null)
+            {
+                var editingItem = variants.FirstOrDefault(x => x.Id == editingVariantId);
+                if (editingItem != null)
+                {
+                    <tr>
+                        <td colspan="4">
+                            <EditForm Model="editingItem" OnValidSubmit="() => SaveVariant(editingItem)">
+                                <DataAnnotationsValidator />
+                                <ValidationSummary />
+                                @* <InputHidden @bind-Value="branch.Id"/> *@
+                                <div class="row bg-info-subtle p-3">
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="editingItem.Name" />
+                                            <ValidationMessage For="() => editingItem.Name" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name (En)", "الاسم (انجليزي)")</label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="editingItem.NameEng" />
+                                            <ValidationMessage For="() => editingItem.NameEng" />
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Variant Values", "القيم")</label>
+                                        <div class="col-sm-10">
+                                            <div class="card bg-transparent">
+                                                <div class="card-body">
+                                                    
+                                                    <div class="card bg-transparent">
+                                                        <div class="card-body">
+
+                                                            @foreach (var value in editingItem.Values)
+                                                            {
+                                                                <div class="row mb-2 align-items-center" @key="value">
+
+                                                                    <div class="col-md-5">
+                                                                        <InputText class="form-control"
+                                                                                   placeholder="Value"
+                                                                                   @bind-Value="value.Value" />
+                                                                    </div>
+
+                                                                    <div class="col-md-5">
+                                                                        <InputText class="form-control"
+                                                                                   placeholder="Value (En)"
+                                                                                   @bind-Value="value.ValueEng" />
+                                                                    </div>
+
+                                                                    <div class="col-md-2 text-end">
+                                                                        <button type="button"
+                                                                                class="btn btn-danger btn-sm"
+                                                                                @onclick="() => RemoveVariantValue(editingItem, value)">
+                                                                            <i class="bi bi-trash"></i>
+                                                                        </button>
+                                                                    </div>
+
+                                                                </div>
+                                                            }
+
+                                                            <button type="button"
+                                                                    class="btn btn-outline-primary btn-sm mt-2"
+                                                                    @onclick="() => AddVariantValue(editingItem)">
+                                                                <i class="bi bi-plus"></i> Add Value
+                                                            </button>
+
+                                                        </div>
+                                                    </div>
+                                                
+                                                    
+
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+
+
+                                    <div class="col">
+                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                    </div>
+                                </div>
+                            </EditForm>
+                        </td>
+                    </tr>
+
+                }
+
+                
+            }
+            @foreach (var variant in ProcessedVariants.Where(x => x.Id != editingVariantId))
+            {
+                
+                <tr>
+                    <td>@variant.Name</td>
+                    <td>@variant.NameEng</td>
+                    <td>
+                        <div class="flex-row">
+                            @foreach(var value in variant.Values)
+                            {
+                                <span class="badge bg-secondary me-1">@SharedDataService.SelectViewLang(value.ValueEng,value.Value)</span>
+                            }
+                        </div>
+                    </td>
+                    <td>
+                        <button class="btn btn-warning btn-sm"
+                                @onclick="() => EditVariant(variant.Id)"
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Edit}"))>
+                            @SharedDataService.SelectViewLang("Edit", "تعديل")
+                        </button>
+                        <button class="btn btn-danger btn-sm"
+                                @onclick="() => DeleteVariant(variant)"
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Delete}"))>
+                            @SharedDataService.SelectViewLang("Delete", "حذف")
+                        </button>
+                    </td>
+                </tr>
+                
+            }
+        </tbody>
+    </table>
+    <div class="d-flex justify-content-end align-items-center mt-3">
+
+        <button class="btn btn-sm btn-secondary"
+                @onclick="PrevPage"
+                disabled="@(pageIndex == 0)">
+            Previous
+        </button>
+
+        <span class="mx-3">Page @(pageIndex + 1) of @TotalPages @(TotalPages == 1 ? "" : "Pages")</span>
+
+        <button class="btn btn-sm btn-secondary"
+                @onclick="NextPage"
+                disabled="@(pageIndex >= TotalPages)">
+            Next
+        </button>
+
+    </div>
+</div>
+
+@code {
+    private List<VariantDto> variants = new();
+    private Guid? editingVariantId;
+    // private Guid? editingVariantValueId;
+    private Guid companyId;
+    private bool isEdit = false;
+    private AuthenticationState AuthState;
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (!AuthState.User.Identity.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/login", true);
+
+        }
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+
+        await LoadVariants();
+        // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
+        // if (branchResponse.IsSuccess)
+        // {
+        //     branches = branchResponse.Data?.ToList() ?? [];
+        // }
+    }
+    
+    void CreateNew()
+    {
+        var newItem = new VariantDto()
+        {
+            Id = Guid.NewGuid(),
+            CompanyId = companyId,
+            Values = new List<VariantValueDto>()
+        };
+
+        // Start with one empty row
+        newItem.Values.Add(new VariantValueDto
+        {
+            Id = Guid.Empty,
+            VariantId = newItem.Id
+        });
+
+        variants.Insert(0, newItem);
+        editingVariantId = newItem.Id;
+        isEdit = false;
+    }
+
+    void EditVariant(Guid id)
+    {
+        editingVariantId = id;
+        isEdit = true;
+        // editingVariantValueId = variants.FirstOrDefault(v => v.Id == id)?.Values.FirstOrDefault()?.Id ?? null;
+        StateHasChanged();
+    }
+    async Task SaveVariant(VariantDto variant)
+    {
+        if (variant.Id == editingVariantId && !isEdit)
+        {
+            //Create new
+
+            Random rnd = new Random();
+
+            variant.CompanyId = companyId;
+
+            var bResponse = await VariantService.CreateAsync(variant);
+            if (bResponse.IsSuccess)
+            {
+                //show success
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("Variant has been created successfully", "تم إنشاء خيارات المنتج بنجاح"),
+                    Type = "success"
+                });
+
+            }
+            else
+            {
+                // how fail
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
+                    Type = "error"
+                });
+            }
+        }
+        else
+        {
+            //Edit
+
+            var bresponse = await VariantService.UpdateAsync(variant);
+            if (bresponse.IsSuccess)
+            {
+                //show success
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("Variant has been Edited successfully", "تم تعديل خيارات المنتج بنجاح"),
+                    Type = "success"
+                });
+            }
+            else
+            {
+                // show
+                //
+                //
+                //
+                //   fail
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
+                    Type = "error"
+                });
+            }
+        }
+
+        await LoadVariants();
+        // var response = await BranchService.GetByCompanyIdAsync(companyId);
+        // if (response.IsSuccess)
+        // {
+        //     branches = response.Data?.ToList() ?? [];
+        // }
+        editingVariantId = null;
+    }
+
+    async Task DeleteVariant(VariantDto variant)
+    {
+        await ModalService.ShowAsync(new ModalOptions
+        {
+            Title = SharedDataService.SelectViewLang("Confirm Delete", "تأكيد عملية الحذف"),
+            Message = SharedDataService.SelectViewLang($"Are you sure you want to delete this variant: {variant.NameEng}?", $"هل ترغب فعلا في حذف خيارات المنتج: {variant.Name}؟"),
+            ShowCancel = true,
+            OkText = SharedDataService.SelectViewLang("Yes", "نعم"),
+            CancelText = SharedDataService.SelectViewLang("No", "لا"),
+
+            OnOk = async () =>
+            {
+                var brResponse = await VariantService.DeleteAsync(variant.Id);
+                if (brResponse.IsSuccess)
+                {
+
+                    ToastService.Show(new ToastMessage
+                    {
+                        Message = SharedDataService.SelectViewLang("Deleted successfully", "تم الحذف بنجاح"),
+                        Type = "success"
+                    });
+
+                    await LoadVariants();
+
+                    await InvokeAsync(StateHasChanged);
+                }
+                else
+                {
+                    ToastService.Show(new ToastMessage
+                    {
+                        Message = SharedDataService.SelectViewLang("Fail to delete the variant", "فشلت عملية الحذف"),
+                        Type = "error"
+                    });
+                }
+
+
+            }
+        });
+
+
+    }
+    async Task CancelEdit()
+    {
+
+
+        //new
+        // branch
+        var item = variants.FirstOrDefault(x => x.Id == editingVariantId);
+
+        if (item != null && item.Id != Guid.Empty)
+        {
+            // existing record → keep it
+            var varRes = await VariantService.GetByCompanyAsync(companyId, 0, 1000);
+            if (varRes.IsSuccess)
+            {
+                variants = varRes.Data?.Data?.ToList() ?? [];
+            }
+        }
+        else
+        {
+            // new record → remove it
+            variants.Remove(item);
+        }
+        isEdit = false;
+        editingVariantId = null;
+    }
+
+    #region Table Helpers
+
+
+    // Searching
+    private string searchText = "";
+
+    // Sorting
+    private string sortColumn = nameof(VariantDto.Name);
+    private bool sortAscending = true;
+
+    // Pagination
+    private int pageSize = 5;
+    private int pageIndex = 0;
+    private async Task LoadVariants()
+    {
+        // var request = new PaginationRequest(pageIndex, pageSize, searchText);
+
+        var response = await VariantService.GetByCompanyAsync(companyId, pageIndex, pageSize);//,searchText);
+
+        if (response.IsSuccess)
+        {
+            // var result = response.Data!.Data;
+
+            // branches = result.Data.ToList();
+            variants = response.Data?.Data?.ToList() ?? [];
+            // TotalPages = (int)response.Data!.Count;
+            TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
+        }
+    }
+    async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        pageSize = int.Parse(e.Value!.ToString()!);
+        pageIndex = 0;
+        await LoadVariants();
+    }
+    private IEnumerable<VariantDto> ProcessedVariants =>
+    variants
+        // 🔍 Search
+        .Where(b =>
+            string.IsNullOrWhiteSpace(searchText) ||
+            (b.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (b.NameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+
+        )
+
+        // 🎯 Filter
+        // .Where(b =>
+        //     filterMainBranch == null || b.IsMainBranch == filterMainBranch
+        // )
+
+        // 🔃 Sorting
+        .OrderByDynamic(sortColumn, sortAscending);
+
+    // 📄 Pagination
+    // .Skip((pageIndex) * pageSize)
+    // .Take(pageSize);
+
+
+
+    // Filtering example
+    // private bool? filterMainBranch = null;
+    // private long totalCount = 0;
+    private int TotalPages = 1;
+    // private int TotalPages =>
+    // (int)Math.Ceiling(
+    //     totalCount/ (double)pageSize);
+
+    async Task NextPage()
+    {
+        // if (currentPage < TotalPages)
+        //     currentPage++;
+
+        if (pageIndex < TotalPages - 1)
+        {
+            pageIndex++;
+            await LoadVariants();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    async Task PrevPage()
+    {
+        // if (pageIndex > 1)
+        //     pageIndex--;
+        
+        if (pageIndex > 0)
+        {
+            pageIndex--;
+            await LoadVariants();
+        }
+    }
+
+    void Sort(string column)
+    {
+        if (sortColumn == column)
+            sortAscending = !sortAscending;
+        else
+        {
+            sortColumn = column;
+            sortAscending = true;
+        }
+    }
+    #endregion Table helpers
+
+    private void AddVariantValue(VariantDto variant)
+    {
+        variant.Values.Add(new VariantValueDto
+        {
+            Id = Guid.Empty, // VERY IMPORTANT
+            VariantId = variant.Id,
+            Value = "",
+            ValueEng = ""
+        });
+    }
+
+    private void RemoveVariantValue(VariantDto variant, VariantValueDto value)
+    {
+        variant.Values.Remove(value);
+    }
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

@@ -20,6 +20,11 @@ public class GetEmployeeByIdHandler(EmployeeDbContext dbContext)
         if (employee is null)
             throw new NotFoundException($"Employee not found: {request.Id}");
 
+        //var employeeDto= await (from pos in dbContext.Positions
+        //                        join emp in dbContext.Employees on pos.Id equals emp.PositionId
+        //                        where emp.Id == request.Id
+        //                        )
+
         return new GetEmployeeByIdResult(employee.Adapt<EmployeeDto>());
     }
 }
