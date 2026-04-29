@@ -107,7 +107,9 @@ public class Variant : Aggregate<Guid>
         if (exists != null)
             throw new Exception($"Variant value is already added to this variant: {valueEng}");
 
-        var newVariantValue = VariantValue.Create(Guid.NewGuid(), Id, value, valueEng, createdBy);
+        var newVariantValue = new VariantValue(Id, value, valueEng, createdBy);//(Guid.NewGuid(), Id, value, valueEng, createdBy);
+
+            //newVariantValue  =VariantValue.Create(Guid.NewGuid(), Id, value, valueEng, createdBy);
         _values.Add(newVariantValue);
 
     }

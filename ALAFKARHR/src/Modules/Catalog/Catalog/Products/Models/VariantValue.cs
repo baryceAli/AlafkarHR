@@ -8,7 +8,15 @@ public class VariantValue:Entity<Guid>
     public string ValueEng { get; private set; } = default!;
 
     private VariantValue() { }
-
+    internal VariantValue(Guid variantId, string value, string valueEng, string createdBy)
+    {
+        //Id = Guid.NewGuid();
+        VariantId = variantId;
+        Value = value;
+        ValueEng = valueEng;
+        CreatedAt = DateTime.UtcNow;
+        CreatedBy = createdBy;
+    }
     public static VariantValue Create(Guid id, Guid variantId, string value, string valueEng, string createdBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(value);
