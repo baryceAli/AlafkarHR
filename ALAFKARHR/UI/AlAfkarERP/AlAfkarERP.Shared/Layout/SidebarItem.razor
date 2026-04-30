@@ -1,0 +1,125 @@
+﻿@using AlAfkarERP.Shared.Utilities
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+<li class="nav-item">
+
+    @if (HasChildren)
+    {
+        <!-- Parent (ONLY for items with children) -->
+        <div class="nav-link text-white d-flex justify-content-between align-items-center
+            @(IsActive ? "active bg-primary" : "")"
+             style="cursor:pointer"
+             @onclick="Toggle">
+
+            <div>
+                <i class="bi @Item.Icon me-2"></i>
+                @SharedDataService.SelectViewLang(Item.TextEn,Item.TextAr)
+            </div>
+
+            <i class="bi @(Item.IsOpen ? "bi-chevron-down" : "bi-chevron-right")"></i>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(Item.Url))
+    {
+        <!-- Leaf (ONLY once, no duplication) -->
+        <NavLink href="@Item.Url"
+                 class="nav-link text-white"
+                 Match="NavLinkMatch.Prefix">
+            <i class="bi @Item.Icon me-2"></i>
+            @SharedDataService.SelectViewLang(Item.TextEn,Item.TextAr)
+        </NavLink>
+    }
+
+    <!-- Children -->
+    @if (HasChildren && Item.IsOpen)
+    {
+        <ul class="nav flex-column ms-3">
+            @foreach (var child in Item.Children)
+            {
+                <SidebarItem Item="child" Siblings="Item.Children" />
+            }
+        </ul>
+    }
+
+</li>
+@code {
+    [Parameter] public MenuItem Item { get; set; } = default!;
+    [Parameter] public List<MenuItem>? Siblings { get; set; }
+
+    private bool HasChildren => Item.Children?.Any() == true;
+
+    private string CurrentUrl => NavigationManager.Uri.Replace(NavigationManager.BaseUri, "/");
+
+    private bool IsActive => IsMatch(Item);
+
+    protected override void OnInitialized()
+    {
+        AutoExpand(Item);
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+    
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+    void Toggle()
+    {
+        if (!HasChildren)
+        {
+            if (!string.IsNullOrEmpty(Item.Url))
+                NavigationManager.NavigateTo(Item.Url);
+
+            return;
+        }
+
+        // 🔥 Accordion: close siblings
+        if (Siblings != null)
+        {
+            foreach (var sibling in Siblings)
+            {
+                if (sibling != Item)
+                    sibling.IsOpen = false;
+            }
+        }
+
+        Item.IsOpen = !Item.IsOpen;
+    }
+
+    // 🔥 Auto expand based on route
+    void AutoExpand(MenuItem item)
+    {
+        if (IsMatch(item))
+        {
+            item.IsOpen = true;
+        }
+
+        foreach (var child in item.Children)
+        {
+            AutoExpand(child);
+
+            if (child.IsOpen)
+            {
+                item.IsOpen = true;
+            }
+        }
+    }
+
+    // 🔥 Active route detection (recursive)
+    bool IsMatch(MenuItem item)
+    {
+        if (!string.IsNullOrEmpty(item.Url) &&
+            CurrentUrl.StartsWith(item.Url, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return item.Children.Any(IsMatch);
+    }
+    
+}
