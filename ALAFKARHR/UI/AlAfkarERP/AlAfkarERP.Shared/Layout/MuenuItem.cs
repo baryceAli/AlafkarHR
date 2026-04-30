@@ -1,4 +1,6 @@
-﻿namespace AlAfkarERP.Shared.Layout;
+﻿using SharedWithUI.Permissions;
+
+namespace AlAfkarERP.Shared.Layout;
 
 public class MenuItem
 {
@@ -18,7 +20,8 @@ public class MenuItem
 
     public static List<MenuItem> Menu = new()
 {
-    new MenuItem
+
+        new MenuItem
     {
         TextEn = "Home",
         TextAr = "الرئيسية",
@@ -32,7 +35,7 @@ public class MenuItem
         TextEn = "Control Panel",
         TextAr = "لوحة التحكم",
         Icon = "bi-speedometer2",
-        Url = "/AdminDashboard",
+        Url = "/Dashboard",
         PermissionPolicy = "View.Dashboard"
     },
 
@@ -42,7 +45,7 @@ public class MenuItem
         TextAr = "الهيكل التنظيمي",
         Icon = "bi-diagram-3",
         Url = "/Organization/Dashboard",
-        PermissionPolicy = "View.Organization",
+        PermissionPolicy = $"{PermissionList.CompanyPermissions.View}",
         Children = new()
         {
             new MenuItem

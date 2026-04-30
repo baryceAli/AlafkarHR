@@ -8,17 +8,22 @@
 @inject NavigationManager NavigationManager
 
 @* @Body *@
-<div class="d-flex vh-100">
-
+@* <div class="d-flex vh-100"> *@
+<div class="d-flex vh-100 overflow-hidden">
+    
+    @if (isSidebarOpen)
+    {
+        <div class="sidebar-backdrop" @onclick="ToggleSidebar"></div>
+    }
     <!-- Sidebar -->
-    <Sidebar />
+    <Sidebar IsOpen="isSidebarOpen" />
 
     <!-- Main Area -->
     <div class="flex-grow-1 d-flex flex-column">
 
         <!-- Top Navbar -->
-        <TopNavbar />
-
+        <TopNavbar OnToggleSidebar="ToggleSidebar" />
+        
         <!-- Page Content -->
         <main class="flex-grow-1 p-3 overflow-auto bg-light" dir="@SharedDataService.PageDirection">
             @Body
@@ -41,6 +46,14 @@
 
 @code{
     private AuthenticationState AuthState;
+
+     private bool isSidebarOpen = false;
+
+    void ToggleSidebar()
+    {
+        isSidebarOpen = !isSidebarOpen;
+    }
+
     protected override async Task OnInitializedAsync()
     {
 
@@ -52,7 +65,7 @@
             AuthState = await((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
             if (!AuthState.User.Identity.IsAuthenticated)
             {
-                NavigationManager.NavigateTo("/",true);
+                NavigationManager.NavigateTo("login",true);
             }
             // NavigationManager.NavigateTo("/login");
         }
