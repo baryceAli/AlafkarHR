@@ -9,57 +9,53 @@
     </div>
 
     <!-- Menu -->
-    <ul class="nav nav-pills flex-column">
-
-        <li class="nav-item">
-            <NavLink href="/" class="nav-link text-white" Match="NavLinkMatch.All">
-                <i class="bi bi-house-door me-2"></i>
-                @SharedDataService.SelectViewLang("Home", "الرئيسية")
-            </NavLink>
-        </li>
-        <li class="nav-item">
-            <NavLink href="/Dashboard" class="nav-link text-white">
-                <i class="bi bi-speedometer2 me-2"></i>
-                @SharedDataService.SelectViewLang("Control Panel", "لوحة التحكم")
-            </NavLink>
-        </li>
-
-        <li class="nav-item">
-            <NavLink href="/Organization/Dashboard" class="nav-link text-white">
-                <i class="bi bi-diagram-3 me-2"></i>
-                @(SharedDataService.SelectViewLang("Organizational Structure", "الهيكل التنظيمي"))
-            </NavLink>
-        </li>
-
-        <li class="nav-item">
-            <NavLink href="/Employee/Dashboard" class="nav-link text-white">
-                <i class="bi bi-people me-2"></i>
-                @(SharedDataService.SelectViewLang("Human Resource", "الموارد البشرية"))
-            </NavLink>
-        </li>
-        <li class="nav-item">
-            <NavLink href="/Warehouse/Dashboard" class="nav-link text-white">
-                <i class="bi bi-box-seam me-2"></i>
-                @(SharedDataService.SelectViewLang("Inventory", "المستودعات"))
-            </NavLink>
-        </li>
-        
-        <li class="nav-item">
-            <NavLink href="/Auth/Dashboard" class="nav-link text-white">
-                <i class="bi bi-shield-lock me-2"></i>
-                @SharedDataService.SelectViewLang("Security Management", "إدارة الآمان")
-            </NavLink>
-        </li>
-
-        
+    @* <ul class="nav flex-column">
+        @if (Menu.Any())
+        {
+            @foreach (var item in Menu)
+            {
+                <SidebarItem Item="item" />
+            }
+        }
+    </ul> *@
+    <ul class="nav flex-column">
+        @foreach (var item in MenuItem.Menu)
+        {
+            <SidebarItem Item="item" Siblings="MenuItem.Menu" />
+        }
     </ul>
-
 </div>
+<style>
+    .nav-link {
+        cursor: pointer;
+    }
+
+    .nav .nav {
+        border-left: 1px solid rgba(255,255,255,0.1);
+        margin-left: 10px;
+        padding-left: 10px;
+    }
+
+    .nav-link.active {
+        background-color: #0d6efd !important;
+        color: white !important;
+    }
+
+    .nav .nav {
+        border-left: 1px solid rgba(255,255,255,0.1);
+        margin-left: 8px;
+        padding-left: 10px;
+    }
+</style>
+
+
 
 @code {
     [Parameter] public bool IsOpen { get; set; }
+    List<MenuItem> Menu = [];
     protected override void OnInitialized()
     {
+        Menu = MenuItem.Menu;
         SharedDataService.OnChange1 += HandleChangeAsync;
     }
 
