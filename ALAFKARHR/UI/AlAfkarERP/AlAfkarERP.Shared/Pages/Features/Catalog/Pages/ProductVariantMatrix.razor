@@ -1,0 +1,252 @@
+﻿@layout ProductLayout
+@page "/product-variant-matrix"
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Layout
+@using System.Linq
+
+<h3>Product Variant Matrix</h3>
+
+<!-- 🔹 Variant चयन -->
+<div class="mb-3 text-black">
+    @foreach (var variant in Variants)
+    {
+        <div class="mb-2">
+            <strong>@variant.Name</strong><br />
+
+            @foreach (var value in variant.Values)
+            {
+                <label class="me-2">
+                    <input type="checkbox"
+                           checked="@IsSelected(variant.Id, value.Id)"
+                           @onchange="(e) => ToggleValue(variant.Id, value.Id, (bool)e.Value!)" />
+                    @value.Name
+                </label>
+            }
+        </div>
+    }
+
+    <button class="btn btn-primary mt-2" @onclick="GenerateMatrix">
+        Generate Variants
+    </button>
+</div>
+
+<!-- 🔹 Bulk Price -->
+@if (Rows.Any())
+{
+    <div class="mb-3">
+        <input type="number" @bind="BulkPrice" placeholder="Set price for all" />
+        <button class="btn btn-secondary" @onclick="ApplyPriceToAll">Apply</button>
+    </div>
+}
+
+<!-- 🔹 Matrix Table -->
+@if (Rows.Any())
+{
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                @foreach (var variant in SelectedVariants)
+                {
+                    <th>@variant.Name</th>
+                }
+                <th>Price</th>
+                <th>SKU</th>
+                <th>Stock</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var row in Rows)
+            {
+                <tr>
+                    @foreach (var v in SelectedVariants)
+                    {
+                        <td>@row.VariantValues[v.Id]</td>
+                    }
+
+                    <td>
+                        <input type="number" class="form-control" @bind="row.Price" />
+                    </td>
+
+                    <td>
+                        <input class="form-control" @bind="row.SKU" />
+                    </td>
+
+                    <td>
+                        <input type="number" class="form-control" @bind="row.Stock" />
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <button class="btn btn-success" @onclick="Save">
+        Save All
+    </button>
+}
+
+@code {
+
+    // 🔹 Models
+    public class Variant
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public List<VariantValue> Values { get; set; } = new();
+    }
+
+    public class VariantValue
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+    }
+
+    public class VariantMatrixRow
+    {
+        public Dictionary<Guid, string> VariantValues { get; set; } = new();
+        public decimal Price { get; set; }
+        public string SKU { get; set; } = "";
+        public int Stock { get; set; }
+    }
+    public class VariantOption
+    {
+        public Guid Id { get; set; }
+        public List<VariantValue> Values { get; set; } = new();
+    }
+    // 🔹 Sample Data (replace with API)
+    private List<Variant> Variants = new()
+    {
+        new Variant
+        {
+            Id = Guid.NewGuid(),
+            Name = "Brand",
+            Values = new()
+            {
+                new() { Id = Guid.NewGuid(), Name = "Almarai" },
+                new() { Id = Guid.NewGuid(), Name = "Alsafi" }
+            }
+        },
+        new Variant
+        {
+            Id = Guid.NewGuid(),
+            Name = "Fat",
+            Values = new()
+            {
+                new() { Id = Guid.NewGuid(), Name = "Full Cream" },
+                new() { Id = Guid.NewGuid(), Name = "No Cream" }
+            }
+        },
+        new Variant
+        {
+            Id = Guid.NewGuid(),
+            Name = "Size",
+            Values = new()
+            {
+                new() { Id = Guid.NewGuid(), Name = "1L" },
+                new() { Id = Guid.NewGuid(), Name = "2L" }
+            }
+        }
+    };
+
+    // 🔹 State
+    private Dictionary<Guid, HashSet<Guid>> Selected = new();
+    private List<VariantMatrixRow> Rows = new();
+    private decimal BulkPrice;
+
+    private List<Variant> SelectedVariants =>
+        Variants.Where(v => Selected.ContainsKey(v.Id) && Selected[v.Id].Any()).ToList();
+
+    // 🔹 Selection Logic
+    private bool IsSelected(Guid variantId, Guid valueId)
+    {
+        return Selected.ContainsKey(variantId) && Selected[variantId].Contains(valueId);
+    }
+
+    private void ToggleValue(Guid variantId, Guid valueId, bool isChecked)
+    {
+        if (!Selected.ContainsKey(variantId))
+            Selected[variantId] = new HashSet<Guid>();
+
+        if (isChecked)
+            Selected[variantId].Add(valueId);
+        else
+            Selected[variantId].Remove(valueId);
+    }
+
+    // 🔹 Generate Matrix
+    private void GenerateMatrix()
+    {
+        var variantOptions = SelectedVariants.Select(v => new VariantOption
+        {
+            Id = v.Id,
+            Values = v.Values.Where(val => Selected[v.Id].Contains(val.Id)).ToList()
+        }).ToList();
+
+        var combinations = GenerateCombinations(variantOptions);
+
+        Rows = combinations.Select(combo =>
+        {
+            var dict = new Dictionary<Guid, string>();
+
+            foreach (var (variantId, value) in combo)
+                dict[variantId] = value.Name;
+
+            return new VariantMatrixRow
+            {
+                VariantValues = dict,
+                Price = 0,
+                SKU = GenerateSkuCode(dict),
+                Stock = 0
+            };
+        }).ToList();
+    }
+
+    // 🔹 Cartesian Product
+    private List<List<(Guid VariantId, VariantValue Value)>> GenerateCombinations(
+    List<VariantOption> variants)
+    {
+        var result = new List<List<(Guid, VariantValue)>>();
+
+        void Build(int index, List<(Guid, VariantValue)> current)
+        {
+            if (index == variants.Count)
+            {
+                result.Add(new List<(Guid, VariantValue)>(current));
+                return;
+            }
+
+            foreach (var value in variants[index].Values)
+            {
+                current.Add((variants[index].Id, value));
+                Build(index + 1, current);
+                current.RemoveAt(current.Count - 1);
+            }
+        }
+
+        Build(0, new());
+        return result;
+    }
+
+    // 🔹 SKU Generator
+    private string GenerateSkuCode(Dictionary<Guid, string> values)
+    {
+        return string.Join("-", values.Values.Select(v => v[..Math.Min(3, v.Length)].ToUpper()));
+    }
+
+    // 🔹 Bulk Price
+    private void ApplyPriceToAll()
+    {
+        foreach (var row in Rows)
+            row.Price = BulkPrice;
+    }
+
+    // 🔹 Save (connect to backend)
+    private void Save()
+    {
+        foreach (var row in Rows)
+        {
+            Console.WriteLine($"SKU: {row.SKU}, Price: {row.Price}, Stock: {row.Stock}");
+        }
+    }
+
+    
+}

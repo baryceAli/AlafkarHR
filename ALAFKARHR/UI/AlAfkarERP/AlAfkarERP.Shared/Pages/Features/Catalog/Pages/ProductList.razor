@@ -137,7 +137,9 @@
 
                                     <!--Category-->
                                     <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Category", "الاسم (انجليزي)")</label>
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                            @SharedDataService.SelectViewLang("Category", "الصنف")
+                                        </label>
                                         <div class="col-sm-10">
                                             <AutoCompleteComponent TItem="CategoryDto"
                                                                    Items="categories"
@@ -145,13 +147,14 @@
                                                                    PlaceHolder="@(SharedDataService.SelectViewLang("search a category","ابحث عن صنف"))"
                                                                    Value="selectedCategory"
                                                                    ValueChanged="onCategorySelected" />
-                                            <ValidationMessage For="() => selectedCategory.Name" />
                                         </div>
                                     </div>
 
                                     <!--Unit-->
                                     <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Unit", "الاسم (انجليزي)")</label>
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                            @SharedDataService.SelectViewLang("Unit", "الوحدة")
+                                        </label>
                                         <div class="col-sm-10">
                                             <AutoCompleteComponent TItem="UnitDto"
                                                                    Items="units"
@@ -159,7 +162,6 @@
                                                                    PlaceHolder="@(SharedDataService.SelectViewLang("search a unit","ابحث عن وحدة"))"
                                                                    Value="selectedUnit"
                                                                    ValueChanged="onUnitSelected" />
-                                            <ValidationMessage For="() => selectedUnit.UnitName" />
                                         </div>
                                     </div>
 
@@ -227,9 +229,9 @@
     private Guid companyId;
     private bool isEdit = false;
     private List<UnitDto> units = [];
-    private UnitDto selectedUnit = new();
+    private UnitDto? selectedUnit ;
     private List<CategoryDto> categories = [];
-    private CategoryDto selectedCategory = new();
+    private CategoryDto? selectedCategory ;
     private AuthenticationState AuthState;
     protected override async Task OnInitializedAsync()
     {
@@ -266,8 +268,8 @@
         {
             Id = Guid.NewGuid(),
             CompanyId = companyId,
-            CategoryId=Guid.NewGuid(),//categories.Any()?categories[0].Id:Guid.NewGuid(),
-            UnitId=Guid.NewGuid()//units.Any()? units[0].Id:Guid.NewGuid()
+            //CategoryId=Guid.NewGuid(),//categories.Any()?categories[0].Id:Guid.NewGuid(),
+            //UnitId=Guid.NewGuid()//units.Any()? units[0].Id:Guid.NewGuid()
         };
         products.Insert(0, newItem);
         editingProductId = newItem.Id;
@@ -290,6 +292,19 @@
     async Task SaveProduct(ProductDto prod)
     {
         LoadingService.Show();
+
+        if(selectedCategory==null || selectedCategory.Id==Guid.Empty || selectedUnit==null || selectedUnit.Id == Guid.Empty)
+        {
+            await ModalService.ShowAsync(new ModalOptions
+                {
+                    Title = SharedDataService.SelectViewLang("Create Product", "إنشاء منتج"),
+                    IsError=true,
+                    Message=SharedDataService.SelectViewLang("Please select product's category and unit","يرجى اختيار الصنف والوحدة"),
+                    OnOk=async()=> { }
+                });
+                LoadingService.Hide();
+                return;
+        }
         prod.CategoryId = selectedCategory.Id;
         prod.UnitId = selectedUnit.Id;
 
@@ -298,7 +313,7 @@
             //Create new
 
             prod.CompanyId = companyId;
-            
+
             var bResponse = await ProductService.CreateAsync(prod);
             if (bResponse.IsSuccess)
             {
@@ -534,6 +549,7 @@
     private void onUnitSelected(UnitDto unit)
     {
         selectedUnit =unit!=null? unit:new();
+        StateHasChanged();
     }
     protected override void OnInitialized()
     {

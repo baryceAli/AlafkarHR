@@ -14,7 +14,7 @@ public class ProductDto
     public string NameEng { get; set; }
 
 
-    [Required(ErrorMessage = "Category is required")]
+    //[Required(ErrorMessage = "Category is required")]
     public Guid? CategoryId { get;  set; }
 
 
@@ -22,7 +22,7 @@ public class ProductDto
     public string? CategoryNameEng { get; set; }
 
 
-    [Required(ErrorMessage = "Unit is required")]
+    //[Required(ErrorMessage = "Unit is required")]
     public Guid? UnitId { get;  set; }
     public string? UnitName { get; set; }
     public string? UnitNameEng { get; set; }

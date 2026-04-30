@@ -73,7 +73,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
             Guid.NewGuid(),
             command.ProductSku.ProductId,
             command.ProductSku.BrandId,
-            command.ProductSku.PackageId,
+            //command.ProductSku.PackageId,
             baseSku,
             baseSkuEng,
             command.ProductSku.Barcode,
