@@ -160,10 +160,14 @@ namespace Catalog.Data.Migrations
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     BrandId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PackageId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PackageId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     SkuCode = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Barcode = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    SkuCodeEng = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    SkuKey = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Barcode = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CompanyId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     ShowOnStore = table.Column<bool>(type: "bit", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -176,6 +180,20 @@ namespace Catalog.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ProductSKUs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ProductSKUs_Brands_BrandId",
+                        column: x => x.BrandId,
+                        principalSchema: "Catalog",
+                        principalTable: "Brands",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProductSKUs_ProductPackages_PackageId",
+                        column: x => x.PackageId,
+                        principalSchema: "Catalog",
+                        principalTable: "ProductPackages",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ProductSKUs_Products_ProductId",
                         column: x => x.ProductId,
@@ -241,14 +259,97 @@ namespace Catalog.Data.Migrations
                         principalTable: "ProductSKUs",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProductSkuVariants_VariantValues_VariantValueId",
+                        column: x => x.VariantValueId,
+                        principalSchema: "Catalog",
+                        principalTable: "VariantValues",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ProductSkuVariants_Variants_VariantId",
+                        column: x => x.VariantId,
+                        principalSchema: "Catalog",
+                        principalTable: "Variants",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductSKUs_Barcode",
+                name: "IX_Brands_CompanyId_Name",
+                schema: "Catalog",
+                table: "Brands",
+                columns: new[] { "CompanyId", "Name" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Brands_CompanyId_NameEng",
+                schema: "Catalog",
+                table: "Brands",
+                columns: new[] { "CompanyId", "NameEng" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Categories_CompanyId_Name",
+                schema: "Catalog",
+                table: "Categories",
+                columns: new[] { "CompanyId", "Name" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Categories_CompanyId_NameEng",
+                schema: "Catalog",
+                table: "Categories",
+                columns: new[] { "CompanyId", "NameEng" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductPackages_CompanyId_Name",
+                schema: "Catalog",
+                table: "ProductPackages",
+                columns: new[] { "CompanyId", "Name" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductPackages_CompanyId_NameEng",
+                schema: "Catalog",
+                table: "ProductPackages",
+                columns: new[] { "CompanyId", "NameEng" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_CompanyId_Name",
+                schema: "Catalog",
+                table: "Products",
+                columns: new[] { "CompanyId", "Name" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductSKUs_BrandId",
                 schema: "Catalog",
                 table: "ProductSKUs",
-                column: "Barcode",
+                column: "BrandId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductSKUs_CompanyId_Barcode",
+                schema: "Catalog",
+                table: "ProductSKUs",
+                columns: new[] { "CompanyId", "Barcode" },
+                unique: true,
+                filter: "[Barcode] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductSKUs_CompanyId_SkuKey",
+                schema: "Catalog",
+                table: "ProductSKUs",
+                columns: new[] { "CompanyId", "SkuKey" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductSKUs_PackageId",
+                schema: "Catalog",
+                table: "ProductSKUs",
+                column: "PackageId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProductSKUs_ProductId",
@@ -264,25 +365,65 @@ namespace Catalog.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_VariantValues_VariantId",
+                name: "IX_ProductSkuVariants_VariantId",
+                schema: "Catalog",
+                table: "ProductSkuVariants",
+                column: "VariantId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductSkuVariants_VariantValueId",
+                schema: "Catalog",
+                table: "ProductSkuVariants",
+                column: "VariantValueId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Units_CompanyId_UnitName",
+                schema: "Catalog",
+                table: "Units",
+                columns: new[] { "CompanyId", "UnitName" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Units_CompanyId_UnitNameEng",
+                schema: "Catalog",
+                table: "Units",
+                columns: new[] { "CompanyId", "UnitNameEng" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Variants_CompanyId_Name",
+                schema: "Catalog",
+                table: "Variants",
+                columns: new[] { "CompanyId", "Name" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Variants_CompanyId_NameEng",
+                schema: "Catalog",
+                table: "Variants",
+                columns: new[] { "CompanyId", "NameEng" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_VariantValues_VariantId_Value",
                 schema: "Catalog",
                 table: "VariantValues",
-                column: "VariantId");
+                columns: new[] { "VariantId", "Value" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_VariantValues_VariantId_ValueEng",
+                schema: "Catalog",
+                table: "VariantValues",
+                columns: new[] { "VariantId", "ValueEng" },
+                unique: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Brands",
-                schema: "Catalog");
-
-            migrationBuilder.DropTable(
                 name: "Categories",
-                schema: "Catalog");
-
-            migrationBuilder.DropTable(
-                name: "ProductPackages",
                 schema: "Catalog");
 
             migrationBuilder.DropTable(
@@ -294,19 +435,27 @@ namespace Catalog.Data.Migrations
                 schema: "Catalog");
 
             migrationBuilder.DropTable(
-                name: "VariantValues",
-                schema: "Catalog");
-
-            migrationBuilder.DropTable(
                 name: "ProductSKUs",
                 schema: "Catalog");
 
             migrationBuilder.DropTable(
-                name: "Variants",
+                name: "VariantValues",
+                schema: "Catalog");
+
+            migrationBuilder.DropTable(
+                name: "Brands",
+                schema: "Catalog");
+
+            migrationBuilder.DropTable(
+                name: "ProductPackages",
                 schema: "Catalog");
 
             migrationBuilder.DropTable(
                 name: "Products",
+                schema: "Catalog");
+
+            migrationBuilder.DropTable(
+                name: "Variants",
                 schema: "Catalog");
         }
     }

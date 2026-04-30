@@ -9,6 +9,18 @@ public class ProductSkuVariantConfiguration : IEntityTypeConfiguration<ProductSk
         builder.HasKey(x => x.Id);
 
         builder.HasIndex(x => new { x.ProductSkuId, x.VariantId })
-            .IsUnique(); // 🔥 prevents duplicate variant per SKU
+            .IsUnique();
+
+        builder.HasOne<Variant>()
+            .WithMany()
+            .HasForeignKey(x => x.VariantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<VariantValue>()
+            .WithMany()
+            .HasForeignKey(x => x.VariantValueId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

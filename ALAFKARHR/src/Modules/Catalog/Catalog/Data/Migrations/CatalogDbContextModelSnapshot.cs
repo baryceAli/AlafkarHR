@@ -69,6 +69,12 @@ namespace Catalog.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CompanyId", "Name")
+                        .IsUnique();
+
+                    b.HasIndex("CompanyId", "NameEng")
+                        .IsUnique();
+
                     b.ToTable("Brands", "Catalog");
                 });
 
@@ -117,6 +123,12 @@ namespace Catalog.Data.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Name")
+                        .IsUnique();
+
+                    b.HasIndex("CompanyId", "NameEng")
+                        .IsUnique();
 
                     b.ToTable("Categories", "Catalog");
                 });
@@ -169,6 +181,9 @@ namespace Catalog.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CompanyId", "Name")
+                        .IsUnique();
+
                     b.ToTable("Products", "Catalog");
                 });
 
@@ -220,47 +235,13 @@ namespace Catalog.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CompanyId", "Name")
+                        .IsUnique();
+
+                    b.HasIndex("CompanyId", "NameEng")
+                        .IsUnique();
+
                     b.ToTable("ProductPackages", "Catalog");
-                });
-
-            modelBuilder.Entity("Catalog.Products.Models.ProductPackageLink", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("PackageId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("ProductPackageLink", "Catalog");
                 });
 
             modelBuilder.Entity("Catalog.Products.Models.ProductSku", b =>
@@ -270,10 +251,12 @@ namespace Catalog.Data.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Barcode")
-                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<Guid>("BrandId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("CreatedAt")
@@ -301,7 +284,7 @@ namespace Catalog.Data.Migrations
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("PackageId")
+                    b.Property<Guid?>("PackageId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Price")
@@ -318,12 +301,30 @@ namespace Catalog.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("SkuCodeEng")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SkuKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Barcode")
-                        .IsUnique();
+                    b.HasIndex("BrandId");
+
+                    b.HasIndex("PackageId");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("CompanyId", "Barcode")
+                        .IsUnique()
+                        .HasFilter("[Barcode] IS NOT NULL");
+
+                    b.HasIndex("CompanyId", "SkuKey")
+                        .IsUnique();
 
                     b.ToTable("ProductSKUs", "Catalog");
                 });
@@ -365,6 +366,10 @@ namespace Catalog.Data.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("VariantId");
+
+                    b.HasIndex("VariantValueId");
 
                     b.HasIndex("ProductSkuId", "VariantId")
                         .IsUnique();
@@ -414,6 +419,12 @@ namespace Catalog.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CompanyId", "UnitName")
+                        .IsUnique();
+
+                    b.HasIndex("CompanyId", "UnitNameEng")
+                        .IsUnique();
+
                     b.ToTable("Units", "Catalog");
                 });
 
@@ -458,6 +469,12 @@ namespace Catalog.Data.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Name")
+                        .IsUnique();
+
+                    b.HasIndex("CompanyId", "NameEng")
+                        .IsUnique();
 
                     b.ToTable("Variants", "Catalog");
                 });
@@ -504,22 +521,28 @@ namespace Catalog.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("VariantId");
+                    b.HasIndex("VariantId", "Value")
+                        .IsUnique();
+
+                    b.HasIndex("VariantId", "ValueEng")
+                        .IsUnique();
 
                     b.ToTable("VariantValues", "Catalog");
                 });
 
-            modelBuilder.Entity("Catalog.Products.Models.ProductPackageLink", b =>
-                {
-                    b.HasOne("Catalog.Products.Models.Product", null)
-                        .WithMany("Packages")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Catalog.Products.Models.ProductSku", b =>
                 {
+                    b.HasOne("Catalog.Products.Models.Brand", null)
+                        .WithMany()
+                        .HasForeignKey("BrandId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Catalog.Products.Models.ProductPackage", null)
+                        .WithMany()
+                        .HasForeignKey("PackageId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Catalog.Products.Models.Product", null)
                         .WithMany("Skus")
                         .HasForeignKey("ProductId")
@@ -534,6 +557,18 @@ namespace Catalog.Data.Migrations
                         .HasForeignKey("ProductSkuId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("Catalog.Products.Models.Variant", null)
+                        .WithMany()
+                        .HasForeignKey("VariantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Catalog.Products.Models.VariantValue", null)
+                        .WithMany()
+                        .HasForeignKey("VariantValueId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Catalog.Products.Models.VariantValue", b =>
@@ -547,8 +582,6 @@ namespace Catalog.Data.Migrations
 
             modelBuilder.Entity("Catalog.Products.Models.Product", b =>
                 {
-                    b.Navigation("Packages");
-
                     b.Navigation("Skus");
                 });
 

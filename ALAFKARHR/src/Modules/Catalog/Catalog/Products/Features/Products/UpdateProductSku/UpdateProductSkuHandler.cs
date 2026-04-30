@@ -29,6 +29,10 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
             command.ProductSku.Price, 
             command.ProductSku.ShowOnStore,
             command.ProductSku.ImageUrl,
+            command.ProductSku.Barcode,
+            command.ProductSku.SkuCode,
+            command.ProductSku.SkuCodeEng,
+            command.ProductSku.CompanyId,
             userId);
         await dbContext.SaveChangesAsync();
 

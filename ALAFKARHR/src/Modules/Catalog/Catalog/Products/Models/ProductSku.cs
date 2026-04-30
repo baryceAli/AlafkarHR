@@ -9,18 +9,23 @@ public class ProductSku : Entity<Guid>
     public Guid ProductId { get; private set; }
     public Guid BrandId { get; private set; }
 
-    //public Guid PackageId { get; private set; } // optional (size: 250ml, 1L)
+    public Guid? PackageId { get; private set; } // optional (size: 250ml, 1L)
+    public bool IsPackage => PackageId.HasValue;
 
     public string SkuCode { get; private set; } = default!;
-    public string Barcode { get; private set; } = default!;
+    public string SkuCodeEng { get; private set; } = default!;
+    public string SkuKey { get; private set; } = default!;
+    public string? Barcode { get; private set; } = default!;
 
     public decimal Price { get; private set; }
     public string ImageUrl { get; set; }
-
+    public Guid CompanyId { get; set; }
     public bool ShowOnStore { get; private set; }
 
     private readonly List<ProductSkuVariant> _variants = new();
     public IReadOnlyCollection<ProductSkuVariant> Variants => _variants;
+
+
 
     //SKU1 Milk    Almarai      Full Cream	    2
     //SKU2 Milk    Almarai      No Cream	    3
@@ -33,10 +38,11 @@ public class ProductSku : Entity<Guid>
         Guid brandId,
         //Guid packageId,
         string skuCode,
-   string barcode,
+   string? barcode,
    string imageUrl,
         decimal price,
-        bool showOnStore
+        bool showOnStore,
+        Guid companyId
         )
     {
         Id = id;
@@ -49,7 +55,7 @@ public class ProductSku : Entity<Guid>
         //_options = options.ToList();
         Price = price;
         ShowOnStore = showOnStore;
-
+        CompanyId = companyId;
     }
 
     public static ProductSku Create(
@@ -59,10 +65,11 @@ public class ProductSku : Entity<Guid>
     //Guid packageId,
     string skuCode,
     string skuCodeEng,
-    string barcode,
+    string? barcode,
     string imageUrl,
     decimal price,
     bool showOnStore,
+    Guid companyId,
     string createdBy)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(skuCode);
@@ -79,15 +86,17 @@ public class ProductSku : Entity<Guid>
             Barcode = barcode,
             Price = price,
             ShowOnStore = showOnStore,
+            CompanyId= companyId,
             CreatedBy = createdBy,
             CreatedAt = DateTime.UtcNow
         };
     }
-    public void Update(decimal price, bool showOnStore, string imageUrl, string modifiedBy)
+    public void Update(decimal price, bool showOnStore, string imageUrl,string? barcode,string skuCode, string skuCodeEng, Guid companyId, string modifiedBy)
     {
         Price = price;
         ImageUrl= imageUrl;
         ShowOnStore = showOnStore;
+        CompanyId=companyId;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }
@@ -98,13 +107,31 @@ public class ProductSku : Entity<Guid>
         DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;
     }
-    public void AddVariant(Guid variantId, Guid variantValueId)
+    public void AddVariant(Guid variantId, Guid variantValueId, string addedBy)
     {
-        if (_variants.Any(v => v.VariantId == variantId))
-            throw new Exception("Variant already exists for this SKU");
+        if (_variants.Any(v => v.VariantId == variantId && v.VariantValueId==variantValueId))
+            throw new Exception("Variant and Value are already exists for this SKU");
 
-        _variants.Add(ProductSkuVariant.Create(Guid.NewGuid(), Id, variantId, variantValueId));
+        _variants.Add(ProductSkuVariant.Create( Id, variantId, variantValueId, addedBy));
     }
+
+    //public void AddProductPackage(Guid id, Guid productId, string packageName, string packageNameEng, double quantityPerPackage, decimal packagePrice, bool showOnStore, string createdBy)
+    //{
+    //    ArgumentNullException.ThrowIfNullOrEmpty(packageName);
+    //    ArgumentNullException.ThrowIfNullOrEmpty(packageNameEng);
+    //    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantityPerPackage);
+    //    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(packagePrice);
+
+    //    //ArgumentNullException.ThrowIfNullOrEmpty(package.ProductId);
+    //    var existingPackage = _packages.FirstOrDefault(p => p.Id == id);
+    //    if (existingPackage is not null)
+    //    {
+    //        throw new Exception($"Package exists: {id}");
+    //    }
+    //    var pkg = new ProductPackage(packageName, packageNameEng, quantityPerPackage, packagePrice, createdBy);
+    //    _packages.Add(pkg);
+    //}
+    //public void RemoveProductPackage(ProductPackage package){_packages.Remove(package);}
 
 }
 

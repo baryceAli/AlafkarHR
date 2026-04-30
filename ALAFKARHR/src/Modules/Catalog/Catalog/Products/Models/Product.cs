@@ -13,8 +13,8 @@ public class Product : Aggregate<Guid>
     private readonly List<ProductSku> _skus = new();
     public IReadOnlyCollection<ProductSku> Skus => _skus;
 
-    private readonly List<ProductPackageLink> _packages = new();
-    public IReadOnlyCollection<ProductPackageLink> Packages => _packages;
+    //private readonly List<ProductPackageLink> _packages = new();
+    //public IReadOnlyCollection<ProductPackageLink> Packages => _packages;
 
 
     private Product() { }
@@ -64,36 +64,19 @@ public class Product : Aggregate<Guid>
         DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;
     }
-    public void AddProductVariant(ProductSku variant)
+    public void AddProductVariant(ProductSku sku)
     {
-        _skus.Add(variant);
+        _skus.Add(sku);
     }
-    public void AddPackage(Guid packageId)
-    {
-        if (_packages.Any(p => p.PackageId == packageId))
-            throw new Exception("Package already added");
+    //public void AddPackage(Guid packageId)
+    //{
+    //    if (_packages.Any(p => p.PackageId == packageId))
+    //        throw new Exception("Package already added");
 
-        _packages.Add(ProductPackageLink.Create(Id, packageId));
-    }
+    //    _packages.Add(ProductPackageLink.Create(Id, packageId));
+    //}
     //public void RemoveVariant(ProductVariant variant) { _variants.Remove(variant); }
 
-    //public void AddProductPackage(Guid id, Guid productId, string packageName, string packageNameEng, double quantityPerPackage, decimal packagePrice, bool showOnStore, string createdBy)
-    //{
-    //    ArgumentNullException.ThrowIfNullOrEmpty(packageName);
-    //    ArgumentNullException.ThrowIfNullOrEmpty(packageNameEng);
-    //    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantityPerPackage);
-    //    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(packagePrice);
-
-    //    //ArgumentNullException.ThrowIfNullOrEmpty(package.ProductId);
-    //    var existingPackage = _packages.FirstOrDefault(p => p.Id == id);
-    //    if (existingPackage is not null)
-    //    {
-    //        throw new Exception($"Package exists: {id}");
-    //    }
-    //    var pkg = new ProductPackage(id, productId, packageName,packageNameEng, quantityPerPackage, packagePrice, createdBy);
-    //    _packages.Add(pkg);
-    //}
-    //public void RemoveProductPackage(ProductPackage package){_packages.Remove(package);}
-
+    
 
 }

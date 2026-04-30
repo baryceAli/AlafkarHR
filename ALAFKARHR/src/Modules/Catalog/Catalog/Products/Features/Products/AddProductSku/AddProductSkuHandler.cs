@@ -80,6 +80,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
             command.ProductSku.ImageUrl,
             command.ProductSku.Price,
             command.ProductSku.ShowOnStore,
+            command.ProductSku.CompanyId,
             userId);
 
         dbContext.ProductSkus.Add(productSku);

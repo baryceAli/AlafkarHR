@@ -29,7 +29,6 @@ public static class InitialData
         new List<Unit>
         {
             Unit.Create(Guid.Parse("9a4b92e6-7c2d-4722-9be6-5f2107bb5b3d"),"مل","ML",Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),"baryce@gmail.com"),
-            Unit.Create(Guid.Parse("c33623f7-75ac-4358-9168-cec4ffc10cd2"),"مل","ML",Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), "baryce@gmail.com"),
             Unit.Create(Guid.NewGuid(),"لتر","Ltr",Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), "baryce@gmail.com"),
             Unit.Create(Guid.Parse("a64630c2-d13d-42f0-9416-4f8aac39a8e6"), "جم", "MG",Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), "baryce@gmail.com"),
             Unit.Create(Guid.NewGuid(), "كجم", "KG",Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), "baryce@gmail.com"),
@@ -76,8 +75,22 @@ public static class InitialData
         new List<ProductPackage>
         {
             
-            new ProductPackage(Guid.Parse("6535b510-4ac8-498a-bdfb-9e61870fd359"),"حبة","Single", 1,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),"baryce@gmail.com"),
-            new ProductPackage(Guid.Parse("e789ae8d-b85e-45ed-a70e-6d3a52a5c3e5"),"كرتون ابو 10","Pack of 10", 10,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),"baryce@gmail.com"),
+            new ProductPackage(
+                Guid.Parse("6535b510-4ac8-498a-bdfb-9e61870fd359"),
+                "حبة",
+                "Single", 
+                1,
+                Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),
+                Guid.Parse("a64630c2-d13d-42f0-9416-4f8aac39a8e6"),
+                "baryce@gmail.com"),
+            new ProductPackage(
+                Guid.Parse("e789ae8d-b85e-45ed-a70e-6d3a52a5c3e5"),
+                "كرتون ابو 10",
+                "Pack of 10", 
+                10,
+                Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),
+                Guid.Parse("a64630c2-d13d-42f0-9416-4f8aac39a8e6"),
+                "baryce@gmail.com"),
         };
     public static IEnumerable<Variant> Variants =>
         new List<Variant>

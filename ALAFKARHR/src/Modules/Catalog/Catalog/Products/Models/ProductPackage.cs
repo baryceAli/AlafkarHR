@@ -10,12 +10,11 @@ public class ProductPackage : Aggregate<Guid>
     private ProductPackage() { }
 
     internal ProductPackage(Guid id, 
-                            //Guid productId, 
                             string name, 
                             string nameEng, 
-                            decimal quantity, 
+                            decimal quantity,
+                            Guid unitId,
                             Guid companyId,
-                            //decimal packagePrice,
                             string createdBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -23,7 +22,7 @@ public class ProductPackage : Aggregate<Guid>
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
         Id = id;
-        //UnitId = unitId;
+        UnitId = unitId;
         Name = name;
         NameEng = nameEng;
         Quantity = quantity;

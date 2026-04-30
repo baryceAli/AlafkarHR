@@ -9,17 +9,24 @@ public class ProductSkuVariant:Entity<Guid>
 
     private ProductSkuVariant() { }
 
-    public static ProductSkuVariant Create(Guid id, Guid productSkuId, Guid variantId, Guid variantValueId)
+    public static ProductSkuVariant Create( Guid productSkuId, Guid variantId, Guid variantValueId, string createdBy)
     {
         return new ProductSkuVariant
         {
-            Id = id,
+            //Id = id,
             ProductSkuId = productSkuId,
             VariantId = variantId,
-            VariantValueId = variantValueId
+            VariantValueId = variantValueId,
+            CreatedAt=DateTime.UtcNow,
+            CreatedBy=createdBy
         };
     }
 
-    
+    public void Remove(string deletedBy)
+    {
+        IsDeleted=true;
+        DeletedAt = DateTime.UtcNow;
+        DeletedBy = deletedBy;
+    }
 
 }

@@ -15,5 +15,9 @@ public class UnitConfiguration : IEntityTypeConfiguration<Unit>
         builder.Property(x => x.UnitNameEng)
             .IsRequired()
             .HasMaxLength(100);
+
+        builder.HasIndex(x => new { x.CompanyId, x.UnitName }).IsUnique();
+        builder.HasIndex(x => new { x.CompanyId, x.UnitNameEng }).IsUnique();
+        builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

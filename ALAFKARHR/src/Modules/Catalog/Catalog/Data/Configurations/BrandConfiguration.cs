@@ -18,5 +18,9 @@ public class BrandConfiguration : IEntityTypeConfiguration<Brand>
 
         builder.Property(x => x.Description)
             .HasMaxLength(500);
+
+        builder.HasIndex(x => new { x.CompanyId, x.Name }).IsUnique();
+        builder.HasIndex(x => new { x.CompanyId, x.NameEng }).IsUnique();
+        builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }
