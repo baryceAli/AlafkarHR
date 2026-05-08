@@ -1,6 +1,7 @@
 ﻿@layout AdminLayout
 @page "/Catalog/Product/{ProductId:guid?}/ProductSku"
 @page "/Catalog/Product/ProductSku/List"
+@using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
@@ -22,6 +23,8 @@
 
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
+@inject ApiConfig ApiConfig
+
 
 @if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.Create}"))
 {
@@ -115,13 +118,21 @@
         <thead>
             
             <tr>
-                <th @onclick="() => Sort(nameof(ProductSkuDto.ProductName))">
-                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
-                    @SharedDataService.SelectViewLang("Product", "المنتج")
-                </th>
-                <th @onclick="() => Sort(nameof(ProductSkuDto.SkuCode))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
-                <th>@SharedDataService.SelectViewLang("ProductSKU", "المنتج المخزني")</th>
                 <th>@SharedDataService.SelectViewLang("Image", "الصورة")</th>
+                <th @onclick="() => Sort(nameof(ProductSkuDto.Name))">
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                    @SharedDataService.SelectViewLang("Name", "الاسم")
+                </th>
+                <th @onclick="() => Sort(nameof(ProductSkuDto.SkuCode))">
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                    @SharedDataService.SelectViewLang("SKUCode", "الرمز المخزني")
+                </th>
+                <th @onclick="() => Sort(nameof(ProductSkuDto.Price))">@SharedDataService.SelectViewLang("Price", "السعر")</th>
+                <th @onclick="() => Sort(nameof(ProductSkuDto.BrandName))">
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                    @SharedDataService.SelectViewLang("Brand", "العلامة التجارية")
+                </th>
+                <th>@SharedDataService.SelectViewLang("Unit", "الوحدة")</th>
                 <th></th>
             </tr>
         </thead>
@@ -195,21 +206,21 @@
                                     
                                     <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label">
-                                            @SharedDataService.SelectViewLang("SkuCode", "الاسم")
+                                            @SharedDataService.SelectViewLang("Name", "الاسم")
                                         </label>
                                         <div class="col-sm-10">
-                                            <InputText class="form-control" @bind-Value="editingItem.SkuCode" />
-                                            <ValidationMessage For="() => editingItem.SkuCode" />
+                                            <InputText class="form-control" @bind-Value="editingItem.Name" />
+                                            <ValidationMessage For="() => editingItem.Name" />
                                         </div>
                                     </div>
 
                                     <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label">
-                                            @SharedDataService.SelectViewLang("SkuCodeEng", "الاسم (En)")
+                                            @SharedDataService.SelectViewLang("NameEng", "الاسم (En)")
                                         </label>
                                         <div class="col-sm-10">
-                                            <InputText class="form-control" @bind-Value="editingItem.SkuCodeEng" />
-                                            <ValidationMessage For="() => editingItem.SkuCodeEng" />
+                                            <InputText class="form-control" @bind-Value="editingItem.NameEng" />
+                                            <ValidationMessage For="() => editingItem.NameEng" />
                                         </div>
                                     </div>
 
@@ -230,12 +241,29 @@
                                     </div>
                                     
                                     <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Image", "الصورة")</label>
+                                        <label for="DateOfBirth" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Photo", "الصورة")</label>
                                         <div class="col-sm-10">
-                                            <InputText class="form-control" @bind-Value="editingItem.ImageUrl" />
-                                            <ValidationMessage For="() => editingItem.ImageUrl" />
+                                            <label for="profileUpload" style="cursor:pointer;">
+                                                <img src="@(string.IsNullOrEmpty(editingItem?.ImageUrl)
+                                                                                                                                                         ? "_content/AlAfkarERP.Shared/images/productPlaceHolder.jpg"
+                                                                                                                                                         : (editingItem.ImageUrl.Contains("data:")
+                                                                                                                                                             ? editingItem.ImageUrl
+                                                                                                                                                             : $"{ApiConfig.BaseURL}/Images/Products/{editingItem.ImageUrl}"))"
+                                                     alt="Add product image"
+                                                     height="50"
+                                                     width="50"
+                                                     class="card-img-top" />
+
+                                            </label>
+
+                                            <InputFile id="profileUpload"
+                                                       style="display:none"
+                                                       OnChange="OnProductImageSelected"
+                                                       accept="image/*" />
+                                            <ValidationMessage For="@(() => editingItem.ImageUrl)" class="text-danger" />
                                         </div>
                                     </div>
+
 
                                     <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Show in store", "العرض في المتجر")</label>
@@ -355,23 +383,26 @@
 
                 
             }
+            
             @foreach (var sku in ProcessedVariants.Where(x => x.Id != editingProductSkuId))
             {
                 
                 <tr>
-                    <td>@sku.SkuCode</td>
-                    <td>@sku.SkuCodeEng</td>
                     <td>
-                        @* <div class="flex-row">
-                            @foreach (var s in sku.Variants)
-                            {
-                                <span class="badge bg-primary me-1">
-                                    @SharedDataService.SelectViewLang(variants.FirstOrDefault(v => v.Id == s.VariantId)?.NameEng ?? "",
-                                    variants.FirstOrDefault(v => v.Id == s.VariantId)?.Name ?? "")
-                                </span>
-                            }
-                        </div> *@
+                        <img src="@(string.IsNullOrEmpty(sku?.ImageUrl)
+                                                                                 ? "_content/AlAfkarERP.Shared/images/productPlaceHolder.jpg"
+                                                                                 : (sku.ImageUrl.Contains("data:")
+                                                                                     ? sku.ImageUrl
+                                                                                     : $"{ApiConfig.BaseURL}/Images/Products/{sku.ImageUrl}"))"
+                             alt="Add product image"
+                             width="64"
+                             height="64" />
                     </td>
+                    <td>@SharedDataService.SelectViewLang(sku.NameEng, sku.Name)</td>
+                    <td>@SharedDataService.SelectViewLang(sku.SkuCodeEng, sku.SkuCode)</td>
+                    <td>@sku.Price</td>
+                    <td>@SharedDataService.SelectViewLang(brands.FirstOrDefault(b => b.Id == sku.BrandId)?.NameEng ?? "", brands.FirstOrDefault(b => b.Id == sku.BrandId)?.Name ?? "")</td>
+                    <td>@SharedDataService.SelectViewLang(units.FirstOrDefault(b => b.Id == sku.UnitId)?.UnitNameEng ?? "", units.FirstOrDefault(b => b.Id == sku.UnitId)?.UnitName ?? "")</td>
                     <td>
                         <button class="btn btn-warning btn-sm"
                                 @onclick="() => EditProductSku(sku.Id)"
@@ -832,7 +863,12 @@
 
     private async Task onProductSelected(ProductDto product)
     {
+        if (product == null)
+        {
+            productskuList = [];
+        }
         selectedProduct = product != null ? product : new();
+        // productskuList = product != null ? product : new();
         await LoadProductSKU();
         StateHasChanged();
     }
@@ -872,6 +908,46 @@
         productskuList = [];
 
         await LoadProductSKU();
+    }
+    // private string ImageURL="";
+    // private async Task OnProductImageSelected(InputFileChangeEventArgs e)
+    // {
+    //     var file = e.File;
+    //     if (file != null)
+    //     {
+    //         using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+    //         using var ms = new MemoryStream();
+    //         await stream.CopyToAsync(ms);
+    //         var base64 = Convert.ToBase64String(ms.ToArray());
+
+    //         // Store a clean Base64 string with prefix (no extra whitespace)
+    //         ImageURL = $"data:{file.ContentType};base64,{base64}".Trim();
+    //     }
+    // }
+    private async Task OnProductImageSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+
+        if (file != null && editingProductSkuId.HasValue)
+        {
+            var editingItem = productskuList
+                .FirstOrDefault(x => x.Id == editingProductSkuId.Value);
+
+            if (editingItem != null)
+            {
+                using var stream = file.OpenReadStream(maxAllowedSize: 5 * 256 * 256);
+                using var ms = new MemoryStream();
+
+                await stream.CopyToAsync(ms);
+
+                var base64 = Convert.ToBase64String(ms.ToArray());
+
+                editingItem.ImageUrl =
+                    $"data:{file.ContentType};base64,{base64}".Trim();
+
+                await InvokeAsync(StateHasChanged);
+            }
+        }
     }
     protected override void OnInitialized()
     {

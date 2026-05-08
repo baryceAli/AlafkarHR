@@ -1,5 +1,7 @@
 ﻿using Catalog.Products.Helpers;
 using Shared.Exceptions;
+using Shared.SaveImages;
+using SharedWithUI.Catalog.SKUGenerator;
 
 namespace Catalog.Products.Features.Products.AddProductSku;
 
@@ -14,9 +16,8 @@ public class AddProductSkuCommandValidator : AbstractValidator<AddProductSkuComm
         RuleFor(x => x.ProductSku.Price).GreaterThan(0).WithMessage("Price is required");
         RuleFor(x => x.ProductSku.Variants.Count).GreaterThan(0).WithMessage("ProductSKU must have variants");
         RuleFor(x => x.ProductSku.Barcode).NotEmpty().WithMessage("Bar code is required");
-        RuleFor(x => x.ProductSku.SkuCode).NotEmpty().WithMessage("SkuCode is required");
-        RuleFor(x => x.ProductSku.SkuCode).NotEmpty().WithMessage("SkuCode is required");
-        RuleFor(x => x.ProductSku.SkuCodeEng).NotEmpty().WithMessage("SkuCodeEng is required");
+        RuleFor(x => x.ProductSku.Name).NotEmpty().WithMessage("Name is required");
+        RuleFor(x => x.ProductSku.NameEng).NotEmpty().WithMessage("NameEng is required");
     }
 }
 public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccessor httpContextAccessor)
@@ -51,53 +52,48 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
                         .FindFirst(ClaimTypes.NameIdentifier)?
                         .Value??
                         throw new UnauthorizedAccessException("User is not authenticated");
-
-        var baseSku = GenerateSKU.Generate(
-            prd.Name,
-            brand.Name,
-            "variant.Name",
-            "variantValue",
-            "unit.UnitName",
-            package.Name);
-
-        var baseSkuEng = GenerateSKU.Generate(
-            prd.NameEng, "brndName", "variant.NameEng",
-            "command.ProductSku.VariantValue",
-            "unit.UnitNameEng", package.NameEng);
-
-        // Fetch all similar SKUs in ONE query
-        
-
-        // Helper to extract max suffix
-        int GetNextSuffix(IEnumerable<string> skus, string baseValue)
+        List<(Guid variantId,Guid variantValueId)> variantValueIds=new List<(Guid,Guid)>();
+        foreach(var v in command.ProductSku.Variants)
         {
-            return skus
-                .Where(s => s.StartsWith(baseValue))
-                .Select(s =>
-                {
-                    var parts = s.Split('-');
-                    return parts.Length > 1 && int.TryParse(parts[^1], out var num) ? num : 0;
-                })
-                .DefaultIfEmpty(0)
-                .Max() + 1;
+            variantValueIds.Add((v.VariantId,v.VariantValueId));
         }
+        var SkuBaseCntx = new SkuBuildContext(
+            command.ProductSku.ProductId, 
+            command.ProductSku.BrandId, 
+            command.ProductSku.PackageId, 
+            variantValueIds);
+
+        //var key = ProductSkuGenerator.BuildSkuKey(SkuBaseCntx);
+        var variants=await dbContext.Variants.AsNoTracking().ToListAsync(cancellationToken);
+        var variantValues=await dbContext.VariantValues.AsNoTracking().ToListAsync(cancellationToken);
+        Dictionary<Guid, string> variantNames=variants.ToDictionary(x => x.Id, x => x.Name);
+        Dictionary<Guid, string> variantNamesEng=variants.ToDictionary(x => x.Id, x => x.NameEng);
+        Dictionary<Guid, string> valueNames=variantValues.ToDictionary(x => x.Id, x => x.Value);
+        Dictionary<Guid, string> valueNamesEng=variantValues.ToDictionary(x => x.Id, x => x.ValueEng);
+    
+        var skuCode = ProductSkuGenerator.GenerateSkuCode(SkuBaseCntx,variantNames, valueNames, prd.Name,brand.Name);
+        var skuCodeEng = ProductSkuGenerator.GenerateSkuCode(SkuBaseCntx,variantNamesEng, valueNamesEng, prd.NameEng,brand.NameEng);
+        
+
+        var skuId = Guid.NewGuid();
+        string[] PATH_SEGEMNT = ["wwwroot", "Images", "Products"];
+        var img = SaveImages.SaveBase64Image($"{skuId}", PATH_SEGEMNT, command.ProductSku.ImageUrl);
 
         
 
-        
         var productSku = ProductSku.Create(
             Guid.NewGuid(),
             command.ProductSku.ProductId,
             command.ProductSku.BrandId,
             command.ProductSku.UnitId.Value,
-            command.ProductSku.PackageId.Value,
-            //baseSku,
-            //baseSkuEng,
-            command.ProductSku.SkuCode,
-            command.ProductSku.SkuCodeEng,
-            Guid.NewGuid().ToString(),
+            command.ProductSku.PackageId,//.HasValue? command.ProductSku.PackageId.Value:null,
+            command.ProductSku.Name,
+            command.ProductSku.NameEng,
+            skuCode,
+            skuCodeEng,
+            Guid.NewGuid().ToString(),//key
             command.ProductSku.Barcode,
-            command.ProductSku.ImageUrl,
+            img,
             command.ProductSku.Price,
             command.ProductSku.ShowOnStore,
             command.ProductSku.CompanyId,

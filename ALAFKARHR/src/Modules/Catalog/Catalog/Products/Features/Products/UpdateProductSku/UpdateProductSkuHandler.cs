@@ -1,4 +1,6 @@
-﻿namespace Catalog.Products.Features.Products.UpdateProductSku;
+﻿using Shared.SaveImages;
+
+namespace Catalog.Products.Features.Products.UpdateProductSku;
 
 public record UpdateProductSkuCommand(ProductSkuDto ProductSku) : ICommand<UpdateProductSkuResult>;
 public record UpdateProductSkuResult(bool IsSuccess);
@@ -25,13 +27,27 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
         var user = httpContextAccessor.HttpContext?.User;
         var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException("User is not authorized");
 
+
+
+        string finalImagePath = productSku.ImageUrl;
+        var incomingImage = command.ProductSku.ImageUrl;
+
+        if (!string.IsNullOrWhiteSpace(incomingImage))
+        {
+            if (IsBase64Image(incomingImage))
+            {
+                string[] PATH_SEGEMNT = ["wwwroot", "Images", "Products"];
+                finalImagePath = SaveImages.SaveBase64Image($"{productSku.Id}", PATH_SEGEMNT, command.ProductSku.ImageUrl);
+            }
+        }
+
         productSku.Update(
             command.ProductSku.Price, 
             command.ProductSku.ShowOnStore,
-            command.ProductSku.ImageUrl,
+            finalImagePath,
             command.ProductSku.Barcode,
-            command.ProductSku.SkuCode,
-            command.ProductSku.SkuCodeEng,
+            command.ProductSku.Name,
+            command.ProductSku.NameEng,
             command.ProductSku.CompanyId,
             command.ProductSku.Variants,
             userId);
@@ -40,5 +56,17 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
         return new UpdateProductSkuResult(true);
 
 
+    }
+    private bool IsBase64Image(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return false;
+
+        if (input.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        Span<byte> buffer = new Span<byte>(new byte[input.Length]);
+
+        return Convert.TryFromBase64String(input, buffer, out _);
     }
 }
