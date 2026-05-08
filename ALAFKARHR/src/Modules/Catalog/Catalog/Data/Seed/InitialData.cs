@@ -44,8 +44,8 @@ public static class InitialData
                 "Mango Juice"
                
                 ,Guid.Parse("8af67c4b-fd17-4728-8ae6-f8cefc65da18")
-                ,Guid.Parse("9a4b92e6-7c2d-4722-9be6-5f2107bb5b3d")
-                ,Guid.Parse("c33623f7-75ac-4358-9168-cec4ffc10cd2")
+                //,Guid.Parse("9a4b92e6-7c2d-4722-9be6-5f2107bb5b3d")
+                ,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E")
                 
                 ,"baryce@gmail.com"),
 
@@ -55,8 +55,8 @@ public static class InitialData
                 ,"Mixed Juice"
                 
                 ,Guid.Parse("5b580de5-80b2-4955-8d82-0d0c725e44a2")
-                ,Guid.Parse("9a4b92e6-7c2d-4722-9be6-5f2107bb5b3d")
-                ,Guid.Parse("c33623f7-75ac-4358-9168-cec4ffc10cd2")
+                //,Guid.Parse("9a4b92e6-7c2d-4722-9be6-5f2107bb5b3d")
+                ,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E")
                 
                 ,"baryce@gmail.com"),
             
@@ -65,8 +65,8 @@ public static class InitialData
                 ,"Creamy Cheese"
                 
                 ,Guid.Parse("8af67c4b-fd17-4728-8ae6-f8cefc65da18")
-                ,Guid.Parse("d0e96aa8-77cd-4e98-8a08-ff2a8f53abfc")
-                ,Guid.Parse("a64630c2-d13d-42f0-9416-4f8aac39a8e6")
+                //,Guid.Parse("d0e96aa8-77cd-4e98-8a08-ff2a8f53abfc")
+                ,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E")
                 
                 ,"baryce@gmail.com"),
         };
@@ -81,7 +81,7 @@ public static class InitialData
                 "Single", 
                 1,
                 Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),
-                Guid.Parse("a64630c2-d13d-42f0-9416-4f8aac39a8e6"),
+                //Guid.Parse("a64630c2-d13d-42f0-9416-4f8aac39a8e6"),
                 "baryce@gmail.com"),
             new ProductPackage(
                 Guid.Parse("e789ae8d-b85e-45ed-a70e-6d3a52a5c3e5"),
@@ -89,7 +89,7 @@ public static class InitialData
                 "Pack of 10", 
                 10,
                 Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),
-                Guid.Parse("a64630c2-d13d-42f0-9416-4f8aac39a8e6"),
+                //Guid.Parse("a64630c2-d13d-42f0-9416-4f8aac39a8e6"),
                 "baryce@gmail.com"),
         };
     public static IEnumerable<Variant> Variants =>

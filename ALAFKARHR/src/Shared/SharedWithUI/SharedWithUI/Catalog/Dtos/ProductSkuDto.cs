@@ -5,19 +5,37 @@ namespace SharedWithUI.Catalog.Dtos;
 public class ProductSkuDto
 {
     public Guid Id { get; set; }
-    public Guid ProductId { get; private set; }
-    public Guid BrandId { get; private set; }
+    public Guid ProductId { get; set; }
+    public string? ProductName { get; set; }
+    public Guid BrandId { get; set; }
+    public string? BrandName { get; set; }
 
-    public Guid? PackageId { get; private set; } // optional (size: 250ml, 1L)
+    public Guid? PackageId { get; set; } // optional (size: 250ml, 1L)
+    public string? PackageName { get; set; }
+    public bool IsPackage => PackageId.HasValue;
 
-    public string SkuCode { get; private set; } = default!;
-    public string SkuCodeEng { get; private set; } = default!;
-    public string Barcode { get; private set; } = default!;
+    public Guid? UnitId { get; set; }
 
-    public decimal Price { get; private set; }
+    [Required(ErrorMessage ="SkuCode is required")]
+    public string SkuCode { get;  set; } = default!;
+
+
+    [Required(ErrorMessage ="SkuCodeEng is required")]
+    public string SkuCodeEng { get;  set; } = default!;
+    
+    public string SkuKey { get;  set; } = default!;
+    
+
+    [Required(ErrorMessage ="Barcode is required")] 
+    public string Barcode { get; set; } = default!;
+
+    [Range(0.1,10000000,ErrorMessage ="Price must be greator than 0")]
+    public decimal Price { get; set; }
+
+
     public string ImageUrl { get; set; }
     public Guid CompanyId { get; set; }
-    public bool ShowOnStore { get; private set; }
+    public bool ShowOnStore { get; set; }
 
     public List<ProductSkuVariantDto> Variants { get; set; } = new();
     

@@ -10,12 +10,13 @@ public class GetProductByIdHandler(CatalogDbContext dbContext)
     {
         var product = await (
             from p in dbContext.Products
-            //.Include(x => x.ProductVariants)
+            .Include(x => x.Skus)
+            .ThenInclude(s => s.Variants)
             //.Include(x => x.Packages)
 
-                join c in dbContext.Categories on p.CategoryId equals c.Id
-                //join b in dbContext.Brands on p.BrandId equals b.Id
-                join u in dbContext.Units on p.UnitId equals u.Id
+            join c in dbContext.Categories on p.CategoryId equals c.Id
+                //join b in dbContext.Brands on p.Skus equals b.Id
+                //join u in dbContext.Units on p.UnitId equals u.Id
 
                 where p.Id == request.Id 
 
@@ -27,29 +28,47 @@ public class GetProductByIdHandler(CatalogDbContext dbContext)
                    //BrandId= b.Id,
                    //BrandName= b.Name,
                     //BrandNameEng=b.NameEng,
-                    UnitId=u.Id,
-                    UnitName=u.UnitName,
-                    UnitNameEng=u.UnitNameEng,
+                    //UnitId=u.Id,
+                    //UnitName=u.UnitName,
+                    //UnitNameEng=u.UnitNameEng,
                     Name = p.Name,
                     NameEng = p.NameEng,
                     //Price = p.Price,
                     //ImageUrl = p.ImageUrl,
 
                     // ✅ FIX HERE
-                   //ProductSkus= p.ProductSkus
-                   //     .Where(v=> v.DeletedAt==null)
-                   //     .Select(v => new ProductSkuDto{
-                   //         Id= v.Id,
-                   //        VariantId= v.VariantId,
-                   //         ProductId= v.ProductId,
-                   //         PackageId= v.PackageId,
-                   //         Sku= v.Sku,
-                   //         SkuEng = v.SkuEng,
-                   //         VariantValue = v.VariantValue,
-                   //         Price = v.Price,
-                   //         ShowOnStore = v.ShowOnStore
-                   //     })
-                   //     .ToList()
+                    Skus = p.Skus
+                        .Where(sku => sku.IsDeleted == false)
+                        .Select(sku => new ProductSkuDto
+                        {
+                            Id = sku.Id,
+                            BrandId=sku.BrandId,
+                            ProductId = sku.ProductId,
+                            PackageId = sku.PackageId,
+                            SkuCode = sku.SkuCode,
+                            SkuCodeEng = sku.SkuCodeEng,
+                            Barcode=sku.Barcode,
+                            CompanyId=sku.CompanyId,
+                            ImageUrl=sku.ImageUrl,
+                            SkuKey=sku.SkuKey,
+                            UnitId=sku.UnitId,
+                            //Variants=sku.Variants,
+                            Price = sku.Price,
+                            ShowOnStore = sku.ShowOnStore,
+                            // ✅ ADD THIS
+                            Variants = sku.Variants
+                                .Where(v => !v.IsDeleted)
+                                .Select(v => new ProductSkuVariantDto
+                                {
+                                    Id= v.Id,
+                                    ProductSkuId = v.ProductSkuId,
+                                    VariantId = v.VariantId,
+                                    VariantValueId = v.VariantValueId
+                                })
+                                .ToList()
+
+                        })
+                        .ToList()
 
                 }
             )

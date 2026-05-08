@@ -49,7 +49,7 @@ public class UpdateProductHandler(CatalogDbContext dbContext, IHttpContextAccess
             command.Product.Name, 
             command.Product.NameEng, 
             command.Product.CategoryId.Value,
-            command.Product.UnitId.Value,
+            //command.Product.UnitId.Value,
             userId);
 
         await dbContext.SaveChangesAsync();

@@ -23,9 +23,14 @@ public class ProductDto
 
 
     //[Required(ErrorMessage = "Unit is required")]
-    public Guid? UnitId { get;  set; }
+    //public Guid? UnitId { get;  set; }
     public string? UnitName { get; set; }
     public string? UnitNameEng { get; set; }
+
+    public Guid? PackageId { get; private set; } // optional (size: 250ml, 1L)
+    public string? PackageName { get; set; }
+    public string? PackageNameEng { get; set; }
+
     public Guid CompanyId { get; set; }
 
 

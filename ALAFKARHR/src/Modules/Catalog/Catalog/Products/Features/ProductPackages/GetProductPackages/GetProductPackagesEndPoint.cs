@@ -4,7 +4,7 @@ namespace Catalog.Products.Features.ProductPackages.GetProductPackages;
 
 
 public record GetProductPackagesResponse(PaginatedResult<ProductPackageDto> ProductPackageList);
-public class GetProductPackagesEndPoint : ICarterModule
+public class GetProductPackagesByCompanyEndPoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {

@@ -1,7 +1,5 @@
 ﻿@layout AdminLayout
-@page "/Catalog/Product/List"
-
-
+@page "/Warehouse/Product/Packages/List"
 
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
@@ -11,19 +9,18 @@
 @using SharedWithUI.Permissions
 
 
-@inject IProductService ProductService
-@inject IUnitService UnitService
-@inject ICategoryService CategoryService
+@inject IPackageService PackageService
+@* @inject IUnitService UnitService *@
 @inject ToastService ToastService
 @inject ModalService ModalService
-@inject LoadingService LoadingService
+
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.View}"))
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPackagePermissions.Create}"))
 {
     <div class="alert alert-warning">
         <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
@@ -31,13 +28,13 @@
     return;
 }
 
-<!-- SKUs -->
-<h5>@SharedDataService.SelectViewLang("SKUs Management", "ادارة المنتجات المخزنية")</h5>
+<!-- Branches -->
+<h5>@SharedDataService.SelectViewLang("Package Management", "العبوات")</h5>
 
 @* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
 <button class="btn btn-primary mb-3"
         @onclick="CreateNew"
-        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.Create}") ? true : false)>
+        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPackagePermissions.Create}") ? true : false)>
     <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
 </button>
 
@@ -92,34 +89,33 @@
     <table class="table">
         <thead>
             <tr>
-                <th @onclick="() => Sort(nameof(ProductDto.Name))">
+                <th @onclick="() => Sort(nameof(ProductPackageDto.Name))">
                     <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
                     @SharedDataService.SelectViewLang("Name", "الاسم")
                 </th>
-                <th @onclick="() => Sort(nameof(ProductDto.NameEng))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
-                <th @onclick="() => Sort(nameof(ProductDto.CategoryName))">@SharedDataService.SelectViewLang("category", "الصنف")</th>
-                <th @onclick="() => Sort(nameof(ProductDto.UnitName))">@SharedDataService.SelectViewLang("Unit", "الوحدة")</th>
+                <th @onclick="() => Sort(nameof(ProductPackageDto.NameEng))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
+                <th>@SharedDataService.SelectViewLang("Quantity", "الكمية")</th>
+                @* <th>@SharedDataService.SelectViewLang("Unit","الوحدة")</th> *@
                 <th></th>
             </tr>
         </thead>
         <tbody>
-            @* @foreach (var b in branches) *@
-            @if (editingProductId != null)
+            
+            @if (editingPackageId != null)
             {
-                var editingItem = products.FirstOrDefault(x => x.Id == editingProductId);
+                var editingItem = packages.FirstOrDefault(x => x.Id == editingPackageId);
                 if (editingItem != null)
                 {
                     <tr>
-                        
-                        <td colspan="5">
-                            <EditForm Model="editingItem" OnValidSubmit="() => SaveProduct(editingItem)">
+                        <td colspan="9">
+                            <EditForm Model="editingItem" OnValidSubmit="() => SavePackage(editingItem)">
                                 <DataAnnotationsValidator />
                                 <ValidationSummary />
                                 @* <InputHidden @bind-Value="branch.Id"/> *@
                                 <div class="row bg-info-subtle p-3">
 
                                     <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
+                                        <label for="inputPackageName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
                                         <div class="col-sm-10">
                                             <InputText class="form-control" @bind-Value="editingItem.Name" />
                                             <ValidationMessage For="() => editingItem.Name" />
@@ -127,61 +123,23 @@
                                     </div>
 
                                     <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name (En)", "الاسم (انجليزي)")</label>
+                                        <label for="inputPackageNameEng" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name (En)", "الاسم (انجليزي)")</label>
                                         <div class="col-sm-10">
                                             <InputText class="form-control" @bind-Value="editingItem.NameEng" />
                                             <ValidationMessage For="() => editingItem.NameEng" />
                                         </div>
                                     </div>
 
-                                    <!--Category-->
                                     <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
-                                            @SharedDataService.SelectViewLang("Category", "الصنف")
-                                        </label>
+                                        <label for="inputQuantity" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Quantity", "الكمية")</label>
                                         <div class="col-sm-10">
-                                            <AutoCompleteComponent TItem="CategoryDto"
-                                                                   Items="categories"
-                                                                   ItemText="(p=> SharedDataService.SelectViewLang(p.NameEng,p.Name))"
-                                                                   PlaceHolder="@(SharedDataService.SelectViewLang("search a category","ابحث عن صنف"))"
-                                                                   Value="selectedCategory"
-                                                                   ValueChanged="onCategorySelected" />
+                                            <InputNumber class="form-control" @bind-Value="editingItem.Quantity" />
+                                            
                                         </div>
                                     </div>
-                                    
-                                    <!--SKU-->
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
-                                            @SharedDataService.SelectViewLang("SKU", "المنتج المخزني")
-                                        </label>
-                                        <div class="col-sm-10">
 
-                                            <div class="card">
-                                                <div class="card-body">
-                                            
-                                                    <!--Unit-->
-                                                    <div class="mb-3 row">
-                                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
-                                                            @SharedDataService.SelectViewLang("Unit", "الوحدة")
-                                                        </label>
-                                                        <div class="col-sm-10">
-                                                            <AutoCompleteComponent TItem="UnitDto"
-                                                                                   Items="units"
-                                                                                   ItemText="(u=> SharedDataService.SelectViewLang(u.UnitNameEng,u.UnitName))"
-                                                                                   PlaceHolder="@(SharedDataService.SelectViewLang("search a unit","ابحث عن وحدة"))"
-                                                                                   Value="selectedUnit"
-                                                                                   ValueChanged="onUnitSelected" />
-                                                        </div>
-                                                    </div>
 
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                    </div>
 
-                                    
-                                            
                                     <div class="col">
                                         <button type="submit" class="btn btn-success btn-sm">Save</button>
                                         <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
@@ -190,39 +148,32 @@
                             </EditForm>
                         </td>
                     </tr>
+
                 }
-                <tr>
-                </tr>
+
+                
             }
-            @foreach (var product in ProcessedProducts.Where(x => x.Id != editingProductId))
+            @foreach (var brand in ProcessedPackages.Where(x => x.Id != editingPackageId))
             {
-                @* @if(0==2){}
-                else
-                }
-                { *@
+                
                 <tr>
-                    <td>@product.Name</td>
-                    <td>@product.NameEng</td>
-                    <td>@product.CategoryName</td>
-                    <td>@product.UnitName</td>
+                    <td>@brand.Name</td>
+                    <td>@brand.NameEng</td>
+                    <td>@brand.Quantity</td>
                     <td>
                         <button class="btn btn-warning btn-sm"
-                                @onclick="() => EditProduct(product.Id)"
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.Edit}"))>
+                                @onclick="() => EditPackage(brand.Id)"
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPackagePermissions.Edit}"))>
                             @SharedDataService.SelectViewLang("Edit", "تعديل")
                         </button>
-                        <button class="btn btn-warning btn-sm"
-                                @onclick='() => NavigationManager.NavigateTo($"/Catalog/Product/{product.Id}/ProductSku")'
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.Edit}"))>
-                            @SharedDataService.SelectViewLang("SkUs", "المنتجات المخزنية")
-                        </button>
                         <button class="btn btn-danger btn-sm"
-                                @onclick="() => DeleteProduct(product)"
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.Delete}"))>
+                                @onclick="() => DeletePackage(brand)"
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPackagePermissions.Delete}"))>
                             @SharedDataService.SelectViewLang("Delete", "حذف")
                         </button>
                     </td>
                 </tr>
+                
             }
         </tbody>
     </table>
@@ -246,19 +197,15 @@
 </div>
 
 @code {
-    private List<ProductDto> products = new();
-    private Guid? editingProductId;
-    private Guid companyId;
-    private bool isEdit = false;
+    private List<ProductPackageDto> packages = new();
     private List<UnitDto> units = [];
     private UnitDto? selectedUnit;
-    private List<CategoryDto> categories = [];
-    private CategoryDto? selectedCategory;
+    private Guid? editingPackageId;
+    private Guid companyId;
+    private bool isEdit = false;
     private AuthenticationState AuthState;
     protected override async Task OnInitializedAsync()
     {
-        LoadingService.Show();
-
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
         if (!AuthState.User.Identity.IsAuthenticated)
         {
@@ -267,84 +214,54 @@
         }
         companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
 
-
-        var catRes = await CategoryService.GetByCompanyIdAsync(companyId, 0, 1000);
-        if (catRes.IsSuccess)
-        {
-            categories = catRes.Data?.Data?.ToList() ?? [];
-        }
-
-        var unitRes = await UnitService.GetByCompanyAsync(companyId, 0, 1000);
-        if (unitRes.IsSuccess)
-        {
-            units = unitRes.Data?.Data?.ToList() ?? [];
-        }
-
-        await LoadProduct();
-        LoadingService.Hide();
+       
+        
+        await LoadPackages();
+        // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
+        // if (branchResponse.IsSuccess)
+        // {
+        //     branches = branchResponse.Data?.ToList() ?? [];
+        // }
     }
     // Branch
     void CreateNew()
     {
-        var newItem = new ProductDto()
+        var newItem = new ProductPackageDto()
         {
-            Id = Guid.NewGuid(),
-            CompanyId = companyId,
-            //CategoryId=Guid.NewGuid(),//categories.Any()?categories[0].Id:Guid.NewGuid(),
-            //UnitId=Guid.NewGuid()//units.Any()? units[0].Id:Guid.NewGuid()
+            Id = Guid.NewGuid()
         };
-        products.Insert(0, newItem);
-        editingProductId = newItem.Id;
+        newItem.CompanyId = companyId;
+        packages.Insert(0, newItem);
+        editingPackageId = newItem.Id;
         isEdit = false;
     }
 
-    void EditProduct(Guid id)
+    void EditPackage(Guid id)
     {
-        editingProductId = id;
-        var editingItem = products.FirstOrDefault(p => p.Id == id);
-        if (editingItem != null)
-        {
-            selectedCategory = categories.FirstOrDefault(x => x.Id == editingItem.CategoryId) ?? new();
-            // selectedUnit = units.FirstOrDefault(u => u.Id == editingItem.UnitId) ?? new();
-        }
-
+        editingPackageId = id;
         isEdit = true;
         StateHasChanged();
     }
-    async Task SaveProduct(ProductDto prod)
+    async Task SavePackage(ProductPackageDto package)
     {
-        LoadingService.Show();
-
-        if (selectedCategory == null || selectedCategory.Id == Guid.Empty || selectedUnit == null || selectedUnit.Id == Guid.Empty)
-        {
-            await ModalService.ShowAsync(new ModalOptions
-            {
-                Title = SharedDataService.SelectViewLang("Create Product", "إنشاء منتج"),
-                IsError = true,
-                Message = SharedDataService.SelectViewLang("Please select product's category and unit", "يرجى اختيار الصنف والوحدة"),
-                OnOk = async () => { }
-            });
-            LoadingService.Hide();
-            return;
-        }
-        prod.CategoryId = selectedCategory.Id;
-        // prod.UnitId = selectedUnit.Id;
-
-        if (prod.Id == editingProductId && !isEdit)
+        if (package.Id == editingPackageId && !isEdit)
         {
             //Create new
 
-            prod.CompanyId = companyId;
+            Random rnd = new Random();
 
-            var bResponse = await ProductService.CreateAsync(prod);
+            package.CompanyId = companyId;
+
+            var bResponse = await PackageService.CreateAsync(package);
             if (bResponse.IsSuccess)
             {
                 //show success
                 ToastService.Show(new ToastMessage
                 {
-                    Message = SharedDataService.SelectViewLang("Product has been created successfully", "تم إنشاء المنتج بنجاح"),
+                    Message = SharedDataService.SelectViewLang("Package has been created successfully", "تم العبوة بنجاح"),
                     Type = "success"
                 });
+
             }
             else
             {
@@ -360,19 +277,23 @@
         {
             //Edit
 
-            var bresponse = await ProductService.UpdateAsync(prod);
+            var bresponse = await PackageService.UpdateAsync(package);
             if (bresponse.IsSuccess)
             {
                 //show success
                 ToastService.Show(new ToastMessage
                 {
-                    Message = SharedDataService.SelectViewLang("Product has been Edited successfully", "تم تعديل المنتج بنجاح"),
+                    Message = SharedDataService.SelectViewLang("Package has been Edited successfully", "تم تعديل العبوة بنجاح"),
                     Type = "success"
                 });
             }
             else
             {
-                // show  fail
+                // show
+                //
+                //
+                //
+                //   fail
                 ToastService.Show(new ToastMessage
                 {
                     Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
@@ -381,29 +302,30 @@
             }
         }
 
-        await LoadProduct();
-
-        editingProductId = null;
-        await InvokeAsync(StateHasChanged);
-        LoadingService.Hide();
-
+        await LoadPackages();
+        // var response = await BranchService.GetByCompanyIdAsync(companyId);
+        // if (response.IsSuccess)
+        // {
+        //     branches = response.Data?.ToList() ?? [];
+        // }
+        editingPackageId = null;
     }
 
-    async Task DeleteProduct(ProductDto product)
+    async Task DeletePackage(ProductPackageDto package)
     {
-        LoadingService.Show();
         await ModalService.ShowAsync(new ModalOptions
         {
             Title = SharedDataService.SelectViewLang("Confirm Delete", "تأكيد عملية الحذف"),
-            Message = SharedDataService.SelectViewLang($"Are you sure you want to delete this Product: {product.NameEng}?",
-            $"هل ترغب فعلا في حذف المنتج: {product.Name}؟"),
+            Message = SharedDataService
+                    .SelectViewLang($"Are you sure you want to delete this Package: {package.NameEng}?", 
+                    $"هل ترغب فعلا في حذف العبوة: {package.Name}؟"),
             ShowCancel = true,
             OkText = SharedDataService.SelectViewLang("Yes", "نعم"),
             CancelText = SharedDataService.SelectViewLang("No", "لا"),
 
             OnOk = async () =>
             {
-                var brResponse = await ProductService.DeleteAsync(product.Id);
+                var brResponse = await PackageService.DeleteAsync(package.Id);
                 if (brResponse.IsSuccess)
                 {
 
@@ -413,7 +335,7 @@
                         Type = "success"
                     });
 
-                    await LoadProduct();
+                    await LoadPackages();
 
                     await InvokeAsync(StateHasChanged);
                 }
@@ -421,7 +343,7 @@
                 {
                     ToastService.Show(new ToastMessage
                     {
-                        Message = SharedDataService.SelectViewLang("Fail to delete the Product", "فشلت عملية الحذف"),
+                        Message = SharedDataService.SelectViewLang("Fail to delete the package", "فشلت عملية الحذف"),
                         Type = "error"
                     });
                 }
@@ -430,7 +352,7 @@
             }
         });
 
-        LoadingService.Hide();
+
     }
     async Task CancelEdit()
     {
@@ -438,25 +360,25 @@
 
         //new
         // branch
-        var item = products.FirstOrDefault(x => x.Id == editingProductId);
+        var item = packages.FirstOrDefault(x => x.Id == editingPackageId);
 
         if (item != null && item.Id != Guid.Empty)
         {
             // existing record → keep it
-            await LoadProduct();
-            // var brRes = await ProductService.GetByCompanyAsync(companyId, 0, 1000);
+           await LoadPackages();
+            // var brRes = await PackageService.GetByCompanyAsync(companyId, 0, 1000);
             // if (brRes.IsSuccess)
             // {
-            //     products = brRes.Data?.Data?.ToList() ?? [];
+            //     packages = brRes.Data?.Data?.ToList() ?? [];
             // }
         }
         else
         {
             // new record → remove it
-            products.Remove(item);
+            packages.Remove(item);
         }
         isEdit = false;
-        editingProductId = null;
+        editingPackageId = null;
     }
 
     #region Table Helpers
@@ -466,24 +388,24 @@
     private string searchText = "";
 
     // Sorting
-    private string sortColumn = nameof(ProductDto.Name);
+    private string sortColumn = nameof(BranchDto.Name);
     private bool sortAscending = true;
 
     // Pagination
     private int pageSize = 5;
     private int pageIndex = 0;
-    private async Task LoadProduct()
+    private async Task LoadPackages()
     {
         // var request = new PaginationRequest(pageIndex, pageSize, searchText);
 
-        var response = await ProductService.GetByCompanyAsync(companyId, pageIndex, pageSize);//,searchText);
+        var response = await PackageService.GetByCompanyAsync(companyId, pageIndex, pageSize);//,searchText);
 
         if (response.IsSuccess)
         {
             // var result = response.Data!.Data;
 
             // branches = result.Data.ToList();
-            products = response.Data?.Data.ToList() ?? [];
+            packages = response.Data?.Data.ToList() ?? [];
             // TotalPages = (int)response.Data!.Count;
             TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
         }
@@ -492,15 +414,15 @@
     {
         pageSize = int.Parse(e.Value!.ToString()!);
         pageIndex = 0;
-        await LoadProduct();
+        await LoadPackages();
     }
-    private IEnumerable<ProductDto> ProcessedProducts =>
-    products
+    private IEnumerable<ProductPackageDto> ProcessedPackages =>
+    packages
         // 🔍 Search
         .Where(b =>
             string.IsNullOrWhiteSpace(searchText) ||
-            (b.UnitName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (b.UnitNameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+            (b.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (b.NameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
 
         )
 
@@ -534,7 +456,8 @@
         if (pageIndex < TotalPages - 1)
         {
             pageIndex++;
-            await LoadProduct();
+            await LoadPackages();
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -542,11 +465,11 @@
     {
         // if (pageIndex > 1)
         //     pageIndex--;
-
+        
         if (pageIndex > 0)
         {
             pageIndex--;
-            await LoadProduct();
+            await LoadPackages();
         }
     }
 
@@ -562,17 +485,6 @@
     }
     #endregion Table helpers
 
-
-    private void onCategorySelected(CategoryDto category)
-    {
-
-        selectedCategory = category != null ? category : new();
-    }
-    private void onUnitSelected(UnitDto unit)
-    {
-        selectedUnit = unit != null ? unit : new();
-        StateHasChanged();
-    }
     protected override void OnInitialized()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;

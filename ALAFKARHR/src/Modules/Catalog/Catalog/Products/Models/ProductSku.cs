@@ -10,6 +10,7 @@ public class ProductSku : Entity<Guid>
     public Guid BrandId { get; private set; }
 
     public Guid? PackageId { get; private set; } // optional (size: 250ml, 1L)
+    public Guid UnitId { get; set; }
     public bool IsPackage => PackageId.HasValue;
 
     public string SkuCode { get; private set; } = default!;
@@ -51,7 +52,7 @@ public class ProductSku : Entity<Guid>
         //PackageId = packageId;
         SkuCode = skuCode;
         Barcode = barcode;
-        ImageUrl= imageUrl;
+        ImageUrl = imageUrl;
         //_options = options.ToList();
         Price = price;
         ShowOnStore = showOnStore;
@@ -62,9 +63,11 @@ public class ProductSku : Entity<Guid>
     Guid id,
     Guid productId,
     Guid brandId,
-    //Guid packageId,
+    Guid unitId,
+    Guid packageId,
     string skuCode,
     string skuCodeEng,
+    string skuKey,
     string? barcode,
     string imageUrl,
     decimal price,
@@ -80,27 +83,85 @@ public class ProductSku : Entity<Guid>
             Id = id,
             ProductId = productId,
             BrandId = brandId,
-            //PackageId = packageId,
+            UnitId = unitId,
+            PackageId = packageId,
             SkuCode = skuCode,
+            SkuCodeEng = skuCodeEng,
+            SkuKey = skuKey,
             ImageUrl = imageUrl,
             Barcode = barcode,
             Price = price,
             ShowOnStore = showOnStore,
-            CompanyId= companyId,
+            CompanyId = companyId,
             CreatedBy = createdBy,
             CreatedAt = DateTime.UtcNow
         };
     }
-    public void Update(decimal price, bool showOnStore, string imageUrl,string? barcode,string skuCode, string skuCodeEng, Guid companyId, string modifiedBy)
+    public void Update(
+        decimal price,
+        bool showOnStore,
+        string imageUrl,
+        string? barcode,
+        string skuCode,
+        string skuCodeEng,
+        Guid companyId,
+        List<ProductSkuVariantDto> variantDtos,
+        string modifiedBy)
     {
         Price = price;
-        ImageUrl= imageUrl;
+        ImageUrl = imageUrl;
         ShowOnStore = showOnStore;
-        CompanyId=companyId;
+        CompanyId = companyId;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
-    }
 
+        var activeValues = _variants.Where(v => v.ProductSkuId==Id&& !v.IsDeleted).ToList();
+        var activeIds = activeValues.Select(v => v.Id).ToHashSet();
+
+        // Add + Update
+        foreach (var v in variantDtos)
+        {
+            if (v.Id == Guid.Empty)
+            {
+                AddVariants(v.VariantId, v.VariantValueId, modifiedBy);
+                continue;
+            }
+
+            // 🚨 ONLY validate against ACTIVE values
+            if (!activeIds.Contains(v.Id))
+                throw new Exception($"Invalid or deleted Variant Id: {v.Id}");
+
+
+            var existingValue = activeValues.First(ev => ev.Id == v.Id);
+            existingValue.Update(v.VariantId, v.VariantValueId, modifiedBy);
+        }
+
+        // Remove
+        var dtoIds = variantDtos
+            .Where(v => v.Id != Guid.Empty)
+            .Select(v => v.Id)
+            .ToHashSet();
+
+        var valuesToRemove =dtoIds.Any()? activeValues
+            .Where(ev => !dtoIds.Contains(ev.Id))
+            .ToList() : [];
+
+        foreach (var value in valuesToRemove)
+        {
+            value.Remove(modifiedBy);
+        }
+    }
+    public void AddVariants(Guid variantId, Guid variantValueId, string createdBy)
+    {
+        var exists = _variants.FirstOrDefault(v => v.VariantId == variantId && v.VariantValueId == variantValueId && !v.IsDeleted);
+        if (exists == null)
+        {
+            var newVariant = ProductSkuVariant.Create(Id, variantId, variantValueId, createdBy);//(Guid.NewGuid(), Id, value, valueEng, createdBy);
+            //newVariantValue  =VariantValue.Create(Guid.NewGuid(), Id, value, valueEng, createdBy);
+            _variants.Add(newVariant);
+        }
+
+    }
     public void Remove(string deletedBy)
     {
         IsDeleted = true;
@@ -109,11 +170,12 @@ public class ProductSku : Entity<Guid>
     }
     public void AddVariant(Guid variantId, Guid variantValueId, string addedBy)
     {
-        if (_variants.Any(v => v.VariantId == variantId && v.VariantValueId==variantValueId))
-            throw new Exception("Variant and Value are already exists for this SKU");
+        if (!_variants.Any(v => v.VariantId == variantId && v.VariantValueId == variantValueId))
+            _variants.Add(ProductSkuVariant.Create(Id, variantId, variantValueId, addedBy));
+        //throw new Exception("Variant and Value are already exists for this SKU");
 
-        _variants.Add(ProductSkuVariant.Create( Id, variantId, variantValueId, addedBy));
     }
+
 
     //public void AddProductPackage(Guid id, Guid productId, string packageName, string packageNameEng, double quantityPerPackage, decimal packagePrice, bool showOnStore, string createdBy)
     //{

@@ -17,7 +17,7 @@ public class GetProductsByCategoryIdHandler(CatalogDbContext dbContext) : IQuery
 
             join c in dbContext.Categories on p.CategoryId equals c.Id
             //join b in dbContext.Brands on p.BrandId equals b.Id
-            join u in dbContext.Units on p.UnitId equals u.Id
+            //join u in dbContext.Units on p.UnitId equals u.Id
 
             where p.DeletedAt == null
                 && p.CategoryId == request.categoryId
@@ -31,9 +31,9 @@ public class GetProductsByCategoryIdHandler(CatalogDbContext dbContext) : IQuery
                 //BrandId = b.Id,
                 //BrandName = b.Name,
                 //BrandNameEng = b.NameEng,
-                UnitId = u.Id,
-                UnitName = u.UnitName,
-                UnitNameEng = u.UnitNameEng,
+                //UnitId = u.Id,
+                //UnitName = u.UnitName,
+                //UnitNameEng = u.UnitNameEng,
                 Name = p.Name,
                 NameEng = p.NameEng,
                 //Price = p.Price,

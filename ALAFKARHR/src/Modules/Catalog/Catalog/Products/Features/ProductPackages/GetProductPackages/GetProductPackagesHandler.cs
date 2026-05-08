@@ -3,7 +3,7 @@
 
 public record GetProductPackagesQuery(PaginationRequest PaginationRequest) : IQuery<GetProductPackagesResult>;
 public record GetProductPackagesResult(PaginatedResult<ProductPackageDto> ProductPackageList);
-public class GetProductPackagesHandler(CatalogDbContext dbContext) : IQueryHandler<GetProductPackagesQuery, GetProductPackagesResult>
+public class GetProductPackagesByCompanyHandler(CatalogDbContext dbContext) : IQueryHandler<GetProductPackagesQuery, GetProductPackagesResult>
 {
     public async Task<GetProductPackagesResult> Handle(GetProductPackagesQuery query, CancellationToken cancellationToken)
     {

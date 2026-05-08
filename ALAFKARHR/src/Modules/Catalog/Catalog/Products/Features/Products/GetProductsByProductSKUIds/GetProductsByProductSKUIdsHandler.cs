@@ -11,7 +11,7 @@ public class GetProductsByProductSKUIdsHandler(CatalogDbContext dbContext) : IQu
 
             join c in dbContext.Categories on p.CategoryId equals c.Id
             //join b in dbContext.Brands on p.BrandId equals b.Id
-            join u in dbContext.Units on p.UnitId equals u.Id
+            //join u in dbContext.Units on p.UnitId equals u.Id
             join sku in dbContext.ProductSkus on p.Id equals sku.ProductId
             where request.ProductSkuIds.Any(x => x.Equals(sku.Id))
 
@@ -24,9 +24,9 @@ public class GetProductsByProductSKUIdsHandler(CatalogDbContext dbContext) : IQu
                 //BrandId = b.Id,
                 //BrandName = b.Name,
                 //BrandNameEng = b.NameEng,
-                UnitId = u.Id,
-                UnitName = u.UnitName,
-                UnitNameEng = u.UnitNameEng,
+                //UnitId = u.Id,
+                //UnitName = u.UnitName,
+                //UnitNameEng = u.UnitNameEng,
                 Name = p.Name,
                 NameEng = p.NameEng,
                 //Price = p.Price,

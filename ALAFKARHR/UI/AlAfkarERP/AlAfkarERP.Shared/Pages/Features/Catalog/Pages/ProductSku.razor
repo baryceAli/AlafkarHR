@@ -1,0 +1,890 @@
+﻿@layout AdminLayout
+@page "/Catalog/Product/{ProductId:guid?}/ProductSku"
+@page "/Catalog/Product/ProductSku/List"
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Permissions
+
+
+@inject IProductService ProductService
+@inject IBrandService BrandService
+@inject IUnitService UnitService
+@inject IPackageService PackageService
+@inject IVariantService VariantService
+@inject ToastService ToastService
+@inject ModalService ModalService
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.Create}"))
+{
+    <div class="alert alert-warning">
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
+    </div>
+    return;
+}
+
+<!-- Branches -->
+<h5 class="text-black">@SharedDataService.SelectViewLang("Product SKU", "منتج مخزني")</h5>
+<div>
+    <div class="mb-3 text-black">
+    
+        @if (ProductId.HasValue && selectedProduct != null && selectedProduct.Id != Guid.Empty)
+        {
+            <div class="mb-3 row">
+                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
+                <div class="col-sm-10">
+                    <p>@SharedDataService.SelectViewLang(selectedProduct.NameEng, selectedProduct.Name)</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <AutoCompleteComponent TItem="ProductDto"
+                                   Items="products"
+                                   Value="selectedProduct"
+                                   ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                   ValueChanged="onProductSelected">
+            </AutoCompleteComponent>
+        }
+        
+    </div>
+</div>
+<button class="btn btn-primary mb-3"
+        @onclick="CreateNew"
+        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.Create}") ? true : false)>
+    <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
+</button>
+
+<div class="card p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <!--
+
+        Export to xls and pdf
+        <div class="d-flex gap-2">
+
+            <button class="btn btn-success btn-sm" @onclick="ExportToExcel">
+                <i class="bi bi-file-earmark-excel"></i> Excel
+            </button>
+
+            <button class="btn btn-danger btn-sm" @onclick="ExportToPdf">
+                <i class="bi bi-file-earmark-pdf"></i> PDF
+            </button>
+
+        </div>
+        -->
+        <!-- 🔍 Search -->
+        <div>
+            <input class="form-control"
+                   placeholder="Search..."
+                   @bind="searchText" />
+        </div>
+
+        <!--
+
+        🎯 Filter
+        <div class="col-md-3">
+            <select class="form-select" @bind="filterMainBranch">
+                <option value="">All</option>
+                <option value="true">Main Branch</option>
+                <option value="false">Not Main</option>
+            </select>
+        </div>
+        -->
+        <!-- 📄 Page Size -->
+        <div>
+            @* <select class="form-select" @bind="pageSize"> *@
+            <select class="form-select" @onchange="OnPageSizeChanged">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+
+    </div>
+    <table class="table">
+        <thead>
+            
+            <tr>
+                <th @onclick="() => Sort(nameof(ProductSkuDto.ProductName))">
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                    @SharedDataService.SelectViewLang("Product", "المنتج")
+                </th>
+                <th @onclick="() => Sort(nameof(ProductSkuDto.SkuCode))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
+                <th>@SharedDataService.SelectViewLang("ProductSKU", "المنتج المخزني")</th>
+                <th>@SharedDataService.SelectViewLang("Image", "الصورة")</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            
+            @if (selectedProduct != null)
+            {
+                var editingItem = productskuList.FirstOrDefault(x => x.Id == editingProductSkuId);
+                @* var editingItem = selectedProduct.Skus.FirstOrDefault(x => x.Id == editingProductSkuId); *@
+                if (editingItem != null)
+                {
+                    if (isEdit)
+                    {
+                        selectedBrand = brands.First(b => b.Id == editingItem.BrandId);
+                        selectedUnit = units.First(u => u.Id == editingItem.UnitId);
+                        selectedPackage = packages.FirstOrDefault(p => p.Id == editingItem.PackageId);
+                    }
+                    <tr>
+                        <td colspan="4">
+                            <EditForm Model="editingItem" OnValidSubmit="() => SaveProductSKU(editingItem)">
+                                <DataAnnotationsValidator />
+                                <ValidationSummary />
+                                @* <InputHidden @bind-Value="branch.Id"/> *@
+                                <div class="row bg-info-subtle p-3">
+
+                                    <!--Brand-->
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                            @SharedDataService.SelectViewLang("Brand", "العلامة التجارية")
+                                        </label>
+                                        <div class="col-sm-10">
+                                            <AutoCompleteComponent TItem="BrandDto"
+                                                                   Items="brands"
+                                                                   ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
+                                                                   PlaceHolder="@(SharedDataService.SelectViewLang("search a brand","ابحث عن العلامة التجارية"))"
+                                                                   Value="selectedBrand"
+                                                                   ValueChanged="onBrandSelected" />
+                                        </div>
+                                    </div>
+
+                                    <!--Package-->
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                            @SharedDataService.SelectViewLang("Package", "العبوة")
+                                        </label>
+                                        <div class="col-sm-10">
+                                            <AutoCompleteComponent TItem="ProductPackageDto"
+                                                                   Items="packages"
+                                                                   ItemText="(p=> SharedDataService.SelectViewLang(p.NameEng, p.Name))"
+                                                                   PlaceHolder="@(SharedDataService.SelectViewLang("search a package","ابحث عن عبوة"))"
+                                                                   Value="selectedPackage"
+                                                                   ValueChanged="onPackageSelected" />
+                                        </div>
+                                    </div>
+
+                                    <!--Unit-->
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                            @SharedDataService.SelectViewLang("Unit", "الوحدة")
+                                        </label>
+                                        <div class="col-sm-10">
+                                            <AutoCompleteComponent TItem="UnitDto"
+                                                                   Items="units"
+                                                                   ItemText="(u=> SharedDataService.SelectViewLang(u.UnitNameEng,u.UnitName))"
+                                                                   PlaceHolder="@(SharedDataService.SelectViewLang("search a unit","ابحث عن وحدة"))"
+                                                                   Value="selectedUnit"
+                                                                   ValueChanged="onUnitSelected" />
+                                        </div>
+                                    </div>
+
+                                    
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                            @SharedDataService.SelectViewLang("SkuCode", "الاسم")
+                                        </label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="editingItem.SkuCode" />
+                                            <ValidationMessage For="() => editingItem.SkuCode" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                            @SharedDataService.SelectViewLang("SkuCodeEng", "الاسم (En)")
+                                        </label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="editingItem.SkuCodeEng" />
+                                            <ValidationMessage For="() => editingItem.SkuCodeEng" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Barcode", "باركود")</label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="editingItem.Barcode" />
+                                            <ValidationMessage For="() => editingItem.Barcode" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Price", "السعر")</label>
+                                        <div class="col-sm-10">
+                                            <InputNumber class="form-control" @bind-Value="editingItem.Price" />
+                                            <ValidationMessage For="() => editingItem.Price" />
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Image", "الصورة")</label>
+                                        <div class="col-sm-10">
+                                            <InputText class="form-control" @bind-Value="editingItem.ImageUrl" />
+                                            <ValidationMessage For="() => editingItem.ImageUrl" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Show in store", "العرض في المتجر")</label>
+                                        <div class="col-sm-10">
+                                            <InputCheckbox class="form-check-input" @bind-Value="editingItem.ShowOnStore" />
+                                            @* <ValidationMessage For="() => editingItem.ImageUrl" /> *@
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Options", "الخيارات")</label>
+                                        <div class="col-sm-10">
+                                            <div class="card bg-transparent">
+                                                <div class="card-body">
+                                                    
+                                                    @* <div class="card bg-transparent">
+                                                        <div class="card-body">
+                                                        </div>
+                                                    </div> *@
+                                                    @if (editingItem.Variants.Any())
+                                                    {
+                                                        
+                                                        <table class="table table-striped">
+                                                            <thead class="fw-bold">
+                                                                <tr>
+                                                                    @* <td class="hiding">Id</td> *@
+                                                                    <td>@SharedDataService.SelectViewLang("Option", "الخيار")</td>
+                                                                    <td>@SharedDataService.SelectViewLang("Value", "القيمة")</td>
+                                                                    <td></td>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach (var value in editingItem.Variants)
+                                                                {
+                                                                    <tr>
+                                                                        @* <td>@value.Id</td> *@
+                                                                        <td>
+                                                                            @SharedDataService.SelectViewLang(variants.First(v => v.Id == value.VariantId).NameEng,
+                                                                                                        variants.First(v => v.Id == value.VariantId).Name)
+                                                                        </td>
+                                                                        <td>
+                                                                            @SharedDataService.SelectViewLang(variants.First(v => v.Id == value.VariantId).Values.First(vv => vv.Id == value.VariantValueId).ValueEng,
+                                                                                                        variants.First(v => v.Id == value.VariantId).Values.First(vv => vv.Id == value.VariantValueId).Value)
+                                                                        </td>
+                                                                        <td>
+                                                                            <button type="button"
+                                                                                    class="btn btn-danger btn-sm"
+                                                                                    @onclick="() => RemoveVariantValue(editingItem, value)">
+                                                                                <i class="bi bi-trash"></i>
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                    }
+
+                                                        
+                                                    <div class="row">
+                                                        <!--المتغير-->
+                                                        <div class="col-md-6 mb-3">
+                                                            <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                                                @SharedDataService.SelectViewLang("Options", "الخيارات")
+                                                            </label>
+                                                            <div class="col-sm-10">
+                                                                <AutoCompleteComponent TItem="VariantDto"
+                                                                                       Items="variants"
+                                                                                       ItemText="(v=> SharedDataService.SelectViewLang(v.NameEng,v.Name))"
+                                                                                       PlaceHolder="@(SharedDataService.SelectViewLang("search an option","ابحث عن خيار"))"
+                                                                                       Value="selectedVariant"
+                                                                                       ValueChanged="onVariantSelected" />
+                                                            </div>
+                                                        </div>
+                                                        <!--قيمة المتغير-->
+                                                        <div class="col-md-6 mb-3">
+                                                            <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                                                @SharedDataService.SelectViewLang("Value", "القيمة")
+                                                            </label>
+                                                            <div class="col-sm-10">
+                                                                <AutoCompleteComponent TItem="VariantValueDto"
+                                                                                       Items="variantValues"
+                                                                                       ItemText="(vv=> SharedDataService.SelectViewLang(vv.ValueEng,vv.Value))"
+                                                                                       PlaceHolder="@(SharedDataService.SelectViewLang("search a value","ابحث عن قيمة الخيار"))"
+                                                                                       Value="selectedVariantValue"
+                                                                                       ValueChanged="onVariantValueSelected" />
+                                                            </div>
+                                                        </div>
+                                                        @* <div class="col-md-2">
+                                                        </div> *@
+                                                    </div>
+                                                    <button type="button"
+                                                            class="btn btn-outline-primary btn-sm mt-2"
+                                                            @onclick="() => AddVariantValue(editingItem)">
+                                                        <i class="bi bi-plus"></i> Add Value
+                                                    </button>
+
+                                                        
+                                                    
+
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+
+                                    <div class="col">
+                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                    </div>
+                                </div>
+                            </EditForm>
+                        </td>
+                    </tr>
+
+                }
+
+                
+            }
+            @foreach (var sku in ProcessedVariants.Where(x => x.Id != editingProductSkuId))
+            {
+                
+                <tr>
+                    <td>@sku.SkuCode</td>
+                    <td>@sku.SkuCodeEng</td>
+                    <td>
+                        @* <div class="flex-row">
+                            @foreach (var s in sku.Variants)
+                            {
+                                <span class="badge bg-primary me-1">
+                                    @SharedDataService.SelectViewLang(variants.FirstOrDefault(v => v.Id == s.VariantId)?.NameEng ?? "",
+                                    variants.FirstOrDefault(v => v.Id == s.VariantId)?.Name ?? "")
+                                </span>
+                            }
+                        </div> *@
+                    </td>
+                    <td>
+                        <button class="btn btn-warning btn-sm"
+                                @onclick="() => EditProductSku(sku.Id)"
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Edit}"))>
+                            @SharedDataService.SelectViewLang("Edit", "تعديل")
+                        </button>
+                        <button class="btn btn-danger btn-sm"
+                                @onclick="() => DeleteVariant(sku)"
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Delete}"))>
+                            @SharedDataService.SelectViewLang("Delete", "حذف")
+                        </button>
+                    </td>
+                </tr>
+                
+            }
+        </tbody>
+    </table>
+    <div class="d-flex justify-content-end align-items-center mt-3">
+
+        <button class="btn btn-sm btn-secondary"
+                @onclick="PrevPage"
+                disabled="@(pageIndex == 0)">
+            Previous
+        </button>
+
+        <span class="mx-3">Page @(pageIndex + 1) of @TotalPages @(TotalPages == 1 ? "" : "Pages")</span>
+
+        <button class="btn btn-sm btn-secondary"
+                @onclick="NextPage"
+                disabled="@(pageIndex >= TotalPages)">
+            Next
+        </button>
+
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Guid? ProductId { get; set; }
+    private List<ProductSkuDto> productskuList = new();
+    private List<ProductDto> products = [];
+    private ProductDto? selectedProduct;
+    private List<BrandDto> brands = [];
+    private BrandDto? selectedBrand;
+    private List<ProductPackageDto> packages = [];
+    private List<UnitDto> units = [];
+    private UnitDto? selectedUnit;
+    private ProductPackageDto? selectedPackage;
+    private List<VariantDto> variants = [];
+    private VariantDto? selectedVariant;
+    private List<VariantValueDto> variantValues = [];
+    // private List<VariantValueDto> allVariantValues = [];
+    private VariantValueDto? selectedVariantValue;
+    private Guid? editingProductSkuId;
+    // private Guid? editingVariantValueId;
+    private Guid companyId;
+    private bool isEdit = false;
+    private AuthenticationState AuthState;
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (!AuthState.User.Identity.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/login", true);
+
+        }
+
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+
+
+
+
+        var brandRes = await BrandService.GetByCompanyIdAsync(companyId, 0, 10000);
+        if (brandRes.IsSuccess)
+        {
+            brands = brandRes.Data?.Data?.ToList() ?? [];
+        }
+
+        var pkgRes = await PackageService.GetByCompanyAsync(companyId, 0, 10000);
+        if (pkgRes.IsSuccess)
+        {
+            packages = pkgRes.Data?.Data?.ToList() ?? [];
+        }
+
+        var unitRes = await UnitService.GetByCompanyAsync(companyId, 0, 1000);
+        if (unitRes.IsSuccess)
+        {
+            units = unitRes.Data?.Data?.ToList() ?? [];
+        }
+        var variantRes = await VariantService.GetByCompanyAsync(companyId, 0, 10000);
+        if (variantRes.IsSuccess)
+        {
+            variants = variantRes.Data?.Data?.ToList() ?? [];
+        }
+
+        await LoadProductSKU();
+        // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
+        // if (branchResponse.IsSuccess)
+        // {
+        //     branches = branchResponse.Data?.ToList() ?? [];
+        // }
+    }
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ProductId.HasValue)
+        {
+
+            var pRes = await ProductService.GetByIdAsync(ProductId.Value);
+            if (pRes.IsSuccess)
+            {
+                selectedProduct = pRes.Data ?? new();
+                productskuList = new List<ProductSkuDto>(selectedProduct.Skus);
+            }
+            await LoadProductSKU();
+        }
+        else
+        {
+
+
+            var prodRes = await ProductService.GetByCompanyAsync(companyId, 0, 10000);
+            if (prodRes.IsSuccess)
+            {
+                products = prodRes.Data?.Data?.ToList() ?? [];
+            }
+
+        }
+    }
+    async Task CreateNew()
+    {
+        if ((!ProductId.HasValue && selectedProduct == null) || selectedProduct.Id == Guid.Empty)
+        {
+            await ModalService.ShowAsync(new ModalOptions
+            {
+                Title = SharedDataService.SelectViewLang("Create New", "إنشاء جديد"),
+                Message = SharedDataService.SelectViewLang("Please select a product", "الرجاء اختيار منتج"),
+                IsError = true,
+                OnOk = async () => { }
+            });
+            return;
+        }
+        selectedBrand = null;
+        selectedUnit = null;
+        selectedPackage = null;
+        var newItem = new ProductSkuDto
+        {
+            Id = Guid.NewGuid(),
+            ProductId = selectedProduct.Id,
+            CompanyId = companyId,
+            Variants = []
+        };
+
+        productskuList.Add(newItem);
+
+
+        editingProductSkuId = newItem.Id;
+        isEdit = false;
+    }
+
+    void EditProductSku(Guid id)
+    {
+        editingProductSkuId = id;
+        isEdit = true;
+        // editingVariantValueId = variants.FirstOrDefault(v => v.Id == id)?.Values.FirstOrDefault()?.Id ?? null;
+        StateHasChanged();
+    }
+    async Task SaveProductSKU(ProductSkuDto productSku)
+    {
+
+        if (selectedBrand == null || selectedBrand.Id == Guid.Empty)
+        {
+            await ModalService.ShowAsync(new ModalOptions
+            {
+                Title = SharedDataService.SelectViewLang("Create New", "إنشاء جديد"),
+                Message = SharedDataService.SelectViewLang("Please select a Brand", "الرجاء اختيار العلامة التجارية"),
+                IsError = true,
+                OnOk = async () => { }
+            });
+            return;
+        }
+
+        if (selectedUnit == null || selectedUnit.Id == Guid.Empty)
+        {
+            await ModalService.ShowAsync(new ModalOptions
+            {
+                Title = SharedDataService.SelectViewLang("Create New", "إنشاء جديد"),
+                Message = SharedDataService.SelectViewLang("Please select a Unit", "الرجاء اختيار الوحدة"),
+                IsError = true,
+                OnOk = async () => { }
+            });
+            return;
+        }
+
+        productSku.ProductId = selectedProduct.Id;
+        productSku.BrandId = selectedBrand.Id;
+        productSku.UnitId = selectedUnit.Id;
+        productSku.PackageId = (selectedPackage != null && selectedPackage.Id != Guid.Empty) ? selectedPackage.Id : null;
+
+        if (productSku.Id == editingProductSkuId && !isEdit)
+        {
+            //Create new
+
+            Random rnd = new Random();
+
+            productSku.CompanyId = companyId;
+
+            var bResponse = await ProductService.AddProductSkuAsync(productSku);
+            if (bResponse.IsSuccess)
+            {
+                //show success
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("SKU has been created successfully", "تم إنشاء المنتج المخزني بنجاح"),
+                    Type = "success"
+                });
+                await Reset();
+            }
+            else
+            {
+                // how fail
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
+                    Type = "error"
+                });
+            }
+        }
+        else
+        {
+            //Edit
+
+            var bresponse = await ProductService.UpdateProductSkuAsync(productSku);
+            if (bresponse.IsSuccess)
+            {
+                //show success
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("SKU has been Edited successfully", "تم تعديل المنتج المخزني بنجاح"),
+                    Type = "success"
+                });
+
+                await Reset();
+
+            }
+            else
+            {
+                // show
+                //
+                //
+                //
+                //   fail
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
+                    Type = "error"
+                });
+            }
+        }
+
+
+    }
+
+    async Task DeleteVariant(ProductSkuDto productSku)
+    {
+        await ModalService.ShowAsync(new ModalOptions
+        {
+            Title = SharedDataService.SelectViewLang("Confirm Delete", "تأكيد عملية الحذف"),
+            Message = SharedDataService
+                        .SelectViewLang($"Are you sure you want to delete this SKU: {productSku.SkuCodeEng}?",
+                            $"هل ترغب فعلا في حذف المنتج المخزني: {productSku.SkuCode}؟"),
+            ShowCancel = true,
+            OkText = SharedDataService.SelectViewLang("Yes", "نعم"),
+            CancelText = SharedDataService.SelectViewLang("No", "لا"),
+
+            OnOk = async () =>
+            {
+                var brResponse = await ProductService.RemoveProductSkuAsync(productSku.Id);
+                if (brResponse.IsSuccess)
+                {
+
+                    ToastService.Show(new ToastMessage
+                    {
+                        Message = SharedDataService.SelectViewLang("Deleted successfully", "تم الحذف بنجاح"),
+                        Type = "success"
+                    });
+
+                    await LoadProductSKU();
+
+                    await InvokeAsync(StateHasChanged);
+                }
+                else
+                {
+                    ToastService.Show(new ToastMessage
+                    {
+                        Message = SharedDataService.SelectViewLang("Fail to delete the SKU", "فشلت عملية الحذف"),
+                        Type = "error"
+                    });
+                }
+
+
+            }
+        });
+
+
+    }
+    async Task CancelEdit()
+    {
+
+
+        //new
+        // branch
+        var item = productskuList.FirstOrDefault(x => x.Id == editingProductSkuId);
+
+        if (item != null && item.Id != Guid.Empty)
+        {
+            // existing record → keep it
+
+            await LoadProductSKU();
+        }
+        else
+        {
+            // new record → remove it
+            productskuList.Remove(item);
+        }
+        isEdit = false;
+        editingProductSkuId = null;
+    }
+
+    #region Table Helpers
+
+
+    // Searching
+    private string searchText = "";
+
+    // Sorting
+    private string sortColumn = nameof(ProductSkuDto.SkuCode);
+    private bool sortAscending = true;
+
+    // Pagination
+    private int pageSize = 5;
+    private int pageIndex = 0;
+    private async Task LoadProductSKU()
+    {
+        // var request = new PaginationRequest(pageIndex, pageSize, searchText);
+        if (selectedProduct == null || selectedProduct.Id == Guid.Empty)
+        {
+            return;
+        }
+        var response = await ProductService.GetByIdAsync(selectedProduct.Id);//,searchText);
+
+        if (response.IsSuccess)
+        {
+            // var result = response.Data!.Data;
+
+            // branches = result.Data.ToList();
+
+            var product = response.Data ?? new();
+            productskuList = product.Skus;
+            // TotalPages = (int)response.Data!.Count;
+            // TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
+        }
+    }
+    async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        pageSize = int.Parse(e.Value!.ToString()!);
+        pageIndex = 0;
+        await LoadProductSKU();
+    }
+    private IEnumerable<ProductSkuDto> ProcessedVariants =>
+    productskuList
+        // 🔍 Search
+        .Where(sku =>
+            string.IsNullOrWhiteSpace(searchText) ||
+            (sku.SkuCode?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (sku.SkuCodeEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+
+        )
+
+        // 🎯 Filter
+        // .Where(b =>
+        //     filterMainBranch == null || b.IsMainBranch == filterMainBranch
+        // )
+
+        // 🔃 Sorting
+        .OrderByDynamic(sortColumn, sortAscending);
+
+    // 📄 Pagination
+    // .Skip((pageIndex) * pageSize)
+    // .Take(pageSize);
+
+
+
+    // Filtering example
+    // private bool? filterMainBranch = null;
+    // private long totalCount = 0;
+    private int TotalPages = 1;
+    // private int TotalPages =>
+    // (int)Math.Ceiling(
+    //     totalCount/ (double)pageSize);
+
+    async Task NextPage()
+    {
+        // if (currentPage < TotalPages)
+        //     currentPage++;
+
+        if (pageIndex < TotalPages - 1)
+        {
+            pageIndex++;
+            await LoadProductSKU();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    async Task PrevPage()
+    {
+        // if (pageIndex > 1)
+        //     pageIndex--;
+
+        if (pageIndex > 0)
+        {
+            pageIndex--;
+            await LoadProductSKU();
+        }
+    }
+
+    void Sort(string column)
+    {
+        if (sortColumn == column)
+            sortAscending = !sortAscending;
+        else
+        {
+            sortColumn = column;
+            sortAscending = true;
+        }
+    }
+    #endregion Table helpers
+
+    private async Task AddVariantValue(ProductSkuDto sku)
+    {
+        var curSku = productskuList.FirstOrDefault(ps => ps.Id == sku.Id);
+
+        curSku.Variants.Add(new ProductSkuVariantDto
+        {
+            Id = Guid.Empty, // VERY IMPORTANT
+            ProductSkuId = sku.Id,
+            VariantId = selectedVariant.Id,
+            VariantValueId = selectedVariantValue.Id
+        });
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void RemoveVariantValue(ProductSkuDto sku, ProductSkuVariantDto value)
+    {
+        var curSku = productskuList.FirstOrDefault(sv => sv.Id == sku.Id);
+
+        curSku.Variants.Remove(value);
+    }
+
+    private async Task onProductSelected(ProductDto product)
+    {
+        selectedProduct = product != null ? product : new();
+        await LoadProductSKU();
+        StateHasChanged();
+    }
+    private void onUnitSelected(UnitDto unit)
+    {
+        selectedUnit = unit != null ? unit : new();
+        StateHasChanged();
+    }
+    private void onBrandSelected(BrandDto brand)
+    {
+        selectedBrand = brand != null ? brand : new();
+    }
+    private void onPackageSelected(ProductPackageDto package)
+    {
+        selectedPackage = package != null ? package : new();
+    }
+
+    private void onVariantSelected(VariantDto variant)
+    {
+        selectedVariant = variant != null ? variant : new();
+        variantValues = selectedVariant != null ? new List<VariantValueDto>(selectedVariant.Values) : [];
+        selectedVariantValue = new();
+        StateHasChanged();
+    }
+
+    private void onVariantValueSelected(VariantValueDto variantValue)
+    {
+        selectedVariantValue = variantValue != null ? variantValue : new();
+    }
+    private async Task Reset()
+    {
+        editingProductSkuId = null;
+        isEdit = false;
+        selectedBrand = null;
+        selectedUnit = null;
+        selectedPackage = null;
+        productskuList = [];
+
+        await LoadProductSKU();
+    }
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

@@ -50,7 +50,7 @@ public class CatalogDataSeeder : IDataSeeder<CatalogDbContext>
                     prod.Name, 
                     prod.NameEng, 
                     prod.CategoryId, 
-                    prod.UnitId, 
+                    //prod.UnitId, 
                     Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), 
                     prod.CreatedBy);
                 dbContext.Products.Add(p);

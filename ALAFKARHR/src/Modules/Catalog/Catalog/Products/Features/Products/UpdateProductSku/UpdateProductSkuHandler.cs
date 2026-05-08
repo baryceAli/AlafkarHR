@@ -17,7 +17,7 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
 {
     public async Task<UpdateProductSkuResult> Handle(UpdateProductSkuCommand command, CancellationToken cancellationToken)
     {
-        var productSku = await dbContext.ProductSkus.FindAsync([command.ProductSku.Id]);
+        var productSku = await dbContext.ProductSkus.Include(sku=> sku.Variants).FirstOrDefaultAsync(sku=>sku.Id==command.ProductSku.Id);
         if (productSku is null)
             throw new Exception($"ProductSku not found: {productSku.Id}");
 
@@ -33,6 +33,7 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
             command.ProductSku.SkuCode,
             command.ProductSku.SkuCodeEng,
             command.ProductSku.CompanyId,
+            command.ProductSku.Variants,
             userId);
         await dbContext.SaveChangesAsync();
 

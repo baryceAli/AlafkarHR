@@ -3,6 +3,7 @@ using System.Reflection;
 
 namespace Catalog.Data;
 // add-migration CatalogInitial -Project Catalog -StartupProject Api -OutputDir Data/Migrations -Context CatalogDbContext
+// update-database -Project Catalog -StartupProject Api -Context CatalogDbContext
 public class CatalogDbContext : DbContext
 {
     public CatalogDbContext(DbContextOptions<CatalogDbContext> options) : base(options)

@@ -18,7 +18,7 @@ public class GetProductByProductSKUIdHandler(CatalogDbContext dbContext)
 
             join c in dbContext.Categories on p.CategoryId equals c.Id
             //join b in dbContext.Brands on p.BrandId equals b.Id
-            join u in dbContext.Units on p.UnitId equals u.Id
+            //join u in dbContext.Units on p.UnitId equals u.Id
 
             where p.Id == productSku.ProductId
 
@@ -30,9 +30,9 @@ public class GetProductByProductSKUIdHandler(CatalogDbContext dbContext)
                 //BrandId= b.Id,
                 //BrandName= b.Name,
                 //BrandNameEng= b.NameEng,
-                UnitId= u.Id,
-                UnitName= u.UnitName,
-                 UnitNameEng=u.UnitNameEng,
+                //UnitId= u.Id,
+                //UnitName= u.UnitName,
+                 //UnitNameEng=u.UnitNameEng,
                 Name = p.Name,
                 NameEng = p.NameEng,
                 //Price = p.Price,

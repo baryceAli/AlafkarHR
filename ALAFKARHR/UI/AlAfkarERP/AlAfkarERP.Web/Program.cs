@@ -155,6 +155,13 @@ builder.Services.AddHttpClient<IVariantService, VariantService>(client =>
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
 
+builder.Services.AddScoped<IPackageService, PackageService>();
+builder.Services.AddHttpClient<IPackageService, PackageService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+
 #endregion Catalog Module Services
 
 

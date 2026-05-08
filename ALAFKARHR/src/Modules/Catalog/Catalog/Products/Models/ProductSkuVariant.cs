@@ -1,6 +1,6 @@
 ﻿namespace Catalog.Products.Models;
 
-public class ProductSkuVariant:Entity<Guid>
+public class ProductSkuVariant : Entity<Guid>
 {
     public Guid ProductSkuId { get; private set; }
     public Guid VariantId { get; private set; }
@@ -9,7 +9,7 @@ public class ProductSkuVariant:Entity<Guid>
 
     private ProductSkuVariant() { }
 
-    public static ProductSkuVariant Create( Guid productSkuId, Guid variantId, Guid variantValueId, string createdBy)
+    public static ProductSkuVariant Create(Guid productSkuId, Guid variantId, Guid variantValueId, string createdBy)
     {
         return new ProductSkuVariant
         {
@@ -17,14 +17,20 @@ public class ProductSkuVariant:Entity<Guid>
             ProductSkuId = productSkuId,
             VariantId = variantId,
             VariantValueId = variantValueId,
-            CreatedAt=DateTime.UtcNow,
-            CreatedBy=createdBy
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = createdBy
         };
     }
-
+    internal void Update(Guid variantId, Guid variantvalueId, string modifiedBy)
+    {
+        VariantId = variantId;
+        VariantValueId= variantvalueId;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
     public void Remove(string deletedBy)
     {
-        IsDeleted=true;
+        IsDeleted = true;
         DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;
     }

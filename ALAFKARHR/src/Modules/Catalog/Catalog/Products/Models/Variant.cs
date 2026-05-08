@@ -66,12 +66,6 @@ public class Variant : Aggregate<Guid>
                 throw new Exception($"Invalid or deleted VariantValue Id: {v.Id}");
 
 
-            //if (!existingIds.Contains(v.Id))
-            //    throw new Exception($"Invalid VariantValue Id: {v.Id}");
-
-            //var existingValue = _values.First(ev => ev.Id == v.Id && !ev.IsDeleted);
-            //existingValue.Update(v.Value, v.ValueEng, modifiedBy);
-
             var existingValue = activeValues.First(ev => ev.Id == v.Id);
             existingValue.Update(v.Value, v.ValueEng, modifiedBy);
         }

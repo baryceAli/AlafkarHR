@@ -6,10 +6,10 @@ public class ProductPackageDto
 {
     public Guid Id { get; set; }
 
-    public string Name { get; private set; } // 250ml, 1L, 500g
-    public string NameEng { get; private set; } // 250ml, 1L, 500g
-    public decimal Quantity { get; private set; }
-    public Guid UnitId { get; private set; }
+    public string Name { get; set; } // 250ml, 1L, 500g
+    public string NameEng { get; set; } // 250ml, 1L, 500g
+    public decimal Quantity { get; set; }
+    //public Guid UnitId { get; set; }
     public Guid CompanyId { get; set; }
 
 }

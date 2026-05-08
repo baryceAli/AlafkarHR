@@ -5,7 +5,7 @@ public class ProductPackage : Aggregate<Guid>
     public string Name { get; private set; } // 250ml, 1L, 500g
     public string NameEng { get; private set; } // 250ml, 1L, 500g
     public decimal Quantity { get; private set; }
-    public Guid UnitId { get; private set; }
+    //public Guid UnitId { get; private set; }
     public Guid CompanyId { get; set; }
     private ProductPackage() { }
 
@@ -13,7 +13,7 @@ public class ProductPackage : Aggregate<Guid>
                             string name, 
                             string nameEng, 
                             decimal quantity,
-                            Guid unitId,
+                            //Guid unitId,
                             Guid companyId,
                             string createdBy)
     {
@@ -22,7 +22,7 @@ public class ProductPackage : Aggregate<Guid>
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
         Id = id;
-        UnitId = unitId;
+        //UnitId = unitId;
         Name = name;
         NameEng = nameEng;
         Quantity = quantity;

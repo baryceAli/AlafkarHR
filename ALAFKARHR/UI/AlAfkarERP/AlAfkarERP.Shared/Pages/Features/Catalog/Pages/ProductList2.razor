@@ -1,5 +1,5 @@
 ﻿@layout AdminLayout
-@page "/Catalog/Product/List"
+@page "/Catalog/Product/List2"
 
 
 
@@ -12,6 +12,8 @@
 
 
 @inject IProductService ProductService
+@inject IBrandService BrandService
+@inject IPackageService PackageService
 @inject IUnitService UnitService
 @inject ICategoryService CategoryService
 @inject ToastService ToastService
@@ -31,8 +33,8 @@
     return;
 }
 
-<!-- SKUs -->
-<h5>@SharedDataService.SelectViewLang("SKUs Management", "ادارة المنتجات المخزنية")</h5>
+<!-- Branches -->
+<h5>@SharedDataService.SelectViewLang("Products Management", "ادارة المنتجات")</h5>
 
 @* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
 <button class="btn btn-primary mb-3"
@@ -159,6 +161,36 @@
                                             <div class="card">
                                                 <div class="card-body">
                                             
+                                                    <!--Brand-->
+                                                    <div class="mb-3 row">
+                                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                                            @SharedDataService.SelectViewLang("Brand", "العلامة التجارية")
+                                                        </label>
+                                                        <div class="col-sm-10">
+                                                            <AutoCompleteComponent TItem="BrandDto"
+                                                                                   Items="brands"
+                                                                                   ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
+                                                                                   PlaceHolder="@(SharedDataService.SelectViewLang("search a brand","ابحث عن العلامة التجارية"))"
+                                                                                   Value="selectedBrand"
+                                                                                   ValueChanged="onBrandSelected" />
+                                                        </div>
+                                                    </div>
+
+                                                    <!--Package-->
+                                                    <div class="mb-3 row">
+                                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                                            @SharedDataService.SelectViewLang("Package", "العبوة")
+                                                        </label>
+                                                        <div class="col-sm-10">
+                                                            <AutoCompleteComponent TItem="ProductPackageDto"
+                                                                                   Items="packages"
+                                                                                   ItemText="(p=> SharedDataService.SelectViewLang(p.NameEng, p.Name))"
+                                                                                   PlaceHolder="@(SharedDataService.SelectViewLang("search a package","ابحث عن عبوة"))"
+                                                                                   Value="selectedPackage"
+                                                                                   ValueChanged="onPackageSelected" />
+                                                        </div>
+                                                    </div>
+
                                                     <!--Unit-->
                                                     <div class="mb-3 row">
                                                         <label for="inputFirstName" class="col-sm-2 col-form-label">
@@ -171,6 +203,56 @@
                                                                                    PlaceHolder="@(SharedDataService.SelectViewLang("search a unit","ابحث عن وحدة"))"
                                                                                    Value="selectedUnit"
                                                                                    ValueChanged="onUnitSelected" />
+                                                        </div>
+                                                    </div>
+
+                                                    <!--SKU-->
+                                                    <div class="mb-3 row">
+                                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                                            @SharedDataService.SelectViewLang("SKUCode", "sku")
+                                                        </label>
+                                                        <div class="col-sm-10">
+                                                            <input class="form-control" value="sku" />
+                                                        </div>
+                                                    </div>
+
+                                                    <!--SKUEng-->
+                                                    <div class="mb-3 row">
+                                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                                            @SharedDataService.SelectViewLang("SKUCodeEng", "skueng")
+                                                        </label>
+                                                        <div class="col-sm-10">
+                                                            <input class="form-control" value="sku" />
+                                                        </div>
+                                                    </div>
+
+                                                    <!--Barcode-->
+                                                    <div class="mb-3 row">
+                                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                                            @SharedDataService.SelectViewLang("Barcode", "باركود")
+                                                        </label>
+                                                        <div class="col-sm-10">
+                                                            <input class="form-control" value="Barcode" />
+                                                        </div>
+                                                    </div>
+
+                                                    <!--Price-->
+                                                    <div class="mb-3 row">
+                                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                                            @SharedDataService.SelectViewLang("Price", "السعر")
+                                                        </label>
+                                                        <div class="col-sm-10">
+                                                            <input class="form-control" value="Barcode" />
+                                                        </div>
+                                                    </div>
+
+                                                    <!--Image-->
+                                                    <div class="mb-3 row">
+                                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
+                                                            @SharedDataService.SelectViewLang("Image", "الصورة")
+                                                        </label>
+                                                        <div class="col-sm-10">
+                                                            <input class="form-control" value="Barcode" />
                                                         </div>
                                                     </div>
 
@@ -194,30 +276,25 @@
                 <tr>
                 </tr>
             }
-            @foreach (var product in ProcessedProducts.Where(x => x.Id != editingProductId))
+            @foreach (var unit in ProcessedProducts.Where(x => x.Id != editingProductId))
             {
                 @* @if(0==2){}
                 else
                 }
                 { *@
                 <tr>
-                    <td>@product.Name</td>
-                    <td>@product.NameEng</td>
-                    <td>@product.CategoryName</td>
-                    <td>@product.UnitName</td>
+                    <td>@unit.Name</td>
+                    <td>@unit.NameEng</td>
+                    <td>@unit.CategoryName</td>
+                    <td>@unit.UnitName</td>
                     <td>
                         <button class="btn btn-warning btn-sm"
-                                @onclick="() => EditProduct(product.Id)"
+                                @onclick="() => EditProduct(unit.Id)"
                                 disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.Edit}"))>
                             @SharedDataService.SelectViewLang("Edit", "تعديل")
                         </button>
-                        <button class="btn btn-warning btn-sm"
-                                @onclick='() => NavigationManager.NavigateTo($"/Catalog/Product/{product.Id}/ProductSku")'
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.Edit}"))>
-                            @SharedDataService.SelectViewLang("SkUs", "المنتجات المخزنية")
-                        </button>
                         <button class="btn btn-danger btn-sm"
-                                @onclick="() => DeleteProduct(product)"
+                                @onclick="() => DeleteProduct(unit)"
                                 disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.Delete}"))>
                             @SharedDataService.SelectViewLang("Delete", "حذف")
                         </button>
@@ -251,6 +328,10 @@
     private Guid companyId;
     private bool isEdit = false;
     private List<UnitDto> units = [];
+    private List<BrandDto> brands = [];
+    private BrandDto? selectedBrand;
+    private List<ProductPackageDto> packages = [];
+    private ProductPackageDto? selectedPackage;
     private UnitDto? selectedUnit;
     private List<CategoryDto> categories = [];
     private CategoryDto? selectedCategory;
@@ -280,6 +361,17 @@
             units = unitRes.Data?.Data?.ToList() ?? [];
         }
 
+        var brndRes = await BrandService.GetByCompanyIdAsync(companyId, 0, 1000);
+        if (brndRes.IsSuccess)
+        {
+            brands = brndRes.Data?.Data?.ToList() ?? [];
+        }
+
+        var pkgRes = await PackageService.GetByCompanyAsync(companyId, 0, 1000);
+        if (pkgRes.IsSuccess)
+        {
+            packages = pkgRes.Data?.Data?.ToList() ?? [];
+        }
         await LoadProduct();
         LoadingService.Hide();
     }
@@ -290,6 +382,7 @@
         {
             Id = Guid.NewGuid(),
             CompanyId = companyId,
+            // Skus=[],
             //CategoryId=Guid.NewGuid(),//categories.Any()?categories[0].Id:Guid.NewGuid(),
             //UnitId=Guid.NewGuid()//units.Any()? units[0].Id:Guid.NewGuid()
         };
@@ -573,6 +666,15 @@
         selectedUnit = unit != null ? unit : new();
         StateHasChanged();
     }
+    private void onBrandSelected(BrandDto brand)
+    {
+        selectedBrand = brand != null ? brand : new();
+    }
+    private void onPackageSelected(ProductPackageDto package)
+    {
+        selectedPackage = package != null ? package : new();
+    }
+
     protected override void OnInitialized()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;

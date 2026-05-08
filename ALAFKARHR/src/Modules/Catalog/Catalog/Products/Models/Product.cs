@@ -4,7 +4,7 @@ public class Product : Aggregate<Guid>
 {
 
     public Guid CategoryId { get; private set; }
-    public Guid UnitId { get; private set; }
+    //public Guid UnitId { get; private set; }
     public Guid CompanyId { get; private set; }
 
     public string Name { get; private set; } = default!;
@@ -22,8 +22,8 @@ public class Product : Aggregate<Guid>
         string name, 
         string nameEng, 
         Guid categoryId, 
-        Guid unitId,Guid 
-        companyId, 
+        //Guid unitId,
+        Guid companyId, 
         string createdBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -34,7 +34,7 @@ public class Product : Aggregate<Guid>
             Name = name,
             NameEng = nameEng,
             CategoryId = categoryId,
-            UnitId = unitId,
+            //UnitId = unitId,
             CompanyId = companyId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
@@ -45,7 +45,7 @@ public class Product : Aggregate<Guid>
     public void Update(string name, 
         string nameEng, 
         Guid categoryId,
-        Guid unitId,
+        //Guid unitId,
         string modifiedBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -54,7 +54,7 @@ public class Product : Aggregate<Guid>
         Name = name;
         NameEng = nameEng;
         CategoryId = categoryId;
-        UnitId = unitId;
+        //UnitId = unitId;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }
