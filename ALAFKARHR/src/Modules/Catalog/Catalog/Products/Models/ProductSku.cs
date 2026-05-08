@@ -13,6 +13,8 @@ public class ProductSku : Entity<Guid>
     public Guid UnitId { get; set; }
     public bool IsPackage => PackageId.HasValue;
 
+    public string Name { get; set; }
+    public string NameEng { get; set; }
     public string SkuCode { get; private set; } = default!;
     public string SkuCodeEng { get; private set; } = default!;
     public string SkuKey { get; private set; } = default!;
@@ -64,7 +66,9 @@ public class ProductSku : Entity<Guid>
     Guid productId,
     Guid brandId,
     Guid unitId,
-    Guid packageId,
+    Guid? packageId,
+    string name,
+    string nameEng,
     string skuCode,
     string skuCodeEng,
     string skuKey,
@@ -85,6 +89,8 @@ public class ProductSku : Entity<Guid>
             BrandId = brandId,
             UnitId = unitId,
             PackageId = packageId,
+            Name = name,
+            NameEng = nameEng,
             SkuCode = skuCode,
             SkuCodeEng = skuCodeEng,
             SkuKey = skuKey,
@@ -102,12 +108,14 @@ public class ProductSku : Entity<Guid>
         bool showOnStore,
         string imageUrl,
         string? barcode,
-        string skuCode,
-        string skuCodeEng,
+        string name,
+        string nameEng,
         Guid companyId,
         List<ProductSkuVariantDto> variantDtos,
         string modifiedBy)
     {
+        Name = name;
+        NameEng = nameEng;
         Price = price;
         ImageUrl = imageUrl;
         ShowOnStore = showOnStore;

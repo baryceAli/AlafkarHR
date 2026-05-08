@@ -31,14 +31,15 @@ public static class ProductSkuGenerator
     Dictionary<Guid, string> variantNames,
     Dictionary<Guid, string> valueNames,
     //List<VariantDto> variants,
-    string productName)
+    string productName,
+    string brandName)
     {
 
 
         var parts = new List<string>
         {
-            productName[..Math.Min(3, productName.Length)].ToUpper(),
-            ctx.BrandId.ToString()[..3]
+            productName[..Math.Min(5, productName.Length)].ToUpper(),
+            brandName[..Math.Min(5, brandName.Length)].ToUpper()
         };
 
         if (ctx.PackageId.HasValue)
@@ -49,7 +50,7 @@ public static class ProductSkuGenerator
             .Select(v =>
             {
                 var vName = valueNames[v.ValueId];
-                return vName[..Math.Min(3, vName.Length)].ToUpper();
+                return vName[..Math.Min(5, vName.Length)].ToUpper();
             }));
 
         return string.Join("-", parts);

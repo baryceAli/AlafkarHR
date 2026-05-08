@@ -58,6 +58,8 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext)
                          ProductId = sku.ProductId,
                          PackageId = sku.PackageId,
 
+                         Name= sku.Name,
+                         NameEng = sku.NameEng,
                          SkuCode = sku.SkuCode,
                          SkuCodeEng = sku.SkuCodeEng,
                          Barcode = sku.Barcode,

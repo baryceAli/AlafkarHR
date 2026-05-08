@@ -251,7 +251,7 @@
     private Guid companyId;
     private bool isEdit = false;
     private List<UnitDto> units = [];
-    private UnitDto? selectedUnit;
+    // private UnitDto? selectedUnit;
     private List<CategoryDto> categories = [];
     private CategoryDto? selectedCategory;
     private AuthenticationState AuthState;
@@ -315,7 +315,7 @@
     {
         LoadingService.Show();
 
-        if (selectedCategory == null || selectedCategory.Id == Guid.Empty || selectedUnit == null || selectedUnit.Id == Guid.Empty)
+        if (selectedCategory == null || selectedCategory.Id == Guid.Empty )
         {
             await ModalService.ShowAsync(new ModalOptions
             {
@@ -568,11 +568,11 @@
 
         selectedCategory = category != null ? category : new();
     }
-    private void onUnitSelected(UnitDto unit)
-    {
-        selectedUnit = unit != null ? unit : new();
-        StateHasChanged();
-    }
+    // private void onUnitSelected(UnitDto unit)
+    // {
+    //     selectedUnit = unit != null ? unit : new();
+    //     StateHasChanged();
+    // }
     protected override void OnInitialized()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;

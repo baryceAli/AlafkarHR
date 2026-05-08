@@ -14,8 +14,8 @@ public class GetProductsHandler(CatalogDbContext dbContext)
         
         var products = await (
             from p in dbContext.Products
-            //.Include(x => x.ProductVariants)
-            //.Include(x => x.Packages)
+            //.Include(x => x.Skus)
+            //.ThenInclude(x => x.Variants)
 
             join c in dbContext.Categories on p.CategoryId equals c.Id
             //join b in dbContext.Brands on p.BrandId equals b.Id

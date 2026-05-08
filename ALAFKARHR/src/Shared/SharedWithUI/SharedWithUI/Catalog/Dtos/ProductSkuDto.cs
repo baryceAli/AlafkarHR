@@ -16,11 +16,14 @@ public class ProductSkuDto
 
     public Guid? UnitId { get; set; }
 
-    [Required(ErrorMessage ="SkuCode is required")]
+
+    [Required(ErrorMessage = "Name is required")]
+    public string Name { get; set; }
     public string SkuCode { get;  set; } = default!;
 
 
-    [Required(ErrorMessage ="SkuCodeEng is required")]
+    [Required(ErrorMessage = "SkuCodeEng is required")]
+    public string NameEng { get; set; }
     public string SkuCodeEng { get;  set; } = default!;
     
     public string SkuKey { get;  set; } = default!;
