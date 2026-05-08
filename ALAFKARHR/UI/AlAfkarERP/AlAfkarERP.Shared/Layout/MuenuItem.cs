@@ -144,7 +144,7 @@ public class MenuItem
                 {
                     TextEn = "SKU",
                     TextAr = "المنتج المخزني",
-                    Icon = "bi-box",
+                    Icon = "bi-upc-scan",
                     Url = "/Catalog/Product/ProductSku/List",
                     PermissionPolicy = PermissionList.ProductPermissions.View
                 },
@@ -169,7 +169,7 @@ public class MenuItem
                 {
                     TextEn = "Pakcages",
                     TextAr = "العبوات",
-                    Icon = "bi-award-fill",
+                    Icon = "bi-archive-fill",
                     Url = "/Warehouse/Product/Packages/List",
                     PermissionPolicy = PermissionList.ProductPackagePermissions.View
                 },

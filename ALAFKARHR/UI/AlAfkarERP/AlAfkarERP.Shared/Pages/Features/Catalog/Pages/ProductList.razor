@@ -32,7 +32,7 @@
 }
 
 <!-- SKUs -->
-<h5>@SharedDataService.SelectViewLang("SKUs Management", "ادارة المنتجات المخزنية")</h5>
+<h5 class="text-black">@SharedDataService.SelectViewLang("Products Management", "ادارة المنتجات")</h5>
 
 @* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
 <button class="btn btn-primary mb-3"
@@ -98,7 +98,7 @@
                 </th>
                 <th @onclick="() => Sort(nameof(ProductDto.NameEng))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
                 <th @onclick="() => Sort(nameof(ProductDto.CategoryName))">@SharedDataService.SelectViewLang("category", "الصنف")</th>
-                <th @onclick="() => Sort(nameof(ProductDto.UnitName))">@SharedDataService.SelectViewLang("Unit", "الوحدة")</th>
+                @* <th @onclick="() => Sort(nameof(ProductDto.UnitName))">@SharedDataService.SelectViewLang("Unit", "الوحدة")</th> *@
                 <th></th>
             </tr>
         </thead>
@@ -150,7 +150,7 @@
                                     </div>
                                     
                                     <!--SKU-->
-                                    <div class="mb-3 row">
+                                    @* <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label">
                                             @SharedDataService.SelectViewLang("SKU", "المنتج المخزني")
                                         </label>
@@ -178,7 +178,7 @@
                                             </div>
                                         </div>
                                         
-                                    </div>
+                                    </div> *@
 
                                     
                                             
@@ -204,7 +204,7 @@
                     <td>@product.Name</td>
                     <td>@product.NameEng</td>
                     <td>@product.CategoryName</td>
-                    <td>@product.UnitName</td>
+                    @* <td>@product.UnitName</td> *@
                     <td>
                         <button class="btn btn-warning btn-sm"
                                 @onclick="() => EditProduct(product.Id)"
