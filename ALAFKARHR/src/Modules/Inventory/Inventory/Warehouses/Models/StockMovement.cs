@@ -14,8 +14,8 @@ public class StockMovement : Entity<Guid>
     public decimal Quantity { get; private set; }
     public DateTime MovementDate { get; private set; }
     public string Notes { get; private set; } = string.Empty;
-    public MovementDirection MovementDirection { get; set; }
-    public MovementCategory MovementCategory { get; set; }
+    public MovementDirection MovementDirection { get; private set; }
+    public MovementCategory MovementCategory { get; private set; }
     private StockMovement() { }
 
     public static StockMovement Create(

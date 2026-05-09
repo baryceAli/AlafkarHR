@@ -68,6 +68,7 @@ public class Batch : Aggregate<Guid>
 
     public void Remove(string deletedBy)
     {
+        IsDeleted = true;
         DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;
     }

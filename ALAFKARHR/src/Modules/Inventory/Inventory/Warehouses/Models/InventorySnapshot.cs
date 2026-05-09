@@ -41,6 +41,7 @@ public class InventorySnapshot : Entity<Guid>
 
     public void Remove(string deletedBy) 
     {
+        IsDeleted = true;
         DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;
     }

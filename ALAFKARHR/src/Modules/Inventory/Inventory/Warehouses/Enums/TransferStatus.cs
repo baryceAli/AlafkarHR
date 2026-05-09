@@ -4,6 +4,7 @@ public enum TransferStatus
 {
     Pending,        // Created but not shipped
     Shipped,        // Left warehouse A
-    Completed,      // Received by warehouse B
+    PartiallyReceived,// Received by warehouse B
+    Completed,
     Cancelled
 }

@@ -39,27 +39,28 @@ public class InventoryAggregate : Aggregate<Guid>
     // FIFO reservation
     public List<(Guid BatchId, decimal Quantity)> ReserveFIFO(
     decimal qty,
-    List<(Guid BatchId, DateTime ExpiryDate)> batchExpiries,
+    //List<(Guid BatchId, DateTime ExpiryDate)> batchExpiries,
     string updatedBy)
     {
         if (qty <= 0) throw new ArgumentOutOfRangeException(nameof(qty));
-        if (batchExpiries == null || !batchExpiries.Any())
-            throw new InvalidOperationException("No batch expiry info provided");
+        //if (batchExpiries == null || !batchExpiries.Any())
+        //    throw new InvalidOperationException("No batch expiry info provided");
 
         var remaining = qty;
         var allocations = new List<(Guid BatchId, decimal Quantity)>();
 
         // Order available batches by expiry date provided externally
-        var orderedBatches = _batches
-            .Where(b => b.Available > 0)
-            .OrderBy(b =>
-            {
-                var expiry = batchExpiries.FirstOrDefault(be => be.BatchId == b.BatchId);
-                if (expiry == default) throw new InvalidOperationException($"Expiry info missing for batch {b.BatchId}");
-                return expiry.ExpiryDate;
-            })
-            .ToList();
-
+        //var orderedBatches = _batches
+        //    .Where(b => b.Available > 0)
+        //    .OrderBy(b =>
+        //    {
+        //        var expiry = batchExpiries.FirstOrDefault(be => be.BatchId == b.BatchId);
+        //        if (expiry == default) throw new InvalidOperationException($"Expiry info missing for batch {b.BatchId}");
+        //        return expiry.ExpiryDate;
+        //    })
+        //    .ToList();
+        var orderedBatches = _batches.Where(b => b.Available > 0).OrderBy(b => b.Batch.ExpiryDate).ToList();
+        //_batches[0].
         foreach (var batch in orderedBatches)
         {
             if (remaining <= 0) break;

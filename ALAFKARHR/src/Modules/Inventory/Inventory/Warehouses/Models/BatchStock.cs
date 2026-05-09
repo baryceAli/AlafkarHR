@@ -1,19 +1,21 @@
-﻿using Shared.DDD;
+﻿using MapsterMapper;
+using Shared.DDD;
 
 namespace Inventory.Warehouses.Models;
 
-public class BatchStock:Entity<Guid>
+public class BatchStock : Entity<Guid>
 {
     public Guid BatchId { get; private set; }
+    public Batch Batch { get; private set; }
     public Guid WarehouseId { get; set; }
     public decimal Quantity { get; private set; }
     public decimal ReservedQuantity { get; private set; }
 
     public decimal Available => Quantity - ReservedQuantity;
 
-    private readonly List<BatchStock> _stocks = new ();
+    private readonly List<BatchStock> _stocks = new();
     public IReadOnlyList<BatchStock> Stocks => _stocks;
-    private BatchStock(){}
+    private BatchStock() { }
 
     public static BatchStock Created(Guid id,
         Guid batchId,
@@ -29,7 +31,7 @@ public class BatchStock:Entity<Guid>
         //ArgumentOutOfRangeException.ThrowIfNegative(reservedQuantity);
 
         //if (quantity < 0 || reservedQuantity < 0 || reservedQuantity > quantity)
-            //throw new InvalidOperationException("Invalid stock quantities");
+        //throw new InvalidOperationException("Invalid stock quantities");
 
         return new BatchStock
         {
@@ -40,7 +42,7 @@ public class BatchStock:Entity<Guid>
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
-        
+
     }
     public void Update(decimal quantity,
         decimal reservedQuantity,
@@ -65,8 +67,9 @@ public class BatchStock:Entity<Guid>
     {
         if (ReservedQuantity > 0)
             throw new InvalidOperationException("Cannot remove batch with reserved stock");
-        DeletedAt =DateTime.UtcNow;
-        DeletedBy= deletedBy;
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
+        DeletedBy = deletedBy;
     }
 
     // Adjust quantity
@@ -78,6 +81,14 @@ public class BatchStock:Entity<Guid>
         ModifiedBy = modifiedBy;
     }
 
+
+    //Actual stock reduction
+    //Should happen ONLY during:
+
+    //shipment
+    //invoice
+    //consumption
+    //transfer out
     public void Decrease(decimal qty, string modifiedBy)
     {
         if (qty <= 0) throw new ArgumentOutOfRangeException(nameof(qty));
@@ -94,7 +105,7 @@ public class BatchStock:Entity<Guid>
         if (qty <= 0) throw new ArgumentOutOfRangeException(nameof(qty));
         if (qty > Available) throw new InvalidOperationException("Insufficient available stock");
         ReservedQuantity += qty;
-        Quantity -= qty;
+        //Quantity -= qty;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }
@@ -105,7 +116,7 @@ public class BatchStock:Entity<Guid>
         if (qty <= 0) throw new ArgumentOutOfRangeException(nameof(qty));
         if (qty > ReservedQuantity) throw new InvalidOperationException("Insufficient reserved stock");
         ReservedQuantity -= qty;
-        Quantity += qty;
+        //Quantity += qty;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }

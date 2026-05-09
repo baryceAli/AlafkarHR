@@ -47,6 +47,7 @@ public class Warehouse : Aggregate<Guid>
     public void Remove(string removedBy)
     {
 
+        IsDeleted = true;
         DeletedBy = removedBy;
         DeletedAt = DateTime.UtcNow;
     }
