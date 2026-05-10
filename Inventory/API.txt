@@ -1,0 +1,668 @@
+API
+For your architecture, the API should follow the aggregate boundaries, not database tables.
+
+That means:
+
+* interact through aggregate roots
+* avoid exposing internal entities directly
+* inventory operations should be intention-driven
+
+Example:
+
+```text id="xvz35f"
+POST /reserve
+```
+
+instead of:
+
+```text id="glp63o"
+PUT /batchstock/quantity
+```
+
+because inventory is behavioral, not CRUD-oriented.
+
+---
+
+# Recommended API Structure
+
+You currently have these aggregate roots:
+
+```text id="g5ck1y"
+Warehouse
+InventoryAggregate
+WarehouseTransfer
+Batch
+```
+
+So your APIs should reflect that.
+
+---
+
+# 1. Warehouse Endpoints
+
+Base route:
+
+```text id="vuzd3q"
+/api/inventory/warehouses
+```
+
+---
+
+## Create Warehouse
+
+```http id="8r1hq0"
+POST /api/inventory/warehouses
+```
+
+Request:
+
+```json id="5p4k7y"
+{
+  "name": "Main Warehouse",
+  "nameEng": "Main Warehouse",
+  "location": "Riyadh",
+  "address": "Industrial Area",
+  "longitude": 46.6753,
+  "latitude": 24.7136
+}
+```
+
+---
+
+## Update Warehouse
+
+```http id="11wcfh"
+PUT /api/inventory/warehouses/{id}
+```
+
+---
+
+## Delete Warehouse
+
+Soft delete.
+
+```http id="r0kx9d"
+DELETE /api/inventory/warehouses/{id}
+```
+
+---
+
+## Get Warehouse
+
+```http id="sy6b9m"
+GET /api/inventory/warehouses/{id}
+```
+
+---
+
+## List Warehouses
+
+```http id="o5ynh4"
+GET /api/inventory/warehouses
+```
+
+Supports:
+
+* paging
+* filtering
+* search
+
+---
+
+# 2. Batch Endpoints
+
+Base route:
+
+```text id="xxf9q8"
+/api/inventory/batches
+```
+
+---
+
+## Create Batch
+
+```http id="r0b8cg"
+POST /api/inventory/batches
+```
+
+Request:
+
+```json id="uj2hmp"
+{
+  "productId": "...",
+  "productSkuId": "...",
+  "batchNumber": "LOT-2026-001",
+  "manufacturingDate": "2026-01-01",
+  "expiryDate": "2027-01-01"
+}
+```
+
+---
+
+## Update Batch
+
+```http id="yj4ojg"
+PUT /api/inventory/batches/{id}
+```
+
+---
+
+## Get Batch
+
+```http id="q6jsqg"
+GET /api/inventory/batches/{id}
+```
+
+---
+
+## List Product Batches
+
+```http id="y8y1z5"
+GET /api/inventory/products/{productSkuId}/batches
+```
+
+---
+
+# 3. Inventory Aggregate Endpoints
+
+This is the heart of the system.
+
+Base route:
+
+```text id="yu0z97"
+/api/inventory/stocks
+```
+
+---
+
+# IMPORTANT
+
+Inventory should NOT expose direct quantity updates.
+
+Avoid:
+
+```text id="b3j7gz"
+PUT /quantity
+```
+
+Use inventory actions instead.
+
+---
+
+# Opening Stock
+
+```http id="uq5j71"
+POST /api/inventory/stocks/opening
+```
+
+Request:
+
+```json id="e8u34t"
+{
+  "warehouseId": "...",
+  "productId": "...",
+  "productSkuId": "...",
+  "batchId": "...",
+  "quantity": 100
+}
+```
+
+Creates:
+
+* BatchStock
+* InventorySnapshot
+* StockMovement(OPENING)
+
+---
+
+# Stock In
+
+Purchase / supplier return / manual addition.
+
+```http id="l0vylg"
+POST /api/inventory/stocks/in
+```
+
+Request:
+
+```json id="uh6ebk"
+{
+  "warehouseId": "...",
+  "batchId": "...",
+  "quantity": 50,
+  "referenceId": "...",
+  "notes": "Purchase Invoice #1001"
+}
+```
+
+Creates:
+
+* movement IN
+* increase quantity
+
+---
+
+# Stock Out
+
+```http id="0wzbkz"
+POST /api/inventory/stocks/out
+```
+
+Request:
+
+```json id="o0jnh2"
+{
+  "warehouseId": "...",
+  "batchId": "...",
+  "quantity": 20,
+  "referenceId": "...",
+  "notes": "Sales Invoice #501"
+}
+```
+
+---
+
+# Reserve Stock
+
+```http id="n7s4wi"
+POST /api/inventory/stocks/reserve
+```
+
+Request:
+
+```json id="u7m3k6"
+{
+  "warehouseId": "...",
+  "productSkuId": "...",
+  "quantity": 15,
+  "referenceId": "SalesOrderId"
+}
+```
+
+Should:
+
+* reserve FIFO
+* create RESERVATION movements
+
+---
+
+# Release Reservation
+
+```http id="4m4eh6"
+POST /api/inventory/stocks/release
+```
+
+---
+
+# Inventory Adjustment
+
+For stock correction.
+
+```http id="ib6b9o"
+POST /api/inventory/stocks/adjustment
+```
+
+Request:
+
+```json id="6g76hj"
+{
+  "warehouseId": "...",
+  "batchId": "...",
+  "quantity": -5,
+  "reason": "Damaged items"
+}
+```
+
+---
+
+# Inventory Queries
+
+---
+
+## Current Stock
+
+```http id="cjlwm8"
+GET /api/inventory/stocks
+```
+
+Filters:
+
+* warehouse
+* product
+* sku
+* batch
+
+---
+
+## Stock By Warehouse
+
+```http id="5jep9t"
+GET /api/inventory/warehouses/{warehouseId}/stocks
+```
+
+---
+
+## Product Availability
+
+```http id="0cgaj1"
+GET /api/inventory/products/{productSkuId}/availability
+```
+
+Response:
+
+```json id="4dhhjk"
+{
+  "quantity": 100,
+  "reserved": 20,
+  "available": 80
+}
+```
+
+---
+
+## Expiring Batches
+
+```http id="7rj77o"
+GET /api/inventory/batches/expiring
+```
+
+Query:
+
+```text id="hhx38z"
+?days=30
+```
+
+---
+
+# 4. Stock Movement Endpoints
+
+Base route:
+
+```text id="ngff4v"
+/api/inventory/movements
+```
+
+These are query-only.
+
+Movement records should be immutable.
+
+---
+
+## Get Movements
+
+```http id="bfrl9u"
+GET /api/inventory/movements
+```
+
+Supports:
+
+* warehouse
+* product
+* sku
+* batch
+* movement type
+* date range
+
+---
+
+## Get Movement Details
+
+```http id="n6j7vf"
+GET /api/inventory/movements/{id}
+```
+
+---
+
+# 5. Warehouse Transfer Endpoints
+
+Base route:
+
+```text id="d7y4wf"
+/api/inventory/transfers
+```
+
+---
+
+# Create Transfer
+
+```http id="f11cph"
+POST /api/inventory/transfers
+```
+
+Request:
+
+```json id="uz0r0f"
+{
+  "sourceWarehouseId": "...",
+  "destinationWarehouseId": "..."
+}
+```
+
+---
+
+# Add Transfer Item
+
+```http id="a9q0ax"
+POST /api/inventory/transfers/{transferId}/items
+```
+
+Request:
+
+```json id="8mvl2x"
+{
+  "productId": "...",
+  "productSkuId": "...",
+  "batchId": "...",
+  "quantity": 100
+}
+```
+
+---
+
+# Remove Transfer Item
+
+```http id="87clp0"
+DELETE /api/inventory/transfers/{transferId}/items/{itemId}
+```
+
+---
+
+# Ship Transfer
+
+```http id="0zqpr1"
+POST /api/inventory/transfers/{transferId}/ship
+```
+
+Should:
+
+* decrease inventory
+* create TRANSFER_OUT movements
+
+---
+
+# Receive Transfer
+
+```http id="vd0vud"
+POST /api/inventory/transfers/{transferId}/receive
+```
+
+Request:
+
+```json id="e5v6r7"
+{
+  "items": [
+    {
+      "itemId": "...",
+      "quantity": 40
+    }
+  ]
+}
+```
+
+Should:
+
+* increase destination inventory
+* create TRANSFER_IN movements
+
+---
+
+# Cancel Transfer
+
+```http id="5v4s8j"
+POST /api/inventory/transfers/{transferId}/cancel
+```
+
+---
+
+# Get Transfer
+
+```http id="6qv7zq"
+GET /api/inventory/transfers/{id}
+```
+
+---
+
+# List Transfers
+
+```http id="8prxk0"
+GET /api/inventory/transfers
+```
+
+Filters:
+
+* status
+* warehouse
+* date range
+
+---
+
+# Recommended CQRS Structure
+
+You are already close to CQRS.
+
+Use:
+
+```text id="z0i1lq"
+Commands
+Queries
+Handlers
+```
+
+Example:
+
+```text id="g4m9r6"
+CreateWarehouseCommand
+ShipTransferCommand
+ReserveInventoryCommand
+ReceiveTransferCommand
+```
+
+Queries:
+
+```text id="rlw1je"
+GetInventoryQuery
+GetTransferQuery
+GetStockMovementsQuery
+```
+
+Very suitable for your design.
+
+---
+
+# Recommended Internal Flow
+
+Example:
+
+```text id="h27lma"
+API Endpoint
+    ↓
+Command
+    ↓
+Handler
+    ↓
+Aggregate
+    ↓
+Repository
+    ↓
+Domain Events
+```
+
+Excellent fit for your architecture.
+
+---
+
+# Recommended Missing Features
+
+You will eventually need:
+
+---
+
+## Inventory Count Sessions
+
+```text id="qmwj8u"
+Cycle Count
+Stock Count
+Physical Inventory
+```
+
+Endpoints:
+
+```http id="bzv4kp"
+POST /counts
+POST /counts/{id}/start
+POST /counts/{id}/complete
+```
+
+---
+
+## Batch Expiry Actions
+
+```http id="e95ct7"
+POST /inventory/batches/{id}/dispose
+```
+
+---
+
+## Damaged Stock
+
+```http id="gq4g7w"
+POST /inventory/stocks/damage
+```
+
+---
+
+## Inventory Valuation
+
+Later:
+
+* FIFO valuation
+* moving average
+* weighted average
+
+---
+
+# Final Architectural Advice
+
+Your APIs should remain:
+
+## Behavior Driven
+
+GOOD:
+
+```text id="d3mrz8"
+/reserve
+/ship
+/receive
+/adjustment
+```
+
+BAD:
+
+```text id="g86y8m"
+/updateQuantity
+/setReserved
+```
+
+Because inventory is a domain workflow, not CRUD tables.
+
+That distinction is what separates ERP-grade inventory systems from simple stock databases.

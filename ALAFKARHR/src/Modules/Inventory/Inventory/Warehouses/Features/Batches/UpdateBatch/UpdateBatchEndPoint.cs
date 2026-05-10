@@ -20,6 +20,6 @@ public class UpdateBatchEndPoint : ICarterModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("UpdateBatch")
             .WithDescription("UpdateBatch")
-            .RequireAuthorization(PermissionList.InventoryPermissions.Edit);
+            .RequireAuthorization(PermissionList.BatchPermissions.Edit);
     }
 }

@@ -10,7 +10,7 @@ public class TransferItem:Entity<Guid>
     public Guid WarehouseId { get; set; }
     public decimal Quantity { get; private set; }
     public decimal? ReceivedQuantity { get; private set; }
-    public bool IsCompleted { get; private set; } = false;
+    public bool IsCompleted => Quantity == ReceivedQuantity;
 
     public TransferItem(){}
 
@@ -35,7 +35,7 @@ public class TransferItem:Entity<Guid>
             WarehouseId = warehouseId,
             Quantity = quantity,
             ReceivedQuantity = receivedQuantity,
-            IsCompleted = receivedQuantity==quantity,
+            //IsCompleted = receivedQuantity==quantity,
             CreatedAt= DateTime.UtcNow,
             CreatedBy= createdBy
         };
@@ -45,7 +45,7 @@ public class TransferItem:Entity<Guid>
     {
         ReceivedQuantity += quantity;
         ModifiedAt= DateTime.UtcNow;
-        IsCompleted = ReceivedQuantity == Quantity ;
+        //IsCompleted = ReceivedQuantity == Quantity ;
         ModifiedBy = user;
     }
 }

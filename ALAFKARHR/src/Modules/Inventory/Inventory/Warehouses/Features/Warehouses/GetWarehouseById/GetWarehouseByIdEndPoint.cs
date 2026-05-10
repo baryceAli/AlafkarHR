@@ -20,6 +20,7 @@ public class GetWarehouseByIdEndPoint : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Get Warehouse By Id")
-            .WithDescription("Get Warehouse By Id");
+            .WithDescription("Get Warehouse By Id")
+            .RequireAuthorization(PermissionList.WarehousePermissions.View);
     }
 }

@@ -17,6 +17,7 @@ public class RemoveBatchEndPoint : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Remove Batch")
-            .WithDescription("Remove Batch");
+            .WithDescription("Remove Batch")
+            .RequireAuthorization(PermissionList.BatchPermissions.Delete);
     }
 }

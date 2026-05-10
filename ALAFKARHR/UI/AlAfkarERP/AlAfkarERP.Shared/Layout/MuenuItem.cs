@@ -203,22 +203,141 @@ public class MenuItem
         //Inventory
         new MenuItem
         {
-            TextEn = "Inventory",
-            TextAr = "المستودعات",
-            Icon = "bi-box-seam-fill",
-            Url = "/Warehouse/Dashboard",
-            PermissionPolicy = "View.Inventory",
+            TextEn = "Inventory Management",
+            TextAr = "إدارة المخزون",
+            Icon = "bi-boxes",
+            Url = "/Inventory/Dashboard",
+            PermissionPolicy = "Inventory.Management",
             Children = new()
             {
+                new MenuItem
+                {
+                    TextEn = "Warehouses",
+                    TextAr = "المستودعات",
+                    Icon = "bi-building",
+                    Url = "/Inventory/Warehouse/List",
+                    PermissionPolicy = "View.Inventory",
+                },
 
                 new MenuItem
                 {
-                    TextEn = "Inventory Management",
-                    TextAr = "إدارة المخزون",
+                    TextEn = "Current Stock",
+                    TextAr = "المخزون",
                     Icon = "bi-boxes",
-                    Url = "/Warehouse/Inventory/Dashboard",
-                    PermissionPolicy = "Inventory.Management"
-                }
+                    Url = "/Inventory/Dashboard",
+                    PermissionPolicy = "View.Inventory",
+                },
+
+                new MenuItem
+                {
+                    TextEn = "Batches",
+                    TextAr = "الدفعات",
+                    Icon = "bi-upc-scan",
+                    Url = "/Inventory/Batch/List",
+                    PermissionPolicy = "View.Inventory",
+                },
+
+                new MenuItem
+                {
+                    TextEn = "Stock Operations",
+                    TextAr = "عمليات المخزون",
+                    Icon = "bi-arrow-left-right",
+                    Url = "/Inventory/Dashboard",
+                    PermissionPolicy = "View.Inventory",
+
+                    Children = new()
+                    {
+                        new MenuItem
+                        {
+                            TextEn = "Stock In",
+                            TextAr = "مخزون وارد",
+                            Icon = "bi-box-arrow-in-down",
+                            Url = "/Inventory/Dashboard",
+                            PermissionPolicy = "View.Inventory",
+                        },
+
+                        new MenuItem
+                        {
+                            TextEn = "Stock Out",
+                            TextAr = "مخزون صادر",
+                            Icon = "bi-box-arrow-up",
+                            Url = "/Inventory/Dashboard",
+                            PermissionPolicy = "View.Inventory",
+                        },
+
+                        new MenuItem
+                        {
+                            TextEn = "Adjustments",
+                            TextAr = "تسويات",
+                            Icon = "bi-sliders",
+                            Url = "/Inventory/Dashboard",
+                            PermissionPolicy = "View.Inventory",
+                        },
+
+                        new MenuItem
+                        {
+                            TextEn = "Reserve",
+                            TextAr = "حجز مخزون",
+                            Icon = "bi-lock",
+                            Url = "/Inventory/Dashboard",
+                            PermissionPolicy = "View.Inventory",
+                        },
+
+                        new MenuItem
+                        {
+                            TextEn = "Release",
+                            TextAr = "إطلاق مخزون",
+                            Icon = "bi-unlock",
+                            Url = "/Inventory/Dashboard",
+                            PermissionPolicy = "View.Inventory",
+                        },
+                    }
+                },
+
+                new MenuItem
+                {
+                    TextEn = "Transfers",
+                    TextAr = "تحويل المخزون",
+                    Icon = "bi-truck",
+                    Url = "/Inventory/Dashboard",
+                    PermissionPolicy = "View.Inventory",
+                },
+
+                new MenuItem
+                {
+                    TextEn = "Movements",
+                    TextAr = "حركة المخزون",
+                    Icon = "bi-arrow-repeat",
+                    Url = "/Inventory/Dashboard",
+                    PermissionPolicy = "View.Inventory",
+                },
+
+                new MenuItem
+                {
+                    TextEn = "Expiry Tracking",
+                    TextAr = "تتبع تاريخ الانتهاء",
+                    Icon = "bi-calendar-x",
+                    Url = "/Inventory/Dashboard",
+                    PermissionPolicy = "View.Inventory",
+                },
+
+                new MenuItem
+                {
+                    TextEn = "Stock Count",
+                    TextAr = "جرد المخزون",
+                    Icon = "bi-clipboard-check",
+                    Url = "/Inventory/Dashboard",
+                    PermissionPolicy = "View.Inventory",
+                },
+
+                new MenuItem
+                {
+                    TextEn = "Reports",
+                    TextAr = "تقارير",
+                    Icon = "bi-bar-chart",
+                    Url = "/Inventory/Dashboard",
+                    PermissionPolicy = "View.Inventory",
+                },
             }
         },
 

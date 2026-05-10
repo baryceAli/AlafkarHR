@@ -16,6 +16,7 @@ public class CreateBatchEndPoint : ICarterModule
             .Produces<CreateBatchResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("CreateBatch")
-            .WithDescription("CreateBatch");
+            .WithDescription("CreateBatch")
+            .RequireAuthorization(PermissionList.BatchPermissions.Create);
     }
 }

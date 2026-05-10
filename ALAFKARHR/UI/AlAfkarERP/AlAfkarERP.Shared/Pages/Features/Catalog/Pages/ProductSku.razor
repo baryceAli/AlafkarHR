@@ -26,7 +26,7 @@
 @inject ApiConfig ApiConfig
 
 
-@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.Create}"))
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.View}"))
 {
     <div class="alert alert-warning">
         <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>

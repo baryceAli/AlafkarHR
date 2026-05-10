@@ -1,6 +1,6 @@
 ﻿namespace Inventory.Warehouses.Features.Warehouses.GetWarehouses;
 
-public record GetWarehousesQuery(PaginationRequest PaginationRequest) : IQuery<GetWarehousesResult>;
+public record GetWarehousesQuery(Guid CompanyId,PaginationRequest PaginationRequest) : IQuery<GetWarehousesResult>;
 public record GetWarehousesResult(PaginatedResult<WarehouseDto> WarehouseList);
 public class GetWarehousesHandler (InventoryDbContext dbContext) : IQueryHandler<GetWarehousesQuery, GetWarehousesResult>
 {
@@ -8,13 +8,20 @@ public class GetWarehousesHandler (InventoryDbContext dbContext) : IQueryHandler
     {
         var pageIndex= request.PaginationRequest.PageIndex;
         var pageSize= request.PaginationRequest.PageSize;
-        var totalCount = await dbContext.Warehouses
-            .AsNoTracking()
+
+        var query = dbContext.Warehouses.AsNoTracking().AsQueryable();
+        query=query.Where(w=>!w.IsDeleted && w.CompanyId==request.CompanyId);
+        var searchText=request.PaginationRequest.SearchText;
+        if (!string.IsNullOrWhiteSpace( searchText))
+        {
+            query=query.Where(w=> w.Name.ToLower().Contains(searchText.ToLower()));
+        }
+
+        var totalCount = await query
             .LongCountAsync();
 
-        var warehouses= await dbContext.Warehouses
+        var warehouses = await query
             .AsNoTracking()
-            .Where(x=> x.DeletedAt==null)
             .Skip(pageIndex*pageSize)
             .Take(pageSize)
             .OrderBy(x=>x.Name)

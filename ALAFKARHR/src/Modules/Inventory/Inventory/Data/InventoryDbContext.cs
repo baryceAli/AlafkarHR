@@ -2,6 +2,7 @@
 
 namespace Inventory.Data;
 //add-migration InventoryInitial -Project Inventory -StartupProject Api -OutputDir Data/Migrations -Context InventoryDbContext
+//update-database -Project Inventory -StartupProject Api -Context InventoryDbContext
 public class InventoryDbContext:DbContext
 {
     public InventoryDbContext(DbContextOptions<InventoryDbContext> options):base(options)

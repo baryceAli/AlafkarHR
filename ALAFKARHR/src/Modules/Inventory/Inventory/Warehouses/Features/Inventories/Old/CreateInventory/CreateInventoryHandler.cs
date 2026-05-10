@@ -44,7 +44,7 @@ public class CreateInventoryHandler(InventoryDbContext dbContext, IHttpContextAc
             request.Inventory.InitialBatchId,
             userId
             );
-        inventory.AddBatch(batch);
+        inventory.AddBatchStock(batch);
         // Apply stock to aggregate
         inventory.TransferIn(batch.BatchId, request.Inventory.InitialQuantity, userId);
 

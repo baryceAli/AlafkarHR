@@ -10,11 +10,11 @@ public class BatchDto
 
     public Guid Id { get; set; }
 
-    [Required(ErrorMessage = "Product is required")]
+    //[Required(ErrorMessage = "Product is required")]
     public Guid? ProductId { get; set; }
+     
 
-
-    [Required(ErrorMessage = "ProductSku is required")]
+    //[Required(ErrorMessage = "ProductSku is required")]
     public Guid? ProductSkuId { get; set; }
 
 

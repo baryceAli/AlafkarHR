@@ -108,7 +108,7 @@ public class InventoryAggregate : Aggregate<Guid>
         ?? throw new InvalidOperationException($"BatchStock not found: {batchId}");
 
     // Add or remove batch stocks
-    public void AddBatch(BatchStock stock)
+    public void AddBatchStock(BatchStock stock)
     {
         if (stock == null) throw new ArgumentNullException(nameof(stock));
         _batches.Add(stock);

@@ -25,6 +25,7 @@ namespace Inventory.Data.Migrations
                     BatchNumber = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     ManufacturingDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ExpiryDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CompanyId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     LastModified = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -134,6 +135,7 @@ namespace Inventory.Data.Migrations
                     Address = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Longitude = table.Column<double>(type: "float", nullable: false),
                     Latitude = table.Column<double>(type: "float", nullable: false),
+                    CompanyId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     LastModified = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -158,9 +160,9 @@ namespace Inventory.Data.Migrations
                     SourceWarehouseId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     DestinationWarehouseId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ShippedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ReceivedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -204,6 +206,13 @@ namespace Inventory.Data.Migrations
                         principalSchema: "Inventory",
                         principalTable: "BatchStocks",
                         principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_BatchStocks_Batches_BatchId",
+                        column: x => x.BatchId,
+                        principalSchema: "Inventory",
+                        principalTable: "Batches",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_BatchStocks_Inventories_InventoryAggregateId",
                         column: x => x.InventoryAggregateId,
@@ -251,6 +260,12 @@ namespace Inventory.Data.Migrations
                 table: "Batches",
                 columns: new[] { "ProductId", "BatchNumber" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BatchStocks_BatchId",
+                schema: "Inventory",
+                table: "BatchStocks",
+                column: "BatchId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_BatchStocks_BatchStockId",
@@ -306,10 +321,6 @@ namespace Inventory.Data.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Batches",
-                schema: "Inventory");
-
-            migrationBuilder.DropTable(
                 name: "BatchStocks",
                 schema: "Inventory");
 
@@ -327,6 +338,10 @@ namespace Inventory.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "Warehouses",
+                schema: "Inventory");
+
+            migrationBuilder.DropTable(
+                name: "Batches",
                 schema: "Inventory");
 
             migrationBuilder.DropTable(

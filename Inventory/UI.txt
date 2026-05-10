@@ -1,0 +1,805 @@
+UI
+
+Your inventory domain is now strong enough that the UI should follow business workflows, not just database CRUD screens.
+
+A good ERP inventory UI is usually divided into these major areas:
+
+```text id="10u6cw"
+Warehouse Management
+Inventory Operations
+Stock Visibility
+Transfers
+Adjustments
+Batch Tracking
+Inventory Auditing
+Reports
+```
+
+---
+
+# Recommended Inventory UI Structure
+
+---
+
+# 1. Warehouse Management
+
+Menu:
+
+```text id="6k6d2o"
+Inventory → Warehouses
+```
+
+---
+
+## Pages
+
+---
+
+## Warehouse List
+
+Route:
+
+```text id="b21lc4"
+/Inventory/Warehouses
+```
+
+Features:
+
+* search
+* pagination
+* filters
+* active/inactive
+* stock count summary
+
+Columns:
+
+* Name
+* Location
+* Total SKUs
+* Total Quantity
+* Status
+
+Actions:
+
+* Create
+* Edit
+* Delete
+* View Stock
+
+---
+
+## Create/Edit Warehouse
+
+Route:
+
+```text id="bbn62h"
+/Inventory/Warehouses/Create
+/Inventory/Warehouses/Edit/{id}
+```
+
+Fields:
+
+* Name
+* NameEng
+* Location
+* Address
+* Latitude
+* Longitude
+
+---
+
+## Warehouse Details
+
+Route:
+
+```text id="27w4de"
+/Inventory/Warehouses/{id}
+```
+
+Tabs:
+
+* Stock
+* Transfers
+* Movements
+* Batch Expiry
+
+---
+
+# 2. Inventory Dashboard
+
+Menu:
+
+```text id="17r4lq"
+Inventory → Dashboard
+```
+
+This becomes the operational center.
+
+---
+
+## Dashboard Widgets
+
+Show:
+
+* Total Inventory Value
+* Low Stock Items
+* Expiring Batches
+* Reserved Stock
+* Incoming Transfers
+* Outgoing Transfers
+* Top Moving Products
+
+Charts:
+
+* Stock movement trend
+* Warehouse distribution
+* Adjustment trends
+
+---
+
+# 3. Inventory Stock Browser
+
+VERY IMPORTANT PAGE.
+
+Menu:
+
+```text id="0uqf5s"
+Inventory → Current Stock
+```
+
+Route:
+
+```text id="8ab1g3"
+/Inventory/Stocks
+```
+
+This is the most used inventory screen.
+
+---
+
+## Grid Columns
+
+```text id="4z0t54"
+Product
+SKU
+Warehouse
+Batch
+Expiry
+Quantity
+Reserved
+Available
+```
+
+---
+
+## Filters
+
+Critical:
+
+* warehouse
+* product
+* category
+* expired
+* low stock
+* available only
+
+---
+
+## Actions
+
+* Reserve Stock
+* Adjust Stock
+* Transfer
+* View Movements
+* View Batch Details
+
+---
+
+# 4. Batch Management
+
+Menu:
+
+```text id="0hyj0n"
+Inventory → Batches
+```
+
+---
+
+## Batch List
+
+Route:
+
+```text id="9ed1x5"
+/Inventory/Batches
+```
+
+Columns:
+
+* Batch Number
+* Product
+* SKU
+* MFG Date
+* Expiry Date
+* Remaining Days
+* Status
+
+Statuses:
+
+* Valid
+* Expiring Soon
+* Expired
+
+---
+
+## Batch Details
+
+Route:
+
+```text id="lwx6rq"
+/Inventory/Batches/{id}
+```
+
+Tabs:
+
+* Warehouses
+* Stock
+* Movements
+* Transfers
+
+---
+
+# 5. Stock Operations
+
+Menu:
+
+```text id="8hbgzh"
+Inventory → Stock Operations
+```
+
+This section contains operational workflows.
+
+---
+
+# A. Stock In Page
+
+Route:
+
+```text id="7h1hs6"
+/Inventory/Operations/StockIn
+```
+
+Used for:
+
+* purchase receiving
+* supplier returns
+* opening stock
+
+Fields:
+
+* Warehouse
+* Product
+* SKU
+* Batch
+* Quantity
+* Reference
+* Notes
+
+---
+
+# B. Stock Out Page
+
+Route:
+
+```text id="5tv0do"
+/Inventory/Operations/StockOut
+```
+
+Used for:
+
+* sales
+* consumption
+* damaged stock
+
+---
+
+# C. Stock Adjustment
+
+VERY IMPORTANT ERP SCREEN.
+
+Route:
+
+```text id="j32s45"
+/Inventory/Operations/Adjustment
+```
+
+Adjustment Types:
+
+* Increase
+* Decrease
+
+Reasons:
+
+* Damaged
+* Missing
+* Counting variance
+* Expired
+
+---
+
+# D. Reservation Page
+
+Route:
+
+```text id="6dihk4"
+/Inventory/Operations/Reserve
+```
+
+Used by:
+
+* sales orders
+* manufacturing allocations
+
+Features:
+
+* FIFO preview
+* selected batches
+* available stock
+
+---
+
+# E. Release Reservation
+
+Route:
+
+```text id="y5umjf"
+/Inventory/Operations/Release
+```
+
+---
+
+# 6. Warehouse Transfers
+
+This is a major module.
+
+Menu:
+
+```text id="eh74pq"
+Inventory → Transfers
+```
+
+---
+
+# Transfer List
+
+Route:
+
+```text id="3xd7kr"
+/Inventory/Transfers
+```
+
+Columns:
+
+* Transfer Number
+* Source Warehouse
+* Destination Warehouse
+* Status
+* Created Date
+* Shipped Date
+* Received Date
+
+Filters:
+
+* Pending
+* Shipped
+* Partially Received
+* Completed
+* Cancelled
+
+---
+
+# Create Transfer
+
+Route:
+
+```text id="zvf7jv"
+/Inventory/Transfers/Create
+```
+
+Workflow:
+
+1. Select source warehouse
+2. Select destination warehouse
+3. Add items
+4. Validate availability
+5. Save
+
+---
+
+# Transfer Details
+
+CRITICAL PAGE.
+
+Route:
+
+```text id="wq5n4d"
+/Inventory/Transfers/{id}
+```
+
+Sections:
+
+* Header
+* Items grid
+* Shipment status
+* Receiving progress
+
+Actions:
+
+* Ship
+* Receive
+* Cancel
+* Print
+
+---
+
+# Receive Transfer Screen
+
+Route:
+
+```text id="jlwmkz"
+/Inventory/Transfers/{id}/Receive
+```
+
+Features:
+
+* partial receive
+* damaged quantities
+* receive remaining
+* scan barcode
+
+Columns:
+
+* Item
+* Sent Qty
+* Received Qty
+* Remaining Qty
+* Receive Now
+
+---
+
+# 7. Stock Movements Ledger
+
+VERY IMPORTANT.
+
+Menu:
+
+```text id="bbq94t"
+Inventory → Movements
+```
+
+Route:
+
+```text id="ghmjlwm"
+/Inventory/Movements
+```
+
+This is your inventory audit trail.
+
+---
+
+## Grid Columns
+
+```text id="bbtz6t"
+Date
+Product
+Warehouse
+Batch
+Movement Type
+Direction
+Quantity
+Reference
+User
+```
+
+---
+
+## Filters
+
+Critical:
+
+* date range
+* movement type
+* warehouse
+* product
+* reference
+
+---
+
+# 8. Expiry Management
+
+Menu:
+
+```text id="uvt3vt"
+Inventory → Expiry Tracking
+```
+
+Route:
+
+```text id="g2bxvm"
+/Inventory/Expiry
+```
+
+Sections:
+
+* expired batches
+* expiring soon
+* near expiry stock
+
+Filters:
+
+* 30 days
+* 60 days
+* 90 days
+
+Actions:
+
+* dispose
+* transfer
+* adjust
+
+Very important for:
+
+* pharma
+* food
+* cosmetics
+
+---
+
+# 9. Inventory Counting
+
+You WILL eventually need this.
+
+Menu:
+
+```text id="kr3cdi"
+Inventory → Stock Count
+```
+
+---
+
+# Count Session List
+
+Route:
+
+```text id="5n7wh4"
+/Inventory/Counts
+```
+
+---
+
+# Create Count Session
+
+Route:
+
+```text id="6sv09l"
+/Inventory/Counts/Create
+```
+
+Features:
+
+* warehouse
+* products
+* categories
+
+---
+
+# Counting Screen
+
+Route:
+
+```text id="d0e6jc"
+/Inventory/Counts/{id}
+```
+
+Supports:
+
+* barcode scanning
+* counted qty
+* variance calculation
+
+---
+
+# Variance Approval
+
+Route:
+
+```text id="61hcm7"
+/Inventory/Counts/{id}/Variance
+```
+
+---
+
+# 10. Inventory Reports
+
+Menu:
+
+```text id="3p2iy7"
+Inventory → Reports
+```
+
+---
+
+# Recommended Reports
+
+---
+
+## Stock Balance Report
+
+```text id="owv94f"
+Current stock by warehouse/product
+```
+
+---
+
+## Stock Ledger Report
+
+```text id="8y5k67"
+Movement history
+```
+
+---
+
+## Batch Expiry Report
+
+```text id="lm2xzy"
+Expiring batches
+```
+
+---
+
+## Inventory Valuation
+
+Future:
+
+* FIFO valuation
+* weighted average
+
+---
+
+## Transfer Report
+
+```text id="rjlwmq"
+Transfer history
+```
+
+---
+
+# 11. Barcode / Scanner UI
+
+Very important later.
+
+Features:
+
+* scan product
+* scan batch
+* receive by scanner
+* count by scanner
+
+Especially useful in:
+
+* MAUI app
+* Android handheld terminals
+
+---
+
+# Recommended Navigation Tree
+
+```text id="1jlwm0"
+Inventory
+│
+├── Dashboard
+├── Warehouses
+├── Current Stock
+├── Batches
+├── Stock Operations
+│   ├── Stock In
+│   ├── Stock Out
+│   ├── Adjustments
+│   ├── Reserve
+│   └── Release
+├── Transfers
+├── Movements
+├── Expiry Tracking
+├── Stock Count
+└── Reports
+```
+
+---
+
+# Most Important Screens
+
+If building incrementally, prioritize in this order:
+
+---
+
+# Phase 1 (Core Operations)
+
+Build first:
+
+1. Warehouses
+2. Current Stock
+3. Stock In
+4. Stock Out
+5. Transfers
+6. Movements
+
+This gives a usable ERP inventory module.
+
+---
+
+# Phase 2 (Operational Maturity)
+
+Add:
+
+* reservations
+* adjustments
+* batch expiry
+* partial receiving
+
+---
+
+# Phase 3 (Enterprise)
+
+Add:
+
+* stock counting
+* barcode scanning
+* valuation
+* dashboards
+* analytics
+
+---
+
+# IMPORTANT UX Advice
+
+Inventory systems become unusable if:
+
+* too many popup dialogs
+* too many navigation steps
+* slow grids
+* poor filtering
+
+Your grids must support:
+
+* server-side paging
+* fast search
+* filtering
+* export
+* keyboard navigation
+
+Especially:
+
+```text id="g8go9v"
+Current Stock
+Movements
+Transfers
+```
+
+These pages become huge in real ERP systems.
+
+---
+
+# Final Verdict
+
+Your domain model is mature enough to support:
+
+✅ warehouse operations
+✅ ERP inventory
+✅ batch tracking
+✅ transfer workflow
+✅ reservation system
+✅ audit trail
+✅ enterprise scalability
+
+You are no longer building "simple stock CRUD".
+
+You are building a real ERP inventory subsystem.

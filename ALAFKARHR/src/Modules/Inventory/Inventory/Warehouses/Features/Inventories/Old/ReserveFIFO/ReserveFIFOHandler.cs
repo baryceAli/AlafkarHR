@@ -24,7 +24,7 @@ public class ReserveFIFOHandler(InventoryDbContext dbContext, IHttpContextAccess
 
         var userId = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-        var allocations = inventory.ReserveFIFO(request.Quantity, request.BatchExpiries, userId);
+        var allocations = inventory.ReserveFIFO(request.Quantity,  userId);
 
         // map to InventoryReserve DTO
         var resultAllocations = allocations

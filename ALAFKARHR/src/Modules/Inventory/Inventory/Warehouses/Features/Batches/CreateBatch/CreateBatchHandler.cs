@@ -34,7 +34,7 @@ public class CreateBatchHandler (InventoryDbContext dbContext, IHttpContextAcces
         var batch = Batch.Create(Guid.NewGuid(),
                         //request.Batch.WarehouseId,
                         request.Batch.ProductId,
-                        request.Batch.ProductId,
+                        request.Batch.ProductSkuId,
                         request.Batch.BatchNumber,
                         request.Batch.ManufacturingDate,
                         request.Batch.ExpiryDate,

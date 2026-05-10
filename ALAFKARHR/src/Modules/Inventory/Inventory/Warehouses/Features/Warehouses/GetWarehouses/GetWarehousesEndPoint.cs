@@ -6,9 +6,9 @@
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapGet("/api/v1/inventory/warehouses", async ([AsParameters] PaginationRequest paginationRequest, ISender sender) =>
+            app.MapGet("/api/v1/inventory/warehouses/company/{companyId}", async ([FromRoute]Guid companyId,[AsParameters] PaginationRequest paginationRequest, ISender sender) =>
             {
-                var result = await sender.Send(new GetWarehousesQuery(paginationRequest));
+                var result = await sender.Send(new GetWarehousesQuery(companyId,paginationRequest));
                 var response = new GetWarehousesResponse(result.WarehouseList);
                 return Results.Ok(response);
             })
@@ -16,7 +16,8 @@
                 .Produces<GetWarehousesResponse>(StatusCodes.Status200OK)
                 .ProducesProblem(StatusCodes.Status400BadRequest)
                 .WithSummary("Get Warehouses")
-                .WithDescription("Get Warehouses");
+                .WithDescription("Get Warehouses")
+                .RequireAuthorization(PermissionList.WarehousePermissions.View);
         }
     }
 }

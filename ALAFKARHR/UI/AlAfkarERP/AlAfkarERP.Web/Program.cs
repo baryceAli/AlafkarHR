@@ -3,6 +3,7 @@ using AlAfkarERP.Shared.Pages.Features.Auth.Services;
 using AlAfkarERP.Shared.Pages.Features.Catalog.Services;
 using AlAfkarERP.Shared.Pages.Features.Company.Services;
 using AlAfkarERP.Shared.Pages.Features.Employees.Services;
+using AlAfkarERP.Shared.Pages.Features.Inventories.Services;
 using AlAfkarERP.Shared.Pages.Reuable2;
 using AlAfkarERP.Shared.Utilities;
 using AlAfkarERP.Web.Components;
@@ -164,6 +165,22 @@ builder.Services.AddHttpClient<IPackageService, PackageService>(client =>
 
 #endregion Catalog Module Services
 
+#region Inventory
+builder.Services.AddScoped<IWarehouseService, WarehouseService>();
+builder.Services.AddHttpClient<IWarehouseService, WarehouseService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+
+builder.Services.AddScoped<IBatchService, BatchService>();
+builder.Services.AddHttpClient<IBatchService, BatchService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+
+#endregion Inventory
 
 var app = builder.Build();
 

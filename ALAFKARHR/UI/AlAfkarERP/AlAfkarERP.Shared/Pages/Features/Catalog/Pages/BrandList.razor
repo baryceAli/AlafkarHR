@@ -19,7 +19,7 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Create}"))
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.View}"))
 {
     <div class="alert alert-warning">
         <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
