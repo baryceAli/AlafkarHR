@@ -1,5 +1,3 @@
-using Inventory.Warehouses.Enums;
-
 namespace Inventory.Warehouses.Features.Inventories.RemoveBatch;
 
 public record RemoveInventoryBatchCommand(RemoveBatchStockDto RemoveBatch) : ICommand<RemoveInventoryBatchResult>;
@@ -25,12 +23,16 @@ public class RemoveInventoryBatchHandler(InventoryDbContext dbContext, IHttpCont
             request.RemoveBatch.BatchId,
             inventory.ProductId,
             inventory.ProductSkuId,
-            batch.Quantity,
-            inventory.Id,
-            DateTime.UtcNow,
-            MovementType.REMOVAL,
+            inventory.TotalQuantity,//should be quantity before 
+            inventory.TotalQuantity,
+            0,//reservationBefore
+            0,//reservationAfter
+            "inventory.Id",//referenceNumber
+            "",//source document
+            //DateTime.UtcNow,
+            MovementType.AdjustmentDecrease,
             MovementDirection.OUT,
-            MovementCategory.Adjustment,
+            //MovementCategory.Adjustment,
             userId,
             request.RemoveBatch.Notes
             );

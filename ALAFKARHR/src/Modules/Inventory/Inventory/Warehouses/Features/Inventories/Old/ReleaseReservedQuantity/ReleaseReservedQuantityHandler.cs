@@ -1,16 +1,14 @@
-﻿using Inventory.Warehouses.Enums;
-
-namespace Inventory.Warehouses.Features.Inventories.ReleaseReservedQuantity;
+﻿namespace Inventory.Warehouses.Features.Inventories.ReleaseReservedQuantity;
 
 public record ReleaseReservedQuantityCommand(ReleaseQuantityDto ReleaseQuantity) : ICommand<ReleaseReservedQuantityResult>;
 public record ReleaseReservedQuantityResult(bool IsSuccess);
-public class ReleaseReservedQuantityHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor) 
+public class ReleaseReservedQuantityHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor)
     : ICommandHandler<ReleaseReservedQuantityCommand, ReleaseReservedQuantityResult>
 {
     public async Task<ReleaseReservedQuantityResult> Handle(ReleaseReservedQuantityCommand request, CancellationToken cancellationToken)
     {
         var inventory = await dbContext.Inventories.Include("_batches")
-            .FirstOrDefaultAsync(x => 
+            .FirstOrDefaultAsync(x =>
                 x.Id == request.ReleaseQuantity.InventoryId
                 );
 
@@ -22,38 +20,42 @@ public class ReleaseReservedQuantityHandler(InventoryDbContext dbContext, IHttpC
           .FindFirst(ClaimTypes.NameIdentifier)?
           .Value
           ?? throw new UnauthorizedAccessException("User not authenticated");
-        
-        var batch= inventory.FindBatch(request.ReleaseQuantity.BatchId);
+
+        var batch = inventory.FindBatch(request.ReleaseQuantity.BatchId);
         inventory.Release(request.ReleaseQuantity.BatchId, request.ReleaseQuantity.quantity, userId);
 
         // movement
-        var movement = StockMovement.Create(Guid.NewGuid(), 
-                inventory.WarehouseId, 
+        var movement = StockMovement.Create(Guid.NewGuid(),
+                inventory.WarehouseId,
                 request.ReleaseQuantity.BatchId,
                 inventory.ProductId,
-                inventory.ProductSkuId, 
-                request.ReleaseQuantity.quantity,
-                inventory.Id,
-                DateTime.UtcNow,
-                MovementType.RELEASE, 
+                inventory.ProductSkuId,
+                inventory.TotalQuantity,//should be quantity before 
+                inventory.TotalQuantity,
+                0,//reservationBefore
+                0,//reservationAfter
+                "inventory.Id",//referenceNumber
+                "",//source document
+                //DateTime.UtcNow,
+                MovementType.RelseaseAmount,
                 MovementDirection.NONE,
-                MovementCategory.Reservation,
-                userId, 
+                //MovementCategory.Reservation,
+                userId,
                 "Released quantity");
         await dbContext.AddAsync(movement);
 
         //snapshot
 
-        var snapshot=await dbContext.InventorySnapshots
-            .FirstOrDefaultAsync(x=> 
+        var snapshot = await dbContext.InventorySnapshots
+            .FirstOrDefaultAsync(x =>
                 x.BatchId == request.ReleaseQuantity.BatchId
-                && x.WarehouseId==request.ReleaseQuantity.WarehouseId
-                && x.ProductSkuId==inventory.ProductSkuId);
+                && x.WarehouseId == request.ReleaseQuantity.WarehouseId
+                && x.ProductSkuId == inventory.ProductSkuId);
 
         if (snapshot == null)
             throw new InvalidOperationException("Snapshot not found");
 
-        snapshot.Release(request.ReleaseQuantity.quantity, userId); 
+        snapshot.Release(request.ReleaseQuantity.quantity, userId);
 
 
         await dbContext.SaveChangesAsync(cancellationToken);

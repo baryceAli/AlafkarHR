@@ -1,4 +1,4 @@
-﻿namespace Inventory.Warehouses.Enums;
+﻿namespace SharedWithUI.Inventory.Enums;
 
 public enum TransferStatus
 {

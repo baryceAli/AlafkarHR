@@ -1,4 +1,4 @@
-﻿using Inventory.Warehouses.Enums;
+﻿using SharedWithUI.Inventory.Enums;
 
 namespace Inventory.Warehouses.Features.Inventories.CreateInventory;
 
@@ -44,6 +44,8 @@ public class CreateInventoryHandler(InventoryDbContext dbContext, IHttpContextAc
             request.Inventory.InitialBatchId,
             userId
             );
+        decimal quantityBefore = inventory.TotalQuantity;
+        decimal reservationBefore = inventory.TotalReserved;
         inventory.AddBatchStock(batch);
         // Apply stock to aggregate
         inventory.TransferIn(batch.BatchId, request.Inventory.InitialQuantity, userId);
@@ -53,13 +55,18 @@ public class CreateInventoryHandler(InventoryDbContext dbContext, IHttpContextAc
             request.Inventory.InitialBatchId,
             request.Inventory.ProductId.Value,
             request.Inventory.ProductSkuId.Value,
-            request.Inventory.InitialQuantity, 
-            inventory.Id, 
-            DateTime.UtcNow,
-            MovementType.OPENING,
+            quantityBefore,//should be quantity before 
+            inventory.TotalQuantity,
+            reservationBefore,//reservationBefore
+            inventory.TotalReserved,//reservationAfter
+            "inventory.Id",//referenceNumber
+            
+            "",//source document
+            //DateTime.UtcNow,
+            MovementType.OpeningBalance,
             MovementDirection.IN,
-            MovementCategory.Physical,
-            userId, 
+            //MovementCategory.Physical,
+            userId,
             "New Inventory Created");
 
         var inventorySnapshot = InventorySnapshot.Create(Guid.NewGuid(),

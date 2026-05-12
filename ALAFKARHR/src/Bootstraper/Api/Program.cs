@@ -2,6 +2,7 @@ using Auth;
 using Carter;
 using Catalog;
 using EmployeeModule;
+using GeneralSettings;
 using Inventory;
 using Organization;
 using Shared.Exceptions.Handler;
@@ -27,14 +28,15 @@ var organizationAssembly = typeof(OrganizationModule).Assembly;
 var employeeAssembly = typeof(EmployeesModule).Assembly;
 var catalogAssembly = typeof(CatalogModule).Assembly;
 var inventoryAssembly = typeof(InventoryModule).Assembly;
-
+var generalSettingsAssembly = typeof(GeneralSettingsModule).Assembly;
 
 builder.Services.AddCarterWithAssemblies(
                         authAssembly,
                         organizationAssembly,
                         employeeAssembly,
                         catalogAssembly,
-                        inventoryAssembly);
+                        inventoryAssembly,
+                        generalSettingsAssembly);
 //catalogAssembly,
 //basketAssembly,
 //inventoryAssembly);
@@ -44,7 +46,8 @@ builder.Services.AddMediatRWithAssemblies(
                         organizationAssembly,
                         employeeAssembly,
                         catalogAssembly,
-                        inventoryAssembly);
+                        inventoryAssembly,
+                        generalSettingsAssembly);
 //catalogAssembly,
 //basketAssembly,
 //inventoryAssembly);
@@ -58,7 +61,8 @@ builder.Services
         .AddOrganizationModule(builder.Configuration)
         .AddEmployeeModule(builder.Configuration)
         .AddCatalogModule(builder.Configuration)
-        .AddInventoryModule(builder.Configuration);
+        .AddInventoryModule(builder.Configuration)
+        .AddGeneralSettingsModule(builder.Configuration);
 #endregion
 
 
@@ -83,7 +87,8 @@ app
     .UseOrganizationModule(app.Environment)
     .UseEmployeeModule(app.Environment)
     .UseCatalogModule(app.Environment)
-    .UseInventoryModule(app.Environment);
+    .UseInventoryModule(app.Environment)
+    .UseGeneralSettingsModule(app.Environment);
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())

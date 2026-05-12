@@ -13,8 +13,8 @@ public class BatchStock : Entity<Guid>
 
     public decimal Available => Quantity - ReservedQuantity;
 
-    private readonly List<BatchStock> _stocks = new();
-    public IReadOnlyList<BatchStock> Stocks => _stocks;
+    //private readonly List<BatchStock> _stocks = new();
+    //public IReadOnlyList<BatchStock> Stocks => _stocks;
     private BatchStock() { }
 
     public static BatchStock Created(Guid id,

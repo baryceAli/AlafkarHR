@@ -252,7 +252,7 @@ public class MenuItem
                             TextEn = "Stock In",
                             TextAr = "مخزون وارد",
                             Icon = "bi-box-arrow-in-down",
-                            Url = "/Inventory/Dashboard",
+                            Url = "/Inventory/Operations/StockIn",
                             PermissionPolicy = "View.Inventory",
                         },
 
@@ -261,7 +261,7 @@ public class MenuItem
                             TextEn = "Stock Out",
                             TextAr = "مخزون صادر",
                             Icon = "bi-box-arrow-up",
-                            Url = "/Inventory/Dashboard",
+                            Url = "/Inventory/Operations/StockOut",
                             PermissionPolicy = "View.Inventory",
                         },
 

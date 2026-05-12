@@ -1,6 +1,4 @@
-﻿using Inventory.Warehouses.Enums;
-using Microsoft.IdentityModel.Tokens;
-using Shared.DDD;
+﻿using Shared.DDD;
 
 public class WarehouseTransfer : Aggregate<Guid>
 {

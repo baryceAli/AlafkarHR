@@ -1,7 +1,4 @@
-﻿
-//using Inventory.Warehouses.Features.Inventories.ReleaseReservedQuantity;
-
-using Inventory.Warehouses.Enums;
+﻿//using Inventory.Warehouses.Features.Inventories.ReleaseReservedQuantity;
 
 namespace Inventory.Warehouses.Features.Inventories.ReserveQuantity;
 
@@ -37,12 +34,16 @@ public class ReserveQuantityHandler(InventoryDbContext dbContext, IHttpContextAc
                 request.ReserveQuantity.batchId,
                 inventory.ProductId,
                 inventory.ProductSkuId,
-                request.ReserveQuantity.quantity,
-                inventory.Id,
-                DateTime.UtcNow,
-                MovementType.RELEASE,
+                inventory.TotalQuantity,//should be quantity before 
+                inventory.TotalQuantity,
+                0,//reservationBefore
+                0,//reservationAfter
+                "inventory.Id",//referenceNumber
+                "",//source document
+                //DateTime.UtcNow,
+                MovementType.RelseaseAmount,
                 MovementDirection.NONE,
-                MovementCategory.Reservation,
+                //MovementCategory.Reservation,
                 userId,
                 "Reserve quantity");
         await dbContext.AddAsync(movement);

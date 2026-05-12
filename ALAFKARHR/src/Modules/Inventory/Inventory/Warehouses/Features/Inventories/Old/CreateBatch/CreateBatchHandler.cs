@@ -1,5 +1,3 @@
-using Inventory.Warehouses.Enums;
-
 namespace Inventory.Warehouses.Features.Inventories.Create;
 
 public record CreateBatchCommand(CreateBatchDto Batch) : ICommand<CreateBatchResult>;

@@ -1,5 +1,4 @@
-﻿using Inventory.Warehouses.Enums;
-using Shared.DDD;
+﻿using Shared.DDD;
 
 namespace Inventory.Warehouses.Models;
 
@@ -10,12 +9,29 @@ public class StockMovement : Entity<Guid>
     public Guid WarehouseId { get; private set; }
     public Guid BatchId { get; private set; }
     public MovementType MovementType { get; private set; }
-    public Guid ReferenceId { get; private set; }
-    public decimal Quantity { get; private set; }
-    public DateTime MovementDate { get; private set; }
+
+    public string ReferenceNumber { get; private set; }
+    public string SourceDocumentType { get; private set; }
+
+    public decimal QuantityBefore { get; private set; }
+
+    public decimal QuantityAfter { get; private set; }
+    //public decimal Quantity { get; private set; }
+    public decimal ReservedBefore { get; private set; }
+    public decimal ReservedAfter { get; private set; }
+    public decimal UnitCost{ get; set; }
+    public decimal TotalCost { get; set; }
+    public Guid Currency { get; set; }
+    
     public string Notes { get; private set; } = string.Empty;
     public MovementDirection MovementDirection { get; private set; }
-    public MovementCategory MovementCategory { get; private set; }
+    //public MovementCategory MovementCategory { get; private set; }
+
+
+
+    
+    
+
     private StockMovement() { }
 
     public static StockMovement Create(
@@ -24,19 +40,25 @@ public class StockMovement : Entity<Guid>
         Guid batchId,
         Guid productId,
         Guid productSkuId,
-        decimal quantity,
-        Guid referenceId,
-        DateTime movementDate,
+        decimal quantityBefore,
+        decimal quantityAfter,
+        //decimal quantity,
+        decimal reservedBefore,
+        decimal reservedAfter,
+        string referenceNumber,
+        string sourceDocumentType,
+        //DateTime movementDate,
         MovementType movementType,
         MovementDirection movementDirection,
-        MovementCategory movementCategory,
+        //MovementCategory movementCategory,
         string createdBy,
         string notes = "")
     {
         ArgumentNullException.ThrowIfNull(productSkuId);
         ArgumentNullException.ThrowIfNull(warehouseId);
         ArgumentNullException.ThrowIfNull(batchId);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantityBefore);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantityAfter);
         ArgumentException.ThrowIfNullOrWhiteSpace(createdBy);
 
         return new StockMovement
@@ -46,13 +68,19 @@ public class StockMovement : Entity<Guid>
             WarehouseId = warehouseId,
             BatchId = batchId,
             MovementType = movementType,
-            Quantity = quantity,
-            ReferenceId = referenceId,
-            MovementDate = movementDate,
+            
+            QuantityBefore=quantityBefore, 
+            QuantityAfter=quantityAfter,
+            //Quantity = quantity,
+            ReservedBefore=reservedBefore,
+            ReservedAfter=reservedAfter,
+            ReferenceNumber = referenceNumber,
+            SourceDocumentType= sourceDocumentType,
+            //MovementDate = movementDate,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy,
             MovementDirection = movementDirection,
-            MovementCategory = movementCategory,
+            //MovementCategory = movementCategory,
             Notes = notes
         };
     }
