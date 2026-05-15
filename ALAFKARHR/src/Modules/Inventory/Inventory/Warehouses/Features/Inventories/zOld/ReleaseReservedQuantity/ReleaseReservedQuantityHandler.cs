@@ -34,10 +34,13 @@ public class ReleaseReservedQuantityHandler(InventoryDbContext dbContext, IHttpC
                 inventory.TotalQuantity,
                 0,//reservationBefore
                 0,//reservationAfter
+                0,
+                0,
+                Guid.NewGuid(),
                 "inventory.Id",//referenceNumber
                 "",//source document
                 //DateTime.UtcNow,
-                MovementType.RelseaseAmount,
+                MovementType.ReleaseAmount,
                 MovementDirection.NONE,
                 //MovementCategory.Reservation,
                 userId,

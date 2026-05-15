@@ -15,9 +15,18 @@ public class InventoryAggregate : Aggregate<Guid>
     public decimal TotalReserved => _batches.Sum(x => x.ReservedQuantity);
     public decimal TotalAvailable => TotalQuantity - TotalReserved;
 
+    public Guid CompanyId { get; set; }
     private InventoryAggregate() { }
 
-    public static InventoryAggregate Create(Guid id, Guid productId, Guid productSkuId, Guid warehouseId, string createdBy)
+    public static InventoryAggregate Create(
+        Guid id,
+        Guid productId,
+        Guid productSkuId,
+        Guid warehouseId,
+        Guid batchId,
+        decimal quantity,
+        Guid companyId,
+        string createdBy)
     {
         if (id == Guid.Empty) throw new ArgumentNullException(nameof(id));
         if (productSkuId == Guid.Empty) throw new ArgumentNullException(nameof(productSkuId));
@@ -25,15 +34,22 @@ public class InventoryAggregate : Aggregate<Guid>
         if (warehouseId == Guid.Empty) throw new ArgumentNullException(nameof(warehouseId));
         if (string.IsNullOrWhiteSpace(createdBy)) throw new ArgumentNullException(nameof(createdBy));
 
-        return new InventoryAggregate
+
+
+        var inventory = new InventoryAggregate
         {
             Id = id,
             ProductId = productId,
             ProductSkuId = productSkuId,
             WarehouseId = warehouseId,
+            CompanyId = companyId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
+
+        inventory.StockIn(new BatchStock(batchId, warehouseId, quantity, createdBy));
+
+        return inventory;
     }
 
     // FIFO reservation
@@ -84,7 +100,7 @@ public class InventoryAggregate : Aggregate<Guid>
         batch.Increase(qty, updatedBy);
     }
 
-    public void TransferOut(Guid batchId, decimal qty, string updatedBy)
+    private void TransferOut(Guid batchId, decimal qty, string updatedBy)
     {
         var batch = FindBatch(batchId);
         batch.Decrease(qty, updatedBy);
@@ -103,18 +119,42 @@ public class InventoryAggregate : Aggregate<Guid>
         batch.Release(qty, updatedBy);
     }
 
-    public BatchStock FindBatch(Guid batchId) =>
-        _batches.FirstOrDefault(b => b.BatchId == batchId)
-        ?? throw new InvalidOperationException($"BatchStock not found: {batchId}");
 
     // Add or remove batch stocks
-    public void AddBatchStock(BatchStock stock)
+    public void StockIn(BatchStock stock)
     {
         if (stock == null) throw new ArgumentNullException(nameof(stock));
-        _batches.Add(stock);
+        
+        var batch = _batches.FirstOrDefault(b => b.BatchId == stock.BatchId && b.WarehouseId == stock.WarehouseId);
+        
+        if (batch == null)
+        {
+            _batches.Add(stock);
+        }
+        else
+        {
+            batch.Increase(stock.Quantity, stock.CreatedBy);
+
+        }
+    }
+    public void StockOut(BatchStock stock)
+    {
+        if (stock == null) throw new ArgumentNullException(nameof(stock));
+
+        var batch = _batches.FirstOrDefault(b => b.BatchId == stock.BatchId && b.WarehouseId == stock.WarehouseId);
+
+        if (batch != null)
+        {
+            batch.Decrease(stock.Quantity, stock.ModifiedBy);
+
+        }
+        else
+        {
+            throw new InvalidOperationException($"No stock could be found");
+        }
     }
 
-    public void RemoveBatch(Guid batchId, string deletedBy)
+    public void RemoveBatchStock(Guid batchId, string deletedBy)
     {
         var batch = FindBatch(batchId);
         if (batch.ReservedQuantity > 0)
@@ -122,4 +162,8 @@ public class InventoryAggregate : Aggregate<Guid>
         batch.Remove(deletedBy);
         _batches.Remove(batch);
     }
+    public BatchStock FindBatch(Guid batchId) =>
+        _batches.FirstOrDefault(b => b.BatchId == batchId)
+        ?? throw new InvalidOperationException($"BatchStock not found: {batchId}");
+
 }

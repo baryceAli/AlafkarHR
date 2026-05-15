@@ -16,34 +16,49 @@ public class BatchStock : Entity<Guid>
     //private readonly List<BatchStock> _stocks = new();
     //public IReadOnlyList<BatchStock> Stocks => _stocks;
     private BatchStock() { }
-
-    public static BatchStock Created(Guid id,
+    internal BatchStock(
         Guid batchId,
         Guid warehouseId,
-        //decimal quantity,
+        decimal quantity,
         //decimal reservedQuantity,
         string createdBy)
     {
-
-        ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(batchId);
-        //ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
-        //ArgumentOutOfRangeException.ThrowIfNegative(reservedQuantity);
-
-        //if (quantity < 0 || reservedQuantity < 0 || reservedQuantity > quantity)
-        //throw new InvalidOperationException("Invalid stock quantities");
-
-        return new BatchStock
-        {
-            Id = id,
-            BatchId = batchId,
-            Quantity = 0,
-            ReservedQuantity = 0,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = createdBy
-        };
-
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
+        BatchId = batchId;
+        Quantity = quantity;
+        WarehouseId = warehouseId;
+        ReservedQuantity = 0;
+        CreatedAt = DateTime.UtcNow;
+        CreatedBy = createdBy;
     }
+    //public static BatchStock Created(
+    //    //Guid id,
+    //    Guid batchId,
+    //    Guid warehouseId,
+    //    decimal quantity,
+    //    //decimal reservedQuantity,
+    //    string createdBy)
+    //{
+
+    //    //ArgumentNullException.ThrowIfNull(id);
+    //    ArgumentNullException.ThrowIfNull(batchId);
+    //    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
+    //    //ArgumentOutOfRangeException.ThrowIfNegative(reservedQuantity);
+
+        
+
+    //    return new BatchStock
+    //    {
+    //        //Id = id,
+    //        BatchId = batchId,
+    //        Quantity = quantity,
+    //        ReservedQuantity = 0,
+    //        CreatedAt = DateTime.UtcNow,
+    //        CreatedBy = createdBy
+    //    };
+
+    //}
     public void Update(decimal quantity,
         decimal reservedQuantity,
         string modifiedBy)

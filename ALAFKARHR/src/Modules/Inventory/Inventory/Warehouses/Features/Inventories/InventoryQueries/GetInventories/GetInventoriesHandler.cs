@@ -1,4 +1,4 @@
-﻿namespace Inventory.Warehouses.Features.Inventories.GetInventories;
+﻿namespace Inventory.Warehouses.Features.Inventories.InventoryQueries.GetInventories;
 
 public record GetInventoriesQuery(PaginationRequest PaginationRequest) : IQuery<GetInventoriesResult>;
 public record GetInventoriesResult(PaginatedResult<InventoryAggregateDto> InventoryList);

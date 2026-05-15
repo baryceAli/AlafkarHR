@@ -9,7 +9,8 @@ public class Currency:Aggregate<Guid>
     public string NameEng { get; private set; }
     public decimal Value { get; private set; }
     public string Symbol { get; set; }
-
+    public bool IsDefault { get; set; }
+    public Guid CompanyId { get; set; }
     public static Currency Create(Guid id,string code, string name,string nameEng, decimal value,string symbol, string user)
     {
         return new Currency

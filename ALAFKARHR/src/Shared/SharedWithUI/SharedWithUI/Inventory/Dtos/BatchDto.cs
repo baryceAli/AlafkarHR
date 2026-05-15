@@ -12,11 +12,13 @@ public class BatchDto
 
     //[Required(ErrorMessage = "Product is required")]
     public Guid? ProductId { get; set; }
-     
 
+    public string? ProductName { get; set; }
+    public string? ProductNameEng { get; set; }
     //[Required(ErrorMessage = "ProductSku is required")]
     public Guid? ProductSkuId { get; set; }
-
+    public string? SkuName { get; set; }
+    public string? SkuNameEng { get; set; }
 
     [Required(ErrorMessage = "BatchNumber is required")]
     public string BatchNumber { get; set; }

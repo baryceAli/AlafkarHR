@@ -1,9 +1,7 @@
-﻿namespace Catalog.Products.Features.Products.GetProductByCompany;
+﻿using Catalog.Contracts.Products.Features.GetProductByCompany;
 
-public record GetProductByCompanyQuery(Guid companyId, PaginationRequest PaginationRequest)
-    : IQuery<GetProductByCompanyResult>;
+namespace Catalog.Products.Features.Products.GetProductByCompany;
 
-public record GetProductByCompanyResult(PaginatedResult<ProductDto> ProductList);
 
 public class GetProductByCompanyHandler(CatalogDbContext dbContext)
     : IQueryHandler<GetProductByCompanyQuery, GetProductByCompanyResult>

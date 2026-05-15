@@ -1,4 +1,5 @@
-﻿using Catalog.Products.Features.Products.CreateProduct;
+﻿using Catalog.Contracts.Products.Features.GetProductById;
+using Catalog.Products.Features.Products.CreateProduct;
 using MediatR;
 
 namespace Catalog.Products.Features.Products.GetProductById;

@@ -224,7 +224,7 @@ public class MenuItem
                     TextEn = "Current Stock",
                     TextAr = "المخزون",
                     Icon = "bi-boxes",
-                    Url = "/Inventory/Dashboard",
+                    Url = "/Inventories/List",
                     PermissionPolicy = "View.Inventory",
                 },
 
@@ -270,7 +270,7 @@ public class MenuItem
                             TextEn = "Adjustments",
                             TextAr = "تسويات",
                             Icon = "bi-sliders",
-                            Url = "/Inventory/Dashboard",
+                            Url = "/Inventory/Operations/StockAdjustment",
                             PermissionPolicy = "View.Inventory",
                         },
 
@@ -279,7 +279,7 @@ public class MenuItem
                             TextEn = "Reserve",
                             TextAr = "حجز مخزون",
                             Icon = "bi-lock",
-                            Url = "/Inventory/Dashboard",
+                            Url = "/Inventory/Operations/StockReservation",
                             PermissionPolicy = "View.Inventory",
                         },
 
@@ -288,7 +288,7 @@ public class MenuItem
                             TextEn = "Release",
                             TextAr = "إطلاق مخزون",
                             Icon = "bi-unlock",
-                            Url = "/Inventory/Dashboard",
+                            Url = "/Inventory/Operations/StockRelease",
                             PermissionPolicy = "View.Inventory",
                         },
                     }

@@ -1,7 +1,9 @@
-﻿namespace Catalog.Products.Features.Products.GetProductById;
+﻿using Catalog.Contracts.Products.Features.GetProductById;
 
-public record GetProductByIdQuery(Guid Id) : IQuery<GetProductByIdResult>;
-public record GetProductByIdResult(ProductDto Product);
+namespace Catalog.Products.Features.Products.GetProductById;
+
+//public record GetProductByIdQuery(Guid Id) : IQuery<GetProductByIdResult>;
+//public record GetProductByIdResult(ProductDto Product);
 
 public class GetProductByIdHandler(CatalogDbContext dbContext)
     : IQueryHandler<GetProductByIdQuery, GetProductByIdResult>
@@ -18,7 +20,7 @@ public class GetProductByIdHandler(CatalogDbContext dbContext)
                 //join b in dbContext.Brands on p.Skus equals b.Id
                 //join u in dbContext.Units on p.UnitId equals u.Id
 
-                where p.Id == request.Id 
+                where p.Id == request.ProductId 
 
                 select new ProductDto {
                    Id= p.Id,

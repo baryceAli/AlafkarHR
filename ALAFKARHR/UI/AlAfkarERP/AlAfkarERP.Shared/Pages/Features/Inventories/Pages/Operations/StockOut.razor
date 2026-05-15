@@ -1,0 +1,557 @@
+﻿@layout AdminLayout
+@page "/Inventory/Operations/StockOut"
+
+
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Inventory.Enums
+@using SharedWithUI.Permissions
+
+
+@inject IInventoryService InventoryService
+@inject IWarehouseService WarehouseService
+@inject IBatchService BatchService
+@inject IProductService ProductService
+@inject ICurrencyService CurrencyService
+
+@inject ToastService ToastService
+@inject ModalService ModalService
+@inject LoadingService LoadingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.InventoryPermissions.View}"))
+{
+    <div class="alert alert-warning">
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
+    </div>
+    return;
+}
+
+<!-- Branches -->
+<h5 class="text-black">@SharedDataService.SelectViewLang("Adjustments", "التسويات")</h5>
+
+
+
+<div class="card p-3 mb-3">
+    <div class="mb-3">
+        <div class="row bg-info-subtle p-3">
+            <div class="mb-3 row">
+                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Warehouse", "المستودع")</label>
+                <div class="col-sm-10">
+                    <AutoCompleteComponent TItem="WarehouseDto"
+                                           Items="warehouses"
+                                           Value="selectedWarehouse"
+                                           ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                           PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse","اختر مستودع")"
+                                           ValueChanged="onWarehouseChanged" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
+                <div class="col-sm-10">
+                    <AutoCompleteComponent TItem="ProductDto"
+                                           Items="products"
+                                           Value="selectedProduct"
+                                           ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                           PlaceHolder="@SharedDataService.SelectViewLang("Select product","اختر منتج")"
+                                           ValueChanged="onProductChanged" />
+                </div>
+            </div>
+                                    
+            <div class="mb-3 row">
+                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("SKU", "المنتج المخزني")</label>
+                <div class="col-sm-10">
+                    <AutoCompleteComponent TItem="ProductSkuDto"
+                                           Items="productSkus"
+                                           Value="selectedProductSku"
+                                           ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                           PlaceHolder="@SharedDataService.SelectViewLang("Select product sku","اختر منتج مخزني")"
+                                           ValueChanged="onProductSkuChanged" />
+                </div>
+            </div>
+            <div class="mb-3 row">
+                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Batch", "الدفعة")</label>
+                <div class="col-sm-10">
+                    <AutoCompleteComponent TItem="BatchDto"
+                                           Items="batches"
+                                           Value="selectedBatch"
+                                           ItemText='(p=> p.BatchNumber)'
+                                           PlaceHolder="@SharedDataService.SelectViewLang("Select batch","اختر دفعة")"
+                                           ValueChanged="onBatchChanged" />
+                </div>
+            </div>
+                
+            <div class="mb-3">
+                <button class="btn btn-primary" @onclick="onShow">@SharedDataService.SelectViewLang("Show", "عرض")</button>
+            </div>
+        </div>
+
+        @if (inventory != null && inventory.Id != Guid.Empty)
+        {
+            
+            <EditForm Model="createInventoryAggregateDto" OnValidSubmit="() => SaveInventory(createInventoryAggregateDto)">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                @* <InputHidden @bind-Value="branch.Id"/> *@
+                <div class="row bg-info-subtle p-3">
+                
+                    <div class="mb-3 row">
+                        <label for="inputQuantity" class="col-sm-2 col-form-label">
+                            @SharedDataService.SelectViewLang("Total Quantity", "إجمالي الكمية")
+                        </label>
+                        <div class="col-sm-10">
+                            <InputNumber class="form-control" disabled="true"
+                                         Value="inventory.TotalQuantity"
+                                         TValue="decimal"
+                                         ValueExpression="() => createInventoryAggregateDto.InitialQuantity" />
+                     
+                            @* ValueChanged="OnQuantityChanged" *@
+                            @* <ValidationMessage For="() => createInventoryAggregateDto.InitialQuantity" /> *@
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label for="inputQuantity" class="col-sm-2 col-form-label">
+                            @SharedDataService.SelectViewLang("Reserved Quantity", "الكمية المحجوزة")
+                        </label>
+                        <div class="col-sm-10">
+                            <InputNumber class="form-control" disabled="true"
+                                         Value="inventory.TotalReserved"
+                                         TValue="decimal"
+                                         ValueExpression="() => createInventoryAggregateDto.InitialQuantity" />
+                     
+                            @* ValueChanged="OnQuantityChanged" *@
+                            @* <ValidationMessage For="() => createInventoryAggregateDto.InitialQuantity" /> *@
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label for="inputQuantity" class="col-sm-2 col-form-label">
+                            @SharedDataService.SelectViewLang("Available Quantity", "الكمية المتاحة")
+                        </label>
+                        <div class="col-sm-10">
+                            <InputNumber class="form-control" disabled="true"
+                                         Value="inventory.TotalAvailable"
+                                         TValue="decimal"
+                                         ValueExpression="() => createInventoryAggregateDto.InitialQuantity" />
+                     
+                            @* ValueChanged="OnQuantityChanged" *@
+                            <ValidationMessage For="() => createInventoryAggregateDto.InitialQuantity" />
+                        </div>
+                    </div>
+                
+                    <div class="mb-3 row">
+                        <label for="inputQuantity" class="col-sm-2 col-form-label">
+                            @SharedDataService.SelectViewLang("Adjustment Quantity", "كمية التسوية")
+                        </label>
+                        <div class="col-sm-10">
+                            <InputNumber class="form-control"
+                                         Value="createInventoryAggregateDto.InitialQuantity"
+                                         TValue="decimal"
+                                         ValueChanged="OnQuantityChanged"
+                                         ValueExpression="() => createInventoryAggregateDto.InitialQuantity" />
+                     
+                            @* <ValidationMessage For="() => createInventoryAggregateDto.InitialQuantity" /> *@
+                        </div>
+                    </div>
+                
+                    <div class="mb-3 row">
+                        <label for="inputQuantity" class="col-sm-2 col-form-label">
+                            @SharedDataService.SelectViewLang("Unit Cost", "سعر الوحدة")
+                        </label>
+                        <div class="col-sm-10">
+                            <InputNumber class="form-control"
+                                         Value="createInventoryAggregateDto.UnitCost"
+                                         TValue="decimal"
+                                         ValueChanged="OnUnitCostChanged"
+                                         ValueExpression="() => createInventoryAggregateDto.UnitCost" />
+
+                            <ValidationMessage For="() => createInventoryAggregateDto.UnitCost" />
+                        </div>
+                    </div>
+
+                
+                    <div class="mb-3 row">
+                        <label for="inputQuantity" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Total Cost", "السعر الاجمالي")</label>
+                        <div class="col-sm-10">
+                            <InputNumber class="form-control" disabled="true" @bind-Value="createInventoryAggregateDto.TotalCost" />
+                            <ValidationMessage For="() => createInventoryAggregateDto.TotalCost" />
+                        </div>
+                    </div>
+                
+                    <div class="mb-3 row">
+                        <label class="col-sm-2 col-form-label">
+                            @SharedDataService.SelectViewLang("Adjustment Type", "نوع التسوية")
+                        </label>
+                        <div class="col-sm-10">
+                            <InputSelect class="form-control" @bind-Value="createInventoryAggregateDto.MovementType">
+                                @foreach (var movementType in StockInMovementTypes)
+                                {
+                                    <option value="@movementType">
+                                        @GetMovementTypeDisplay(movementType)
+                                    </option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="() => createInventoryAggregateDto.MovementType" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Currency", "العملة")</label>
+                        <div class="col-sm-10">
+                            <AutoCompleteComponent TItem="CurrencyDto"
+                                                   Items="currencies"
+                                                   Value="selectedCurrency"
+                                                   ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select Currency","اختر العملة")"
+                                                   ValueChanged="onCurrencyChanged" />
+
+                        
+                        </div>
+
+                    </div>
+                
+                    <div class="mb-3 row">
+                        <label for="inputNotes" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Notes", "ملاحظات")</label>
+                        <div class="col-sm-10">
+                            <InputTextArea class="form-control" @bind-Value="createInventoryAggregateDto.Notes" />
+                        </div>
+                    </div>
+
+                    
+                                    
+
+                    <div class="">
+                        <button type="submit" class="btn btn-success btn-sm">Save</button>
+                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                    </div>
+                </div>
+            </EditForm>
+
+        }
+        
+    </div>
+
+</div>
+
+@code {
+
+    private CreateInventoryAggregateDto createInventoryAggregateDto = new CreateInventoryAggregateDto();
+    private InventoryAggregateDto inventory = new InventoryAggregateDto();
+    private List<BatchDto> allBatches = new();
+    private List<BatchDto> batches = new();
+    private BatchDto? selectedBatch;
+
+    private List<ProductDto> products = [];
+    private ProductDto? selectedProduct;
+
+    private List<WarehouseDto> warehouses = [];
+    private WarehouseDto? selectedWarehouse;
+
+    private List<ProductSkuDto> productSkus = [];
+    private ProductSkuDto? selectedProductSku;
+
+    private List<CurrencyDto> currencies = [];
+    private CurrencyDto? selectedCurrency;
+
+    private Guid companyId;
+
+    private AuthenticationState AuthState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (!AuthState.User.Identity.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/login", true);
+
+        }
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+
+        var prodRes = await ProductService.GetByCompanyAsync(companyId, 0, 10000);
+        if (prodRes.IsSuccess)
+        {
+            products = prodRes.Data?.Data?.ToList() ?? [];
+        }
+        var wareRes = await WarehouseService.GetAsync(companyId, 0, 10000);
+        if (wareRes.IsSuccess)
+        {
+            warehouses = wareRes.Data?.Data?.ToList() ?? [];
+        }
+
+        var batchRes = await BatchService.GetAsync(companyId, 0, 10000);
+        if (batchRes.IsSuccess)
+        {
+            allBatches = batchRes.Data?.Data?.ToList() ?? [];
+        }
+
+
+        var curRes = await CurrencyService.GetAsync(companyId, 0, 10000);
+        if (curRes.IsSuccess)
+        {
+            currencies = curRes.Data?.Data?.ToList() ?? [];
+            selectedCurrency = currencies.FirstOrDefault(c => c.IsDefault);
+
+        }
+
+        // createInventoryAggregateDto = new CreateInventoryAggregateDto()
+        // {
+        //     // Id = Guid.NewGuid(),
+        //     CompanyId = companyId,
+        //     InitialQuantity = 0,
+        //     Currency = selectedCurrency?.Id ?? null
+        // };
+
+
+    }
+    async Task onShow()
+    {
+        inventory = new InventoryAggregateDto();
+        if (selectedWarehouse == null || selectedWarehouse.Id == Guid.Empty)
+        {
+            await ModalService.ShowAsync(new ModalOptions
+            {
+                Title = SharedDataService.SelectViewLang("Adjustments", "التسويات"),
+                Message = SharedDataService.SelectViewLang("You should select a warehouse", "يرجى اختيار مستودع"),
+                IsError = true,
+                OnOk = async () => { }
+            });
+            return;
+        }
+
+        if (selectedProductSku == null || selectedProductSku.Id == Guid.Empty)
+        {
+            await ModalService.ShowAsync(new ModalOptions
+            {
+                Title = SharedDataService.SelectViewLang("Adjustments", "التسويات"),
+                Message = SharedDataService.SelectViewLang("You should select a sku", "يرجى اختيار منتج مخزني"),
+                IsError = true,
+                OnOk = async () => { }
+            });
+            return;
+        }
+
+
+        if (selectedBatch == null || selectedBatch.Id == Guid.Empty)
+        {
+            await ModalService.ShowAsync(new ModalOptions
+            {
+                Title = SharedDataService.SelectViewLang("Adjustments", "التسويات"),
+                Message = SharedDataService.SelectViewLang("You should select a batch", "يرجى اختيار دفعة"),
+                IsError = true,
+                OnOk = async () => { }
+            });
+            return;
+        }
+        var invRes = await InventoryService.GetByWarehouseAndSkuAsync(selectedWarehouse.Id, selectedProductSku.Id);
+        if (invRes.IsSuccess)
+        {
+            inventory = invRes.Data;
+            createInventoryAggregateDto = new CreateInventoryAggregateDto
+            {
+
+                WarehouseId = inventory.WarehouseId,
+                ProductId = inventory.ProductId,
+                ProductSkuId = inventory.ProductSkuId,
+                InitialBatchId = selectedBatch.Id,
+                Currency = selectedCurrency.Id,
+                InitialQuantity = 0,
+                MovementType = MovementType.AdjustmentDecrease,
+                TotalCost = 0,
+                UnitCost = selectedProductSku.Price,
+                CompanyId = inventory.CompanyId,
+            };
+        }
+    }
+    async Task SaveInventory(CreateInventoryAggregateDto createInventory)
+    {
+        if (createInventory.InitialQuantity>inventory.TotalAvailable)
+        {
+            await ModalService.ShowAsync(new ModalOptions
+            {
+                Title = SharedDataService.SelectViewLang("Adjustments", "التسويات"),
+                Message = SharedDataService.SelectViewLang("Entered amount is more than available amount", "الكمية المدخلة أكبر من الكمية المتاحة"),
+                IsError = true,
+                OnOk = async () => { }
+            });
+            return;
+        }
+
+        LoadingService.Show();
+        var bResponse = await InventoryService.StockOutAsync(createInventory);
+        if (bResponse.IsSuccess)
+        {
+            //show success
+            ToastService.Show(new ToastMessage
+            {
+                Message = SharedDataService.SelectViewLang("Operation has been done successfully", "تمت العملية بنجاح"),
+                Type = "success"
+            });
+            Reset();
+        }
+        else
+        {
+            LoadingService.Hide();
+            // how fail
+            ToastService.Show(new ToastMessage
+            {
+                Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
+                Type = "error"
+            });
+        }
+
+        LoadingService.Hide();
+
+
+    }
+
+    private void onProductChanged(ProductDto product)
+    {
+        selectedProduct = null;
+        productSkus = [];
+        batches = [];
+        inventory = new InventoryAggregateDto();
+        if (product != null && product.Id != Guid.Empty)
+        {
+
+            selectedProduct = product;
+            createInventoryAggregateDto.ProductId = product.Id;
+            productSkus = product.Skus;
+        }
+    }
+    private void onProductSkuChanged(ProductSkuDto productSku)
+    {
+        selectedProductSku = null;
+        batches = [];
+        inventory = new InventoryAggregateDto();
+        if (productSku != null && productSku.Id != Guid.Empty)
+        {
+            // selectedProduct = productSku;
+            selectedProductSku = productSku;
+            createInventoryAggregateDto.ProductSkuId = productSku.Id;
+            batches = new List<BatchDto>
+            (allBatches.Where(b => b.ProductSkuId == productSku.Id));
+        }
+
+    }
+    private void onWarehouseChanged(WarehouseDto warehouse)
+    {
+        selectedWarehouse = null;
+        inventory = new InventoryAggregateDto();
+        if (warehouse != null && warehouse.Id != Guid.Empty)
+        {
+            selectedWarehouse = warehouse;
+            createInventoryAggregateDto.WarehouseId = warehouse.Id;
+        }
+    }
+    private void onBatchChanged(BatchDto batch)
+    {
+        selectedBatch = null;
+        inventory = new InventoryAggregateDto();
+        if (batch != null && batch.Id != Guid.Empty)
+        {
+            selectedBatch = batch;
+            createInventoryAggregateDto.InitialBatchId = batch.Id;
+        }
+    }
+
+    private void onCurrencyChanged(CurrencyDto currency)
+    {
+        selectedCurrency = null;
+        if (currency != null && currency.Id != Guid.Empty)
+        {
+            selectedCurrency = currency;
+            createInventoryAggregateDto.Currency = currency.Id;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+    private void CancelEdit()
+    {
+        Reset();
+    }
+    private void Reset()
+    {
+        onWarehouseChanged(null);
+        onProductChanged(null);
+        onProductSkuChanged(null);
+        onBatchChanged(null);
+        createInventoryAggregateDto = new CreateInventoryAggregateDto()
+        {
+            // Id = Guid.NewGuid(),
+            CompanyId = companyId,
+            InitialQuantity = 0,
+
+        };
+        createInventoryAggregateDto.CompanyId = companyId;
+
+    }
+    private void OnQuantityChanged(decimal value)
+    {
+        createInventoryAggregateDto.InitialQuantity = value;
+        RecalculateTotalCost();
+    }
+
+    private void OnUnitCostChanged(decimal value)
+    {
+        createInventoryAggregateDto.UnitCost = value;
+        RecalculateTotalCost();
+    }
+
+    private void RecalculateTotalCost()
+    {
+        createInventoryAggregateDto.TotalCost =
+            createInventoryAggregateDto.InitialQuantity * createInventoryAggregateDto.UnitCost;
+        StateHasChanged();
+    }
+    private static readonly List<MovementType> StockInMovementTypes =
+    [
+        // MovementType.CustomerReturn,
+        MovementType.SupplierReturn,
+        MovementType.ProductionOut,
+    ];
+    private string GetMovementTypeDisplay(MovementType movementType)
+    {
+        return movementType switch
+        {
+            MovementType.OpeningBalance => SharedDataService.SelectViewLang("Opening Balance", "الرصيد الافتتاحي"),
+            MovementType.AdjustmentDecrease => SharedDataService.SelectViewLang("Adjustment Decrease", "تسوية بالخفض"),
+            MovementType.AdjustmentIncrease => SharedDataService.SelectViewLang("Adjustment Increase", "تسوية بالزيادة"),
+            MovementType.ProductionIn => SharedDataService.SelectViewLang("Production In", "إنتاج وارد"),
+            MovementType.ProductionOut => SharedDataService.SelectViewLang("Production Out", "إنتاج صادر"),
+            MovementType.ReleaseAmount => SharedDataService.SelectViewLang("Release Amount", "إلغاء حجز كمية"),
+            MovementType.ReserveAmount => SharedDataService.SelectViewLang("Reserve Amount", "حجز كمية"),
+            MovementType.SalesShipment => SharedDataService.SelectViewLang("Sales Shipment", "شحنة مبيعات"),
+            MovementType.CustomerReturn => SharedDataService.SelectViewLang("Customer Return", "إرجاع من العميل"),
+            MovementType.SupplierReturn => SharedDataService.SelectViewLang("Supplier Return", "إرجاع إلى المورد"),
+            MovementType.PurchaseReceipt => SharedDataService.SelectViewLang("Purchase Receipt", "شراء بضاعة"),
+            MovementType.TransferIn => SharedDataService.SelectViewLang("Transfer In", "تحويل وارد"),
+            MovementType.TransferOut => SharedDataService.SelectViewLang("Transfer Out", "تحويل صادر"),
+            _ => movementType.ToString()
+        };
+    }
+
+}

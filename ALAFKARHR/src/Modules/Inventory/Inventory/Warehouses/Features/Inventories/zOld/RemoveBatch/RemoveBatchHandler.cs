@@ -16,7 +16,7 @@ public class RemoveInventoryBatchHandler(InventoryDbContext dbContext, IHttpCont
         var userId = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var batch = inventory.FindBatch(request.RemoveBatch.BatchId);
 
-        inventory.RemoveBatch(request.RemoveBatch.BatchId, userId);
+        inventory.RemoveBatchStock(request.RemoveBatch.BatchId, userId);
         //movement
         var movement = StockMovement.Create(Guid.NewGuid(),
             inventory.WarehouseId,
@@ -27,6 +27,9 @@ public class RemoveInventoryBatchHandler(InventoryDbContext dbContext, IHttpCont
             inventory.TotalQuantity,
             0,//reservationBefore
             0,//reservationAfter
+            0,
+            0,
+            Guid.NewGuid(),
             "inventory.Id",//referenceNumber
             "",//source document
             //DateTime.UtcNow,

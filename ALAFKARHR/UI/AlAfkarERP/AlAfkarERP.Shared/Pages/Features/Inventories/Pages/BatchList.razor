@@ -13,7 +13,6 @@
 
 @inject IBatchService BatchService
 @inject IProductService ProductService
-
 @inject ToastService ToastService
 @inject ModalService ModalService
 
@@ -92,8 +91,16 @@
     <table class="table">
         <thead>
             <tr>
-                <th>@SharedDataService.SelectViewLang("Product", "المنتج")</th>
-                <th>@SharedDataService.SelectViewLang("Product Sku", "المنتج المخزني")</th>
+                <th @onclick='() => Sort(SharedDataService.Language=="Ar"? nameof(BatchDto.ProductName):nameof(BatchDto.ProductNameEng))'>
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                    @SharedDataService.SelectViewLang("Product", "المنتج")
+                </th>
+                @* <th>@SharedDataService.SelectViewLang("Product", "المنتج")</th> *@
+                <th @onclick='() => Sort(SharedDataService.Language=="Ar"? nameof(BatchDto.SkuName):nameof(BatchDto.SkuNameEng))'>
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                    @SharedDataService.SelectViewLang("Product Sku", "المنتج المخزني")
+                </th>
+                @* <th>@SharedDataService.SelectViewLang("Product Sku", "المنتج المخزني")</th> *@
                 <th @onclick="() => Sort(nameof(BatchDto.BatchNumber))">
                     <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
                     @SharedDataService.SelectViewLang("Batch Number", "رقم الدفعة")
@@ -186,16 +193,14 @@
                 
                 <tr>
                     <td>
-                        @SharedDataService.SelectViewLang(products.FirstOrDefault(p => p.Id == batch.ProductId)?.NameEng ?? "",
-                        products.FirstOrDefault(p => p.Id == batch.ProductId)?.Name ?? "")
+                        @SharedDataService.SelectViewLang(batch.ProductNameEng,batch.ProductName)
                     </td>
                     <td>
-                        @SharedDataService.SelectViewLang(products.FirstOrDefault(p => p.Id == batch.ProductId)?.Skus?.FirstOrDefault(sku => sku.Id == batch.ProductSkuId)?.NameEng ?? "",
-                            products.FirstOrDefault(p => p.Id == batch.ProductId)?.Skus.FirstOrDefault(sku => sku.Id == batch.ProductSkuId)?.Name ?? "")
+                        @SharedDataService.SelectViewLang(batch.SkuNameEng,batch.SkuName)
                     </td>
                     <td>@batch.BatchNumber</td>
-                    <td>@batch.ManufacturingDate</td>
-                    <td>@batch.ExpiryDate</td>
+                    <td>@batch.ManufacturingDate.ToString("yyyy/MM/dd")</td>
+                    <td>@batch.ExpiryDate.ToString("yyyy/MM/dd")</td>
                     <td>
                         <button class="btn btn-warning btn-sm"
                                 @onclick="() => EditBatch(batch.Id)"
@@ -235,6 +240,7 @@
 @code {
     private List<BatchDto> batchs = new();
     private List<ProductDto> products = [];
+    // private List<InventoryAggregateDto> inventories = [];
     private ProductDto? selectedProduct;
     private List<ProductSkuDto> productSkus = [];
     private ProductSkuDto? selectedProductSku;
@@ -257,6 +263,11 @@
         {
             products = prodRes.Data?.Data?.ToList() ?? [];
         }
+        // var invRes = await InventoryService.GetByBatchAsync(Guid.Empty, 0, 10000, null);
+        // if (invRes.IsSuccess)
+        // {
+        //     inventories = invRes.Data?.Data?.ToList() ?? [];
+        // }
         await LoadBatch();
         // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
         // if (branchResponse.IsSuccess)
@@ -267,9 +278,14 @@
     // Branch
     void CreateNew()
     {
+        selectedProduct = null;
+        onProductChanged(selectedProduct);
+        selectedProductSku = null;
         var newItem = new BatchDto()
         {
-            Id = Guid.NewGuid()
+            Id = Guid.NewGuid(),
+            ManufacturingDate=DateTime.Now,
+            ExpiryDate=DateTime.Now.AddDays(1)
         };
         newItem.CompanyId = companyId;
         batchs.Insert(0, newItem);
@@ -301,6 +317,7 @@
 
                 }
             });
+            return;
         }
         batch.ProductId = selectedProduct.Id;
         batch.ProductSkuId = selectedProductSku.Id;

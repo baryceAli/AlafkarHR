@@ -93,9 +93,6 @@ namespace Inventory.Data.Migrations
                     b.Property<Guid>("BatchId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("BatchStockId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -139,8 +136,6 @@ namespace Inventory.Data.Migrations
 
                     b.HasIndex("BatchId");
 
-                    b.HasIndex("BatchStockId");
-
                     b.HasIndex("InventoryAggregateId");
 
                     b.ToTable("BatchStocks", "Inventory");
@@ -150,6 +145,9 @@ namespace Inventory.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("CreatedAt")
@@ -268,6 +266,9 @@ namespace Inventory.Data.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("Currency")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
@@ -289,12 +290,6 @@ namespace Inventory.Data.Migrations
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("MovementCategory")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("MovementDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<int>("MovementDirection")
                         .HasColumnType("int");
 
@@ -310,11 +305,31 @@ namespace Inventory.Data.Migrations
                     b.Property<Guid>("ProductSkuId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal>("Quantity")
+                    b.Property<decimal>("QuantityAfter")
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<Guid>("ReferenceId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<decimal>("QuantityBefore")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("ReferenceNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("ReservedAfter")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ReservedBefore")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("SourceDocumentType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid>("WarehouseId")
                         .HasColumnType("uniqueidentifier");
@@ -506,10 +521,6 @@ namespace Inventory.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Inventory.Warehouses.Models.BatchStock", null)
-                        .WithMany("Stocks")
-                        .HasForeignKey("BatchStockId");
-
                     b.HasOne("Inventory.Warehouses.Models.InventoryAggregate", null)
                         .WithMany("Batches")
                         .HasForeignKey("InventoryAggregateId")
@@ -523,11 +534,6 @@ namespace Inventory.Data.Migrations
                     b.HasOne("WarehouseTransfer", null)
                         .WithMany("Items")
                         .HasForeignKey("WarehouseTransferId");
-                });
-
-            modelBuilder.Entity("Inventory.Warehouses.Models.BatchStock", b =>
-                {
-                    b.Navigation("Stocks");
                 });
 
             modelBuilder.Entity("Inventory.Warehouses.Models.InventoryAggregate", b =>

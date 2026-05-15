@@ -1,0 +1,744 @@
+﻿@layout AdminLayout
+@page "/Inventories/List"
+
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Permissions
+
+
+@inject IInventoryService InventoryService
+@inject IWarehouseService WarehouseService
+@inject IBatchService BatchService
+@inject IProductService ProductService
+@inject ToastService ToastService
+@inject ModalService ModalService
+@inject LoadingService LoadingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.InventoryPermissions.View}"))
+{
+    <div class="alert alert-warning">
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
+    </div>
+    return;
+}
+
+<!-- Branches -->
+<h5 class="text-black">@SharedDataService.SelectViewLang("Inventory", "المخزون")</h5>
+
+@* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
+@* 
+    <button class="btn btn-primary mb-3"
+            @onclick="CreateNew"
+            disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.InventoryPermissions.Create}") ? true : false)>
+        <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
+    </button> 
+*@
+
+<div class="card p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <!--
+
+        Export to xls and pdf
+        <div class="d-flex gap-2">
+
+            <button class="btn btn-success btn-sm" @onclick="ExportToExcel">
+                <i class="bi bi-file-earmark-excel"></i> Excel
+            </button>
+
+            <button class="btn btn-danger btn-sm" @onclick="ExportToPdf">
+                <i class="bi bi-file-earmark-pdf"></i> PDF
+            </button>
+
+        </div>
+        -->
+        <!-- 🔍 Search -->
+            <div>
+        @* 
+            <input class="form-control"
+                   placeholder="Search..."
+                   @bind="searchText" />
+        *@
+            @* <input class="form-control"
+                   placeholder="Search..."
+                   @bind="searchText"
+                   @onkeydown="HandleSearchKeyDown" /> *@
+            <input class="form-control"
+                   placeholder="Search..."
+                   @bind="searchText"
+                   @onkeyup="HandleSearch" />
+        </div> 
+        <!--
+
+        🎯 Filter
+        <div class="col-md-3">
+            <select class="form-select" @bind="filterMainBranch">
+                <option value="">All</option>
+                <option value="true">Main Branch</option>
+                <option value="false">Not Main</option>
+            </select>
+        </div>
+        -->
+        <!-- 📄 Page Size -->
+        <div>
+            @* <select class="form-select" @bind="pageSize"> *@
+            <select class="form-select" @onchange="OnPageSizeChanged">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th @onclick='() => Sort(SharedDataService.Language == "Ar" ? nameof(InventoryAggregateDto.WarehouseName) : nameof(InventoryAggregateDto.WarehouseNameEng))'>
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                    @SharedDataService.SelectViewLang("Warehouse", "المستودع")
+                </th>
+
+                <th @onclick='() => Sort(SharedDataService.Language == "Ar" ? nameof(InventoryAggregateDto.ProductName) : nameof(InventoryAggregateDto.ProductNameEng))'>
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                    @SharedDataService.SelectViewLang("Product", "المنتج")
+                </th>
+                <th @onclick='() => Sort(SharedDataService.Language == "Ar" ? nameof(InventoryAggregateDto.ProductSkuName) : nameof(InventoryAggregateDto.ProductSkuNameEng))'>
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                    @SharedDataService.SelectViewLang("Product Sku", "المنتج المخزني")
+                </th>
+                
+                <th @onclick="() => Sort(nameof(InventoryAggregateDto.TotalQuantity))">
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                    @SharedDataService.SelectViewLang("Total Quantity", "إجمالي الكمية")
+                </th>
+                <th @onclick="() => Sort(nameof(InventoryAggregateDto.TotalReserved))">@SharedDataService.SelectViewLang("Total Reserved", "إجمالي المحجوز")</th>
+                <th @onclick="() => Sort(nameof(InventoryAggregateDto.TotalAvailable))">@SharedDataService.SelectViewLang("Total Available", "إجمالي المتاح")</th>
+                @* <th></th> *@
+            </tr>
+        </thead>
+        <tbody>
+            
+            @if (editingInventoryId != null)
+            {
+                var editingItem = inventories.FirstOrDefault(x => x.Id == editingInventoryId);
+                if (editingItem != null)
+                {
+                    <tr>
+                        <td colspan="9">
+                            <EditForm Model="editingItem" OnValidSubmit="() => SaveInventory(editingItem)">
+                                <DataAnnotationsValidator />
+                                <ValidationSummary />
+                                @* <InputHidden @bind-Value="branch.Id"/> *@
+                                <div class="row bg-info-subtle p-3">
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
+                                        <div class="col-sm-10">
+                                            <AutoCompleteComponent TItem="WarehouseDto"
+                                                                   Items="warehouses"
+                                                                   Value="selectedWarehouse"
+                                                                   ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse","اختر مستودع")"
+                                                                   ValueChanged="onWarehouseChanged" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
+                                        <div class="col-sm-10">
+                                            <AutoCompleteComponent TItem="ProductDto"
+                                                                   Items="products"
+                                                                   Value="selectedProduct"
+                                                                   ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select product","اختر منتج")"
+                                                                   ValueChanged="onProductChanged" />
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("SKU", "المنتج المخزني")</label>
+                                        <div class="col-sm-10">
+                                            <AutoCompleteComponent TItem="ProductSkuDto"
+                                                                   Items="productSkus"
+                                                                   Value="selectedProductSku"
+                                                                   ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select product sku","اختر منتج مخزني")"
+                                                                   ValueChanged="onProductSkuChanged" />
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Batch", "الدفعة")</label>
+                                        <div class="col-sm-10">
+                                            <AutoCompleteComponent TItem="BatchDto"
+                                                                   Items="batches"
+                                                                   Value="selectedBatch"
+                                                                   ItemText='(p=> p.BatchNumber)'
+                                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select batch","اختر دفعة")"
+                                                                   ValueChanged="onBatchChanged" />
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3 row">
+                                        <label for="inputQuantity" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Quantity", "الكمية")</label>
+                                        <div class="col-sm-10">
+                                            <InputNumber class="form-control" @bind-Value="editingItem.TotalQuantity" />
+                                            <ValidationMessage For="() => editingItem.TotalQuantity" />
+                                        </div>
+                                    </div>
+
+
+                                    
+                                    
+
+                                    <div class="col">
+                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                    </div>
+                                </div>
+                            </EditForm>
+                        </td>
+                    </tr>
+
+                }
+
+                
+            }
+            
+            @foreach (var inventory in ProcessedInventory.Where(x => x.Id != editingInventoryId))
+            {
+                
+                <tr>
+                    <td>
+                        @SharedDataService.SelectViewLang(inventory.WarehouseNameEng, inventory.WarehouseName)
+                    </td>
+                    <td>
+                        @SharedDataService.SelectViewLang(inventory.ProductNameEng, inventory.ProductName)
+                    </td>
+                    <td>
+                        @SharedDataService.SelectViewLang(inventory.ProductSkuNameEng, inventory.ProductSkuName)
+                    </td>
+                    <td>@inventory.TotalQuantity</td>
+                    <td>@inventory.TotalReserved</td>
+                    <td>@inventory.TotalAvailable</td>
+                    @*
+                    <td>
+                            <button class="btn btn-warning btn-sm"
+                                @onclick="() => EditInventory(inventory.Id)"
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.InventoryPermissions.Edit}"))>
+                            @SharedDataService.SelectViewLang("Edit", "تعديل")
+                        </button>
+                        <button class="btn btn-danger btn-sm"
+                                @onclick="() => DeleteInventory(inventory)"
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.InventoryPermissions.Delete}"))>
+                            @SharedDataService.SelectViewLang("Delete", "حذف")
+                        </button> 
+                    </td>
+                        *@
+                </tr>
+                
+            }
+        </tbody>
+    </table>
+    <div class="d-flex justify-content-end align-items-center mt-3">
+
+        <button class="btn btn-sm btn-secondary"
+                @onclick="PrevPage"
+                disabled="@(pageIndex == 0)">
+            Previous
+        </button>
+
+        @* <span class="mx-3">Page @(pageIndex + 1) of @TotalPages @(TotalPages == 1 ? "" : "Pages")</span> *@
+        <span class="mx-3">
+            Page @(TotalPages == 0 ? 0 : pageIndex + 1) of @TotalPages
+        </span>
+        @* <button class="btn btn-sm btn-secondary"
+                @onclick="NextPage"
+                disabled="@(pageIndex >= TotalPages)">
+            Next
+        </button> *@
+        <button class="btn btn-sm btn-secondary"
+                @onclick="NextPage"
+                disabled="@(pageIndex >= TotalPages - 1)">
+            Next
+        </button>
+    </div>
+</div>
+
+@code {
+    private List<InventoryAggregateDto> inventories = new();
+    private List<BatchDto> allBatches = new();
+    private List<BatchDto> batches = new();
+    private BatchDto? selectedBatch;
+    private List<ProductDto> products = [];
+    private ProductDto? selectedProduct;
+    private List<WarehouseDto> warehouses = [];
+    private WarehouseDto? selectedWarehouse;
+    // private List<InventoryAggregateDto> inventories = [];
+    private List<ProductSkuDto> productSkus = [];
+    private ProductSkuDto? selectedProductSku;
+    private Guid? editingInventoryId;
+    private Guid companyId;
+    private bool isEdit = false;
+    private AuthenticationState AuthState;
+    protected override async Task OnInitializedAsync()
+    {
+
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (!AuthState.User.Identity.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/login", true);
+
+        }
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+
+        LoadingService.Show();
+        var prodRes = await ProductService.GetByCompanyAsync(companyId, 0, 10000);
+        if (prodRes.IsSuccess)
+        {
+            products = prodRes.Data?.Data?.ToList() ?? [];
+        }
+        var wareRes = await WarehouseService.GetAsync(companyId, 0, 10000);
+        if (wareRes.IsSuccess)
+        {
+            warehouses = wareRes.Data?.Data?.ToList() ?? [];
+        }
+
+        var batchRes = await BatchService.GetAsync(companyId, 0, 10000);
+        if (batchRes.IsSuccess)
+        {
+            allBatches = batchRes.Data?.Data?.ToList() ?? [];
+        }
+
+        // var invRes = await InventoryService.GetByBatchAsync(Guid.Empty, 0, 10000, null);
+        // if (invRes.IsSuccess)
+        // {
+        //     inventories = invRes.Data?.Data?.ToList() ?? [];
+        // }
+        await LoadInventory();
+
+        LoadingService.Hide();
+        // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
+        // if (branchResponse.IsSuccess)
+        // {
+        //     branches = branchResponse.Data?.ToList() ?? [];
+        // }
+    }
+    // Branch
+    void CreateNew()
+    {
+        onWarehouseChanged(null);
+        onProductChanged(null);
+        onProductSkuChanged(null);
+        onBatchChanged(null);
+        var newItem = new InventoryAggregateDto()
+        {
+            Id = Guid.NewGuid(),
+            TotalQuantity = 0,
+
+        };
+        newItem.CompanyId = companyId;
+        inventories.Insert(0, newItem);
+        editingInventoryId = newItem.Id;
+        isEdit = false;
+    }
+
+    void EditInventory(Guid id)
+    {
+        editingInventoryId = id;
+        var inventory = inventories.FirstOrDefault(b => b.Id == id);
+        selectedProduct = products.FirstOrDefault(p => p.Id == inventory.ProductId);
+        // onProductChanged(selectedProduct);
+        selectedProductSku = selectedProduct.Skus.FirstOrDefault(sku => sku.Id == inventory.ProductSkuId);
+        batches = new List<BatchDto>(allBatches.Where(b => b.ProductSkuId == inventory.ProductSkuId));
+        selectedBatch = batches.FirstOrDefault(b => inventory.Batches.Any(ib => ib.BatchId == b.Id));
+        isEdit = true;
+        StateHasChanged();
+    }
+    async Task SaveInventory(InventoryAggregateDto inventory)
+    {
+        if (selectedProduct == null || selectedProductSku == null)
+        {
+            await ModalService.ShowAsync(new ModalOptions
+            {
+                Title = SharedDataService.SelectViewLang("Inventory Management", "إدارة المخزون"),
+                IsError = true,
+                Message = SharedDataService.SelectViewLang("You should select product and productSku", "يجب اختيار المنتج والمنتج المخزني"),
+                OnOk = async () =>
+                {
+
+                }
+            });
+            return;
+        }
+        if (selectedBatch == null)
+        {
+            await ModalService.ShowAsync(new ModalOptions
+            {
+                Title = SharedDataService.SelectViewLang("Inventory Management", "إدارة المخزون"),
+                IsError = true,
+                Message = SharedDataService.SelectViewLang("You should select batch", "يجب اختيار الدفعة"),
+                OnOk = async () =>
+                {
+                }
+            });
+            return;
+        }
+        if (selectedWarehouse == null)
+        {
+            await ModalService.ShowAsync(new ModalOptions
+            {
+                Title = SharedDataService.SelectViewLang("Inventory Management", "إدارة المخزون"),
+                IsError = true,
+                Message = SharedDataService.SelectViewLang("You should select warehouse", "يجب اختيار المستودع"),
+                OnOk = async () =>
+                {
+                }
+            });
+            return;
+        }
+        inventory.ProductId = selectedProduct.Id;
+        inventory.ProductSkuId = selectedProductSku.Id;
+        inventory.CompanyId = companyId;
+
+        if (inventory.Id == editingInventoryId && !isEdit)
+        {
+            //Create new
+
+            // Random rnd = new Random();
+            CreateInventoryAggregateDto createInventory = new CreateInventoryAggregateDto
+            {
+                InitialBatchId = selectedBatch.Id,
+                InitialQuantity = inventory.TotalQuantity,
+                WarehouseId = selectedWarehouse.Id,
+                MovementType = SharedWithUI.Inventory.Enums.MovementType.OpeningBalance,
+                CompanyId = companyId,
+                ProductId = selectedProduct.Id,
+                ProductSkuId = selectedProductSku.Id,
+
+            };
+            var bResponse = await InventoryService.StockInAsync(createInventory);
+            if (bResponse.IsSuccess)
+            {
+                //show success
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("Inventory has been created successfully", "تم إضافة المخزون بنجاح"),
+                    Type = "success"
+                });
+
+            }
+            else
+            {
+                // how fail
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
+                    Type = "error"
+                });
+            }
+        }
+        else
+        {
+            // inventory.CompanyId = companyId;
+            // //Edit
+            // UpdateBatchDto ub = new UpdateBatchDto
+            // {
+
+            //     BatchNumber = inventory.BatchNumber,
+            //     ExpiryDate = inventory.ExpiryDate,
+            //     Id = inventory.Id,
+            //     ManufacturingDate = inventory.ManufacturingDate,
+
+
+            // };
+            // var bresponse = await InventoryService.UpdateAsync(ub);
+            // if (bresponse.IsSuccess)
+            // {
+            //     //show success
+            //     ToastService.Show(new ToastMessage
+            //     {
+            //         Message = SharedDataService.SelectViewLang("Batch has been Edited successfully", "تم تعديل الدفعة بنجاح"),
+            //         Type = "success"
+            //     });
+            // }
+            // else
+            // {
+            //     // show
+            //     //
+            //     //
+            //     //
+            //     //   fail
+            //     ToastService.Show(new ToastMessage
+            //     {
+            //         Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
+            //         Type = "error"
+            //     });
+            // }
+        }
+
+        await LoadInventory();
+        // var response = await BranchService.GetByCompanyIdAsync(companyId);
+        // if (response.IsSuccess)
+        // {
+        //     branches = response.Data?.ToList() ?? [];
+        // }
+        editingInventoryId = null;
+    }
+
+    async Task DeleteInventory(InventoryAggregateDto inventory)
+    {
+        // await ModalService.ShowAsync(new ModalOptions
+        // {
+        //     Title = SharedDataService.SelectViewLang("Confirm Delete", "تأكيد عملية الحذف"),
+        //     Message = SharedDataService.SelectViewLang($"Are you sure you want to delete this Batch: {batch.BatchNumber}?", $"هل ترغب فعلا في حذف الدفعة: {batch.BatchNumber}؟"),
+        //     ShowCancel = true,
+        //     OkText = SharedDataService.SelectViewLang("Yes", "نعم"),
+        //     CancelText = SharedDataService.SelectViewLang("No", "لا"),
+
+        //     OnOk = async () =>
+        //     {
+        //         var brResponse = await InventoryService.DeleteAsync(batch.Id);
+        //         if (brResponse.IsSuccess)
+        //         {
+
+        //             ToastService.Show(new ToastMessage
+        //             {
+        //                 Message = SharedDataService.SelectViewLang("Deleted successfully", "تم الحذف بنجاح"),
+        //                 Type = "success"
+        //             });
+
+        //             await LoadBatch();
+
+        //             await InvokeAsync(StateHasChanged);
+        //         }
+        //         else
+        //         {
+        //             ToastService.Show(new ToastMessage
+        //             {
+        //                 Message = SharedDataService.SelectViewLang("Fail to delete the Batch", "فشلت عملية الحذف"),
+        //                 Type = "error"
+        //             });
+        //         }
+
+
+        //     }
+        // });
+
+
+    }
+    async Task CancelEdit()
+    {
+
+
+        //new
+        // branch
+        var item = inventories.FirstOrDefault(x => x.Id == editingInventoryId);
+
+        if (item != null && item.Id != Guid.Empty)
+        {
+            // existing record → keep it
+            await LoadInventory();
+        }
+        else
+        {
+            // new record → remove it
+            inventories.Remove(item);
+        }
+        isEdit = false;
+        editingInventoryId = null;
+    }
+
+    #region Table Helpers
+
+
+    // Searching
+    private string searchText = "";
+
+    // Sorting
+    private string sortColumn = nameof(InventoryAggregateDto.WarehouseName);
+    private bool sortAscending = true;
+
+    // Pagination
+    private int pageSize = 5;
+    private int pageIndex = 0;
+    private async Task LoadInventory()
+    {
+        // var request = new PaginationRequest(pageIndex, pageSize, searchText);
+
+        var response = await InventoryService.GetAsync(companyId, pageIndex, pageSize, searchText);//,searchText);
+
+        if (response.IsSuccess)
+        {
+            // var result = response.Data!.Data;
+
+            // branches = result.Data.ToList();
+            inventories = response.Data?.Data.ToList() ?? [];
+            // TotalPages = (int)response.Data!.Count;
+            TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+    async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        LoadingService.Show();
+        pageSize = int.Parse(e.Value!.ToString()!);
+        pageIndex = 0;
+        await LoadInventory();
+        LoadingService.Hide();
+    }
+    private IEnumerable<InventoryAggregateDto> ProcessedInventory =>
+    inventories
+        // 🔍 Search
+        // .Where(b =>
+        //     string.IsNullOrWhiteSpace(searchText) ||
+        //     (b.WarehouseName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        //     (b.WarehouseNameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        //     (b.ProductName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        //     (b.ProductNameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        //     (b.ProductSkuName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        //     (b.ProductSkuNameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+
+        // )
+
+        // 🎯 Filter
+        // .Where(b =>
+        //     filterMainBranch == null || b.IsMainBranch == filterMainBranch
+        // )
+
+        // 🔃 Sorting
+        .OrderByDynamic(sortColumn, sortAscending);
+
+    // 📄 Pagination
+    // .Skip((pageIndex) * pageSize)
+    // .Take(pageSize);
+
+
+
+    // Filtering example
+    // private bool? filterMainBranch = null;
+    // private long totalCount = 0;
+    private int TotalPages = 1;
+    // private int TotalPages =>
+    // (int)Math.Ceiling(
+    //     totalCount/ (double)pageSize);
+
+    async Task NextPage()
+    {
+        // if (currentPage < TotalPages)
+        //     currentPage++;
+
+        if (pageIndex < TotalPages - 1)
+        {
+            pageIndex++;
+            await LoadInventory();
+            // await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    async Task PrevPage()
+    {
+        // if (pageIndex > 1)
+        //     pageIndex--;
+
+        if (pageIndex > 0)
+        {
+            pageIndex--;
+            await LoadInventory();
+        }
+    }
+
+    void Sort(string column)
+    {
+        if (sortColumn == column)
+            sortAscending = !sortAscending;
+        else
+        {
+            sortColumn = column;
+            sortAscending = true;
+        }
+    }
+    #endregion Table helpers
+
+    private void onProductChanged(ProductDto product)
+    {
+        selectedProduct = null;
+        productSkus = [];
+        batches = [];
+        if (product != null && product.Id != Guid.Empty)
+        {
+
+            selectedProduct = product;
+            productSkus = product.Skus;
+        }
+    }
+    private void onProductSkuChanged(ProductSkuDto productSku)
+    {
+        selectedProductSku = null;
+        batches = [];
+        if (productSku != null && productSku.Id != Guid.Empty)
+        {
+            // selectedProduct = productSku;
+            selectedProductSku = productSku;
+            batches = new List<BatchDto>(allBatches.Where(b => b.ProductSkuId == productSku.Id));
+        }
+
+    }
+    private void onWarehouseChanged(WarehouseDto warehouse)
+    {
+        selectedWarehouse = null;
+        if (warehouse != null && warehouse.Id != Guid.Empty)
+        {
+            selectedWarehouse = warehouse;
+        }
+    }
+    private void onBatchChanged(BatchDto batch)
+    {
+        selectedBatch = null;
+        if (batch != null && batch.Id != Guid.Empty)
+        {
+            selectedBatch = batch;
+        }
+    }
+
+    // private async Task OnSearchChanged(ChangeEventArgs e)
+    // {
+    //     searchText = e.Value?.ToString() ?? "";
+    //     pageIndex = 0;
+
+    //     await LoadInventory();
+    // }
+    private async Task HandleSearch(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            var checkSearch = searchText;
+            pageIndex = 0;
+            await LoadInventory();
+        }
+    }
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

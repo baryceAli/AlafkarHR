@@ -19,18 +19,18 @@ public class StockMovement : Entity<Guid>
     //public decimal Quantity { get; private set; }
     public decimal ReservedBefore { get; private set; }
     public decimal ReservedAfter { get; private set; }
-    public decimal UnitCost{ get; set; }
+    public decimal UnitCost { get; set; }
     public decimal TotalCost { get; set; }
     public Guid Currency { get; set; }
-    
+
     public string Notes { get; private set; } = string.Empty;
     public MovementDirection MovementDirection { get; private set; }
     //public MovementCategory MovementCategory { get; private set; }
 
 
 
-    
-    
+
+
 
     private StockMovement() { }
 
@@ -45,6 +45,9 @@ public class StockMovement : Entity<Guid>
         //decimal quantity,
         decimal reservedBefore,
         decimal reservedAfter,
+        decimal unitCost,
+        decimal totalCost,
+        Guid currency,
         string referenceNumber,
         string sourceDocumentType,
         //DateTime movementDate,
@@ -57,25 +60,32 @@ public class StockMovement : Entity<Guid>
         ArgumentNullException.ThrowIfNull(productSkuId);
         ArgumentNullException.ThrowIfNull(warehouseId);
         ArgumentNullException.ThrowIfNull(batchId);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantityBefore);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantityAfter);
+        ArgumentOutOfRangeException.ThrowIfNegative(quantityBefore);
+        ArgumentOutOfRangeException.ThrowIfNegative(quantityAfter);
         ArgumentException.ThrowIfNullOrWhiteSpace(createdBy);
 
         return new StockMovement
         {
             Id = id,
+            ProductId = productId,
             ProductSkuId = productSkuId,
             WarehouseId = warehouseId,
             BatchId = batchId,
             MovementType = movementType,
-            
-            QuantityBefore=quantityBefore, 
-            QuantityAfter=quantityAfter,
+
+            QuantityBefore = quantityBefore,
+            QuantityAfter = quantityAfter,
             //Quantity = quantity,
-            ReservedBefore=reservedBefore,
-            ReservedAfter=reservedAfter,
+            ReservedBefore = reservedBefore,
+            ReservedAfter = reservedAfter,
+
+            UnitCost = unitCost,
+            TotalCost = totalCost,
+            Currency = currency,
+
+
             ReferenceNumber = referenceNumber,
-            SourceDocumentType= sourceDocumentType,
+            SourceDocumentType = sourceDocumentType,
             //MovementDate = movementDate,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy,

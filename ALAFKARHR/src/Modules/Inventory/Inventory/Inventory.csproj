@@ -9,21 +9,22 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Shared.Contracts\Shared.Contracts.csproj" />
     <ProjectReference Include="..\..\..\Shared\Shared\Shared.csproj" />
+    <ProjectReference Include="..\..\Catalog\Catalog.Contracts\Catalog.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Warehouses\Features\Inventories\New\InventoryAdjustment\" />
-    <Folder Include="Warehouses\Features\Inventories\New\InventoryQueries\CurrentStock\" />
-    <Folder Include="Warehouses\Features\Inventories\New\InventoryQueries\ExpiringBatches\" />
-    <Folder Include="Warehouses\Features\Inventories\New\InventoryQueries\ProductAvailability\" />
-    <Folder Include="Warehouses\Features\Inventories\New\InventoryQueries\StockByWarehouse\" />
-    <Folder Include="Warehouses\Features\Inventories\New\ReleaseReservation\" />
-    <Folder Include="Warehouses\Features\Inventories\New\ReserveStock\" />
-    <Folder Include="Warehouses\Features\Inventories\New\StockOut\" />
-    <Folder Include="Warehouses\Features\Inventories\New\StockIn\" />
-    <Folder Include="Warehouses\Features\Inventories\Old\TransferOut\" />
-    <Folder Include="Warehouses\Features\Inventories\Old\TransferIn\" />
-    <Folder Include="Warehouses\Features\Inventories\New\OpeningStock\" />
+    <Folder Include="Warehouses\Features\Inventories\zNew\InventoryAdjustment\" />
+    <Folder Include="Warehouses\Features\Inventories\zNew\InventoryQueries\CurrentStock\" />
+    <Folder Include="Warehouses\Features\Inventories\zNew\InventoryQueries\ExpiringBatches\" />
+    <Folder Include="Warehouses\Features\Inventories\zNew\InventoryQueries\ProductAvailability\" />
+    <Folder Include="Warehouses\Features\Inventories\zNew\InventoryQueries\StockByWarehouse\" />
+    <Folder Include="Warehouses\Features\Inventories\zNew\ReleaseReservation\" />
+    <Folder Include="Warehouses\Features\Inventories\zNew\ReserveStock\" />
+    <Folder Include="Warehouses\Features\Inventories\zNew\StockOut\" />
+    <Folder Include="Warehouses\Features\Inventories\zNew\StockIn\" />
+    <Folder Include="Warehouses\Features\Inventories\zOld\TransferOut\" />
+    <Folder Include="Warehouses\Features\Inventories\zOld\TransferIn\" />
+    <Folder Include="Warehouses\Features\Inventories\zNew\OpeningStock\" />
     <Folder Include="Warehouses\Features\StockMovement\GetMovements\" />
     <Folder Include="Warehouses\Features\StockMovement\GetMovementDetails\" />
     <Folder Include="Warehouses\Features\WarehouseTransfers\CreateTransfer\" />

@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using Catalog.Contracts.Products.Features.GetProductByCompany;
+using MediatR;
 
 namespace Catalog.Products.Features.Products.GetProductByCompany;
 

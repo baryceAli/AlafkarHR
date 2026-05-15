@@ -1,3 +1,4 @@
+using SharedWithUI.Inventory.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace SharedWithUI.Inventory.Dtos;
@@ -5,20 +6,35 @@ namespace SharedWithUI.Inventory.Dtos;
 /// <summary>
 /// DTO for displaying Inventory with all batch stock information
 /// </summary>
-public record InventoryAggregateDto(
-    Guid Id,
-    Guid ProductId,
-    Guid ProductSkuId,
-    Guid WarehouseId,
-    decimal TotalQuantity,
-    decimal TotalReserved,
-    decimal TotalAvailable,
-    List<BatchStockDto> Batches,
-    DateTime CreatedAt,
-    string CreatedBy,
-    DateTime? LastModified,
-    string? LastModifiedBy
-);
+public class InventoryAggregateDto
+{
+    public Guid Id { get; set; }
+    public Guid ProductId { get; set; }
+    public string? ProductName { get; set; }
+    public string? ProductNameEng { get; set; }
+    public Guid ProductSkuId { get; set; }
+    public string? ProductSkuName { get; set; }
+    public string? ProductSkuNameEng { get; set; }
+    public Guid WarehouseId { get; set; }
+    public string? WarehouseName { get; set; }
+    public string? WarehouseNameEng { get; set; }
+    public decimal TotalQuantity { get; set; }
+    public decimal TotalReserved { get; set; }
+    public decimal TotalAvailable { get; set; }
+    //public decimal TotalQuantity => _batches.Sum(x => x.Quantity);
+    //public decimal TotalReserved => _batches.Sum(x => x.ReservedQuantity);
+    //public decimal TotalAvailable => TotalQuantity - TotalReserved;
+
+    public List<BatchStockDto> Batches { get; set; }
+    public Guid CompanyId { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string CreatedBy { get; set; }
+    public DateTime? LastModified { get; set; }
+    public string? LastModifiedBy { get; set; }
+    
+}
+
+
 
 
 /// <summary>
@@ -58,7 +74,21 @@ public class CreateInventoryAggregateDto
     [Required(ErrorMessage = "Quantity is required")]
     //[Range(0.01,100000,ErrorMessage = "Quantity must be greator than 0")]
     public decimal InitialQuantity { get; set; }
+    public MovementType MovementType { get; set; }
     
+    
+    [Required(ErrorMessage ="Cost is required")]    
+    public decimal UnitCost { get; set; }
+
+
+    [Required(ErrorMessage ="")]
+    public decimal TotalCost { get; set; }
+
+    [Required(ErrorMessage ="Currency is required")]
+    public Guid? Currency { get; set; }
+
+    public Guid CompanyId { get; set; }
+    public string? Notes { get; set; }
 }
 
 
