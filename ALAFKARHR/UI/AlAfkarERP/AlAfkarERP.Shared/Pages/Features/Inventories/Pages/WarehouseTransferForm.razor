@@ -1,0 +1,176 @@
+﻿@layout AdminLayout
+@page "/Inventory/WarehouseTransfer/Form"
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Permissions
+
+@inject IWarehouseService WarehouseService
+@inject IProductService ProductService
+
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BatchPermissions.View}"))
+{
+    <div class="alert alert-warning">
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
+    </div>
+    return;
+}
+
+<!-- Branches -->
+<h5 class="text-black">@SharedDataService.SelectViewLang("Warehouse Transfer", "تحويل مخزون")</h5>
+
+<div class="card p-3 mb-3">
+    <EditForm Model="warehouseTransfer">
+        <div class="row bg-info-subtle p-3">
+            <div class="mb-3 row">
+                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Source warehouse", "المستودع المحول منه")</label>
+                <div class="col-sm-10">
+                    <AutoCompleteComponent TItem="WarehouseDto"
+                                           Items="warehouses"
+                                           Value="selectedSourceWarehouse"
+                                           ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                           PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse","اختر مستودع")"
+                                           ValueChanged="onSourceWarehouseSelected" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Destination warehouse", "المستودع المحول إليه")</label>
+                <div class="col-sm-10">
+                    <AutoCompleteComponent TItem="WarehouseDto"
+                                           Items="warehouses"
+                                           Value="selectedDestinationWarehouse"
+                                           ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                           PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse","اختر مستودع")"
+                                           ValueChanged="onDestinationWarehouseSelected" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
+                <div class="col-sm-10">
+                    <AutoCompleteComponent TItem="ProductDto"
+                                           Items="products"
+                                           Value="selectedProduct"
+                                           ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                           PlaceHolder="@SharedDataService.SelectViewLang("Select product","اختر منتج")"
+                                           ValueChanged="onProductSelected" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Product Sku", "المنتج المخزني")</label>
+                <div class="col-sm-10">
+                    <AutoCompleteComponent TItem="ProductSkuDto"
+                                           Items="productSkus"
+                                           Value="selectedProductSku"
+                                           ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                           PlaceHolder="@SharedDataService.SelectViewLang("Select product sku","اختر منتج مخزني")"
+                                           ValueChanged="onProductSkuSelected" />
+                </div>
+            </div>
+                                    
+        </div>
+    </EditForm>
+
+</div>
+@inject ToastService ToastService
+@inject ModalService ModalService
+@inject LoadingService LoadingService
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@code {
+    private WarehouseTransferDto warehouseTransfer = new();
+    private List<WarehouseDto> warehouses = [];
+    private WarehouseDto? selectedSourceWarehouse;
+    private WarehouseDto? selectedDestinationWarehouse;
+    private List<ProductDto> products = [];
+    private ProductDto? selectedProduct;
+    private List<ProductSkuDto> productSkus = [];
+    private ProductSkuDto? selectedProductSku;
+    private Guid companyId;
+    private AuthenticationState AuthState;
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (!AuthState.User.Identity.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/login", true);
+
+        }
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+
+        var wareRes = await WarehouseService.GetAsync(companyId, 0, 10000);
+        if (wareRes.IsSuccess)
+        {
+            warehouses = wareRes.Data?.Data?.ToList() ?? [];
+        }
+
+        var prodRes = await ProductService.GetByCompanyAsync(companyId, 0, 10000);
+        if (prodRes.IsSuccess)
+        {
+            products = prodRes.Data?.Data?.ToList() ?? [];
+        }
+
+
+    }
+    private void onSourceWarehouseSelected(WarehouseDto source)
+    {
+        selectedSourceWarehouse = null;
+        if (source != null)
+        {
+            selectedSourceWarehouse = source;
+        }
+    }
+    private void onDestinationWarehouseSelected(WarehouseDto destination)
+    {
+        selectedDestinationWarehouse = null;
+        if (destination != null)
+        {
+            selectedDestinationWarehouse = destination;
+        }
+    }
+    private void onProductSelected(ProductDto product)
+    {
+        selectedProduct = null;
+        productSkus = [];
+        if (product != null)
+        {
+            selectedProduct = product;
+            productSkus = product.Skus;
+        }
+    }
+
+    private void onProductSkuSelected(ProductSkuDto sku)
+    {
+        selectedProductSku = null;
+        if (sku != null)
+        {
+            selectedProductSku = sku;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

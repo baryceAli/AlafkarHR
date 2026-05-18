@@ -19,13 +19,15 @@
     <Sidebar IsOpen="isSidebarOpen" />
 
     <!-- Main Area -->
-    <div class="flex-grow-1 d-flex flex-column">
-
+    @* <div class="flex-grow-1 d-flex flex-column"> *@
+    <div class="flex-grow-1 d-flex flex-column min-vw-0">
         <!-- Top Navbar -->
         <TopNavbar OnToggleSidebar="ToggleSidebar" />
         
         <!-- Page Content -->
-        <main class="flex-grow-1 p-3 overflow-auto bg-light" dir="@SharedDataService.PageDirection">
+        @* <main class="flex-grow-1 p-3 overflow-auto bg-light" dir="@SharedDataService.PageDirection"> *@
+        <main class="flex-grow-1 p-3 overflow-auto bg-light w-100"
+              dir="@SharedDataService.PageDirection">
             @Body
         </main>
 
@@ -44,10 +46,10 @@
     <span class="dismiss">🗙</span>
 </div>
 
-@code{
+@code {
     private AuthenticationState AuthState;
 
-     private bool isSidebarOpen = false;
+    private bool isSidebarOpen = false;
 
     void ToggleSidebar()
     {
@@ -62,10 +64,10 @@
     {
         if (firstRender)
         {
-            AuthState = await((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+            AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
             if (!AuthState.User.Identity.IsAuthenticated)
             {
-                NavigationManager.NavigateTo("login",true);
+                NavigationManager.NavigateTo("login", true);
             }
             // NavigationManager.NavigateTo("/login");
         }

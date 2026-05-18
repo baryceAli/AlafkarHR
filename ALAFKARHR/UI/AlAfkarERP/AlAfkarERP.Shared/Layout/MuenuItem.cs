@@ -294,50 +294,50 @@ public class MenuItem
                     }
                 },
 
-                new MenuItem
-                {
-                    TextEn = "Transfers",
-                    TextAr = "تحويل المخزون",
-                    Icon = "bi-truck",
-                    Url = "/Inventory/Dashboard",
-                    PermissionPolicy = "View.Inventory",
-                },
+                //new MenuItem
+                //{
+                //    TextEn = "Transfers",
+                //    TextAr = "تحويل المخزون",
+                //    Icon = "bi-truck",
+                //    Url = "/Inventory/WarehouseTransfer/Form",
+                //    PermissionPolicy = "View.Inventory",
+                //},
 
-                new MenuItem
-                {
-                    TextEn = "Movements",
-                    TextAr = "حركة المخزون",
-                    Icon = "bi-arrow-repeat",
-                    Url = "/Inventory/Dashboard",
-                    PermissionPolicy = "View.Inventory",
-                },
+                //new MenuItem
+                //{
+                //    TextEn = "Movements",
+                //    TextAr = "حركة المخزون",
+                //    Icon = "bi-arrow-repeat",
+                //    Url = "/Inventory/Dashboard",
+                //    PermissionPolicy = "View.Inventory",
+                //},
 
-                new MenuItem
-                {
-                    TextEn = "Expiry Tracking",
-                    TextAr = "تتبع تاريخ الانتهاء",
-                    Icon = "bi-calendar-x",
-                    Url = "/Inventory/Dashboard",
-                    PermissionPolicy = "View.Inventory",
-                },
+                //new MenuItem
+                //{
+                //    TextEn = "Expiry Tracking",
+                //    TextAr = "تتبع تاريخ الانتهاء",
+                //    Icon = "bi-calendar-x",
+                //    Url = "/Inventory/Dashboard",
+                //    PermissionPolicy = "View.Inventory",
+                //},
 
-                new MenuItem
-                {
-                    TextEn = "Stock Count",
-                    TextAr = "جرد المخزون",
-                    Icon = "bi-clipboard-check",
-                    Url = "/Inventory/Dashboard",
-                    PermissionPolicy = "View.Inventory",
-                },
+                //new MenuItem
+                //{
+                //    TextEn = "Stock Count",
+                //    TextAr = "جرد المخزون",
+                //    Icon = "bi-clipboard-check",
+                //    Url = "/Inventory/Dashboard",
+                //    PermissionPolicy = "View.Inventory",
+                //},
 
-                new MenuItem
-                {
-                    TextEn = "Reports",
-                    TextAr = "تقارير",
-                    Icon = "bi-bar-chart",
-                    Url = "/Inventory/Dashboard",
-                    PermissionPolicy = "View.Inventory",
-                },
+                //new MenuItem
+                //{
+                //    TextEn = "Reports",
+                //    TextAr = "تقارير",
+                //    Icon = "bi-bar-chart",
+                //    Url = "/Inventory/Dashboard",
+                //    PermissionPolicy = "View.Inventory",
+                //},
             }
         },
 

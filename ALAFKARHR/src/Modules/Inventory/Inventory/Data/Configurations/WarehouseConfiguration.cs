@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Inventory.Data.Configurations
 {
-    internal class WarehouseConfiguration : IEntityTypeConfiguration<Warehouse>
+    public class WarehouseConfiguration : IEntityTypeConfiguration<Warehouse>
     {
         public void Configure(EntityTypeBuilder<Warehouse> builder)
         {

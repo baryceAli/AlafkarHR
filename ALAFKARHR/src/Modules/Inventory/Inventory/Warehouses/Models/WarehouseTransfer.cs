@@ -11,6 +11,12 @@ public class WarehouseTransfer : Aggregate<Guid>
     public DateTime? ShippedAt { get; private set; }
 
     public DateTime? ReceivedAt { get; private set; }
+    public string TransferNumber { get; private set; }
+    public Guid RequestedBy { get; private set; }
+    public Guid ApprovedBy { get; private set; }
+    public string Reason { get; private set; }
+    public string ReferenceNumber { get; private set; }
+    public DateTime ExpectedDeliveryDate { get; private set; }
 
     //    TransferNumber
     //Notes
@@ -61,6 +67,8 @@ public class WarehouseTransfer : Aggregate<Guid>
     {
         EnsurePending();
 
+        //Duplicate item logic may be incorrect
+        //Keep unique constraint and MERGE quantities automatically.
         var existing = _items.FirstOrDefault(x =>
             x.ProductSkuId == productSkuId &&
             x.BatchId == batchId);
@@ -74,9 +82,9 @@ public class WarehouseTransfer : Aggregate<Guid>
             productId,
             productSkuId,
             batchId,
-            warehouseId,
+            //warehouseId,
             quantity,
-            receivedQuantity,
+            //receivedQuantity,
             //isCompleted,
             user);
 
@@ -140,23 +148,28 @@ public class WarehouseTransfer : Aggregate<Guid>
             ReceivedAt = DateTime.UtcNow;
         }
         // Some received but not completed
-        else if (_items.Any(x => x.ReceivedQuantity != x.Quantity))
+        else if (_items.Any(x => x.ReceivedQuantity > 0))
         {
             Status = TransferStatus.PartiallyReceived;
         }
+        
 
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = user;
     }
     public void Cancel(string user)
     {
-        if (Status == TransferStatus.Completed)
+        if (Status != TransferStatus.Pending)
             throw new InvalidOperationException(
-                "Completed transfer cannot be cancelled");
+                "Only pending transfers can be cancelled");
 
-        if (Status == TransferStatus.Cancelled)
-            throw new InvalidOperationException(
-                "Already cancelled");
+        //if (Status == TransferStatus.Completed)
+        //    throw new InvalidOperationException(
+        //        "Completed transfer cannot be cancelled");
+
+        //if (Status == TransferStatus.Cancelled)
+        //    throw new InvalidOperationException(
+        //        "Already cancelled");
 
         Status = TransferStatus.Cancelled;
 

@@ -22,8 +22,8 @@ public class TransferItemConfiguration : IEntityTypeConfiguration<TransferItem>
         builder.Property(x => x.BatchId)
                .IsRequired();
 
-        builder.Property(x => x.WarehouseId)
-               .IsRequired();
+        //builder.Property(x => x.WarehouseId)
+        //       .IsRequired();
 
         builder.Property(x => x.Quantity)
                .IsRequired()
@@ -36,7 +36,7 @@ public class TransferItemConfiguration : IEntityTypeConfiguration<TransferItem>
         builder.HasIndex(x => x.ProductId);
         builder.HasIndex(x => x.ProductSkuId);
         builder.HasIndex(x => x.BatchId);
-        builder.HasIndex(x => x.WarehouseId);
+        //builder.HasIndex(x => x.WarehouseId);
 
         // If you later add navigation properties, define relationships here
         // Example:

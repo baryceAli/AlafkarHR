@@ -1,6 +1,7 @@
 using Auth;
 using Carter;
 using Catalog;
+using CustomersModule;
 using EmployeeModule;
 using GeneralSettings;
 using Inventory;
@@ -29,14 +30,16 @@ var employeeAssembly = typeof(EmployeesModule).Assembly;
 var catalogAssembly = typeof(CatalogModule).Assembly;
 var inventoryAssembly = typeof(InventoryModule).Assembly;
 var generalSettingsAssembly = typeof(GeneralSettingsModule).Assembly;
-
+var customerAssembly = typeof(CustomerModule).Assembly;
 builder.Services.AddCarterWithAssemblies(
                         authAssembly,
                         organizationAssembly,
                         employeeAssembly,
                         catalogAssembly,
                         inventoryAssembly,
-                        generalSettingsAssembly);
+                        generalSettingsAssembly,
+                        customerAssembly
+                        );
 //catalogAssembly,
 //basketAssembly,
 //inventoryAssembly);
@@ -47,7 +50,9 @@ builder.Services.AddMediatRWithAssemblies(
                         employeeAssembly,
                         catalogAssembly,
                         inventoryAssembly,
-                        generalSettingsAssembly);
+                        generalSettingsAssembly, 
+                        customerAssembly
+                        );
 //catalogAssembly,
 //basketAssembly,
 //inventoryAssembly);
@@ -62,7 +67,8 @@ builder.Services
         .AddEmployeeModule(builder.Configuration)
         .AddCatalogModule(builder.Configuration)
         .AddInventoryModule(builder.Configuration)
-        .AddGeneralSettingsModule(builder.Configuration);
+        .AddGeneralSettingsModule(builder.Configuration)
+        .AddCustomerModule(builder.Configuration);
 #endregion
 
 
@@ -88,7 +94,8 @@ app
     .UseEmployeeModule(app.Environment)
     .UseCatalogModule(app.Environment)
     .UseInventoryModule(app.Environment)
-    .UseGeneralSettingsModule(app.Environment);
+    .UseGeneralSettingsModule(app.Environment)
+    .UseCustomerModule(app.Environment);
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())
