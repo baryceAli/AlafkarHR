@@ -29,6 +29,9 @@ public static class PermissionList
             .. StockTransactionPermissions.Permissions,
             .. InventoryPermissions.Permissions,
             .. BatchPermissions.Permissions,
+            .. CustomerGroupPermissions.Permissions,
+            .. CustomerPricingProfilePermissions.Permissions,
+            .. CustomerPermissions.Permissions,
         ];
 
 
@@ -512,27 +515,68 @@ public static class PermissionList
 
     }
 
-    //public static class ProductVariantPermissions
-    //{
+    public static class CustomerGroupPermissions
+    {
 
-    //    //public static string GroupName { get; set; } = "ProductVariant";
-    //    public static string Select { get; set; } = "ProductVariant.Select";
-    //    public static string View { get; set; } = "ProductVariant.View";
-    //    public static string Create { get; set; } = "ProductVariant.Create";
-    //    public static string Edit { get; set; } = "ProductVariant.Edit";
-    //    public static string Delete { get; set; } = "ProductVariant.Delete";
+        public static string GroupName { get; set; } = "Customers.CustomerGroup";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
 
-    //    public static List<string> Permissions =>
-    //        new List<string>
-    //        {
-    //            $"{Select}",
-    //            $"{View}",
-    //            $"{Create}",
-    //            $"{Edit}",
-    //            $"{Delete}",
-    //        };
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
+    }
 
-    //}
+    public static class CustomerPricingProfilePermissions
+    {
+
+        public static string GroupName { get; set; } = "Customers.CustomerPricingProfile";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
+    }
+
+    public static class CustomerPermissions
+    {
+
+        public static string GroupName { get; set; } = "Customers.Customer";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
+    }
 
 
 

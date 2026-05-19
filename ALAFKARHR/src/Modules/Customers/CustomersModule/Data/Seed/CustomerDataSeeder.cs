@@ -1,11 +1,19 @@
-﻿using Shared.Data.Seed;
+﻿using Microsoft.EntityFrameworkCore;
+using Shared.Data.Seed;
 
 namespace CustomersModule.Data.Seed;
 
 public class CustomerDataSeeder : IDataSeeder<CustomerDbContext>
 {
-    public Task SeedAllAsync(CustomerDbContext context)
+    public async Task SeedAllAsync(CustomerDbContext context)
     {
-        throw new NotImplementedException();
+        if (!await context.CustomerGroups.AnyAsync())
+        {
+            foreach (var group in InitialData.CustomerGroups)
+            {
+                await context.CustomerGroups.AddAsync(group);
+                await context.SaveChangesAsync();
+            }
+        }
     }
 }
