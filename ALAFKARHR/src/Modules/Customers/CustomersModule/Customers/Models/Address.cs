@@ -50,7 +50,7 @@ public class Address:Entity<Guid>
         //IsDefaultBilling = isDefaultBilling;
         IsDefaultShipping = isDefaultShipping;
     }
-    public static Address Create(
+    internal static Address Create(
         string title,
         string addressLine1,
         string? addressLine2,
