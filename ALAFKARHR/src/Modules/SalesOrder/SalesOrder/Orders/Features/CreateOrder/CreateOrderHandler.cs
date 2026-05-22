@@ -2,7 +2,7 @@
 
 public record CreateOrderCommand(SalesOrderDto SalesOrder) : ICommand<CreateOrderResult>;
 public record CreateOrderResult(Guid Id);
-public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAccessor httpContextAccessor, IPriceResolver priceResolver)
+public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<CreateOrderCommand, CreateOrderResult>
 {
     public async Task<CreateOrderResult> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
@@ -25,8 +25,8 @@ public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
         {
             foreach(var line in request.SalesOrder.Lines)
             {
-                var resolvedPrice = await priceResolver.ResolveAsync(
-                    new ResolvePriceRequest(
+                var resolvedPrice = await sender.Send(
+                    new ResolvePriceQuery(
                         request.SalesOrder.CustomerId,
                         line.ProductSkuId,
                         line.UnitOfMeasureId,
@@ -37,8 +37,8 @@ public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
                         order.OrderDate),
                     cancellationToken);
 
-                if (!request.SalesOrder.PriceListId.HasValue && resolvedPrice.PriceListId.HasValue)
-                    order.ApplyResolvedPriceList(resolvedPrice.PriceListId);
+                if (!request.SalesOrder.PriceListId.HasValue && resolvedPrice.Price.PriceListId.HasValue)
+                    order.ApplyResolvedPriceList(resolvedPrice.Price.PriceListId);
 
                 order.AddLine(line.ProductId,
                     line.ProductSkuId,
@@ -46,10 +46,10 @@ public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
                     line.ProductNameEng,
                     line.SkuCode,
                     line.Quantity,
-                    resolvedPrice.UnitPrice,
+                    resolvedPrice.Price.UnitPrice,
                     line.UnitOfMeasureId,
-                    resolvedPrice.DiscountRate,
-                    resolvedPrice.TaxRate,
+                    resolvedPrice.Price.DiscountRate,
+                    resolvedPrice.Price.TaxRate,
                     line.Notes,
                     user);
             }

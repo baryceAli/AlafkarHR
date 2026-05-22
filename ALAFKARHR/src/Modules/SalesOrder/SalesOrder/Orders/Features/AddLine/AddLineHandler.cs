@@ -4,7 +4,7 @@ namespace SalesOrder.Orders.Features.AddLine;
 
 public record AddLineCommand(Guid salesOrderId, SalesOrderLineDto  SalesOrderLine):ICommand<AddLineResult>;
 public record AddLineResult(Guid Id);
-public class AddLineHandler(SalesOrderDbContext dbContext, IHttpContextAccessor httpContextAccessor, IPriceResolver priceResolver)
+public class AddLineHandler(SalesOrderDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<AddLineCommand, AddLineResult>
 {
     public async Task<AddLineResult> Handle(AddLineCommand command, CancellationToken cancellationToken)
@@ -24,8 +24,8 @@ public class AddLineHandler(SalesOrderDbContext dbContext, IHttpContextAccessor 
         //{
             //foreach(var line in command.SalesOrder.Lines)
             //{
-                var resolvedPrice = await priceResolver.ResolveAsync(
-                    new ResolvePriceRequest(
+                var resolvedPrice = await sender.Send(
+                    new ResolvePriceQuery(
                         salesOrder.CustomerId,
                         command.SalesOrderLine.ProductSkuId,
                         command.SalesOrderLine.UnitOfMeasureId,
@@ -36,8 +36,8 @@ public class AddLineHandler(SalesOrderDbContext dbContext, IHttpContextAccessor 
                         salesOrder.OrderDate),
                     cancellationToken);
 
-                if (!salesOrder.PriceListId.HasValue && resolvedPrice.PriceListId.HasValue)
-                    salesOrder.ApplyResolvedPriceList(resolvedPrice.PriceListId);
+                if (!salesOrder.PriceListId.HasValue && resolvedPrice.Price.PriceListId.HasValue)
+                    salesOrder.ApplyResolvedPriceList(resolvedPrice.Price.PriceListId);
 
                 salesOrder.AddLine(
                     command.SalesOrderLine.ProductId,
@@ -46,10 +46,10 @@ public class AddLineHandler(SalesOrderDbContext dbContext, IHttpContextAccessor 
                     command.SalesOrderLine.ProductNameEng,
                     command.SalesOrderLine.SkuCode,
                     command.SalesOrderLine.Quantity,
-                    resolvedPrice.UnitPrice,
+                    resolvedPrice.Price.UnitPrice,
                     command.SalesOrderLine.UnitOfMeasureId,
-                    resolvedPrice.DiscountRate,
-                    resolvedPrice.TaxRate,
+                    resolvedPrice.Price.DiscountRate,
+                    resolvedPrice.Price.TaxRate,
                     command.SalesOrderLine.Notes,
                     user);
             //}

@@ -12,8 +12,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Shared\Shared.csproj" />
-    <ProjectReference Include="..\..\Catalog\Catalog\Catalog.csproj" />
-    <ProjectReference Include="..\..\Customers\CustomersModule\CustomersModule.csproj" />
+    <ProjectReference Include="..\Pricing.Contracts\Pricing.Contracts.csproj" />
+    <ProjectReference Include="..\..\Catalog\Catalog.Contracts\Catalog.Contracts.csproj" />
+    <ProjectReference Include="..\..\Customers\Customers.Contracts\Customers.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

@@ -3,7 +3,7 @@
 
 public record UpdateOrderCommand(SalesOrderDto SalesOrder) : ICommand<UpdateOrderResult>;
 public record UpdateOrderResult(bool IsSuccess);
-public class UpdateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAccessor httpContextAccessor, IPriceResolver priceResolver)
+public class UpdateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<UpdateOrderCommand, UpdateOrderResult>
 {
     public async Task<UpdateOrderResult> Handle(UpdateOrderCommand request, CancellationToken cancellationToken)
@@ -20,8 +20,8 @@ public class UpdateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
 
         foreach (var line in request.SalesOrder.Lines)
         {
-            var resolvedPrice = await priceResolver.ResolveAsync(
-                new ResolvePriceRequest(
+            var resolvedPrice = await sender.Send(
+                new ResolvePriceQuery(
                     order.CustomerId,
                     line.ProductSkuId,
                     line.UnitOfMeasureId,
@@ -32,12 +32,12 @@ public class UpdateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
                     order.OrderDate),
                 cancellationToken);
 
-            line.UnitPrice = resolvedPrice.UnitPrice;
-            line.DiscountRate = resolvedPrice.DiscountRate;
-            line.TaxRate = resolvedPrice.TaxRate;
+            line.UnitPrice = resolvedPrice.Price.UnitPrice;
+            line.DiscountRate = resolvedPrice.Price.DiscountRate;
+            line.TaxRate = resolvedPrice.Price.TaxRate;
 
-            if (!request.SalesOrder.PriceListId.HasValue && resolvedPrice.PriceListId.HasValue)
-                request.SalesOrder.PriceListId = resolvedPrice.PriceListId;
+            if (!request.SalesOrder.PriceListId.HasValue && resolvedPrice.Price.PriceListId.HasValue)
+                request.SalesOrder.PriceListId = resolvedPrice.Price.PriceListId;
         }
 
         order.Update(request.SalesOrder.PriceListId, request.SalesOrder.Lines.Adapt<List<Models.SalesOrderLine>>(), user);
