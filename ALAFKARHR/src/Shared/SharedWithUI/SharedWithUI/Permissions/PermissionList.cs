@@ -32,6 +32,9 @@ public static class PermissionList
             .. CustomerGroupPermissions.Permissions,
             .. CustomerPricingProfilePermissions.Permissions,
             .. CustomerPermissions.Permissions,
+            .. SupplierGroupPermissions.Permissions,
+            .. SupplierPermissions.Permissions,
+            .. SalesOrderPermissions.Permissions,
         ];
 
 
@@ -561,6 +564,69 @@ public static class PermissionList
     {
 
         public static string GroupName { get; set; } = "Customers.Customer";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
+    }
+
+    public static class SalesOrderPermissions
+    {
+
+        public static string GroupName { get; set; } = "SalesOrders.Order";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
+    }
+
+    public static class SupplierGroupPermissions
+    {
+
+        public static string GroupName { get; set; } = "Suppliers.SupplierGroup";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
+    }
+
+    public static class SupplierPermissions
+    {
+
+        public static string GroupName { get; set; } = "Suppliers.Supplier";
         public static string Select { get; set; } = $"{GroupName}.Select";
         public static string View { get; set; } = $"{GroupName}.View";
         public static string Create { get; set; } = $"{GroupName}.Create";

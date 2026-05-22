@@ -6,8 +6,10 @@ using EmployeeModule;
 using GeneralSettings;
 using Inventory;
 using Organization;
+using SalesOrder;
 using Shared.Exceptions.Handler;
 using Shared.Extentions;
+using SuppliersModule;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +33,9 @@ var catalogAssembly = typeof(CatalogModule).Assembly;
 var inventoryAssembly = typeof(InventoryModule).Assembly;
 var generalSettingsAssembly = typeof(GeneralSettingsModule).Assembly;
 var customerAssembly = typeof(CustomerModule).Assembly;
+var salesOrderAssembly=typeof(SalesOrderModule).Assembly;
+var supplierAssembly =typeof(SupplierModule).Assembly;
+
 builder.Services.AddCarterWithAssemblies(
                         authAssembly,
                         organizationAssembly,
@@ -38,7 +43,9 @@ builder.Services.AddCarterWithAssemblies(
                         catalogAssembly,
                         inventoryAssembly,
                         generalSettingsAssembly,
-                        customerAssembly
+                        customerAssembly,
+                        salesOrderAssembly,
+                        supplierAssembly
                         );
 //catalogAssembly,
 //basketAssembly,
@@ -51,7 +58,9 @@ builder.Services.AddMediatRWithAssemblies(
                         catalogAssembly,
                         inventoryAssembly,
                         generalSettingsAssembly, 
-                        customerAssembly
+                        customerAssembly,
+                        salesOrderAssembly,
+                        supplierAssembly
                         );
 //catalogAssembly,
 //basketAssembly,
@@ -68,7 +77,9 @@ builder.Services
         .AddCatalogModule(builder.Configuration)
         .AddInventoryModule(builder.Configuration)
         .AddGeneralSettingsModule(builder.Configuration)
-        .AddCustomerModule(builder.Configuration);
+        .AddCustomerModule(builder.Configuration)
+        .AddSalesOrderModule(builder.Configuration)
+        .AddSupplierModule(builder.Configuration);
 #endregion
 
 
@@ -95,7 +106,9 @@ app
     .UseCatalogModule(app.Environment)
     .UseInventoryModule(app.Environment)
     .UseGeneralSettingsModule(app.Environment)
-    .UseCustomerModule(app.Environment);
+    .UseCustomerModule(app.Environment)
+    .UseSalesOrderModule(app.Environment)
+    .UseSupplierModule(app.Environment);
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())

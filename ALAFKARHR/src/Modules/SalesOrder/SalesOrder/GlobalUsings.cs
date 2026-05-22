@@ -1,0 +1,14 @@
+﻿global using Microsoft.EntityFrameworkCore;
+global using Microsoft.AspNetCore.Http;
+global using SalesOrder.Data;
+global using Shared.Contracts.CQRS;
+global using Shared.Exceptions;
+global using SharedWithUI.SalesOrder.Dtos;
+global using System.Security.Claims;
+global using Carter;
+global using Mapster;
+global using MediatR;
+global using Microsoft.AspNetCore.Builder;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.AspNetCore.Routing;
+global using SharedWithUI.Permissions;
