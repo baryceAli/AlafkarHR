@@ -21,6 +21,7 @@ public class CustomerPricingProfile : Aggregate<Guid>
         Guid id,
         Guid customerId,
         Guid priceListId,
+        decimal? discountPercentage,
         bool allowAdditionalDiscounts,
         DateTime effectiveFrom,
         DateTime? effectiveTo,
@@ -32,6 +33,7 @@ public class CustomerPricingProfile : Aggregate<Guid>
             Id = id,
             CustomerId = customerId,
             PriceListId = priceListId,
+            DiscountPercentage = discountPercentage,
             AllowAdditionalDiscounts = allowAdditionalDiscounts,
             EffectiveFrom = effectiveFrom,
             EffectiveTo = effectiveTo,
@@ -43,6 +45,7 @@ public class CustomerPricingProfile : Aggregate<Guid>
     public void Update(
         //Guid customerId,
         Guid priceListId,
+        decimal? discountPercentage,
         bool allowAdditionalDiscounts,
         DateTime effectiveFrom,
         DateTime? effectiveTo,
@@ -50,6 +53,7 @@ public class CustomerPricingProfile : Aggregate<Guid>
     {
         //CustomerId = customerId;
         PriceListId= priceListId;
+        DiscountPercentage = discountPercentage;
         AllowAdditionalDiscounts= allowAdditionalDiscounts;
         EffectiveFrom= effectiveFrom;
         EffectiveTo= effectiveTo;

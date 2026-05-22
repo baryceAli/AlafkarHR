@@ -3,7 +3,7 @@
 
 public record UpdateOrderCommand(SalesOrderDto SalesOrder) : ICommand<UpdateOrderResult>;
 public record UpdateOrderResult(bool IsSuccess);
-public class UpdateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class UpdateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAccessor httpContextAccessor, IPriceResolver priceResolver)
     : ICommandHandler<UpdateOrderCommand, UpdateOrderResult>
 {
     public async Task<UpdateOrderResult> Handle(UpdateOrderCommand request, CancellationToken cancellationToken)
@@ -17,6 +17,28 @@ public class UpdateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
                     .FindFirst(ClaimTypes.NameIdentifier)?
                     .Value ??
                     throw new UnauthorizedAccessException("User is not authenticated");
+
+        foreach (var line in request.SalesOrder.Lines)
+        {
+            var resolvedPrice = await priceResolver.ResolveAsync(
+                new ResolvePriceRequest(
+                    order.CustomerId,
+                    line.ProductSkuId,
+                    line.UnitOfMeasureId,
+                    line.Quantity,
+                    order.CompanyId,
+                    request.SalesOrder.PriceListId,
+                    line.TaxRate,
+                    order.OrderDate),
+                cancellationToken);
+
+            line.UnitPrice = resolvedPrice.UnitPrice;
+            line.DiscountRate = resolvedPrice.DiscountRate;
+            line.TaxRate = resolvedPrice.TaxRate;
+
+            if (!request.SalesOrder.PriceListId.HasValue && resolvedPrice.PriceListId.HasValue)
+                request.SalesOrder.PriceListId = resolvedPrice.PriceListId;
+        }
 
         order.Update(request.SalesOrder.PriceListId, request.SalesOrder.Lines.Adapt<List<Models.SalesOrderLine>>(), user);
 

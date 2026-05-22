@@ -128,6 +128,13 @@ public class SalesOrder : Aggregate<Guid>
 
         RecalculateTotals();
     }
+
+    public void ApplyResolvedPriceList(Guid? priceListId)
+    {
+        EnsureDraft();
+        PriceListId = priceListId;
+    }
+
     public void Confirm()
     {
         if (!_lines.Any())

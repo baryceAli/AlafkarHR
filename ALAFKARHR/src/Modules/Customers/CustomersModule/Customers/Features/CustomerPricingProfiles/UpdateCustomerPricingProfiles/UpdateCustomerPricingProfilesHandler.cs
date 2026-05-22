@@ -8,7 +8,7 @@ public class UpdateCustomerPricingProfilesHandler(CustomerDbContext dbContext, I
 {
     public async Task<UpdateCustomerPricingProfilesResult> Handle(UpdateCustomerPricingProfilesCommand request, CancellationToken cancellationToken)
     {
-        var customerPricingProfile = await dbContext.CustomerPricingProfiles.AsNoTracking().FirstOrDefaultAsync(c=>c.Id==request.CustomerPricingProfile.Id,cancellationToken);
+        var customerPricingProfile = await dbContext.CustomerPricingProfiles.FirstOrDefaultAsync(c=>c.Id==request.CustomerPricingProfile.Id,cancellationToken);
         if (customerPricingProfile == null)
             throw new NotFoundException($"Customer pricing profile not found: {request.CustomerPricingProfile.Id}");
 
@@ -20,12 +20,13 @@ public class UpdateCustomerPricingProfilesHandler(CustomerDbContext dbContext, I
 
         customerPricingProfile.Update(
             request.CustomerPricingProfile.PriceListId, 
+            request.CustomerPricingProfile.DiscountPercentage,
             request.CustomerPricingProfile.AllowAdditionalDiscounts, 
             request.CustomerPricingProfile.EffectiveFrom,
             request.CustomerPricingProfile.EffectiveTo, 
             user);
     
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return new UpdateCustomerPricingProfilesResult(true);
     }

@@ -12,3 +12,4 @@ global using Microsoft.AspNetCore.Builder;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.Routing;
 global using SharedWithUI.Permissions;
+global using Pricing.Pricings.Services;

@@ -6,6 +6,7 @@ using EmployeeModule;
 using GeneralSettings;
 using Inventory;
 using Organization;
+using Pricing;
 using SalesOrder;
 using Shared.Exceptions.Handler;
 using Shared.Extentions;
@@ -35,6 +36,7 @@ var generalSettingsAssembly = typeof(GeneralSettingsModule).Assembly;
 var customerAssembly = typeof(CustomerModule).Assembly;
 var salesOrderAssembly=typeof(SalesOrderModule).Assembly;
 var supplierAssembly =typeof(SupplierModule).Assembly;
+var pricingAssembly = typeof(PricingModule).Assembly;
 
 builder.Services.AddCarterWithAssemblies(
                         authAssembly,
@@ -45,7 +47,8 @@ builder.Services.AddCarterWithAssemblies(
                         generalSettingsAssembly,
                         customerAssembly,
                         salesOrderAssembly,
-                        supplierAssembly
+                        supplierAssembly,
+                        pricingAssembly
                         );
 //catalogAssembly,
 //basketAssembly,
@@ -60,7 +63,8 @@ builder.Services.AddMediatRWithAssemblies(
                         generalSettingsAssembly, 
                         customerAssembly,
                         salesOrderAssembly,
-                        supplierAssembly
+                        supplierAssembly,
+                        pricingAssembly
                         );
 //catalogAssembly,
 //basketAssembly,
@@ -79,7 +83,8 @@ builder.Services
         .AddGeneralSettingsModule(builder.Configuration)
         .AddCustomerModule(builder.Configuration)
         .AddSalesOrderModule(builder.Configuration)
-        .AddSupplierModule(builder.Configuration);
+        .AddSupplierModule(builder.Configuration)
+        .AddPricingModule(builder.Configuration);
 #endregion
 
 
@@ -108,7 +113,8 @@ app
     .UseGeneralSettingsModule(app.Environment)
     .UseCustomerModule(app.Environment)
     .UseSalesOrderModule(app.Environment)
-    .UseSupplierModule(app.Environment);
+    .UseSupplierModule(app.Environment)
+    .UsePricingModule(app.Environment);
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())

@@ -2,7 +2,7 @@
 
 public record CreateOrderCommand(SalesOrderDto SalesOrder) : ICommand<CreateOrderResult>;
 public record CreateOrderResult(Guid Id);
-public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAccessor httpContextAccessor, IPriceResolver priceResolver)
     : ICommandHandler<CreateOrderCommand, CreateOrderResult>
 {
     public async Task<CreateOrderResult> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
@@ -25,16 +25,31 @@ public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
         {
             foreach(var line in request.SalesOrder.Lines)
             {
+                var resolvedPrice = await priceResolver.ResolveAsync(
+                    new ResolvePriceRequest(
+                        request.SalesOrder.CustomerId,
+                        line.ProductSkuId,
+                        line.UnitOfMeasureId,
+                        line.Quantity,
+                        request.SalesOrder.CompanyId,
+                        request.SalesOrder.PriceListId,
+                        line.TaxRate,
+                        order.OrderDate),
+                    cancellationToken);
+
+                if (!request.SalesOrder.PriceListId.HasValue && resolvedPrice.PriceListId.HasValue)
+                    order.ApplyResolvedPriceList(resolvedPrice.PriceListId);
+
                 order.AddLine(line.ProductId,
                     line.ProductSkuId,
                     line.ProductName,
                     line.ProductNameEng,
                     line.SkuCode,
                     line.Quantity,
-                    line.UnitPrice,
+                    resolvedPrice.UnitPrice,
                     line.UnitOfMeasureId,
-                    line.DiscountRate,
-                    line.TaxRate,
+                    resolvedPrice.DiscountRate,
+                    resolvedPrice.TaxRate,
                     line.Notes,
                     user);
             }

@@ -7,13 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Data\Configurations\" />
-    <Folder Include="Pricings\Models\" />
     <Folder Include="Pricings\Features\" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Shared\Shared.csproj" />
+    <ProjectReference Include="..\..\Catalog\Catalog\Catalog.csproj" />
+    <ProjectReference Include="..\..\Customers\CustomersModule\CustomersModule.csproj" />
   </ItemGroup>
 
 </Project>

@@ -7,7 +7,7 @@ public class PricingDataSeeder : IDataSeeder<PricingDbContext>
 {
     public Task SeedAllAsync(PricingDbContext context)
     {
-throw new NotImplementedException();
+        return Task.CompletedTask;
         //if (!await dbContext.Categories.AnyAsync())
         //{
         //    await dbContext.Categories.AddRangeAsync(InitialData.Categories);

@@ -37,6 +37,7 @@ public static class PricingModule
             options.UseSqlServer(connectionString);
         });
 
+        services.AddScoped<IPriceResolver, PriceResolver>();
         services.AddScoped<IDataSeeder<PricingDbContext>, PricingDataSeeder>();
 
 

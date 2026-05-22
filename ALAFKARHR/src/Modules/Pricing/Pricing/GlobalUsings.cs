@@ -1,1 +1,21 @@
 ﻿
+global using Carter;
+global using FluentValidation;
+global using Mapster;
+global using MediatR;
+global using Microsoft.AspNetCore.Builder;
+global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.AspNetCore.Routing;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.EntityFrameworkCore.Metadata.Builders;
+global using Pricing.Data;
+global using Pricing.Pricings.Models;
+global using Pricing.Pricings.Services;
+global using Shared.Contracts.CQRS;
+global using Shared.DDD;
+global using Shared.Exceptions;
+global using Shared.Pagination;
+global using SharedWithUI.Permissions;
+global using SharedWithUI.Pricing.Dtos;
+global using System.Security.Claims;

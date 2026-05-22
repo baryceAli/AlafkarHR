@@ -4,7 +4,7 @@ namespace SalesOrder.Orders.Features.AddLine;
 
 public record AddLineCommand(Guid salesOrderId, SalesOrderLineDto  SalesOrderLine):ICommand<AddLineResult>;
 public record AddLineResult(Guid Id);
-public class AddLineHandler(SalesOrderDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class AddLineHandler(SalesOrderDbContext dbContext, IHttpContextAccessor httpContextAccessor, IPriceResolver priceResolver)
     : ICommandHandler<AddLineCommand, AddLineResult>
 {
     public async Task<AddLineResult> Handle(AddLineCommand command, CancellationToken cancellationToken)
@@ -24,6 +24,21 @@ public class AddLineHandler(SalesOrderDbContext dbContext, IHttpContextAccessor 
         //{
             //foreach(var line in command.SalesOrder.Lines)
             //{
+                var resolvedPrice = await priceResolver.ResolveAsync(
+                    new ResolvePriceRequest(
+                        salesOrder.CustomerId,
+                        command.SalesOrderLine.ProductSkuId,
+                        command.SalesOrderLine.UnitOfMeasureId,
+                        command.SalesOrderLine.Quantity,
+                        salesOrder.CompanyId,
+                        salesOrder.PriceListId,
+                        command.SalesOrderLine.TaxRate,
+                        salesOrder.OrderDate),
+                    cancellationToken);
+
+                if (!salesOrder.PriceListId.HasValue && resolvedPrice.PriceListId.HasValue)
+                    salesOrder.ApplyResolvedPriceList(resolvedPrice.PriceListId);
+
                 salesOrder.AddLine(
                     command.SalesOrderLine.ProductId,
                     command.SalesOrderLine.ProductSkuId,
@@ -31,16 +46,15 @@ public class AddLineHandler(SalesOrderDbContext dbContext, IHttpContextAccessor 
                     command.SalesOrderLine.ProductNameEng,
                     command.SalesOrderLine.SkuCode,
                     command.SalesOrderLine.Quantity,
-                    command.SalesOrderLine.UnitPrice,
+                    resolvedPrice.UnitPrice,
                     command.SalesOrderLine.UnitOfMeasureId,
-                    command.SalesOrderLine.DiscountRate,
-                    command.SalesOrderLine.TaxRate,
+                    resolvedPrice.DiscountRate,
+                    resolvedPrice.TaxRate,
                     command.SalesOrderLine.Notes,
                     user);
             //}
         //}
 
-        await dbContext.SalesOrders.AddAsync(salesOrder,cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new AddLineResult(salesOrder.Id);

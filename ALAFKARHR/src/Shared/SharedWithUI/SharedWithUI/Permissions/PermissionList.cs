@@ -35,6 +35,7 @@ public static class PermissionList
             .. SupplierGroupPermissions.Permissions,
             .. SupplierPermissions.Permissions,
             .. SalesOrderPermissions.Permissions,
+            .. PricingPermissions.Permissions,
         ];
 
 
@@ -585,6 +586,27 @@ public static class PermissionList
     {
 
         public static string GroupName { get; set; } = "SalesOrders.Order";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
+    }
+
+    public static class PricingPermissions
+    {
+
+        public static string GroupName { get; set; } = "Pricing.PriceList";
         public static string Select { get; set; } = $"{GroupName}.Select";
         public static string View { get; set; } = $"{GroupName}.View";
         public static string Create { get; set; } = $"{GroupName}.Create";

@@ -29,6 +29,7 @@ public class CreateCustomerPricingProfilesHandler(CustomerDbContext dbContext, I
             Guid.NewGuid(),
             command.CustomerPricingProfile.CustomerId,
             command.CustomerPricingProfile.PriceListId,
+            command.CustomerPricingProfile.DiscountPercentage,
             command.CustomerPricingProfile.AllowAdditionalDiscounts,
             command.CustomerPricingProfile.EffectiveFrom,
             command.CustomerPricingProfile.EffectiveTo,
