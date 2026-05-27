@@ -1,10 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
-using SalesOrder.Orders.Models;
-
-//using SalesOrder.Orders.Models;
+﻿using SalesOrder.Orders.Models;
 using System.Reflection;
 
 namespace SalesOrder.Data;
+// add-migration SalesOrderInitial -Project SalesOrder -StartupProject Api -OutputDir Data/Migrations -Context SalesOrderDbContext
+// update-database -Project SalesOrder -StartupProject Api -Context SalesOrderDbContext
 
 public class SalesOrderDbContext:DbContext
 {

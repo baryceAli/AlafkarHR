@@ -32,8 +32,8 @@ public class CreatePriceListItemHandler(PricingDbContext dbContext, IHttpContext
             command.PriceListItem.UnitId,
             command.PriceListItem.UnitPrice,
             command.PriceListItem.MinQuantity,
-            command.PriceListItem.EffectiveFrom,
-            command.PriceListItem.EffectiveTo,
+            //command.PriceListItem.EffectiveFrom,
+            //command.PriceListItem.EffectiveTo,
             user);
 
         await dbContext.PriceListItems.AddAsync(item, cancellationToken);

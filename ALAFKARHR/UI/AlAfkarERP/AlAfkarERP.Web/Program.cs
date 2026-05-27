@@ -164,6 +164,13 @@ builder.Services.AddHttpClient<IPackageService, PackageService>(client =>
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
 
+builder.Services.AddScoped<IPriceListService, PriceListService>();
+builder.Services.AddHttpClient<IPriceListService, PriceListService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+
 #endregion Catalog Module Services
 
 #region Inventory

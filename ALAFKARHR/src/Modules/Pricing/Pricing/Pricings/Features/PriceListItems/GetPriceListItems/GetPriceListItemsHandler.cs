@@ -21,9 +21,9 @@ public class GetPriceListItemsHandler(PricingDbContext dbContext)
                 UnitId = i.UnitId,
                 UnitPrice = i.UnitPrice,
                 MinQuantity = i.MinQuantity,
-                IsActive = i.IsActive,
-                EffectiveFrom = i.EffectiveFrom,
-                EffectiveTo = i.EffectiveTo
+                //IsActive = i.IsActive,
+                //EffectiveFrom = i.EffectiveFrom,
+                //EffectiveTo = i.EffectiveTo
             })
             .ToListAsync(cancellationToken);
 

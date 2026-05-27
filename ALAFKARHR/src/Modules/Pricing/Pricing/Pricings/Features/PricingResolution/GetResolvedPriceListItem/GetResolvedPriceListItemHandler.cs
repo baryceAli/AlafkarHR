@@ -31,14 +31,16 @@ public class GetResolvedPriceListItemHandler(PricingDbContext dbContext)
             .AsNoTracking()
             .Where(i => i.PriceListId == priceList.Id &&
                         i.ProductSkuId == request.ProductSkuId &&
-                        i.IsActive &&
+                        //i.IsActive &&
                         (!i.UnitId.HasValue || i.UnitId == request.UnitId) &&
-                        (!i.MinQuantity.HasValue || i.MinQuantity.Value <= request.Quantity) &&
-                        i.EffectiveFrom <= request.PriceDate &&
-                        (!i.EffectiveTo.HasValue || i.EffectiveTo.Value >= request.PriceDate))
+                        (!i.MinQuantity.HasValue || i.MinQuantity.Value <= request.Quantity) 
+                        //&&
+                        //i.EffectiveFrom <= request.PriceDate &&
+                        //(!i.EffectiveTo.HasValue || i.EffectiveTo.Value >= request.PriceDate)
+                        )
             .OrderByDescending(i => i.UnitId.HasValue)
             .ThenByDescending(i => i.MinQuantity ?? 0m)
-            .ThenByDescending(i => i.EffectiveFrom)
+            //.ThenByDescending(i => i.EffectiveFrom)
             .FirstOrDefaultAsync(cancellationToken);
 
         return item is null

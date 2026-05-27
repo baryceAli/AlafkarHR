@@ -1,7 +1,9 @@
-using Pricing.Pricings.Models;
 using System.Reflection;
 
 namespace Pricing.Data;
+
+// add-migration PricingInitial -Project Pricing -StartupProject Api -OutputDir Data/Migrations -Context PricingDbContext
+// update-database -Project Pricing -StartupProject Api -Context PricingDbContext
 
 public class PricingDbContext : DbContext
 {

@@ -44,6 +44,14 @@ public class CreatePriceListHandler(PricingDbContext dbContext, IHttpContextAcce
             command.PriceList.EffectiveTo,
             user);
 
+        if (command.PriceList.Items.Any())
+        {
+            foreach(var pl in command.PriceList.Items)
+            {
+                priceList.AddPriceListItem(pl.ProductSkuId, pl.UnitId, pl.UnitPrice, pl.MinQuantity, user);
+            }
+        }
+
         await dbContext.PriceLists.AddAsync(priceList, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 

@@ -60,6 +60,7 @@ public class PriceList : Aggregate<Guid>
         bool isActive,
         DateTime effectiveFrom,
         DateTime? effectiveTo,
+        List<PriceListItem> priceListItems,
         string modifiedBy)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -78,6 +79,50 @@ public class PriceList : Aggregate<Guid>
         EffectiveTo = effectiveTo;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
+
+        var activeValues = _items.Where(v => !v.IsDeleted).ToList();
+        var activeIds = activeValues.Select(v => v.Id).ToHashSet();
+
+        // Add + Update
+        foreach (var l in priceListItems)
+        {
+            if (l.Id == Guid.Empty)
+            {
+                AddPriceListItem(
+                    l.ProductSkuId,
+                    l.UnitId,
+                    l.UnitPrice,
+                    l.MinQuantity,
+                    //l.EffectiveFrom,
+                    //l.EffectiveTo,
+                    modifiedBy);
+                continue;
+            }
+
+            // 🚨 ONLY validate against ACTIVE values
+            if (!activeIds.Contains(l.Id))
+                throw new Exception($"Invalid or deleted Order items Id: {l.Id}");
+
+
+            var existingValue = activeValues.First(ev => ev.Id == l.Id);
+            existingValue.Update(l.ProductSkuId, l.UnitId, l.UnitPrice, l.MinQuantity, modifiedBy);
+        }
+
+        // Remove
+        var dtoIds = priceListItems
+            .Where(v => v.Id != Guid.Empty)
+            .Select(v => v.Id)
+            .ToHashSet();
+
+        var valuesToRemove = activeValues
+            .Where(ev => !dtoIds.Contains(ev.Id))
+            .ToList();
+
+        foreach (var value in valuesToRemove)
+        {
+            value.Remove(modifiedBy);
+        }
+
     }
 
     public void Remove(string deletedBy)
@@ -85,5 +130,22 @@ public class PriceList : Aggregate<Guid>
         IsDeleted = true;
         DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;
+    }
+
+    public void AddPriceListItem(
+        Guid productSkuId, 
+        Guid? unitId, 
+        decimal unitPrice, 
+        decimal? minQuantity, 
+        //DateTime effectiveFrom, 
+        //DateTime?effectiveTo,
+        string createdBy)
+
+    {
+        _items.Add(PriceListItem.Create(Guid.NewGuid(), Id, productSkuId, unitId, unitPrice, minQuantity, createdBy));
+    }
+    public void UpdatePriceListItem()
+    {
+
     }
 }

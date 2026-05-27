@@ -8,7 +8,7 @@ public class PriceListItemDto
     public Guid? UnitId { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal? MinQuantity { get; set; }
-    public bool IsActive { get; set; } = true;
-    public DateTime EffectiveFrom { get; set; } = DateTime.UtcNow;
-    public DateTime? EffectiveTo { get; set; }
+    //public bool IsActive { get; set; } = true;
+    //public DateTime EffectiveFrom { get; set; } = DateTime.UtcNow;
+    //public DateTime? EffectiveTo { get; set; }
 }

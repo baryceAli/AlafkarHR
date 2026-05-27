@@ -29,6 +29,15 @@ public class MenuItem
             Url = "/",
             PermissionPolicy = "View.Home"
         },
+        //home
+        new MenuItem
+        {
+            TextEn = "POS",
+            TextAr = "نقطة بيع",
+            Icon = "bi-house-door",
+            Url = "/",
+            PermissionPolicy = "View.Home"
+        },
 
         //Control Panel
         new MenuItem
@@ -129,6 +138,7 @@ public class MenuItem
                 }
             }
         },
+      
         
         //Products Management
         new MenuItem
@@ -140,6 +150,15 @@ public class MenuItem
             PermissionPolicy = "Inventory.Products",
             Children = new()
             {
+                new MenuItem
+                {
+                    TextEn = "Pricing List",
+                    TextAr = "قائمة التسعير",
+                    Icon = "bi-building",
+                    Url = "/Catalog/Pricing/List",
+                    PermissionPolicy = PermissionList.PricingPermissions.View,
+                },
+
                 new MenuItem
                 {
                     TextEn = "SKU",
@@ -293,7 +312,6 @@ public class MenuItem
                         },
                     }
                 },
-
                 //new MenuItem
                 //{
                 //    TextEn = "Transfers",

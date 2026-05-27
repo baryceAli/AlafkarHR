@@ -19,9 +19,9 @@ public class UpdatePriceListItemHandler(PricingDbContext dbContext, IHttpContext
             command.PriceListItem.UnitId,
             command.PriceListItem.UnitPrice,
             command.PriceListItem.MinQuantity,
-            command.PriceListItem.IsActive,
-            command.PriceListItem.EffectiveFrom,
-            command.PriceListItem.EffectiveTo,
+            //command.PriceListItem.IsActive,
+            //command.PriceListItem.EffectiveFrom,
+            //command.PriceListItem.EffectiveTo,
             user);
 
         await dbContext.SaveChangesAsync(cancellationToken);

@@ -34,6 +34,7 @@ public class UpdatePriceListHandler(PricingDbContext dbContext, IHttpContextAcce
             command.PriceList.IsActive,
             command.PriceList.EffectiveFrom,
             command.PriceList.EffectiveTo,
+            command.PriceList.Items.Adapt<List<PriceListItem>>(),
             user);
 
         await dbContext.SaveChangesAsync(cancellationToken);

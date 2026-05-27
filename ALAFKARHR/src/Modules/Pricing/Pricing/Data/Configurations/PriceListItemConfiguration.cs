@@ -11,12 +11,12 @@ public class PriceListItemConfiguration : IEntityTypeConfiguration<PriceListItem
         builder.Property(x => x.ProductSkuId).IsRequired();
         builder.Property(x => x.UnitPrice).HasColumnType("decimal(18,2)");
         builder.Property(x => x.MinQuantity).HasColumnType("decimal(18,2)");
-        builder.Property(x => x.EffectiveFrom).IsRequired();
+        //builder.Property(x => x.EffectiveFrom).IsRequired();
         builder.Property(x => x.CreatedBy).HasMaxLength(100);
         builder.Property(x => x.ModifiedBy).HasMaxLength(100);
         builder.Property(x => x.DeletedBy).HasMaxLength(100);
 
-        builder.HasIndex(x => new { x.PriceListId, x.ProductSkuId, x.UnitId, x.MinQuantity, x.EffectiveFrom });
+        builder.HasIndex(x => new { x.PriceListId, x.ProductSkuId, x.UnitId, x.MinQuantity });
         builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }
