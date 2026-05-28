@@ -6,7 +6,7 @@ public class GetPriceListsByCompanyEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/v1/pricing/priceLists/company/{companyId}", async ([FromRoute] Guid companyId, [FromBody] PaginationRequest request, ISender sender) =>
+        app.MapGet("/api/v1/pricing/priceLists/company/{companyId}", async ([FromRoute] Guid companyId, [AsParameters] PaginationRequest request, ISender sender) =>
         {
             var result = await sender.Send(new GetPriceListsByCompanyQuery(companyId, request));
             return Results.Ok(result.Adapt<GetPriceListsByCompanyResponse>());

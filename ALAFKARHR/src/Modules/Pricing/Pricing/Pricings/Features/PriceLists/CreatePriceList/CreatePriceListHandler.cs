@@ -8,7 +8,7 @@ public class CreatePriceListValidator : AbstractValidator<CreatePriceListCommand
     public CreatePriceListValidator()
     {
         RuleFor(x => x.PriceList.Name).NotEmpty().WithMessage("Name is required");
-        RuleFor(x => x.PriceList.Code).NotEmpty().WithMessage("Code is required");
+        //RuleFor(x => x.PriceList.Code).NotEmpty().WithMessage("Code is required");
         RuleFor(x => x.PriceList.CompanyId).NotEmpty().WithMessage("Company is required");
         RuleFor(x => x.PriceList.CurrencyCode).NotEmpty().WithMessage("Currency is required");
     }
@@ -32,11 +32,12 @@ public class CreatePriceListHandler(PricingDbContext dbContext, IHttpContextAcce
             if (defaultExists)
                 throw new Exception("A default price list already exists for this company.");
         }
+        var code=await GeneratePriceListCode(command.PriceList.CompanyId, cancellationToken);
 
         var priceList = PriceList.Create(
             Guid.NewGuid(),
             command.PriceList.Name,
-            command.PriceList.Code,
+            code,
             command.PriceList.CompanyId,
             command.PriceList.CurrencyCode,
             command.PriceList.IsDefault,
@@ -56,5 +57,10 @@ public class CreatePriceListHandler(PricingDbContext dbContext, IHttpContextAcce
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new CreatePriceListResult(priceList.Id);
+    }
+    private async Task<string> GeneratePriceListCode(Guid companyId, CancellationToken cancellationToken)
+    {
+        var count = await dbContext.PriceLists.IgnoreQueryFilters().LongCountAsync(s => s.CompanyId == companyId, cancellationToken);
+        return $"PL-{count + 1:00000}";
     }
 }

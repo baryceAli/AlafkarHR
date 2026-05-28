@@ -15,6 +15,7 @@ public class PriceListService : BaseApiService, IPriceListService
     {
         _apiConfig = apiConfig;
         _path = $"/api/{_apiConfig.Version}/pricing/priceLists";
+        ///api/v1/pricing/priceLists/company/{companyId}
     }
 
     public async Task<ApiResult<CreateResponseDto>> CreateAsync(PriceListDto priceList)
@@ -38,7 +39,7 @@ public class PriceListService : BaseApiService, IPriceListService
 
     public async Task<ApiResult<PaginatedResult<PriceListDto>>> GetByCompanyId(Guid companyId, int pageIndex, int pageSize)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/{companyId}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/company/{companyId}?pageIndex={pageIndex}&pageSize={pageSize}");
         return await SendAsync<PaginatedResult<PriceListDto>>(request, "priceList");
     }
 

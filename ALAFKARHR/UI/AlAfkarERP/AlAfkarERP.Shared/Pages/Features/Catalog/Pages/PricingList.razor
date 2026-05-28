@@ -22,7 +22,7 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.View}"))
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.PricingPermissions.View}"))
 {
     <div class="alert alert-warning">
         <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
@@ -36,7 +36,7 @@
 @* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
 <button class="btn btn-primary mb-3"
         @onclick="CreateNew"
-        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.Create}") ? true : false)>
+        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.PricingPermissions.Create}") ? true : false)>
     <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
 </button>
 
@@ -160,28 +160,46 @@
                                                                         <div class="mb-3 row">
                                                                             <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
                                                                             <div class="col-sm-10">
+                                                                                @if(isEdit){
+                                                                                    <input type="text"
+                                                                                           class="form-control"
+                                                                                           value="@allProducts.FirstOrDefault(p => p.Skus.Any(s => s.Id == pl.ProductSkuId))?.Name" disabled />
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    
                                                                                 <AutoCompleteComponent TItem="ProductDto"
                                                                                                        Items="products"
                                                                                                        ItemText="p=>SharedDataService.SelectViewLang(p.NameEng,p.Name)"
                                                                                                        PlaceHolder="@SharedDataService.SelectViewLang("Select a product","اختر المنتج")"
                                                                                                        Value="selectedProduct"
                                                                                                        ValueChanged="OnProductSelected" />
+                                                                                }
                                                                             </div>
                                                                         </div>
 
-                                                                        
                                                                         <div class="mb-3 row">
                                                                             <label class="col-sm-2 col-form-label">
                                                                                 @SharedDataService.SelectViewLang("SKU", "المنتج المخزني")
                                                                             </label>
 
                                                                             <div class="col-sm-10">
+                                                                                @if (isEdit)
+                                                                                {
+                                                                                    <input type="text"
+                                                                                           class="form-control"
+                                                                                           value="@allProducts.SelectMany(p => p.Skus).FirstOrDefault(s => s.Id == pl.ProductSkuId)?.Name" disabled />
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                            
                                                                                 <AutoCompleteComponent TItem="ProductSkuDto"
                                                                                                        Items="productSkus"
                                                                                                        ItemText="p => SharedDataService.SelectViewLang(p.NameEng, p.Name)"
                                                                                                        PlaceHolder="@SharedDataService.SelectViewLang("Select a SKU", "اختر المنتج المخزني")"
                                                                                                        Value="productSkus.FirstOrDefault(x => x.Id == pl.ProductSkuId)"
                                                                                                        ValueChanged="sku => OnProductSkuSelected(pl, sku)" />
+                                                                                }
                                                                             </div>
                                                                         </div>
 
@@ -267,12 +285,12 @@
                     <td>
                         <button class="btn btn-warning btn-sm"
                                 @onclick="() => EditPriceList(pL.Id)"
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Edit}"))>
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.PricingPermissions.Edit}"))>
                             @SharedDataService.SelectViewLang("Edit", "تعديل")
                         </button>
                         <button class="btn btn-danger btn-sm"
                                 @onclick="() => DeletePriceList(pL)"
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Delete}"))>
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.PricingPermissions.Delete}"))>
                             @SharedDataService.SelectViewLang("Delete", "حذف")
                         </button>
                     </td>
@@ -329,7 +347,7 @@
             allProducts = prodRes.Data?.Data?.ToList() ?? [];
             products = prodRes.Data?.Data?.ToList() ?? [];
         }
-        await LoadVariants();
+        await LoadPriceLists();
         // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
         // if (branchResponse.IsSuccess)
         // {
@@ -428,7 +446,7 @@
             }
         }
 
-        await LoadVariants();
+        await LoadPriceLists();
         // var response = await BranchService.GetByCompanyIdAsync(companyId);
         // if (response.IsSuccess)
         // {
@@ -459,7 +477,7 @@
                         Type = "success"
                     });
 
-                    await LoadVariants();
+                    await LoadPriceLists();
 
                     await InvokeAsync(StateHasChanged);
                 }
@@ -517,7 +535,7 @@
     // Pagination
     private int pageSize = 5;
     private int pageIndex = 0;
-    private async Task LoadVariants()
+    private async Task LoadPriceLists()
     {
         // var request = new PaginationRequest(pageIndex, pageSize, searchText);
 
@@ -537,7 +555,7 @@
     {
         pageSize = int.Parse(e.Value!.ToString()!);
         pageIndex = 0;
-        await LoadVariants();
+        await LoadPriceLists();
     }
     private IEnumerable<PriceListDto> ProcessedVariants =>
     priceLists
@@ -580,7 +598,7 @@
         if (pageIndex < TotalPages - 1)
         {
             pageIndex++;
-            await LoadVariants();
+            await LoadPriceLists();
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -593,7 +611,7 @@
         if (pageIndex > 0)
         {
             pageIndex--;
-            await LoadVariants();
+            await LoadPriceLists();
         }
     }
 

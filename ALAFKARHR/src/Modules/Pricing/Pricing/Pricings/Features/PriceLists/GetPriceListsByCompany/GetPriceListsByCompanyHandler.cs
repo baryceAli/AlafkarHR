@@ -8,7 +8,7 @@ public class GetPriceListsByCompanyHandler(PricingDbContext dbContext)
 {
     public async Task<GetPriceListsByCompanyResult> Handle(GetPriceListsByCompanyQuery request, CancellationToken cancellationToken)
     {
-        var query = dbContext.PriceLists.AsNoTracking().Where(p => p.CompanyId == request.CompanyId);
+        var query = dbContext.PriceLists.Include(pl=>pl.Items).AsNoTracking().Where(p => p.CompanyId == request.CompanyId);
 
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
         {
@@ -24,7 +24,7 @@ public class GetPriceListsByCompanyHandler(PricingDbContext dbContext)
             .Skip(request.PaginationRequest.PageIndex * request.PaginationRequest.PageSize)
             .Take(request.PaginationRequest.PageSize)
             .Select(p => new PriceListDto
-            {
+            { 
                 Id = p.Id,
                 Name = p.Name,
                 Code = p.Code,
@@ -33,7 +33,20 @@ public class GetPriceListsByCompanyHandler(PricingDbContext dbContext)
                 IsDefault = p.IsDefault,
                 IsActive = p.IsActive,
                 EffectiveFrom = p.EffectiveFrom,
-                EffectiveTo = p.EffectiveTo
+                EffectiveTo = p.EffectiveTo,
+                Items= p.Items.Select(i=> new PriceListItemDto
+                {
+                    Id = i.Id,
+                    PriceListId = i.PriceListId,
+                    //ProductId = i.ProductId,
+                    UnitPrice = i.UnitPrice,
+                    MinQuantity=i.MinQuantity,
+                    ProductSkuId = i.ProductSkuId,
+                    UnitId=i.UnitId,
+                    //CurrencyCode = i.CurrencyCode,
+                    //EffectiveFrom = i.EffectiveFrom,
+                    //EffectiveTo = i.EffectiveTo
+                }).ToList()
             })
             .ToListAsync(cancellationToken);
 

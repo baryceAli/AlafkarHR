@@ -1,0 +1,981 @@
+﻿@layout AdminLayout
+@page "/SalesOrder/POS"
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Permissions
+
+
+
+@inject ToastService ToastService
+@inject ModalService ModalService
+@inject LoadingService LoadingService
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@inject IProductService ProductService
+@inject ICategoryService CategoryService
+@inject IBrandService BrandService
+@inject IVariantService VariantService
+@inject IUnitService UnitService
+
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.View}"))
+{
+    <div class="alert alert-warning">
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
+    </div>
+    return;
+}
+
+<!-- Branches -->
+<h5 class="text-black">@SharedDataService.SelectViewLang("POS", "نقطة بيع")</h5>
+<PageTitle>POS Catalog</PageTitle>
+
+<div class="container-fluid py-3">
+    <!-- FILTER BAR -->
+    <div class="card shadow-sm border-0 rounded-4 mb-3">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Search</label>
+                    <input class="form-control"
+                           placeholder="Search products..."
+                           @bind="SearchText" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Category</label>
+                    <select class="form-select" @bind="SelectedCategoryId">
+                        <option value="">All Categories</option>
+
+                        @foreach (var category in Categories)
+                        {
+                            <option value="@category.Id">
+                                @category.NameEng
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Brand</label>
+                    <select class="form-select" @bind="SelectedBrandId">
+                        <option value="">All Brands</option>
+
+                        @foreach (var brand in Brands)
+                        {
+                            <option value="@brand.Id">
+                                @brand.NameEng
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-2 d-grid">
+                    <button class="btn btn-primary"
+                            @onclick="ApplyFilters">
+                        Filter
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- PRODUCT GRID -->
+    <div class="row g-4">
+
+        @foreach (var product in FilteredProducts)
+        {
+            <div class="col-xl-3 col-lg-4 col-md-6">
+
+                <div class="card h-100 shadow-sm border-0 rounded-4 product-card"
+                     @onclick="() => SelectProduct(product)">
+
+                    @* <img src="https://placehold.co/600x400/png" *@
+                    <img src="https://placehold.co/600x400/png"
+                         class="card-img-top rounded-top-4"
+                         style="height:220px; object-fit:cover;" />
+
+                    <div class="card-body d-flex flex-column">
+
+                        <h5 class="fw-bold mb-1">
+                            @product.NameEng
+                        </h5>
+
+                        <div class="text-muted small mb-2">
+                            @product.CategoryNameEng
+                        </div>
+
+                        <div class="mt-auto d-flex justify-content-between align-items-center">
+
+                            <span class="badge bg-primary rounded-pill px-3 py-2">
+                                @product.Skus.Count SKU(s)
+                            </span>
+
+                            <span class="fw-bold text-success">
+                                @product.Skus.Min(x => x.Price) SAR
+                            </span>
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+
+    </div>
+
+
+
+</div>
+
+@if (SelectedProduct is not null)
+{
+    <div class="sku-panel-backdrop" @onclick="ClosePanel"></div>
+
+    <div class="sku-panel shadow-lg">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1">
+                    @SelectedProduct.NameEng
+                </h3>
+
+                <div class="text-muted">
+                    Select Variants
+                </div>
+            </div>
+
+            <button class="btn btn-light"
+                    @onclick="ClosePanel">
+                ✕
+            </button>
+        </div>
+
+        <div class="mb-4 text-black">
+
+            <div class="fw-bold mb-2 fs-5">
+                Brand
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 text-black">
+
+                @foreach (var brand in AvailableBrands)
+                {
+                    var isSelected = SelectedBrandForSkuId == brand.Id;
+
+                    <button class="btn @(isSelected ? "btn-primary" : "btn-outline-secondary") rounded-pill"
+                            @onclick="() => SelectBrand(brand.Id)">
+                        @brand.NameEng
+                    </button>
+                }
+
+            </div>
+
+        </div>
+
+        <!-- VARIANT GROUPS -->
+        @foreach (var variant in AvailableVariants)
+        {
+            <div class="mb-4 text-black">
+
+                <div class="fw-bold mb-2 fs-5">
+                    @variant.NameEng
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+
+                    @foreach (var value in variant.Values)
+                    {
+                        var isSelected = SelectedVariantValues.ContainsKey(variant.Id)
+                                         && SelectedVariantValues[variant.Id] == value.Id;
+
+                        var isDisabled = !IsVariantValueAvailable(variant.Id, value.Id);
+
+                        <button class="btn @(isSelected ? "btn-primary" : "btn-outline-secondary") rounded-pill"
+                                disabled="@isDisabled"
+                                @onclick="() => SelectVariantValue(variant.Id, value.Id)">
+                            @value.ValueEng
+                        </button>
+                    }
+
+                </div>
+
+            </div>
+        }
+
+        <!-- MATCHED SKU -->
+        @if (MatchedSku is not null)
+        {
+            <div class="card border-0 bg-light rounded-4 mb-4">
+                <div class="card-body">
+
+                    <h5 class="fw-bold mb-3">
+                        Selected SKU
+                    </h5>
+
+                    <div class="row g-3">
+
+                        <div class="col-6">
+                            <div class="text-muted small">Name</div>
+                            <div class="fw-bold">@MatchedSku.Name</div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="text-muted small">SKU</div>
+                            <div class="fw-bold">@MatchedSku.SkuCodeEng</div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="text-muted small">Barcode</div>
+                            <div class="fw-bold">@MatchedSku.Barcode</div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="text-muted small">Price</div>
+                            <div class="fw-bold text-success">
+                                @MatchedSku.Price SAR
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="text-muted small">Selling Unit</div>
+                            <div class="fw-bold">
+                                @(Units.FirstOrDefault(u => u.Id == MatchedSku.UnitId)?.UnitName ?? "")
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="d-grid">
+                <button class="btn btn-success btn-lg rounded-4">
+                    Add To Cart
+                </button>
+            </div>
+        }
+    </div>
+}
+
+
+<style>
+
+    body {
+        background: #f5f7fb;
+    }
+
+    .product-card {
+        cursor: pointer;
+        transition: all .2s ease;
+    }
+
+        .product-card:hover {
+            transform: translateY(-4px);
+        }
+
+    .sku-panel-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.3);
+        z-index: 1000;
+    }
+
+    .sku-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 480px;
+        max-width: 100%;
+        height: 100vh;
+        background: white;
+        z-index: 1001;
+        padding: 24px;
+        overflow-y: auto;
+    }
+
+</style>
+
+
+@code {
+
+
+
+
+    private string SearchText = string.Empty;
+
+    private Guid? SelectedCategoryId;
+    
+    private Guid? SelectedBrandId;
+    private Guid? SelectedBrandForSkuId;
+
+    private ProductDto? SelectedProduct;
+
+    private ProductSkuDto? MatchedSku;
+
+
+    private Dictionary<Guid, Guid> SelectedVariantValues = new();
+
+    // MOCK DATA
+
+    private List<BrandDto> Brands = new();
+    private List<BrandDto> AvailableBrands = new();
+    private List<CategoryDto> Categories = new();
+    private List<VariantDto> Variants = new();
+    private List<VariantDto> AvailableVariants = new();
+    private List<ProductDto> Products = new();
+    private List<UnitDto> Units = new();
+
+
+    private List<ProductDto> FilteredProducts => Products
+            .Where(x =>
+                (string.IsNullOrWhiteSpace(SearchText)
+                    || x.NameEng.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+
+                && (!SelectedCategoryId.HasValue
+                    || x.CategoryId == SelectedCategoryId)
+
+                && (!SelectedBrandId.HasValue
+                    || x.Skus.Any(s => s.BrandId == SelectedBrandId))
+            )
+            .ToList();
+
+
+
+
+
+
+    AuthenticationState AuthState;
+    Guid companyId;
+    private List<ProductDto> products = [];
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (!AuthState.User.Identity.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/login", true);
+
+        }
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+        // LoadingService.Show();
+        // var prodRes = await ProductService.GetByCompanyAsync(companyId, 0, 10000);
+        // if (prodRes.IsSuccess)
+        // {
+        //     products = prodRes.Data?.Data?.ToList() ?? [];
+        // }
+        // LoadingService.Hide();
+        await LoadData();
+    }
+
+    private void SelectBrand(Guid brandId)
+    {
+        SelectedBrandForSkuId = brandId;
+
+        SelectedVariantValues.Clear();
+
+        MatchedSku = null;
+    }
+
+    private async Task LoadData()
+    {
+        LoadingService.Show();
+        var brandTask = BrandService.GetByCompanyIdAsync(companyId, 0, 100);
+        var categoryTask = CategoryService.GetByCompanyIdAsync(companyId, 0, 100);
+        var productTask = ProductService.GetByCompanyAsync(companyId, 0, 100);
+        var variantTask = VariantService.GetByCompanyAsync(companyId, 0, 100);
+
+        var unitTask = UnitService.GetByCompanyAsync(companyId, 0, 1000);
+        await Task.WhenAll(brandTask, categoryTask, productTask, variantTask, unitTask);
+
+        if (brandTask.Result.IsSuccess)
+            Brands = brandTask.Result.Data?.Data?.ToList() ?? [];
+        if (categoryTask.Result.IsSuccess)
+            Categories = categoryTask.Result.Data?.Data?.ToList() ?? [];
+        if (productTask.Result.IsSuccess)
+            Products = productTask.Result.Data?.Data?.ToList() ?? [];
+        if (variantTask.Result.IsSuccess)
+            Variants = variantTask.Result.Data?.Data?.ToList() ?? [];
+        if (unitTask.Result.IsSuccess)
+            Units = unitTask.Result.Data?.Data?.ToList() ?? [];
+    
+        AvailableBrands = Products.SelectMany(p => p.Skus)
+        .GroupBy(x => x.BrandId)
+        .Select(g => new BrandDto
+        {
+            Id = g.Key,
+            NameEng = g.First().BrandName
+        })
+        .ToList();
+        LoadingService.Hide();
+    }
+    protected override void OnInitialized()
+    {
+        // SeedData();
+    }
+
+    private void ApplyFilters()
+    {
+    }
+
+
+    private void SelectProduct(ProductDto product)
+    {
+        SelectedProduct = product;
+        MatchedSku = null;
+
+        SelectedBrandForSkuId = null;
+
+        SelectedVariantValues.Clear();
+
+        BuildBrands(product);
+
+        BuildVariants(product);
+    }
+
+    private void BuildBrands(ProductDto product)
+    {
+        var brandIds = product.Skus
+            .Select(x => x.BrandId)
+            .Distinct()
+            .ToList();
+
+        AvailableBrands = Brands
+            .Where(x => brandIds.Contains(x.Id))
+            .ToList();
+    }
+
+    private void ClosePanel()
+    {
+        SelectedProduct = null;
+    }
+
+    private void BuildVariants(ProductDto product)
+    {
+        AvailableVariants.Clear();
+
+        // all variant ids used by this product
+        var variantIds = product.Skus
+            .SelectMany(x => x.Variants)
+            .Select(x => x.VariantId)
+            .Distinct()
+            .ToList();
+
+        foreach (var variantId in variantIds)
+        {
+            // find variant from master list
+            var masterVariant = Variants
+                .FirstOrDefault(x => x.Id == variantId);
+
+            if (masterVariant is null)
+                continue;
+
+            // collect only values used by this product
+            var usedValueIds = product.Skus
+                .SelectMany(x => x.Variants)
+                .Where(x => x.VariantId == variantId)
+                .Select(x => x.VariantValueId)
+                .Distinct()
+                .ToList();
+
+            var variant = new VariantDto
+            {
+                Id = masterVariant.Id,
+                Name = masterVariant.Name,
+                NameEng = masterVariant.NameEng,
+                CompanyId = masterVariant.CompanyId,
+
+                Values = masterVariant.Values
+                    .Where(v => usedValueIds.Contains(v.Id))
+                    .ToList()
+            };
+
+            AvailableVariants.Add(variant);
+        }
+    }
+
+
+    private void SelectVariantValue(Guid variantId, Guid valueId)
+    {
+        SelectedVariantValues[variantId] = valueId;
+
+        ResolveSku();
+    }
+
+    private void ResolveSku()
+    {
+        if (SelectedProduct is null)
+            return;
+
+        var selectedValueIds = SelectedVariantValues.Values.ToList();
+
+        MatchedSku = SelectedProduct.Skus
+            .Where(x => !SelectedBrandForSkuId.HasValue
+                        || x.BrandId == SelectedBrandForSkuId)
+            .FirstOrDefault(sku =>
+                selectedValueIds.All(selected =>
+                    sku.Variants.Any(v => v.VariantValueId == selected)));
+    }
+
+    private bool IsVariantValueAvailable(Guid variantId, Guid valueId)
+    {
+        if (SelectedProduct is null)
+            return false;
+
+        var tempSelections = new Dictionary<Guid, Guid>(SelectedVariantValues)
+        {
+            [variantId] = valueId
+        };
+
+        var selectedIds = tempSelections.Values.ToList();
+
+        // return SelectedProduct.Skus.Any(sku =>
+        //     selectedIds.All(id =>
+        //         sku.Variants.Any(v => v.VariantValueId == id))
+
+        
+        // );
+
+        return SelectedProduct.Skus
+                .Where(x => !SelectedBrandForSkuId.HasValue
+                            || x.BrandId == SelectedBrandForSkuId)
+                .Any(sku =>
+                    selectedIds.All(id =>
+                        sku.Variants.Any(v => v.VariantValueId == id)));
+    }
+
+    private void SeedData()
+    {
+        var companyId = Guid.NewGuid();
+
+        // =========================
+        // BRANDS
+        // =========================
+
+        var nikeBrand = new BrandDto
+        {
+            Id = Guid.NewGuid(),
+            Name = "نايك",
+            NameEng = "Nike",
+            CompanyId = companyId
+        };
+
+        var adidasBrand = new BrandDto
+        {
+            Id = Guid.NewGuid(),
+            Name = "أديداس",
+            NameEng = "Adidas",
+            CompanyId = companyId
+        };
+
+        Brands.Add(nikeBrand);
+        Brands.Add(adidasBrand);
+
+
+
+        // =========================
+        // CATEGORIES
+        // =========================
+
+        var shoesCategory = new CategoryDto
+        {
+            Id = Guid.NewGuid(),
+            Name = "أحذية",
+            NameEng = "Shoes",
+            CompanyId = companyId
+        };
+
+        var tshirtCategory = new CategoryDto
+        {
+            Id = Guid.NewGuid(),
+            Name = "ملابس",
+            NameEng = "Clothes",
+            CompanyId = companyId
+        };
+
+        Categories.Add(shoesCategory);
+        Categories.Add(tshirtCategory);
+
+
+
+        // =========================
+        // VARIANTS
+        // =========================
+
+        var colorVariantId = Guid.NewGuid();
+        var sizeVariantId = Guid.NewGuid();
+
+        var blackValueId = Guid.NewGuid();
+        var whiteValueId = Guid.NewGuid();
+        var redValueId = Guid.NewGuid();
+
+        var smallValueId = Guid.NewGuid();
+        var mediumValueId = Guid.NewGuid();
+        var largeValueId = Guid.NewGuid();
+
+
+
+        // =========================
+        // PRODUCT 1
+        // =========================
+
+        var nikeAir = new ProductDto
+        {
+            Id = Guid.NewGuid(),
+            Name = "حذاء رياضي",
+            NameEng = "Nike Air Max",
+            CategoryId = shoesCategory.Id,
+            CategoryName = shoesCategory.Name,
+            CategoryNameEng = shoesCategory.NameEng,
+            CompanyId = companyId,
+        };
+
+
+
+        // SKU 1
+        nikeAir.Skus.Add(new ProductSkuDto
+        {
+            Id = Guid.NewGuid(),
+            ProductId = nikeAir.Id,
+            ProductName = nikeAir.NameEng,
+            BrandId = nikeBrand.Id,
+            BrandName = nikeBrand.NameEng,
+
+            Name = "أسود صغير",
+            NameEng = "Black Small",
+
+            SkuCode = "NK-AIR-BLK-S",
+            SkuCodeEng = "NK-AIR-BLK-S",
+
+            SkuKey = "BLACK_SMALL",
+
+            Barcode = "100001",
+
+            Price = 250,
+
+            CompanyId = companyId,
+
+            ImageUrl = "https://placehold.co/600x400/png",
+
+            ShowOnStore = true,
+
+            Variants = new()
+        {
+            new ProductSkuVariantDto
+            {
+                Id = Guid.NewGuid(),
+                VariantId = colorVariantId,
+                VariantValueId = blackValueId
+            },
+
+            new ProductSkuVariantDto
+            {
+                Id = Guid.NewGuid(),
+                VariantId = sizeVariantId,
+                VariantValueId = smallValueId
+            }
+        }
+        });
+
+
+
+        // SKU 2
+        nikeAir.Skus.Add(new ProductSkuDto
+        {
+            Id = Guid.NewGuid(),
+            ProductId = nikeAir.Id,
+            ProductName = nikeAir.NameEng,
+            BrandId = nikeBrand.Id,
+            BrandName = nikeBrand.NameEng,
+
+            Name = "أسود كبير",
+            NameEng = "Black Large",
+
+            SkuCode = "NK-AIR-BLK-L",
+            SkuCodeEng = "NK-AIR-BLK-L",
+
+            SkuKey = "BLACK_LARGE",
+
+            Barcode = "100002",
+
+            Price = 280,
+
+            CompanyId = companyId,
+
+            ImageUrl = "https://placehold.co/600x400/png",
+
+            ShowOnStore = true,
+
+            Variants = new()
+        {
+            new ProductSkuVariantDto
+            {
+                Id = Guid.NewGuid(),
+                VariantId = colorVariantId,
+                VariantValueId = blackValueId
+            },
+
+            new ProductSkuVariantDto
+            {
+                Id = Guid.NewGuid(),
+                VariantId = sizeVariantId,
+                VariantValueId = largeValueId
+            }
+        }
+        });
+
+
+
+        // SKU 3
+        nikeAir.Skus.Add(new ProductSkuDto
+        {
+            Id = Guid.NewGuid(),
+            ProductId = nikeAir.Id,
+            ProductName = nikeAir.NameEng,
+            BrandId = nikeBrand.Id,
+            BrandName = nikeBrand.NameEng,
+
+            Name = "أبيض متوسط",
+            NameEng = "White Medium",
+
+            SkuCode = "NK-AIR-WHT-M",
+            SkuCodeEng = "NK-AIR-WHT-M",
+
+            SkuKey = "WHITE_MEDIUM",
+
+            Barcode = "100003",
+
+            Price = 265,
+
+            CompanyId = companyId,
+
+            ImageUrl = "https://placehold.co/600x400/png",
+
+            ShowOnStore = true,
+
+            Variants = new()
+        {
+            new ProductSkuVariantDto
+            {
+                Id = Guid.NewGuid(),
+                VariantId = colorVariantId,
+                VariantValueId = whiteValueId
+            },
+
+            new ProductSkuVariantDto
+            {
+                Id = Guid.NewGuid(),
+                VariantId = sizeVariantId,
+                VariantValueId = mediumValueId
+            }
+        }
+        });
+
+
+
+        // =========================
+        // PRODUCT 2
+        // =========================
+
+        var adidasShirt = new ProductDto
+        {
+            Id = Guid.NewGuid(),
+            Name = "تيشيرت رياضي",
+            NameEng = "Adidas Sport T-Shirt",
+            CategoryId = tshirtCategory.Id,
+            CategoryName = tshirtCategory.Name,
+            CategoryNameEng = tshirtCategory.NameEng,
+            CompanyId = companyId,
+        };
+
+
+
+        // SKU 1
+        adidasShirt.Skus.Add(new ProductSkuDto
+        {
+            Id = Guid.NewGuid(),
+            ProductId = adidasShirt.Id,
+            ProductName = adidasShirt.NameEng,
+            BrandId = adidasBrand.Id,
+            BrandName = adidasBrand.NameEng,
+
+            Name = "أحمر صغير",
+            NameEng = "Red Small",
+
+            SkuCode = "AD-TS-RED-S",
+            SkuCodeEng = "AD-TS-RED-S",
+
+            SkuKey = "RED_SMALL",
+
+            Barcode = "200001",
+
+            Price = 120,
+
+            CompanyId = companyId,
+
+            ImageUrl = "https://placehold.co/600x400/png",
+
+            ShowOnStore = true,
+
+            Variants = new()
+        {
+            new ProductSkuVariantDto
+            {
+                Id = Guid.NewGuid(),
+                VariantId = colorVariantId,
+                VariantValueId = redValueId
+            },
+
+            new ProductSkuVariantDto
+            {
+                Id = Guid.NewGuid(),
+                VariantId = sizeVariantId,
+                VariantValueId = smallValueId
+            }
+        }
+        });
+
+
+
+        // SKU 2
+        adidasShirt.Skus.Add(new ProductSkuDto
+        {
+            Id = Guid.NewGuid(),
+            ProductId = adidasShirt.Id,
+            ProductName = adidasShirt.NameEng,
+            BrandId = adidasBrand.Id,
+            BrandName = adidasBrand.NameEng,
+
+            Name = "أحمر كبير",
+            NameEng = "Red Large",
+
+            SkuCode = "AD-TS-RED-L",
+            SkuCodeEng = "AD-TS-RED-L",
+
+            SkuKey = "RED_LARGE",
+
+            Barcode = "200002",
+
+            Price = 135,
+
+            CompanyId = companyId,
+
+            ImageUrl = "https://placehold.co/600x400/png",
+
+            ShowOnStore = true,
+
+            Variants = new()
+        {
+            new ProductSkuVariantDto
+            {
+                Id = Guid.NewGuid(),
+                VariantId = colorVariantId,
+                VariantValueId = redValueId
+            },
+
+            new ProductSkuVariantDto
+            {
+                Id = Guid.NewGuid(),
+                VariantId = sizeVariantId,
+                VariantValueId = largeValueId
+            }
+        }
+        });
+
+
+
+        // =========================
+        // ADD PRODUCTS
+        // =========================
+
+        Products.Add(nikeAir);
+        Products.Add(adidasShirt);
+
+
+
+        // =========================
+        // AVAILABLE VARIANTS
+        // =========================
+
+        AvailableVariants = new List<VariantDto>
+    {
+        new()
+        {
+            Id = colorVariantId,
+            Name = "اللون",
+            NameEng = "Color",
+            CompanyId = companyId,
+
+            Values = new()
+            {
+                new()
+                {
+                    Id = blackValueId,
+                    VariantId = colorVariantId,
+                    Value = "أسود",
+                    ValueEng = "Black"
+                },
+
+                new()
+                {
+                    Id = whiteValueId,
+                    VariantId = colorVariantId,
+                    Value = "أبيض",
+                    ValueEng = "White"
+                },
+
+                new()
+                {
+                    Id = redValueId,
+                    VariantId = colorVariantId,
+                    Value = "أحمر",
+                    ValueEng = "Red"
+                }
+            }
+        },
+
+        new()
+        {
+            Id = sizeVariantId,
+            Name = "الحجم",
+            NameEng = "Size",
+            CompanyId = companyId,
+
+            Values = new()
+            {
+                new()
+                {
+                    Id = smallValueId,
+                    VariantId = sizeVariantId,
+                    Value = "صغير",
+                    ValueEng = "Small"
+                },
+
+                new()
+                {
+                    Id = mediumValueId,
+                    VariantId = sizeVariantId,
+                    Value = "متوسط",
+                    ValueEng = "Medium"
+                },
+
+                new()
+                {
+                    Id = largeValueId,
+                    VariantId = sizeVariantId,
+                    Value = "كبير",
+                    ValueEng = "Large"
+                }
+            }
+        }
+    };
+    }
+
+}

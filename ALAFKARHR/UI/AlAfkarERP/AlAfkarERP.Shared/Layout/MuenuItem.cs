@@ -29,14 +29,14 @@ public class MenuItem
             Url = "/",
             PermissionPolicy = "View.Home"
         },
-        //home
+        //POS
         new MenuItem
         {
             TextEn = "POS",
             TextAr = "نقطة بيع",
-            Icon = "bi-house-door",
-            Url = "/",
-            PermissionPolicy = "View.Home"
+            Icon = "bi-receipt-cutoff",
+            Url = "/SalesOrder/POS",
+            PermissionPolicy = "View.POS"
         },
 
         //Control Panel
@@ -154,7 +154,7 @@ public class MenuItem
                 {
                     TextEn = "Pricing List",
                     TextAr = "قائمة التسعير",
-                    Icon = "bi-building",
+                    Icon = "bi-currency-dollar",
                     Url = "/Catalog/Pricing/List",
                     PermissionPolicy = PermissionList.PricingPermissions.View,
                 },

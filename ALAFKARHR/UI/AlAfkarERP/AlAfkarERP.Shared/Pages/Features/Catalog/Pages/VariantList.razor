@@ -11,7 +11,7 @@
 @inject IVariantService VariantService
 @inject ToastService ToastService
 @inject ModalService ModalService
-
+@inject LoadingService LoadingService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 
@@ -212,12 +212,12 @@
                     <td>
                         <button class="btn btn-warning btn-sm"
                                 @onclick="() => EditVariant(variant.Id)"
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Edit}"))>
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.Edit}"))>
                             @SharedDataService.SelectViewLang("Edit", "تعديل")
                         </button>
                         <button class="btn btn-danger btn-sm"
                                 @onclick="() => DeleteVariant(variant)"
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Delete}"))>
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.Delete}"))>
                             @SharedDataService.SelectViewLang("Delete", "حذف")
                         </button>
                     </td>
@@ -258,7 +258,7 @@
         if (!AuthState.User.Identity.IsAuthenticated)
         {
             NavigationManager.NavigateTo("/login", true);
-
+            return;
         }
         companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
 
@@ -269,7 +269,7 @@
         //     branches = branchResponse.Data?.ToList() ?? [];
         // }
     }
-    
+
     void CreateNew()
     {
         var newItem = new VariantDto()
@@ -300,6 +300,7 @@
     }
     async Task SaveVariant(VariantDto variant)
     {
+            LoadingService.Show();
         if (variant.Id == editingVariantId && !isEdit)
         {
             //Create new
@@ -307,7 +308,6 @@
             Random rnd = new Random();
 
             variant.CompanyId = companyId;
-
             var bResponse = await VariantService.CreateAsync(variant);
             if (bResponse.IsSuccess)
             {
@@ -357,7 +357,7 @@
                 });
             }
         }
-
+        LoadingService.Hide();
         await LoadVariants();
         // var response = await BranchService.GetByCompanyIdAsync(companyId);
         // if (response.IsSuccess)
@@ -379,7 +379,9 @@
 
             OnOk = async () =>
             {
+                LoadingService.Show();
                 var brResponse = await VariantService.DeleteAsync(variant.Id);
+                LoadingService.Hide();
                 if (brResponse.IsSuccess)
                 {
 
@@ -450,7 +452,7 @@
     private async Task LoadVariants()
     {
         // var request = new PaginationRequest(pageIndex, pageSize, searchText);
-
+        LoadingService.Show();
         var response = await VariantService.GetByCompanyAsync(companyId, pageIndex, pageSize);//,searchText);
 
         if (response.IsSuccess)
@@ -462,6 +464,7 @@
             // TotalPages = (int)response.Data!.Count;
             TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
         }
+        LoadingService.Hide();
     }
     async Task OnPageSizeChanged(ChangeEventArgs e)
     {
