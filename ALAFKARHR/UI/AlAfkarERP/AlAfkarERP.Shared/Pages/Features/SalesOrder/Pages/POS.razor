@@ -1,5 +1,6 @@
 ﻿@layout AdminLayout
 @page "/SalesOrder/POS"
+@using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
@@ -21,6 +22,7 @@
 @inject IVariantService VariantService
 @inject IUnitService UnitService
 
+@inject ApiConfig ApiConfig
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
@@ -32,7 +34,7 @@
     return;
 }
 
-<!-- Branches -->
+<!-- POS -->
 <h5 class="text-black">@SharedDataService.SelectViewLang("POS", "نقطة بيع")</h5>
 <PageTitle>POS Catalog</PageTitle>
 
@@ -88,121 +90,79 @@
         </div>
     </div>
 
-    <!-- PRODUCT GRID -->
-    <div class="row g-4">
+    <!-- PRODUCTS AS PILLS -->
+    <div class="card shadow-sm border-0 rounded-4 mb-4">
+        <div class="card-body">
 
-        @foreach (var product in FilteredProducts)
-        {
-            <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="d-flex flex-wrap gap-2">
 
-                <div class="card h-100 shadow-sm border-0 rounded-4 product-card"
-                     @onclick="() => SelectProduct(product)">
-
-                    @* <img src="https://placehold.co/600x400/png" *@
-                    <img src="https://placehold.co/600x400/png"
-                         class="card-img-top rounded-top-4"
-                         style="height:220px; object-fit:cover;" />
-
-                    <div class="card-body d-flex flex-column">
-
-                        <h5 class="fw-bold mb-1">
-                            @product.NameEng
-                        </h5>
-
-                        <div class="text-muted small mb-2">
-                            @product.CategoryNameEng
-                        </div>
-
-                        <div class="mt-auto d-flex justify-content-between align-items-center">
-
-                            <span class="badge bg-primary rounded-pill px-3 py-2">
-                                @product.Skus.Count SKU(s)
-                            </span>
-
-                            <span class="fw-bold text-success">
-                                @product.Skus.Min(x => x.Price) SAR
-                            </span>
-
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        }
-
-    </div>
-
-
-
-</div>
-
-@if (SelectedProduct is not null)
-{
-    <div class="sku-panel-backdrop" @onclick="ClosePanel"></div>
-
-    <div class="sku-panel shadow-lg">
-
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h3 class="fw-bold mb-1">
-                    @SelectedProduct.NameEng
-                </h3>
-
-                <div class="text-muted">
-                    Select Variants
-                </div>
-            </div>
-
-            <button class="btn btn-light"
-                    @onclick="ClosePanel">
-                ✕
-            </button>
-        </div>
-
-        <div class="mb-4 text-black">
-
-            <div class="fw-bold mb-2 fs-5">
-                Brand
-            </div>
-
-            <div class="d-flex flex-wrap gap-2 text-black">
-
-                @foreach (var brand in AvailableBrands)
+                @foreach (var product in FilteredProducts)
                 {
-                    var isSelected = SelectedBrandForSkuId == brand.Id;
+                    var isSelected = SelectedProduct?.Id == product.Id;
 
-                    <button class="btn @(isSelected ? "btn-primary" : "btn-outline-secondary") rounded-pill"
-                            @onclick="() => SelectBrand(brand.Id)">
-                        @brand.NameEng
+                    <button class="btn @(isSelected
+                            ? "btn-primary"
+                            : "btn-outline-primary") rounded-pill px-4"
+                            @onclick="() => SelectProduct(product)">
+
+                        @product.NameEng
+
+                        <span class="badge bg-light text-dark ms-2">
+                            @product.Skus.Count
+                        </span>
+
                     </button>
                 }
 
             </div>
 
         </div>
+    </div>
 
-        <!-- VARIANT GROUPS -->
-        @foreach (var variant in AvailableVariants)
+    @if (SelectedProduct is not null)
+    {
+        <!-- PRODUCT HEADER -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+
+            <div>
+                <h4 class="fw-bold mb-1">
+                    @SelectedProduct.NameEng
+                </h4>
+
+                <div class="text-muted">
+                    @SelectedProduct.CategoryNameEng
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BRAND FILTER -->
+        @if (AvailableBrands.Any())
         {
-            <div class="mb-4 text-black">
+            <div class="mb-4">
 
-                <div class="fw-bold mb-2 fs-5">
-                    @variant.NameEng
+                <div class="fw-bold mb-2">
+                    Brand
                 </div>
 
                 <div class="d-flex flex-wrap gap-2">
 
-                    @foreach (var value in variant.Values)
+                    <button class="btn @(SelectedBrandForSkuId == null
+                            ? "btn-dark"
+                            : "btn-outline-dark") rounded-pill"
+                            @onclick="() => SelectBrand(null)">
+                        All
+                    </button>
+
+                    @foreach (var brand in AvailableBrands)
                     {
-                        var isSelected = SelectedVariantValues.ContainsKey(variant.Id)
-                                         && SelectedVariantValues[variant.Id] == value.Id;
+                        var isSelected = SelectedBrandForSkuId == brand.Id;
 
-                        var isDisabled = !IsVariantValueAvailable(variant.Id, value.Id);
-
-                        <button class="btn @(isSelected ? "btn-primary" : "btn-outline-secondary") rounded-pill"
-                                disabled="@isDisabled"
-                                @onclick="() => SelectVariantValue(variant.Id, value.Id)">
-                            @value.ValueEng
+                        <button class="btn @(isSelected
+                                ? "btn-primary"
+                                : "btn-outline-primary") rounded-pill"
+                                @onclick="() => SelectBrand(brand.Id)">
+                            @brand.NameEng
                         </button>
                     }
 
@@ -211,61 +171,85 @@
             </div>
         }
 
-        <!-- MATCHED SKU -->
-        @if (MatchedSku is not null)
-        {
-            <div class="card border-0 bg-light rounded-4 mb-4">
-                <div class="card-body">
+        <!-- SKU CARDS -->
+        <div class="row g-3">
 
-                    <h5 class="fw-bold mb-3">
-                        Selected SKU
-                    </h5>
+            @foreach (var sku in SelectedProduct.Skus
+                .Where(x =>
+                    !SelectedBrandForSkuId.HasValue
+                    || x.BrandId == SelectedBrandForSkuId))
+            {
+                <div class="col-xl-3 col-lg-4 col-md-6">
 
-                    <div class="row g-3">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 sku-card">
 
-                        <div class="col-6">
-                            <div class="text-muted small">Name</div>
-                            <div class="fw-bold">@MatchedSku.Name</div>
+                        <div class="sku-image-container">
+                            <img src="@(string.IsNullOrEmpty(sku?.ImageUrl)
+                                                 ? "_content/AlAfkarERP.Shared/images/productPlaceHolder.jpg"
+                                                 : (sku.ImageUrl.Contains("data:")
+                                                     ? sku.ImageUrl
+                                                     : $"{ApiConfig.BaseURL}/Images/Products/{sku.ImageUrl}"))"
+                                 class="sku-image" />
                         </div>
+                        <div class="card-body">
 
-                        <div class="col-6">
-                            <div class="text-muted small">SKU</div>
-                            <div class="fw-bold">@MatchedSku.SkuCodeEng</div>
-                        </div>
+                            <div class="d-flex justify-content-between mb-2">
 
-                        <div class="col-6">
-                            <div class="text-muted small">Barcode</div>
-                            <div class="fw-bold">@MatchedSku.Barcode</div>
-                        </div>
+                                <span class="badge bg-primary">
+                                    @sku.BrandName
+                                </span>
 
-                        <div class="col-6">
-                            <div class="text-muted small">Price</div>
-                            <div class="fw-bold text-success">
-                                @MatchedSku.Price SAR
+                                <span class="fw-bold text-success">
+                                    @sku.Price SAR
+                                </span>
+
                             </div>
-                        </div>
 
-                        <div class="col-6">
-                            <div class="text-muted small">Selling Unit</div>
-                            <div class="fw-bold">
-                                @(Units.FirstOrDefault(u => u.Id == MatchedSku.UnitId)?.UnitName ?? "")
+                            <h5 class="fw-bold mb-1">
+                                @sku.NameEng
+                            </h5>
+
+                            <div class="text-muted small mb-2">
+                                @sku.SkuCodeEng
                             </div>
+
+                            <div class="small mb-3">
+
+                                @foreach (var variant in sku.Variants)
+                                {
+                                    var variantName = Variants
+                                        .FirstOrDefault(v => v.Id == variant.VariantId)?
+                                        .NameEng;
+
+                                    var variantValue = Variants
+                                        .FirstOrDefault(v => v.Id == variant.VariantId)?
+                                        .Values
+                                        .FirstOrDefault(v => v.Id == variant.VariantValueId)?
+                                        .ValueEng;
+
+                                    <span class="badge bg-light text-dark me-1 mb-1">
+                                        @variantName: @variantValue
+                                    </span>
+                                }
+
+                            </div>
+
+                            <div class="d-grid">
+                                <button class="btn btn-success rounded-3">
+                                    Add To Cart
+                                </button>
+                            </div>
+
                         </div>
 
                     </div>
 
                 </div>
-            </div>
+            }
 
-            <div class="d-grid">
-                <button class="btn btn-success btn-lg rounded-4">
-                    Add To Cart
-                </button>
-            </div>
-        }
-    </div>
-}
-
+        </div>
+    }
+</div>
 
 <style>
 
@@ -282,26 +266,32 @@
             transform: translateY(-4px);
         }
 
-    .sku-panel-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,.3);
-        z-index: 1000;
+    .sku-card {
+        transition: all .2s ease;
     }
 
-    .sku-panel {
-        position: fixed;
-        top: 0;
-        right: 0;
-        width: 480px;
-        max-width: 100%;
-        height: 100vh;
-        background: white;
-        z-index: 1001;
-        padding: 24px;
-        overflow-y: auto;
+        .sku-card:hover {
+            transform: translateY(-4px);
+        }
+
+    .sku-image-container {
+        width: 100%;
+        height: 240px;
+        overflow: hidden;
+        border-top-left-radius: 1rem;
+        border-top-right-radius: 1rem;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
+    .sku-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 12px;
+    }
 </style>
 
 
@@ -375,7 +365,7 @@
         await LoadData();
     }
 
-    private void SelectBrand(Guid brandId)
+    private void SelectBrand(Guid? brandId)
     {
         SelectedBrandForSkuId = brandId;
 

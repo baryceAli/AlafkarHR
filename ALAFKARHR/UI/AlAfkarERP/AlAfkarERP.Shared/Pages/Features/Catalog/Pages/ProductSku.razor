@@ -390,10 +390,10 @@
                 <tr>
                     <td>
                         <img src="@(string.IsNullOrEmpty(sku?.ImageUrl)
-                                                                                 ? "_content/AlAfkarERP.Shared/images/productPlaceHolder.jpg"
-                                                                                 : (sku.ImageUrl.Contains("data:")
-                                                                                     ? sku.ImageUrl
-                                                                                     : $"{ApiConfig.BaseURL}/Images/Products/{sku.ImageUrl}"))"
+                            ? "_content/AlAfkarERP.Shared/images/productPlaceHolder.jpg"
+                            : (sku.ImageUrl.Contains("data:")
+                                ? sku.ImageUrl
+                                : $"{ApiConfig.BaseURL}/Images/Products/{sku.ImageUrl}"))"
                              alt="Add product image"
                              width="64"
                              height="64" />
