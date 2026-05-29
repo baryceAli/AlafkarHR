@@ -130,7 +130,7 @@
                 </h4>
 
                 <div class="text-muted">
-                    @SharedDataService.SelectViewLang(SelectedProduct.CategoryNameEng, SelectedProduct.CategoryName)
+                    @SharedDataService.SelectViewLang(SelectedProduct?.CategoryNameEng??"", SelectedProduct?.CategoryName??"")
                 </div>
             </div>
 
@@ -174,7 +174,7 @@
         <!-- SKU CARDS -->
         <div class="row g-3">
 
-            @foreach (var sku in SelectedProduct.Skus
+            @foreach (var sku in SelectedProduct?.Skus?
                 .Where(x =>
                     !SelectedBrandForSkuId.HasValue
                     || x.BrandId == SelectedBrandForSkuId))
@@ -184,11 +184,11 @@
                     <div class="card h-100 border-0 shadow-sm rounded-4 sku-card">
 
                         <div class="sku-image-container">
-                            <img src="@(string.IsNullOrEmpty(sku?.ImageUrl)
-                                                                                                              ? "_content/AlAfkarERP.Shared/images/productPlaceHolder.jpg"
-                                                                                                              : (sku.ImageUrl.Contains("data:")
-                                                                                                                  ? sku.ImageUrl
-                                                                                                                  : $"{ApiConfig.BaseURL}/Images/Products/{sku.ImageUrl}"))"
+                            <img src="@(string.IsNullOrEmpty(sku?.ImageUrl)? 
+                                            "_content/AlAfkarERP.Shared/images/productPlaceHolder.jpg": 
+                                            (sku.ImageUrl.Contains("data:")? 
+                                                sku.ImageUrl: 
+                                                $"{ApiConfig.BaseURL}/Images/Products/{sku.ImageUrl}"))"
                                  class="sku-image" />
                         </div>
 
@@ -199,41 +199,41 @@
                                 <div class="d-flex justify-content-between mb-2">
 
                                     <span class="badge bg-primary">
-                                        @SharedDataService.SelectViewLang(sku.BrandNameEng, sku.BrandName)
+                                        @SharedDataService.SelectViewLang(sku?.BrandNameEng??"", sku?.BrandName??"")
                                     </span>
 
                                     <span class="fw-bold text-success">
-                                        @sku.Price SAR
+                                        @(sku?.Price??0) SAR
                                     </span>
 
                                 </div>
 
                                 <h5 class="fw-bold mb-1">
-                                    @SharedDataService.SelectViewLang(sku.NameEng, sku.Name)
+                                    @SharedDataService.SelectViewLang(sku?.NameEng??"", sku?.Name??"")
                                 </h5>
 
                                 <div class="text-muted small mb-2">
-                                    @SharedDataService.SelectViewLang(sku.SkuCodeEng, sku.SkuCode)
+                                    @SharedDataService.SelectViewLang(sku?.SkuCodeEng??"", sku?.SkuCode??"")
                                 </div>
 
                                 <div class="small mb-3">
 
-                                    @foreach (var variant in sku.Variants)
+                                    @foreach (var variant in sku?.Variants)
                                     {
                                         var variantName = SharedDataService.SelectViewLang(
-                                            Variants.FirstOrDefault(v => v.Id == variant.VariantId)?.NameEng,
-                                            Variants.FirstOrDefault(v => v.Id == variant.VariantId)?.Name
+                                            Variants.FirstOrDefault(v => v.Id == variant.VariantId)?.NameEng??"",
+                                            Variants.FirstOrDefault(v => v.Id == variant.VariantId)?.Name??""
                                         );
 
                                         var variantValue = SharedDataService.SelectViewLang(
                                             Variants.FirstOrDefault(v => v.Id == variant.VariantId)?
-                                            .Values
+                                            .Values?
                                             .FirstOrDefault(v => v.Id == variant.VariantValueId)?
-                                            .ValueEng,
+                                            .ValueEng??"",
                                             Variants.FirstOrDefault(v => v.Id == variant.VariantId)?
-                                            .Values
+                                            .Values?
                                             .FirstOrDefault(v => v.Id == variant.VariantValueId)?
-                                            .Value
+                                            .Value??""
                                         );
 
                                         <span class="badge bg-light text-dark me-1 mb-1">
@@ -313,7 +313,7 @@
     private string SearchText = string.Empty;
 
     private Guid? SelectedCategoryId;
-    
+
     private Guid? SelectedBrandId;
     private Guid? SelectedBrandForSkuId;
 
@@ -359,7 +359,7 @@
     protected override async Task OnInitializedAsync()
     {
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-        if (!AuthState.User.Identity.IsAuthenticated)
+        if (!AuthState!.User!.Identity!.IsAuthenticated)
         {
             NavigationManager.NavigateTo("/login", true);
 
@@ -405,22 +405,38 @@
             Variants = variantTask.Result.Data?.Data?.ToList() ?? [];
         if (unitTask.Result.IsSuccess)
             Units = unitTask.Result.Data?.Data?.ToList() ?? [];
-    
+
         AvailableBrands = Products.SelectMany(p => p.Skus)
         .GroupBy(x => x.BrandId)
         .Select(g => new BrandDto
         {
             Id = g.Key,
-            NameEng = g.First().BrandNameEng,
-            Name = g.First().BrandName
+            NameEng = g.FirstOrDefault()?.BrandNameEng??"",
+            Name = g.FirstOrDefault()?.BrandName??""
         })
         .ToList();
         LoadingService.Hide();
     }
 
-    
-    private void ApplyFilters()
+
+    private async Task ApplyFilters()
     {
+        // if selected product is no longer visible after filtering
+        if (SelectedProduct is not null &&
+            !FilteredProducts.Any(p => p.Id == SelectedProduct.Id))
+        {
+            SelectedProduct = null;
+            return;
+        }
+
+        // refresh selected product from filtered list
+        if (SelectedProduct is not null)
+        {
+            SelectedProduct = FilteredProducts
+                .FirstOrDefault(p => p.Id == SelectedProduct.Id);
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
 
