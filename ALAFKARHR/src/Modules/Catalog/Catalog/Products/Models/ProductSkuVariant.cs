@@ -24,9 +24,10 @@ public class ProductSkuVariant : Entity<Guid>
     internal void Update(Guid variantId, Guid variantvalueId, string modifiedBy)
     {
         VariantId = variantId;
-        VariantValueId= variantvalueId;
+        VariantValueId = variantvalueId;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
+
     }
     public void Remove(string deletedBy)
     {
@@ -34,5 +35,10 @@ public class ProductSkuVariant : Entity<Guid>
         DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;
     }
-
+    public void UndoRemove()
+    {
+        IsDeleted = false;
+        DeletedAt = null;
+        DeletedBy = null;
+    }
 }

@@ -53,6 +53,7 @@
             <AutoCompleteComponent TItem="ProductDto"
                                    Items="products"
                                    Value="selectedProduct"
+                                   PlaceHolder="@SharedDataService.SelectViewLang("Search a product","ابحث عن منتج")"
                                    ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
                                    ValueChanged="onProductSelected">
             </AutoCompleteComponent>

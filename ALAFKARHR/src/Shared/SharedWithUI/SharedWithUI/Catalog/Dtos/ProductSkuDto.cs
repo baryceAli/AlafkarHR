@@ -9,6 +9,7 @@ public class ProductSkuDto
     public string? ProductName { get; set; }
     public Guid BrandId { get; set; }
     public string? BrandName { get; set; }
+    public string? BrandNameEng { get; set; }
 
     public Guid? PackageId { get; set; } // optional (size: 250ml, 1L)
     public string? PackageName { get; set; }

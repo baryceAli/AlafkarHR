@@ -110,20 +110,24 @@ public class ProductSku : Entity<Guid>
         string? barcode,
         string name,
         string nameEng,
+        string skuCode, 
+        string skuCodeEng,
         Guid companyId,
         List<ProductSkuVariantDto> variantDtos,
         string modifiedBy)
     {
         Name = name;
         NameEng = nameEng;
+        SkuCode=skuCode;
+        SkuCodeEng=skuCodeEng;
         Price = price;
         ImageUrl = imageUrl;
         ShowOnStore = showOnStore;
         CompanyId = companyId;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
-
-        var activeValues = _variants.Where(v => v.ProductSkuId==Id&& !v.IsDeleted).ToList();
+        //176AF7D6-4C28-40AD-BBE4-314DEB3E9755
+        var activeValues = _variants.Where(v => v.ProductSkuId == Id && !v.IsDeleted).ToList();
         var activeIds = activeValues.Select(v => v.Id).ToHashSet();
 
         // Add + Update
@@ -131,6 +135,7 @@ public class ProductSku : Entity<Guid>
         {
             if (v.Id == Guid.Empty)
             {
+
                 AddVariants(v.VariantId, v.VariantValueId, modifiedBy);
                 continue;
             }
@@ -150,22 +155,23 @@ public class ProductSku : Entity<Guid>
             .Select(v => v.Id)
             .ToHashSet();
 
-        var valuesToRemove =dtoIds.Any()? activeValues
+        var valuesToRemove = dtoIds.Any() ? activeValues
             .Where(ev => !dtoIds.Contains(ev.Id))
             .ToList() : [];
 
         foreach (var value in valuesToRemove)
         {
-            value.Remove(modifiedBy);
+            RemoveVariant(value.VariantId,value.VariantValueId);
+            //value.Remove(modifiedBy);
         }
     }
     public void AddVariants(Guid variantId, Guid variantValueId, string createdBy)
     {
-        var exists = _variants.FirstOrDefault(v => v.VariantId == variantId && v.VariantValueId == variantValueId && !v.IsDeleted);
+        var exists = _variants.FirstOrDefault(v => v.VariantId == variantId && v.VariantValueId == variantValueId);
         if (exists == null)
         {
             var newVariant = ProductSkuVariant.Create(Id, variantId, variantValueId, createdBy);//(Guid.NewGuid(), Id, value, valueEng, createdBy);
-            //newVariantValue  =VariantValue.Create(Guid.NewGuid(), Id, value, valueEng, createdBy);
+                                                                                                //newVariantValue  =VariantValue.Create(Guid.NewGuid(), Id, value, valueEng, createdBy);
             _variants.Add(newVariant);
         }
 
@@ -184,7 +190,15 @@ public class ProductSku : Entity<Guid>
 
     }
 
-
+    public void RemoveVariant(Guid variantId, Guid variantValueId)
+    {
+        var existing = _variants.FirstOrDefault(v => v.VariantId == variantId && v.VariantValueId == variantValueId);
+        if (existing is null)
+            throw new Exception("Variant and Value not found for this SKU");
+        
+        _variants.Remove(existing);
+        
+    }
     //public void AddProductPackage(Guid id, Guid productId, string packageName, string packageNameEng, double quantityPerPackage, decimal packagePrice, bool showOnStore, string createdBy)
     //{
     //    ArgumentNullException.ThrowIfNullOrEmpty(packageName);

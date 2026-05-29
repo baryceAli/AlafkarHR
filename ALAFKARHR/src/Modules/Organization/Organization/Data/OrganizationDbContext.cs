@@ -6,6 +6,7 @@ namespace Organization.Data;
 public class OrganizationDbContext:DbContext
 {
     //add-migration OrganizationInitial -Project Organization -StartupProject Api -OutputDir Data/Migrations -Context OrganizationDbContext
+    //update-database -Project Organization -StartupProject Api -Context OrganizationDbContext
 
     public OrganizationDbContext(DbContextOptions<OrganizationDbContext> options):base(options)
     {

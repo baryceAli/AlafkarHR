@@ -1,4 +1,6 @@
-﻿using Shared.SaveImages;
+﻿using Shared.Exceptions;
+using Shared.SaveImages;
+using SharedWithUI.Catalog.SKUGenerator;
 
 namespace Catalog.Products.Features.Products.UpdateProductSku;
 
@@ -41,6 +43,53 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
             }
         }
 
+
+        var prd = await dbContext.Products.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == command.ProductSku.ProductId, cancellationToken);
+
+        if ((prd is null))
+            throw new NotFoundException($"Product not found: {command.ProductSku.ProductId}");
+
+        //var unit = await dbContext.Units.AsNoTracking().FirstOrDefaultAsync(u => u.Id == prd.UnitId);
+
+        //if (unit is null)
+        //throw new NotFoundException($"Unit not found: {command.ProductSku.UnitId}");
+
+        var brand = await dbContext.Brands.AsNoTracking().FirstOrDefaultAsync(x => x.Id == command.ProductSku.BrandId);
+        if ((brand is null))
+            throw new NotFoundException($"brand not found: {command.ProductSku.BrandId}");
+
+
+        var package = command.ProductSku.PackageId.HasValue ?
+                        await dbContext.ProductPackages.AsNoTracking().FirstOrDefaultAsync(x => x.Id == command.ProductSku.PackageId)
+                        : null;
+        if (command.ProductSku.PackageId.HasValue && package == null)
+            throw new NotFoundException($"Package not found: {command.ProductSku.PackageId}");
+
+        List<(Guid variantId, Guid variantValueId)> variantValueIds = new List<(Guid, Guid)>();
+        foreach (var v in command.ProductSku.Variants)
+        {
+            variantValueIds.Add((v.VariantId, v.VariantValueId));
+        }
+        var SkuBaseCntx = new SkuBuildContext(
+            command.ProductSku.ProductId,
+            command.ProductSku.BrandId,
+            command.ProductSku.PackageId,
+            variantValueIds);
+
+
+        //var key = ProductSkuGenerator.BuildSkuKey(SkuBaseCntx);
+        var variants = await dbContext.Variants.AsNoTracking().ToListAsync(cancellationToken);
+        var variantValues = await dbContext.VariantValues.AsNoTracking().ToListAsync(cancellationToken);
+        Dictionary<Guid, string> variantNames = variants.ToDictionary(x => x.Id, x => x.Name);
+        Dictionary<Guid, string> variantNamesEng = variants.ToDictionary(x => x.Id, x => x.NameEng);
+        Dictionary<Guid, string> valueNames = variantValues.ToDictionary(x => x.Id, x => x.Value);
+        Dictionary<Guid, string> valueNamesEng = variantValues.ToDictionary(x => x.Id, x => x.ValueEng);
+
+        var skuCode = ProductSkuGenerator.GenerateSkuCode(SkuBaseCntx, variantNames, valueNames, prd.Name, brand.Name);
+        var skuCodeEng = ProductSkuGenerator.GenerateSkuCode(SkuBaseCntx, variantNamesEng, valueNamesEng, prd.NameEng, brand.NameEng);
+
+
         productSku.Update(
             command.ProductSku.Price, 
             command.ProductSku.ShowOnStore,
@@ -48,6 +97,8 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
             command.ProductSku.Barcode,
             command.ProductSku.Name,
             command.ProductSku.NameEng,
+            skuCode,
+            skuCodeEng,
             command.ProductSku.CompanyId,
             command.ProductSku.Variants,
             userId);

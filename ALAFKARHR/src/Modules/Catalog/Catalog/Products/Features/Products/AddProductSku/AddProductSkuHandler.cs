@@ -52,6 +52,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
                         .FindFirst(ClaimTypes.NameIdentifier)?
                         .Value??
                         throw new UnauthorizedAccessException("User is not authenticated");
+       
         List<(Guid variantId,Guid variantValueId)> variantValueIds=new List<(Guid,Guid)>();
         foreach(var v in command.ProductSku.Variants)
         {
