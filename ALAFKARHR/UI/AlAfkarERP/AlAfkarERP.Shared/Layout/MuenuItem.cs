@@ -27,7 +27,7 @@ public class MenuItem
             TextAr = "الرئيسية",
             Icon = "bi-house-door",
             Url = "/",
-            PermissionPolicy = "View.Home"
+            PermissionPolicy = PermissionList.ProductPermissions.View
         },
         //POS
         new MenuItem
@@ -36,7 +36,7 @@ public class MenuItem
             TextAr = "نقطة بيع",
             Icon = "bi-receipt-cutoff",
             Url = "/SalesOrder/POS",
-            PermissionPolicy = "View.POS"
+            PermissionPolicy = PermissionList.InventoryPermissions.View
         },
 
         //Control Panel
@@ -56,7 +56,7 @@ public class MenuItem
             TextAr = "الهيكل التنظيمي",
             Icon = "bi-diagram-3",
             Url = "/Organization/Dashboard",
-            PermissionPolicy = $"{PermissionList.CompanyPermissions.View}",
+            PermissionPolicy = $"{PermissionList.CompanyPermissions.Select}",
             Children = new()
             {
                 new MenuItem
@@ -65,7 +65,7 @@ public class MenuItem
                     TextAr = "الشركة",
                     Icon = "bi-building",
                     Url = "/Organization/Company/List",
-                    PermissionPolicy = "Organization.Company.View"
+                    PermissionPolicy = PermissionList.CompanyPermissions.View
                 },
                 new MenuItem
                 {
@@ -73,7 +73,7 @@ public class MenuItem
                     TextAr = "الفروع",
                     Icon = "bi-diagram-2",
                     Url = "/Organization/Branch/List",
-                    PermissionPolicy = "Organization.Branch.View"
+                    PermissionPolicy = PermissionList.BranchPermissions.View
                 },
                 new MenuItem
                 {
@@ -81,7 +81,7 @@ public class MenuItem
                     TextAr = "الإدارات",
                     Icon = "bi-kanban",
                     Url = "/Organization/Administration/List",
-                    PermissionPolicy = "Organization.Administration.View"
+                    PermissionPolicy = PermissionList.AdministrationPermissions.View
                 },
                 new MenuItem
                 {
@@ -89,7 +89,7 @@ public class MenuItem
                     TextAr = "الأقسام",
                     Icon = "bi-grid-1x2",
                     Url = "/Organization/Department/List",
-                    PermissionPolicy = "Organization.Department.View"
+                    PermissionPolicy = PermissionList.DepartmentPermissions.View
                 }
             }
         },
@@ -101,7 +101,7 @@ public class MenuItem
             TextAr = "الموارد البشرية",
             Icon = "bi-people-fill",
             Url = "/Employee/Dashboard",
-            PermissionPolicy = "View.HR",
+            PermissionPolicy = PermissionList.EmployeePermissions.Select,
             Children = new()
             {
                 new MenuItem
@@ -110,7 +110,7 @@ public class MenuItem
                     TextAr = "الموظفين",
                     Icon = "bi-person-badge",
                     Url = "/Employee/Employee/List",
-                    PermissionPolicy = "HR.Employee.View"
+                    PermissionPolicy = PermissionList.EmployeePermissions.View
                 },
                 new MenuItem
                 {
@@ -118,7 +118,7 @@ public class MenuItem
                     TextAr = "المسميات الوظيفية",
                     Icon = "bi-briefcase-fill",
                     Url = "/Employee/Position/List",
-                    PermissionPolicy = "HR.Position.View"
+                    PermissionPolicy = PermissionList.PositionPermissions.View
                 },
                 new MenuItem
                 {
@@ -126,7 +126,7 @@ public class MenuItem
                     TextAr = "المؤسسات التعليمية",
                     Icon = "bi-mortarboard-fill",
                     Url = "/Employee/AcademicInistitution/List",
-                    PermissionPolicy = "HR.Academic.View"
+                    PermissionPolicy = PermissionList.AcademicInistitutionPermissions.View
                 },
                 new MenuItem
                 {
@@ -134,12 +134,30 @@ public class MenuItem
                     TextAr = "التخصصات",
                     Icon = "bi-journal-bookmark",
                     Url = "/Employee/Specialization/List",
-                    PermissionPolicy = "HR.Specialization.View"
+                    PermissionPolicy = PermissionList.SpecializationPermissions.View
                 }
             }
         },
-      
-        
+
+        new MenuItem
+        {
+            TextEn = "Customers Management",
+            TextAr = "إدارة العملاء",
+            Icon = "bi-people-fill",
+            Url = "/Customers/Customer/Dashboard",
+            PermissionPolicy = PermissionList.CustomerPermissions.Select,
+            Children = new()
+            {
+                new MenuItem
+                {
+                    TextEn = "Customers List",
+                    TextAr = "قائمة العملاء",
+                    Icon = "bi-people",
+                    Url = "/Customers/Customer/List",
+                    PermissionPolicy = PermissionList.CustomerPermissions.View,
+                }, 
+            } 
+        },
         //Products Management
         new MenuItem
         {
@@ -147,7 +165,7 @@ public class MenuItem
             TextAr = "إدارة المنتجات",
             Icon = "bi-tags-fill",
             Url = "/Warehouse/Product/Dashboard",
-            PermissionPolicy = "Inventory.Products",
+            PermissionPolicy = PermissionList.ProductPermissions.Select,
             Children = new()
             {
                 new MenuItem
@@ -181,7 +199,7 @@ public class MenuItem
                     TextAr = "خيارات المنتج",
                     Icon = "bi-sliders",
                     Url = "/Catalog/Variant/List",
-                    PermissionPolicy = "Catalog.Variant.View"
+                    PermissionPolicy = PermissionList.VariantPermissions.View
                 },
 
                 new MenuItem
@@ -198,7 +216,7 @@ public class MenuItem
                     TextAr = "العلامات التجارية",
                     Icon = "bi-award-fill",
                     Url = "/Warehouse/Product/Brand/List",
-                    PermissionPolicy = "Catalog.Brand.View"
+                    PermissionPolicy = PermissionList.BrandPermissions.View
                 },
                 new MenuItem
                 {
@@ -206,7 +224,7 @@ public class MenuItem
                     TextAr = "الأصناف",
                     Icon = "bi-diagram-3-fill",
                     Url = "/Warehouse/Product/Category/List",
-                    PermissionPolicy = "Catalog.Category.View"
+                    PermissionPolicy = PermissionList.CategoryPermissions.View
                 },
                 new MenuItem
                 {
@@ -214,7 +232,7 @@ public class MenuItem
                     TextAr = "الوحدات",
                     Icon = "bi-rulers",
                     Url = "/Warehouse/Product/Unit/List",
-                    PermissionPolicy = "Catalog.Unit.View"
+                    PermissionPolicy = PermissionList.UnitPermissions.View
                 }
             }
         },
@@ -226,7 +244,7 @@ public class MenuItem
             TextAr = "إدارة المخزون",
             Icon = "bi-boxes",
             Url = "/Inventory/Dashboard",
-            PermissionPolicy = "Inventory.Management",
+            PermissionPolicy = PermissionList.InventoryPermissions.Select,
             Children = new()
             {
                 new MenuItem
@@ -235,7 +253,7 @@ public class MenuItem
                     TextAr = "المستودعات",
                     Icon = "bi-building",
                     Url = "/Inventory/Warehouse/List",
-                    PermissionPolicy = "View.Inventory",
+                    PermissionPolicy = PermissionList.WarehousePermissions.View,
                 },
 
                 new MenuItem
@@ -244,7 +262,7 @@ public class MenuItem
                     TextAr = "المخزون",
                     Icon = "bi-boxes",
                     Url = "/Inventories/List",
-                    PermissionPolicy = "View.Inventory",
+                    PermissionPolicy = PermissionList.InventoryPermissions.View,
                 },
 
                 new MenuItem
@@ -253,7 +271,7 @@ public class MenuItem
                     TextAr = "الدفعات",
                     Icon = "bi-upc-scan",
                     Url = "/Inventory/Batch/List",
-                    PermissionPolicy = "View.Inventory",
+                    PermissionPolicy = PermissionList.BatchPermissions.View,
                 },
 
                 new MenuItem
@@ -262,7 +280,7 @@ public class MenuItem
                     TextAr = "عمليات المخزون",
                     Icon = "bi-arrow-left-right",
                     Url = "/Inventory/Dashboard",
-                    PermissionPolicy = "View.Inventory",
+                    PermissionPolicy = PermissionList.InventoryPermissions.View,
 
                     Children = new()
                     {
@@ -272,7 +290,7 @@ public class MenuItem
                             TextAr = "مخزون وارد",
                             Icon = "bi-box-arrow-in-down",
                             Url = "/Inventory/Operations/StockIn",
-                            PermissionPolicy = "View.Inventory",
+                            PermissionPolicy = PermissionList.InventoryPermissions.View,
                         },
 
                         new MenuItem
@@ -281,7 +299,7 @@ public class MenuItem
                             TextAr = "مخزون صادر",
                             Icon = "bi-box-arrow-up",
                             Url = "/Inventory/Operations/StockOut",
-                            PermissionPolicy = "View.Inventory",
+                            PermissionPolicy = PermissionList.InventoryPermissions.View,
                         },
 
                         new MenuItem
@@ -290,7 +308,7 @@ public class MenuItem
                             TextAr = "تسويات",
                             Icon = "bi-sliders",
                             Url = "/Inventory/Operations/StockAdjustment",
-                            PermissionPolicy = "View.Inventory",
+                            PermissionPolicy = PermissionList.InventoryPermissions.View,
                         },
 
                         new MenuItem
@@ -299,7 +317,7 @@ public class MenuItem
                             TextAr = "حجز مخزون",
                             Icon = "bi-lock",
                             Url = "/Inventory/Operations/StockReservation",
-                            PermissionPolicy = "View.Inventory",
+                            PermissionPolicy = PermissionList.InventoryPermissions.View,
                         },
 
                         new MenuItem
@@ -308,7 +326,7 @@ public class MenuItem
                             TextAr = "إطلاق مخزون",
                             Icon = "bi-unlock",
                             Url = "/Inventory/Operations/StockRelease",
-                            PermissionPolicy = "View.Inventory",
+                            PermissionPolicy = PermissionList.InventoryPermissions.View,
                         },
                     }
                 },
@@ -366,7 +384,7 @@ public class MenuItem
             TextAr = "إدارة الأمان",
             Icon = "bi-shield-lock-fill",
             Url = "/Auth/Dashboard",
-            PermissionPolicy = "View.Security",
+            PermissionPolicy = PermissionList.UsersPermissions.Select,
             Children = new()
             {
                 new MenuItem
@@ -375,7 +393,7 @@ public class MenuItem
                     TextAr = "إدارة الصلاحيات",
                     Icon = "bi-shield-check",
                     Url = "/Auth/Role/List",
-                    PermissionPolicy = "Security.Role.View"
+                    PermissionPolicy = PermissionList.RolesPermissions.View
                 },
                 new MenuItem
                 {
@@ -383,7 +401,7 @@ public class MenuItem
                     TextAr = "تعيين صلاحيات المستخدمين",
                     Icon = "bi-person-gear",
                     Url = "/Auth/User/AssignRole",
-                    PermissionPolicy = "Security.UserRole.Assign"
+                    PermissionPolicy = PermissionList.UsersPermissions.View
                 }
             }
         }

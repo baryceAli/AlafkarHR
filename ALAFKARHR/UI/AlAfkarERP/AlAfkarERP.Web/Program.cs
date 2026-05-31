@@ -2,6 +2,7 @@ using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Pages.Features.Auth.Services;
 using AlAfkarERP.Shared.Pages.Features.Catalog.Services;
 using AlAfkarERP.Shared.Pages.Features.Company.Services;
+using AlAfkarERP.Shared.Pages.Features.Customers.Services;
 using AlAfkarERP.Shared.Pages.Features.Employees.Services;
 using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services;
 using AlAfkarERP.Shared.Pages.Features.Inventories.Services;
@@ -196,6 +197,16 @@ builder.Services.AddHttpClient<IInventoryService, InventoryService>(client =>
 .AddHttpMessageHandler<AuthMessageHandler>();
 
 #endregion Inventory
+
+#region Customers
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddHttpClient<ICustomerService, CustomerService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+
+#endregion Customers
 
 #region GeneralSettings
 builder.Services.AddScoped<ICurrencyService, CurrencyService>();

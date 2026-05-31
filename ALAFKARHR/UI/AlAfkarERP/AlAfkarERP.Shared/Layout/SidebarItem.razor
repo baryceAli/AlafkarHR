@@ -1,49 +1,78 @@
 ﻿@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
-
+@inject AuthenticationStateProvider AuthenticationStateProvider
 <li class="nav-item">
 
     @if (HasChildren)
     {
-    @*     <div class="nav-link text-white
+        @*     <div class="nav-link text-white
     @(IsActive ? "active bg-primary" : IsParentActive ? "bg-secondary" : "")"> *@
 
         <!-- Parent (ONLY for items with children) -->
+        if (authState != null && !string.IsNullOrEmpty(Item.PermissionPolicy) && authState.User.Claims.Any(c => c.Value == Item.PermissionPolicy))
+        {
+            
         <div class="nav-link text-white d-flex justify-content-between align-items-center
-             class=@(IsActive ? "nav-link text-white active bg-primary" : "nav-link text-white")
-             style="cursor:pointer"
+            class=@(IsActive ? "nav-link text-white active bg-primary" : "nav-link text-white")
+            style="cursor:pointer"
              @onclick="Toggle">
 
             <div>
                 <i class="bi @Item.Icon me-2"></i>
-                @SharedDataService.SelectViewLang(Item.TextEn,Item.TextAr)
+                @SharedDataService.SelectViewLang(Item.TextEn, Item.TextAr)
             </div>
 
             <i class="bi @(Item.IsOpen ? "bi-chevron-down" : "bi-chevron-right")"></i>
         </div>
+        }
     }
     else if (!string.IsNullOrEmpty(Item.Url))
     {
-                 @* class="nav-link text-white @(IsActive ? "active bg-primary" : "")" *@
+        @* class="nav-link text-white @(IsActive ? "active bg-primary" : "")" *@
         <!-- Leaf (ONLY once, no duplication) -->
+        @* <AuthorizeView Roles="@Item.PermissionPolicy">
+            <Authorized>
+                authorized
+            </Authorized>
+            <NotAuthorized>
+                    <a class="nav-link text-white disabled" href="#" tabindex="-1" aria-disabled="true">
+                        <i class="bi @Item.Icon me-2"></i>
+                        @SharedDataService.SelectViewLang(Item.TextEn,Item.TextAr) not authorized
+                </a>
+            </NotAuthorized>
+        </AuthorizeView> *@
+        if (authState != null && !string.IsNullOrEmpty(Item.PermissionPolicy) && authState.User.Claims.Any(c => c.Value == Item.PermissionPolicy))
+        {
+            
         <NavLink href="@Item.Url"
-                 class=@(IsActive?"nav-link text-white active bg-primary":"nav-link text-white")
+                 class=@(IsActive ? "nav-link text-white active bg-primary" : "nav-link text-white")
                  Match="NavLinkMatch.All" ActiveClass="">
             <i class="bi @Item.Icon me-2"></i>
-            @SharedDataService.SelectViewLang(Item.TextEn,Item.TextAr)
+            @SharedDataService.SelectViewLang(Item.TextEn, Item.TextAr)
         </NavLink>
+        }
     }
 
     <!-- Children -->
     @if (HasChildren && Item.IsOpen)
     {
-        <ul class="nav flex-column ms-3">
-            @foreach (var child in Item.Children)
-            {
-                <SidebarItem Item="child" Siblings="Item.Children" />
-            }
-        </ul>
+
+        @if (authState != null && !string.IsNullOrEmpty(Item.PermissionPolicy) && authState.User.Claims.Any(c => c.Value == Item.PermissionPolicy))
+        {
+            <ul class="nav flex-column ms-3">
+            
+                @foreach (var child in Item.Children)
+                {
+                    if (authState != null && !string.IsNullOrEmpty(Item.PermissionPolicy) && authState.User.Claims.Any(c => c.Value == child.PermissionPolicy))
+                    {
+                        
+                        <SidebarItem Item="child" Siblings="Item.Children" />
+                    }
+                }
+            </ul>
+        }
     }
 
 </li>
@@ -81,7 +110,12 @@
 
     // private bool IsParentActive =>
     // HasChildren && Item.Children.Any(IsMatch);
-
+    AuthenticationState? authState;
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        
+    }
     protected override void OnInitialized()
     {
         AutoExpand(Item);

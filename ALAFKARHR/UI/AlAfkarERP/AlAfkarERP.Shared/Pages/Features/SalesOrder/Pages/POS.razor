@@ -48,12 +48,15 @@
                     <label class="form-label fw-semibold">@SharedDataService.SelectViewLang("Search", "بحث")</label>
                     <input class="form-control"
                            placeholder="@SharedDataService.SelectViewLang("Search products...", "ابحث عن المنتجات...")"
-                           @bind="SearchText" />
+                           @bind="SearchText"
+                           @bind:after="ApplyFilters" />
                 </div>
 
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">@SharedDataService.SelectViewLang("Category", "الفئة")</label>
-                    <select class="form-select" @bind="SelectedCategoryId">
+                    <select class="form-select"
+                            @bind="SelectedCategoryId"
+                            @bind:after="ApplyFilters">
                         <option value="">@SharedDataService.SelectViewLang("All Categories", "جميع الفئات")</option>
 
                         @foreach (var category in Categories)
@@ -67,7 +70,9 @@
 
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">@SharedDataService.SelectViewLang("Brand", "العلامة التجارية")</label>
-                    <select class="form-select" @bind="SelectedBrandId">
+                    <select class="form-select"
+                            @bind="SelectedBrandId"
+                            @bind:after="ApplyFilters">
                         <option value="">@SharedDataService.SelectViewLang("All Brands", "جميع العلامات التجارية")</option>
 
                         @foreach (var brand in Brands)
@@ -336,22 +341,31 @@
 
 
     private List<ProductDto> FilteredProducts => Products
-            .Where(x =>
-                (string.IsNullOrWhiteSpace(SearchText)
-                    || x.NameEng.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+    .Select(product => new ProductDto
+    {
+        Id = product.Id,
+        Name = product.Name,
+        NameEng = product.NameEng,
+        CategoryId = product.CategoryId,
+        CategoryName = product.CategoryName,
+        CategoryNameEng = product.CategoryNameEng,
 
-                && (!SelectedCategoryId.HasValue
-                    || x.CategoryId == SelectedCategoryId)
+        Skus = product.Skus
+            .Where(s =>
+                !SelectedBrandId.HasValue
+                || s.BrandId == SelectedBrandId)
+            .ToList()
+    })
+    .Where(x =>
+        (string.IsNullOrWhiteSpace(SearchText)
+            || x.NameEng.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
 
-                && (!SelectedBrandId.HasValue
-                    || x.Skus.Any(s => s.BrandId == SelectedBrandId))
-            )
-            .ToList();
+        && (!SelectedCategoryId.HasValue
+            || x.CategoryId == SelectedCategoryId)
 
-
-
-
-
+        && x.Skus.Any()
+    )
+    .ToList();
 
     AuthenticationState AuthState;
     Guid companyId;
@@ -419,24 +433,26 @@
     }
 
 
-    private async Task ApplyFilters()
+    private Task ApplyFilters()
     {
-        // if selected product is no longer visible after filtering
-        if (SelectedProduct is not null &&
-            !FilteredProducts.Any(p => p.Id == SelectedProduct.Id))
-        {
-            SelectedProduct = null;
-            return;
-        }
-
-        // refresh selected product from filtered list
         if (SelectedProduct is not null)
         {
             SelectedProduct = FilteredProducts
                 .FirstOrDefault(p => p.Id == SelectedProduct.Id);
+
+            if (SelectedProduct is not null)
+            {
+                BuildBrands(SelectedProduct);
+                BuildVariants(SelectedProduct);
+            }
+            else
+            {
+                AvailableBrands.Clear();
+                AvailableVariants.Clear();
+            }
         }
 
-        await InvokeAsync(StateHasChanged);
+        return Task.CompletedTask;
     }
 
 
