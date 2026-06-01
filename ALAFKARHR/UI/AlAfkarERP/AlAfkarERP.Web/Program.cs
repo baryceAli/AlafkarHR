@@ -206,6 +206,13 @@ builder.Services.AddHttpClient<ICustomerService, CustomerService>(client =>
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
 
+builder.Services.AddScoped<ICustomerGroupService, CustomerGroupService>();
+builder.Services.AddHttpClient<ICustomerGroupService, CustomerGroupService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+
 #endregion Customers
 
 #region GeneralSettings

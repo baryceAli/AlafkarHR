@@ -13,7 +13,7 @@ public class GetCustomerGroupByCompanyIdHandler(CustomerDbContext dbContext)
     {
         var query = dbContext.CustomerGroups.AsNoTracking().AsQueryable();
     
-        query=query.Where(c=>c.CompanyId==request.CompanyId);
+        query=query.Where(c=>c.CompanyId==request.CompanyId && !c.IsDeleted);
 
         string searchText = request.PaginationRequest.SearchText;
         if (!string.IsNullOrWhiteSpace(searchText))
@@ -23,7 +23,7 @@ public class GetCustomerGroupByCompanyIdHandler(CustomerDbContext dbContext)
 
         var count = await query.LongCountAsync(cancellationToken);
 
-        var customers= query
+        var customers=await query
                         .OrderBy(c=>c.CreatedAt)
                         .Skip(request.PaginationRequest.PageSize * request.PaginationRequest.PageIndex)
                         .Take(request.PaginationRequest.PageSize)

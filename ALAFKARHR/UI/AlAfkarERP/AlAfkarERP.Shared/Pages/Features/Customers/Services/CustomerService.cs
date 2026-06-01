@@ -1,8 +1,6 @@
 ﻿using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
 using SharedWithUI.Customers.Dtos;
-using System.ComponentModel.Design;
-using System.Drawing.Printing;
 using System.Net.Http.Json;
 
 namespace AlAfkarERP.Shared.Pages.Features.Customers.Services;
@@ -15,7 +13,7 @@ public class CustomerService : BaseApiService, ICustomerService
     public CustomerService(HttpClient http, ApiConfig apiConfig) : base(http)
     {
         _apiConfig = apiConfig;
-        _path = $"api/{_apiConfig.Version}/Customers/Customer";
+        _path = $"api/{_apiConfig.Version}/customers/customer";
     }
 
     public async Task<ApiResult<CreateResponseDto>> CreateAsync(CustomerDto customer)
@@ -38,7 +36,11 @@ public class CustomerService : BaseApiService, ICustomerService
 
     public async Task<ApiResult<PaginatedResult<CustomerDto>>> GetByCompany(Guid companyId, int pageIndex, int pageSize, string searchText = "")
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/Company/{companyId}?pageIndex={pageIndex}&pageSize={pageSize}&searchText={searchText}");
+        var requestUri = $"{_path}/company/{companyId}?PageIndex={pageIndex}&PageSize={pageSize}";
+        if (!string.IsNullOrWhiteSpace(searchText))
+            requestUri += $"&SearchText={Uri.EscapeDataString(searchText)}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
         return await SendAsync<PaginatedResult<CustomerDto>>(request, "customerList");
     }
 

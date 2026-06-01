@@ -25,7 +25,7 @@ public class UpdateCustomerHandler(CustomerDbContext dbContext, IHttpContextAcce
             request.Customer.Status,
             request.Customer.Type,
             request.Customer.CreditLimit,
-            request.Customer.PaymentTerm,
+            //request.Customer.PaymentTerm,
             request.Customer.Notes,
             request.Customer.IsTaxExempt,
             request.Customer.Addresses.Adapt<List<Address>>(),

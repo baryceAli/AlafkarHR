@@ -1,7 +1,171 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Customers/Customer/Dashboard"
-<h3>Dashboard</h3>
+@using AlAfkarERP.Shared.Pages.Features.Customers.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Customers.Dtos
+@using SharedWithUI.Customers.Enums
+@using SharedWithUI.Permissions
+
+@inject ICustomerService CustomerService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (isLoading)
+{
+    <div class="card p-4">
+        <span>@SharedDataService.SelectViewLang("Loading customer dashboard...", "جاري تحميل لوحة العملاء...")</span>
+    </div>
+}
+else if (!CanSelect)
+{
+    <div class="alert alert-warning">
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
+    </div>
+}
+else
+{
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h5 class="mb-1">@SharedDataService.SelectViewLang("Customers Dashboard", "لوحة العملاء")</h5>
+            <div class="text-muted small">
+                @SharedDataService.SelectViewLang("A quick view of customer activity for the selected company.", "نظرة سريعة على عملاء الشركة الحالية.")
+            </div>
+        </div>
+
+        <button class="btn btn-primary" @onclick="OpenCustomers">
+            @SharedDataService.SelectViewLang("Open Customers", "فتح العملاء")
+        </button>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-3">
+            <div class="card p-3 h-100">
+                <div class="text-muted small">@SharedDataService.SelectViewLang("Total Customers", "اجمالي العملاء")</div>
+                <div class="fs-4 fw-semibold">@totalCustomers</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 h-100">
+                <div class="text-muted small">@SharedDataService.SelectViewLang("Recent Active", "النشطون حديثا")</div>
+                <div class="fs-4 fw-semibold">@activeCustomers</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 h-100">
+                <div class="text-muted small">@SharedDataService.SelectViewLang("Recent Tax Exempt", "المعفون حديثا من الضريبة")</div>
+                <div class="fs-4 fw-semibold">@taxExemptCustomers</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 h-100">
+                <div class="text-muted small">@SharedDataService.SelectViewLang("Recent Blocked/Suspended", "محظور/معلق حديثا")</div>
+                <div class="fs-4 fw-semibold">@blockedOrSuspendedCustomers</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">@SharedDataService.SelectViewLang("Recent Customers", "احدث العملاء")</h6>
+        </div>
+
+        @if (!recentCustomers.Any())
+        {
+            <div class="text-muted py-4 text-center">
+                @SharedDataService.SelectViewLang("No customers found.", "لا يوجد عملاء.")
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>@SharedDataService.SelectViewLang("Name", "الاسم")</th>
+                            <th>@SharedDataService.SelectViewLang("Commercial Name", "الاسم التجاري")</th>
+                            <th>@SharedDataService.SelectViewLang("Type", "النوع")</th>
+                            <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
+                            <th>@SharedDataService.SelectViewLang("Credit Limit", "حد الائتمان")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var customer in recentCustomers)
+                        {
+                            <tr>
+                                <td>@customer.Name</td>
+                                <td>@customer.CommercialName</td>
+                                <td>@customer.Type</td>
+                                <td>@customer.Status</td>
+                                <td>@customer.CreditLimit.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}
 
 @code {
+    private bool isLoading = true;
+    private AuthenticationState? AuthState;
+    private List<CustomerDto> recentCustomers = new();
+    private long totalCustomers;
+    private int activeCustomers;
+    private int taxExemptCustomers;
+    private int blockedOrSuspendedCustomers;
 
+    private bool CanSelect => AuthState?.User.Claims.Any(c => c.Value == PermissionList.CustomerPermissions.Select) == true;
+
+    private void OpenCustomers()
+    {
+        NavigationManager.NavigateTo("/Customers/Customer/List");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+
+        AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!CanSelect)
+        {
+            isLoading = false;
+            return;
+        }
+
+        var companyClaim = AuthState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+        if (Guid.TryParse(companyClaim, out var companyId))
+        {
+            var response = await CustomerService.GetByCompany(companyId, 0, 5);
+            if (response.IsSuccess && response.Data is not null)
+            {
+                recentCustomers = response.Data.Data.ToList();
+                totalCustomers = response.Data.Count;
+                activeCustomers = recentCustomers.Count(c => c.Status == CustomerStatus.Active);
+                taxExemptCustomers = recentCustomers.Count(c => c.IsTaxExempt);
+                blockedOrSuspendedCustomers = recentCustomers.Count(c =>
+                    c.Status is CustomerStatus.Blocked or CustomerStatus.Suspended);
+            }
+        }
+
+        isLoading = false;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
 }

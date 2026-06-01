@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CustomersModule.Data.Migrations
 {
     [DbContext(typeof(CustomerDbContext))]
-    [Migration("20260519090347_CustomersModuleAddCompany")]
-    partial class CustomersModuleAddCompany
+    [Migration("20260601071622_CustomersModuleInitial")]
+    partial class CustomersModuleInitial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -142,6 +142,10 @@ namespace CustomersModule.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("NameEng")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 

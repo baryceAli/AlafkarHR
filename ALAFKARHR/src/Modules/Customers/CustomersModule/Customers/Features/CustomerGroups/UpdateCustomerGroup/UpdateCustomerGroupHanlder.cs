@@ -19,6 +19,7 @@ public class UpdateCustomerGroupHanlder(CustomerDbContext dbContext, IHttpContex
                     throw new UnauthorizedAccessException("User is not authenticated");
 
         customerGroup.Update(request.CustomerGroup.Name,
+                    request.CustomerGroup.NameEng,
                     request.CustomerGroup.Description,
                     request.CustomerGroup.DefaultDiscountPercentage,
                     request.CustomerGroup.DefaultPriceListId,

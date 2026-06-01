@@ -21,7 +21,7 @@ public class CreateCustomerHandler(CustomerDbContext dbContext, IHttpContextAcce
                 command.Customer.Status,
                 command.Customer.Type,
                 command.Customer.CreditLimit,
-                command.Customer.PaymentTerm,
+                //command.Customer.PaymentTerm,
                 command.Customer.Notes,
                 command.Customer.IsTaxExempt,
                 command.Customer.companyId.Value,

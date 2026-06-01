@@ -7,7 +7,7 @@ public class RemoveCustomerGroupHandler(CustomerDbContext dbContext, IHttpContex
 {
     public async Task<RemoveCustomerGroupResult> Handle(RemoveCustomerGroupCommand request, CancellationToken cancellationToken)
     {
-        var customer=await dbContext.CustomerGroups.AsNoTracking().FirstOrDefaultAsync(c=>c.Id==request.Id,cancellationToken);
+        var customer=await dbContext.CustomerGroups.FirstOrDefaultAsync(c=>c.Id==request.Id,cancellationToken);
 
         if (customer == null)
             throw new NotFoundException($"Customer group not found: {request.Id}");
@@ -20,7 +20,7 @@ public class RemoveCustomerGroupHandler(CustomerDbContext dbContext, IHttpContex
 
         customer.Remove(user);
 
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return new RemoveCustomerGroupResult(true);
     }

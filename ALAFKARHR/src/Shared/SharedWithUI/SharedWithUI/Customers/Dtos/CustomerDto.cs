@@ -18,7 +18,7 @@ public class CustomerDto
 
     public decimal CreditLimit { get; set; }
 
-    public PaymentTermType PaymentTerm { get; set; }
+    //public PaymentTermType PaymentTerm { get; set; }
 
     public string? Notes { get; set; }
 

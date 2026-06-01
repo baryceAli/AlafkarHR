@@ -1,0 +1,458 @@
+﻿@layout AdminLayout
+@page "/Customers/CustomerGroup/List"
+
+@using AlAfkarERP.Shared.Pages.Features.Customers.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Customers.Dtos
+@using SharedWithUI.Customers.Enums
+@using SharedWithUI.Permissions
+
+@inject ICustomerGroupService CustomerGroupService
+@inject ToastService ToastService
+@inject ModalService ModalService
+@inject LoadingService LoadingService
+@* @inject IPricingListService *@
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (isLoading)
+{
+    <div class="card p-4">
+        <span>@SharedDataService.SelectViewLang("Loading customer groups...", "جاري تحميل فئات العملاء...")</span>
+    </div>
+}
+else if (!CanView)
+{
+    <div class="alert alert-warning">
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
+    </div>
+}
+else
+{
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h5 class="mb-1">@SharedDataService.SelectViewLang("Customer Groups Management", "ادارة فئات العملاء")</h5>
+            <div class="text-muted small">
+                @SharedDataService.SelectViewLang("Create, edit, search, and archive customer group records.", "انشاء وتعديل وبحث وارشفة بيانات فئات العملاء.")
+            </div>
+        </div>
+
+        <button class="btn btn-primary"
+                @onclick="CreateNew"
+                disabled="@(!CanCreate || editingCustomerGroupId is not null)">
+            <i class="bi bi-file-earmark-plus-fill"></i>
+            @SharedDataService.SelectViewLang("Create New", "اضافة جديد")
+        </button>
+    </div>
+
+    @if (editingCustomerGroupId is not null)
+    {
+        <div class="card p-3 mb-3">
+            <EditForm Model="editingCustomerGroup" OnValidSubmit="SaveCustomerGroup">
+                <DataAnnotationsValidator />
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">
+                        @(isEdit
+                            ? SharedDataService.SelectViewLang("Edit Customer Group", "تعديل فئة العميل")
+                            : SharedDataService.SelectViewLang("New Customer Group", "فئة عميل جديدة"))
+                    </h6>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success btn-sm">
+                            @SharedDataService.SelectViewLang("Save", "حفظ")
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">
+                            @SharedDataService.SelectViewLang("Cancel", "الغاء")
+                        </button>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
+                        <InputText class="form-control" @bind-Value="editingCustomerGroup.Name" />
+                        <ValidationMessage For="() => editingCustomerGroup.Name" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Default Disc. Per.", "النسبة المئوية للخصم الافتراضي")</label>
+                        <InputNumber class="form-control" @bind-Value="editingCustomerGroup.DefaultDiscountPercentage" />
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Pricing List", "قائمة التسعير")</label>
+                        
+                    </div>
+                    
+                    <div class="col-md-9">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Description", "الوصف")</label>
+                        <InputTextArea class="form-control" rows="2" @bind-Value="editingCustomerGroup.Description" />
+                    </div>
+                </div>
+
+
+                <hr />
+
+                
+
+                
+
+            </EditForm>
+        </div>
+    }
+
+    <div class="card p-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <input class="form-control"
+                   style="max-width: 320px"
+                   placeholder="@SharedDataService.SelectViewLang("Search customers groups...", "بحث في فئات العملاء...")"
+                   @bind="searchText"
+                   @bind:event="oninput" />
+
+            <div class="d-flex align-items-center gap-2">
+                <select class="form-select" style="width: 110px" @onchange="OnPageSizeChanged">
+                    <option value="5" selected="@(pageSize==5)">5</option>
+                    <option value="10" selected="@(pageSize==10)">10</option>
+                    <option value="20" selected="@(pageSize==20)">20</option>
+                    <option value="50" selected="@(pageSize==50)">50</option>
+                    <option value="100" selected="@(pageSize==100)">100</option>
+                </select>
+                <button class="btn btn-outline-secondary" @onclick="LoadCustomerGroup">
+                    @SharedDataService.SelectViewLang("Refresh", "تحديث")
+                </button>
+            </div>
+        </div>
+
+        @if (!customerGroups.Any())
+        {
+            <div class="text-muted py-4 text-center">
+                @SharedDataService.SelectViewLang("No customer groups found.", "لا يوجد فئات عملاء.")
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th @onclick='() => Sort(SharedDataService.Language=="Ar"? nameof(CustomerGroupDto.Name) : nameof(CustomerGroupDto.NameEng))'>
+                                @SharedDataService.SelectViewLang("Name", "الاسم")
+                                </th>
+                            <th>@SharedDataService.SelectViewLang("Default Disc. Per.", "النسبة المئوية للخصم الافتراضي")</th>
+                            <th>@SharedDataService.SelectViewLang("Default Pricing List", "قائمة التسعير الافتراضية")</th>
+                            <th>@SharedDataService.SelectViewLang("Description", "الوصف")</th>
+                            <th class="text-end"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var customerGroup in ProcessedCustomers)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@(SharedDataService.Language == "Ar" ? customerGroup.Name : customerGroup.NameEng)</div>
+                                </td>
+                                <td>@customerGroup.DefaultDiscountPercentage</td>
+                                <td>@customerGroup.DefaultPriceListId</td>
+                                <td>@customerGroup.Description</td>
+                                <td class="text-end">
+                                    <button class="btn btn-warning btn-sm"
+                                            @onclick="() => EditCustomerGroup(customerGroup.Id)"
+                                            disabled="@(!CanEdit || editingCustomerGroupId is not null)">
+                                        @SharedDataService.SelectViewLang("Edit", "تعديل")
+                                    </button>
+                                    <button class="btn btn-danger btn-sm"
+                                            @onclick="() => DeleteCustomerGroup(customerGroup)"
+                                            disabled="@(!CanDelete || editingCustomerGroupId is not null)">
+                                        @SharedDataService.SelectViewLang("Delete", "حذف")
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <div class="d-flex justify-content-end align-items-center mt-3">
+            <button class="btn btn-sm btn-secondary" @onclick="PrevPage" disabled="@(pageIndex == 0)">
+                @SharedDataService.SelectViewLang("Previous", "السابق")
+            </button>
+            <span class="mx-3">
+                @SharedDataService.SelectViewLang("Page", "صفحة") @(pageIndex + 1) / @TotalPages
+            </span>
+            <button class="btn btn-sm btn-secondary" @onclick="NextPage" disabled="@(pageIndex >= TotalPages - 1)">
+                @SharedDataService.SelectViewLang("Next", "التالي")
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    private List<CustomerGroupDto> customerGroups = new();
+    private CustomerGroupDto editingCustomerGroup = NewCustomerGroup();
+    private Guid? editingCustomerGroupId;
+    private Guid companyId;
+    private bool isEdit;
+    private bool isLoading = true;
+    private AuthenticationState? AuthState;
+    // private string customerGroupIdText = "";
+
+    private string searchText = "";
+    private string sortColumn = nameof(CustomerGroupDto.Name);
+    private bool sortAscending = true;
+    private int pageSize = 10;
+    private int pageIndex;
+    private int TotalPages = 1;
+
+    private bool CanView => HasPermission(PermissionList.CustomerGroupPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.CustomerGroupPermissions.Create);
+    private bool CanEdit => HasPermission(PermissionList.CustomerGroupPermissions.Edit);
+    private bool CanDelete => HasPermission(PermissionList.CustomerGroupPermissions.Delete);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+
+        AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        var companyClaim = AuthState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+        if (!Guid.TryParse(companyClaim, out companyId))
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Message = SharedDataService.SelectViewLang("Company id is missing from the current user.", "معرف الشركة غير موجود للمستخدم الحالي."),
+                Type = "error"
+            });
+            isLoading = false;
+            return;
+        }
+
+        if (CanView)
+            await LoadCustomerGroup();
+
+        isLoading = false;
+    }
+
+    private void CreateNew()
+    {
+        editingCustomerGroup = NewCustomerGroup();
+        editingCustomerGroup.CompanyId = companyId;
+        editingCustomerGroupId = editingCustomerGroup.Id;
+        // customerGroupIdText = "";
+        isEdit = false;
+    }
+
+    private async Task EditCustomerGroup(Guid id)
+    {
+        var response = await CustomerGroupService.GetByIdAsync(id);
+        if (!response.IsSuccess || response.Data is null)
+        {
+            ShowError(SharedDataService.SelectViewLang("Unable to load customer group.", "تعذر تحميل مجموعة العملاء."));
+            return;
+        }
+
+        editingCustomerGroup = response.Data;
+        editingCustomerGroupId = editingCustomerGroup.Id;
+        // customerGroupIdText = editingCustomerGroup.CustomerGroupId?.ToString() ?? "";
+        isEdit = true;
+    }
+
+    private async Task SaveCustomerGroup()
+    {
+        if (string.IsNullOrWhiteSpace(editingCustomerGroup.Name))
+        {
+            ShowError(SharedDataService.SelectViewLang("Customer group name is required.", "اسم مجموعة العملاء مطلوب."));
+            return;
+        }
+
+        editingCustomerGroup.CompanyId = companyId;
+        // Normalize(editingCustomerGroup);
+
+        var isSuccess = false;
+        string? errorMessage = null;
+
+        if (isEdit)
+        {
+            var response = await CustomerGroupService.UpdateAsync(editingCustomerGroup);
+            isSuccess = response.IsSuccess;
+            errorMessage = response.Error?.Detail;
+        }
+        else
+        {
+            var response = await CustomerGroupService.CreateAsync(editingCustomerGroup);
+            isSuccess = response.IsSuccess;
+            errorMessage = response.Error?.Detail;
+        }
+
+        if (isSuccess)
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Message = isEdit
+                    ? SharedDataService.SelectViewLang("Customer group has been updated successfully.", "تم تعديل مجموعة العملاء بنجاح.")
+                    : SharedDataService.SelectViewLang("Customer group has been created successfully.", "تم انشاء مجموعة العملاء بنجاح."),
+                Type = "success"
+            });
+
+            editingCustomerGroupId = null;
+            isEdit = false;
+            await LoadCustomerGroup();
+            return;
+        }
+
+        ShowError(errorMessage ?? SharedDataService.SelectViewLang("Customer group save failed.", "فشل حفظ مجموعة العملاء."));
+    }
+
+    private void CancelEdit()
+    {
+        editingCustomerGroupId = null;
+        editingCustomerGroup = NewCustomerGroup();
+        // customerGroupIdText = "";
+        isEdit = false;
+    }
+
+    private async Task DeleteCustomerGroup(CustomerGroupDto customerGroup)
+    {
+        await ModalService.ShowAsync(new ModalOptions
+        {
+            Title = SharedDataService.SelectViewLang("Confirm Delete", "تأكيد عملية الحذف"),
+            Message = SharedDataService.SelectViewLang(
+                $"Are you sure you want to delete customer group: {customerGroup.Name}?",
+                $"هل ترغب فعلا في حذف مجموعة العملاء: {customerGroup.Name}؟"),
+            ShowCancel = true,
+            OkText = SharedDataService.SelectViewLang("Yes", "نعم"),
+            CancelText = SharedDataService.SelectViewLang("No", "لا"),
+            OnOk = async () =>
+            {
+                var response = await CustomerGroupService.DeleteAsync(customerGroup.Id);
+                if (response.IsSuccess)
+                {
+                    ToastService.Show(new ToastMessage
+                    {
+                        Message = SharedDataService.SelectViewLang("Customer group deleted successfully.", "تم حذف مجموعة العملاء بنجاح."),
+                        Type = "success"
+                    });
+                    await LoadCustomerGroup();
+                    await InvokeAsync(StateHasChanged);
+                }
+                else
+                {
+                    ShowError(response.Error?.Detail ?? SharedDataService.SelectViewLang("Delete failed.", "فشلت عملية الحذف."));
+                }
+            }
+        });
+    }
+
+    private async Task LoadCustomerGroup()
+    {
+        LoadingService.Show();
+        var response = await CustomerGroupService.GetByCompanyAsync(companyId, pageIndex, pageSize, searchText);
+        if (response.IsSuccess && response.Data is not null)
+        {
+            customerGroups = response.Data.Data.ToList();
+            TotalPages = Math.Max(1, (int)Math.Ceiling(response.Data.Count / (double)pageSize));
+        }
+        else
+        {
+            customerGroups = [];
+            TotalPages = 1;
+            ShowError(response.Error?.Detail ?? SharedDataService.SelectViewLang("Unable to load customer groups.", "تعذر تحميل مجموعات العملاء."));
+        }
+        LoadingService.Hide();
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var newPageSize))
+        {
+            pageSize = newPageSize;
+            pageIndex = 0;
+            await LoadCustomerGroup();
+        }
+    }
+
+    private IEnumerable<CustomerGroupDto> ProcessedCustomers =>
+        customerGroups
+            .OrderByDynamic(sortColumn, sortAscending);
+
+    private async Task NextPage()
+    {
+        if (pageIndex < TotalPages - 1)
+        {
+            pageIndex++;
+            await LoadCustomerGroup();
+        }
+    }
+
+    private async Task PrevPage()
+    {
+        if (pageIndex > 0)
+        {
+            pageIndex--;
+            await LoadCustomerGroup();
+        }
+    }
+
+    private void Sort(string column)
+    {
+        sortColumn = SharedDataService.Language == "Ar" ? nameof(CustomerGroupDto.Name) : nameof(CustomerGroupDto.NameEng);
+        if (sortColumn == column)
+            sortAscending = !sortAscending;
+        else
+        {
+            sortColumn = column;
+            sortAscending = true;
+        }
+    }
+
+    
+
+
+    private static CustomerGroupDto NewCustomerGroup() => new()
+    {
+        Id = Guid.NewGuid(),
+        Name = "",
+        // CompanyId = companyId,
+        // DefaultDiscountPercentage = 0,
+
+        
+    };
+
+    // private static CustomerGroupDto Normalize(CustomerGroupDto customerGroup)
+    // {
+    //     customerGroup.Name ??= "";
+        
+    //     return customerGroup;
+    // }
+
+    private bool HasPermission(string permission)
+    {
+        return AuthState?.User.Claims.Any(c => c.Value == permission) == true;
+    }
+
+    private void ShowError(string message)
+    {
+        ToastService.Show(new ToastMessage
+        {
+            Message = message,
+            Type = "error"
+        });
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

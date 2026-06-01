@@ -18,7 +18,7 @@ public class Customer : Aggregate<Guid>
 
     public decimal CreditLimit { get; private set; }
 
-    public PaymentTermType PaymentTerm { get; private set; }
+    //public PaymentTermType PaymentTerm { get; private set; }
 
     public string? Notes { get; private set; }
 
@@ -38,7 +38,7 @@ public class Customer : Aggregate<Guid>
         CustomerStatus status,
         CustomerType type,
         decimal creditLimit,
-        PaymentTermType paymentTerm,
+        //PaymentTermType paymentTerm,
         string notes,
         bool isTaxExempt,
         Guid companyId,
@@ -51,7 +51,7 @@ public class Customer : Aggregate<Guid>
             Status = status,
             Type = type,
             CreditLimit = creditLimit,
-            PaymentTerm = paymentTerm,
+            //PaymentTerm = paymentTerm,
             Notes = notes,
             IsTaxExempt = isTaxExempt,
             CompanyId = companyId,
@@ -66,7 +66,7 @@ public class Customer : Aggregate<Guid>
         CustomerStatus status,
         CustomerType type,
         decimal creditLimit,
-        PaymentTermType paymentTerm,
+        //PaymentTermType paymentTerm,
         string notes,
         bool isTaxExempt,
         List<Address> addresses,
@@ -78,7 +78,7 @@ public class Customer : Aggregate<Guid>
         Status=status;
         Type=type;
         CreditLimit=creditLimit;
-        PaymentTerm=paymentTerm;
+        //PaymentTerm=paymentTerm;
         Notes=notes;
         IsTaxExempt=isTaxExempt;
         ModifiedBy=modifiedBy;

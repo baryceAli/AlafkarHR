@@ -139,6 +139,7 @@ public class MenuItem
             }
         },
 
+        //Customers Management
         new MenuItem
         {
             TextEn = "Customers Management",
@@ -156,7 +157,15 @@ public class MenuItem
                     Url = "/Customers/Customer/List",
                     PermissionPolicy = PermissionList.CustomerPermissions.View,
                 }, 
-            } 
+                new MenuItem
+                {
+                    TextEn = "Customer Groups",
+                    TextAr = "مجموعات العملاء",
+                    Icon = "bi-people",
+                    Url = "/Customers/CustomerGroup/List",
+                    PermissionPolicy = PermissionList.CustomerGroupPermissions.View
+                } 
+            }
         },
         //Products Management
         new MenuItem

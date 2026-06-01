@@ -31,9 +31,9 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .HasConversion<int>()
             .IsRequired();
 
-        builder.Property(x => x.PaymentTerm)
-            .HasConversion<int>()
-            .IsRequired();
+        //builder.Property(x => x.PaymentTerm)
+        //    .HasConversion<int>()
+        //    .IsRequired();
 
         builder.Property(x => x.CreditLimit)
             .HasPrecision(18, 2);

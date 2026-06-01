@@ -8,6 +8,7 @@
 public class CustomerGroup : Aggregate<Guid>
 {
     public string Name { get; private set; }
+    public string NameEng { get; set; }
 
     public string? Description { get; private set; }
 
@@ -20,6 +21,7 @@ public class CustomerGroup : Aggregate<Guid>
     public static CustomerGroup Create(
         Guid id,
         string name, 
+        string nameEng,
         string?description, 
         decimal? defaultDiscountPercentage, 
         Guid? defaultPriceListId, 
@@ -30,6 +32,7 @@ public class CustomerGroup : Aggregate<Guid>
         {
             Id = id,
             Name = name,
+            NameEng=nameEng,
             Description = description,
             DefaultDiscountPercentage = defaultDiscountPercentage,
             DefaultPriceListId = defaultPriceListId,
@@ -38,9 +41,10 @@ public class CustomerGroup : Aggregate<Guid>
             CreatedBy = createdBy
         };
     }
-    public void Update(string name, string? description, decimal? defaultDiscountPercentage, Guid? defaultPriceListId, string modifiedBy)
+    public void Update(string name,string nameEng, string? description, decimal? defaultDiscountPercentage, Guid? defaultPriceListId, string modifiedBy)
     {
         Name=name;
+        NameEng=nameEng;
         Description=description;
         DefaultDiscountPercentage=defaultDiscountPercentage;
         DefaultPriceListId=defaultPriceListId;
@@ -49,6 +53,7 @@ public class CustomerGroup : Aggregate<Guid>
     }
     public void Remove(string deletedBy)
     {
+        //cusotmer group
         DeletedBy=deletedBy;
         IsDeleted = true;
         DeletedAt=DateTime.UtcNow;

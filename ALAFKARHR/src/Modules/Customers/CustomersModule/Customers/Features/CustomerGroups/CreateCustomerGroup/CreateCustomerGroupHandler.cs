@@ -14,7 +14,7 @@ public class CreateCustomerGroupCommandValidator : AbstractValidator<CreateCusto
     public CreateCustomerGroupCommandValidator()
     {
         RuleFor(x=> x.CustomerGroup.Name).NotEmpty().WithMessage("Name is required");
-        RuleFor(x => x.CustomerGroup.companyId).NotNull().WithMessage("Company is required");
+        RuleFor(x => x.CustomerGroup.CompanyId).NotNull().WithMessage("Company is required");
     }
 }
 public class CreateCustomerGroupHandler(CustomerDbContext dbContext, IHttpContextAccessor httpContextAccessor)
@@ -29,10 +29,11 @@ public class CreateCustomerGroupHandler(CustomerDbContext dbContext, IHttpContex
 
         var customer = CustomerGroup.Create(Guid.NewGuid(), 
                 command.CustomerGroup.Name, 
+                command.CustomerGroup.NameEng,
                 command.CustomerGroup.Description, 
                 command.CustomerGroup.DefaultDiscountPercentage,
                 command.CustomerGroup.DefaultPriceListId, 
-                command.CustomerGroup.companyId.Value, 
+                command.CustomerGroup.CompanyId.Value, 
                 user);
 
         await dbContext.CustomerGroups.AddAsync(customer);
