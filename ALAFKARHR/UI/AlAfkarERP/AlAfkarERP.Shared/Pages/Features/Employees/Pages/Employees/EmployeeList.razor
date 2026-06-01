@@ -137,7 +137,6 @@
                     }
                         -->
 
-                    
                     <td>@emp.EmployeeNo</td>
                     <td>@emp.FullName</td>
                     <td>@emp.DateOfBirth.ToString("yyyy/MM/dd")</td>
@@ -151,18 +150,18 @@
                     </td>
                     
                     <td>
-                        <a class="btn btn-warning btn-sm m-2" href="Employee/Employee/view/@emp.Id">@SharedDataService.SelectViewLang("View", "عرض")</a>
-                        <button class="btn btn-warning btn-sm m-2"
+                        <a class="btn btn-info btn-sm m-1" href="Employee/Employee/view/@emp.Id">@SharedDataService.SelectViewLang("View", "عرض")</a>
+                        <button class="btn btn-warning btn-sm m-1"
                                 @onclick="() => EditEmployee(emp.Id)"
                                 disabled=@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.EmployeePermissions.Edit))>
                             @SharedDataService.SelectViewLang("Edit", "تعديل")
                         </button>
-                        <button class="btn btn-danger btn-sm m-2"
+                        <button class="btn btn-danger btn-sm m-1"
                                 @onclick="() => DeleteEmployee(emp)"
                                 disabled=@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.EmployeePermissions.Delete))>
                             @SharedDataService.SelectViewLang("Delete", "حذف")
                         </button>
-                        <a class="btn btn-warning btn-sm m-2" href="Employee/Employee/QR/@emp.Id">@SharedDataService.SelectViewLang("View QR", "QR Code")</a>
+                        <a class="btn btn-info btn-sm m-1" href="Employee/Employee/QR/@emp.Id">@SharedDataService.SelectViewLang("QR Code", "QR")</a>
                     </td>
 
                     

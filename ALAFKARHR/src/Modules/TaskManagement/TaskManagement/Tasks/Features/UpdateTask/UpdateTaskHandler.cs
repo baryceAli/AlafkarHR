@@ -1,0 +1,36 @@
+using TaskManagement.Tasks.Features;
+
+namespace TaskManagement.Tasks.Features.UpdateTask;
+
+public record UpdateTaskCommand(UpdateTaskItemDto Task) : ICommand<UpdateTaskResult>;
+public record UpdateTaskResult(bool IsSuccess);
+
+public class UpdateTaskCommandValidator : AbstractValidator<UpdateTaskCommand>
+{
+    public UpdateTaskCommandValidator()
+    {
+        RuleFor(x => x.Task.Id).NotEmpty();
+        RuleFor(x => x.Task.Title).NotEmpty().MaximumLength(250);
+        RuleFor(x => x.Task.DueDate).Must((command, dueDate) => !command.Task.StartDate.HasValue || dueDate.Date >= command.Task.StartDate.Value.Date)
+            .WithMessage("Due date cannot be before start date.");
+    }
+}
+
+public class UpdateTaskHandler(TaskManagementDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+    : ICommandHandler<UpdateTaskCommand, UpdateTaskResult>
+{
+    public async Task<UpdateTaskResult> Handle(UpdateTaskCommand command, CancellationToken cancellationToken)
+    {
+        var userId = TaskFeatureHelpers.GetCurrentUserId(httpContextAccessor);
+        var task = await dbContext.TaskItems.Include(x => x.History).FirstOrDefaultAsync(x => x.Id == command.Task.Id && !x.IsDeleted, cancellationToken)
+            ?? throw new NotFoundException($"Task not found: {command.Task.Id}");
+
+        var oldDueDate = task.DueDate.ToString("O");
+        task.Update(command.Task.Title, command.Task.Description, command.Task.Priority, command.Task.StartDate,
+            command.Task.DueDate, command.Task.DepartmentId, command.Task.IsRecurring, command.Task.ReminderDate, userId);
+
+        TaskFeatureHelpers.AddHistoryAndNotification(dbContext, task, userId, "TaskUpdated", oldDueDate, task.DueDate.ToString("O"), task.AssignedToUserId);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new UpdateTaskResult(true);
+    }
+}

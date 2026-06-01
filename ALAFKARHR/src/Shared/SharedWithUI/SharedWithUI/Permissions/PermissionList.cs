@@ -36,6 +36,7 @@ public static class PermissionList
             .. SupplierPermissions.Permissions,
             .. SalesOrderPermissions.Permissions,
             .. PricingPermissions.Permissions,
+            .. TaskManagementPermissions.Permissions,
         ];
 
 
@@ -663,6 +664,39 @@ public static class PermissionList
                 $"{Create}",
                 $"{Edit}",
                 $"{Delete}",
+            };
+    }
+
+    public static class TaskManagementPermissions
+    {
+
+        public static string GroupName { get; set; } = "TaskManagement.Task";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Assign { get; set; } = $"{GroupName}.Assign";
+        public static string Reassign { get; set; } = $"{GroupName}.Reassign";
+        public static string Comment { get; set; } = $"{GroupName}.Comment";
+        public static string Close { get; set; } = $"{GroupName}.Close";
+        public static string ViewReports { get; set; } = $"{GroupName}.ViewReports";
+        public static string ManageAllTasks { get; set; } = $"{GroupName}.ManageAllTasks";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+                $"{Assign}",
+                $"{Reassign}",
+                $"{Comment}",
+                $"{Close}",
+                $"{ViewReports}",
+                $"{ManageAllTasks}",
             };
     }
 

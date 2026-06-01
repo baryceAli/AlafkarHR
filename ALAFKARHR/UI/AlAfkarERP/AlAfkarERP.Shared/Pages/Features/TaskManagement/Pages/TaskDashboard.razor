@@ -1,0 +1,61 @@
+@layout AdminLayout
+@page "/TaskManagement/Dashboard"
+
+@using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
+@using SharedWithUI.TaskManagement.Dtos
+
+@inject ITaskManagementService TaskService
+
+<h5 class="text-black">Task Management Dashboard</h5>
+
+@if (dashboard is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="row g-3 mb-3">
+        <KpiCard Title="Total Tasks" Value="@dashboard.TotalTasks.ToString()" Icon="bi-list-task" />
+        <KpiCard Title="Open Tasks" Value="@dashboard.OpenTasks.ToString()" Icon="bi-hourglass-split" />
+        <KpiCard Title="Completed" Value="@dashboard.CompletedTasks.ToString()" Icon="bi-check2-circle" />
+        <KpiCard Title="Overdue" Value="@dashboard.OverdueTasks.ToString()" Icon="bi-exclamation-triangle" />
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card p-3">
+                <h6>Employee Workload</h6>
+                @foreach (var item in dashboard.EmployeeWorkload)
+                {
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span>@item.UserId</span>
+                        <span>@item.OpenTasks open / @item.CompletedTasks done</span>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card p-3">
+                <h6>Department Performance Ranking</h6>
+                @foreach (var item in dashboard.DepartmentPerformanceRanking)
+                {
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span>@item.DepartmentId</span>
+                        <span>@item.CompletionPercentage%</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private TaskDashboardDto? dashboard;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await TaskService.GetDashboardAsync("all");
+        if (response.IsSuccess)
+            dashboard = response.Data;
+    }
+}

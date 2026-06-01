@@ -1,0 +1,158 @@
+@layout AdminLayout
+@page "/TaskManagement/List"
+
+@using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.TaskManagement.Dtos
+@using SharedWithUI.TaskManagement.Enums
+@using TaskWorkflowStatus = SharedWithUI.TaskManagement.Enums.TaskStatus
+
+@inject ITaskManagementService TaskService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (!CanView)
+{
+    <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+    return;
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h5 class="text-black mb-0">@SharedDataService.SelectViewLang("Task List", "قائمة المهام")</h5>
+    <button class="btn btn-primary" @onclick='() => NavigationManager.NavigateTo("/TaskManagement/Create")' disabled="@(!CanCreate)">
+        <i class="bi bi-plus-square"></i> @SharedDataService.SelectViewLang("Create New", "إضافة جديد")
+    </button>
+</div>
+
+<div class="card p-3 mb-3">
+    <div class="row g-2 mb-3">
+        <div class="col-md-4">
+            <input class="form-control" placeholder="Search..." @bind="searchText" @bind:event="oninput" />
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="selectedStatus">
+                <option value="">All statuses</option>
+                @foreach (var status in Enum.GetValues<TaskWorkflowStatus>())
+                {
+                    <option value="@status">@status</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="selectedPriority">
+                <option value="">All priorities</option>
+                @foreach (var priority in Enum.GetValues<TaskPriority>())
+                {
+                    <option value="@priority">@priority</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-primary w-100" @onclick="LoadTasks"><i class="bi bi-search"></i></button>
+        </div>
+    </div>
+
+    <table class="table align-middle">
+        <thead>
+            <tr>
+                <th>Number</th>
+                <th>Title</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Due</th>
+                <th>Progress</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var task in tasks)
+            {
+                <tr>
+                    <td>@task.TaskNumber</td>
+                    <td>@task.Title</td>
+                    <td><span class="badge bg-secondary">@task.Priority</span></td>
+                    <td><span class="badge bg-info text-dark">@task.Status</span></td>
+                    <td>@task.DueDate.ToShortDateString()</td>
+                    <td style="min-width:160px">
+                        <div class="progress">
+                            <div class="progress-bar" style="width:@task.ProgressPercentage%">@task.ProgressPercentage%</div>
+                        </div>
+                    </td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/View/{task.Id}")'><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-outline-warning" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/Edit/{task.Id}")' disabled="@(!CanEdit)"><i class="bi bi-pencil-square"></i></button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="d-flex justify-content-end align-items-center gap-2">
+        <button class="btn btn-sm btn-secondary" @onclick="PrevPage" disabled="@(pageIndex == 0)">Previous</button>
+        <span>Page @(pageIndex + 1) of @TotalPages</span>
+        <button class="btn btn-sm btn-secondary" @onclick="NextPage" disabled="@(pageIndex >= TotalPages - 1)">Next</button>
+    </div>
+</div>
+
+@code {
+    private List<TaskItemDto> tasks = [];
+    private string searchText = string.Empty;
+    private string selectedStatus = string.Empty;
+    private string selectedPriority = string.Empty;
+    private int pageIndex;
+    private int pageSize = 10;
+    private int TotalPages = 1;
+    private bool CanView;
+    private bool CanCreate;
+    private bool CanEdit;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (!authState.User.Identity?.IsAuthenticated == true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        CanView = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.View);
+        CanCreate = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Create);
+        CanEdit = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Edit);
+        await LoadTasks();
+    }
+
+    private async Task LoadTasks()
+    {
+        Enum.TryParse<TaskWorkflowStatus>(selectedStatus, out var status);
+        Enum.TryParse<TaskPriority>(selectedPriority, out var priority);
+        var response = await TaskService.GetAsync(pageIndex, pageSize, searchText,
+            status: string.IsNullOrWhiteSpace(selectedStatus) ? null : status,
+            priority: string.IsNullOrWhiteSpace(selectedPriority) ? null : priority);
+        if (response.IsSuccess)
+        {
+            tasks = response.Data?.Data.ToList() ?? [];
+            TotalPages = Math.Max(1, (int)Math.Ceiling((response.Data?.Count ?? 0) / (double)pageSize));
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (pageIndex < TotalPages - 1)
+        {
+            pageIndex++;
+            await LoadTasks();
+        }
+    }
+
+    private async Task PrevPage()
+    {
+        if (pageIndex > 0)
+        {
+            pageIndex--;
+            await LoadTasks();
+        }
+    }
+}

@@ -1,0 +1,91 @@
+@layout AdminLayout
+@page "/TaskManagement/Create"
+
+@using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using SharedWithUI.TaskManagement.Dtos
+@using SharedWithUI.TaskManagement.Enums
+
+@inject ITaskManagementService TaskService
+@inject NavigationManager NavigationManager
+@inject ToastService ToastService
+
+<h5 class="text-black">Create Task</h5>
+
+<div class="card p-3">
+    <EditForm Model="task" OnValidSubmit="Save">
+        <DataAnnotationsValidator />
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label class="form-label">Title</label>
+                <InputText class="form-control" @bind-Value="task.Title" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Priority</label>
+                <InputSelect class="form-select" @bind-Value="task.Priority">
+                    @foreach (var priority in Enum.GetValues<TaskPriority>())
+                    {
+                        <option value="@priority">@priority</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-12">
+                <label class="form-label">Description</label>
+                <InputTextArea class="form-control" rows="4" @bind-Value="task.Description" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Assigned User Id</label>
+                <InputText class="form-control" @bind-Value="assignedUserText" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Department Id</label>
+                <InputText class="form-control" @bind-Value="departmentText" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Start Date</label>
+                <InputDate class="form-control" @bind-Value="task.StartDate" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Due Date</label>
+                <InputDate class="form-control" @bind-Value="task.DueDate" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Reminder Date</label>
+                <InputDate class="form-control" @bind-Value="task.ReminderDate" />
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input" @bind-Value="task.IsRecurring" />
+                    <label class="form-check-label">Recurring</label>
+                </div>
+            </div>
+            <div class="col-12 d-flex gap-2">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> Save</button>
+                <button class="btn btn-secondary" type="button" @onclick='() => NavigationManager.NavigateTo("/TaskManagement/List")'>Cancel</button>
+            </div>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private CreateTaskItemDto task = new() { DueDate = DateTime.UtcNow.Date };
+    private string assignedUserText = string.Empty;
+    private string departmentText = string.Empty;
+
+    private async Task Save()
+    {
+        if (!Guid.TryParse(assignedUserText, out var assignedUserId) || !Guid.TryParse(departmentText, out var departmentId))
+        {
+            ToastService.Show(new ToastMessage { Message = "Assigned user and department must be valid ids.", Type = "error" });
+            return;
+        }
+
+        task.AssignedToUserId = assignedUserId;
+        task.DepartmentId = departmentId;
+        var response = await TaskService.CreateAsync(task);
+        if (response.IsSuccess)
+            NavigationManager.NavigateTo("/TaskManagement/List");
+        else
+            ToastService.Show(new ToastMessage { Message = response.Error?.Detail ?? "Unable to create task.", Type = "error" });
+    }
+}

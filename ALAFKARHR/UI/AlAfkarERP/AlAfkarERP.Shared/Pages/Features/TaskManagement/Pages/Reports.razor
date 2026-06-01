@@ -1,0 +1,73 @@
+@layout AdminLayout
+@page "/TaskManagement/Reports"
+
+@using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
+@using SharedWithUI.TaskManagement.Dtos
+
+@inject ITaskManagementService TaskService
+
+<h5 class="text-black">Task Reports</h5>
+
+<div class="card p-3 mb-3">
+    <button class="btn btn-primary" @onclick="LoadReports"><i class="bi bi-arrow-repeat"></i> Refresh</button>
+</div>
+
+@if (summary is not null)
+{
+    <div class="row g-3 mb-3">
+        <KpiCard Title="Total" Value="@summary.TotalTasks.ToString()" Icon="bi-list-task" />
+        <KpiCard Title="Open" Value="@summary.OpenTasks.ToString()" Icon="bi-hourglass" />
+        <KpiCard Title="Completed" Value="@summary.CompletedTasks.ToString()" Icon="bi-check-circle" />
+        <KpiCard Title="Overdue" Value="@summary.OverdueTasks.ToString()" Icon="bi-exclamation-circle" />
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card p-3">
+            <h6>Employee Productivity</h6>
+            @foreach (var item in employeeReport)
+            {
+                <div class="d-flex justify-content-between border-bottom py-2">
+                    <span>@item.UserId</span>
+                    <span>@item.CompletedTasks / @item.AssignedTasks (@item.CompletionRate%)</span>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card p-3">
+            <h6>Department Performance</h6>
+            @foreach (var item in departmentReport)
+            {
+                <div class="d-flex justify-content-between border-bottom py-2">
+                    <span>@item.DepartmentId</span>
+                    <span>@item.CompletionPercentage% complete, @item.OverdueTasks overdue</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private TaskSummaryReportDto? summary;
+    private List<EmployeeProductivityReportDto> employeeReport = [];
+    private List<DepartmentPerformanceDto> departmentReport = [];
+
+    protected override async Task OnInitializedAsync() => await LoadReports();
+
+    private async Task LoadReports()
+    {
+        var summaryResponse = await TaskService.GetSummaryReportAsync();
+        if (summaryResponse.IsSuccess)
+            summary = summaryResponse.Data;
+
+        var employeeResponse = await TaskService.GetEmployeeProductivityReportAsync();
+        if (employeeResponse.IsSuccess)
+            employeeReport = employeeResponse.Data ?? [];
+
+        var departmentResponse = await TaskService.GetDepartmentPerformanceReportAsync();
+        if (departmentResponse.IsSuccess)
+            departmentReport = departmentResponse.Data ?? [];
+    }
+}

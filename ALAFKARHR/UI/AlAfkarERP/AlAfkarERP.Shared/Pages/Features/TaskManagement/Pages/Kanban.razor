@@ -1,0 +1,59 @@
+@layout AdminLayout
+@page "/TaskManagement/Kanban"
+
+@using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
+@using SharedWithUI.TaskManagement.Dtos
+@using SharedWithUI.TaskManagement.Enums
+@using TaskWorkflowStatus = SharedWithUI.TaskManagement.Enums.TaskStatus
+
+@inject ITaskManagementService TaskService
+@inject NavigationManager NavigationManager
+
+<h5 class="text-black">Kanban Board</h5>
+
+<div class="d-flex gap-3 overflow-auto pb-3">
+    @foreach (var status in Enum.GetValues<TaskWorkflowStatus>())
+    {
+        <div class="card p-2 flex-shrink-0" style="width:280px; min-height:480px"
+             @ondragover:preventDefault
+             @ondrop="() => DropOnStatus(status)">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong>@status</strong>
+                <span class="badge bg-secondary">@tasks.Count(x => x.Status == status)</span>
+            </div>
+            @foreach (var task in tasks.Where(x => x.Status == status))
+            {
+                <div class="border rounded p-2 mb-2 bg-white" draggable="true" @ondragstart="() => draggedTask = task">
+                    <div class="fw-semibold">@task.Title</div>
+                    <small class="text-muted">@task.TaskNumber</small>
+                    <div class="d-flex justify-content-between mt-2">
+                        <span class="badge bg-light text-dark">@task.Priority</span>
+                        <button class="btn btn-sm btn-link p-0" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/View/{task.Id}")'>Open</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<TaskItemDto> tasks = [];
+    private TaskItemDto? draggedTask;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await TaskService.GetAsync(0, 200);
+        if (response.IsSuccess)
+            tasks = response.Data?.Data.ToList() ?? [];
+    }
+
+    private async Task DropOnStatus(TaskWorkflowStatus status)
+    {
+        if (draggedTask is null || draggedTask.Status == status)
+            return;
+
+        var response = await TaskService.ChangeStatusAsync(draggedTask.Id, status);
+        if (response.IsSuccess)
+            draggedTask.Status = status;
+    }
+}

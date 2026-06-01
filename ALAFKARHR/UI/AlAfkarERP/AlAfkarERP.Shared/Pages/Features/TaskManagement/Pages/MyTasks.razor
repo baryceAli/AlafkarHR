@@ -1,0 +1,43 @@
+@layout AdminLayout
+@page "/TaskManagement/MyTasks"
+
+@using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
+@using SharedWithUI.TaskManagement.Dtos
+
+@inject ITaskManagementService TaskService
+@inject NavigationManager NavigationManager
+
+<h5 class="text-black">My Tasks</h5>
+
+<div class="card p-3">
+    <div class="row g-2 mb-3">
+        <div class="col-md-10"><input class="form-control" placeholder="Search..." @bind="searchText" /></div>
+        <div class="col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadTasks"><i class="bi bi-search"></i></button></div>
+    </div>
+    <div class="list-group">
+        @foreach (var task in tasks)
+        {
+            <button class="list-group-item list-group-item-action" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/View/{task.Id}")'>
+                <div class="d-flex justify-content-between">
+                    <strong>@task.Title</strong>
+                    <span>@task.Status</span>
+                </div>
+                <small>@task.TaskNumber - Due @task.DueDate.ToShortDateString()</small>
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    private List<TaskItemDto> tasks = [];
+    private string searchText = string.Empty;
+
+    protected override async Task OnInitializedAsync() => await LoadTasks();
+
+    private async Task LoadTasks()
+    {
+        var response = await TaskService.GetMyTasksAsync(0, 50, searchText);
+        if (response.IsSuccess)
+            tasks = response.Data?.Data.ToList() ?? [];
+    }
+}

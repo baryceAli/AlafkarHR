@@ -6,6 +6,7 @@ using AlAfkarERP.Shared.Pages.Features.Customers.Services;
 using AlAfkarERP.Shared.Pages.Features.Employees.Services;
 using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services;
 using AlAfkarERP.Shared.Pages.Features.Inventories.Services;
+using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services;
 using AlAfkarERP.Shared.Pages.Reuable2;
 using AlAfkarERP.Shared.Utilities;
 using AlAfkarERP.Web.Components;
@@ -223,6 +224,15 @@ builder.Services.AddHttpClient<ICurrencyService, CurrencyService>(client =>
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
 #endregion GeneralSettings
+
+#region TaskManagement
+builder.Services.AddScoped<ITaskManagementService, TaskManagementService>();
+builder.Services.AddHttpClient<ITaskManagementService, TaskManagementService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+#endregion TaskManagement
 var app = builder.Build();
 
 

@@ -386,6 +386,59 @@ public class MenuItem
             }
         },
 
+        //Task Management
+        new MenuItem
+        {
+            TextEn = "Task Management",
+            TextAr = "إدارة المهام",
+            Icon = "bi-kanban-fill",
+            Url = "/TaskManagement/Dashboard",
+            PermissionPolicy = PermissionList.TaskManagementPermissions.Select,
+            Children = new()
+            {
+                new MenuItem
+                {
+                    TextEn = "Dashboard",
+                    TextAr = "لوحة المهام",
+                    Icon = "bi-speedometer2",
+                    Url = "/TaskManagement/Dashboard",
+                    PermissionPolicy = PermissionList.TaskManagementPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "My Tasks",
+                    TextAr = "مهامي",
+                    Icon = "bi-person-check",
+                    Url = "/TaskManagement/MyTasks",
+                    PermissionPolicy = PermissionList.TaskManagementPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Task List",
+                    TextAr = "قائمة المهام",
+                    Icon = "bi-list-task",
+                    Url = "/TaskManagement/List",
+                    PermissionPolicy = PermissionList.TaskManagementPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Kanban Board",
+                    TextAr = "لوحة كانبان",
+                    Icon = "bi-kanban",
+                    Url = "/TaskManagement/Kanban",
+                    PermissionPolicy = PermissionList.TaskManagementPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Reports",
+                    TextAr = "التقارير",
+                    Icon = "bi-bar-chart-line",
+                    Url = "/TaskManagement/Reports",
+                    PermissionPolicy = PermissionList.TaskManagementPermissions.ViewReports,
+                }
+            }
+        },
+
         //Security Management
         new MenuItem
         {

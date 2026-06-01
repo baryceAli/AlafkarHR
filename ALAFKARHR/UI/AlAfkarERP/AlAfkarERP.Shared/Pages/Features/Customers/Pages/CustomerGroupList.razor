@@ -1,6 +1,7 @@
 ﻿@layout AdminLayout
 @page "/Customers/CustomerGroup/List"
 
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
 @using AlAfkarERP.Shared.Pages.Features.Customers.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
@@ -8,12 +9,15 @@
 @using SharedWithUI.Customers.Dtos
 @using SharedWithUI.Customers.Enums
 @using SharedWithUI.Permissions
+@using SharedWithUI.Pricing.Dtos
 
 @inject ICustomerGroupService CustomerGroupService
+@inject IPriceListService PriceListService
+
 @inject ToastService ToastService
 @inject ModalService ModalService
 @inject LoadingService LoadingService
-@* @inject IPricingListService *@
+
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
@@ -77,12 +81,19 @@ else
                         <ValidationMessage For="() => editingCustomerGroup.Name" />
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">@SharedDataService.SelectViewLang("Default Disc. Per.", "النسبة المئوية للخصم الافتراضي")</label>
+                        <label class="form-label">@SharedDataService.SelectViewLang("Discount (%)", "الخصم(%)")</label>
                         <InputNumber class="form-control" @bind-Value="editingCustomerGroup.DefaultDiscountPercentage" />
                     </div>
                     
                     <div class="col-md-3">
                         <label class="form-label">@SharedDataService.SelectViewLang("Pricing List", "قائمة التسعير")</label>
+                            <AutoCompleteComponent
+                                            TItem="PriceListDto"
+                                            Items="priceLists"
+                                            ItemText="pl=>pl.Name"
+                                            PlaceHolder="@SharedDataService.SelectViewLang("Select a pricing list...", "اختر قائمة التسعير...")"
+                                            Value="selectedPricelist"
+                                            ValueChanged="onSelectedPriceList"/>
                         
                     </div>
                     
@@ -140,8 +151,8 @@ else
                             <th @onclick='() => Sort(SharedDataService.Language=="Ar"? nameof(CustomerGroupDto.Name) : nameof(CustomerGroupDto.NameEng))'>
                                 @SharedDataService.SelectViewLang("Name", "الاسم")
                                 </th>
-                            <th>@SharedDataService.SelectViewLang("Default Disc. Per.", "النسبة المئوية للخصم الافتراضي")</th>
-                            <th>@SharedDataService.SelectViewLang("Default Pricing List", "قائمة التسعير الافتراضية")</th>
+                            <th>@SharedDataService.SelectViewLang("Discount (%)", "الخصم (%)")</th>
+                            <th>@SharedDataService.SelectViewLang("Pricing List", "قائمة التسعير")</th>
                             <th>@SharedDataService.SelectViewLang("Description", "الوصف")</th>
                             <th class="text-end"></th>
                         </tr>
@@ -154,7 +165,7 @@ else
                                     <div class="fw-semibold">@(SharedDataService.Language == "Ar" ? customerGroup.Name : customerGroup.NameEng)</div>
                                 </td>
                                 <td>@customerGroup.DefaultDiscountPercentage</td>
-                                <td>@customerGroup.DefaultPriceListId</td>
+                                <td>@(priceLists.FirstOrDefault(pl=>pl.Id== customerGroup.DefaultPriceListId)?.Name??"")</td>
                                 <td>@customerGroup.Description</td>
                                 <td class="text-end">
                                     <button class="btn btn-warning btn-sm"
@@ -197,7 +208,9 @@ else
     private bool isEdit;
     private bool isLoading = true;
     private AuthenticationState? AuthState;
-    // private string customerGroupIdText = "";
+
+    private PriceListDto? selectedPricelist;
+    private List<PriceListDto> priceLists = new();
 
     private string searchText = "";
     private string sortColumn = nameof(CustomerGroupDto.Name);
@@ -234,6 +247,12 @@ else
             return;
         }
 
+        var plResponse = await PriceListService.GetByCompanyId(companyId, 0, 1000);
+        if (plResponse.IsSuccess && plResponse.Data is not null)
+            priceLists = plResponse.Data.Data.ToList();
+        // else
+        // ShowError(plResponse.Error?.Detail ?? SharedDataService.SelectViewLang("Unable to load price lists.", "تعذر تحميل قوائم التسعير."));
+
         if (CanView)
             await LoadCustomerGroup();
 
@@ -242,6 +261,7 @@ else
 
     private void CreateNew()
     {
+        selectedPricelist = null;
         editingCustomerGroup = NewCustomerGroup();
         editingCustomerGroup.CompanyId = companyId;
         editingCustomerGroupId = editingCustomerGroup.Id;
@@ -254,12 +274,13 @@ else
         var response = await CustomerGroupService.GetByIdAsync(id);
         if (!response.IsSuccess || response.Data is null)
         {
-            ShowError(SharedDataService.SelectViewLang("Unable to load customer group.", "تعذر تحميل مجموعة العملاء."));
+            ShowError(SharedDataService.SelectViewLang("Unable to load customer group.", "تعذر تحميل فئة العملاء."));
             return;
         }
 
         editingCustomerGroup = response.Data;
         editingCustomerGroupId = editingCustomerGroup.Id;
+        selectedPricelist = priceLists.FirstOrDefault(pl => pl.Id == editingCustomerGroup.DefaultPriceListId);
         // customerGroupIdText = editingCustomerGroup.CustomerGroupId?.ToString() ?? "";
         isEdit = true;
     }
@@ -268,7 +289,7 @@ else
     {
         if (string.IsNullOrWhiteSpace(editingCustomerGroup.Name))
         {
-            ShowError(SharedDataService.SelectViewLang("Customer group name is required.", "اسم مجموعة العملاء مطلوب."));
+            ShowError(SharedDataService.SelectViewLang("Customer group name is required.", "اسم فئة العملاء مطلوب."));
             return;
         }
 
@@ -296,8 +317,8 @@ else
             ToastService.Show(new ToastMessage
             {
                 Message = isEdit
-                    ? SharedDataService.SelectViewLang("Customer group has been updated successfully.", "تم تعديل مجموعة العملاء بنجاح.")
-                    : SharedDataService.SelectViewLang("Customer group has been created successfully.", "تم انشاء مجموعة العملاء بنجاح."),
+                    ? SharedDataService.SelectViewLang("Customer group has been updated successfully.", "تم تعديل فئة العملاء بنجاح.")
+                    : SharedDataService.SelectViewLang("Customer group has been created successfully.", "تم انشاء فئة العملاء بنجاح."),
                 Type = "success"
             });
 
@@ -307,7 +328,7 @@ else
             return;
         }
 
-        ShowError(errorMessage ?? SharedDataService.SelectViewLang("Customer group save failed.", "فشل حفظ مجموعة العملاء."));
+        ShowError(errorMessage ?? SharedDataService.SelectViewLang("Customer group save failed.", "فشل حفظ فئة العملاء."));
     }
 
     private void CancelEdit()
@@ -325,7 +346,7 @@ else
             Title = SharedDataService.SelectViewLang("Confirm Delete", "تأكيد عملية الحذف"),
             Message = SharedDataService.SelectViewLang(
                 $"Are you sure you want to delete customer group: {customerGroup.Name}?",
-                $"هل ترغب فعلا في حذف مجموعة العملاء: {customerGroup.Name}؟"),
+                $"هل ترغب فعلا في حذف فئة العملاء: {customerGroup.Name}؟"),
             ShowCancel = true,
             OkText = SharedDataService.SelectViewLang("Yes", "نعم"),
             CancelText = SharedDataService.SelectViewLang("No", "لا"),
@@ -336,7 +357,7 @@ else
                 {
                     ToastService.Show(new ToastMessage
                     {
-                        Message = SharedDataService.SelectViewLang("Customer group deleted successfully.", "تم حذف مجموعة العملاء بنجاح."),
+                        Message = SharedDataService.SelectViewLang("Customer group deleted successfully.", "تم حذف فئة العملاء بنجاح."),
                         Type = "success"
                     });
                     await LoadCustomerGroup();
@@ -363,7 +384,7 @@ else
         {
             customerGroups = [];
             TotalPages = 1;
-            ShowError(response.Error?.Detail ?? SharedDataService.SelectViewLang("Unable to load customer groups.", "تعذر تحميل مجموعات العملاء."));
+            ShowError(response.Error?.Detail ?? SharedDataService.SelectViewLang("Unable to load customer groups.", "تعذر تحميل فئة العملاء."));
         }
         LoadingService.Hide();
     }
@@ -412,7 +433,7 @@ else
         }
     }
 
-    
+
 
 
     private static CustomerGroupDto NewCustomerGroup() => new()
@@ -422,15 +443,23 @@ else
         // CompanyId = companyId,
         // DefaultDiscountPercentage = 0,
 
-        
+
     };
 
     // private static CustomerGroupDto Normalize(CustomerGroupDto customerGroup)
     // {
     //     customerGroup.Name ??= "";
-        
+
     //     return customerGroup;
     // }
+
+    private void onSelectedPriceList(PriceListDto? priceList)
+    {
+        editingCustomerGroup.DefaultPriceListId = null;
+        selectedPricelist = priceList;
+        if (editingCustomerGroup is not null)
+            editingCustomerGroup.DefaultPriceListId = priceList?.Id;
+    }
 
     private bool HasPermission(string permission)
     {

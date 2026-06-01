@@ -1,0 +1,106 @@
+@layout AdminLayout
+@page "/TaskManagement/Edit/{Id:guid}"
+
+@using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using SharedWithUI.TaskManagement.Dtos
+@using SharedWithUI.TaskManagement.Enums
+
+@inject ITaskManagementService TaskService
+@inject NavigationManager NavigationManager
+@inject ToastService ToastService
+
+<h5 class="text-black">Edit Task</h5>
+
+@if (task is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="card p-3">
+        <EditForm Model="task" OnValidSubmit="Save">
+            <DataAnnotationsValidator />
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">Title</label>
+                    <InputText class="form-control" @bind-Value="task.Title" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Priority</label>
+                    <InputSelect class="form-select" @bind-Value="task.Priority">
+                        @foreach (var priority in Enum.GetValues<TaskPriority>())
+                        {
+                            <option value="@priority">@priority</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Description</label>
+                    <InputTextArea class="form-control" rows="4" @bind-Value="task.Description" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Department Id</label>
+                    <InputText class="form-control" @bind-Value="departmentText" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Start Date</label>
+                    <InputDate class="form-control" @bind-Value="task.StartDate" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Due Date</label>
+                    <InputDate class="form-control" @bind-Value="task.DueDate" />
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> Save</button>
+                    <button class="btn btn-secondary" type="button" @onclick='() => NavigationManager.NavigateTo("/TaskManagement/List")'>Cancel</button>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private UpdateTaskItemDto? task;
+    private string departmentText = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await TaskService.GetByIdAsync(Id);
+        if (response.IsSuccess && response.Data is not null)
+        {
+            task = new UpdateTaskItemDto
+            {
+                Id = response.Data.Id,
+                Title = response.Data.Title,
+                Description = response.Data.Description,
+                Priority = response.Data.Priority,
+                StartDate = response.Data.StartDate,
+                DueDate = response.Data.DueDate,
+                DepartmentId = response.Data.DepartmentId,
+                IsRecurring = response.Data.IsRecurring,
+                ReminderDate = response.Data.ReminderDate
+            };
+            departmentText = task.DepartmentId.ToString();
+        }
+    }
+
+    private async Task Save()
+    {
+        if (task is null)
+            return;
+        if (!Guid.TryParse(departmentText, out var departmentId))
+        {
+            ToastService.Show(new ToastMessage { Message = "Department must be a valid id.", Type = "error" });
+            return;
+        }
+
+        task.DepartmentId = departmentId;
+        var response = await TaskService.UpdateAsync(task);
+        if (response.IsSuccess)
+            NavigationManager.NavigateTo($"/TaskManagement/View/{Id}");
+        else
+            ToastService.Show(new ToastMessage { Message = response.Error?.Detail ?? "Unable to update task.", Type = "error" });
+    }
+}
