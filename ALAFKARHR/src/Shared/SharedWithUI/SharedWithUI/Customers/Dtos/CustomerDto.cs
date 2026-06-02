@@ -14,7 +14,7 @@ public class CustomerDto
 
     public CustomerStatus Status { get; set; }
 
-    public CustomerType Type { get; set; }
+    //public CustomerType Type { get; set; }
 
     public decimal CreditLimit { get; set; }
 
@@ -27,5 +27,5 @@ public class CustomerDto
     public List<AddressDto> Addresses { get; set; }
 
     public List<ContactDto> Contacts { get; set; }
-    public Guid? companyId { get; set; }
+    public Guid? CompanyId { get; set; }
 }

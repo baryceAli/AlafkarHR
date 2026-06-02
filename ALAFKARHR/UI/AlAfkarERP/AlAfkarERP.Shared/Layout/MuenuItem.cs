@@ -144,7 +144,7 @@ public class MenuItem
         {
             TextEn = "Customers Management",
             TextAr = "إدارة العملاء",
-            Icon = "bi-people-fill",
+            Icon = "bi-person-vcard-fill",
             Url = "/Customers/Customer/Dashboard",
             PermissionPolicy = PermissionList.CustomerPermissions.Select,
             Children = new()
@@ -153,7 +153,7 @@ public class MenuItem
                 {
                     TextEn = "Customers List",
                     TextAr = "قائمة العملاء",
-                    Icon = "bi-people",
+                    Icon = "bi-people-fill",
                     Url = "/Customers/Customer/List",
                     PermissionPolicy = PermissionList.CustomerPermissions.View,
                 }, 
@@ -161,10 +161,18 @@ public class MenuItem
                 {
                     TextEn = "Customer Groups",
                     TextAr = "مجموعات العملاء",
-                    Icon = "bi-people",
+                    Icon = "bi-collection-fill",
                     Url = "/Customers/CustomerGroup/List",
                     PermissionPolicy = PermissionList.CustomerGroupPermissions.View
-                } 
+                },
+                new MenuItem
+                {
+                    TextEn = "Special Customer Pricing",
+                    TextAr = "تخصيص تسعير العملاء",
+                    Icon = "bi-percent",
+                    Url = "/Customers/CustomerPricingProfile/List",
+                    PermissionPolicy = PermissionList.CustomerPricingProfilePermissions.View
+                }
             }
         },
         //Products Management

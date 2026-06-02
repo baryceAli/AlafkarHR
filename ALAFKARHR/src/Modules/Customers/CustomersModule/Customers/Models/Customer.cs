@@ -14,7 +14,7 @@ public class Customer : Aggregate<Guid>
 
     public CustomerStatus Status { get; private set; }
 
-    public CustomerType Type { get; private set; }
+    //public CustomerType Type { get; private set; }
 
     public decimal CreditLimit { get; private set; }
 
@@ -33,28 +33,32 @@ public class Customer : Aggregate<Guid>
     protected Customer() {}
 
     public static Customer Create(
+        Guid id,
         string name,
         string? commercialName,
         CustomerStatus status,
-        CustomerType type,
+        //CustomerType type,
         decimal creditLimit,
         //PaymentTermType paymentTerm,
         string notes,
         bool isTaxExempt,
         Guid companyId,
+        Guid? customerGroupId,
         string createdBy)
     {
         return new Customer
         {
+            Id =id,
             Name = name,
             CommercialName = commercialName,
             Status = status,
-            Type = type,
+            //Type = type,
             CreditLimit = creditLimit,
             //PaymentTerm = paymentTerm,
             Notes = notes,
             IsTaxExempt = isTaxExempt,
             CompanyId = companyId,
+            CustomerGroupId = customerGroupId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
 
@@ -64,19 +68,20 @@ public class Customer : Aggregate<Guid>
         string name,
         string? commercialName,
         CustomerStatus status,
-        CustomerType type,
+        Guid? customerGroupId,
         decimal creditLimit,
         //PaymentTermType paymentTerm,
         string notes,
         bool isTaxExempt,
-        List<Address> addresses,
-        List<Contact> contacts,
+        List<AddressDto> addresses,
+        List<ContactDto> contacts,
         string modifiedBy)
     {
         Name=name;
         CommercialName=commercialName;
         Status=status;
-        Type=type;
+        //Type=type;
+        CustomerGroupId=customerGroupId;
         CreditLimit=creditLimit;
         //PaymentTerm=paymentTerm;
         Notes=notes;

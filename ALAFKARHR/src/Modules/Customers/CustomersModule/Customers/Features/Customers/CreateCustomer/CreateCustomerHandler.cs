@@ -16,15 +16,17 @@ public class CreateCustomerHandler(CustomerDbContext dbContext, IHttpContextAcce
                     throw new UnauthorizedAccessException("User is not authenticated");
 
         var customer = Customer.Create(
+            Guid.NewGuid(),
                 command.Customer.Name,
                 command.Customer.CommercialName,
                 command.Customer.Status,
-                command.Customer.Type,
+                //command.Customer.Type,
                 command.Customer.CreditLimit,
                 //command.Customer.PaymentTerm,
                 command.Customer.Notes,
                 command.Customer.IsTaxExempt,
-                command.Customer.companyId.Value,
+                command.Customer.CompanyId.Value,
+                command.Customer.CustomerGroupId,
                 user);
 
         if(command.Customer.Addresses.Any())

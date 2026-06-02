@@ -33,7 +33,7 @@ public class CreateCustomerPricingProfilesHandler(CustomerDbContext dbContext, I
             command.CustomerPricingProfile.AllowAdditionalDiscounts,
             command.CustomerPricingProfile.EffectiveFrom,
             command.CustomerPricingProfile.EffectiveTo,
-            command.CustomerPricingProfile.companyId.Value,
+            command.CustomerPricingProfile.CompanyId.Value,
             user);
 
         await dbContext.CustomerPricingProfiles.AddAsync(customerPricingProfile,cancellationToken);

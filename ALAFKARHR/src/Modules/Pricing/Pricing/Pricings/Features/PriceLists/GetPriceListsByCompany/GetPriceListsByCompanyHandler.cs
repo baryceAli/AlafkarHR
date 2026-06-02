@@ -1,7 +1,5 @@
 namespace Pricing.Pricings.Features.PriceLists.GetPriceListsByCompany;
 
-public record GetPriceListsByCompanyQuery(Guid CompanyId, PaginationRequest PaginationRequest) : IQuery<GetPriceListsByCompanyResult>;
-public record GetPriceListsByCompanyResult(PaginatedResult<PriceListDto> PriceList);
 
 public class GetPriceListsByCompanyHandler(PricingDbContext dbContext)
     : IQueryHandler<GetPriceListsByCompanyQuery, GetPriceListsByCompanyResult>

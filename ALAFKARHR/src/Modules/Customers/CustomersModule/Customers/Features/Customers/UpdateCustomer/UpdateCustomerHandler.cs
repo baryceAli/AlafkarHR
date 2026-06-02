@@ -23,15 +23,17 @@ public class UpdateCustomerHandler(CustomerDbContext dbContext, IHttpContextAcce
             request.Customer.Name,
             request.Customer.CommercialName,
             request.Customer.Status,
-            request.Customer.Type,
+            request.Customer.CustomerGroupId,
+            //request.Customer.Type,
             request.Customer.CreditLimit,
             //request.Customer.PaymentTerm,
             request.Customer.Notes,
             request.Customer.IsTaxExempt,
-            request.Customer.Addresses.Adapt<List<Address>>(),
-            request.Customer.Contacts.Adapt<List<Contact>>(),
+            request.Customer.Addresses,
+            request.Customer.Contacts,
             user);
 
+        await dbContext.SaveChangesAsync(cancellationToken);
         return new UpdateCustomerResult(true);
     }
 }

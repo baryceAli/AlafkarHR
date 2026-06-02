@@ -214,6 +214,13 @@ builder.Services.AddHttpClient<ICustomerGroupService, CustomerGroupService>(clie
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
 
+builder.Services.AddScoped<ICustomerPricingProfileService, CustomerPricingProfileService>();
+builder.Services.AddHttpClient<ICustomerPricingProfileService, CustomerPricingProfileService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+
 #endregion Customers
 
 #region GeneralSettings

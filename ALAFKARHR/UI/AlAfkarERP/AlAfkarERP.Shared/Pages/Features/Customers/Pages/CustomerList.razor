@@ -277,9 +277,9 @@ else
                         <tr>
                             <th @onclick="() => Sort(nameof(CustomerDto.Name))">@SharedDataService.SelectViewLang("Name", "الاسم")</th>
                             <th>@SharedDataService.SelectViewLang("Commercial Name", "الاسم التجاري")</th>
-                            <th>@SharedDataService.SelectViewLang("Type", "النوع")</th>
+                            <th>@SharedDataService.SelectViewLang("Group", "الفئة")</th>
                             <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
-                            <th>@SharedDataService.SelectViewLang("Payment", "الدفع")</th>
+                            @* <th>@SharedDataService.SelectViewLang("Payment", "الدفع")</th> *@
                             <th>@SharedDataService.SelectViewLang("Credit Limit", "حد الائتمان")</th>
                             <th>@SharedDataService.SelectViewLang("Contacts", "جهات الاتصال")</th>
                             <th class="text-end"></th>
@@ -297,7 +297,7 @@ else
                                     }
                                 </td>
                                 <td>@customer.CommercialName</td>
-                                <td>@customer.Type</td>
+                                <td>@SharedDataService.SelectViewLang(customerGroups.FirstOrDefault(g => g.Id == customer.CustomerGroupId)?.NameEng ?? "", customerGroups.FirstOrDefault(g => g.Id == customer.CustomerGroupId)?.Name ?? "")</td>
                                 <td><span class="badge @GetStatusClass(customer.Status)">@customer.Status</span></td>
                                 @* <td>@customer.PaymentTerm</td> *@
                                 <td>@customer.CreditLimit.ToString("N2")</td>
@@ -397,9 +397,10 @@ else
     private void CreateNew()
     {
         editingCustomer = NewCustomer();
-        editingCustomer.companyId = companyId;
+        editingCustomer.CompanyId = companyId;
         editingCustomerId = editingCustomer.Id;
         customerGroupIdText = "";
+        selectedCustomerGroup = null;
         isEdit = false;
     }
 
@@ -411,8 +412,8 @@ else
             ShowError(SharedDataService.SelectViewLang("Unable to load customer.", "تعذر تحميل العميل."));
             return;
         }
-
         editingCustomer = Normalize(response.Data);
+        selectedCustomerGroup = customerGroups.FirstOrDefault(cg => cg.Id == editingCustomer.CustomerGroupId) ?? null;
         editingCustomerId = editingCustomer.Id;
         customerGroupIdText = editingCustomer.CustomerGroupId?.ToString() ?? "";
         isEdit = true;
@@ -441,7 +442,7 @@ else
             editingCustomer.CustomerGroupId = null;
         }
 
-        editingCustomer.companyId = companyId;
+        editingCustomer.CompanyId = companyId;
         Normalize(editingCustomer);
 
         var isSuccess = false;
@@ -615,7 +616,7 @@ else
         Id = Guid.NewGuid(),
         Name = "",
         Status = CustomerStatus.Active,
-        Type = CustomerType.Business,
+        // Type = CustomerType.Business,
         // PaymentTerm = PaymentTermType.Cash,
         Addresses = [],
         Contacts = []
@@ -649,6 +650,7 @@ else
         if (customerGroup is not null)
         {
             selectedCustomerGroup = customerGroup;
+            editingCustomer.CustomerGroupId = customerGroup.Id;
             customerGroupIdText = customerGroup.Id.ToString();
         }
         else

@@ -78,13 +78,7 @@ namespace CustomersModule.Data.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<int>("PaymentTerm")
-                        .HasColumnType("int");
-
                     b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Type")
                         .HasColumnType("int");
 
                     b.HasKey("Id");

@@ -152,7 +152,7 @@
                 
                     <div class="mb-3 row">
                         <label for="inputQuantity" class="col-sm-2 col-form-label">
-                            @SharedDataService.SelectViewLang("Adjustment Quantity", "كمية التسوية")
+                            @SharedDataService.SelectViewLang("Quantity", "الكمية")
                         </label>
                         <div class="col-sm-10">
                             <InputNumber class="form-control"
@@ -191,7 +191,7 @@
                 
                     <div class="mb-3 row">
                         <label class="col-sm-2 col-form-label">
-                            @SharedDataService.SelectViewLang("Adjustment Type", "نوع التسوية")
+                            @SharedDataService.SelectViewLang("Movement Type", "نوع الحركة")
                         </label>
                         <div class="col-sm-10">
                             <InputSelect class="form-control" @bind-Value="createInventoryAggregateDto.MovementType">
@@ -321,7 +321,7 @@
         {
             await ModalService.ShowAsync(new ModalOptions
             {
-                Title = SharedDataService.SelectViewLang("Adjustments", "التسويات"),
+                Title = SharedDataService.SelectViewLang("Stock out", "مخزون صادر"),
                 Message = SharedDataService.SelectViewLang("You should select a warehouse", "يرجى اختيار مستودع"),
                 IsError = true,
                 OnOk = async () => { }
@@ -333,7 +333,7 @@
         {
             await ModalService.ShowAsync(new ModalOptions
             {
-                Title = SharedDataService.SelectViewLang("Adjustments", "التسويات"),
+                Title = SharedDataService.SelectViewLang("Stock out", "مخزون صادر"),
                 Message = SharedDataService.SelectViewLang("You should select a sku", "يرجى اختيار منتج مخزني"),
                 IsError = true,
                 OnOk = async () => { }
@@ -346,7 +346,7 @@
         {
             await ModalService.ShowAsync(new ModalOptions
             {
-                Title = SharedDataService.SelectViewLang("Adjustments", "التسويات"),
+                Title = SharedDataService.SelectViewLang("Stock out", "مخزون صادر"),
                 Message = SharedDataService.SelectViewLang("You should select a batch", "يرجى اختيار دفعة"),
                 IsError = true,
                 OnOk = async () => { }
@@ -357,6 +357,7 @@
         if (invRes.IsSuccess)
         {
             inventory = invRes.Data;
+            // selectedCurrency =  i
             createInventoryAggregateDto = new CreateInventoryAggregateDto
             {
 
@@ -364,13 +365,24 @@
                 ProductId = inventory.ProductId,
                 ProductSkuId = inventory.ProductSkuId,
                 InitialBatchId = selectedBatch.Id,
-                Currency = selectedCurrency.Id,
+                // Currency = selectedCurrency.Id,
                 InitialQuantity = 0,
-                MovementType = MovementType.AdjustmentDecrease,
+                // MovementType =,
                 TotalCost = 0,
                 UnitCost = selectedProductSku.Price,
                 CompanyId = inventory.CompanyId,
             };
+        }
+        else
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Message =string.IsNullOrEmpty( invRes.Error.Detail)? 
+                                SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"):
+                                invRes.Error.Detail,
+               
+                Type = "error"
+            });
         }
     }
     async Task SaveInventory(CreateInventoryAggregateDto createInventory)
@@ -379,7 +391,7 @@
         {
             await ModalService.ShowAsync(new ModalOptions
             {
-                Title = SharedDataService.SelectViewLang("Adjustments", "التسويات"),
+                Title = SharedDataService.SelectViewLang("Stock out", "مخزون صادر"),
                 Message = SharedDataService.SelectViewLang("Entered amount is more than available amount", "الكمية المدخلة أكبر من الكمية المتاحة"),
                 IsError = true,
                 OnOk = async () => { }

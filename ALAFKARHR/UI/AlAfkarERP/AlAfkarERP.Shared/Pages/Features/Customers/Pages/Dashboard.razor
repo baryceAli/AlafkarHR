@@ -85,7 +85,7 @@ else
                         <tr>
                             <th>@SharedDataService.SelectViewLang("Name", "الاسم")</th>
                             <th>@SharedDataService.SelectViewLang("Commercial Name", "الاسم التجاري")</th>
-                            <th>@SharedDataService.SelectViewLang("Type", "النوع")</th>
+                            <th>@SharedDataService.SelectViewLang("Group", "الفئة")</th>
                             <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
                             <th>@SharedDataService.SelectViewLang("Credit Limit", "حد الائتمان")</th>
                         </tr>
@@ -96,7 +96,7 @@ else
                             <tr>
                                 <td>@customer.Name</td>
                                 <td>@customer.CommercialName</td>
-                                <td>@customer.Type</td>
+                                <td>@customer.CustomerGroupId</td>
                                 <td>@customer.Status</td>
                                 <td>@customer.CreditLimit.ToString("N2")</td>
                             </tr>

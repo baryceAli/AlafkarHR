@@ -1,0 +1,609 @@
+﻿@layout AdminLayout
+@page "/Customers/CustomerPricingProfile/List"
+
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Customers.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Customers.Dtos
+@using SharedWithUI.Permissions
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using SharedWithUI.Pricing.Dtos
+
+
+@inject ICustomerPricingProfileService CustomerPricingProfileService
+@inject IPriceListService PriceListService
+@inject ICustomerService CustomerService
+@inject ToastService ToastService
+@inject ModalService ModalService
+@inject LoadingService LoadingService
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.CustomerPricingProfilePermissions.View}"))
+{
+    <div class="alert alert-warning">
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
+    </div>
+    return;
+}
+
+<!-- Branches -->
+<h5 class="text-black">@SharedDataService.SelectViewLang("Special Customer Pricing", "تخصيص تسعير العملاء")</h5>
+
+@* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
+<button class="btn btn-primary mb-3"
+        @onclick="CreateNew"
+        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.CustomerPricingProfilePermissions.Create}") ? true : false)>
+    <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
+</button>
+
+<div class="card p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <!--
+
+        Export to xls and pdf
+        <div class="d-flex gap-2">
+
+            <button class="btn btn-success btn-sm" @onclick="ExportToExcel">
+                <i class="bi bi-file-earmark-excel"></i> Excel
+            </button>
+
+            <button class="btn btn-danger btn-sm" @onclick="ExportToPdf">
+                <i class="bi bi-file-earmark-pdf"></i> PDF
+            </button>
+
+        </div>
+        -->
+        <!-- 🔍 Search -->
+        <div>
+            <input class="form-control"
+                   placeholder="Search..."
+                   @bind="searchText" />
+        </div>
+
+        <!--
+
+        🎯 Filter
+        <div class="col-md-3">
+            <select class="form-select" @bind="filterMainBranch">
+                <option value="">All</option>
+                <option value="true">Main Branch</option>
+                <option value="false">Not Main</option>
+            </select>
+        </div>
+        -->
+        <!-- 📄 Page Size -->
+        <div>
+            @* <select class="form-select" @bind="pageSize"> *@
+            <select class="form-select" @onchange="OnPageSizeChanged">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th @onclick='() =>Sort(nameof(CustomerPricingProfileDto.CustomerName))'>
+                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                    @SharedDataService.SelectViewLang("Customer", "العميل")
+                </th>
+                <th @onclick="() =>Sort(nameof(CustomerPricingProfileDto.PriceListName))">
+                    @SharedDataService.SelectViewLang("Pricing List", "قائمة التسعير")
+                </th>
+                <th @onclick="() => Sort(nameof(CustomerPricingProfileDto.EffectiveFrom))">@SharedDataService.SelectViewLang("Effective from", "يسري من")</th>
+                <th @onclick="() => Sort(nameof(CustomerPricingProfileDto.EffectiveTo))">@SharedDataService.SelectViewLang("Effective to", "يسري حتى")</th>
+                <th @onclick="() => Sort(nameof(CustomerPricingProfileDto.AllowAdditionalDiscounts))">@SharedDataService.SelectViewLang("Allow additional discounts?", "السماح بخصومات إضافية؟")</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            
+            @if (editingCustomerPricingProfileId != null)
+            {
+                var editingItem = customerPricingProfiles.FirstOrDefault(x => x.Id == editingCustomerPricingProfileId);
+                if (editingItem != null)
+                {
+                    <tr>
+                        <td colspan="4">
+                            <EditForm Model="editingItem" OnValidSubmit="() => SaveCustomerPricingProfile(editingItem)">
+                                <DataAnnotationsValidator />
+                                <ValidationSummary />
+                                @* <InputHidden @bind-Value="branch.Id"/> *@
+                                <div class="row bg-info-subtle p-3">
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Customer", "العميل")</label>
+                                        <div class="col-sm-10">
+                                            <AutoCompleteComponent TItem="CustomerDto"
+                                                                   Items="customers"
+                                                                   ItemText="c => c.Name"
+                                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select a customer", "اختر العميل")"
+                                                                   Value="selectedCustomer"
+                                                                   ValueChanged="OnCustomerSelected" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Price list", "قائمة الأسعار")</label>
+                                        <div class="col-sm-10">
+                                            <AutoCompleteComponent TItem="PriceListDto"
+                                                                   Items="priceLists"
+                                                                   ItemText="c => c.Name"
+                                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select a price list", "اختر قائمة الأسعار")"
+                                                                   Value="selectedPriceList"
+                                                                   ValueChanged="OnPriceListSelected" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Effective from", "يسري من")</label>
+                                        <div class="col-sm-10">
+                                            <InputDate class="form-control" @bind-Value="editingItem.EffectiveFrom" />
+                                            <ValidationMessage For="() => editingItem.EffectiveFrom" />
+                                        </div>
+                                    </div>
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Effective to", "يسري حتى")</label>
+                                        <div class="col-sm-10">
+                                            <InputDate class="form-control" @bind-Value="editingItem.EffectiveTo" />
+                                            <ValidationMessage For="() => editingItem.EffectiveTo" />
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3 row">
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Allow additional discounts", "السماح بخصومات اضافية")</label>
+                                        <div class="col-sm-10">
+                                            <InputCheckbox class="form-check-input border-dark" @bind-Value="editingItem.AllowAdditionalDiscounts" />
+                                        </div>
+                                    </div>
+                                    
+                                    
+
+                                    <div class="col">
+                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                    </div>
+                                </div>
+                            </EditForm>
+                        </td>
+                    </tr>
+
+                }
+
+                
+            }
+            
+            @foreach (var custPrPro in ProcessedCustomerPricingProfile.Where(x => x.Id != editingCustomerPricingProfileId))
+            {
+                
+                <tr>
+                    <td>@custPrPro.CustomerName</td>
+                    <td>@custPrPro.PriceListName</td>
+                    <td>@(custPrPro.EffectiveFrom.ToString("yyyy/MM/dd"))</td>
+                    <td>@(custPrPro.EffectiveTo?.ToString("yyyy/MM/dd")??"")</td>
+                    <td>@GetBoolVal(custPrPro.AllowAdditionalDiscounts)</td>
+                    @* <td>
+                        <div class="flex-row">
+                            @foreach (var value in pL.Items)
+                            {
+                                <span class="badge bg-primary me-1">@SharedDataService.SelectViewLang(value.ProductSkuId, value.ProductSkuId)</span>
+                            }
+                        </div>
+                    </td> *@
+                    <td>
+                        <button class="btn btn-warning btn-sm"
+                                @onclick="() => EditCustomerPricingProfile(custPrPro.Id)"
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.CustomerPricingProfilePermissions.Edit}"))>
+                            @SharedDataService.SelectViewLang("Edit", "تعديل")
+                        </button>
+                        <button class="btn btn-danger btn-sm"
+                                @onclick="() => DeleteCustomerPricingProfile(custPrPro)"
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.CustomerPricingProfilePermissions.Delete}"))>
+                            @SharedDataService.SelectViewLang("Delete", "حذف")
+                        </button>
+                    </td>
+                </tr>
+                
+            }
+        </tbody>
+    </table>
+    <div class="d-flex justify-content-end align-items-center mt-3">
+
+        <button class="btn btn-sm btn-secondary"
+                @onclick="PrevPage"
+                disabled="@(pageIndex == 0)">
+            Previous
+        </button>
+
+        <span class="mx-3">Page @(pageIndex + 1) of @TotalPages @(TotalPages == 1 ? "" : "Pages")</span>
+
+        <button class="btn btn-sm btn-secondary"
+                @onclick="NextPage"
+                disabled="@(pageIndex >= TotalPages)">
+            Next
+        </button>
+
+    </div>
+</div>
+
+@code {
+    private List<CustomerPricingProfileDto> customerPricingProfiles = new();
+    private CustomerPricingProfileDto customerPricingProfileDto = new();
+    private Guid? editingCustomerPricingProfileId;
+
+    private Guid companyId;
+
+    private List<PriceListDto> priceLists = [];
+    private PriceListDto? selectedPriceList;
+
+    private List<CustomerDto> customers = [];
+    private CustomerDto? selectedCustomer;
+
+    private bool isEdit = false;
+    private AuthenticationState AuthState;
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (!AuthState.User.Identity.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/login", true);
+
+        }
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+
+        var custRes = await CustomerService.GetByCompany(companyId, 0, 10000);
+        if (custRes.IsSuccess)
+        {
+            customers = custRes.Data?.Data?.ToList() ?? [];
+        }
+
+        var plRes = await PriceListService.GetByCompanyId(companyId, 0, 10000);
+        if (plRes.IsSuccess)
+        {
+            priceLists = plRes.Data?.Data?.ToList() ?? [];
+        }
+
+        await LoadCustomerPricingProfile();
+        // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
+        // if (branchResponse.IsSuccess)
+        // {
+        //     branches = branchResponse.Data?.ToList() ?? [];
+        // }
+    }
+
+    void CreateNew()
+    {
+        var newItem = new CustomerPricingProfileDto()
+        {
+            Id = Guid.NewGuid(),
+            CompanyId = companyId,
+            EffectiveFrom = DateTime.UtcNow,
+            EffectiveTo = DateTime.UtcNow,
+            AllowAdditionalDiscounts = false,
+
+
+        };
+
+
+
+        customerPricingProfiles.Insert(0, newItem);
+        editingCustomerPricingProfileId = newItem.Id;
+        isEdit = false;
+    }
+
+    void EditCustomerPricingProfile(Guid id)
+    {
+        editingCustomerPricingProfileId = id;
+        var ecpp = customerPricingProfiles.FirstOrDefault(x => x.Id == id);
+        if(ecpp != null)
+        {
+            selectedCustomer = customers.FirstOrDefault(c => c.Id == ecpp.CustomerId);
+            selectedPriceList = priceLists.FirstOrDefault(p => p.Id == ecpp.PriceListId);
+        }
+        isEdit = true;
+        // editingVariantValueId = variants.FirstOrDefault(v => v.Id == id)?.Values.FirstOrDefault()?.Id ?? null;
+        StateHasChanged();
+    }
+    async Task SaveCustomerPricingProfile(CustomerPricingProfileDto customerPricingProfile)
+    {
+
+        if (customerPricingProfile.Id == editingCustomerPricingProfileId && !isEdit)
+        {
+            //Create new
+
+            // Random rnd = new Random();
+            if(selectedCustomer == null || selectedPriceList == null)
+            {
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("Please select both customer and price list", "الرجاء اختيار كل من العميل وقائمة الأسعار"),
+                    Type = "warning"
+                });
+                return;
+            }
+            customerPricingProfile.CustomerId = selectedCustomer.Id;
+            customerPricingProfile.PriceListId = selectedPriceList.Id;
+            customerPricingProfile.CompanyId = companyId;
+
+            var bResponse = await CustomerPricingProfileService.CreateAsync(customerPricingProfile);
+            if (bResponse.IsSuccess)
+            {
+                //show success
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("Customer Pricing Profile has been created successfully", "تم إنشاء ملف تسعير العميل بنجاح"),
+                    Type = "success"
+                });
+
+            }
+            else
+            {
+                // how fail
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
+                    Type = "error"
+                });
+            }
+        }
+        else
+        {
+            //Edit
+
+            var bresponse = await CustomerPricingProfileService.UpdateAsync(customerPricingProfile);
+            if (bresponse.IsSuccess)
+            {
+                //show success
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("Customer Pricing Profile has been Edited successfully", "تم تعديل ملف تسعير العميل بنجاح"),
+                    Type = "success"
+                });
+            }
+            else
+            {
+                // show
+                //
+                //
+                //
+                //   fail
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
+                    Type = "error"
+                });
+            }
+        }
+
+        await LoadCustomerPricingProfile();
+        // var response = await BranchService.GetByCompanyIdAsync(companyId);
+        // if (response.IsSuccess)
+        // {
+        //     branches = response.Data?.ToList() ?? [];
+        // }
+        editingCustomerPricingProfileId = null;
+    }
+
+    async Task DeleteCustomerPricingProfile(CustomerPricingProfileDto customerPricingProfile)
+    {
+        await ModalService.ShowAsync(new ModalOptions
+        {
+            Title = SharedDataService.SelectViewLang("Confirm Delete", "تأكيد عملية الحذف"),
+            Message = SharedDataService.SelectViewLang($"Are you sure you want to delete this Customer pricing profile?: {customerPricingProfile.CustomerName}?", $"هل ترغب فعلا في حذف ملف تسعير العميل: {customerPricingProfile.CustomerName}؟"),
+            ShowCancel = true,
+            OkText = SharedDataService.SelectViewLang("Yes", "نعم"),
+            CancelText = SharedDataService.SelectViewLang("No", "لا"),
+
+            OnOk = async () =>
+            {
+                var brResponse = await CustomerPricingProfileService.DeleteAsync(customerPricingProfile.Id);
+                if (brResponse.IsSuccess)
+                {
+
+                    ToastService.Show(new ToastMessage
+                    {
+                        Message = SharedDataService.SelectViewLang("Deleted successfully", "تم الحذف بنجاح"),
+                        Type = "success"
+                    });
+
+                    await LoadCustomerPricingProfile();
+
+                    await InvokeAsync(StateHasChanged);
+                }
+                else
+                {
+                    ToastService.Show(new ToastMessage
+                    {
+                        Message = SharedDataService.SelectViewLang("Fail to delete the Customer pricing profile", "فشلت عملية الحذف"),
+                        Type = "error"
+                    });
+                }
+
+
+            }
+        });
+
+
+    }
+    async Task CancelEdit()
+    {
+
+
+        //new
+        // branch
+        var item = customerPricingProfiles.FirstOrDefault(x => x.Id == editingCustomerPricingProfileId);
+
+        if (item != null && item.Id != Guid.Empty)
+        {
+            await LoadCustomerPricingProfile();
+        }
+        else
+        {
+            // new record → remove it
+            customerPricingProfiles.Remove(item);
+        }
+        isEdit = false;
+        editingCustomerPricingProfileId = null;
+    }
+
+    #region Table Helpers
+
+
+    // Searching
+    private string searchText = "";
+
+    // Sorting
+    private string sortColumn = nameof(CustomerPricingProfileDto.CustomerName);
+    private bool sortAscending = true;
+
+    // Pagination
+    private int pageSize = 5;
+    private int pageIndex = 0;
+    private async Task LoadCustomerPricingProfile()
+    {
+        // var request = new PaginationRequest(pageIndex, pageSize, searchText);
+
+        var response = await CustomerPricingProfileService.GetByCompanyAsync(companyId, pageIndex, pageSize);//,searchText);
+        if (response.IsSuccess)
+        {
+            // var result = response.Data!.Data;
+
+            // branches = result.Data.ToList();
+            customerPricingProfiles = response.Data?.Data?.ToList() ?? [];
+            // TotalPages = (int)response.Data!.Count;
+            TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
+        }
+    }
+    async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        pageSize = int.Parse(e.Value!.ToString()!);
+        pageIndex = 0;
+        await LoadCustomerPricingProfile();
+    }
+    private IEnumerable<CustomerPricingProfileDto> ProcessedCustomerPricingProfile =>
+    customerPricingProfiles
+        // 🔍 Search
+        .Where(b =>
+            string.IsNullOrWhiteSpace(searchText) ||
+            (b.CustomerName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+            ||
+            (b.PriceListName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+        
+
+        )
+
+        // 🎯 Filter
+        // .Where(b =>
+        //     filterMainBranch == null || b.IsMainBranch == filterMainBranch
+        // )
+
+        // 🔃 Sorting
+        .OrderByDynamic(sortColumn, sortAscending);
+
+    // 📄 Pagination
+    // .Skip((pageIndex) * pageSize)
+    // .Take(pageSize);
+
+
+
+    // Filtering example
+    // private bool? filterMainBranch = null;
+    // private long totalCount = 0;
+    private int TotalPages = 1;
+    // private int TotalPages =>
+    // (int)Math.Ceiling(
+    //     totalCount/ (double)pageSize);
+
+    async Task NextPage()
+    {
+        // if (currentPage < TotalPages)
+        //     currentPage++;
+
+        if (pageIndex < TotalPages - 1)
+        {
+            pageIndex++;
+            await LoadCustomerPricingProfile();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    async Task PrevPage()
+    {
+        // if (pageIndex > 1)
+        //     pageIndex--;
+
+        if (pageIndex > 0)
+        {
+            pageIndex--;
+            await LoadCustomerPricingProfile();
+        }
+    }
+
+    void Sort(string column)
+    {
+        if (sortColumn == column)
+            sortAscending = !sortAscending;
+        else
+        {
+            sortColumn = column;
+            sortAscending = true;
+        }
+    }
+    #endregion Table helpers
+
+
+
+    private void OnCustomerSelected(CustomerDto customer)
+    {
+        // customers = [];
+        selectedCustomer = null;
+        if (customer != null)
+        {
+            selectedCustomer = customer;
+            
+            // customerPricingProfiles = selectedCustomer.Id;
+        }
+    }
+    
+    private void OnPriceListSelected(PriceListDto priceList)
+    {
+        // priceLists = [];
+        selectedPriceList = null;
+        if (priceList != null)
+        {
+            selectedPriceList = priceList;
+            
+            // customerPricingProfiles = selectedCustomer.Id;
+        }
+    }
+    private string GetBoolVal(bool val)
+    {
+        return val ? SharedDataService.SelectViewLang("Yes", "نعم") : SharedDataService.SelectViewLang("No", "لا");
+    }
+    
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
