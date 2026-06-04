@@ -9,5 +9,5 @@ global using Microsoft.AspNetCore.Routing;
 global using Microsoft.EntityFrameworkCore;
 global using Payroll.Data;
 global using Payroll.Salaries.Models;
-global using Payroll.Salaries.Models.Enums;
+global using SharedWithUI.Payroll.Enums;
 global using System.Security.Claims;

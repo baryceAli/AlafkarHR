@@ -1,6 +1,4 @@
-﻿using Payroll.Salaries.Models.Enums;
-
-namespace Payroll.Salaries.Models;
+﻿namespace Payroll.Salaries.Models;
 
 public interface ISalaryComponentSource
 {

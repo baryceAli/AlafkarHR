@@ -1,5 +1,4 @@
-﻿using Payroll.Salaries.Models.Enums;
-using Shared.DDD;
+﻿using Shared.DDD;
 
 namespace Payroll.Salaries.Models;
 

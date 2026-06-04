@@ -1,9 +1,0 @@
-﻿namespace Payroll.Salaries.Models.Enums;
-
-public enum SalaryRunStatus
-{
-    Draft,
-    Calculated,
-    WaitApproval,
-    Approved
-}
