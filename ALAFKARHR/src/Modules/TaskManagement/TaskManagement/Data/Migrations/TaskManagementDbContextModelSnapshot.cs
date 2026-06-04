@@ -197,8 +197,9 @@ namespace TaskManagement.Data.Migrations
                     b.Property<Guid>("AssignedByUserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("AssignedToUserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("AssignedToUser")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("CompletedDate")
                         .HasColumnType("datetime2");
@@ -208,12 +209,6 @@ namespace TaskManagement.Data.Migrations
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("CreatedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
@@ -331,12 +326,13 @@ namespace TaskManagement.Data.Migrations
                     b.Property<Guid>("TaskId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("UserCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId", "IsRead");
+                    b.HasIndex("UserCode", "IsRead");
 
                     b.ToTable("TaskNotifications", "TaskManagement");
                 });

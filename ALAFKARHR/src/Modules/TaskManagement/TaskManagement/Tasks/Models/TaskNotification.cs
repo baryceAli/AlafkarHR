@@ -3,7 +3,7 @@ namespace TaskManagement.Tasks.Models;
 public class TaskNotification : Entity<Guid>
 {
     public Guid TaskId { get; private set; }
-    public Guid UserId { get; private set; }
+    public string UserCode { get; private set; } = string.Empty;
     public string NotificationType { get; private set; } = string.Empty;
     public string Message { get; private set; } = string.Empty;
     public bool IsRead { get; private set; }
@@ -13,18 +13,18 @@ public class TaskNotification : Entity<Guid>
     {
     }
 
-    public static TaskNotification Create(Guid taskId, Guid userId, string notificationType, string message)
+    public static TaskNotification Create(Guid taskId, string userCode, string notificationType, string message,string createdBy)
     {
         return new TaskNotification
         {
             Id = Guid.NewGuid(),
             TaskId = taskId,
-            UserId = userId,
+            UserCode = userCode,
             NotificationType = notificationType,
             Message = message,
             CreatedDate = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = userId.ToString()
+            CreatedBy = createdBy
         };
     }
 }

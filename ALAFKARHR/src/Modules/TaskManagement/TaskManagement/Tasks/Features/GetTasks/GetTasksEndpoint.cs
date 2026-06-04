@@ -10,7 +10,7 @@ public class GetTasksEndpoint : ICarterModule
             string? searchText,
             string? taskNumber,
             string? title,
-            Guid? assignedToUserId,
+            string? assignedToUser,
             Guid? departmentId,
             TaskPriority? priority,
             TaskWorkflowStatus? status,
@@ -23,7 +23,7 @@ public class GetTasksEndpoint : ICarterModule
             {
                 TaskNumber = taskNumber,
                 Title = title,
-                AssignedToUserId = assignedToUserId,
+                AssignedToUser = assignedToUser,
                 DepartmentId = departmentId,
                 Priority = priority,
                 Status = status,

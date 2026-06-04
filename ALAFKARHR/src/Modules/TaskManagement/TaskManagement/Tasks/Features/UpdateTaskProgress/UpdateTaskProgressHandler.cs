@@ -19,13 +19,26 @@ public class UpdateTaskProgressHandler(TaskManagementDbContext dbContext, IHttpC
     public async Task<UpdateTaskProgressResult> Handle(UpdateTaskProgressCommand command, CancellationToken cancellationToken)
     {
         var userId = TaskFeatureHelpers.GetCurrentUserId(httpContextAccessor);
-        var task = await dbContext.TaskItems.Include(x => x.History).FirstOrDefaultAsync(x => x.Id == command.Progress.Id && !x.IsDeleted, cancellationToken)
+
+        // Query without including history first to avoid concurrency issues with collections
+        var task = await dbContext.TaskItems.FirstOrDefaultAsync(x => x.Id == command.Progress.Id && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException($"Task not found: {command.Progress.Id}");
 
         var oldProgress = task.ProgressPercentage.ToString("0.##");
         task.UpdateProgress(command.Progress.ProgressPercentage, userId);
-        TaskFeatureHelpers.AddHistoryAndNotification(dbContext, task, userId, "ProgressUpdated", oldProgress, task.ProgressPercentage.ToString("0.##"), task.AssignedToUserId);
-        await dbContext.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            TaskFeatureHelpers.AddHistoryAndNotification(dbContext, task, userId, "ProgressUpdated", oldProgress, task.ProgressPercentage.ToString("0.##"), task.AssignedToUser);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            // Refresh the entity from the database and try again
+            await dbContext.Entry(task).ReloadAsync(cancellationToken);
+            throw new BadRequestException("This task was modified by another user. Please refresh and try again.", ex.ToString());
+        }
+
         return new UpdateTaskProgressResult(true);
     }
 }

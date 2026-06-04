@@ -15,7 +15,7 @@ public class TaskComment : Entity<Guid>
     {
         return new TaskComment
         {
-            Id = Guid.NewGuid(),
+            //Id = Guid.NewGuid(),
             TaskId = taskId,
             UserId = userId,
             Comment = comment,

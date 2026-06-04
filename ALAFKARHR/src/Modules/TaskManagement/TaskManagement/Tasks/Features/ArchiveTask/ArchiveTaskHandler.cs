@@ -15,7 +15,7 @@ public class ArchiveTaskHandler(TaskManagementDbContext dbContext, IHttpContextA
             ?? throw new NotFoundException($"Task not found: {command.Id}");
 
         task.Archive(userId);
-        TaskFeatureHelpers.AddHistoryAndNotification(dbContext, task, userId, "TaskArchived", null, "Archived", task.AssignedToUserId);
+        TaskFeatureHelpers.AddHistoryAndNotification(dbContext, task, userId, "TaskArchived", null, "Archived", task.AssignedToUser);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new ArchiveTaskResult(true);
     }

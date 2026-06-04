@@ -29,7 +29,7 @@ public class GetTasksHandler(TaskManagementDbContext dbContext, IHttpContextAcce
 
         var count = await query.LongCountAsync(cancellationToken);
         var tasks = await query
-            .OrderByDescending(x => x.CreatedDate)
+            .OrderByDescending(x => x.CreatedAt)
             .Skip(request.PaginationRequest.PageIndex * request.PaginationRequest.PageSize)
             .Take(request.PaginationRequest.PageSize)
             .ToListAsync(cancellationToken);

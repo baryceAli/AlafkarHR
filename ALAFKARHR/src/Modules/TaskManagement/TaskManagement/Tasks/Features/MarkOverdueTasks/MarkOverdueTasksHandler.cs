@@ -24,7 +24,7 @@ public class MarkOverdueTasksHandler(TaskManagementDbContext dbContext, IHttpCon
         {
             var oldStatus = task.Status.ToString();
             task.MarkOverdue(userId);
-            TaskFeatureHelpers.AddHistoryAndNotification(dbContext, task, userId, "TaskOverdue", oldStatus, TaskWorkflowStatus.Overdue.ToString(), task.AssignedToUserId);
+            TaskFeatureHelpers.AddHistoryAndNotification(dbContext, task, userId, "TaskOverdue", oldStatus, TaskWorkflowStatus.Overdue.ToString(), task.AssignedToUser);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);

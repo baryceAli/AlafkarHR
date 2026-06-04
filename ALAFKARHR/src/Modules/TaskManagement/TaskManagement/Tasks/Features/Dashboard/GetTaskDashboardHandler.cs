@@ -17,7 +17,7 @@ public class GetTaskDashboardHandler(TaskManagementDbContext dbContext, IHttpCon
         var query = dbContext.TaskItems.AsNoTracking().Where(x => !x.IsDeleted && !x.IsArchived);
         query = request.Scope.ToLowerInvariant() switch
         {
-            "mine" => query.Where(x => x.AssignedToUserId == userId),
+            "mine" => query.Where(x => x.AssignedToUser == userId.ToString()),
             "department" when request.DepartmentId.HasValue => query.Where(x => x.DepartmentId == request.DepartmentId.Value),
             _ => TaskFeatureHelpers.ApplyVisibility(query, httpContextAccessor, userId, request.DepartmentId)
         };
@@ -37,10 +37,10 @@ public class GetTaskDashboardHandler(TaskManagementDbContext dbContext, IHttpCon
             CompletionRate = total == 0 ? 0 : Math.Round(completed.Count * 100m / total, 2),
             AverageCompletionHours = CalculateAverageCompletionHours(completed),
             EmployeeWorkload = tasks
-                .GroupBy(x => x.AssignedToUserId)
+                .GroupBy(x => x.AssignedToUser)
                 .Select(g => new EmployeeWorkloadDto
                 {
-                    UserId = g.Key,
+                    UserCode = g.Key,
                     OpenTasks = g.Count(x => x.Status is TaskWorkflowStatus.Draft or TaskWorkflowStatus.Assigned or TaskWorkflowStatus.InProgress or TaskWorkflowStatus.OnHold),
                     CompletedTasks = g.Count(x => x.Status == TaskWorkflowStatus.Completed),
                     OverdueTasks = g.Count(x => x.Status == TaskWorkflowStatus.Overdue || (x.DueDate.Date < today && x.Status != TaskWorkflowStatus.Completed && x.Status != TaskWorkflowStatus.Cancelled))
@@ -68,6 +68,6 @@ public class GetTaskDashboardHandler(TaskManagementDbContext dbContext, IHttpCon
         if (completed.Count == 0)
             return 0;
 
-        return Math.Round((decimal)completed.Average(x => ((x.CompletedDate ?? x.ModifiedAt ?? x.CreatedDate) - x.CreatedDate).TotalHours), 2);
+        return Math.Round((decimal)completed.Average(x => ((x.CompletedDate ?? x.ModifiedAt ?? x.CreatedAt.Value) - x.CreatedAt.Value).TotalHours), 2);
     }
 }

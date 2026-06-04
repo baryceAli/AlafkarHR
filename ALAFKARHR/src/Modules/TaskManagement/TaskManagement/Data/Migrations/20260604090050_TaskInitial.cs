@@ -25,13 +25,11 @@ namespace TaskManagement.Data.Migrations
                     Description = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
                     Priority = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
                     Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     StartDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DueDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CompletedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ProgressPercentage = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
-                    CreatedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    AssignedToUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    AssignedToUser = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AssignedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     DepartmentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     IsRecurring = table.Column<bool>(type: "bit", nullable: false),
@@ -57,7 +55,7 @@ namespace TaskManagement.Data.Migrations
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     TaskId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserCode = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     NotificationType = table.Column<string>(type: "nvarchar(80)", maxLength: 80, nullable: false),
                     Message = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
                     IsRead = table.Column<bool>(type: "bit", nullable: false),
@@ -196,10 +194,10 @@ namespace TaskManagement.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_TaskNotifications_UserId_IsRead",
+                name: "IX_TaskNotifications_UserCode_IsRead",
                 schema: "TaskManagement",
                 table: "TaskNotifications",
-                columns: new[] { "UserId", "IsRead" });
+                columns: new[] { "UserCode", "IsRead" });
         }
 
         /// <inheritdoc />

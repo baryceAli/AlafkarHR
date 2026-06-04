@@ -17,7 +17,7 @@ public class TaskItemDto
     public DateTime? CompletedDate { get; set; }
     public decimal ProgressPercentage { get; set; }
     public Guid CreatedByUserId { get; set; }
-    public Guid AssignedToUserId { get; set; }
+    public string AssignedToUser { get; set; } = string.Empty;
     public Guid AssignedByUserId { get; set; }
     public Guid DepartmentId { get; set; }
     public bool IsRecurring { get; set; }
@@ -35,7 +35,7 @@ public class CreateTaskItemDto
     public TaskPriority Priority { get; set; } = TaskPriority.Normal;
     public DateTime? StartDate { get; set; }
     public DateTime DueDate { get; set; } = DateTime.UtcNow.Date;
-    public Guid AssignedToUserId { get; set; }
+    public string AssignedToUser { get; set; }
     public Guid DepartmentId { get; set; }
     public bool IsRecurring { get; set; }
     public DateTime? ReminderDate { get; set; }
@@ -56,7 +56,7 @@ public class UpdateTaskItemDto
 
 public class AssignTaskDto
 {
-    public Guid AssignedToUserId { get; set; }
+    public string AssignedToUser { get; set; }
     public Guid DepartmentId { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime DueDate { get; set; } = DateTime.UtcNow.Date;
@@ -116,7 +116,7 @@ public class TaskFilterDto
 {
     public string? TaskNumber { get; set; }
     public string? Title { get; set; }
-    public Guid? AssignedToUserId { get; set; }
+    public string? AssignedToUser { get; set; }
     public Guid? DepartmentId { get; set; }
     public TaskPriority? Priority { get; set; }
     public TaskWorkflowStatus? Status { get; set; }
@@ -140,7 +140,7 @@ public class TaskDashboardDto
 
 public class EmployeeWorkloadDto
 {
-    public Guid UserId { get; set; }
+    public string UserCode { get; set; } = string.Empty;
     public int OpenTasks { get; set; }
     public int CompletedTasks { get; set; }
     public int OverdueTasks { get; set; }
@@ -170,7 +170,7 @@ public class TaskPriorityCountDto
 
 public class EmployeeProductivityReportDto
 {
-    public Guid UserId { get; set; }
+    public string UserCode { get; set; } = string.Empty;
     public int AssignedTasks { get; set; }
     public int CompletedTasks { get; set; }
     public decimal CompletionRate { get; set; }

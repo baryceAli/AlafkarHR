@@ -1,12 +1,24 @@
 @layout AdminLayout
 @page "/TaskManagement/Create"
 
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Employees.Dtos
 @using SharedWithUI.TaskManagement.Dtos
 @using SharedWithUI.TaskManagement.Enums
 
+
 @inject ITaskManagementService TaskService
+@inject IEmployeeService EmployeeService
+@inject IDepartmentService DepartmentService
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@inject SharedDataService SharedDataService
 @inject NavigationManager NavigationManager
 @inject ToastService ToastService
 
@@ -35,11 +47,21 @@
             </div>
             <div class="col-md-6">
                 <label class="form-label">Assigned User Id</label>
-                <InputText class="form-control" @bind-Value="assignedUserText" />
+                <AutoCompleteComponent TItem="EmployeeDto"
+                                       Items="employees"
+                                       ItemText="@(e => e.FullName)"
+                                       Value="selectedEmployee"
+                                       ValueChanged="onEmployeeSelected"/>
+                @* <InputText class="form-control" @bind-Value="assignedUserText" /> *@
             </div>
             <div class="col-md-6">
                 <label class="form-label">Department Id</label>
-                <InputText class="form-control" @bind-Value="departmentText" />
+                <AutoCompleteComponent TItem="DepartmentDto"
+                                       Items="departments"
+                                       ItemText="@(d =>  d.Name)"
+                                       Value="selectedDepartment"
+                                       ValueChanged="onDepartmentSelected" />
+                @* <InputText class="form-control" @bind-Value="departmentText" /> *@
             </div>
             <div class="col-md-6">
                 <label class="form-label">Start Date</label>
@@ -72,20 +94,55 @@
     private string assignedUserText = string.Empty;
     private string departmentText = string.Empty;
 
+    private Guid companyId;
+    private List<EmployeeDto> employees = new();
+    private EmployeeDto? selectedEmployee;
+
+    private List<DepartmentDto> departments = new();
+    private DepartmentDto? selectedDepartment;
+    AuthenticationState AuthState ;
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (!AuthState.User.Identity.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/login", true);
+
+        }
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+
+        var empRes = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 10000);
+        if (empRes.IsSuccess)
+            employees = empRes.Data?.Data?.ToList() ?? new List<EmployeeDto>();
+
+        var deptRes = await DepartmentService.GetAsync(0, 10000);
+        if (deptRes.IsSuccess)
+            departments = deptRes.Data?.Data?.ToList() ?? new List<DepartmentDto>();
+    }
     private async Task Save()
     {
-        if (!Guid.TryParse(assignedUserText, out var assignedUserId) || !Guid.TryParse(departmentText, out var departmentId))
+        if (string.IsNullOrEmpty(assignedUserText) || !Guid.TryParse(departmentText, out var departmentId))
         {
-            ToastService.Show(new ToastMessage { Message = "Assigned user and department must be valid ids.", Type = "error" });
+            ToastService.Show(new ToastMessage { Message = "Assigned user and department must be valid.", Type = "error" });
             return;
         }
 
-        task.AssignedToUserId = assignedUserId;
+        task.AssignedToUser = assignedUserText;
         task.DepartmentId = departmentId;
         var response = await TaskService.CreateAsync(task);
         if (response.IsSuccess)
             NavigationManager.NavigateTo("/TaskManagement/List");
         else
             ToastService.Show(new ToastMessage { Message = response.Error?.Detail ?? "Unable to create task.", Type = "error" });
+    }
+    private void onEmployeeSelected(EmployeeDto employee)
+    {
+        selectedEmployee = employee;
+        assignedUserText = employee.Code.ToString();
+    }
+    private void onDepartmentSelected(DepartmentDto department)
+    {
+        selectedDepartment = department;
+        departmentText = department.Id.ToString();
     }
 }

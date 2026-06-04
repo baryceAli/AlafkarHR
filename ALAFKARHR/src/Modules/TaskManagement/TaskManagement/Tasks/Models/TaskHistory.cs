@@ -17,7 +17,7 @@ public class TaskHistory : Entity<Guid>
     {
         return new TaskHistory
         {
-            Id = Guid.NewGuid(),
+            //Id = Guid.NewGuid(),
             TaskId = taskId,
             UserId = userId,
             Action = action,

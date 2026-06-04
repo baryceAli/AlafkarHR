@@ -29,7 +29,7 @@
             @foreach (var item in employeeReport)
             {
                 <div class="d-flex justify-content-between border-bottom py-2">
-                    <span>@item.UserId</span>
+                    <span>@item.UserCode</span>
                     <span>@item.CompletedTasks / @item.AssignedTasks (@item.CompletionRate%)</span>
                 </div>
             }

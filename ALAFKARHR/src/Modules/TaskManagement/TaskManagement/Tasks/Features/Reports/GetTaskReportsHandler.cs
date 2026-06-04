@@ -44,17 +44,17 @@ public class GetEmployeeProductivityReportHandler(TaskManagementDbContext dbCont
     public async Task<GetEmployeeProductivityReportResult> Handle(GetEmployeeProductivityReportQuery request, CancellationToken cancellationToken)
     {
         var tasks = await GetTaskSummaryReportHandler.BuildReportQuery(dbContext, httpContextAccessor, request.Filter).ToListAsync(cancellationToken);
-        var report = tasks.GroupBy(x => x.AssignedToUserId)
+        var report = tasks.GroupBy(x => x.AssignedToUser)
             .Select(g =>
             {
                 var completed = g.Where(x => x.Status == TaskWorkflowStatus.Completed).ToList();
                 return new EmployeeProductivityReportDto
                 {
-                    UserId = g.Key,
+                    UserCode = g.Key,
                     AssignedTasks = g.Count(),
                     CompletedTasks = completed.Count,
                     CompletionRate = g.Any() ? Math.Round(completed.Count * 100m / g.Count(), 2) : 0,
-                    AverageCompletionHours = completed.Count == 0 ? 0 : Math.Round((decimal)completed.Average(x => ((x.CompletedDate ?? x.ModifiedAt ?? x.CreatedDate) - x.CreatedDate).TotalHours), 2)
+                    AverageCompletionHours = completed.Count == 0 ? 0 : Math.Round((decimal)completed.Average(x => ((x.CompletedDate ?? x.ModifiedAt ?? x.CreatedAt.Value) - x.CreatedAt.Value).TotalHours), 2)
                 };
             })
             .ToList();

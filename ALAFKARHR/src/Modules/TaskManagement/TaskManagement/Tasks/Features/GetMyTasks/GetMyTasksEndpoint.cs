@@ -8,10 +8,10 @@ public class GetMyTasksEndpoint : ICarterModule
     {
         app.MapGet("/api/v1/taskmanagement/tasks/my", async (int PageIndex, int PageSize, string? searchText, ISender sender, IHttpContextAccessor accessor) =>
         {
-            var userId = TaskManagement.Tasks.Features.TaskFeatureHelpers.GetCurrentUserId(accessor);
+            var userCode = TaskManagement.Tasks.Features.TaskFeatureHelpers.GetCurrentUserName(accessor);
             var result = await sender.Send(new GetTasksQuery(
                 new PaginationRequest(PageIndex, PageSize, searchText),
-                new TaskFilterDto { AssignedToUserId = userId }));
+                new TaskFilterDto { AssignedToUser = userCode }));
 
             return Results.Ok(result);
         })

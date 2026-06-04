@@ -7,6 +7,6 @@ public class TaskNotificationConfiguration : IEntityTypeConfiguration<TaskNotifi
         builder.HasKey(x => x.Id);
         builder.Property(x => x.NotificationType).HasMaxLength(80).IsRequired();
         builder.Property(x => x.Message).HasMaxLength(1000).IsRequired();
-        builder.HasIndex(x => new { x.UserId, x.IsRead });
+        builder.HasIndex(x => new { x.UserCode, x.IsRead });
     }
 }

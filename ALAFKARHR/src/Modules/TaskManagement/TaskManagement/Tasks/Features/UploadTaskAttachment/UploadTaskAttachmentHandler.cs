@@ -34,7 +34,7 @@ public class UploadTaskAttachmentHandler(
         var publicPath = $"/Images/TaskManagement/{command.TaskId}/{safeFileName}";
         var attachment = TaskAttachment.Create(task.Id, command.File.FileName, publicPath, command.File.ContentType, command.File.Length, userId);
         task.AddAttachment(attachment);
-        TaskFeatureHelpers.AddHistoryAndNotification(dbContext, task, userId, "AttachmentUploaded", null, command.File.FileName, task.AssignedToUserId);
+        TaskFeatureHelpers.AddHistoryAndNotification(dbContext, task, userId, "AttachmentUploaded", null, command.File.FileName, task.AssignedToUser);
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return new UploadTaskAttachmentResult(attachment.Id, attachment.FilePath);

@@ -7,13 +7,11 @@ public class TaskItem : Aggregate<Guid>
     public string Description { get; private set; } = string.Empty;
     public TaskPriority Priority { get; private set; }
     public TaskWorkflowStatus Status { get; private set; }
-    public DateTime CreatedDate { get; private set; }
     public DateTime? StartDate { get; private set; }
     public DateTime DueDate { get; private set; }
     public DateTime? CompletedDate { get; private set; }
     public decimal ProgressPercentage { get; private set; }
-    public Guid CreatedByUserId { get; private set; }
-    public Guid AssignedToUserId { get; private set; }
+    public string AssignedToUser { get; private set; } = string.Empty;
     public Guid AssignedByUserId { get; private set; }
     public Guid DepartmentId { get; private set; }
     public bool IsRecurring { get; private set; }
@@ -29,7 +27,7 @@ public class TaskItem : Aggregate<Guid>
     }
 
     public static TaskItem Create(string taskNumber, string title, string description, TaskPriority priority, DateTime? startDate,
-        DateTime dueDate, Guid createdByUserId, Guid assignedToUserId, Guid assignedByUserId, Guid departmentId,
+        DateTime dueDate, Guid createdByUserId, string assignedToUser, Guid assignedByUserId, Guid departmentId,
         bool isRecurring, DateTime? reminderDate)
     {
         ValidateDates(startDate, dueDate);
@@ -41,12 +39,10 @@ public class TaskItem : Aggregate<Guid>
             Title = title,
             Description = description,
             Priority = priority,
-            Status = assignedToUserId == Guid.Empty ? TaskWorkflowStatus.Draft : TaskWorkflowStatus.Assigned,
-            CreatedDate = DateTime.UtcNow,
+            Status = string.IsNullOrEmpty(assignedToUser) ? TaskWorkflowStatus.Draft : TaskWorkflowStatus.Assigned,
             StartDate = startDate,
             DueDate = dueDate,
-            CreatedByUserId = createdByUserId,
-            AssignedToUserId = assignedToUserId,
+            AssignedToUser = assignedToUser,
             AssignedByUserId = assignedByUserId,
             DepartmentId = departmentId,
             IsRecurring = isRecurring,
@@ -73,11 +69,11 @@ public class TaskItem : Aggregate<Guid>
         ModifiedBy = modifiedByUserId.ToString();
     }
 
-    public void Assign(Guid assignedToUserId, Guid assignedByUserId, Guid departmentId, DateTime? startDate, DateTime dueDate)
+    public void Assign(string assignedToUser, Guid assignedByUserId, Guid departmentId, DateTime? startDate, DateTime dueDate)
     {
         ValidateDates(startDate, dueDate);
 
-        AssignedToUserId = assignedToUserId;
+        AssignedToUser = assignedToUser;
         AssignedByUserId = assignedByUserId;
         DepartmentId = departmentId;
         StartDate = startDate;

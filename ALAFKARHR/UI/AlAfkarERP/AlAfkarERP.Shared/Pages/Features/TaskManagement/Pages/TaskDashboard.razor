@@ -28,7 +28,7 @@ else
                 @foreach (var item in dashboard.EmployeeWorkload)
                 {
                     <div class="d-flex justify-content-between border-bottom py-2">
-                        <span>@item.UserId</span>
+                        <span>@item.UserCode</span>
                         <span>@item.OpenTasks open / @item.CompletedTasks done</span>
                     </div>
                 }

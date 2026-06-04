@@ -26,7 +26,7 @@ public class AddTaskCommentHandler(TaskManagementDbContext dbContext, IHttpConte
 
         var comment = TaskComment.Create(task.Id, userId, command.Comment.Comment);
         task.AddComment(comment);
-        TaskFeatureHelpers.AddHistoryAndNotification(dbContext, task, userId, "CommentAdded", null, command.Comment.Comment, task.AssignedToUserId);
+        TaskFeatureHelpers.AddHistoryAndNotification(dbContext, task, userId, "CommentAdded", null, command.Comment.Comment, task.AssignedToUser);
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return new AddTaskCommentResult(comment.Id);
