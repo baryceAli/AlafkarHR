@@ -1,2 +1,13 @@
-﻿global using Shared.Data.Seed;
-
+﻿global using FluentValidation;
+global using Shared.Contracts.CQRS;
+global using Carter;
+global using Mapster;
+global using MediatR;
+global using Microsoft.AspNetCore.Builder;
+global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Routing;
+global using Microsoft.EntityFrameworkCore;
+global using Payroll.Data;
+global using Payroll.Salaries.Models;
+global using Payroll.Salaries.Models.Enums;
+global using System.Security.Claims;

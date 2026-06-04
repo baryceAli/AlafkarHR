@@ -1,4 +1,4 @@
-﻿namespace Payroll.Salaries.Models.Enums;
+namespace SharedWithUI.Payroll.Enums;
 
 public enum SalaryRunStatus
 {

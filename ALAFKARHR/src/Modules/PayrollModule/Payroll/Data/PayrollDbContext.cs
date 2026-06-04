@@ -9,8 +9,14 @@ public class PayrollDbContext:DbContext
     public PayrollDbContext(DbContextOptions<PayrollDbContext> options):base(options){}
 
 
-    //public DbSet<SalaryStructure> SalaryStructures => Set<SalaryStructure>();
-    public DbSet<Contract> SalaryComponents => Set<Contract>();
+    public DbSet<Contract> Contracts => Set<Contract>();
+    public DbSet<ContractItem> ContractItems => Set<ContractItem>();
+    public DbSet<SalaryRun> SalaryRuns => Set<SalaryRun>();
+    public DbSet<SalaryRunItem> SalaryRunItems => Set<SalaryRunItem>();
+    public DbSet<Component> Components => Set<Component>();
+    public DbSet<EmployeeAllowance> EmployeeAllowances => Set<EmployeeAllowance>();
+    public DbSet<EmployeeDeduction> EmployeeDeductions => Set<EmployeeDeduction>();
+    public DbSet<EmployeeContract> EmployeeContracts => Set<EmployeeContract>();
     protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.HasDefaultSchema("Payroll");

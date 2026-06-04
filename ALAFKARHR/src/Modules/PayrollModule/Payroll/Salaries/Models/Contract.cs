@@ -66,4 +66,9 @@ public class Contract:Entity<Guid>
         if(existingItem != null)
             _Items.Remove(existingItem);
     }
+
+    public void ClearItems()
+    {
+        _Items.Clear();
+    }
 }
