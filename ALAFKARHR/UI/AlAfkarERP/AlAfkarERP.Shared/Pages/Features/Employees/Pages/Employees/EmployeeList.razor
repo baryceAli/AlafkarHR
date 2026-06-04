@@ -76,7 +76,7 @@
                             @SharedDataService.SelectViewLang("Name", "الاسم")
                         </th>
                         <th>@SharedDataService.SelectViewLang("DOB", "الميلاد")</th>
-                        <th>@SharedDataService.SelectViewLang("Email", "الايميل")</th>
+                        @* <th>@SharedDataService.SelectViewLang("Email", "الايميل")</th> *@
                         <th>@SharedDataService.SelectViewLang("Phone", "الهاتف")</th>
                         <th>@SharedDataService.SelectViewLang("Hire Date", "تاريخ التعيين")</th>
                         <th @onclick="() => Sort(nameof(EmployeeDto.PositionName))" class="cursor-pointer">
@@ -92,7 +92,7 @@
                             <td>@emp.EmployeeNo</td>
                             <td>@emp.FullName</td>
                             <td>@FormatDate(emp.DateOfBirth)</td>
-                            <td>@emp.Email</td>
+                            @* <td>@emp.Email</td> *@
                             <td>@emp.Phone</td>
                             <td>@FormatDate(emp.HireDate)</td>
                             <td>@GetPositionName(emp.PositionId)</td>
