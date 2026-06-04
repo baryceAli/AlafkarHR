@@ -11,7 +11,7 @@
 
 <style>
     .kanban-wrapper {
-        position: relative;
+        position:relative;
         margin-bottom: 20px;
     }
 
@@ -19,7 +19,7 @@
         scrollbar-width: auto;
         scrollbar-color: #888 #f1f1f1;
         display: block;
-        width: 100%;
+        width: 1200px;
         overflow-x: auto; /* allow horizontal scroll when needed */
         overflow-y: hidden;
         -webkit-overflow-scrolling: touch;
@@ -103,12 +103,12 @@
     }
 </style>
 
-<h5 class="text-black mb-3">Kanban Board</h5>
+<h5 class="text-black mb-3 px-2">Kanban Board</h5>
 
 <div class="kanban-wrapper" @onkeydown="HandleKeyDown" tabindex="0">
-    <button class="scroll-button scroll-button-left" @onclick="ScrollLeft" title="Scroll Left">
+    @* <button class="scroll-button scroll-button-left" @onclick="ScrollLeft" title="Scroll Left">
         ‹
-    </button>
+    </button> *@
     <div class="kanban-container" #kanbanContainer @ref="containerRef">
         <div class="kanban-flex-wrapper">
             @foreach (var status in Enum.GetValues<TaskWorkflowStatus>())
@@ -136,9 +136,9 @@
             }
         </div>
     </div>
-    <button class="scroll-button scroll-button-right" @onclick="ScrollRight" title="Scroll Right">
+    @* <button class="scroll-button scroll-button-right" @onclick="ScrollRight" title="Scroll Right">
         ›
-    </button>
+    </button> *@
 </div>
 @code {
     private List<TaskItemDto> tasks = [];

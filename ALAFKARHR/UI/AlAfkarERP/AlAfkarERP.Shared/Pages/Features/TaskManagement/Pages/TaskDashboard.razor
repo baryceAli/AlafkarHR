@@ -1,10 +1,12 @@
 @layout AdminLayout
 @page "/TaskManagement/Dashboard"
 
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using SharedWithUI.TaskManagement.Dtos
 
 @inject ITaskManagementService TaskService
+@inject IDepartmentService DepartmentService
 
 <h5 class="text-black">Task Management Dashboard</h5>
 
@@ -29,7 +31,7 @@ else
                 {
                     <div class="d-flex justify-content-between border-bottom py-2">
                         <span>@item.UserCode</span>
-                        <span>@item.OpenTasks open / @item.CompletedTasks done</span>
+                        <span dir="ltr">@item.OpenTasks open / @item.CompletedTasks done</span>
                     </div>
                 }
             </div>
@@ -40,7 +42,7 @@ else
                 @foreach (var item in dashboard.DepartmentPerformanceRanking)
                 {
                     <div class="d-flex justify-content-between border-bottom py-2">
-                        <span>@item.DepartmentId</span>
+                        <span>@(departments.FirstOrDefault(d=>d.Id== item.DepartmentId)?.Name??"")</span>
                         <span>@item.CompletionPercentage%</span>
                     </div>
                 }
@@ -51,11 +53,15 @@ else
 
 @code {
     private TaskDashboardDto? dashboard;
-
+    private List<DepartmentDto> departments = [];
     protected override async Task OnInitializedAsync()
     {
         var response = await TaskService.GetDashboardAsync("all");
         if (response.IsSuccess)
             dashboard = response.Data;
+
+        var departmentResponse = await DepartmentService.GetAsync(0,10000);
+        if (departmentResponse.IsSuccess)
+            departments = departmentResponse.Data?.Data?.ToList() ?? [];
     }
 }

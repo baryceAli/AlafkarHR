@@ -1,5 +1,4 @@
 ﻿@layout AdminLayout
-@* @layout NewLayout *@
 @page "/Employee/Employee/List"
 
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
@@ -10,362 +9,289 @@
 @using SharedWithUI.Employees.Dtos
 @using SharedWithUI.Permissions
 
-
 @inject IEmployeeService EmployeeService
-@inject IBranchService BranchService
-@inject IAdministrationService AdministrationService
-@inject IDepartmentService DepartmentService
 @inject IPositionService PositionService
 @inject ToastService ToastService
 @inject ModalService ModalService
-
 @inject AuthenticationStateProvider AuthenticationStateProvider
-
-
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
 
 
-@if (!AuthState.User.Claims.Any(c => c.Value == PermissionList.EmployeePermissions.View))
+@if (!CanViewEmployees)
 {
     <div class="alert alert-warning">
         <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحيات لعرض هذه الصفحة")</span>
     </div>
-
     return;
 }
 
-<!-- Branches -->
 <h5>@SharedDataService.SelectViewLang("Employees Management", "ادارة الموظفين")</h5>
 
-@* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
 <button class="btn btn-primary mb-3"
         @onclick="CreateNew"
-        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.EmployeePermissions.Create}") ? true : false)>
+        disabled="@(!CanCreateEmployee)">
     <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
 </button>
 
 <div class="card p-3 mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <!--
+    <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
+        <input class="form-control"
+               placeholder="Search..."
+               @bind="searchText" />
 
-        Export to xls and pdf
-        <div class="d-flex gap-2">
-
-            <button class="btn btn-success btn-sm" @onclick="ExportToExcel">
-                <i class="bi bi-file-earmark-excel"></i> Excel
-            </button>
-
-            <button class="btn btn-danger btn-sm" @onclick="ExportToPdf">
-                <i class="bi bi-file-earmark-pdf"></i> PDF
-            </button>
-
-        </div>
-        -->
-        <!-- 🔍 Search -->
-        <div>
-            <input class="form-control"
-                   placeholder="Search..."
-                   @bind="searchText" />
-        </div>
-
-        <!--
-
-        🎯 Filter
-        <div class="col-md-3">
-            <select class="form-select" @bind="filterMainBranch">
-                <option value="">All</option>
-                <option value="true">Main Branch</option>
-                <option value="false">Not Main</option>
-            </select>
-        </div>
-        -->
-        <!-- 📄 Page Size -->
-        <div>
-            @* <select class="form-select" @bind="pageSize"> *@
-            <select class="form-select" @onchange="OnPageSizeChanged">
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-            </select>
-        </div>
-
+        <select class="form-select" style="max-width: 100px;" @onchange="OnPageSizeChanged">
+            <option value="5" selected="@(pageSize==5)">5</option>
+            <option value="10" selected="@(pageSize==10)">10</option>
+            <option value="20" selected="@(pageSize==20)">20</option>
+            <option value="50" selected="@(pageSize==50)">50</option>
+            <option value="100" selected="@(pageSize==100)">100</option>
+        </select>
     </div>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>@SharedDataService.SelectViewLang("EmployeeNo", "الرقم الوظيفي")</th>
-                <th @onclick="() => Sort(nameof(EmployeeDto.FullName))">
-                    <span class=@(sortAscending)?"bi bi-file-earmark-plus-fill":"bi bi-file-earmark-plus")></span>
-                    @SharedDataService.SelectViewLang("Name", "الاسم")
-                </th>
-                <th>@SharedDataService.SelectViewLang("DOB", "الميلاد")</th>
-                <th>@SharedDataService.SelectViewLang("Email", "الايميل")</th>
-                <th>@SharedDataService.SelectViewLang("Phone", "الهاتف")</th>
-                <th>@SharedDataService.SelectViewLang("Hire Date", "تاريخ التعيين")</th>
-                <th @onclick="() => Sort(nameof(EmployeeDto.PositionName))">@SharedDataService.SelectViewLang("Position", "المسمى الوظيفي")</th>
-                @* <th>@SharedDataService.SelectViewLang("Location","الموقع")</th> *@
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @* @foreach (var b in branches) *@
-            @foreach (var emp in ProcessedEmployees)
-            {
-                <tr>
-                    <!--
-                    @if (editingEmployeeId == b.Id)
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (!employees.Any())
+    {
+        <div class="alert alert-info">
+            @SharedDataService.SelectViewLang("No employees found", "لم يتم العثور على موظفين")
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>@SharedDataService.SelectViewLang("EmployeeNo", "الرقم الوظيفي")</th>
+                        <th @onclick="() => Sort(nameof(EmployeeDto.FullName))" class="cursor-pointer">
+                            <span class=@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")></span>
+                            @SharedDataService.SelectViewLang("Name", "الاسم")
+                        </th>
+                        <th>@SharedDataService.SelectViewLang("DOB", "الميلاد")</th>
+                        <th>@SharedDataService.SelectViewLang("Email", "الايميل")</th>
+                        <th>@SharedDataService.SelectViewLang("Phone", "الهاتف")</th>
+                        <th>@SharedDataService.SelectViewLang("Hire Date", "تاريخ التعيين")</th>
+                        <th @onclick="() => Sort(nameof(EmployeeDto.PositionName))" class="cursor-pointer">
+                            @SharedDataService.SelectViewLang("Position", "المسمى الوظيفي")
+                        </th>
+                        <th class="text-center">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var emp in ProcessedEmployees)
                     {
-                        <td><InputText class="form-control" @bind-Value="b.Name" /></td>
-                        <td><InputText class="form-control" @bind-Value="b.NameEng" /></td>
-                        <td><InputText class="form-control" @bind-Value="b.Phone" /></td>
-                        <td><InputText class="form-control" @bind-Value="b.Email" /></td>
-                        <td><InputText class="form-control" @bind-Value="b.Location" /></td>
-                        <td><InputNumber class="form-control" @bind-Value="b.Longitude" /></td>
-                        <td><InputNumber class="form-control" @bind-Value="b.Latitude" /></td>
-                        <td><InputCheckbox class="form-check-input" @bind-Value="b.IsMainBranch" /></td>
-                        <td>
-                            <button class="btn btn-success btn-sm" @onclick="() => SaveBranch(b)">Save</button>
-                            <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
-                        </td>
+                        <tr>
+                            <td>@emp.EmployeeNo</td>
+                            <td>@emp.FullName</td>
+                            <td>@FormatDate(emp.DateOfBirth)</td>
+                            <td>@emp.Email</td>
+                            <td>@emp.Phone</td>
+                            <td>@FormatDate(emp.HireDate)</td>
+                            <td>@GetPositionName(emp.PositionId)</td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a class="btn btn-info" href="Employee/Employee/view/@emp.Id" title="@SharedDataService.SelectViewLang("View", "عرض")">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <button class="btn btn-warning"
+                                            @onclick="() => EditEmployee(emp.Id)"
+                                            disabled="@(!CanEditEmployee)"
+                                            title="@SharedDataService.SelectViewLang("Edit", "تعديل")">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-danger"
+                                            @onclick="() => DeleteEmployee(emp)"
+                                            disabled="@(!CanDeleteEmployee)"
+                                            title="@SharedDataService.SelectViewLang("Delete", "حذف")">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <a class="btn btn-secondary" href="Employee/Employee/QR/@emp.Id" title="@SharedDataService.SelectViewLang("QR Code", "QR")">
+                                        <i class="bi bi-qr-code"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
                     }
-                    else
-                    {
-                    }
-                        -->
+                </tbody>
+            </table>
+        </div>
+    }
 
-                    <td>@emp.EmployeeNo</td>
-                    <td>@emp.FullName</td>
-                    <td>@emp.DateOfBirth.ToString("yyyy/MM/dd")</td>
-                    <td>@emp.Email</td>
-                    <td>@emp.Phone</td>
-                    <td>@emp.HireDate.ToString("yyyy/MM/dd")</td>
-                    <td>
-                        @(SharedDataService.SelectViewLang(
-                            positions.FirstOrDefault(p => p.Id == emp.PositionId)?.TitleEng ?? "",
-                            positions.FirstOrDefault(p => p.Id == emp.PositionId)?.Title ?? ""))
-                    </td>
-                    
-                    <td>
-                        <a class="btn btn-info btn-sm m-1" href="Employee/Employee/view/@emp.Id">@SharedDataService.SelectViewLang("View", "عرض")</a>
-                        <button class="btn btn-warning btn-sm m-1"
-                                @onclick="() => EditEmployee(emp.Id)"
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.EmployeePermissions.Edit))>
-                            @SharedDataService.SelectViewLang("Edit", "تعديل")
-                        </button>
-                        <button class="btn btn-danger btn-sm m-1"
-                                @onclick="() => DeleteEmployee(emp)"
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.EmployeePermissions.Delete))>
-                            @SharedDataService.SelectViewLang("Delete", "حذف")
-                        </button>
-                        <a class="btn btn-info btn-sm m-1" href="Employee/Employee/QR/@emp.Id">@SharedDataService.SelectViewLang("QR Code", "QR")</a>
-                    </td>
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <div>
+            <span class="text-muted">
+                @SharedDataService.SelectViewLang(
+                    $"Showing {(pageIndex * pageSize) + 1} to {Math.Min((pageIndex + 1) * pageSize, (int)totalCount)} of {totalCount}",
+                    $"عرض {(pageIndex * pageSize) + 1} إلى {Math.Min((pageIndex + 1) * pageSize, (int)totalCount)} من {totalCount}")
+            </span>
+        </div>
+        <div>
+            <button class="btn btn-sm btn-secondary"
+                    @onclick="PrevPage"
+                    disabled="@(pageIndex == 0)">
+                <i class="bi bi-chevron-left"></i> @SharedDataService.SelectViewLang("Previous", "السابق")
+            </button>
 
-                    
+            <span class="mx-3">@SharedDataService.SelectViewLang("Page", "صفحة") @(pageIndex + 1) @SharedDataService.SelectViewLang("of", "من") @TotalPages</span>
 
-                </tr>
-            }
-        </tbody>
-    </table>
-    <div class="d-flex justify-content-end align-items-center mt-3">
-
-        <button class="btn btn-sm btn-secondary"
-                @onclick="PrevPage"
-                disabled="@(pageIndex == 0)">
-            Previous
-        </button>
-
-        <span class="mx-3">Page @(pageIndex + 1) of @TotalPages @(TotalPages == 1 ? "" : "Pages")</span>
-
-        <button class="btn btn-sm btn-secondary"
-                @onclick="NextPage"
-                disabled="@(pageIndex >= TotalPages)">
-            Next
-        </button>
-
+            <button class="btn btn-sm btn-secondary"
+                    @onclick="NextPage"
+                    disabled="@(pageIndex >= TotalPages - 1)">
+                @SharedDataService.SelectViewLang("Next", "التالي") <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
     </div>
 </div>
 
 @code {
-    private List<BranchDto> branches = new();
-    private List<AdministrationDto> administrations = [];
-    private List<DepartmentDto> departments = [];
     private List<PositionDto> positions = [];
     private List<EmployeeDto> employees = [];
-    // private Guid? editingEmployeeId;
+    private Dictionary<Guid, string> positionCache = new();
 
     private Guid companyId;
-
     private AuthenticationState AuthState;
+    private bool isLoading = false;
+    private long totalCount = 0;
+
+    // Search, Sort, Pagination
+    private string searchText = "";
+    private string sortColumn = nameof(EmployeeDto.FullName);
+    private bool sortAscending = true;
+    private int pageSize = 10;
+    private int pageIndex = 0;
+    private int TotalPages => (int)Math.Ceiling(totalCount / (double)pageSize);
+
+    // Permission Helpers
+    private bool CanViewEmployees => HasPermission(PermissionList.EmployeePermissions.View);
+    private bool CanCreateEmployee => HasPermission(PermissionList.EmployeePermissions.Create);
+    private bool CanEditEmployee => HasPermission(PermissionList.EmployeePermissions.Edit);
+    private bool CanDeleteEmployee => HasPermission(PermissionList.EmployeePermissions.Delete);
+
     protected override async Task OnInitializedAsync()
     {
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
         companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
 
+        await LoadPositions();
+        await LoadEmployees();
+    }
+
+    private async Task LoadPositions()
+    {
         var posRes = await PositionService.GetAsync(companyId, 0, 1000);
         if (posRes.IsSuccess)
         {
             positions = posRes.Data?.Data?.ToList() ?? [];
+            BuildPositionCache();
         }
-        await LoadEmployees();
-        // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
-        // if (branchResponse.IsSuccess)
-        // {
-        //     branches = branchResponse.Data?.ToList() ?? [];
-        // }
-    }
-    // Branch
-    void CreateNew()
-    {
-        NavigationManager.NavigateTo("/Employee/Employee/Form");
-        // var newItem = new BranchDto();
-        // branches.Insert(0, newItem);
-        // editingEmployeeId = newItem.Id;
     }
 
-    void EditEmployee(Guid id)
+    private void BuildPositionCache()
     {
-        NavigationManager.NavigateTo($"/Employee/Employee/Form/{id}");
+        positionCache.Clear();
+        foreach (var position in positions)
+        {
+            positionCache[position.Id] = SharedDataService.Language == "Ar" ? position.Title : position.TitleEng;
+        }
     }
 
+    private async Task LoadEmployees()
+    {
+        isLoading = true;
+        var response = await EmployeeService.GetByCompanyIdAsync(companyId, pageIndex, pageSize);
+
+        if (response.IsSuccess)
+        {
+            employees = response.Data?.Data.ToList() ?? [];
+            totalCount = response.Data?.Count ?? 0;
+        }
+        else
+        {
+            employees = [];
+            totalCount = 0;
+        }
+
+        isLoading = false;
+    }
+
+    private IEnumerable<EmployeeDto> ProcessedEmployees =>
+        employees
+            .Where(emp =>
+                string.IsNullOrWhiteSpace(searchText) ||
+                (emp.FullName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (emp.EmployeeNo?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (emp.Email?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (emp.PositionName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+            )
+            .OrderByDynamic(sortColumn, sortAscending);
+
+    private bool HasPermission(string permission) =>
+        AuthState?.User.Claims.Any(c => c.Value == permission) ?? false;
+
+    private string GetPositionName(Guid? positionId) =>
+        positionId.HasValue && positionCache.TryGetValue(positionId.Value, out var name) ? name : "";
+
+    private string FormatDate(DateTime date) => date.ToString("yyyy/MM/dd");
+
+    void CreateNew() => NavigationManager.NavigateTo("/Employee/Employee/Form");
+
+    void EditEmployee(Guid id) => NavigationManager.NavigateTo($"/Employee/Employee/Form/{id}");
 
     async Task DeleteEmployee(EmployeeDto employee)
     {
         await ModalService.ShowAsync(new ModalOptions
         {
             Title = SharedDataService.SelectViewLang("Confirm Delete", "تأكيد عملية الحذف"),
-            Message = SharedDataService.SelectViewLang
-                        ($"Are you sure you want to delete this employee: {employee.FullName}?", $"هل ترغب فعلا في حذف الموظف: {employee.FullName}؟"),
+            Message = SharedDataService.SelectViewLang(
+                $"Are you sure you want to delete this employee: {employee.FullName}?",
+                $"هل ترغب فعلا في حذف الموظف: {employee.FullName}؟"),
             ShowCancel = true,
             OkText = SharedDataService.SelectViewLang("Yes", "نعم"),
             CancelText = SharedDataService.SelectViewLang("No", "لا"),
-
-            OnOk = async () =>
-            {
-                var brResponse = await EmployeeService.DeleteAsync(employee.Id);
-                if (brResponse.IsSuccess)
-                {
-
-                    ToastService.Show(new ToastMessage
-                    {
-                        Message = SharedDataService.SelectViewLang("Deleted successfully", "تم الحذف بنجاح"),
-                        Type = "success"
-                    });
-
-                    await LoadEmployees();
-                    await InvokeAsync(StateHasChanged);
-                    // var response = await BranchService.GetByCompanyIdAsync(companyId);
-                    // if (response.IsSuccess)
-                    // {
-                    //     branches = response.Data?.ToList() ?? [];
-                    //     await InvokeAsync(StateHasChanged);
-                    // }
-                }
-                else
-                {
-                    ToastService.Show(new ToastMessage
-                    {
-                        Message = SharedDataService.SelectViewLang("Fail to delete the employee", "فشلت عملية الحذف"),
-                        Type = "error"
-                    });
-                }
-
-
-            }
+            OnOk = async () => await ConfirmDelete(employee)
         });
-
-
-    }
-    void CancelEdit()
-    {
-        // if (editingEmployeeId == null || editingEmployeeId == Guid.Empty)
-        // {
-        //     var brToRemove = branches.FirstOrDefault(b => b.Id == editingEmployeeId);
-        //     if (brToRemove != null)
-        //     {
-        //         branches.Remove(brToRemove);
-        //     }
-
-        // }
-
-        // editingEmployeeId = null;
     }
 
-    #region Table Helpers
-
-
-    // Searching
-    private string searchText = "";
-
-    // Sorting
-    private string sortColumn = nameof(EmployeeDto.FullName);
-    private bool sortAscending = true;
-
-    // Pagination
-    private int pageSize = 5;
-    private int pageIndex = 0;
-    private async Task LoadEmployees()
+    private async Task ConfirmDelete(EmployeeDto employee)
     {
-        // var request = new PaginationRequest(pageIndex, pageSize, searchText);
-
-        var response = await EmployeeService.GetByCompanyIdAsync(companyId, pageIndex, pageSize);//,searchText);
-
+        var response = await EmployeeService.DeleteAsync(employee.Id);
         if (response.IsSuccess)
         {
-            // var result = response.Data!.Data;
-
-            // branches = result.Data.ToList();
-            employees = response.Data?.Data.ToList() ?? [];
-            // TotalPages = (int)response.Data!.Count;
-            TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
+            ToastService.Show(new ToastMessage
+            {
+                Message = SharedDataService.SelectViewLang("Deleted successfully", "تم الحذف بنجاح"),
+                Type = "success"
+            });
+            await LoadEmployees();
+            await InvokeAsync(StateHasChanged);
+        }
+        else
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Message = SharedDataService.SelectViewLang("Fail to delete the employee", "فشلت عملية الحذف"),
+                Type = "error"
+            });
         }
     }
+
     async Task OnPageSizeChanged(ChangeEventArgs e)
     {
-        pageSize = int.Parse(e.Value!.ToString()!);
+        pageSize = int.Parse(e.Value?.ToString() ?? "10");
         pageIndex = 0;
         await LoadEmployees();
     }
-    private IEnumerable<EmployeeDto> ProcessedEmployees =>
-    employees
-        // 🔍 Search
-        .Where(emp =>
-            string.IsNullOrWhiteSpace(searchText) ||
-            (emp.FullName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (emp.EmployeeNo?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (emp.Email?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (emp.PositionName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
-        )
-
-        // 🎯 Filter
-        // .Where(b =>
-        //     filterMainBranch == null || b.IsMainBranch == filterMainBranch
-        // )
-
-        // 🔃 Sorting
-        .OrderByDynamic(sortColumn, sortAscending);
-
-        // 📄 Pagination
-        // .Skip((pageIndex) * pageSize)
-        // .Take(pageSize);
-
-
-
-    
-        // private long totalCount = 0;
-    private int TotalPages = 1;
-    // private int TotalPages =>
-    // (int)Math.Ceiling(
-    //     totalCount/ (double)pageSize);
 
     async Task NextPage()
     {
-        // if (currentPage < TotalPages)
-        //     currentPage++;
-
         if (pageIndex < TotalPages - 1)
         {
             pageIndex++;
@@ -375,9 +301,6 @@
 
     async Task PrevPage()
     {
-        // if (pageIndex > 1)
-        //     pageIndex--;
-        
         if (pageIndex > 0)
         {
             pageIndex--;
@@ -395,7 +318,7 @@
             sortAscending = true;
         }
     }
-    #endregion Table helpers
+
     protected override void OnInitialized()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
