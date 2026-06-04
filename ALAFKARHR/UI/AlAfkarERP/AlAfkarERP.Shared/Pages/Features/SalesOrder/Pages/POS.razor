@@ -100,7 +100,16 @@
         <div class="card-body">
 
             <div class="d-flex flex-wrap gap-2">
+                <button class="btn @(SelectedProduct==null ? "btn-primary": "btn-outline-primary") rounded-pill px-4"
+                        @onclick="() => SelectProduct(null)">
 
+                    @SharedDataService.SelectViewLang("All", "الكل")
+
+                    <span class="badge bg-light text-dark ms-2">
+                        @(FilteredProducts.SelectMany(s=>s.Skus).Count())
+                    </span>
+
+                </button>
                 @foreach (var product in FilteredProducts)
                 {
                     var isSelected = SelectedProduct?.Id == product.Id;
@@ -124,6 +133,7 @@
         </div>
     </div>
 
+    
     @if (SelectedProduct is not null)
     {
         <!-- PRODUCT HEADER -->
@@ -176,13 +186,11 @@
             </div>
         }
 
+    }
         <!-- SKU CARDS -->
         <div class="row g-3">
 
-            @foreach (var sku in SelectedProduct?.Skus?
-                .Where(x =>
-                    !SelectedBrandForSkuId.HasValue
-                    || x.BrandId == SelectedBrandForSkuId))
+        @foreach (var sku in DisplaySkus)
             {
                 <div class="col-xl-3 col-lg-4 col-md-6">
 
@@ -263,7 +271,6 @@
             }
 
         </div>
-    }
 </div>
 
 <style>
@@ -338,6 +345,19 @@
     private List<VariantDto> AvailableVariants = new();
     private List<ProductDto> Products = new();
     private List<UnitDto> Units = new();
+
+    private IEnumerable<ProductSkuDto> DisplaySkus =>
+    SelectedProduct is null
+        ? FilteredProducts
+            .SelectMany(p => p.Skus)
+            .Where(x =>
+                !SelectedBrandForSkuId.HasValue ||
+                x.BrandId == SelectedBrandForSkuId)
+        : SelectedProduct.Skus
+            .Where(x =>
+                !SelectedBrandForSkuId.HasValue ||
+                x.BrandId == SelectedBrandForSkuId);
+
 
 
     private List<ProductDto> FilteredProducts => Products
@@ -432,8 +452,32 @@
         LoadingService.Hide();
     }
 
-
     private Task ApplyFilters()
+    {
+        if (SelectedProduct is not null)
+        {
+            SelectedProduct = FilteredProducts
+                .FirstOrDefault(p => p.Id == SelectedProduct.Id);
+
+            if (SelectedProduct is not null)
+            {
+                BuildBrands(SelectedProduct);
+                BuildVariants(SelectedProduct);
+            }
+            else
+            {
+                BuildBrands(null);
+                AvailableVariants.Clear();
+            }
+        }
+        else
+        {
+            BuildBrands(null);
+        }
+
+        return Task.CompletedTask;
+    }
+    private Task ApplyFilters1()
     {
         if (SelectedProduct is not null)
         {
@@ -456,7 +500,7 @@
     }
 
 
-    private void SelectProduct(ProductDto product)
+    private void SelectProduct(ProductDto? product)
     {
         SelectedProduct = product;
         MatchedSku = null;
@@ -470,12 +514,24 @@
         BuildVariants(product);
     }
 
-    private void BuildBrands(ProductDto product)
+    private void BuildBrands(ProductDto? product)
     {
-        var brandIds = product.Skus
-            .Select(x => x.BrandId)
-            .Distinct()
-            .ToList();
+        List<Guid>? brandIds;
+        if (product == null)
+        {
+            brandIds = Products
+                .SelectMany(p => p.Skus)
+                .Select(s => s.BrandId)
+                .Distinct()
+                .ToList();
+        }
+        else
+        {
+            brandIds = product.Skus
+                .Select(x => x.BrandId)
+                .Distinct()
+                .ToList();
+        }
 
         AvailableBrands = Brands
             .Where(x => brandIds.Contains(x.Id))
@@ -487,16 +543,27 @@
         SelectedProduct = null;
     }
 
-    private void BuildVariants(ProductDto product)
+    private void BuildVariants(ProductDto? product)
     {
         AvailableVariants.Clear();
 
+        List<Guid>? variantIds;
         // all variant ids used by this product
-        var variantIds = product.Skus
-            .SelectMany(x => x.Variants)
-            .Select(x => x.VariantId)
-            .Distinct()
-            .ToList();
+        if (product == null)
+        {
+            variantIds = Variants
+                .Select(x => x.Id)
+                .Distinct()
+                .ToList();
+        }
+        else
+        {
+            variantIds = product.Skus
+                .SelectMany(x => x.Variants)
+                .Select(x => x.VariantId)
+                .Distinct()
+                .ToList();
+        }
 
         foreach (var variantId in variantIds)
         {
@@ -506,14 +573,28 @@
 
             if (masterVariant is null)
                 continue;
-
+            List<Guid>? usedValueIds;
+            if (product is null)
+            {
+                usedValueIds=FilteredProducts
+                    .SelectMany(p => p.Skus)
+                    .SelectMany(s => s.Variants)
+                    .Where(x => x.VariantId == variantId)
+                    .Select(x => x.VariantValueId)
+                    .Distinct()
+                    .ToList();
+            }
+            else
+            {
+                
             // collect only values used by this product
-            var usedValueIds = product.Skus
+            usedValueIds = product.Skus
                 .SelectMany(x => x.Variants)
                 .Where(x => x.VariantId == variantId)
                 .Select(x => x.VariantValueId)
                 .Distinct()
                 .ToList();
+            }
 
             var variant = new VariantDto
             {
@@ -541,17 +622,28 @@
 
     private void ResolveSku()
     {
-        if (SelectedProduct is null)
-            return;
+        // if (SelectedProduct is null)
+        //     return;
 
         var selectedValueIds = SelectedVariantValues.Values.ToList();
-
+        if(SelectedProduct is null)
+        {
+            MatchedSku = FilteredProducts.SelectMany(p => p.Skus).Where(x => !SelectedBrandForSkuId.HasValue
+                        || x.BrandId == SelectedBrandForSkuId)
+                .FirstOrDefault(sku =>
+                    selectedValueIds.All(selected =>
+                        sku.Variants.Any(v => v.VariantValueId == selected)));
+        }
+        else
+        {
+            
         MatchedSku = SelectedProduct.Skus
             .Where(x => !SelectedBrandForSkuId.HasValue
                         || x.BrandId == SelectedBrandForSkuId)
             .FirstOrDefault(sku =>
                 selectedValueIds.All(selected =>
                     sku.Variants.Any(v => v.VariantValueId == selected)));
+        }
     }
 
     private bool IsVariantValueAvailable(Guid variantId, Guid valueId)

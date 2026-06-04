@@ -1,10 +1,12 @@
 @layout AdminLayout
 @page "/TaskManagement/Reports"
 
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using SharedWithUI.TaskManagement.Dtos
 
 @inject ITaskManagementService TaskService
+@inject IDepartmentService DepartmentService
 
 <h5 class="text-black">Task Reports</h5>
 
@@ -30,7 +32,7 @@
             {
                 <div class="d-flex justify-content-between border-bottom py-2">
                     <span>@item.UserCode</span>
-                    <span>@item.CompletedTasks / @item.AssignedTasks (@item.CompletionRate%)</span>
+                    <span dir="ltr">@item.CompletedTasks / @item.AssignedTasks (@item.CompletionRate%)</span>
                 </div>
             }
         </div>
@@ -41,8 +43,8 @@
             @foreach (var item in departmentReport)
             {
                 <div class="d-flex justify-content-between border-bottom py-2">
-                    <span>@item.DepartmentId</span>
-                    <span>@item.CompletionPercentage% complete, @item.OverdueTasks overdue</span>
+                    <span>@(departments.FirstOrDefault(d=>d.Id== item.DepartmentId)?.Name??"")</span>
+                    <span dir="ltr">@item.CompletionPercentage% complete, @item.OverdueTasks overdue</span>
                 </div>
             }
         </div>
@@ -53,7 +55,7 @@
     private TaskSummaryReportDto? summary;
     private List<EmployeeProductivityReportDto> employeeReport = [];
     private List<DepartmentPerformanceDto> departmentReport = [];
-
+    private List<DepartmentDto> departments = [];
     protected override async Task OnInitializedAsync() => await LoadReports();
 
     private async Task LoadReports()
@@ -69,5 +71,11 @@
         var departmentResponse = await TaskService.GetDepartmentPerformanceReportAsync();
         if (departmentResponse.IsSuccess)
             departmentReport = departmentResponse.Data ?? [];
+    
+    
+        var departmentsResponse = await DepartmentService.GetAsync(0,10000);
+        if (departmentsResponse.IsSuccess)
+            departments = departmentsResponse.Data?.Data?.ToList() ?? [];
+    
     }
 }

@@ -1,4 +1,3 @@
-using SharedWithUI.Payroll.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace SharedWithUI.Payroll.Dtos;
