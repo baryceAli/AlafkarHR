@@ -106,257 +106,263 @@ public class MenuItem
             }
         },
 
-        //Human Resource
+        //People
         new MenuItem
         {
-            TextEn = "Human Resource",
-            TextAr = "الموارد البشرية",
-            Icon = "bi-people-fill",
-            Url = "/Employee/Dashboard",
-            PermissionPolicy = PermissionList.EmployeePermissions.Select,
+            TextEn = "People",
+            TextAr = "الأفراد",
+            Icon = "bi-people",
             Children = new()
             {
                 new MenuItem
                 {
-                    TextEn = "Employees",
-                    TextAr = "الموظفين",
-                    Icon = "bi-person-badge",
-                    Url = "/Employee/Employee/List",
-                    PermissionPolicy = PermissionList.EmployeePermissions.View
-                },
-                new MenuItem
-                {
-                    TextEn = "Positions",
-                    TextAr = "المسميات الوظيفية",
-                    Icon = "bi-briefcase-fill",
-                    Url = "/Employee/Position/List",
-                    PermissionPolicy = PermissionList.PositionPermissions.View
-                },
-                new MenuItem
-                {
-                    TextEn = "Academic Institutions",
-                    TextAr = "المؤسسات التعليمية",
-                    Icon = "bi-mortarboard-fill",
-                    Url = "/Employee/AcademicInistitution/List",
-                    PermissionPolicy = PermissionList.AcademicInistitutionPermissions.View
-                },
-                new MenuItem
-                {
-                    TextEn = "Specializations",
-                    TextAr = "التخصصات",
-                    Icon = "bi-journal-bookmark",
-                    Url = "/Employee/Specialization/List",
-                    PermissionPolicy = PermissionList.SpecializationPermissions.View
-                }
-            }
-        },
-
-        //Customers Management
-        new MenuItem
-        {
-            TextEn = "Customers Management",
-            TextAr = "إدارة العملاء",
-            Icon = "bi-person-vcard-fill",
-            Url = "/Customers/Customer/Dashboard",
-            PermissionPolicy = PermissionList.CustomerPermissions.Select,
-            Children = new()
-            {
-                new MenuItem
-                {
-                    TextEn = "Customers List",
-                    TextAr = "قائمة العملاء",
-                    Icon = "bi-people-fill",
-                    Url = "/Customers/Customer/List",
-                    PermissionPolicy = PermissionList.CustomerPermissions.View,
-                }, 
-                new MenuItem
-                {
-                    TextEn = "Customer Groups",
-                    TextAr = "مجموعات العملاء",
-                    Icon = "bi-collection-fill",
-                    Url = "/Customers/CustomerGroup/List",
-                    PermissionPolicy = PermissionList.CustomerGroupPermissions.View
-                },
-                new MenuItem
-                {
-                    TextEn = "Special Customer Pricing",
-                    TextAr = "تخصيص تسعير العملاء",
-                    Icon = "bi-percent",
-                    Url = "/Customers/CustomerPricingProfile/List",
-                    PermissionPolicy = PermissionList.CustomerPricingProfilePermissions.View
-                }
-            }
-        },
-        //Products Management
-        new MenuItem
-        {
-            TextEn = "Products Management",
-            TextAr = "إدارة المنتجات",
-            Icon = "bi-tags-fill",
-            Url = "/Warehouse/Product/Dashboard",
-            PermissionPolicy = PermissionList.ProductPermissions.Select,
-            Children = new()
-            {
-                new MenuItem
-                {
-                    TextEn = "Pricing List",
-                    TextAr = "قائمة التسعير",
-                    Icon = "bi-currency-dollar",
-                    Url = "/Catalog/Pricing/List",
-                    PermissionPolicy = PermissionList.PricingPermissions.View,
-                },
-
-                new MenuItem
-                {
-                    TextEn = "SKU",
-                    TextAr = "المنتج المخزني",
-                    Icon = "bi-upc-scan",
-                    Url = "/Catalog/Product/ProductSku/List",
-                    PermissionPolicy = PermissionList.ProductPermissions.View
-                },
-                new MenuItem
-                {
-                    TextEn = "Products",
-                    TextAr = "المنتجات",
-                    Icon = "bi-box",
-                    Url = "/Catalog/Product/List",
-                    PermissionPolicy = PermissionList.ProductPermissions.View
-                },
-                new MenuItem
-                {
-                    TextEn = "Product Options",
-                    TextAr = "خيارات المنتج",
-                    Icon = "bi-sliders",
-                    Url = "/Catalog/Variant/List",
-                    PermissionPolicy = PermissionList.VariantPermissions.View
-                },
-
-                new MenuItem
-                {
-                    TextEn = "Pakcages",
-                    TextAr = "العبوات",
-                    Icon = "bi-archive-fill",
-                    Url = "/Warehouse/Product/Packages/List",
-                    PermissionPolicy = PermissionList.ProductPackagePermissions.View
-                },
-                new MenuItem
-                {
-                    TextEn = "Brand",
-                    TextAr = "العلامات التجارية",
-                    Icon = "bi-award-fill",
-                    Url = "/Warehouse/Product/Brand/List",
-                    PermissionPolicy = PermissionList.BrandPermissions.View
-                },
-                new MenuItem
-                {
-                    TextEn = "Categories",
-                    TextAr = "الأصناف",
-                    Icon = "bi-diagram-3-fill",
-                    Url = "/Warehouse/Product/Category/List",
-                    PermissionPolicy = PermissionList.CategoryPermissions.View
-                },
-                new MenuItem
-                {
-                    TextEn = "Units",
-                    TextAr = "الوحدات",
-                    Icon = "bi-rulers",
-                    Url = "/Warehouse/Product/Unit/List",
-                    PermissionPolicy = PermissionList.UnitPermissions.View
-                }
-            }
-        },
-        
-        //Inventory
-        new MenuItem
-        {
-            TextEn = "Inventory Management",
-            TextAr = "إدارة المخزون",
-            Icon = "bi-boxes",
-            Url = "/Inventory/Dashboard",
-            PermissionPolicy = PermissionList.InventoryPermissions.Select,
-            Children = new()
-            {
-                new MenuItem
-                {
-                    TextEn = "Warehouses",
-                    TextAr = "المستودعات",
-                    Icon = "bi-building",
-                    Url = "/Inventory/Warehouse/List",
-                    PermissionPolicy = PermissionList.WarehousePermissions.View,
-                },
-
-                new MenuItem
-                {
-                    TextEn = "Current Stock",
-                    TextAr = "المخزون",
-                    Icon = "bi-boxes",
-                    Url = "/Inventories/List",
-                    PermissionPolicy = PermissionList.InventoryPermissions.View,
-                },
-
-                new MenuItem
-                {
-                    TextEn = "Batches",
-                    TextAr = "الدفعات",
-                    Icon = "bi-upc-scan",
-                    Url = "/Inventory/Batch/List",
-                    PermissionPolicy = PermissionList.BatchPermissions.View,
-                },
-
-                new MenuItem
-                {
-                    TextEn = "Stock Operations",
-                    TextAr = "عمليات المخزون",
-                    Icon = "bi-arrow-left-right",
-                    Url = "/Inventory/Dashboard",
-                    PermissionPolicy = PermissionList.InventoryPermissions.View,
-
+                    TextEn = "Human Resource",
+                    TextAr = "الموارد البشرية",
+                    Icon = "bi-person-workspace",
+                    Url = "/Employee/Dashboard",
+                    PermissionPolicy = PermissionList.EmployeePermissions.Select,
                     Children = new()
                     {
                         new MenuItem
                         {
-                            TextEn = "Stock In",
-                            TextAr = "مخزون وارد",
-                            Icon = "bi-box-arrow-in-down",
-                            Url = "/Inventory/Operations/StockIn",
-                            PermissionPolicy = PermissionList.InventoryPermissions.View,
+                            TextEn = "Employees",
+                            TextAr = "الموظفين",
+                            Icon = "bi-person-badge",
+                            Url = "/Employee/Employee/List",
+                            PermissionPolicy = PermissionList.EmployeePermissions.View
                         },
-
                         new MenuItem
                         {
-                            TextEn = "Stock Out",
-                            TextAr = "مخزون صادر",
-                            Icon = "bi-box-arrow-up",
-                            Url = "/Inventory/Operations/StockOut",
-                            PermissionPolicy = PermissionList.InventoryPermissions.View,
+                            TextEn = "Positions",
+                            TextAr = "المسميات الوظيفية",
+                            Icon = "bi-briefcase-fill",
+                            Url = "/Employee/Position/List",
+                            PermissionPolicy = PermissionList.PositionPermissions.View
                         },
-
                         new MenuItem
                         {
-                            TextEn = "Adjustments",
-                            TextAr = "تسويات",
+                            TextEn = "Academic Institutions",
+                            TextAr = "المؤسسات التعليمية",
+                            Icon = "bi-mortarboard-fill",
+                            Url = "/Employee/AcademicInistitution/List",
+                            PermissionPolicy = PermissionList.AcademicInistitutionPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Specializations",
+                            TextAr = "التخصصات",
+                            Icon = "bi-journal-bookmark",
+                            Url = "/Employee/Specialization/List",
+                            PermissionPolicy = PermissionList.SpecializationPermissions.View
+                        }
+                    }
+                },
+                new MenuItem
+                {
+                    TextEn = "Customers Management",
+                    TextAr = "إدارة العملاء",
+                    Icon = "bi-person-vcard-fill",
+                    Url = "/Customers/Customer/Dashboard",
+                    PermissionPolicy = PermissionList.CustomerPermissions.Select,
+                    Children = new()
+                    {
+                        new MenuItem
+                        {
+                            TextEn = "Customers List",
+                            TextAr = "قائمة العملاء",
+                            Icon = "bi-people-fill",
+                            Url = "/Customers/Customer/List",
+                            PermissionPolicy = PermissionList.CustomerPermissions.View,
+                        }, 
+                        new MenuItem
+                        {
+                            TextEn = "Customer Groups",
+                            TextAr = "مجموعات العملاء",
+                            Icon = "bi-collection-fill",
+                            Url = "/Customers/CustomerGroup/List",
+                            PermissionPolicy = PermissionList.CustomerGroupPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Special Customer Pricing",
+                            TextAr = "تخصيص تسعير العملاء",
+                            Icon = "bi-percent",
+                            Url = "/Customers/CustomerPricingProfile/List",
+                            PermissionPolicy = PermissionList.CustomerPricingProfilePermissions.View
+                        }
+                    }
+                }
+            }
+        },
+
+        //Operations
+        new MenuItem
+        {
+            TextEn = "Operations",
+            TextAr = "العمليات",
+            Icon = "bi-box-seam",
+            Children = new()
+            {
+                new MenuItem
+                {
+                    TextEn = "Products Management",
+                    TextAr = "إدارة المنتجات",
+                    Icon = "bi-tags-fill",
+                    Url = "/Warehouse/Product/Dashboard",
+                    PermissionPolicy = PermissionList.ProductPermissions.Select,
+                    Children = new()
+                    {
+                        new MenuItem
+                        {
+                            TextEn = "Pricing List",
+                            TextAr = "قائمة التسعير",
+                            Icon = "bi-currency-dollar",
+                            Url = "/Catalog/Pricing/List",
+                            PermissionPolicy = PermissionList.PricingPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "SKU",
+                            TextAr = "المنتج المخزني",
+                            Icon = "bi-upc-scan",
+                            Url = "/Catalog/Product/ProductSku/List",
+                            PermissionPolicy = PermissionList.ProductPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Products",
+                            TextAr = "المنتجات",
+                            Icon = "bi-box",
+                            Url = "/Catalog/Product/List",
+                            PermissionPolicy = PermissionList.ProductPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Product Options",
+                            TextAr = "خيارات المنتج",
                             Icon = "bi-sliders",
-                            Url = "/Inventory/Operations/StockAdjustment",
-                            PermissionPolicy = PermissionList.InventoryPermissions.View,
+                            Url = "/Catalog/Variant/List",
+                            PermissionPolicy = PermissionList.VariantPermissions.View
                         },
-
                         new MenuItem
                         {
-                            TextEn = "Reserve",
-                            TextAr = "حجز مخزون",
-                            Icon = "bi-lock",
-                            Url = "/Inventory/Operations/StockReservation",
-                            PermissionPolicy = PermissionList.InventoryPermissions.View,
+                            TextEn = "Pakcages",
+                            TextAr = "العبوات",
+                            Icon = "bi-archive-fill",
+                            Url = "/Warehouse/Product/Packages/List",
+                            PermissionPolicy = PermissionList.ProductPackagePermissions.View
                         },
-
                         new MenuItem
                         {
-                            TextEn = "Release",
-                            TextAr = "إطلاق مخزون",
-                            Icon = "bi-unlock",
-                            Url = "/Inventory/Operations/StockRelease",
+                            TextEn = "Brand",
+                            TextAr = "العلامات التجارية",
+                            Icon = "bi-award-fill",
+                            Url = "/Warehouse/Product/Brand/List",
+                            PermissionPolicy = PermissionList.BrandPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Categories",
+                            TextAr = "الأصناف",
+                            Icon = "bi-diagram-3-fill",
+                            Url = "/Warehouse/Product/Category/List",
+                            PermissionPolicy = PermissionList.CategoryPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Units",
+                            TextAr = "الوحدات",
+                            Icon = "bi-rulers",
+                            Url = "/Warehouse/Product/Unit/List",
+                            PermissionPolicy = PermissionList.UnitPermissions.View
+                        }
+                    }
+                },
+                new MenuItem
+                {
+                    TextEn = "Inventory Management",
+                    TextAr = "إدارة المخزون",
+                    Icon = "bi-boxes",
+                    Url = "/Inventory/Dashboard",
+                    PermissionPolicy = PermissionList.InventoryPermissions.Select,
+                    Children = new()
+                    {
+                        new MenuItem
+                        {
+                            TextEn = "Warehouses",
+                            TextAr = "المستودعات",
+                            Icon = "bi-building",
+                            Url = "/Inventory/Warehouse/List",
+                            PermissionPolicy = PermissionList.WarehousePermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Current Stock",
+                            TextAr = "المخزون",
+                            Icon = "bi-boxes",
+                            Url = "/Inventories/List",
                             PermissionPolicy = PermissionList.InventoryPermissions.View,
                         },
+                        new MenuItem
+                        {
+                            TextEn = "Batches",
+                            TextAr = "الدفعات",
+                            Icon = "bi-upc-scan",
+                            Url = "/Inventory/Batch/List",
+                            PermissionPolicy = PermissionList.BatchPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Stock Operations",
+                            TextAr = "عمليات المخزون",
+                            Icon = "bi-arrow-left-right",
+                            Url = "/Inventory/Dashboard",
+                            PermissionPolicy = PermissionList.InventoryPermissions.View,
+
+                            Children = new()
+                            {
+                                new MenuItem
+                                {
+                                    TextEn = "Stock In",
+                                    TextAr = "مخزون وارد",
+                                    Icon = "bi-box-arrow-in-down",
+                                    Url = "/Inventory/Operations/StockIn",
+                                    PermissionPolicy = PermissionList.InventoryPermissions.View,
+                                },
+                                new MenuItem
+                                {
+                                    TextEn = "Stock Out",
+                                    TextAr = "مخزون صادر",
+                                    Icon = "bi-box-arrow-up",
+                                    Url = "/Inventory/Operations/StockOut",
+                                    PermissionPolicy = PermissionList.InventoryPermissions.View,
+                                },
+                                new MenuItem
+                                {
+                                    TextEn = "Adjustments",
+                                    TextAr = "تسويات",
+                                    Icon = "bi-sliders",
+                                    Url = "/Inventory/Operations/StockAdjustment",
+                                    PermissionPolicy = PermissionList.InventoryPermissions.View,
+                                },
+                                new MenuItem
+                                {
+                                    TextEn = "Reserve",
+                                    TextAr = "حجز مخزون",
+                                    Icon = "bi-lock",
+                                    Url = "/Inventory/Operations/StockReservation",
+                                    PermissionPolicy = PermissionList.InventoryPermissions.View,
+                                },
+                                new MenuItem
+                                {
+                                    TextEn = "Release",
+                                    TextAr = "إطلاق مخزون",
+                                    Icon = "bi-unlock",
+                                    Url = "/Inventory/Operations/StockRelease",
+                                    PermissionPolicy = PermissionList.InventoryPermissions.View,
+                                },
+                            }
+                        }
                     }
                 },
                 //new MenuItem

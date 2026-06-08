@@ -1,5 +1,6 @@
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 @implements IDisposable
@@ -72,20 +73,13 @@
     private string LeafClass => IsActive ? "sidebar-link sidebar-leaf is-active" : "sidebar-link sidebar-leaf";
     private bool HasVisibleChildren => VisibleChildren.Any();
     private bool ShouldShowChildren => HasVisibleChildren && (Item.IsOpen || IsFiltering || IsParentActive);
-    private bool IsParentActive => HasVisibleChildren && Item.Children.Any(IsMatch);
-
-    private string CurrentUrl => NavigationManager.Uri.Replace(NavigationManager.BaseUri, "/");
+    private bool IsParentActive => HasVisibleChildren && (IsUrlActive(Item.Url) || Item.Children.Any(IsMatch));
 
     private bool IsActive
     {
         get
         {
-            if (string.IsNullOrWhiteSpace(Item.Url))
-            {
-                return false;
-            }
-
-            return Normalize(CurrentUrl) == Normalize(Item.Url);
+            return IsUrlActive(Item.Url);
         }
     }
 
@@ -117,16 +111,20 @@
     {
         AutoExpand(Item);
         SharedDataService.OnChange1 += HandleChangeAsync;
+        NavigationManager.LocationChanged += HandleLocationChanged;
     }
 
     private bool IsAuthorized(MenuItem item)
     {
-        if (AuthState is null || string.IsNullOrWhiteSpace(item.PermissionPolicy))
+        if (AuthState is null)
         {
             return false;
         }
 
-        return AuthState.User.Claims.Any(c => c.Value == item.PermissionPolicy);
+        var hasOwnPermission = !string.IsNullOrWhiteSpace(item.PermissionPolicy)
+            && AuthState.User.Claims.Any(c => c.Value == item.PermissionPolicy);
+
+        return hasOwnPermission || item.Children.Any(IsAuthorized);
     }
 
     private bool MatchesSearch(MenuItem item)
@@ -192,8 +190,7 @@
 
     private bool IsMatch(MenuItem item)
     {
-        if (!string.IsNullOrWhiteSpace(item.Url) &&
-            Normalize(CurrentUrl).StartsWith(Normalize(item.Url), StringComparison.OrdinalIgnoreCase))
+        if (IsUrlActive(item.Url))
         {
             return true;
         }
@@ -201,15 +198,49 @@
         return item.Children.Any(IsMatch);
     }
 
-    private static string Normalize(string url)
+    private bool IsUrlActive(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return false;
+        }
+
+        var currentPath = CurrentPath();
+        var targetPath = NormalizePath(url);
+
+        if (currentPath == targetPath)
+        {
+            return true;
+        }
+
+        return targetPath != "/" &&
+               currentPath.StartsWith($"{targetPath}/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string CurrentPath()
+    {
+        var relativePath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        var pathOnly = relativePath.Split('?', '#')[0];
+
+        return NormalizePath($"/{pathOnly}");
+    }
+
+    private static string NormalizePath(string url)
     {
         if (string.IsNullOrWhiteSpace(url))
         {
             return "/";
         }
 
-        url = url.ToLowerInvariant().TrimEnd('/');
-        return string.IsNullOrWhiteSpace(url) ? "/" : url;
+        var path = url.Split('?', '#')[0].Trim();
+
+        if (Uri.TryCreate(path, UriKind.Absolute, out var absoluteUri))
+        {
+            path = absoluteUri.AbsolutePath;
+        }
+
+        path = "/" + path.Trim('/').ToLowerInvariant();
+        return path == "/" ? "/" : path.TrimEnd('/');
     }
 
     private async Task HandleChangeAsync()
@@ -217,9 +248,15 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
     public void Dispose()
     {
         SharedDataService.OnChange1 -= HandleChangeAsync;
+        NavigationManager.LocationChanged -= HandleLocationChanged;
     }
 }
 

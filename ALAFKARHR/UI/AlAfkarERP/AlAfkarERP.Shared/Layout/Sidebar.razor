@@ -105,12 +105,15 @@
 
     private bool IsAuthorized(MenuItem item)
     {
-        if (authState is null || string.IsNullOrWhiteSpace(item.PermissionPolicy))
+        if (authState is null)
         {
             return false;
         }
 
-        return authState.User.Claims.Any(c => c.Value == item.PermissionPolicy);
+        var hasOwnPermission = !string.IsNullOrWhiteSpace(item.PermissionPolicy)
+            && authState.User.Claims.Any(c => c.Value == item.PermissionPolicy);
+
+        return hasOwnPermission || item.Children.Any(IsAuthorized);
     }
 
     private bool MatchesSearch(MenuItem item)
