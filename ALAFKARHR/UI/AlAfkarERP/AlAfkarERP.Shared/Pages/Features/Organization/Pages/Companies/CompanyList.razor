@@ -2,18 +2,22 @@
 @page "/Organization/Company/List"
 @using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.GeneralSettings.Dtos
 @using SharedWithUI.Organization.Dtos
 @implements IDisposable
 
 @inject ICompanyService CompanyService
+@inject ICompanySettingService CompanySettingService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 @inject ToastService ToastService
 @inject ApiConfig ApiConfig
+@inject IJSRuntime JSRuntime
 
 <div class="company-profile">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
@@ -180,6 +184,31 @@
                                     <label class="form-label">@Text("Latitude", "خط العرض")</label>
                                     <InputNumber class="form-control" @bind-Value="company.HqLatitude" />
                                 </div>
+                                <div class="col-12">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                        <label class="form-label mb-0">@Text("Pick Headquarters Location", "اختيار موقع المقر الرئيسي")</label>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm map-zoom-button" @onclick="ZoomOutMapAsync" title="@Text("Zoom Out", "تصغير")">
+                                                <i class="bi bi-dash-lg"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm map-zoom-button" @onclick="ZoomInMapAsync" title="@Text("Zoom In", "تكبير")">
+                                                <i class="bi bi-plus-lg"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CenterMapFromFieldsAsync">
+                                                <i class="bi bi-crosshair"></i>
+                                                @Text("Center from Fields", "توسيط من الحقول")
+                                            </button>
+                                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="UseCurrentLocationAsync">
+                                                <i class="bi bi-geo-alt"></i>
+                                                @Text("Use Current Location", "استخدام موقعي")
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="@mapElementId" class="company-map"></div>
+                                    <div class="text-muted small mt-2">
+                                        @Text("Click the map to update longitude and latitude.", "اضغط على الخريطة لتحديث خط الطول وخط العرض.")
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="d-flex justify-content-end gap-2 mt-4">
@@ -334,6 +363,45 @@
         margin-bottom: 0.25rem;
     }
 
+    .company-map {
+        background: #eef2f5;
+        border: 1px solid #ced4da;
+        border-radius: 8px;
+        cursor: crosshair;
+        height: 340px;
+        overflow: hidden;
+        position: relative;
+        width: 100%;
+    }
+
+    .location-picker-tile {
+        height: 256px;
+        position: absolute;
+        user-select: none;
+        width: 256px;
+    }
+
+    .location-picker-marker {
+        color: #dc3545;
+        font-size: 2rem;
+        left: 50%;
+        line-height: 1;
+        pointer-events: none;
+        position: absolute;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+        top: 50%;
+        transform: translate(-50%, -100%);
+        z-index: 2;
+    }
+
+    .map-zoom-button {
+        align-items: center;
+        display: inline-flex;
+        height: 31px;
+        justify-content: center;
+        width: 36px;
+    }
+
     [dir="rtl"] .profile-link {
         border-left: 0;
         border-right: 4px solid;
@@ -345,6 +413,10 @@
     private bool isLoading = true;
     private bool isSaving;
     private string? errorMessage;
+    private CompanySettingDto? companySetting;
+    private readonly string mapElementId = $"company-location-map-{Guid.NewGuid():N}";
+    private DotNetObjectReference<CompanyList>? dotNetReference;
+    private bool mapInitialized;
 
     private string CompanyLogoUrl =>
         company is null || string.IsNullOrWhiteSpace(company.Logo)
@@ -357,6 +429,21 @@
     {
         SharedDataService.OnChange1 += HandleLanguageChangeAsync;
         await LoadCompanyAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!mapInitialized && company is not null && !isLoading)
+        {
+            dotNetReference ??= DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync(
+                "alafkarLocationPicker.init",
+                mapElementId,
+                MapLatitude,
+                MapLongitude,
+                dotNetReference);
+            mapInitialized = true;
+        }
     }
 
     private async Task LoadCompanyAsync()
@@ -382,9 +469,19 @@
             }
 
             var result = await CompanyService.GetByIdAsync(companyId);
+            var settingResult = await CompanySettingService.GetAsync(companyId);
+            if (settingResult.IsSuccess)
+            {
+                companySetting = settingResult.Data;
+            }
+
             if (result.IsSuccess)
             {
                 company = result.Data;
+                if (mapInitialized)
+                {
+                    await CenterMapFromFieldsAsync();
+                }
             }
             else
             {
@@ -462,6 +559,68 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private async Task CenterMapFromFieldsAsync()
+    {
+        if (company is null || !mapInitialized)
+        {
+            return;
+        }
+
+        await JSRuntime.InvokeVoidAsync(
+            "alafkarLocationPicker.setCenter",
+            mapElementId,
+            MapLatitude,
+            MapLongitude,
+            false);
+    }
+
+    private async Task UseCurrentLocationAsync()
+    {
+        if (!mapInitialized)
+        {
+            return;
+        }
+
+        var isSupported = await JSRuntime.InvokeAsync<bool>("alafkarLocationPicker.useCurrentLocation", mapElementId);
+        if (!isSupported)
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Type = "warning",
+                Message = Text("Current location is not supported in this browser.", "الموقع الحالي غير مدعوم في هذا المتصفح.")
+            });
+        }
+    }
+
+    private async Task ZoomInMapAsync()
+    {
+        if (mapInitialized)
+        {
+            await JSRuntime.InvokeAsync<int>("alafkarLocationPicker.zoomIn", mapElementId);
+        }
+    }
+
+    private async Task ZoomOutMapAsync()
+    {
+        if (mapInitialized)
+        {
+            await JSRuntime.InvokeAsync<int>("alafkarLocationPicker.zoomOut", mapElementId);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnMapLocationSelected(double latitude, double longitude)
+    {
+        if (company is null)
+        {
+            return;
+        }
+
+        company.HqLatitude = Math.Round(latitude, 6);
+        company.HqLongitude = Math.Round(longitude, 6);
+        await InvokeAsync(StateHasChanged);
+    }
+
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 
     private string DisplayName(string? name, string? nameEng)
@@ -477,6 +636,14 @@
             ? primary
             : !string.IsNullOrWhiteSpace(fallback) ? fallback : "-";
 
+    private double MapLatitude => company?.HqLatitude is > 0
+        ? company.HqLatitude
+        : companySetting?.DefaultLatitude is > 0 ? companySetting.DefaultLatitude : 24.7136;
+
+    private double MapLongitude => company?.HqLongitude is > 0
+        ? company.HqLongitude
+        : companySetting?.DefaultLongitude is > 0 ? companySetting.DefaultLongitude : 46.6753;
+
     private async Task HandleLanguageChangeAsync()
     {
         await InvokeAsync(StateHasChanged);
@@ -484,6 +651,12 @@
 
     public void Dispose()
     {
+        if (mapInitialized)
+        {
+            _ = JSRuntime.InvokeVoidAsync("alafkarLocationPicker.dispose", mapElementId);
+        }
+
+        dotNetReference?.Dispose();
         SharedDataService.OnChange1 -= HandleLanguageChangeAsync;
     }
 }

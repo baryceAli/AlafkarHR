@@ -14,6 +14,7 @@ public class GeneralSettingsDbContext:DbContext
     }
 
     public DbSet<Currency> Currencies => Set<Currency>();
+    public DbSet<CompanySetting> CompanySettings => Set<CompanySetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

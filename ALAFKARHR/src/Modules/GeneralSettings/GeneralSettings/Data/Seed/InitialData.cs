@@ -10,4 +10,15 @@ public static class InitialData
         Currency.Create(Guid.Parse("71077eb6-cb32-49b1-bb41-72c1c7eeac5c"),"SAR","ريال","SAR",3.75M,"fdfc","2243B966-E7C2-43F5-9E00-21F6315BCB22"),
 
     };
+
+    public static List<CompanySetting> companySettings => new List<CompanySetting>
+    {
+        CompanySetting.Create(
+            Guid.Parse("8db8b7a0-cf1b-4e95-9f4d-fb0efdf4f8ec"),
+            Guid.Parse("2243b966-e7c2-43f5-9e00-21f6315bcb22"),
+            "Riyadh, Saudi Arabia",
+            24.7136,
+            46.6753,
+            "2243B966-E7C2-43F5-9E00-21F6315BCB22")
+    };
 }

@@ -19,6 +19,11 @@ public class CreateBranchHandler(OrganizationDbContext dbContext, IHttpContextAc
                         .FindFirst(ClaimTypes.NameIdentifier)?
                         .Value ?? 
                         throw new UnauthorizedAccessException("User is not authenticated");
+
+        if (request.Branch.IsMainBranch)
+        {
+            await ClearCurrentMainBranchAsync(request.Branch.CompanyId, userId, cancellationToken);
+        }
         
         var branch = Branch.Create(
             Guid.NewGuid(),
@@ -36,8 +41,30 @@ public class CreateBranchHandler(OrganizationDbContext dbContext, IHttpContextAc
             );
 
         await dbContext.Branches.AddAsync(branch, cancellationToken);
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(cancellationToken);
         return new CreateBranchResult(branch.Adapt<BranchDto>());
 
+    }
+
+    private async Task ClearCurrentMainBranchAsync(Guid companyId, string userId, CancellationToken cancellationToken)
+    {
+        var mainBranches = await dbContext.Branches
+            .Where(branch => branch.CompanyId == companyId && branch.IsMainBranch)
+            .ToListAsync(cancellationToken);
+
+        foreach (var branch in mainBranches)
+        {
+            branch.Update(
+                branch.Name,
+                branch.NameEng,
+                branch.Location,
+                branch.Longitude,
+                branch.Latitude,
+                branch.Code,
+                branch.Phone,
+                branch.Email,
+                false,
+                userId);
+        }
     }
 }

@@ -15,5 +15,14 @@ public class GeneralSettingsDataSeeder : IDataSeeder<GeneralSettingsDbContext>
                 await context.SaveChangesAsync();
             }
         }
+
+        if (!await context.CompanySettings.AnyAsync())
+        {
+            foreach (var companySetting in InitialData.companySettings)
+            {
+                await context.CompanySettings.AddAsync(companySetting);
+                await context.SaveChangesAsync();
+            }
+        }
     }
 }

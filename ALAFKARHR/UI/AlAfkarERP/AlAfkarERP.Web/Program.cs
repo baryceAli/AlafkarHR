@@ -230,6 +230,13 @@ builder.Services.AddHttpClient<ICurrencyService, CurrencyService>(client =>
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
+
+builder.Services.AddScoped<ICompanySettingService, CompanySettingService>();
+builder.Services.AddHttpClient<ICompanySettingService, CompanySettingService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
 #endregion GeneralSettings
 
 #region TaskManagement

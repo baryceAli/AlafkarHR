@@ -19,6 +19,11 @@ public class UpdateBranchHandler(OrganizationDbContext dbContext, IHttpContextAc
                         .Value ??
                         throw new UnauthorizedAccessException("User is not authenticated");
 
+        if (request.Branch.IsMainBranch)
+        {
+            await ClearOtherMainBranchesAsync(branch.CompanyId, branch.Id, userId, cancellationToken);
+        }
+
         branch.Update(
             request.Branch.Name,
             request.Branch.NameEng,
@@ -31,8 +36,33 @@ public class UpdateBranchHandler(OrganizationDbContext dbContext, IHttpContextAc
             request.Branch.IsMainBranch,
             userId);
 
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return new UpdateBranchResult(true);
+    }
+
+    private async Task ClearOtherMainBranchesAsync(Guid companyId, Guid currentBranchId, string userId, CancellationToken cancellationToken)
+    {
+        var mainBranches = await dbContext.Branches
+            .Where(branch =>
+                branch.CompanyId == companyId &&
+                branch.Id != currentBranchId &&
+                branch.IsMainBranch)
+            .ToListAsync(cancellationToken);
+
+        foreach (var branch in mainBranches)
+        {
+            branch.Update(
+                branch.Name,
+                branch.NameEng,
+                branch.Location,
+                branch.Longitude,
+                branch.Latitude,
+                branch.Code,
+                branch.Phone,
+                branch.Email,
+                false,
+                userId);
+        }
     }
 }
