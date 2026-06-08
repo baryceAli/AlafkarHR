@@ -79,6 +79,15 @@ public class ProductService : BaseApiService, IProductService
         return await SendAsync<ProductSkuDto>(request, "productSku");
     }
 
+    public async Task<ApiResult<PaginatedResult<ProductSkuDto>>> GetPublicStoreProductSkusAsync(int pageIndex, int pageSize)
+    {
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"api/{_apiConfig.Version}/catalog/public/products/skus?PageIndex={pageIndex}&PageSize={pageSize}");
+
+        return await SendAsync<PaginatedResult<ProductSkuDto>>(request, "productSkus");
+    }
+
     public async Task<ApiResult<CreateResponseDto>> CreateAsync(ProductDto product)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/catalog/products")

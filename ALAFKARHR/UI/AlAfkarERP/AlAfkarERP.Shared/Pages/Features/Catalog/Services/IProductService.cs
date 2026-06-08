@@ -11,6 +11,7 @@ public interface IProductService
     public Task<ApiResult<PaginatedResult<ProductDto>>> GetAsync( int PageIndex, int PageSize);
     public Task<ApiResult<ProductDto>> GetByIdAsync(Guid productId);
     public Task<ApiResult<ProductSkuDto>> GetProductSkuByIdAsync(Guid productSkuId);
+    public Task<ApiResult<PaginatedResult<ProductSkuDto>>> GetPublicStoreProductSkusAsync(int pageIndex, int pageSize);
     
     public Task<ApiResult<CreateResponseDto>> CreateAsync(ProductDto product);
     public Task<ApiResult<UpdateDeleteResponseDto>> UpdateAsync(ProductDto product);

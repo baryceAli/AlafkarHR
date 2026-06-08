@@ -1,161 +1,178 @@
-﻿@using AlAfkarERP.Shared.Utilities
+@using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
-@inject AuthenticationStateProvider AuthenticationStateProvider
-<li class="nav-item">
+@implements IDisposable
 
-    @if (HasChildren)
+<li class="nav-item sidebar-node @(HasVisibleChildren ? "has-children" : "") @(IsParentActive ? "parent-active" : "")">
+    @if (HasVisibleChildren)
     {
-        @*     <div class="nav-link text-white
-    @(IsActive ? "active bg-primary" : IsParentActive ? "bg-secondary" : "")"> *@
-
-        <!-- Parent (ONLY for items with children) -->
-        if (authState != null && !string.IsNullOrEmpty(Item.PermissionPolicy) && authState.User.Claims.Any(c => c.Value == Item.PermissionPolicy))
-        {
-            
-        <div class="nav-link text-white d-flex justify-content-between align-items-center
-            class=@(IsActive ? "nav-link text-white active bg-primary" : "nav-link text-white")
-            style="cursor:pointer"
-             @onclick="Toggle">
-
-            <div>
-                <i class="bi @Item.Icon me-2"></i>
-                @SharedDataService.SelectViewLang(Item.TextEn, Item.TextAr)
-            </div>
-
-            <i class="bi @(Item.IsOpen ? "bi-chevron-down" : "bi-chevron-right")"></i>
-        </div>
-        }
-    }
-    else if (!string.IsNullOrEmpty(Item.Url))
-    {
-        @* class="nav-link text-white @(IsActive ? "active bg-primary" : "")" *@
-        <!-- Leaf (ONLY once, no duplication) -->
-        @* <AuthorizeView Roles="@Item.PermissionPolicy">
-            <Authorized>
-                authorized
-            </Authorized>
-            <NotAuthorized>
-                    <a class="nav-link text-white disabled" href="#" tabindex="-1" aria-disabled="true">
-                        <i class="bi @Item.Icon me-2"></i>
-                        @SharedDataService.SelectViewLang(Item.TextEn,Item.TextAr) not authorized
-                </a>
-            </NotAuthorized>
-        </AuthorizeView> *@
-        if (authState != null && !string.IsNullOrEmpty(Item.PermissionPolicy) && authState.User.Claims.Any(c => c.Value == Item.PermissionPolicy))
-        {
-            
-        <NavLink href="@Item.Url"
-                 class=@(IsActive ? "nav-link text-white active bg-primary" : "nav-link text-white")
-                 Match="NavLinkMatch.All" ActiveClass="">
-            <i class="bi @Item.Icon me-2"></i>
-            @SharedDataService.SelectViewLang(Item.TextEn, Item.TextAr)
-        </NavLink>
-        }
-    }
-
-    <!-- Children -->
-    @if (HasChildren && Item.IsOpen)
-    {
-
-        @if (authState != null && !string.IsNullOrEmpty(Item.PermissionPolicy) && authState.User.Claims.Any(c => c.Value == Item.PermissionPolicy))
-        {
-            <ul class="nav flex-column ms-3">
-            
-                @foreach (var child in Item.Children)
+        <button type="button"
+                class="sidebar-link sidebar-parent @(IsParentActive ? "is-parent-active" : "") @(Item.IsOpen ? "is-open" : "")"
+                @onclick="Toggle"
+                aria-expanded="@ShouldShowChildren">
+            <span class="sidebar-link-main">
+                <i class="bi @Item.Icon sidebar-link-icon"></i>
+                <span class="sidebar-link-text">@Label</span>
+            </span>
+            <span class="sidebar-link-trailing">
+                @if (!string.IsNullOrWhiteSpace(Item.BadgeText))
                 {
-                    if (authState != null && !string.IsNullOrEmpty(Item.PermissionPolicy) && authState.User.Claims.Any(c => c.Value == child.PermissionPolicy))
-                    {
-                        
-                        <SidebarItem Item="child" Siblings="Item.Children" />
-                    }
+                    <span class="badge rounded-pill @(Item.BadgeCssClass ?? "text-bg-primary")"
+                          title="@BadgeTitle">@Item.BadgeText</span>
+                }
+                <i class="bi @(ShouldShowChildren ? "bi-chevron-down" : "bi-chevron-right") sidebar-chevron"></i>
+            </span>
+        </button>
+
+        @if (ShouldShowChildren)
+        {
+            <ul class="nav flex-column sidebar-submenu">
+                @foreach (var child in VisibleChildren)
+                {
+                    <SidebarItem Item="child"
+                                 Siblings="VisibleChildren"
+                                 AuthState="AuthState"
+                                 SearchText="SearchText"
+                                 IsFiltering="@IsFiltering" />
                 }
             </ul>
         }
     }
-
+    else if (!string.IsNullOrWhiteSpace(Item.Url))
+    {
+        <NavLink href="@Item.Url"
+                 class="@LeafClass"
+                 Match="NavLinkMatch.All"
+                 ActiveClass="">
+            <span class="sidebar-link-main">
+                <i class="bi @Item.Icon sidebar-link-icon"></i>
+                <span class="sidebar-link-text">@Label</span>
+            </span>
+            @if (!string.IsNullOrWhiteSpace(Item.BadgeText))
+            {
+                <span class="badge rounded-pill @(Item.BadgeCssClass ?? "text-bg-primary")"
+                      title="@BadgeTitle">@Item.BadgeText</span>
+            }
+        </NavLink>
+    }
 </li>
+
 @code {
     [Parameter] public MenuItem Item { get; set; } = default!;
     [Parameter] public List<MenuItem>? Siblings { get; set; }
+    [Parameter] public AuthenticationState? AuthState { get; set; }
+    [Parameter] public string SearchText { get; set; } = "";
+    [Parameter] public bool IsFiltering { get; set; }
 
-    private bool HasChildren => Item.Children?.Any() == true;
+    private string Label => SharedDataService.SelectViewLang(Item.TextEn, Item.TextAr);
+    private string BadgeTitle => SharedDataService.SelectViewLang(
+        Item.BadgeTitleEn ?? Item.BadgeText ?? "",
+        Item.BadgeTitleAr ?? Item.BadgeText ?? "");
+    private string LeafClass => IsActive ? "sidebar-link sidebar-leaf is-active" : "sidebar-link sidebar-leaf";
+    private bool HasVisibleChildren => VisibleChildren.Any();
+    private bool ShouldShowChildren => HasVisibleChildren && (Item.IsOpen || IsFiltering || IsParentActive);
+    private bool IsParentActive => HasVisibleChildren && Item.Children.Any(IsMatch);
 
     private string CurrentUrl => NavigationManager.Uri.Replace(NavigationManager.BaseUri, "/");
 
-    // private bool IsActive => IsMatch(Item);
     private bool IsActive
     {
         get
         {
-            if (string.IsNullOrEmpty(Item.Url))
+            if (string.IsNullOrWhiteSpace(Item.Url))
+            {
                 return false;
+            }
 
-            var current = Normalize(CurrentUrl);
-            var target = Normalize(Item.Url);
-
-            return current == target;
+            return Normalize(CurrentUrl) == Normalize(Item.Url);
         }
     }
 
-    private string Normalize(string url)
+    private List<MenuItem> VisibleChildren
     {
-        if (string.IsNullOrEmpty(url)) return "/";
+        get
+        {
+            var authorizedChildren = Item.Children
+                .Where(IsAuthorized)
+                .ToList();
 
-        url = url.ToLower().TrimEnd('/');
+            if (!IsFiltering)
+            {
+                return authorizedChildren;
+            }
 
-        return string.IsNullOrEmpty(url) ? "/" : url;
+            if (ItemMatchesSearch(Item))
+            {
+                return authorizedChildren;
+            }
+
+            return authorizedChildren
+                .Where(MatchesSearch)
+                .ToList();
+        }
     }
 
-    // private bool IsParentActive =>
-    // HasChildren && Item.Children.Any(IsMatch);
-    AuthenticationState? authState;
-    protected override async Task OnInitializedAsync()
-    {
-        authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-        
-    }
     protected override void OnInitialized()
     {
         AutoExpand(Item);
         SharedDataService.OnChange1 += HandleChangeAsync;
     }
-    
-    private async Task HandleChangeAsync()
+
+    private bool IsAuthorized(MenuItem item)
     {
-        await InvokeAsync(StateHasChanged);
+        if (AuthState is null || string.IsNullOrWhiteSpace(item.PermissionPolicy))
+        {
+            return false;
+        }
+
+        return AuthState.User.Claims.Any(c => c.Value == item.PermissionPolicy);
     }
 
-    public void Dispose()
+    private bool MatchesSearch(MenuItem item)
     {
-        SharedDataService.OnChange1 -= HandleChangeAsync;
-    }
-    void Toggle()
-    {
-        if (!HasChildren)
+        if (!IsFiltering)
         {
-            if (!string.IsNullOrEmpty(Item.Url))
+            return true;
+        }
+
+        return ItemMatchesSearch(item) || item.Children.Any(MatchesSearch);
+    }
+
+    private bool ItemMatchesSearch(MenuItem item)
+    {
+        var term = SearchText.Trim();
+        return item.TextEn.Contains(term, StringComparison.OrdinalIgnoreCase)
+               || item.TextAr.Contains(term, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void Toggle()
+    {
+        if (!HasVisibleChildren)
+        {
+            if (!string.IsNullOrWhiteSpace(Item.Url))
+            {
                 NavigationManager.NavigateTo(Item.Url);
+            }
 
             return;
         }
 
-        // 🔥 Accordion: close siblings
-        if (Siblings != null)
+        if (Siblings is not null)
         {
             foreach (var sibling in Siblings)
             {
                 if (sibling != Item)
+                {
                     sibling.IsOpen = false;
+                }
             }
         }
 
         Item.IsOpen = !Item.IsOpen;
     }
 
-    // 🔥 Auto expand based on route
-    void AutoExpand(MenuItem item)
+    private void AutoExpand(MenuItem item)
     {
         if (IsMatch(item))
         {
@@ -173,16 +190,159 @@
         }
     }
 
-    // 🔥 Active route detection (recursive)
-    bool IsMatch(MenuItem item)
+    private bool IsMatch(MenuItem item)
     {
-        if (!string.IsNullOrEmpty(item.Url) &&
-            CurrentUrl.StartsWith(item.Url, StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrWhiteSpace(item.Url) &&
+            Normalize(CurrentUrl).StartsWith(Normalize(item.Url), StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
 
         return item.Children.Any(IsMatch);
     }
-    
+
+    private static string Normalize(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return "/";
+        }
+
+        url = url.ToLowerInvariant().TrimEnd('/');
+        return string.IsNullOrWhiteSpace(url) ? "/" : url;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
 }
+
+<style>
+    .sidebar-node {
+        margin: .08rem 0;
+    }
+
+    .sidebar-node.parent-active {
+        padding-block: .08rem;
+    }
+
+    .sidebar-link {
+        width: 100%;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .65rem;
+        border: 0;
+        border-radius: 8px;
+        padding: .58rem .65rem;
+        color: rgba(255, 255, 255, .76);
+        background: transparent;
+        text-decoration: none;
+        text-align: start;
+        transition: background-color .15s ease, color .15s ease;
+    }
+
+    .sidebar-link:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, .08);
+    }
+
+    .sidebar-link.is-active {
+        color: #fff;
+        background: #2563eb;
+        box-shadow: inset 3px 0 0 rgba(255, 255, 255, .62);
+    }
+
+    [dir="rtl"] .sidebar-link.is-active {
+        box-shadow: inset -3px 0 0 rgba(255, 255, 255, .62);
+    }
+
+    .sidebar-link.is-parent-active,
+    .sidebar-link.is-open {
+        color: #fff;
+        background: rgba(37, 99, 235, .18);
+    }
+
+    .sidebar-link-main {
+        display: flex;
+        align-items: center;
+        gap: .65rem;
+        min-width: 0;
+    }
+
+    .sidebar-link-icon {
+        width: 1.1rem;
+        text-align: center;
+        color: rgba(255, 255, 255, .7);
+        flex: 0 0 auto;
+    }
+
+    .sidebar-link.is-active .sidebar-link-icon,
+    .sidebar-link.is-parent-active .sidebar-link-icon,
+    .sidebar-link:hover .sidebar-link-icon {
+        color: #fff;
+    }
+
+    .sidebar-link-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: .92rem;
+        line-height: 1.2;
+    }
+
+    .sidebar-link-trailing {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        flex: 0 0 auto;
+    }
+
+    .sidebar-chevron {
+        color: rgba(255, 255, 255, .5);
+        font-size: .78rem;
+    }
+
+    .sidebar-submenu {
+        position: relative;
+        margin: .16rem 0 .28rem;
+        padding-inline-start: .8rem;
+        gap: .12rem;
+    }
+
+    .sidebar-submenu::before {
+        content: "";
+        position: absolute;
+        inset-block: .25rem;
+        inset-inline-start: .2rem;
+        width: 1px;
+        background: rgba(255, 255, 255, .12);
+    }
+
+    .sidebar-submenu .sidebar-link {
+        min-height: 36px;
+        padding: .5rem .6rem;
+        color: rgba(255, 255, 255, .68);
+    }
+
+    .sidebar-submenu .sidebar-link-text {
+        font-size: .86rem;
+    }
+
+    .sidebar-submenu .sidebar-submenu {
+        padding-inline-start: .7rem;
+        margin-block: .12rem;
+    }
+
+    .sidebar-link .badge {
+        font-size: .68rem;
+        line-height: 1;
+    }
+</style>

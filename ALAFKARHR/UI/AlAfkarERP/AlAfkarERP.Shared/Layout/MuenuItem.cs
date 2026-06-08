@@ -9,6 +9,10 @@ public class MenuItem
     public string PermissionPolicy { get; set; }
     public string Icon { get; set; } = default!;
     public string? Url { get; set; }
+    public string? BadgeText { get; set; }
+    public string? BadgeCssClass { get; set; }
+    public string? BadgeTitleEn { get; set; }
+    public string? BadgeTitleAr { get; set; }
 
     public List<MenuItem> Children { get; set; } = new();
 

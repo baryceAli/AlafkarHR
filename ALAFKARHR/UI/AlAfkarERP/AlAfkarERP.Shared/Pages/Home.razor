@@ -1,28 +1,33 @@
 ﻿@layout LandingPageLayout
 @page "/"
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Utilities
+@using SharedWithUI.Catalog.Dtos
+@inject IProductService ProductService
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
 
 <PageTitle>ALAFKAR</PageTitle>
 
-<main style="margin-top: 80px;">
+<main class="home-page" style="margin-top: 80px;">
     <!-- Hero Section -->
-    <section class="hero-section">
+    <section class="hero-section home-hero" dir="rtl">
         <div class="hero-bg">
             <img alt="Community sharing" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGiwJ6mZ1amOX4x4HzwFk9K9u6Cz6Ob-auP833URPgvMmla5Y1iicA_JB3YBi5uxpy63D4UFqAhYTf90niupWQ0XYLBTJfURnLHP0xD_WBDDP57yvikud7MWTUchsXSp6lf2aFbFg7Qu4EgrlM0utfkVa98h65gATgFZF4Alx0J5Qpt3S50lMBbHApAPtVEZAO56AMtv4MpU4w4_ce4BsMMEUIQ5Q_f8YI7FXWLS83ZmQ3oxAvPJ-FO2oUE4gSCVPZYW3MrDFIt-8" />
             <div class="hero-overlay"></div>
         </div>
-        <div class="container position-relative z-1 text-center">
-            @* <span class="badge-premium">الأفكار الناجحة</span> *@
-            <h1 class="display-3 gold-gradient-text fw-light mb-4 tracking-tight">
-                خياركم الأول <br/>
-                لخدمات الإعاشة والسقيا المتكاملة
-            </h1>
-            <p class="lead text-on-surface-variant mx-auto mb-5 fw-light" style="max-width: 700px; line-height: 1.8;">
-                متخصصون في تنفيذ المشاريع الموسمية الخيرية وتقديم الوجبات الساخنة والجافة بأعلى معايير الجودة والإتقان، لننقل عطاءكم بتميز
-            </p>
-            @* <div class="d-flex flex-column flex-sm-row justify-content-center gap-4">
-                <button class="btn btn-gold-solid">START GIVING</button>
-                <button class="btn btn-gold-outline py-3 px-5" style="font-size: 0.75rem;">HOW IT WORKS</button>
-            </div> *@
+        <div class="container position-relative z-1">
+            <div class="hero-content">
+                <span class="hero-eyebrow">الأفكار الناجحة</span>
+                <h1>خدمات الإعاشة والسقيا المتكاملة</h1>
+                <p>
+                    وجبات ساخنة وجافة للمشاريع الموسمية والخيرية، بتجهيز منظم وجودة واضحة من الطلب إلى التسليم.
+                </p>
+                <div class="hero-actions">
+                    <a class="btn btn-gold-solid" href="#products">استعرض المنتجات</a>
+                </div>
+            </div>
         </div>
     </section>
     <!-- How It Works -->
@@ -60,74 +65,58 @@
     </section>
     }
     <!-- Food Selection -->
-    <section dir="rtl" class="py-5" style="background-color: var(--surface-container-lowest); border-top: 1px solid rgba(212, 175, 55, 0.1); border-bottom: 1px solid rgba(212, 175, 55, 0.1);">
+    <section id="products" dir="rtl" class="store-section py-5">
         <div class="container py-5">
-            @if (1 == 3)
+            <div class="store-heading">
+                <div>
+                    <span class="store-kicker">قائمة المنتجات</span>
+                    <h2>اختر الوجبة المناسبة</h2>
+                </div>
+                <p>منتجات مباشرة من كتالوج المنتجات المخزنية، مع عرض الاسم والسعر والصورة من بيانات المنتج المخزني.</p>
+            </div>
+
+            @if (isLoadingProducts)
             {
-                
-            <div class="row align-items-end mb-5">
-                <div class="col-md-8">
-                    <h2 class="text-primary fw-light text-uppercase letter-spacing-xl mb-3">Current Initiatives</h2>
-                    <p class="text-on-surface-variant fw-light mb-0" style="max-width: 450px;">Directly support our community by selecting a specific initiative to fund with excellence.</p>
+                <div class="product-state">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <span>جاري تحميل المنتجات...</span>
                 </div>
-                <div class="col-md-4 text-md-end mt-4 mt-md-0">
-                    <a class="text-primary text-decoration-none small text-uppercase letter-spacing-xl" href="#">
-                        VIEW ALL PROJECTS <span class="material-symbols-outlined ms-2" style="font-size: 14px;">arrow_forward</span>
-                    </a>
-                </div>
-            </div>
             }
-            <div class="row g-4">
-                <!-- Bundle 1 -->
-                <div class="col-md-4">
-                    <div class="initiative-card h-100 d-flex flex-column">
-                        <div class="card-img-container">
-                            <img alt="Fresh Produce" src="_content/AlAfkarERP.Shared/images/Meals/alkaramSingleMeal.png" style="object-fit:fill"  />
-                            <div class="label-essential">ESSENTIAL</div>
-                        </div>
-                        <div class="p-5 flex-grow-1 d-flex flex-column">
-                            <h4 class="h5 text-primary text-uppercase mb-3">وجبة الكرم الجافة</h4>
-                            <p class="text-on-surface-variant fw-light small mb-4">الاستلام من المطبخ ويمكن توصيلها مجانا</p>
-                            <div class="mt-auto pt-4 border-top border-dark d-flex justify-content-between align-items-center">
-                                <span class="h4 text-primary fw-light mb-0">5.75 &#xFDFC;</span>
-                                <button class="btn btn-gold-solid py-2 px-4" style="font-size: 10px; letter-spacing: 0.1em;"><b>شراء</b></button>
-                            </div>
-                        </div>
-                    </div>
+            else if (!productSkus.Any())
+            {
+                <div class="product-state">
+                    <i class="bi bi-box-seam"></i>
+                    <span>لا توجد منتجات متاحة للعرض حاليا.</span>
                 </div>
-                <!-- Bundle 2 -->
-                <div class="col-md-4">
-                    <div class="initiative-card h-100 d-flex flex-column">
-                        <div class="card-img-container">
-                            <img alt="Hot Meal" src="_content/AlAfkarERP.Shared/images/Meals/alkaramSingleMeal.png" style="object-fit:fill" />
-                        </div>
-                        <div class="p-5 flex-grow-1 d-flex flex-column">
-                            <h4 class="h5 text-primary text-uppercase mb-3">وجبة الكرم الجافة (شهر كامل)</h4>
-                            <p class="text-on-surface-variant fw-light small mb-4">الاستلام من المطبخ ويمكن توصيلها مجانا</p>
-                            <div class="mt-auto pt-4 border-top border-dark d-flex justify-content-between align-items-center">
-                                <span class="h4 text-primary fw-light mb-0">161</span>
-                                <button class="btn btn-gold-solid py-2 px-4" style="font-size: 12px; letter-spacing: 0.1em;"><b>شراء</b></button>
+            }
+            else
+            {
+                <div class="product-grid">
+                    @foreach (var sku in productSkus)
+                    {
+                        <article class="product-card">
+                            <div class="product-media">
+                                <img alt="@GetSkuName(sku)" src="@GetProductImage(sku)" />
+                                @if (sku.ShowOnStore)
+                                {
+                                    <span class="product-badge">متاح</span>
+                                }
                             </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- Bundle 3 -->
-                <div class="col-md-4">
-                    <div class="initiative-card h-100 d-flex flex-column">
-                        <div class="card-img-container">
-                            <img alt="Backpack Program" src="_content/AlAfkarERP.Shared/images/Meals/AlbarakaHotMeal.png" style="object-fit:fill" />
-                        </div>
-                        <div class="p-5 flex-grow-1 d-flex flex-column">
-                            <h4 class="h5 text-primary text-uppercase mb-3">وجبة البركة الساخنة (بلس)</h4>
-                            <p class="text-on-surface-variant fw-light small mb-4">ربع دجاج  -  رز  -  ماء  -  عصير  -  تمر  -  فاكهة</p>
-                            <div class="mt-auto pt-4 border-top border-dark d-flex justify-content-between align-items-center">
-                                <span class="h4 text-primary fw-light mb-0">12.00</span>
-                                <button class="btn btn-gold-solid py-2 px-4" style="font-size: 10px; letter-spacing: 0.1em;"><b>شراء</b></button>
+                            <div class="product-body">
+                                <div>
+                                    <div class="product-meta">@GetSkuCode(sku)</div>
+                                    <h3>@GetSkuName(sku)</h3>
+                                    <p>@GetSkuDescription(sku)</p>
+                                </div>
+                                <div class="product-action">
+                                    <span>@sku.Price.ToString("0.##") &#xFDFC;</span>
+                                    <button class="btn btn-gold-solid" type="button">شراء</button>
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                        </article>
+                    }
                 </div>
-            </div>
+            }
         </div>
     </section>
     @if (1 == 3)
@@ -213,3 +202,326 @@
     </div>
 </footer>
 }
+
+@code {
+    private readonly List<ProductSkuDto> productSkus = [];
+    private bool isLoadingProducts = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProductSkusAsync();
+    }
+
+    private async Task LoadProductSkusAsync()
+    {
+        try
+        {
+            var response = await ProductService.GetPublicStoreProductSkusAsync(0, 6);
+            if (response.IsSuccess && response.Data is not null)
+            {
+                productSkus.Clear();
+                productSkus.AddRange(response.Data.Data);
+            }
+        }
+        finally
+        {
+            isLoadingProducts = false;
+        }
+    }
+
+    private string GetSkuName(ProductSkuDto sku)
+        => SharedDataService.SelectViewLang(
+            !string.IsNullOrWhiteSpace(sku.NameEng) ? sku.NameEng : sku.Name,
+            !string.IsNullOrWhiteSpace(sku.Name) ? sku.Name : sku.NameEng);
+
+    private string GetSkuCode(ProductSkuDto sku)
+        => SharedDataService.SelectViewLang(
+            !string.IsNullOrWhiteSpace(sku.SkuCodeEng) ? sku.SkuCodeEng : sku.SkuCode,
+            !string.IsNullOrWhiteSpace(sku.SkuCode) ? sku.SkuCode : sku.SkuCodeEng);
+
+    private string GetSkuDescription(ProductSkuDto sku)
+    {
+        var brand = SharedDataService.SelectViewLang(sku.BrandNameEng ?? "", sku.BrandName ?? "");
+        var packageName = sku.PackageName ?? "";
+
+        if (!string.IsNullOrWhiteSpace(brand) && !string.IsNullOrWhiteSpace(packageName))
+        {
+            return $"{brand} - {packageName}";
+        }
+
+        return !string.IsNullOrWhiteSpace(brand)
+            ? brand
+            : "الاستلام من المطبخ ويمكن توصيلها مجانا";
+    }
+
+    private string GetProductImage(ProductSkuDto sku)
+    {
+        if (string.IsNullOrWhiteSpace(sku.ImageUrl))
+        {
+            return "_content/AlAfkarERP.Shared/images/Meals/alkaramSingleMeal.png";
+        }
+
+        if (Uri.TryCreate(sku.ImageUrl, UriKind.Absolute, out _))
+        {
+            return sku.ImageUrl;
+        }
+
+        return $"{ApiConfig.BaseURL}/Images/Products/{sku.ImageUrl}";
+    }
+}
+
+<style>
+    .home-page {
+        background: #fbfaf7;
+        color: #2f2818;
+    }
+
+    .home-page .hero-section {
+        min-height: clamp(360px, 46vh, 520px);
+        padding: clamp(2.5rem, 5vw, 4.5rem) 0;
+        align-items: center;
+        border-bottom: 1px solid rgba(163, 124, 32, .18);
+    }
+
+    .home-page .hero-bg img {
+        opacity: .42;
+        filter: none;
+        object-position: center 44%;
+    }
+
+    .home-page .hero-overlay {
+        background:
+            linear-gradient(90deg, rgba(10, 10, 10, .18), rgba(10, 10, 10, .72)),
+            linear-gradient(to top, rgba(10, 10, 10, .9), rgba(10, 10, 10, .18));
+    }
+
+    .hero-content {
+        max-width: 620px;
+        color: #fff;
+        text-align: start;
+    }
+
+    .hero-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        margin-bottom: .8rem;
+        color: #f0d77c;
+        font-size: .82rem;
+        font-weight: 700;
+    }
+
+    .hero-content h1 {
+        margin: 0;
+        color: #fff;
+        font-size: clamp(2rem, 4.4vw, 4.2rem);
+        font-weight: 800;
+        line-height: 1.15;
+        max-width: 760px;
+    }
+
+    .hero-content p {
+        max-width: 560px;
+        margin: 1rem 0 0;
+        color: rgba(255, 255, 255, .82);
+        font-size: clamp(1rem, 1.4vw, 1.16rem);
+        line-height: 1.85;
+    }
+
+    .hero-actions {
+        display: flex;
+        margin-top: 1.35rem;
+    }
+
+    .hero-actions .btn {
+        border-radius: 8px;
+        padding: .82rem 1.35rem;
+        font-size: .86rem;
+    }
+
+    .store-section {
+        background: #fbfaf7;
+        border-top: 1px solid rgba(163, 124, 32, .16);
+        border-bottom: 1px solid rgba(163, 124, 32, .16);
+        padding-top: 2.25rem !important;
+    }
+
+    .store-heading {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .store-kicker {
+        display: inline-flex;
+        color: #a37c20;
+        font-size: .78rem;
+        font-weight: 700;
+        margin-bottom: .6rem;
+    }
+
+    .store-heading h2 {
+        margin: 0;
+        color: #2f2818;
+        font-size: clamp(1.75rem, 3vw, 2.8rem);
+        font-weight: 700;
+    }
+
+    .store-heading p {
+        max-width: 420px;
+        color: #776b54;
+        line-height: 1.8;
+        margin: 0;
+    }
+
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1.25rem;
+    }
+
+    .product-card {
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+        background: #fff;
+        border: 1px solid rgba(47, 40, 24, .1);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 10px 28px rgba(47, 40, 24, .08);
+    }
+
+    .product-media {
+        position: relative;
+        aspect-ratio: 16 / 11;
+        background: #f4efe5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: .75rem;
+    }
+
+    .product-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+        border-radius: 6px;
+    }
+
+    .product-badge {
+        position: absolute;
+        inset-block-start: .85rem;
+        inset-inline-start: .85rem;
+        background: #a37c20;
+        color: #fff;
+        border-radius: 999px;
+        padding: .28rem .65rem;
+        font-size: .74rem;
+        font-weight: 700;
+    }
+
+    .product-body {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        flex: 1 1 auto;
+        padding: 1.1rem;
+    }
+
+    .product-meta {
+        color: #a37c20;
+        font-size: .72rem;
+        font-weight: 700;
+        margin-bottom: .55rem;
+        overflow-wrap: anywhere;
+    }
+
+    .product-body h3 {
+        color: #2f2818;
+        font-size: 1.08rem;
+        font-weight: 700;
+        line-height: 1.45;
+        margin: 0 0 .65rem;
+        min-height: 3rem;
+    }
+
+    .product-body p {
+        color: #776b54;
+        line-height: 1.7;
+        margin: 0;
+        font-size: .92rem;
+        min-height: 3.2rem;
+    }
+
+    .product-action {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        border-top: 1px solid rgba(47, 40, 24, .12);
+        padding-top: 1rem;
+        margin-top: auto;
+    }
+
+    .product-action span {
+        color: #2f2818;
+        font-size: 1.3rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .product-action .btn {
+        min-width: 92px;
+        border-radius: 8px;
+        font-size: .84rem;
+        font-weight: 700;
+        padding: .72rem 1rem;
+    }
+
+    .product-state {
+        min-height: 220px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: .75rem;
+        color: #776b54;
+        background: #fff;
+        border: 1px dashed rgba(47, 40, 24, .2);
+        border-radius: 8px;
+    }
+
+    .product-state .bi {
+        font-size: 1.5rem;
+        color: #a37c20;
+    }
+
+    @@media (max-width: 767.98px) {
+        .home-page {
+            margin-top: 68px !important;
+        }
+
+        .home-page .hero-section {
+            min-height: 360px;
+            padding-block: 2.25rem;
+        }
+
+        .hero-content h1 {
+            font-size: 2rem;
+        }
+
+        .store-heading {
+            display: block;
+        }
+
+        .store-heading p {
+            margin-top: 1rem;
+        }
+
+        .product-body h3,
+        .product-body p {
+            min-height: 0;
+        }
+    }
+</style>

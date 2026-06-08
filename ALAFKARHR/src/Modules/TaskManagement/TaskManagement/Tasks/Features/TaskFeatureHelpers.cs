@@ -29,13 +29,19 @@ internal static class TaskFeatureHelpers
 
     public static IQueryable<TaskItem> ApplyVisibility(IQueryable<TaskItem> query, IHttpContextAccessor httpContextAccessor, Guid currentUserId, Guid? departmentId = null)
     {
+        var currentUserName = GetCurrentUserName(httpContextAccessor);
+
         if (HasPermission(httpContextAccessor, PermissionList.TaskManagementPermissions.ManageAllTasks))
             return query;
 
         if (HasPermission(httpContextAccessor, PermissionList.TaskManagementPermissions.ViewReports) && departmentId.HasValue)
             return query.Where(x => x.DepartmentId == departmentId.Value);
 
-        return query.Where(x => x.AssignedToUser == currentUserId.ToString() || x.CreatedBy == currentUserId.ToString() || x.AssignedByUserId== currentUserId);
+        return query.Where(x =>
+            x.AssignedToUser == currentUserId.ToString() ||
+            x.AssignedToUser == currentUserName ||
+            x.CreatedBy == currentUserId.ToString() ||
+            x.AssignedByUserId == currentUserId);
     }
 
     public static IQueryable<TaskItem> ApplyFilters(IQueryable<TaskItem> query, TaskFilterDto filter)

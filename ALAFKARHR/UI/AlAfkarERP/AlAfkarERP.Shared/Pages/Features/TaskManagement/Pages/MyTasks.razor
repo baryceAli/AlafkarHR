@@ -3,6 +3,7 @@
 
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using SharedWithUI.TaskManagement.Dtos
+@using TaskWorkflowStatus = SharedWithUI.TaskManagement.Enums.TaskStatus
 
 @inject ITaskManagementService TaskService
 @inject NavigationManager NavigationManager
@@ -17,10 +18,20 @@
     <div class="list-group">
         @foreach (var task in tasks)
         {
-            <button class="list-group-item list-group-item-action" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/View/{task.Id}")'>
-                <div class="d-flex justify-content-between">
-                    <strong>@task.Title</strong>
-                    <span>@task.Status</span>
+            var attentionBadge = GetAttentionBadge(task);
+            <button class="list-group-item list-group-item-action task-item @(attentionBadge is not null ? $"task-item-{attentionBadge.CssSuffix}" : "")"
+                    @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/View/{task.Id}")'>
+                <div class="d-flex justify-content-between gap-2">
+                    <strong class="task-title">@task.Title</strong>
+                    <span class="d-inline-flex align-items-center gap-2 flex-wrap justify-content-end">
+                        @if (attentionBadge is not null)
+                        {
+                            <span class="badge rounded-pill @attentionBadge.CssClass" title="@attentionBadge.Title">
+                                @attentionBadge.Text
+                            </span>
+                        }
+                        <span class="badge rounded-pill text-bg-light border">@task.Status</span>
+                    </span>
                 </div>
                 <small>@task.TaskNumber - Due @task.DueDate.ToShortDateString()</small>
             </button>
@@ -40,4 +51,69 @@
         if (response.IsSuccess)
             tasks = response.Data?.Data.ToList() ?? [];
     }
+
+    private static TaskAttentionBadge? GetAttentionBadge(TaskItemDto task)
+    {
+        if (IsCompletedOrCancelled(task))
+        {
+            return null;
+        }
+
+        var dueDate = task.DueDate.Date;
+        var today = DateTime.Today;
+
+        if (task.Status == TaskWorkflowStatus.Overdue || dueDate < today)
+        {
+            return new TaskAttentionBadge("Overdue", "text-bg-danger", "danger", "This task is overdue");
+        }
+
+        if (dueDate == today)
+        {
+            return new TaskAttentionBadge("Due today", "text-bg-warning", "warning", "This task is due today");
+        }
+
+        if (IsOpen(task))
+        {
+            return new TaskAttentionBadge("Open", "text-bg-primary", "primary", "This task is open");
+        }
+
+        return null;
+    }
+
+    private static bool IsOpen(TaskItemDto task)
+        => task.Status is TaskWorkflowStatus.Draft
+            or TaskWorkflowStatus.Assigned
+            or TaskWorkflowStatus.InProgress
+            or TaskWorkflowStatus.OnHold;
+
+    private static bool IsCompletedOrCancelled(TaskItemDto task)
+        => task.Status is TaskWorkflowStatus.Completed or TaskWorkflowStatus.Cancelled;
+
+    private sealed record TaskAttentionBadge(string Text, string CssClass, string CssSuffix, string Title);
 }
+
+<style>
+    .task-item {
+        border-inline-start: 4px solid transparent;
+    }
+
+    .task-item-danger {
+        border-inline-start-color: var(--bs-danger);
+        background: rgba(var(--bs-danger-rgb), .05);
+    }
+
+    .task-item-warning {
+        border-inline-start-color: var(--bs-warning);
+        background: rgba(var(--bs-warning-rgb), .08);
+    }
+
+    .task-item-primary {
+        border-inline-start-color: var(--bs-primary);
+        background: rgba(var(--bs-primary-rgb), .05);
+    }
+
+    .task-title {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+</style>

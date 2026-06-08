@@ -11,13 +11,14 @@ public class GetTaskDashboardHandler(TaskManagementDbContext dbContext, IHttpCon
     public async Task<GetTaskDashboardResult> Handle(GetTaskDashboardQuery request, CancellationToken cancellationToken)
     {
         var userId = TaskFeatureHelpers.GetCurrentUserId(httpContextAccessor);
+        var userName = TaskFeatureHelpers.GetCurrentUserName(httpContextAccessor);
         var today = DateTime.UtcNow.Date;
         var weekEnd = today.AddDays(7);
 
         var query = dbContext.TaskItems.AsNoTracking().Where(x => !x.IsDeleted && !x.IsArchived);
         query = request.Scope.ToLowerInvariant() switch
         {
-            "mine" => query.Where(x => x.AssignedToUser == userId.ToString()),
+            "mine" => query.Where(x => x.AssignedToUser == userId.ToString() || x.AssignedToUser == userName),
             "department" when request.DepartmentId.HasValue => query.Where(x => x.DepartmentId == request.DepartmentId.Value),
             _ => TaskFeatureHelpers.ApplyVisibility(query, httpContextAccessor, userId, request.DepartmentId)
         };
