@@ -1,124 +1,489 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Organization/Company/List"
-@using SharedWithUI.Organization.Dtos
+@using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Organization.Dtos
+@implements IDisposable
 
 @inject ICompanyService CompanyService
-@inject IBranchService BranchService
-@inject IAdministrationService AdministrationService
-@inject IDepartmentService DepartmentService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
-<h3 class="mb-3">@SharedDataService.SelectViewLang("Company Details","بيانات الشركة")</h3>
-<div class="row g-3 my-4">
+@inject ToastService ToastService
+@inject ApiConfig ApiConfig
 
-    <div class="col-md-4">
-        <a href="/Organization/Branch/List" class="text-decoration-none">
-            <div class="card text-white bg-primary shadow h-100">
-                <div class="card-body text-center">
-                    @* <h6>Branches</h6> *@
-                    <h3>@SharedDataService.SelectViewLang("Branches", "الفروع")</h3>
-                </div>
-            </div>
-        </a>
+<div class="company-profile">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <h3 class="mb-1">@Text("Company Profile", "ملف الشركة")</h3>
+            <div class="text-muted">@Text("Manage core company information used across the organization.", "إدارة بيانات الشركة الأساسية المستخدمة في النظام.")</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="/Organization/Dashboard" class="btn btn-outline-primary">
+                <i class="bi bi-diagram-3"></i>
+                @Text("Structure", "الهيكل")
+            </a>
+            <button class="btn btn-primary" @onclick="LoadCompanyAsync" disabled="@isLoading">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+        </div>
     </div>
 
-    <div class="col-md-4">
-        <a href="/Organization/Administration/List" class="text-decoration-none">
-            <div class="card text-white bg-success shadow h-100">
-                <div class="card-body text-center">
-                    @* <h6>Admins</h6> *@
-                    <h3>@SharedDataService.SelectViewLang("Administrations", "الإدارات")</h3>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <a href="/Organization/Branch/List" class="text-decoration-none">
+                <div class="profile-link border-primary">
+                    <i class="bi bi-diagram-2"></i>
+                    <span>@Text("Branches", "الفروع")</span>
                 </div>
-            </div>
-        </a>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/Organization/Administration/List" class="text-decoration-none">
+                <div class="profile-link border-success">
+                    <i class="bi bi-kanban"></i>
+                    <span>@Text("Administrations", "الإدارات")</span>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="/Organization/Department/List" class="text-decoration-none">
+                <div class="profile-link border-warning">
+                    <i class="bi bi-grid-1x2"></i>
+                    <span>@Text("Departments", "الأقسام")</span>
+                </div>
+            </a>
+        </div>
     </div>
 
-    <div class="col-md-4">
-        <a href="/Organization/Department/List" class="text-decoration-none">
-            <div class="card text-white bg-warning shadow h-100">
-                <div class="card-body text-center">
-                    @* <h6>Departments</h6> *@
-                    <h3>@SharedDataService.SelectViewLang("Departments", "الاقسام")</h3>
+    @if (isLoading)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body py-5 text-center">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="fw-semibold">@Text("Loading company profile...", "جاري تحميل ملف الشركة...")</div>
+            </div>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-warning d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>@errorMessage</span>
+        </div>
+    }
+    else if (company is null)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body py-5 text-center text-muted">
+                @Text("No company profile was found.", "لم يتم العثور على ملف الشركة.")
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="company-logo">
+                            @if (!string.IsNullOrWhiteSpace(company.Logo))
+                            {
+                                <img src="@CompanyLogoUrl" alt="@DisplayName(company.Name, company.NameEng)" />
+                            }
+                            else
+                            {
+                                <i class="bi bi-building"></i>
+                            }
+                        </div>
+                        <div>
+                            <div class="text-muted small">@Text("Company", "الشركة")</div>
+                            <h4 class="mb-1">@DisplayName(company.Name, company.NameEng)</h4>
+                            <div class="text-muted">@company.Code | @company.Currency | @company.TimeZone</div>
+                        </div>
+                    </div>
+                    <div class="company-contact text-md-end">
+                        <div><i class="bi bi-telephone"></i> @EmptyValue(company.Phone)</div>
+                        <div><i class="bi bi-envelope"></i> @EmptyValue(company.Email)</div>
+                    </div>
                 </div>
             </div>
-        </a>
-    </div>
+        </div>
 
+        <EditForm Model="company" OnValidSubmit="SaveAsync">
+            <DataAnnotationsValidator />
+
+            <div class="row g-4">
+                <div class="col-xl-8">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">@Text("Editable Information", "البيانات القابلة للتعديل")</h5>
+                                <span class="badge text-bg-light">@Text("Saved by API", "تحفظ عبر الواجهة البرمجية")</span>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Name", "الاسم")</label>
+                                    <InputText class="form-control" @bind-Value="company.Name" />
+                                    <ValidationMessage For="() => company.Name" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Name (English)", "الاسم بالإنجليزية")</label>
+                                    <InputText class="form-control" @bind-Value="company.NameEng" />
+                                    <ValidationMessage For="() => company.NameEng" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("VAT Number", "الرقم الضريبي")</label>
+                                    <InputText class="form-control" @bind-Value="company.VatNo" />
+                                    <ValidationMessage For="() => company.VatNo" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Logo", "الشعار")</label>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <label for="companyLogoUpload" class="company-logo-upload">
+                                            @if (!string.IsNullOrWhiteSpace(company.Logo))
+                                            {
+                                                <img src="@CompanyLogoUrl" alt="@DisplayName(company.Name, company.NameEng)" />
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-image"></i>
+                                            }
+                                        </label>
+                                        <div>
+                                            <InputFile id="companyLogoUpload"
+                                                       style="display:none"
+                                                       OnChange="OnCompanyLogoSelected"
+                                                       accept="image/*" />
+                                            <label for="companyLogoUpload" class="btn btn-outline-primary btn-sm mb-1">
+                                                <i class="bi bi-upload"></i>
+                                                @Text("Upload Logo", "رفع الشعار")
+                                            </label>
+                                            <div class="text-muted small">@Text("PNG or JPG up to 5 MB.", "PNG أو JPG حتى 5 ميجابايت.")</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">@Text("Headquarters Location", "موقع المقر الرئيسي")</label>
+                                    <InputText class="form-control" @bind-Value="company.HqLocation" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Longitude", "خط الطول")</label>
+                                    <InputNumber class="form-control" @bind-Value="company.HqLongitude" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Latitude", "خط العرض")</label>
+                                    <InputNumber class="form-control" @bind-Value="company.HqLatitude" />
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2 mt-4">
+                                <button type="button" class="btn btn-outline-secondary" @onclick="LoadCompanyAsync" disabled="@isSaving">
+                                    @Text("Cancel", "إلغاء")
+                                </button>
+                                <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                                    @if (isSaving)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    }
+                                    <span>@Text("Save Changes", "حفظ التغييرات")</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <h5 class="mb-3">@Text("System Details", "بيانات النظام")</h5>
+                            <div class="locked-fields">
+                                <div>
+                                    <label>@Text("Code", "الكود")</label>
+                                    <input class="form-control" value="@EmptyValue(company.Code)" disabled />
+                                </div>
+                                <div>
+                                    <label>@Text("Currency", "العملة")</label>
+                                    <input class="form-control" value="@EmptyValue(company.Currency)" disabled />
+                                </div>
+                                <div>
+                                    <label>@Text("Time Zone", "المنطقة الزمنية")</label>
+                                    <input class="form-control" value="@EmptyValue(company.TimeZone)" disabled />
+                                </div>
+                                <div>
+                                    <label>@Text("Phone", "الهاتف")</label>
+                                    <input class="form-control" value="@EmptyValue(company.Phone)" disabled />
+                                </div>
+                                <div>
+                                    <label>@Text("Email", "البريد الإلكتروني")</label>
+                                    <input class="form-control" value="@EmptyValue(company.Email)" disabled />
+                                </div>
+                            </div>
+                            <div class="text-muted small mt-3">
+                                @Text("These fields are shown for context because the current company update endpoint does not change them.", "تظهر هذه الحقول للمعرفة لأن واجهة تعديل الشركة الحالية لا تقوم بتغييرها.")
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </EditForm>
+    }
 </div>
-@if (company == null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <div class="card p-3 mb-3">
-        <h4>@company.Name</h4>
-        <div class="text-muted">@company.Code | @company.Currency</div>
-    </div>
 
-    <div class="card mt-5 p-4">
-        <h5>Company Information</h5>
+<style>
+    .company-profile {
+        max-width: 1400px;
+    }
 
-        <div class="mb-2">
-            <label>Name</label>
-            <InputText class="form-control" @bind-Value="company.Name" />
-        </div>
+    .profile-link {
+        align-items: center;
+        background: #fff;
+        border-left: 4px solid;
+        border-radius: 8px;
+        box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.08);
+        color: #212529;
+        display: flex;
+        gap: 0.75rem;
+        min-height: 86px;
+        padding: 1rem;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
 
-        <div class="mb-2">
-            <label>Code</label>
-            <InputText class="form-control" @bind-Value="company.Code" />
-        </div>
+    .profile-link:hover {
+        box-shadow: 0 0.25rem 0.75rem rgba(15, 23, 42, 0.12);
+        transform: translateY(-1px);
+    }
 
-        <div class="mb-2">
-            <label>Currency</label>
-            <InputText class="form-control" @bind-Value="company.Currency" />
-        </div>
+    .profile-link i {
+        color: #0d6efd;
+        font-size: 1.5rem;
+    }
 
-        <button class="btn btn-primary mt-2" @onclick="Save">
-            Save Changes
-        </button>
-    </div>
-    
-}
+    .profile-link span {
+        font-size: 1.15rem;
+        font-weight: 600;
+    }
+
+    .company-logo {
+        align-items: center;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        color: #0d6efd;
+        display: flex;
+        height: 72px;
+        justify-content: center;
+        overflow: hidden;
+        width: 72px;
+    }
+
+    .company-logo img {
+        height: 100%;
+        object-fit: cover;
+        width: 100%;
+    }
+
+    .company-logo i {
+        font-size: 2rem;
+    }
+
+    .company-logo-upload {
+        align-items: center;
+        background: #f8f9fa;
+        border: 1px dashed #adb5bd;
+        border-radius: 8px;
+        color: #0d6efd;
+        cursor: pointer;
+        display: flex;
+        height: 88px;
+        justify-content: center;
+        overflow: hidden;
+        width: 88px;
+    }
+
+    .company-logo-upload img {
+        height: 100%;
+        object-fit: cover;
+        width: 100%;
+    }
+
+    .company-logo-upload i {
+        font-size: 1.75rem;
+    }
+
+    .company-contact {
+        color: #6c757d;
+        display: grid;
+        gap: 0.35rem;
+    }
+
+    .locked-fields {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .locked-fields label {
+        color: #6c757d;
+        display: block;
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+
+    [dir="rtl"] .profile-link {
+        border-left: 0;
+        border-right: 4px solid;
+    }
+</style>
 
 @code {
-    private Guid Id { get; set; }
-    private AuthenticationState AuthState;
     private CompanyDto? company;
-    
+    private bool isLoading = true;
+    private bool isSaving;
+    private string? errorMessage;
+
+    private string CompanyLogoUrl =>
+        company is null || string.IsNullOrWhiteSpace(company.Logo)
+            ? string.Empty
+            : company.Logo.Contains("data:", StringComparison.OrdinalIgnoreCase)
+                ? company.Logo
+                : $"{ApiConfig.BaseURL}/Images/Companies/{company.Logo}";
+
     protected override async Task OnInitializedAsync()
     {
-        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-        var compId = AuthState.User?.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value ?? "";
-        var comResult = await CompanyService.GetByIdAsync(Guid.Parse(compId));
-        if (comResult.IsSuccess)
+        SharedDataService.OnChange1 += HandleLanguageChangeAsync;
+        await LoadCompanyAsync();
+    }
+
+    private async Task LoadCompanyAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
         {
-            company = comResult.Data;
+            var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated != true)
+            {
+                NavigationManager.NavigateTo("/login", true);
+                return;
+            }
+
+            var companyIdValue = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+            if (!Guid.TryParse(companyIdValue, out var companyId))
+            {
+                company = null;
+                errorMessage = Text("The current user is not linked to a company.", "المستخدم الحالي غير مرتبط بشركة.");
+                return;
+            }
+
+            var result = await CompanyService.GetByIdAsync(companyId);
+            if (result.IsSuccess)
+            {
+                company = result.Data;
+            }
+            else
+            {
+                company = null;
+                errorMessage = result.Error?.Detail ?? Text("Unable to load company profile.", "تعذر تحميل ملف الشركة.");
+            }
         }
-        
+        catch
+        {
+            company = null;
+            errorMessage = Text("An error occurred while loading company profile.", "حدث خطأ أثناء تحميل ملف الشركة.");
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
-    async Task Save()
+    private async Task SaveAsync()
     {
-        await CompanyService.UpdateAsync(company);
+        if (company is null)
+        {
+            return;
+        }
+
+        isSaving = true;
+
+        try
+        {
+            var result = await CompanyService.UpdateAsync(company);
+            if (result.IsSuccess && result.Data?.IsSuccess == true)
+            {
+                ToastService.Show(new ToastMessage
+                {
+                    Type = "success",
+                    Message = Text("Company profile has been saved successfully.", "تم حفظ بيانات الشركة بنجاح.")
+                });
+            }
+            else
+            {
+                ToastService.Show(new ToastMessage
+                {
+                    Type = "error",
+                    Message = result.Error?.Detail ?? Text("Unable to save company profile.", "تعذر حفظ بيانات الشركة.")
+                });
+            }
+        }
+        finally
+        {
+            isSaving = false;
+        }
     }
 
-    
-    protected override void OnInitialized()
+    private async Task OnCompanyLogoSelected(InputFileChangeEventArgs e)
     {
-        SharedDataService.OnChange1 += HandleChangeAsync;
+        if (company is null)
+        {
+            return;
+        }
+
+        var file = e.File;
+        if (file is null)
+        {
+            return;
+        }
+
+        using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+        using var ms = new MemoryStream();
+
+        await stream.CopyToAsync(ms);
+
+        var base64 = Convert.ToBase64String(ms.ToArray());
+        company.Logo = $"data:{file.ContentType};base64,{base64}".Trim();
+
+        await InvokeAsync(StateHasChanged);
     }
 
-    private async Task HandleChangeAsync()
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private string DisplayName(string? name, string? nameEng)
+        => SharedDataService.Language == "Ar"
+            ? FirstNotEmpty(name, nameEng)
+            : FirstNotEmpty(nameEng, name);
+
+    private static string EmptyValue(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private static string FirstNotEmpty(string? primary, string? fallback)
+        => !string.IsNullOrWhiteSpace(primary)
+            ? primary
+            : !string.IsNullOrWhiteSpace(fallback) ? fallback : "-";
+
+    private async Task HandleLanguageChangeAsync()
     {
         await InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
     {
-        SharedDataService.OnChange1 -= HandleChangeAsync;
+        SharedDataService.OnChange1 -= HandleLanguageChangeAsync;
     }
 }

@@ -1,11 +1,12 @@
-﻿namespace Organization.Organizations.Features.Companies.UpdateCompany;
+using Shared.SaveImages;
+
+namespace Organization.Organizations.Features.Companies.UpdateCompany;
+
 public record UpdateCompanyCommand(CompanyDto Company) : ICommand<UpdateCompanyResult>;
 public record UpdateCompanyResult(bool IsSuccess);
 
-
 public class UpdateCompanyHandler(OrganizationDbContext dbContext, IHttpContextAccessor httpContextAccessor)
     : ICommandHandler<UpdateCompanyCommand, UpdateCompanyResult>
-
 {
     public async Task<UpdateCompanyResult> Handle(UpdateCompanyCommand request, CancellationToken cancellationToken)
     {
@@ -18,10 +19,27 @@ public class UpdateCompanyHandler(OrganizationDbContext dbContext, IHttpContextA
                         .FindFirst(ClaimTypes.NameIdentifier)?
                         .Value
                         ?? throw new UnauthorizedAccessException("User not authenticated");
+
+        string finalLogoPath = company.Logo;
+        var incomingLogo = request.Company.Logo;
+
+        if (!string.IsNullOrWhiteSpace(incomingLogo))
+        {
+            if (SaveImages.IsBase64Image(incomingLogo))
+            {
+                string[] pathSegments = ["wwwroot", "Images", "Companies"];
+                finalLogoPath = SaveImages.SaveBase64Image($"{company.Id}", pathSegments, incomingLogo);
+            }
+            else
+            {
+                finalLogoPath = incomingLogo;
+            }
+        }
+
         company.Update(
             request.Company.Name,
             request.Company.NameEng,
-            request.Company.Logo,
+            finalLogoPath,
             request.Company.HqLocation,
             request.Company.HqLongitude,
             request.Company.HqLatitude,

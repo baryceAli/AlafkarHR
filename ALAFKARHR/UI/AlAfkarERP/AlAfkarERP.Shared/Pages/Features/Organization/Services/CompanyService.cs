@@ -49,7 +49,13 @@ public class CompanyService : BaseApiService, ICompanyService
 
     public async Task<ApiResult<UpdateDeleteResponseDto>> UpdateAsync(CompanyDto company)
     {
-        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}");
+        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}")
+        {
+            Content = JsonContent.Create(new
+            {
+                Company = company
+            })
+        };
         return await SendAsync<UpdateDeleteResponseDto>(request, null);
     }
 }
