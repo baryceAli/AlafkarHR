@@ -27,6 +27,11 @@ High-level architecture:
 - `UI/AlAfkarERP/AlAfkarERP.Web` hosts the shared UI as an interactive server Blazor app.
 - `UI/AlAfkarERP/AlAfkarERP` hosts the shared UI in .NET MAUI Blazor.
 
+Current module wiring status:
+
+- Active API modules registered in `src/Bootstraper/Api/Program.cs`: Auth, Organization, Employee, Catalog, Inventory, GeneralSettings, Customers, SalesOrder, Suppliers, Pricing, and TaskManagement.
+- Module projects present but not all fully wired into the API composition root: Attendance, Leave, PayrollEngine, PayrollModule, and PerformanceManagement. Treat these as domain/partial modules unless their registration is added intentionally.
+
 ## Technology Stack
 
 - Language/runtime: C# on `net10.0`.
@@ -112,9 +117,11 @@ Handler conventions observed:
 ## Frontend/Blazor Rules
 
 - Put reusable UI and feature pages in `UI/AlAfkarERP/AlAfkarERP.Shared`.
+- Feature pages usually live under `UI/AlAfkarERP/AlAfkarERP.Shared/Pages/Features/{Domain}/Pages`; feature API clients usually live under the matching `Services` folder.
 - The web host registers all UI services and typed HTTP clients in `UI/AlAfkarERP/AlAfkarERP.Web/Program.cs`.
 - UI API service classes usually inherit `BaseApiService`, build `HttpRequestMessage`s, and return `ApiResult<T>`.
 - Add a matching interface and service implementation under the feature service folder when adding UI API calls.
+- Register new typed UI services in `AlAfkarERP.Web/Program.cs` with `AuthMessageHandler` when the endpoint requires authentication.
 - Use `AuthMessageHandler` on authenticated HTTP clients so bearer tokens and refresh-token retry behavior are preserved.
 - `CustomAuthStateProvider` parses JWT claims and adds role claims for Blazor authorization.
 - Shared routes are defined in `Routes.razor`; layouts live under `Layout`.
@@ -179,6 +186,7 @@ Existing migration folders are present for Auth, Catalog, Customers, Employee, G
 
 - No test projects were found in the current solution/tree.
 - No CI workflow files were found.
+- Current validation expectation is `dotnet build ALAFKARHR.slnx` unless the user asks for a narrower or broader check.
 - Before committing backend or UI changes, at minimum run `dotnet build ALAFKARHR.slnx`.
 - If adding tests later, place them in clearly named test projects and add them to `ALAFKARHR.slnx`; then update this file with `dotnet test` commands.
 
@@ -191,6 +199,7 @@ Existing migration folders are present for Auth, Catalog, Customers, Employee, G
 
 ## Important Constraints
 
+- Always check `git status --short` before edits. The worktree may contain user changes; do not overwrite, revert, or clean unrelated changes unless explicitly requested.
 - Do not edit generated `bin/` or `obj/` output.
 - Do not hand-edit EF migration designer/model snapshot files unless intentionally repairing a migration; prefer creating a new migration.
 - Do not bypass Carter/MediatR by adding controller actions for module features unless the architecture is intentionally being changed.
@@ -201,6 +210,13 @@ Existing migration folders are present for Auth, Catalog, Customers, Employee, G
 - Be careful with SalesOrder pricing behavior: order creation and line additions resolve prices by sending `ResolvePriceQuery` to the Pricing contract.
 - Be careful with Inventory stock operations: reservation, release, in/out, and adjustment features modify quantities and movement history.
 - Some folders contain legacy/old code (`zOld`, `Layout/Old`, typoed `Reuable`). Treat them as legacy unless the current feature already uses them.
+
+## Known Caution Areas
+
+- `UseMigration<TContext>` currently declares `isFirstModule` inside each call, so the guarded migration branch is skipped for each module call while seeding still runs. Be deliberate when changing this because startup behavior across modules may change.
+- Endpoint file/class naming is mixed between `Endpoint` and `EndPoint`; match nearby module conventions when adding files.
+- Legacy folders and typoed paths exist, including `zOld`, `Layout/Old`, `Pages/Reuable`, and `Pages/Reuable2`. Prefer current local patterns, but avoid broad cleanup during feature work.
+- Docker Compose defines PostgreSQL services, while active module registration uses SQL Server via `UseSqlServer`. Do not switch providers without an explicit architecture decision.
 
 ## Development Workflow
 

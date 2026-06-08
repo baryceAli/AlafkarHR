@@ -1,7 +1,421 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Organization/Dashboard"
-<h3>OrganizationDashboard</h3>
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Organization.Dtos
+@implements IDisposable
+
+@inject ICompanyService CompanyService
+@inject IBranchService BranchService
+@inject IAdministrationService AdministrationService
+@inject IDepartmentService DepartmentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+<div class="org-dashboard">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <h3 class="mb-1">@Text("Organizational Structure", "الهيكل التنظيمي")</h3>
+            <div class="text-muted">@Text("Company hierarchy from branches to departments", "تسلسل الشركة من الفروع إلى الأقسام")</div>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-primary" href="/Organization/Company/List">
+                <i class="bi bi-building"></i>
+                @Text("Company", "الشركة")
+            </a>
+            <button class="btn btn-primary" @onclick="LoadDashboardAsync" disabled="@isLoading">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body py-5 text-center">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="fw-semibold">@Text("Loading organization structure...", "جاري تحميل الهيكل التنظيمي...")</div>
+            </div>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-warning d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>@errorMessage</span>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3 mb-4">
+            <div class="col-sm-6 col-xl-3">
+                <div class="org-stat border-primary">
+                    <span>@Text("Companies", "الشركات")</span>
+                    <strong>@(company is null ? 0 : 1)</strong>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="org-stat border-info">
+                    <span>@Text("Branches", "الفروع")</span>
+                    <strong>@branches.Count</strong>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="org-stat border-success">
+                    <span>@Text("Administrations", "الإدارات")</span>
+                    <strong>@AdministrationCount</strong>
+                </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+                <div class="org-stat border-warning">
+                    <span>@Text("Departments", "الأقسام")</span>
+                    <strong>@DepartmentCount</strong>
+                </div>
+            </div>
+        </div>
+
+        @if (company is null)
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5 text-muted">
+                    @Text("No company profile was found for the current user.", "لم يتم العثور على ملف شركة للمستخدم الحالي.")
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                        <div>
+                            <div class="text-muted small">@Text("Company", "الشركة")</div>
+                            <h4 class="mb-1">@DisplayName(company.Name, company.NameEng)</h4>
+                            <div class="text-muted">@company.Code | @company.Currency | @company.TimeZone</div>
+                        </div>
+                        <div class="text-md-end">
+                            <div>@company.Phone</div>
+                            <div class="text-muted">@company.Email</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (branches.Count == 0)
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5 text-muted">
+                        @Text("No branches have been added yet.", "لم تتم إضافة فروع بعد.")
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="org-tree">
+                    @foreach (var branchNode in branches)
+                    {
+                        <section class="org-branch">
+                            <div class="org-branch-header">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-diagram-3 text-primary"></i>
+                                        <h5 class="mb-0">@DisplayName(branchNode.Branch.Name, branchNode.Branch.NameEng)</h5>
+                                        @if (branchNode.Branch.IsMainBranch)
+                                        {
+                                            <span class="badge text-bg-primary">@Text("Main", "رئيسي")</span>
+                                        }
+                                    </div>
+                                    <div class="text-muted small mt-1">@branchNode.Branch.Location</div>
+                                </div>
+                                <div class="org-branch-meta">
+                                    <span>@Text("Administrations", "الإدارات"): @branchNode.Administrations.Count</span>
+                                    <span>@Text("Departments", "الأقسام"): @branchNode.DepartmentCount</span>
+                                </div>
+                            </div>
+
+                            @if (branchNode.Administrations.Count == 0)
+                            {
+                                <div class="org-empty">@Text("No administrations under this branch.", "لا توجد إدارات ضمن هذا الفرع.")</div>
+                            }
+                            else
+                            {
+                                <div class="row g-3">
+                                    @foreach (var adminNode in branchNode.Administrations)
+                                    {
+                                        <div class="col-lg-6">
+                                            <article class="org-admin">
+                                                <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+                                                    <div>
+                                                        <div class="fw-semibold">@DisplayName(adminNode.Administration.Name, adminNode.Administration.NameEng)</div>
+                                                        <div class="text-muted small">@adminNode.Administration.Code</div>
+                                                    </div>
+                                                    <span class="badge @(adminNode.Administration.IsActive ? "text-bg-success" : "text-bg-secondary")">
+                                                        @(adminNode.Administration.IsActive ? Text("Active", "فعال") : Text("Inactive", "غير فعال"))
+                                                    </span>
+                                                </div>
+
+                                                @if (adminNode.Departments.Count == 0)
+                                                {
+                                                    <div class="org-empty py-3">@Text("No departments.", "لا توجد أقسام.")</div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="org-departments">
+                                                        @foreach (var department in adminNode.Departments)
+                                                        {
+                                                            <div class="org-department">
+                                                                <div>
+                                                                    <div class="fw-semibold">@DisplayName(department.Name, department.NameEng)</div>
+                                                                    <div class="text-muted small">@department.Location</div>
+                                                                </div>
+                                                                <span class="badge @(department.IsActive ? "text-bg-light" : "text-bg-secondary")">
+                                                                    @(department.IsActive ? Text("Active", "فعال") : Text("Inactive", "غير فعال"))
+                                                                </span>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                }
+                                            </article>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </section>
+                    }
+                </div>
+            }
+        }
+    }
+</div>
+
+<style>
+    .org-dashboard {
+        max-width: 1400px;
+    }
+
+    .org-stat {
+        background: #fff;
+        border-left: 4px solid;
+        border-radius: 8px;
+        box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        min-height: 88px;
+        padding: 1rem 1.125rem;
+    }
+
+    .org-stat span {
+        color: #6c757d;
+        font-size: 0.95rem;
+    }
+
+    .org-stat strong {
+        font-size: 2rem;
+        line-height: 1;
+    }
+
+    .org-tree {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .org-branch {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.06);
+        padding: 1rem;
+    }
+
+    .org-branch-header {
+        border-bottom: 1px solid #edf0f2;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+    }
+
+    .org-branch-meta {
+        color: #6c757d;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: flex-end;
+        font-size: 0.9rem;
+    }
+
+    .org-admin {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        height: 100%;
+        padding: 1rem;
+    }
+
+    .org-departments {
+        display: grid;
+        gap: 0.625rem;
+    }
+
+    .org-department {
+        background: #fff;
+        border: 1px solid #edf0f2;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .org-empty {
+        background: #f8f9fa;
+        border: 1px dashed #ced4da;
+        border-radius: 8px;
+        color: #6c757d;
+        padding: 1rem;
+        text-align: center;
+    }
+
+    [dir="rtl"] .org-stat {
+        border-left: 0;
+        border-right: 4px solid;
+    }
+
+    @@media (max-width: 767.98px) {
+        .org-branch-header,
+        .org-department {
+            flex-direction: column;
+        }
+
+        .org-branch-meta {
+            justify-content: flex-start;
+        }
+    }
+</style>
 
 @code {
+    private CompanyDto? company;
+    private List<BranchNode> branches = [];
+    private bool isLoading = true;
+    private string? errorMessage;
 
+    private int AdministrationCount => branches.Sum(branch => branch.Administrations.Count);
+    private int DepartmentCount => branches.Sum(branch => branch.DepartmentCount);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleLanguageChangeAsync;
+        await LoadDashboardAsync();
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        branches = [];
+
+        try
+        {
+            var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated != true)
+            {
+                NavigationManager.NavigateTo("/login", true);
+                return;
+            }
+
+            var companyIdValue = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+            if (!Guid.TryParse(companyIdValue, out var companyId))
+            {
+                errorMessage = Text("The current user is not linked to a company.", "المستخدم الحالي غير مرتبط بشركة.");
+                return;
+            }
+
+            var companyResult = await CompanyService.GetByIdAsync(companyId);
+            if (companyResult.IsSuccess)
+            {
+                company = companyResult.Data;
+            }
+
+            var branchResult = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+            if (!branchResult.IsSuccess)
+            {
+                errorMessage = Text("Unable to load branches.", "تعذر تحميل الفروع.");
+                return;
+            }
+
+            foreach (var branch in branchResult.Data?.Data ?? [])
+            {
+                var branchNode = new BranchNode(branch);
+                var administrationResult = await AdministrationService.GetByBranchAsync(branch.Id, 0, 1000);
+
+                if (administrationResult.IsSuccess)
+                {
+                    foreach (var administration in administrationResult.Data?.Data ?? [])
+                    {
+                        var adminNode = new AdministrationNode(administration);
+                        var departmentResult = await DepartmentService.GetByAdministrationAsync(administration.Id, 0, 1000);
+
+                        if (departmentResult.IsSuccess)
+                        {
+                            adminNode.Departments.AddRange(departmentResult.Data?.Data ?? []);
+                        }
+
+                        branchNode.Administrations.Add(adminNode);
+                    }
+                }
+
+                branches.Add(branchNode);
+            }
+        }
+        catch
+        {
+            errorMessage = Text("An error occurred while loading the organization structure.", "حدث خطأ أثناء تحميل الهيكل التنظيمي.");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private string DisplayName(string? name, string? nameEng)
+        => SharedDataService.Language == "Ar"
+            ? FirstNotEmpty(name, nameEng)
+            : FirstNotEmpty(nameEng, name);
+
+    private static string FirstNotEmpty(string? primary, string? fallback)
+        => !string.IsNullOrWhiteSpace(primary)
+            ? primary
+            : !string.IsNullOrWhiteSpace(fallback) ? fallback : "-";
+
+    private async Task HandleLanguageChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleLanguageChangeAsync;
+    }
+
+    private sealed class BranchNode(BranchDto branch)
+    {
+        public BranchDto Branch { get; } = branch;
+        public List<AdministrationNode> Administrations { get; } = [];
+        public int DepartmentCount => Administrations.Sum(admin => admin.Departments.Count);
+    }
+
+    private sealed class AdministrationNode(AdministrationDto administration)
+    {
+        public AdministrationDto Administration { get; } = administration;
+        public List<DepartmentDto> Departments { get; } = [];
+    }
 }

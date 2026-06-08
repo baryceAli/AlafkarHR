@@ -151,42 +151,43 @@
 
         </div>
 
-        <!-- BRAND FILTER -->
-        @if (AvailableBrands.Any())
-        {
-            <div class="mb-4">
+        
+    }
+    <!-- BRAND FILTER -->
+    @if (AvailableBrands.Any())
+    {
+        <div class="mb-4">
 
-                <div class="fw-bold mb-2">
-                    @SharedDataService.SelectViewLang("Brand", "العلامة التجارية")
-                </div>
+            <div class="fw-bold mb-2">
+                @SharedDataService.SelectViewLang("Brand", "العلامة التجارية")
+            </div>
 
-                <div class="d-flex flex-wrap gap-2">
+            <div class="d-flex flex-wrap gap-2">
 
-                    <button class="btn @(SelectedBrandForSkuId == null
-                                                                                ? "btn-dark"
-                                                                                : "btn-outline-dark") rounded-pill"
-                            @onclick="() => SelectBrand(null)">
-                        @SharedDataService.SelectViewLang("All", "الكل")
+                <button class="btn @(SelectedBrandForSkuId == null
+                                            ? "btn-dark"
+                                            : "btn-outline-dark") rounded-pill"
+                        @onclick="() => SelectBrand(null)">
+                    @SharedDataService.SelectViewLang("All", "الكل")
+                </button>
+
+                @foreach (var brand in AvailableBrands)
+                {
+                    var isSelected = SelectedBrandForSkuId == brand.Id;
+
+                    <button class="btn @(isSelected
+                                                                                                                        ? "btn-primary"
+                                                                                                                        : "btn-outline-primary") rounded-pill"
+                            @onclick="() => SelectBrand(brand.Id)">
+                        @SharedDataService.SelectViewLang(brand.NameEng, brand.Name)
                     </button>
-
-                    @foreach (var brand in AvailableBrands)
-                    {
-                        var isSelected = SelectedBrandForSkuId == brand.Id;
-
-                        <button class="btn @(isSelected
-                                                                                            ? "btn-primary"
-                                                                                            : "btn-outline-primary") rounded-pill"
-                                @onclick="() => SelectBrand(brand.Id)">
-                            @SharedDataService.SelectViewLang(brand.NameEng, brand.Name)
-                        </button>
-                    }
-
-                </div>
+                }
 
             </div>
-        }
 
+        </div>
     }
+
         <!-- SKU CARDS -->
         <div class="row g-3">
 
@@ -439,16 +440,16 @@
             Variants = variantTask.Result.Data?.Data?.ToList() ?? [];
         if (unitTask.Result.IsSuccess)
             Units = unitTask.Result.Data?.Data?.ToList() ?? [];
-
-        AvailableBrands = Products.SelectMany(p => p.Skus)
-        .GroupBy(x => x.BrandId)
-        .Select(g => new BrandDto
-        {
-            Id = g.Key,
-            NameEng = g.FirstOrDefault()?.BrandNameEng??"",
-            Name = g.FirstOrDefault()?.BrandName??""
-        })
-        .ToList();
+            BuildBrands(null);
+        // AvailableBrands = Products.SelectMany(p => p.Skus)
+        // .GroupBy(x => x.BrandId)
+        // .Select(g => new BrandDto
+        // {
+        //     Id = g.Key,
+        //     NameEng = g.FirstOrDefault()?.BrandNameEng??"",
+        //     Name = g.FirstOrDefault()?.BrandName??""
+        // })
+        // .ToList();
         LoadingService.Hide();
     }
 
@@ -519,11 +520,11 @@
         List<Guid>? brandIds;
         if (product == null)
         {
-            brandIds = Products
-                .SelectMany(p => p.Skus)
-                .Select(s => s.BrandId)
-                .Distinct()
-                .ToList();
+            brandIds = FilteredProducts
+             .SelectMany(p => p.Skus)
+             .Where(s => s.BrandId != Guid.Empty)
+             .Select(s => s.BrandId)
+             .Distinct().ToList();
         }
         else
         {

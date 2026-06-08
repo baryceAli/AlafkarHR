@@ -61,6 +61,14 @@ public class MenuItem
             {
                 new MenuItem
                 {
+                    TextEn="Dashboard",
+                    TextAr="لوحة التحكم",
+                    Icon="bi-speedometer2",
+                    Url="/Organization/Dashboard",
+                    PermissionPolicy=PermissionList.CompanyPermissions.Select
+                },
+                new MenuItem
+                {
                     TextEn = "Company",
                     TextAr = "الشركة",
                     Icon = "bi-building",
