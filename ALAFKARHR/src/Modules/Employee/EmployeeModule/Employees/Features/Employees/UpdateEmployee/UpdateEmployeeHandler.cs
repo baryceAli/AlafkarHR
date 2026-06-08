@@ -74,6 +74,7 @@ public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             request.Employee.Address,
             request.Employee.MaritalStatus,
             request.Employee.EmploymentType,
+            request.Employee.AttendanceType,
             request.Employee.Qualification,
             request.Employee.SpecializationId.Value,
             request.Employee.AcademicInstituteId.Value,

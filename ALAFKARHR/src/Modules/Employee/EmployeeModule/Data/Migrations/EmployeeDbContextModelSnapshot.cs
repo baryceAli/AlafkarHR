@@ -82,6 +82,11 @@ namespace EmployeeModule.Data.Migrations
                     b.Property<Guid>("AdministrationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("AttendanceType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uniqueidentifier");
 

@@ -1,0 +1,15 @@
+using Shared.Contracts.CQRS;
+using SharedWithUI.Attendance.Enums;
+
+namespace EmployeeModule.Contracts.Employees.Features.GetEmployeeAttendanceProfile;
+
+public record GetEmployeeAttendanceProfileQuery(Guid EmployeeId) : IQuery<GetEmployeeAttendanceProfileResult>;
+
+public record GetEmployeeAttendanceProfileResult(
+    Guid EmployeeId,
+    Guid CompanyId,
+    Guid BranchId,
+    Guid AdministrationId,
+    Guid? DepartmentId,
+    EmployeeAttendanceType AttendanceType,
+    bool IsActive);

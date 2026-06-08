@@ -278,6 +278,11 @@ namespace Organization.Data.Migrations
                     b.Property<Guid>("AdministrationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("AllowedRadiusMeters")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(100);
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");

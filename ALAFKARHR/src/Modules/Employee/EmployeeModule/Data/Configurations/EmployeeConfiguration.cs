@@ -40,8 +40,13 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
             .WithMany()
             .HasForeignKey(x => x.PositionId);
 
-        builder.Property(x => x.DepartmentId)
+       builder.Property(x => x.DepartmentId)
        .IsRequired(false);
+
+        builder.Property(x => x.AttendanceType)
+            .HasConversion<int>()
+            .HasDefaultValue(SharedWithUI.Attendance.Enums.EmployeeAttendanceType.FixedLocation)
+            .IsRequired();
 
        // builder.HasOne<Department>()
        //.WithMany()

@@ -1,4 +1,5 @@
 ﻿using Shared.DDD;
+using SharedWithUI.Attendance.Enums;
 using SharedWithUI.Employees.Enums;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
@@ -58,6 +59,7 @@ public class Employee : Aggregate<Guid>
     public MaritalStatus MaritalStatus { get; set; }
     public EmploymentType EmploymentType { get; set; }
     public Qualification Qualification { get; set; }
+    public EmployeeAttendanceType AttendanceType { get; private set; }
     public Guid SpecializationId { get; set; }
     public Guid AcademicInstituteId { get; set; }
     public int GraduationYear { get; set; }
@@ -90,7 +92,7 @@ public class Employee : Aggregate<Guid>
         string address,
         MaritalStatus maritalStatus,
         EmploymentType employmentType,
-
+        EmployeeAttendanceType attendanceType,
         Qualification qualification,
         Guid specializationId,
         Guid academicInstituteId,
@@ -153,6 +155,7 @@ public class Employee : Aggregate<Guid>
             Address = address,
             MaritalStatus = maritalStatus,
             EmploymentType = employmentType,
+            AttendanceType = attendanceType,
             CreatedAt = DateTime.UtcNow,
 
 
@@ -177,6 +180,7 @@ public class Employee : Aggregate<Guid>
         string address,
         MaritalStatus maritalStatus,
         EmploymentType employmentType,
+        EmployeeAttendanceType attendanceType,
         Qualification qualification,
         Guid specializationId,
         Guid academicInstituteId,
@@ -197,6 +201,7 @@ public class Employee : Aggregate<Guid>
         Address = address;
         MaritalStatus = maritalStatus;
         EmploymentType = employmentType;
+        AttendanceType = attendanceType;
         Qualification= qualification;
         SpecializationId = specializationId;
         AcademicInstituteId= academicInstituteId;

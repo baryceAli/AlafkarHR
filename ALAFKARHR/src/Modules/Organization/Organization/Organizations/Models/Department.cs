@@ -23,6 +23,7 @@ public class Department:Entity<Guid>
     public string Location { get; private set; }
     public double Longitude { get; private set; }
     public double Latitude { get; private set; }
+    public int AllowedRadiusMeters { get; private set; }
     private Department() { }
 
     public static Department Create(Guid id,
@@ -37,6 +38,7 @@ public class Department:Entity<Guid>
         string location,
         double longitude,
         double latitude,
+        int allowedRadiusMeters,
         string createdBy)
     {
         return new Department
@@ -54,6 +56,7 @@ public class Department:Entity<Guid>
             Location = location,
             Longitude = longitude,
             Latitude = latitude,
+            AllowedRadiusMeters = allowedRadiusMeters,
             CreatedBy = createdBy
         };
     }
@@ -65,6 +68,7 @@ public class Department:Entity<Guid>
         string location,
         double longitude,
         double latitude,
+        int allowedRadiusMeters,
         string modifiedBy)
     {
         Name=name;
@@ -75,6 +79,7 @@ public class Department:Entity<Guid>
         Location = location;
         Longitude = longitude;
         Latitude = latitude;
+        AllowedRadiusMeters = allowedRadiusMeters;
         ModifiedAt= DateTime.UtcNow;
         ModifiedBy=modifiedBy;
     }

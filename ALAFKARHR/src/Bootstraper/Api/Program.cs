@@ -1,3 +1,4 @@
+using AttendanceDomain;
 using Auth;
 using Carter;
 using Catalog;
@@ -29,6 +30,7 @@ builder.Services.AddDataProtection();
 
 
 var authAssembly = typeof(AuthModule).Assembly;
+var attendanceAssembly = typeof(AttendanceDomainModule).Assembly;
 var organizationAssembly = typeof(OrganizationModule).Assembly;
 var employeeAssembly = typeof(EmployeesModule).Assembly;
 var catalogAssembly = typeof(CatalogModule).Assembly;
@@ -42,6 +44,7 @@ var taskManagementAssembly = typeof(TaskManagementModule).Assembly;
 
 builder.Services.AddCarterWithAssemblies(
                         authAssembly,
+                        attendanceAssembly,
                         organizationAssembly,
                         employeeAssembly,
                         catalogAssembly,
@@ -59,6 +62,7 @@ builder.Services.AddCarterWithAssemblies(
 
 builder.Services.AddMediatRWithAssemblies(
                         authAssembly,
+                        attendanceAssembly,
                         organizationAssembly,
                         employeeAssembly,
                         catalogAssembly,
@@ -80,6 +84,7 @@ builder.Services.AddMediatRWithAssemblies(
 #region Module Service: Auth, Catalog, ShoppingCart, Ordering
 builder.Services
         .AddAuthModule(builder.Configuration)
+        .AddAttendanceModule(builder.Configuration)
         .AddOrganizationModule(builder.Configuration)
         .AddEmployeeModule(builder.Configuration)
         .AddCatalogModule(builder.Configuration)
@@ -111,6 +116,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app
     .UseAuthModule(app.Environment)
+    .UseAttendanceModule(app.Environment)
     .UseOrganizationModule(app.Environment)
     .UseEmployeeModule(app.Environment)
     .UseCatalogModule(app.Environment)

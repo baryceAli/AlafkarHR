@@ -43,6 +43,9 @@ public class DepartmentDto
     [Required(ErrorMessage = "Latitude is required")]
     [Range(0.1,100,ErrorMessage = "Latitude must be greator than 0")]
     public double Latitude { get; set; }
+
+    [Range(1, 100000, ErrorMessage = "Allowed radius must be greater than 0")]
+    public int AllowedRadiusMeters { get; set; } = 100;
     //public Company Company { get; private set; }
 
 }

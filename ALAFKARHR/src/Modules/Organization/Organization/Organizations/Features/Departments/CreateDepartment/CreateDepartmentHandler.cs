@@ -41,6 +41,7 @@ public class CreateDepartmentHandler(OrganizationDbContext dbContext, IHttpConte
             request.Department.Location,
             request.Department.Longitude,
             request.Department.Latitude,
+            request.Department.AllowedRadiusMeters,
             userId);
 
         await dbContext.Departments.AddAsync(department, cancellationToken);

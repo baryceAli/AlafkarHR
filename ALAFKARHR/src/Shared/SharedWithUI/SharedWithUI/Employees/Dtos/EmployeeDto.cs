@@ -1,5 +1,6 @@
 ﻿using SharedWithUI.Employees.Enums;
 using System.ComponentModel.DataAnnotations;
+using SharedWithUI.Attendance.Enums;
 using System.Security.Principal;
 
 namespace SharedWithUI.Employees.Dtos;
@@ -116,6 +117,7 @@ public class EmployeeDto
     public MaritalStatus MaritalStatus { get; set; }
     public EmploymentType EmploymentType { get; set; }
     public Qualification Qualification { get; set; }
+    public EmployeeAttendanceType AttendanceType { get; set; } = EmployeeAttendanceType.FixedLocation;
     [Required(ErrorMessage ="Specialization is required")]
     public Guid? SpecializationId { get; set; }
 

@@ -35,6 +35,10 @@ public class DepartmentConfiguration : IEntityTypeConfiguration<Department>
         builder.HasIndex(x => x.CompanyId);
         builder.HasIndex(x => new { x.CompanyId, x.Code }).IsUnique();
 
+        builder.Property(x => x.AllowedRadiusMeters)
+            .HasDefaultValue(100)
+            .IsRequired();
+
         // 🧾 Audit
         builder.Property(x => x.CreatedBy).HasMaxLength(100);
         builder.Property(x => x.ModifiedBy).HasMaxLength(100);
