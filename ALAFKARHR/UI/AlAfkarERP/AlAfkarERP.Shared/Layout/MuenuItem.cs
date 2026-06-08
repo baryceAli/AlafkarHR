@@ -480,6 +480,14 @@ public class MenuItem
                     Icon = "bi-person-gear",
                     Url = "/Auth/User/AssignRole",
                     PermissionPolicy = PermissionList.UsersPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "System Settings",
+                    TextAr = "إعدادات النظام",
+                    Icon = "bi-gear-wide-connected",
+                    Url = "/GeneralSettings/SystemSettings",
+                    PermissionPolicy = PermissionList.SystemSettingsPermissions.View
                 }
             }
         }

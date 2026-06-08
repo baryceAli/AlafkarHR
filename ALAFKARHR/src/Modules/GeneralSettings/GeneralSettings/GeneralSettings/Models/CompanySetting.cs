@@ -5,7 +5,7 @@ namespace GeneralSettings.GeneralSettings.Models;
 public class CompanySetting : Aggregate<Guid>
 {
     public Guid CompanyId { get; private set; }
-    public string DefaultLocation { get; private set; }
+    public string DefaultLocation { get; private set; } = default!;
     public double DefaultLatitude { get; private set; }
     public double DefaultLongitude { get; private set; }
 
@@ -31,5 +31,14 @@ public class CompanySetting : Aggregate<Guid>
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
+    }
+
+    public void Update(string defaultLocation, double defaultLatitude, double defaultLongitude, string modifiedBy)
+    {
+        DefaultLocation = defaultLocation;
+        DefaultLatitude = defaultLatitude;
+        DefaultLongitude = defaultLongitude;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
     }
 }

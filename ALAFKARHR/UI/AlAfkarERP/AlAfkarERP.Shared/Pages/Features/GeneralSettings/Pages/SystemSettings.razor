@@ -1,0 +1,396 @@
+@layout AdminLayout
+@page "/GeneralSettings/SystemSettings"
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Permissions
+@implements IDisposable
+
+@inject ICompanySettingService CompanySettingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+@inject IJSRuntime JSRuntime
+
+<div class="system-settings-page">
+    <div class="settings-header mb-4">
+        <div>
+            <div class="text-muted small">@Text("General Settings", "الإعدادات العامة")</div>
+            <h3 class="mb-1">@Text("System Settings", "إعدادات النظام")</h3>
+            <div class="text-muted">
+                @Text("Control company-wide defaults used by organization, branch, warehouse, and map screens.", "التحكم في الإعدادات الافتراضية المستخدمة في شاشات الشركة والفروع والمستودعات والخرائط.")
+            </div>
+        </div>
+        <button class="btn btn-outline-primary" @onclick="LoadSettingsAsync" disabled="@isLoading">
+            <i class="bi bi-arrow-clockwise"></i>
+            @Text("Refresh", "تحديث")
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body py-5 text-center">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="fw-semibold">@Text("Loading settings...", "جاري تحميل الإعدادات...")</div>
+            </div>
+        </div>
+    }
+    else if (!CanView)
+    {
+        <div class="alert alert-warning d-flex align-items-center gap-2">
+            <i class="bi bi-shield-lock"></i>
+            <span>@Text("You don't have permissions to view system settings.", "ليس لديك الصلاحية لعرض إعدادات النظام.")</span>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-warning d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>@errorMessage</span>
+        </div>
+    }
+    else
+    {
+        <EditForm Model="settings" OnValidSubmit="SaveAsync">
+            <DataAnnotationsValidator />
+
+            <div class="row g-4">
+                <div class="col-xl-5">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <span class="settings-icon"><i class="bi bi-geo-alt"></i></span>
+                                <div>
+                                    <h5 class="mb-0">@Text("Default Location", "الموقع الافتراضي")</h5>
+                                    <div class="text-muted small">@Text("Used when a branch or company location is not set.", "يستخدم عند عدم تحديد موقع للشركة أو الفرع.")</div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">@Text("Location Name", "اسم الموقع")</label>
+                                <InputText class="form-control" @bind-Value="settings.DefaultLocation" disabled="@(!CanEdit)" />
+                                <ValidationMessage For="@(() => settings.DefaultLocation)" />
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Latitude", "خط العرض")</label>
+                                    <InputNumber class="form-control" @bind-Value="settings.DefaultLatitude" disabled="@(!CanEdit)" />
+                                    <ValidationMessage For="@(() => settings.DefaultLatitude)" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Longitude", "خط الطول")</label>
+                                    <InputNumber class="form-control" @bind-Value="settings.DefaultLongitude" disabled="@(!CanEdit)" />
+                                    <ValidationMessage For="@(() => settings.DefaultLongitude)" />
+                                </div>
+                            </div>
+
+                            <div class="d-flex flex-wrap gap-2 mt-4">
+                                <button type="button" class="btn btn-outline-secondary" @onclick="UseKsaDefaultAsync" disabled="@(!CanEdit)">
+                                    <i class="bi bi-pin-map"></i>
+                                    @Text("Use KSA Default", "استخدام موقع السعودية")
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" @onclick="UseCurrentLocationAsync" disabled="@(!CanEdit)">
+                                    <i class="bi bi-crosshair"></i>
+                                    @Text("Current Location", "الموقع الحالي")
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" @onclick="CenterMapAsync">
+                                    <i class="bi bi-bullseye"></i>
+                                    @Text("Center Map", "توسيط الخريطة")
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white border-0 d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn btn-primary" disabled="@(!CanEdit || isSaving)">
+                                @if (isSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-save"></i>
+                                }
+                                @Text("Save Settings", "حفظ الإعدادات")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-7">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                <div>
+                                    <h5 class="mb-1">@Text("Company Map Default", "الخريطة الافتراضية للشركة")</h5>
+                                    <div class="text-muted small">@Text("Click or drag the map to choose the default coordinates.", "اضغط أو حرّك الخريطة لاختيار الإحداثيات الافتراضية.")</div>
+                                </div>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-outline-secondary" title="@Text("Zoom in", "تكبير")" @onclick="ZoomInAsync">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" title="@Text("Zoom out", "تصغير")" @onclick="ZoomOutAsync">
+                                        <i class="bi bi-dash-lg"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="@mapElementId" class="settings-map"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    private const double KsaDefaultLatitude = 24.7136;
+    private const double KsaDefaultLongitude = 46.6753;
+
+    private readonly string mapElementId = $"system-settings-map-{Guid.NewGuid():N}";
+    private DotNetObjectReference<SystemSettings>? dotNetReference;
+    private AuthenticationState? AuthState;
+    private CompanySettingDto settings = new();
+    private Guid companyId;
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool mapReady;
+    private string? errorMessage;
+
+    private bool CanView => AuthState?.User.Claims.Any(c => c.Value == PermissionList.SystemSettingsPermissions.View) == true;
+    private bool CanEdit => AuthState?.User.Claims.Any(c => c.Value == PermissionList.SystemSettingsPermissions.Edit) == true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleLanguageChangeAsync;
+
+        AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!Guid.TryParse(AuthState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId))
+        {
+            errorMessage = Text("No company is assigned to the current user.", "لا توجد شركة مرتبطة بالمستخدم الحالي.");
+            isLoading = false;
+            return;
+        }
+
+        await LoadSettingsAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (isLoading || !CanView || mapReady)
+        {
+            return;
+        }
+
+        dotNetReference ??= DotNetObjectReference.Create(this);
+        await JSRuntime.InvokeVoidAsync(
+            "alafkarLocationPicker.init",
+            mapElementId,
+            MapLatitude,
+            MapLongitude,
+            8,
+            dotNetReference);
+
+        mapReady = true;
+    }
+
+    private async Task LoadSettingsAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        if (!CanView)
+        {
+            isLoading = false;
+            return;
+        }
+
+        var response = await CompanySettingService.GetAsync(companyId);
+        if (response.IsSuccess && response.Data is not null)
+        {
+            settings = response.Data;
+        }
+        else
+        {
+            errorMessage = response.Error?.Detail ?? Text("Unable to load system settings.", "تعذر تحميل إعدادات النظام.");
+        }
+
+        isLoading = false;
+        mapReady = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!CanEdit)
+        {
+            return;
+        }
+
+        isSaving = true;
+        settings.CompanyId = companyId;
+
+        var response = await CompanySettingService.UpdateAsync(companyId, settings);
+        if (response.IsSuccess && response.Data is not null)
+        {
+            settings = response.Data;
+            ToastService.Show(new ToastMessage
+            {
+                Message = Text("System settings saved successfully.", "تم حفظ إعدادات النظام بنجاح."),
+                Type = "success"
+            });
+            await CenterMapAsync();
+        }
+        else
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Message = response.Error?.Detail ?? Text("Unable to save system settings.", "تعذر حفظ إعدادات النظام."),
+                Type = "error"
+            });
+        }
+
+        isSaving = false;
+    }
+
+    private async Task UseKsaDefaultAsync()
+    {
+        settings.DefaultLocation = "Riyadh, Saudi Arabia";
+        settings.DefaultLatitude = KsaDefaultLatitude;
+        settings.DefaultLongitude = KsaDefaultLongitude;
+        await CenterMapAsync();
+    }
+
+    private async Task UseCurrentLocationAsync()
+    {
+        var supported = await JSRuntime.InvokeAsync<bool>("alafkarLocationPicker.useCurrentLocation", mapElementId);
+        if (!supported)
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Message = Text("Location access is not available in this browser.", "الوصول للموقع غير متاح في هذا المتصفح."),
+                Type = "warning"
+            });
+        }
+    }
+
+    private async Task CenterMapAsync()
+    {
+        if (!mapReady)
+        {
+            return;
+        }
+
+        await JSRuntime.InvokeVoidAsync("alafkarLocationPicker.setCenter", mapElementId, MapLatitude, MapLongitude, 8);
+    }
+
+    private async Task ZoomInAsync()
+    {
+        if (mapReady)
+        {
+            await JSRuntime.InvokeAsync<int>("alafkarLocationPicker.zoomIn", mapElementId);
+        }
+    }
+
+    private async Task ZoomOutAsync()
+    {
+        if (mapReady)
+        {
+            await JSRuntime.InvokeAsync<int>("alafkarLocationPicker.zoomOut", mapElementId);
+        }
+    }
+
+    [JSInvokable]
+    public Task OnMapLocationSelected(double latitude, double longitude)
+    {
+        if (!CanEdit)
+        {
+            return Task.CompletedTask;
+        }
+
+        settings.DefaultLatitude = Math.Round(latitude, 6);
+        settings.DefaultLongitude = Math.Round(longitude, 6);
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private double MapLatitude => settings.DefaultLatitude == 0 ? KsaDefaultLatitude : settings.DefaultLatitude;
+    private double MapLongitude => settings.DefaultLongitude == 0 ? KsaDefaultLongitude : settings.DefaultLongitude;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private async Task HandleLanguageChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleLanguageChangeAsync;
+        if (mapReady)
+        {
+            _ = JSRuntime.InvokeVoidAsync("alafkarLocationPicker.dispose", mapElementId);
+        }
+
+        dotNetReference?.Dispose();
+    }
+}
+
+<style>
+    .system-settings-page {
+        max-width: 1280px;
+        margin: 0 auto;
+    }
+
+    .settings-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .settings-icon {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: #eef6ff;
+        color: #0d6efd;
+        font-size: 1.2rem;
+        flex: 0 0 auto;
+    }
+
+    .settings-map {
+        min-height: 520px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #eef2f7;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: .875rem;
+        margin-top: .25rem;
+    }
+
+    @@media (max-width: 767.98px) {
+        .settings-header {
+            flex-direction: column;
+        }
+
+        .settings-map {
+            min-height: 360px;
+        }
+    }
+</style>

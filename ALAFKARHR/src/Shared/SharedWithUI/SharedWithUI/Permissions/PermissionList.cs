@@ -37,6 +37,7 @@ public static class PermissionList
             .. SalesOrderPermissions.Permissions,
             .. PricingPermissions.Permissions,
             .. TaskManagementPermissions.Permissions,
+            .. SystemSettingsPermissions.Permissions,
         ];
 
 
@@ -697,6 +698,22 @@ public static class PermissionList
                 $"{Close}",
                 $"{ViewReports}",
                 $"{ManageAllTasks}",
+            };
+    }
+
+    public static class SystemSettingsPermissions
+    {
+        public static string GroupName { get; set; } = "GeneralSettings.SystemSettings";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Edit}",
             };
     }
 
