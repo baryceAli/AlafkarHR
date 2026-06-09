@@ -1,4 +1,5 @@
 using AttendanceDomain.Attendance.Models;
+using AttendanceDomain.Attendance.Features;
 using EmployeeModule.Contracts.Employees.Features.GetEmployeeAttendanceProfile;
 using Organization.Contracts.Departments.Features.GetDepartmentAttendanceLocation;
 
@@ -24,6 +25,10 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
         {
             throw new BadRequestException("Inactive employees cannot start attendance sessions.");
         }
+
+        AttendanceLocationIntegrity.EnsureTrusted(
+            request.Session.IsMockedLocation,
+            request.Session.LocationIntegrityNote);
 
         var shiftWindow = await ResolveShiftWindowAsync(request.Session, employee, cancellationToken);
 

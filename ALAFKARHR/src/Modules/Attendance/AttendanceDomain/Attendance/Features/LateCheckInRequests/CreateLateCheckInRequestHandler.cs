@@ -1,4 +1,5 @@
 using AttendanceDomain.Attendance.Models;
+using AttendanceDomain.Attendance.Features;
 using EmployeeModule.Contracts.Employees.Features.GetEmployeeAttendanceProfile;
 
 namespace AttendanceDomain.Attendance.Features.LateCheckInRequests;
@@ -23,6 +24,10 @@ public class CreateLateCheckInRequestHandler(AttendanceDbContext dbContext, ISen
         {
             throw new BadRequestException("Inactive employees cannot submit late check-in requests.");
         }
+
+        AttendanceLocationIntegrity.EnsureTrusted(
+            request.Request.IsMockedLocation,
+            request.Request.LocationIntegrityNote);
 
         var shiftWindow = await ResolveShiftWindowAsync(request.Request, employee, cancellationToken);
 

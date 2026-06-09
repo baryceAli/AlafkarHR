@@ -12,8 +12,8 @@ public interface IAttendanceService
     Task<ApiResult<ShiftDto>> CreateShiftAsync(CreateShiftDto shift);
     Task<ApiResult<ShiftDto>> UpdateShiftAsync(ShiftDto shift);
     Task<ApiResult<bool>> DeleteShiftAsync(Guid shiftId);
-    Task<ApiResult<AttendanceCheckInPreviewDto>> GetCheckInPreviewAsync(Guid employeeId, double? latitude = null, double? longitude = null, double? accuracyMeters = null, DateTime? workDateUtc = null);
-    Task<ApiResult<AttendanceCheckInPreviewDto>> GetMyCheckInPreviewAsync(double? latitude = null, double? longitude = null, double? accuracyMeters = null, DateTime? workDateUtc = null);
+    Task<ApiResult<AttendanceCheckInPreviewDto>> GetCheckInPreviewAsync(Guid employeeId, double? latitude = null, double? longitude = null, double? accuracyMeters = null, bool isMockedLocation = false, string? locationIntegrityNote = null, DateTime? workDateUtc = null);
+    Task<ApiResult<AttendanceCheckInPreviewDto>> GetMyCheckInPreviewAsync(double? latitude = null, double? longitude = null, double? accuracyMeters = null, bool isMockedLocation = false, string? locationIntegrityNote = null, DateTime? workDateUtc = null);
     Task<ApiResult<PaginatedResult<ShiftAssignmentDto>>> GetShiftAssignmentsAsync(int pageIndex, int pageSize, Guid? companyId = null, ShiftAssignmentScope? scope = null);
     Task<ApiResult<ShiftAssignmentDto>> AssignShiftAsync(AssignShiftDto assignment);
     Task<ApiResult<PaginatedResult<LateCheckInRequestDto>>> GetLateCheckInRequestsAsync(int pageIndex, int pageSize, AttendanceExceptionStatus? status = null, Guid? employeeId = null);

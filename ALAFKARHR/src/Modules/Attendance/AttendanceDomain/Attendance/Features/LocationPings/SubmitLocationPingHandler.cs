@@ -1,4 +1,5 @@
 using AttendanceDomain.Attendance.Models;
+using AttendanceDomain.Attendance.Features;
 
 namespace AttendanceDomain.Attendance.Features.LocationPings;
 
@@ -24,6 +25,10 @@ public class SubmitAttendanceLocationPingHandler(AttendanceDbContext dbContext)
         AttendanceLocationPingDto pingDto,
         CancellationToken cancellationToken)
     {
+        AttendanceLocationIntegrity.EnsureTrusted(
+            pingDto.IsMockedLocation,
+            pingDto.LocationIntegrityNote);
+
         if (pingDto.ClientPingId.HasValue)
         {
             var exists = await dbContext.AttendanceLocationPings.AnyAsync(

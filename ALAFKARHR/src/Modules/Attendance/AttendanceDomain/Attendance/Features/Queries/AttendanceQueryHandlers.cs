@@ -20,6 +20,8 @@ public record GetAttendanceCheckInPreviewQuery(
     double? Latitude,
     double? Longitude,
     double? AccuracyMeters,
+    bool IsMockedLocation,
+    string? LocationIntegrityNote,
     DateTime? WorkDateUtc) : IQuery<GetAttendanceCheckInPreviewResult>;
 public record GetAttendanceCheckInPreviewResult(AttendanceCheckInPreviewDto Preview);
 
@@ -180,12 +182,20 @@ public class GetAttendanceCheckInPreviewHandler(AttendanceDbContext dbContext, I
             Latitude = request.Latitude,
             Longitude = request.Longitude,
             AccuracyMeters = request.AccuracyMeters,
-            HasLocation = request.Latitude.HasValue && request.Longitude.HasValue
+            HasLocation = request.Latitude.HasValue && request.Longitude.HasValue,
+            IsMockedLocation = request.IsMockedLocation,
+            LocationIntegrityNote = request.LocationIntegrityNote
         };
 
         if (!employee.IsActive)
         {
             preview.Message = "Your employee profile is inactive, so attendance check-in is not available.";
+            return new GetAttendanceCheckInPreviewResult(preview);
+        }
+
+        if (preview.IsMockedLocation)
+        {
+            preview.Message = $"Attendance location rejected. {AttendanceLocationIntegrity.SuspiciousReason(preview.LocationIntegrityNote)}";
             return new GetAttendanceCheckInPreviewResult(preview);
         }
 

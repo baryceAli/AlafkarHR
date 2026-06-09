@@ -11,6 +11,8 @@ public class StartAttendanceSessionDto
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public double? AccuracyMeters { get; set; }
+    public bool IsMockedLocation { get; set; }
+    public string? LocationIntegrityNote { get; set; }
     public string? ManualOverrideReason { get; set; }
 }
 
@@ -27,6 +29,8 @@ public class AttendanceLocationPingDto
     public double Latitude { get; set; }
     public double Longitude { get; set; }
     public double? AccuracyMeters { get; set; }
+    public bool IsMockedLocation { get; set; }
+    public string? LocationIntegrityNote { get; set; }
     public DateTime RecordedAtUtc { get; set; }
 }
 
@@ -40,6 +44,8 @@ public class AttendanceCheckInDto
     public double Longitude { get; set; }
     public DateTime ArrivedAtUtc { get; set; }
     public DateTime? DepartedAtUtc { get; set; }
+    public bool IsMockedLocation { get; set; }
+    public string? LocationIntegrityNote { get; set; }
     public string? Notes { get; set; }
 }
 
@@ -79,6 +85,8 @@ public class AttendanceCheckInPreviewDto
     public double? AllowedRadiusMeters { get; set; }
     public bool HasLocation { get; set; }
     public bool IsWithinAllowedRadius { get; set; }
+    public bool IsMockedLocation { get; set; }
+    public string? LocationIntegrityNote { get; set; }
     public bool IsBeforeShiftStart { get; set; }
     public bool IsLate { get; set; }
     public bool IsProhibitedByTime { get; set; }
@@ -98,6 +106,8 @@ public class CreateLateCheckInRequestDto
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public double? AccuracyMeters { get; set; }
+    public bool IsMockedLocation { get; set; }
+    public string? LocationIntegrityNote { get; set; }
 }
 
 public class ReviewLateCheckInRequestDto

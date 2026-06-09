@@ -1,4 +1,5 @@
 using AttendanceDomain.Attendance.Models;
+using AttendanceDomain.Attendance.Features;
 
 namespace AttendanceDomain.Attendance.Features.CheckIns;
 
@@ -14,6 +15,10 @@ public class CreateAttendanceCheckInHandler(AttendanceDbContext dbContext)
         CreateAttendanceCheckInCommand request,
         CancellationToken cancellationToken)
     {
+        AttendanceLocationIntegrity.EnsureTrusted(
+            request.CheckIn.IsMockedLocation,
+            request.CheckIn.LocationIntegrityNote);
+
         if (request.CheckIn.ClientCheckInId.HasValue)
         {
             var exists = await dbContext.AttendanceCheckIns.AnyAsync(

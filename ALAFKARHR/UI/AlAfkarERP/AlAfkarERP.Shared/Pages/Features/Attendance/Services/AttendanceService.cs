@@ -79,12 +79,16 @@ public class AttendanceService : BaseApiService, IAttendanceService
         double? latitude = null,
         double? longitude = null,
         double? accuracyMeters = null,
+        bool isMockedLocation = false,
+        string? locationIntegrityNote = null,
         DateTime? workDateUtc = null)
     {
         var url = $"{path}/checkin-preview?employeeId={employeeId}";
-        if (latitude.HasValue) url += $"&latitude={latitude.Value}";
-        if (longitude.HasValue) url += $"&longitude={longitude.Value}";
-        if (accuracyMeters.HasValue) url += $"&accuracyMeters={accuracyMeters.Value}";
+        if (latitude.HasValue) url += $"&latitude={latitude.Value.ToString(CultureInfo.InvariantCulture)}";
+        if (longitude.HasValue) url += $"&longitude={longitude.Value.ToString(CultureInfo.InvariantCulture)}";
+        if (accuracyMeters.HasValue) url += $"&accuracyMeters={accuracyMeters.Value.ToString(CultureInfo.InvariantCulture)}";
+        if (isMockedLocation) url += $"&isMockedLocation=true";
+        if (!string.IsNullOrWhiteSpace(locationIntegrityNote)) url += $"&locationIntegrityNote={Uri.EscapeDataString(locationIntegrityNote)}";
         if (workDateUtc.HasValue) url += $"&workDateUtc={Uri.EscapeDataString(workDateUtc.Value.ToUniversalTime().ToString("O"))}";
 
         return await SendAsync<AttendanceCheckInPreviewDto>(new HttpRequestMessage(HttpMethod.Get, url), "preview");
@@ -94,6 +98,8 @@ public class AttendanceService : BaseApiService, IAttendanceService
         double? latitude = null,
         double? longitude = null,
         double? accuracyMeters = null,
+        bool isMockedLocation = false,
+        string? locationIntegrityNote = null,
         DateTime? workDateUtc = null)
     {
         var url = $"{path}/my-checkin-preview";
@@ -108,6 +114,8 @@ public class AttendanceService : BaseApiService, IAttendanceService
         if (latitude.HasValue) AddQuery("latitude", latitude.Value.ToString(CultureInfo.InvariantCulture));
         if (longitude.HasValue) AddQuery("longitude", longitude.Value.ToString(CultureInfo.InvariantCulture));
         if (accuracyMeters.HasValue) AddQuery("accuracyMeters", accuracyMeters.Value.ToString(CultureInfo.InvariantCulture));
+        if (isMockedLocation) AddQuery("isMockedLocation", "true");
+        if (!string.IsNullOrWhiteSpace(locationIntegrityNote)) AddQuery("locationIntegrityNote", locationIntegrityNote);
         if (workDateUtc.HasValue) AddQuery("workDateUtc", workDateUtc.Value.ToUniversalTime().ToString("O"));
 
         return await SendAsync<AttendanceCheckInPreviewDto>(new HttpRequestMessage(HttpMethod.Get, url), "preview");
