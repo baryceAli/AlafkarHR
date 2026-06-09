@@ -51,11 +51,11 @@
                 <input class="form-control" @bind="model.Name" placeholder="@Text("Morning shift", "وردية صباحية")" />
             </label>
             <label>
-                @Text("Beginning time", "وقت البداية")
+                @Text("Beginning time (local)", "وقت البداية (المحلي)")
                 <input class="form-control" type="time" @bind="startTime" />
             </label>
             <label>
-                @Text("End time", "وقت النهاية")
+                @Text("End time (local)", "وقت النهاية (المحلي)")
                 <input class="form-control" type="time" @bind="endTime" />
             </label>
             <label>
@@ -96,7 +96,7 @@
                 <thead>
                     <tr>
                         <th>@Text("Name", "الاسم")</th>
-                        <th>@Text("Time", "الوقت")</th>
+                        <th>@Text("Time (local)", "الوقت (المحلي)")</th>
                         <th>@Text("Grace", "السماح")</th>
                         <th>@Text("Late after", "التأخير بعد")</th>
                         <th>@Text("Prohibit after", "المنع بعد")</th>
@@ -117,7 +117,7 @@
                     {
                         <tr class="@(model.Id == shift.Id ? "table-active" : "")">
                             <td class="fw-semibold">@shift.Name</td>
-                            <td>@shift.StartTime.ToString(@"hh\:mm") - @shift.EndTime.ToString(@"hh\:mm")</td>
+                            <td>@FormatLocalShiftTime(shift.StartTime) - @FormatLocalShiftTime(shift.EndTime)</td>
                             <td>@shift.GracePeriodMinutes @Text("min", "دقيقة")</td>
                             <td>@shift.LateAfterMinutes @Text("min", "دقيقة")</td>
                             <td>@shift.ProhibitCheckInAfterMinutes @Text("min", "دقيقة")</td>
@@ -203,8 +203,8 @@
         }
 
         model.CompanyId = companyId;
-        model.StartTime = startTime.ToTimeSpan();
-        model.EndTime = endTime.ToTimeSpan();
+        model.StartTime = ToUtcTimeSpan(startTime);
+        model.EndTime = ToUtcTimeSpan(endTime);
 
         isBusy = true;
         var result = isEditing
@@ -244,8 +244,8 @@
             IsFlexible = shift.IsFlexible
         };
 
-        startTime = TimeOnly.FromTimeSpan(shift.StartTime);
-        endTime = TimeOnly.FromTimeSpan(shift.EndTime);
+        startTime = ToLocalTimeOnly(shift.StartTime);
+        endTime = ToLocalTimeOnly(shift.EndTime);
         isEditing = true;
         message = null;
     }
@@ -334,6 +334,30 @@
         BreakMinutes = shift.BreakMinutes,
         CompanyId = shift.CompanyId
     };
+
+    private static TimeSpan ToUtcTimeSpan(TimeOnly localTime)
+    {
+        var today = DateTime.Today;
+        var localDateTime = new DateTime(
+            today.Year,
+            today.Month,
+            today.Day,
+            localTime.Hour,
+            localTime.Minute,
+            localTime.Second,
+            DateTimeKind.Local);
+
+        return localDateTime.ToUniversalTime().TimeOfDay;
+    }
+
+    private static TimeOnly ToLocalTimeOnly(TimeSpan utcTime)
+    {
+        var utcDateTime = DateTime.SpecifyKind(DateTime.UtcNow.Date.Add(utcTime), DateTimeKind.Utc);
+        return TimeOnly.FromDateTime(utcDateTime.ToLocalTime());
+    }
+
+    private static string FormatLocalShiftTime(TimeSpan utcTime)
+        => ToLocalTimeOnly(utcTime).ToString("HH:mm");
 
     private void SetMessage(string text, string cssClass)
     {

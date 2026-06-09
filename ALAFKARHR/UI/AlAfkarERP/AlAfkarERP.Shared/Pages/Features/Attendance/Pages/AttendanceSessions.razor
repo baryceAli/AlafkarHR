@@ -82,7 +82,7 @@
                                 <td><span class="badge @StatusClass(session.Status)">@SessionStatusText(session.Status)</span></td>
                                 <td dir="ltr">@FormatDate(session.ActualStartTime)</td>
                                 <td>@FormatDate(session.ActualEndTime)</td>
-                                <td>@session.ShiftStart.ToLocalTime().ToString("g") <br /> @session.ShiftEnd.ToLocalTime().ToString("g")</td>
+                                <td dir="ltr">@FormatShiftWindowDate(session.ShiftStart) <br /> @FormatShiftWindowDate(session.ShiftEnd)</td>
                                 <td>@session.TotalHours</td>
                                 <td>@session.TotalDistanceKm @Text("km", "كم")</td>
                             </tr>
@@ -158,6 +158,7 @@
         => !string.IsNullOrWhiteSpace(employee.FullName) ? employee.FullName : employee.Id.ToString();
 
     private static string FormatDate(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "-";
+    private static string FormatShiftWindowDate(DateTime value) => value.ToString("g");
 
     private string AttendanceTypeText(EmployeeAttendanceType type) => type switch
     {

@@ -94,12 +94,14 @@ public class GetAttendanceSessionsHandler(AttendanceDbContext dbContext)
 
         if (request.FromUtc.HasValue)
         {
-            query = query.Where(x => x.ShiftStart >= request.FromUtc.Value);
+            var fromUtc = UtcDateTime.Normalize(request.FromUtc.Value);
+            query = query.Where(x => x.ShiftStart >= fromUtc);
         }
 
         if (request.ToUtc.HasValue)
         {
-            query = query.Where(x => x.ShiftStart <= request.ToUtc.Value);
+            var toUtc = UtcDateTime.Normalize(request.ToUtc.Value);
+            query = query.Where(x => x.ShiftStart <= toUtc);
         }
 
         var total = await query.LongCountAsync(cancellationToken);
@@ -153,7 +155,7 @@ public class GetAttendanceCheckInPreviewHandler(AttendanceDbContext dbContext, I
 
         var now = DateTime.UtcNow;
         var workDateUtc = request.WorkDateUtc.HasValue
-            ? DateTime.SpecifyKind(request.WorkDateUtc.Value, DateTimeKind.Utc)
+            ? UtcDateTime.Normalize(request.WorkDateUtc.Value)
             : now;
 
         var activeSession = await dbContext.AttendanceSessions
@@ -225,6 +227,39 @@ public class GetAttendanceCheckInPreviewHandler(AttendanceDbContext dbContext, I
             return new GetAttendanceCheckInPreviewResult(preview);
         }
 
+        var workDayStartUtc = shiftWindow.ShiftStart.Value.Date;
+        var workDayEndUtc = workDayStartUtc.AddDays(1);
+
+        var completedSession = await dbContext.AttendanceSessions
+            .AsNoTracking()
+            .Where(x => x.EmployeeId == request.EmployeeId
+                && x.Status == AttendanceSessionStatus.Completed
+                && (
+                    (shiftWindow.ShiftId.HasValue
+                        && x.ShiftId == shiftWindow.ShiftId.Value
+                        && x.ShiftStart >= workDayStartUtc
+                        && x.ShiftStart < workDayEndUtc)
+                    || (x.ShiftStart < shiftWindow.ShiftEnd.Value
+                        && x.ShiftEnd > shiftWindow.ShiftStart.Value)
+                    || (x.ActualStartTime.HasValue
+                        && x.ActualStartTime.Value >= workDayStartUtc
+                        && x.ActualStartTime.Value < workDayEndUtc)
+                    || (x.ActualEndTime.HasValue
+                        && x.ActualEndTime.Value >= workDayStartUtc
+                        && x.ActualEndTime.Value < workDayEndUtc)))
+            .OrderByDescending(x => x.ActualEndTime ?? x.ShiftEnd)
+            .ProjectToType<AttendanceSessionDto>()
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (completedSession is not null)
+        {
+            preview.IsAttendanceCompleted = true;
+            preview.CanSubmitLateRequest = false;
+            preview.CanCheckIn = false;
+            preview.Message = "Your attendance for this shift is already completed.";
+            return new GetAttendanceCheckInPreviewResult(preview);
+        }
+
         if (!preview.HasLocation)
         {
             preview.Message = employee.AttendanceType == EmployeeAttendanceType.FixedLocation
@@ -240,13 +275,13 @@ public class GetAttendanceCheckInPreviewHandler(AttendanceDbContext dbContext, I
 
         if (preview.IsBeforeShiftStart)
         {
-            preview.Message = $"Check-in is not open yet. Your shift starts at {shiftWindow.ShiftStart.Value:u}.";
+            preview.Message = "Check-in is not open yet. See the effective shift start time on this page.";
             return new GetAttendanceCheckInPreviewResult(preview);
         }
 
         if (preview.IsProhibitedByTime)
         {
-            preview.Message = $"Check-in is closed because the allowed check-in time ended at {shiftWindow.ProhibitCheckInAfterUtc!.Value:u}. Submit a late check-in request for admin review.";
+            preview.Message = "Check-in is closed because the allowed check-in time has ended. Submit a late check-in request for admin review.";
             return new GetAttendanceCheckInPreviewResult(preview);
         }
 
@@ -257,7 +292,7 @@ public class GetAttendanceCheckInPreviewHandler(AttendanceDbContext dbContext, I
 
         preview.CanCheckIn = true;
         preview.Message = preview.IsLate && shiftWindow.ProhibitCheckInAfterUtc.HasValue
-            ? $"You are late, but check-in is still allowed until {shiftWindow.ProhibitCheckInAfterUtc.Value:u}."
+            ? "You are late, but check-in is still allowed."
             : "You are within the allowed time and location range. You can check in now.";
 
         return new GetAttendanceCheckInPreviewResult(preview);

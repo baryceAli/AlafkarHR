@@ -59,6 +59,7 @@
                 {
                     <SidebarItem Item="item"
                                  Siblings="VisibleRootItems"
+                                 RootItems="VisibleRootItems"
                                  AuthState="authState"
                                  SearchText="searchText"
                                  IsFiltering="@IsFiltering" />
@@ -123,7 +124,7 @@
             return true;
         }
 
-        return ItemMatchesSearch(item) || item.Children.Any(MatchesSearch);
+        return ItemMatchesSearch(item) || item.Children.Where(IsAuthorized).Any(MatchesSearch);
     }
 
     private bool ItemMatchesSearch(MenuItem item)

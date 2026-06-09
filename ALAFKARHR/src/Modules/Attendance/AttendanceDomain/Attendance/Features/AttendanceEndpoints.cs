@@ -232,7 +232,7 @@ public class AttendanceEndpoints : ICarterModule
         [FromQuery] double? latitude,
         [FromQuery] double? longitude,
         [FromQuery] double? accuracyMeters,
-        [FromQuery] bool isMockedLocation,
+        [FromQuery] bool? isMockedLocation,
         [FromQuery] string? locationIntegrityNote,
         [FromQuery] DateTime? workDateUtc,
         ISender sender)
@@ -242,7 +242,7 @@ public class AttendanceEndpoints : ICarterModule
             latitude,
             longitude,
             accuracyMeters,
-            isMockedLocation,
+            isMockedLocation ?? false,
             locationIntegrityNote,
             workDateUtc));
 
@@ -253,7 +253,7 @@ public class AttendanceEndpoints : ICarterModule
         [FromQuery] double? latitude,
         [FromQuery] double? longitude,
         [FromQuery] double? accuracyMeters,
-        [FromQuery] bool isMockedLocation,
+        [FromQuery] bool? isMockedLocation,
         [FromQuery] string? locationIntegrityNote,
         [FromQuery] DateTime? workDateUtc,
         ClaimsPrincipal user,
@@ -280,7 +280,7 @@ public class AttendanceEndpoints : ICarterModule
             latitude,
             longitude,
             accuracyMeters,
-            isMockedLocation,
+            isMockedLocation ?? false,
             locationIntegrityNote,
             workDateUtc));
 

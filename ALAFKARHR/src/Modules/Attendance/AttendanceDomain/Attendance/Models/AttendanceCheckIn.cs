@@ -37,8 +37,8 @@ public class AttendanceCheckIn : Entity<Guid>
             SiteName = siteName,
             Latitude = latitude,
             Longitude = longitude,
-            ArrivedAtUtc = DateTime.SpecifyKind(arrivedAtUtc, DateTimeKind.Utc),
-            DepartedAtUtc = departedAtUtc.HasValue ? DateTime.SpecifyKind(departedAtUtc.Value, DateTimeKind.Utc) : null,
+            ArrivedAtUtc = UtcDateTime.Normalize(arrivedAtUtc),
+            DepartedAtUtc = UtcDateTime.Normalize(departedAtUtc),
             Notes = notes,
             CreatedAt = DateTime.UtcNow
         };

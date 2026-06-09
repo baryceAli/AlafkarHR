@@ -50,9 +50,9 @@ public class LateCheckInRequest : Entity<Guid>
             CompanyId = companyId,
             ShiftId = shiftId,
             AttendanceType = attendanceType,
-            ShiftStart = DateTime.SpecifyKind(shiftStart, DateTimeKind.Utc),
-            ShiftEnd = DateTime.SpecifyKind(shiftEnd, DateTimeKind.Utc),
-            RequestedCheckInTimeUtc = DateTime.SpecifyKind(requestedCheckInTimeUtc, DateTimeKind.Utc),
+            ShiftStart = UtcDateTime.Normalize(shiftStart),
+            ShiftEnd = UtcDateTime.Normalize(shiftEnd),
+            RequestedCheckInTimeUtc = UtcDateTime.Normalize(requestedCheckInTimeUtc),
             Reason = reason.Trim(),
             Status = AttendanceExceptionStatus.Pending,
             Latitude = latitude,
@@ -67,7 +67,7 @@ public class LateCheckInRequest : Entity<Guid>
         EnsurePending();
 
         SessionId = sessionId;
-        RegisteredCheckInTimeUtc = DateTime.SpecifyKind(registeredCheckInTimeUtc, DateTimeKind.Utc);
+        RegisteredCheckInTimeUtc = UtcDateTime.Normalize(registeredCheckInTimeUtc);
         Status = AttendanceExceptionStatus.Approved;
         ManagerNote = managerNote;
         ReviewedBy = reviewedBy;

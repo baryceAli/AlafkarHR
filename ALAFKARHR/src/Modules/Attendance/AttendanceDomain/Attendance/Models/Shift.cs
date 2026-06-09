@@ -78,11 +78,11 @@ public class Shift : Aggregate<Guid>
     }
 
     public DateTime BuildShiftStart(DateTime workDateUtc)
-        => DateTime.SpecifyKind(workDateUtc.Date.Add(StartTime), DateTimeKind.Utc);
+        => DateTime.SpecifyKind(UtcDateTime.Normalize(workDateUtc).Date.Add(StartTime), DateTimeKind.Utc);
 
     public DateTime BuildShiftEnd(DateTime workDateUtc)
     {
-        var shiftEnd = workDateUtc.Date.Add(EndTime);
+        var shiftEnd = UtcDateTime.Normalize(workDateUtc).Date.Add(EndTime);
         if (EndTime <= StartTime)
         {
             shiftEnd = shiftEnd.AddDays(1);
@@ -92,8 +92,8 @@ public class Shift : Aggregate<Guid>
     }
 
     public DateTime LateAfter(DateTime shiftStartUtc)
-        => DateTime.SpecifyKind(shiftStartUtc.AddMinutes(LateAfterMinutes), DateTimeKind.Utc);
+        => UtcDateTime.Normalize(shiftStartUtc).AddMinutes(LateAfterMinutes);
 
     public DateTime ProhibitCheckInAfter(DateTime shiftStartUtc)
-        => DateTime.SpecifyKind(shiftStartUtc.AddMinutes(ProhibitCheckInAfterMinutes), DateTimeKind.Utc);
+        => UtcDateTime.Normalize(shiftStartUtc).AddMinutes(ProhibitCheckInAfterMinutes);
 }

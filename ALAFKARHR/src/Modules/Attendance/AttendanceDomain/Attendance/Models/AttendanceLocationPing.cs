@@ -35,7 +35,7 @@ public class AttendanceLocationPing : Entity<Guid>
             Latitude = latitude,
             Longitude = longitude,
             AccuracyMeters = accuracyMeters,
-            RecordedAtUtc = DateTime.SpecifyKind(recordedAtUtc, DateTimeKind.Utc),
+            RecordedAtUtc = UtcDateTime.Normalize(recordedAtUtc),
             IsIdle = isIdle,
             CreatedAt = DateTime.UtcNow
         };

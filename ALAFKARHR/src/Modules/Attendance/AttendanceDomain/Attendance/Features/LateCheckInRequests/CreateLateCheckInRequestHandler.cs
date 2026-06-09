@@ -73,7 +73,9 @@ public class CreateLateCheckInRequestHandler(AttendanceDbContext dbContext, ISen
         GetEmployeeAttendanceProfileResult employee,
         CancellationToken cancellationToken)
     {
-        var workDateUtc = request.ShiftStart == default ? request.RequestedCheckInTimeUtc : DateTime.SpecifyKind(request.ShiftStart, DateTimeKind.Utc);
+        var workDateUtc = request.ShiftStart == default
+            ? UtcDateTime.Normalize(request.RequestedCheckInTimeUtc)
+            : UtcDateTime.Normalize(request.ShiftStart);
         var assignedShiftId = await ResolveAssignedShiftIdAsync(employee, workDateUtc, cancellationToken);
         var effectiveShiftId = assignedShiftId ?? request.ShiftId;
 
@@ -81,8 +83,8 @@ public class CreateLateCheckInRequestHandler(AttendanceDbContext dbContext, ISen
         {
             return new ShiftWindow(
                 null,
-                DateTime.SpecifyKind(request.ShiftStart, DateTimeKind.Utc),
-                DateTime.SpecifyKind(request.ShiftEnd, DateTimeKind.Utc),
+                UtcDateTime.Normalize(request.ShiftStart),
+                UtcDateTime.Normalize(request.ShiftEnd),
                 null);
         }
 

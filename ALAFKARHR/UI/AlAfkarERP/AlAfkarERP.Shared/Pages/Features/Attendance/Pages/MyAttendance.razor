@@ -145,14 +145,14 @@
                 }
                 else if (preview is not null)
                 {
-                    <span class="badge @(preview.CanCheckIn ? "text-bg-success" : "text-bg-warning")">
-                        @(preview.CanCheckIn ? Text("Ready", "جاهز") : Text("Blocked", "غير متاح"))
+                    <span class="badge @(preview.CanCheckIn ? "text-bg-success" : preview.IsAttendanceCompleted ? "text-bg-secondary" : "text-bg-warning")">
+                        @(preview.CanCheckIn ? Text("Ready", "جاهز") : preview.IsAttendanceCompleted ? Text("Completed", "مكتمل") : Text("Blocked", "غير متاح"))
                     </span>
                 }
             </div>
 
-            <div class="readiness-card @(preview?.CanCheckIn == true ? "ready" : "blocked")">
-                <i class="bi @(preview?.CanCheckIn == true ? "bi-check-circle" : "bi-info-circle")"></i>
+            <div class="readiness-card @(preview?.CanCheckIn == true ? "ready" : preview?.IsAttendanceCompleted == true ? "completed" : "blocked")">
+                <i class="bi @(preview?.CanCheckIn == true ? "bi-check-circle" : preview?.IsAttendanceCompleted == true ? "bi-calendar-check" : "bi-info-circle")"></i>
                 <div>
                     <strong>@ReadinessTitle</strong>
                     <span>@(preview?.Message ?? Text("Loading employee, shift, and current location...", "جاري تحميل بيانات الموظف والوردية والموقع الحالي..."))</span>
@@ -274,7 +274,11 @@
         || (preview?.DistanceMeters.HasValue == true && preview?.AllowedRadiusMeters.HasValue == true);
     private bool CanStartSession => !isBusy && preview?.CanCheckIn == true && activeSession is null && HasTrustedLocation;
     private bool CanSubmitLateRequest => !isBusy && preview?.CanSubmitLateRequest == true && HasTrustedLocation;
-    private string ReadinessTitle => preview?.CanCheckIn == true ? Text("Ready to check in", "جاهز لتسجيل الحضور") : Text("Check-in is not available", "تسجيل الحضور غير متاح");
+    private string ReadinessTitle => preview?.CanCheckIn == true
+        ? Text("Ready to check in", "جاهز لتسجيل الحضور")
+        : preview?.IsAttendanceCompleted == true
+            ? Text("Attendance completed", "تم إكمال الحضور")
+            : Text("Check-in is not available", "تسجيل الحضور غير متاح");
     private string LocationBadgeText => !HasLocation
         ? Text("Waiting", "بانتظار الموقع")
         : isMockedLocation
@@ -758,6 +762,12 @@
         border-color: #fed7aa;
         background: #fff7ed;
         color: #7c2d12;
+    }
+
+    .readiness-card.completed {
+        border-color: #cbd5e1;
+        background: #f8fafc;
+        color: #334155;
     }
 
     .readiness-card i {

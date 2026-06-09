@@ -41,8 +41,8 @@ public class EmployeeShift : Entity<Guid>
             AdministrationId = administrationId,
             DepartmentId = departmentId,
             EmployeeId = employeeId,
-            EffectiveFrom = DateTime.SpecifyKind(effectiveFrom, DateTimeKind.Utc),
-            EffectiveTo = effectiveTo.HasValue ? DateTime.SpecifyKind(effectiveTo.Value, DateTimeKind.Utc) : null,
+            EffectiveFrom = UtcDateTime.Normalize(effectiveFrom),
+            EffectiveTo = UtcDateTime.Normalize(effectiveTo),
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -56,7 +56,7 @@ public class EmployeeShift : Entity<Guid>
 
     public void Close(DateTime effectiveTo)
     {
-        EffectiveTo = DateTime.SpecifyKind(effectiveTo, DateTimeKind.Utc);
+        EffectiveTo = UtcDateTime.Normalize(effectiveTo);
         IsActive = false;
         ModifiedAt = DateTime.UtcNow;
     }

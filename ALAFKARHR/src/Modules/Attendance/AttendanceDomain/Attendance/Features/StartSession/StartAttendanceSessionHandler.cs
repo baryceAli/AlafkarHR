@@ -82,7 +82,7 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
         GetEmployeeAttendanceProfileResult employee,
         CancellationToken cancellationToken)
     {
-        var workDateUtc = session.ShiftStart == default ? DateTime.UtcNow : DateTime.SpecifyKind(session.ShiftStart, DateTimeKind.Utc);
+        var workDateUtc = session.ShiftStart == default ? DateTime.UtcNow : UtcDateTime.Normalize(session.ShiftStart);
         var assignedShiftId = await ResolveAssignedShiftIdAsync(employee, workDateUtc, cancellationToken);
         var effectiveShiftId = assignedShiftId ?? session.ShiftId;
 
@@ -90,8 +90,8 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
         {
             return new ShiftWindow(
                 null,
-                DateTime.SpecifyKind(session.ShiftStart, DateTimeKind.Utc),
-                DateTime.SpecifyKind(session.ShiftEnd, DateTimeKind.Utc),
+                UtcDateTime.Normalize(session.ShiftStart),
+                UtcDateTime.Normalize(session.ShiftEnd),
                 null,
                 null);
         }
@@ -174,7 +174,7 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
                     employeeId,
                     null,
                     AttendanceExceptionType.Late,
-                    $"Employee checked in after the allowed late threshold. Late after: {shiftWindow.LateAfterUtc.Value:u}."),
+                    "Employee checked in after the allowed late threshold."),
                 cancellationToken);
         }
     }

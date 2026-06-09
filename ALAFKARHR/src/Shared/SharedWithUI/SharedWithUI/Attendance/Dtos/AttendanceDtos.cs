@@ -90,6 +90,7 @@ public class AttendanceCheckInPreviewDto
     public bool IsBeforeShiftStart { get; set; }
     public bool IsLate { get; set; }
     public bool IsProhibitedByTime { get; set; }
+    public bool IsAttendanceCompleted { get; set; }
     public bool CanCheckIn { get; set; }
     public bool CanSubmitLateRequest { get; set; }
     public string Message { get; set; } = string.Empty;

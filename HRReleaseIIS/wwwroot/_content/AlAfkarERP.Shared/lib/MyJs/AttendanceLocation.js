@@ -11,11 +11,24 @@ window.attendanceLocation = {
 
             navigator.geolocation.getCurrentPosition(
                 function (position) {
+                    var isMockedLocation =
+                        position.mocked === true ||
+                        position.isMocked === true ||
+                        position.isFromMockProvider === true ||
+                        (position.coords && (
+                            position.coords.mocked === true ||
+                            position.coords.isMocked === true ||
+                            position.coords.isFromMockProvider === true));
+
                     resolve({
                         success: true,
                         latitude: position.coords.latitude,
                         longitude: position.coords.longitude,
-                        accuracyMeters: position.coords.accuracy
+                        accuracyMeters: position.coords.accuracy,
+                        isMockedLocation: isMockedLocation,
+                        locationIntegrityNote: isMockedLocation
+                            ? "The device reported this GPS reading as mocked or from a mock location provider."
+                            : null
                     });
                 },
                 function (error) {

@@ -22,7 +22,7 @@ public class AssignShiftHandler(AttendanceDbContext dbContext)
 
         var effectiveFrom = request.Assignment.EffectiveFrom == default
             ? DateTime.UtcNow
-            : DateTime.SpecifyKind(request.Assignment.EffectiveFrom, DateTimeKind.Utc);
+            : UtcDateTime.Normalize(request.Assignment.EffectiveFrom);
 
         await CloseExistingAssignmentsAsync(request.Assignment, effectiveFrom, cancellationToken);
 

@@ -30,7 +30,7 @@ public class AttendanceSession : Aggregate<Guid>
     {
         var now = DateTime.UtcNow;
         var startTime = actualStartTime.HasValue
-            ? DateTime.SpecifyKind(actualStartTime.Value, DateTimeKind.Utc)
+            ? UtcDateTime.Normalize(actualStartTime.Value)
             : now;
 
         return new AttendanceSession
@@ -40,8 +40,8 @@ public class AttendanceSession : Aggregate<Guid>
             CompanyId = companyId,
             ShiftId = shiftId,
             AttendanceType = attendanceType,
-            ShiftStart = DateTime.SpecifyKind(shiftStart, DateTimeKind.Utc),
-            ShiftEnd = DateTime.SpecifyKind(shiftEnd, DateTimeKind.Utc),
+            ShiftStart = UtcDateTime.Normalize(shiftStart),
+            ShiftEnd = UtcDateTime.Normalize(shiftEnd),
             ActualStartTime = startTime,
             Status = AttendanceSessionStatus.Active,
             CreatedAt = now
