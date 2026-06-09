@@ -26,6 +26,7 @@ public class GetSalaryRunByIdEndpoint : ICarterModule
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Get Salary Run")
-            .WithDescription("Gets a salary run by ID");
+            .WithDescription("Gets a salary run by ID")
+            .RequireAuthorization(PermissionList.SalaryRunPermissions.View);
     }
 }

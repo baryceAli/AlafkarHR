@@ -7,6 +7,7 @@ using EmployeeModule;
 using GeneralSettings;
 using Inventory;
 using Organization;
+using Payroll;
 using Pricing;
 using SalesOrder;
 using Shared.Exceptions.Handler;
@@ -40,6 +41,7 @@ var customerAssembly = typeof(CustomerModule).Assembly;
 var salesOrderAssembly=typeof(SalesOrderModule).Assembly;
 var supplierAssembly =typeof(SupplierModule).Assembly;
 var pricingAssembly = typeof(PricingModule).Assembly;
+var payrollAssembly = typeof(PayrollModule).Assembly;
 var taskManagementAssembly = typeof(TaskManagementModule).Assembly;
 
 builder.Services.AddCarterWithAssemblies(
@@ -54,6 +56,7 @@ builder.Services.AddCarterWithAssemblies(
                         salesOrderAssembly,
                         supplierAssembly,
                         pricingAssembly,
+                        payrollAssembly,
                         taskManagementAssembly
                         );
 //catalogAssembly,
@@ -72,6 +75,7 @@ builder.Services.AddMediatRWithAssemblies(
                         salesOrderAssembly,
                         supplierAssembly,
                         pricingAssembly,
+                        payrollAssembly,
                         taskManagementAssembly
                         );
 //catalogAssembly,
@@ -94,6 +98,7 @@ builder.Services
         .AddSalesOrderModule(builder.Configuration)
         .AddSupplierModule(builder.Configuration)
         .AddPricingModule(builder.Configuration)
+        .AddPayrollModule(builder.Configuration)
         .AddTaskManagementModule(builder.Configuration);
 #endregion
 
@@ -126,6 +131,7 @@ app
     .UseSalesOrderModule(app.Environment)
     .UseSupplierModule(app.Environment)
     .UsePricingModule(app.Environment)
+    .UsePayrollModule(app.Environment)
     .UseTaskManagementModule(app.Environment);
 
 // Configure the HTTP request pipeline.

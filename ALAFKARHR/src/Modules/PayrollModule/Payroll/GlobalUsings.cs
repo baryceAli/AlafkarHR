@@ -10,4 +10,5 @@ global using Microsoft.EntityFrameworkCore;
 global using Payroll.Data;
 global using Payroll.Salaries.Models;
 global using SharedWithUI.Payroll.Enums;
+global using SharedWithUI.Permissions;
 global using System.Security.Claims;

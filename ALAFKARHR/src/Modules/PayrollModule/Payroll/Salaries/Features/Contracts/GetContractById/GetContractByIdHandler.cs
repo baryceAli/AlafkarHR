@@ -9,6 +9,7 @@ public class GetContractByIdHandler(PayrollDbContext dbContext)
     public async Task<GetContractByIdResult> Handle(GetContractByIdQuery request, CancellationToken cancellationToken)
     {
         var contract = await dbContext.Set<Contract>()
+            .Include(x => x.Items)
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new KeyNotFoundException($"Contract with ID {request.Id} not found");
 

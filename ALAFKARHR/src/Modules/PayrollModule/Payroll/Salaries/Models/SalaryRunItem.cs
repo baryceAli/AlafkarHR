@@ -10,4 +10,16 @@ public class SalaryRunItem:Entity<Guid>
     public Guid ItemId { get; set; }
     public ComponentType ComponentType{ get; set; }
     public decimal Amount { get; set; }
+
+    public static SalaryRunItem Create(Guid salaryRunId, Guid itemId, ComponentType componentType, decimal amount)
+    {
+        return new SalaryRunItem
+        {
+            Id = Guid.NewGuid(),
+            SalaryRunId = salaryRunId,
+            ItemId = itemId,
+            ComponentType = componentType,
+            Amount = amount
+        };
+    }
 }

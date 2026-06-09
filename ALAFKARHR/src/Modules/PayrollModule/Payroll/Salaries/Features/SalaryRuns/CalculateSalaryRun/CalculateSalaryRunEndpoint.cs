@@ -26,6 +26,7 @@ public class CalculateSalaryRunEndpoint : ICarterModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .WithSummary("Calculate Salary Run")
-            .WithDescription("Calculates all allowances and deductions for a salary run");
+            .WithDescription("Calculates all allowances and deductions for a salary run")
+            .RequireAuthorization(PermissionList.SalaryRunPermissions.Edit);
     }
 }

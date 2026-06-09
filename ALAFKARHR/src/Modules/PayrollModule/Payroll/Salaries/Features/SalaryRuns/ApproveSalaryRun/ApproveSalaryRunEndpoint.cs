@@ -20,6 +20,7 @@ public class ApproveSalaryRunEndpoint : ICarterModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .WithSummary("Approve Salary Run")
-            .WithDescription("Approves a calculated salary run");
+            .WithDescription("Approves a calculated salary run")
+            .RequireAuthorization(PermissionList.SalaryRunPermissions.Approve);
     }
 }

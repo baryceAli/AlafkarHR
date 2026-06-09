@@ -30,13 +30,15 @@ public class CreateSalaryRunHandler(PayrollDbContext dbContext, IHttpContextAcce
             ContractId = request.ContractId,
             SalaryMonth = request.SalaryMonth,
             SalaryYear = request.SalaryYear,
-            totalSalary = request.BaseSalary,
+            TotalSalary = request.BaseSalary,
             TotalAllowances = 0,
-            totalDeductions = 0,
+            TotalDeductions = 0,
             Status = SalaryRunStatus.Draft,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = userId
         };
+
+        salaryRun.AddItem(salaryRun.ContractId, ComponentType.Basic, salaryRun.TotalSalary);
 
         await dbContext.Set<SalaryRun>().AddAsync(salaryRun, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);

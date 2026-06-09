@@ -31,8 +31,7 @@ public static class PayrollModule
         services.AddDbContext<PayrollDbContext>((sp, options) =>
         {
             //options.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());
-            options.UseNpgsql(connectionString);
-            //options.UseSqlServer(connectionString);
+            options.UseSqlServer(connectionString);
         });
 
         services.AddScoped<IDataSeeder<PayrollDbContext>, PayrollDataSeeder>();
@@ -41,7 +40,7 @@ public static class PayrollModule
         return services;
     }
 
-    public static IApplicationBuilder UseOrganizationModule(this IApplicationBuilder app, IWebHostEnvironment env)
+    public static IApplicationBuilder UsePayrollModule(this IApplicationBuilder app, IWebHostEnvironment env)
     {
         //application.use
 

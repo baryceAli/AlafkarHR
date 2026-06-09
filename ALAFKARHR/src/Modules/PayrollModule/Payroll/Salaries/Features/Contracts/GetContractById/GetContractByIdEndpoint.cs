@@ -24,6 +24,7 @@ public class GetContractByIdEndpoint : ICarterModule
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Get Salary Contract")
-            .WithDescription("Gets a salary contract by ID");
+            .WithDescription("Gets a salary contract by ID")
+            .RequireAuthorization(PermissionList.PayrollContractPermissions.View);
     }
 }

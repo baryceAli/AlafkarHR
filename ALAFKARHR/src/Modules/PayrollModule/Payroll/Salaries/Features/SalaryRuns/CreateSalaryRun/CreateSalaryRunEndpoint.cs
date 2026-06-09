@@ -24,6 +24,7 @@ public class CreateSalaryRunEndpoint : ICarterModule
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .WithSummary("Create Salary Run")
-            .WithDescription("Creates a new salary run for an employee");
+            .WithDescription("Creates a new salary run for an employee")
+            .RequireAuthorization(PermissionList.SalaryRunPermissions.Create);
     }
 }

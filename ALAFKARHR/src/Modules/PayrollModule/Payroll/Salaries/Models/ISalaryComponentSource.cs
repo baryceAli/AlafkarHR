@@ -8,7 +8,7 @@ public interface ISalaryComponentSource
 public class SalaryComponentResult
 {
     public Guid ComponentId { get; set; }
-    public string Name { get; set; }
+    public string Name { get; set; } = null!;
 
     public decimal Amount { get; set; }
 

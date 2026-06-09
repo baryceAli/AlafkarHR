@@ -24,6 +24,7 @@ public class CreateContractEndpoint : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .WithSummary("Create Salary Contract")
-            .WithDescription("Creates a new salary contract with associated components");
+            .WithDescription("Creates a new salary contract with associated components")
+            .RequireAuthorization(PermissionList.PayrollContractPermissions.Create);
     }
 }

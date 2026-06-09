@@ -22,7 +22,8 @@ public class SalaryRunConfiguration : IEntityTypeConfiguration<SalaryRun>
         builder.Property(x => x.SalaryYear)
             .IsRequired();
 
-        builder.Property(x => x.totalSalary)
+        builder.Property(x => x.TotalSalary)
+            .HasColumnName("totalSalary")
             .HasPrecision(18, 2)
             .IsRequired();
 
@@ -30,7 +31,8 @@ public class SalaryRunConfiguration : IEntityTypeConfiguration<SalaryRun>
             .HasPrecision(18, 2)
             .IsRequired();
 
-        builder.Property(x => x.totalDeductions)
+        builder.Property(x => x.TotalDeductions)
+            .HasColumnName("totalDeductions")
             .HasPrecision(18, 2)
             .IsRequired();
 
@@ -47,6 +49,6 @@ public class SalaryRunConfiguration : IEntityTypeConfiguration<SalaryRun>
 
         builder.HasIndex(x => new { x.EmployeeId, x.SalaryMonth, x.SalaryYear })
             .IsUnique()
-            .HasName("IX_SalaryRun_Employee_Month_Year");
+            .HasDatabaseName("IX_SalaryRun_Employee_Month_Year");
     }
 }

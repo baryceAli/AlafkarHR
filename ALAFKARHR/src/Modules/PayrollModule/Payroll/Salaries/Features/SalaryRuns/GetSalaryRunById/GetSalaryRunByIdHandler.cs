@@ -15,9 +15,9 @@ public class GetSalaryRunByIdHandler(PayrollDbContext dbContext)
             salaryRun.ContractId,
             salaryRun.SalaryMonth,
             salaryRun.SalaryYear,
-            salaryRun.totalSalary,
+            salaryRun.TotalSalary,
             salaryRun.TotalAllowances,
-            salaryRun.totalDeductions,
+            salaryRun.TotalDeductions,
             salaryRun.NetSalary,
             salaryRun.Status.ToString());
     }

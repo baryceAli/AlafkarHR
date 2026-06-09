@@ -32,6 +32,7 @@ public class UpdateContractEndpoint : ICarterModule
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Update Salary Contract")
-            .WithDescription("Updates an existing salary contract");
+            .WithDescription("Updates an existing salary contract")
+            .RequireAuthorization(PermissionList.PayrollContractPermissions.Edit);
     }
 }

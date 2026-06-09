@@ -4,8 +4,8 @@ namespace Payroll.Salaries.Models;
 
 public class Contract:Entity<Guid>
 {
-    public string Name { get; set; }
-    public string NameEng { get; set; }
+    public string Name { get; set; } = null!;
+    public string NameEng { get; set; } = null!;
     public string? Description { get; set; }
     public Guid CompanyId { get; set; }
 
@@ -44,7 +44,7 @@ public class Contract:Entity<Guid>
 
     public void AddContractItem(Guid componentId,decimal amount)
     {
-        if (componentId == null || componentId.Equals(Guid.Empty))
+        if (componentId == Guid.Empty)
             throw new ArgumentNullException("Component is required");
 
         if (amount <= 0)

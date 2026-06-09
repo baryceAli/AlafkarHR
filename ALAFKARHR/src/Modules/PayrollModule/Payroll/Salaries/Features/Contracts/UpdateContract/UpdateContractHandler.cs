@@ -12,6 +12,7 @@ public class UpdateContractHandler(PayrollDbContext dbContext, IHttpContextAcces
                     throw new UnauthorizedAccessException("User is not authenticated");
 
         var contract = await dbContext.Set<Contract>()
+            .Include(x => x.Items)
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new KeyNotFoundException($"Contract with ID {request.Id} not found");
 
