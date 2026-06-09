@@ -9,14 +9,14 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Auth.Dtos
 @using SharedWithUI.Permissions
-
-
+@using SharedWithUI.Employees.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @inject IBranchService BranchService
 @inject IAdministrationService AdministrationService
 @inject IAuthService AuthService
 @inject ToastService ToastService
 @inject ModalService ModalService
-@inject IUserService UserService
+@inject IEmployeeService EmployeeService
 
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -148,13 +148,14 @@
                                 <div class="mb-3 row">
                                     <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Manager", "مدير الادارة")</label>
                                     <div class="col-sm-10">
-                                        <AutoCompleteComponent TItem="UserDto"
-                                                               Items="users"
+                                        <AutoCompleteComponent TItem="EmployeeDto"
+                                                               Items="employees"
                                                                Value="manager"
                                                                PlaceHolder="search manager ..."
-                                                               ItemText='(p=> p.UserName)'
+                                                               ItemText='(p=> p.FullName)'
                                                                ValueChanged="OnUserSelected">
                                         </AutoCompleteComponent>
+                                                               @* ItemText='(p=> SharedDataService.SelectViewLang( p.FullNameEng,p.FullName))' *@
                                         
                                     </div>
                                 </div>
@@ -183,7 +184,7 @@
                         <td>@admin.Name</td>
                         <td>@admin.NameEng</td>
                         @* <td>@admin.BranchId</td> *@
-                        <td>@(users.FirstOrDefault(u => u.Id == admin.ManagerId)?.UserName ?? "")</td>
+                        <td>@(SharedDataService.SelectViewLang(employees.FirstOrDefault(u => u.Id == admin.ManagerId)?.FullName ?? "",employees.FirstOrDefault(u => u.Id == admin.ManagerId)?.FullName ?? ""))</td>
                         <td>@admin.IsActive</td>
                         <td>
                             <button class="btn btn-warning btn-sm"
@@ -224,8 +225,8 @@
 @code {
     private List<BranchDto> branches = new();
     private List<AdministrationDto> administrations = new();
-    private List<UserDto> users = [];
-    private UserDto? manager = new();
+    private List<EmployeeDto> employees = [];
+    private EmployeeDto? manager = new();
     private Guid? editingAdministrationId;
     // private Guid? newAdministrationId;
     private bool isEdit = false;
@@ -236,10 +237,10 @@
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
         companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
 
-        var userResponse = await UserService.GetUsersByCompany(companyId,0, 100);
-        if (userResponse.IsSuccess)
+        var empResponse = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 10000);
+        if (empResponse.IsSuccess)
         {
-            users = userResponse.Data?.Data?.ToList() ?? [];
+            employees = empResponse.Data?.Data?.ToList() ?? [];
         }
 
         // await LoadBranches();
@@ -266,9 +267,9 @@
         // }
     }
 
-    private async Task OnUserSelected(UserDto? user)
+    private async Task OnUserSelected(EmployeeDto? emp)
     {
-        manager = user;
+        manager = emp;
 
 
         StateHasChanged();
@@ -315,7 +316,7 @@
         isEdit = true;
 
         editingAdministrationId = admin.Id;
-        manager = users?.FirstOrDefault(u => u.Id == admin.ManagerId) ?? null;
+        manager = employees?.FirstOrDefault(u => u.Id == admin.ManagerId) ?? null;
     }
 
     async Task SaveAdministration(AdministrationDto admin)

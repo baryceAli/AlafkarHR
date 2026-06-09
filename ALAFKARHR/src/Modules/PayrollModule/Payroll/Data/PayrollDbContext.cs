@@ -8,7 +8,7 @@ public class PayrollDbContext:DbContext
 {
     public PayrollDbContext(DbContextOptions<PayrollDbContext> options):base(options){}
 
-
+    //update-database -Project Payroll -StartupProject Api -Context PayrollDbContext
     public DbSet<Contract> Contracts => Set<Contract>();
     public DbSet<ContractItem> ContractItems => Set<ContractItem>();
     public DbSet<SalaryRun> SalaryRuns => Set<SalaryRun>();

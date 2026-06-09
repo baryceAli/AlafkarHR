@@ -5,6 +5,7 @@
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
 @using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
 @using SharedWithUI.Employees.Dtos
@@ -14,16 +15,17 @@
 @inject IAdministrationService AdministrationService
 @inject IDepartmentService DepartmentService
 @inject IEmployeeService EmployeeService
+@inject SharedDataService SharedDataService
 
-<section class="shift-page">
+<section class="shift-page" dir="@SharedDataService.PageDirection">
     <div class="shift-header">
         <div>
-            <p class="eyebrow">Attendance</p>
-            <h1>Shift assignments</h1>
+            <p class="eyebrow">@Text("Attendance", "الحضور والانصراف")</p>
+            <h1>@Text("Shift assignments", "تعيين الورديات")</h1>
         </div>
         <button class="btn btn-outline-primary" @onclick="LoadData">
             <i class="bi bi-arrow-clockwise"></i>
-            Refresh
+            @Text("Refresh", "تحديث")
         </button>
     </div>
 
@@ -34,14 +36,14 @@
 
     <section class="shift-panel">
         <div class="panel-title">
-            <h2>Apply shift</h2>
-            <span>Priority is employee, department, administration, then company.</span>
+            <h2>@Text("Apply shift", "تطبيق الوردية")</h2>
+            <span>@Text("Priority is employee, department, administration, then company.", "الأولوية للموظف ثم القسم ثم الإدارة ثم الشركة.")</span>
         </div>
         <div class="form-grid">
             <label>
-                Shift
+                @Text("Shift", "الوردية")
                 <select class="form-select" @bind="model.ShiftId" @bind:after="OnShiftChangedAsync">
-                    <option value="@Guid.Empty">Select shift</option>
+                    <option value="@Guid.Empty">@Text("Select shift", "اختر الوردية")</option>
                     @foreach (var shift in shifts)
                     {
                         <option value="@shift.Id">@shift.Name (@shift.StartTime.ToString(@"hh\:mm") - @shift.EndTime.ToString(@"hh\:mm"))</option>
@@ -49,24 +51,24 @@
                 </select>
             </label>
             <label>
-                Apply to
+                @Text("Apply to", "تطبيق على")
                 <select class="form-select" @bind="model.Scope" @bind:after="OnScopeChanged">
-                    <option value="@ShiftAssignmentScope.Company">Company</option>
-                    <option value="@ShiftAssignmentScope.Administration">Administration</option>
-                    <option value="@ShiftAssignmentScope.Department">Department</option>
-                    <option value="@ShiftAssignmentScope.Employee">Employee</option>
+                    <option value="@ShiftAssignmentScope.Company">@Text("Company", "الشركة")</option>
+                    <option value="@ShiftAssignmentScope.Administration">@Text("Administration", "الإدارة")</option>
+                    <option value="@ShiftAssignmentScope.Department">@Text("Department", "القسم")</option>
+                    <option value="@ShiftAssignmentScope.Employee">@Text("Employee", "الموظف")</option>
                 </select>
             </label>
 
             @if (model.Scope == ShiftAssignmentScope.Administration)
             {
                 <label>
-                    Administration
+                    @Text("Administration", "الإدارة")
                     <AutoCompleteComponent TItem="AdministrationDto"
                                            Items="administrations"
                                            ItemText="AdministrationSearchText"
                                            Value="selectedAdministration"
-                                           PlaceHolder="Search administration by name or code"
+                                           PlaceHolder="@Text("Search administration by name or code", "ابحث عن الإدارة بالاسم أو الكود")"
                                            ValueChanged="OnAdministrationSelected" />
                 </label>
             }
@@ -74,12 +76,12 @@
             @if (model.Scope == ShiftAssignmentScope.Department)
             {
                 <label>
-                    Department
+                    @Text("Department", "القسم")
                     <AutoCompleteComponent TItem="DepartmentDto"
                                            Items="departments"
                                            ItemText="DepartmentSearchText"
                                            Value="selectedDepartment"
-                                           PlaceHolder="Search department by name or code"
+                                           PlaceHolder="@Text("Search department by name or code", "ابحث عن القسم بالاسم أو الكود")"
                                            ValueChanged="OnDepartmentSelected" />
                 </label>
             }
@@ -87,72 +89,72 @@
             @if (model.Scope == ShiftAssignmentScope.Employee)
             {
                 <label>
-                    Employee
+                    @Text("Employee", "الموظف")
                     <AutoCompleteComponent TItem="EmployeeDto"
                                            Items="employees"
                                            ItemText="EmployeeSearchText"
                                            Value="selectedEmployee"
-                                           PlaceHolder="Search employee by name, code, number, or email"
+                                           PlaceHolder="@Text("Search employee by name, code, number, or email", "ابحث عن الموظف بالاسم أو الكود أو الرقم أو البريد")"
                                            ValueChanged="OnEmployeeSelected" />
                     @if (model.ShiftId == Guid.Empty)
                     {
-                        <small class="text-muted">Select a shift first to load employees for that company.</small>
+                        <small class="text-muted">@Text("Select a shift first to load employees for that company.", "اختر وردية أولا لتحميل موظفي الشركة.")</small>
                     }
                     else if (employees.Count == 0)
                     {
-                        <small class="text-warning">No employees were loaded for the selected shift company.</small>
+                        <small class="text-warning">@Text("No employees were loaded for the selected shift company.", "لم يتم تحميل موظفين لشركة الوردية المحددة.")</small>
                     }
                 </label>
             }
 
             <label>
-                Effective from
+                @Text("Effective from", "ساري من")
                 <input class="form-control" type="datetime-local" @bind="effectiveFromLocal" />
             </label>
             <label>
-                Effective to
+                @Text("Effective to", "ساري إلى")
                 <input class="form-control" type="datetime-local" @bind="effectiveToLocal" />
             </label>
         </div>
         <div class="action-row">
             <button class="btn btn-primary" @onclick="AssignShiftAsync" disabled="@isBusy">
                 <i class="bi bi-check2-circle"></i>
-                Apply shift
+                @Text("Apply shift", "تطبيق الوردية")
             </button>
         </div>
     </section>
 
     <section class="shift-panel mt-3">
         <div class="panel-title">
-            <h2>Configured assignments</h2>
+            <h2>@Text("Configured assignments", "التعيينات الحالية")</h2>
             <select class="form-select form-select-sm scope-filter" @bind="scopeFilter">
-                <option value="">All scopes</option>
-                <option value="@ShiftAssignmentScope.Company">Company</option>
-                <option value="@ShiftAssignmentScope.Administration">Administration</option>
-                <option value="@ShiftAssignmentScope.Department">Department</option>
-                <option value="@ShiftAssignmentScope.Employee">Employee</option>
+                <option value="">@Text("All scopes", "كل النطاقات")</option>
+                <option value="@ShiftAssignmentScope.Company">@Text("Company", "الشركة")</option>
+                <option value="@ShiftAssignmentScope.Administration">@Text("Administration", "الإدارة")</option>
+                <option value="@ShiftAssignmentScope.Department">@Text("Department", "القسم")</option>
+                <option value="@ShiftAssignmentScope.Employee">@Text("Employee", "الموظف")</option>
             </select>
         </div>
         <div class="table-responsive">
             <table class="table align-middle">
                 <thead>
                     <tr>
-                        <th>Scope</th>
-                        <th>Target</th>
-                        <th>Shift</th>
-                        <th>Effective</th>
-                        <th>Status</th>
+                        <th>@Text("Scope", "النطاق")</th>
+                        <th>@Text("Target", "الهدف")</th>
+                        <th>@Text("Shift", "الوردية")</th>
+                        <th>@Text("Effective", "سريان المفعول")</th>
+                        <th>@Text("Status", "الحالة")</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var assignment in assignments)
                     {
                         <tr>
-                            <td>@assignment.Scope</td>
+                            <td>@ScopeText(assignment.Scope)</td>
                             <td>@TargetLabel(assignment)</td>
                             <td>@ShiftName(assignment.ShiftId)</td>
                             <td>@assignment.EffectiveFrom.ToLocalTime().ToString("g") - @FormatNullable(assignment.EffectiveTo)</td>
-                            <td><span class="badge @(assignment.IsActive ? "text-bg-success" : "text-bg-secondary")">@(assignment.IsActive ? "Active" : "Closed")</span></td>
+                            <td><span class="badge @(assignment.IsActive ? "text-bg-success" : "text-bg-secondary")">@(assignment.IsActive ? Text("Active", "نشط") : Text("Closed", "مغلق"))</span></td>
                         </tr>
                     }
                 </tbody>
@@ -248,7 +250,7 @@
         var shift = shifts.FirstOrDefault(x => x.Id == model.ShiftId);
         if (shift is null)
         {
-            SetMessage("Select a shift first.", "alert-warning");
+            SetMessage(Text("Select a shift first.", "اختر الوردية أولا."), "alert-warning");
             return;
         }
 
@@ -261,12 +263,12 @@
         var response = await AttendanceService.AssignShiftAsync(model);
         if (response.IsSuccess)
         {
-            SetMessage("Shift assignment saved.", "alert-success");
+            SetMessage(Text("Shift assignment saved.", "تم حفظ تعيين الوردية."), "alert-success");
             await LoadAssignments();
         }
         else
         {
-            SetMessage(response.Error?.Detail ?? "Unable to save shift assignment.", "alert-danger");
+            SetMessage(response.Error?.Detail ?? Text("Unable to save shift assignment.", "تعذر حفظ تعيين الوردية."), "alert-danger");
         }
 
         isBusy = false;
@@ -335,9 +337,17 @@
     private string TargetLabel(ShiftAssignmentDto assignment) => assignment.Scope switch
     {
         ShiftAssignmentScope.Employee => EmployeeName(employees.FirstOrDefault(x => x.Id == assignment.EmployeeId) ?? new EmployeeDto { Id = assignment.EmployeeId ?? Guid.Empty }),
-        ShiftAssignmentScope.Department => DepartmentName(departments.FirstOrDefault(x => x.Id == assignment.DepartmentId) ?? new DepartmentDto { Id = assignment.DepartmentId ?? Guid.Empty, Name = "Department" }),
-        ShiftAssignmentScope.Administration => AdminName(administrations.FirstOrDefault(x => x.Id == assignment.AdministrationId) ?? new AdministrationDto { Id = assignment.AdministrationId ?? Guid.Empty, Name = "Administration" }),
-        _ => "Company"
+        ShiftAssignmentScope.Department => DepartmentName(departments.FirstOrDefault(x => x.Id == assignment.DepartmentId) ?? new DepartmentDto { Id = assignment.DepartmentId ?? Guid.Empty, Name = Text("Department", "القسم") }),
+        ShiftAssignmentScope.Administration => AdminName(administrations.FirstOrDefault(x => x.Id == assignment.AdministrationId) ?? new AdministrationDto { Id = assignment.AdministrationId ?? Guid.Empty, Name = Text("Administration", "الإدارة") }),
+        _ => Text("Company", "الشركة")
+    };
+
+    private string ScopeText(ShiftAssignmentScope scope) => scope switch
+    {
+        ShiftAssignmentScope.Employee => Text("Employee", "الموظف"),
+        ShiftAssignmentScope.Department => Text("Department", "القسم"),
+        ShiftAssignmentScope.Administration => Text("Administration", "الإدارة"),
+        _ => Text("Company", "الشركة")
     };
 
     private string ShiftName(Guid shiftId) => shifts.FirstOrDefault(x => x.Id == shiftId)?.Name ?? shiftId.ToString()[..8];
@@ -347,7 +357,8 @@
     private static string EmployeeSearchText(EmployeeDto employee) => $"{EmployeeName(employee)} | {employee.Code} | {employee.EmployeeNo} | {employee.Email}";
     private static string DepartmentSearchText(DepartmentDto department) => $"{DepartmentName(department)} | {department.Code}";
     private static string AdministrationSearchText(AdministrationDto administration) => $"{AdminName(administration)} | {administration.Code}";
-    private static string FormatNullable(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "Open";
+    private string FormatNullable(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : Text("Open", "مفتوح");
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 }
 
 <style>

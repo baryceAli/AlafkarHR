@@ -2,27 +2,29 @@
 @page "/Attendance/LateRequests"
 
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Utilities
 @using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
 
 @inject IAttendanceService AttendanceService
+@inject SharedDataService SharedDataService
 
-<section class="requests-page">
+<section class="requests-page" dir="@SharedDataService.PageDirection">
     <div class="requests-header">
         <div>
-            <p class="eyebrow">Attendance</p>
-            <h1>Late check-in requests</h1>
+            <p class="eyebrow">@Text("Attendance", "الحضور والانصراف")</p>
+            <h1>@Text("Late check-in requests", "طلبات تسجيل الحضور المتأخر")</h1>
         </div>
         <div class="header-actions">
             <select class="form-select" @bind="statusFilter">
-                <option value="">All statuses</option>
-                <option value="@AttendanceExceptionStatus.Pending">Pending</option>
-                <option value="@AttendanceExceptionStatus.Approved">Approved</option>
-                <option value="@AttendanceExceptionStatus.Rejected">Rejected</option>
+                <option value="">@Text("All statuses", "كل الحالات")</option>
+                <option value="@AttendanceExceptionStatus.Pending">@Text("Pending", "معلق")</option>
+                <option value="@AttendanceExceptionStatus.Approved">@Text("Approved", "موافق عليه")</option>
+                <option value="@AttendanceExceptionStatus.Rejected">@Text("Rejected", "مرفوض")</option>
             </select>
             <button class="btn btn-outline-primary" @onclick="LoadRequests">
                 <i class="bi bi-arrow-clockwise"></i>
-                Refresh
+                @Text("Refresh", "تحديث")
             </button>
         </div>
     </div>
@@ -35,11 +37,11 @@
     <section class="requests-panel">
         @if (isLoading)
         {
-            <div class="empty-state">Loading requests...</div>
+            <div class="empty-state">@Text("Loading requests...", "جاري تحميل الطلبات...")</div>
         }
         else if (!requests.Any())
         {
-            <div class="empty-state">No late check-in requests found.</div>
+            <div class="empty-state">@Text("No late check-in requests found.", "لا توجد طلبات تسجيل حضور متأخر.")</div>
         }
         else
         {
@@ -50,13 +52,13 @@
                     <article class="request-card">
                         <div class="request-main">
                             <div>
-                                <div class="request-title">Employee @ShortId(request.EmployeeId)</div>
+                                <div class="request-title">@Text("Employee", "الموظف") @ShortId(request.EmployeeId)</div>
                                 <div class="request-meta">
-                                    Requested @request.RequestedCheckInTimeUtc.ToLocalTime().ToString("g")
-                                    <span>Shift @request.ShiftStart.ToLocalTime().ToString("g") - @request.ShiftEnd.ToLocalTime().ToString("g")</span>
+                                    @Text("Requested", "وقت الطلب") @request.RequestedCheckInTimeUtc.ToLocalTime().ToString("g")
+                                    <span>@Text("Shift", "الوردية") @request.ShiftStart.ToLocalTime().ToString("g") - @request.ShiftEnd.ToLocalTime().ToString("g")</span>
                                 </div>
                             </div>
-                            <span class="badge @StatusClass(request.Status)">@request.Status</span>
+                            <span class="badge @StatusClass(request.Status)">@StatusText(request.Status)</span>
                         </div>
 
                         <p class="reason">@request.Reason</p>
@@ -65,33 +67,33 @@
                         {
                             <div class="review-grid">
                                 <label>
-                                    Registered check-in time
+                                    @Text("Registered check-in time", "وقت تسجيل الحضور المعتمد")
                                     <input class="form-control" type="datetime-local" @bind="review.RegisteredLocal" />
                                 </label>
                                 <label>
-                                    Manager note
+                                    @Text("Manager note", "ملاحظة المدير")
                                     <input class="form-control" @bind="review.ManagerNote" />
                                 </label>
                             </div>
                             <div class="action-row">
                                 <button class="btn btn-success" @onclick="() => ReviewAsync(request, true)" disabled="@isBusy">
                                     <i class="bi bi-check2-circle"></i>
-                                    Approve
+                                    @Text("Approve", "موافقة")
                                 </button>
                                 <button class="btn btn-outline-danger" @onclick="() => ReviewAsync(request, false)" disabled="@isBusy">
                                     <i class="bi bi-x-circle"></i>
-                                    Reject
+                                    @Text("Reject", "رفض")
                                 </button>
                             </div>
                         }
                         else
                         {
                             <div class="reviewed">
-                                <span>Registered: @FormatNullable(request.RegisteredCheckInTimeUtc)</span>
-                                <span>Reviewed: @FormatNullable(request.ReviewedAt)</span>
+                                <span>@Text("Registered:", "المعتمد:") @FormatNullable(request.RegisteredCheckInTimeUtc)</span>
+                                <span>@Text("Reviewed:", "تمت المراجعة:") @FormatNullable(request.ReviewedAt)</span>
                                 @if (!string.IsNullOrWhiteSpace(request.ManagerNote))
                                 {
-                                    <span>Note: @request.ManagerNote</span>
+                                    <span>@Text("Note:", "الملاحظة:") @request.ManagerNote</span>
                                 }
                             </div>
                         }
@@ -129,7 +131,7 @@
         }
         else
         {
-            SetMessage(response.Error?.Detail ?? "Unable to load late requests.", "alert-danger");
+            SetMessage(response.Error?.Detail ?? Text("Unable to load late requests.", "تعذر تحميل طلبات التأخير."), "alert-danger");
         }
 
         isLoading = false;
@@ -165,12 +167,12 @@
 
         if (response.IsSuccess)
         {
-            SetMessage(approve ? "Late check-in approved." : "Late check-in rejected.", "alert-success");
+            SetMessage(approve ? Text("Late check-in approved.", "تمت الموافقة على تسجيل الحضور المتأخر.") : Text("Late check-in rejected.", "تم رفض تسجيل الحضور المتأخر."), "alert-success");
             await LoadRequests();
         }
         else
         {
-            SetMessage(response.Error?.Detail ?? "Unable to review request.", "alert-danger");
+            SetMessage(response.Error?.Detail ?? Text("Unable to review request.", "تعذرت مراجعة الطلب."), "alert-danger");
         }
 
         isBusy = false;
@@ -185,6 +187,14 @@
     private static string ShortId(Guid id) => id.ToString()[..8];
     private static string FormatNullable(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "-";
 
+    private string StatusText(AttendanceExceptionStatus status) => status switch
+    {
+        AttendanceExceptionStatus.Pending => Text("Pending", "معلق"),
+        AttendanceExceptionStatus.Approved => Text("Approved", "موافق عليه"),
+        AttendanceExceptionStatus.Rejected => Text("Rejected", "مرفوض"),
+        _ => status.ToString()
+    };
+
     private static string StatusClass(AttendanceExceptionStatus status) => status switch
     {
         AttendanceExceptionStatus.Pending => "text-bg-warning",
@@ -192,6 +202,8 @@
         AttendanceExceptionStatus.Rejected => "text-bg-danger",
         _ => "text-bg-light"
     };
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 
     private sealed class LateReviewState
     {

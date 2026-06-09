@@ -3,28 +3,30 @@
 
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Utilities
 @using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
 @using SharedWithUI.Employees.Dtos
 
 @inject IAttendanceService AttendanceService
 @inject IEmployeeService EmployeeService
+@inject SharedDataService SharedDataService
 
-<section class="sessions-page">
+<section class="sessions-page" dir="@SharedDataService.PageDirection">
     <div class="sessions-header">
         <div>
-            <p class="eyebrow">Attendance</p>
-            <h1>Attendance sessions</h1>
+            <p class="eyebrow">@Text("Attendance", "الحضور والانصراف")</p>
+            <h1>@Text("Attendance sessions", "جلسات الحضور")</h1>
         </div>
         <button class="btn btn-outline-primary" @onclick="LoadSessions">
             <i class="bi bi-arrow-clockwise"></i>
-            Refresh
+            @Text("Refresh", "تحديث")
         </button>
     </div>
 
     <section class="filter-panel">
         <select class="form-select" @bind="employeeIdFilter">
-            <option value="">All employees</option>
+            <option value="">@Text("All employees", "كل الموظفين")</option>
             @foreach (var employee in employees)
             {
                 <option value="@employee.Id">@EmployeeName(employee)</option>
@@ -34,7 +36,7 @@
         <input class="form-control" type="date" @bind="toDate" />
         <button class="btn btn-primary" @onclick="LoadSessions">
             <i class="bi bi-funnel"></i>
-            Apply
+            @Text("Apply", "تطبيق")
         </button>
     </section>
 
@@ -46,11 +48,11 @@
     <section class="sessions-panel">
         @if (isLoading)
         {
-            <div class="empty-state">Loading sessions...</div>
+            <div class="empty-state">@Text("Loading sessions...", "جاري تحميل الجلسات...")</div>
         }
         else if (!sessions.Any())
         {
-            <div class="empty-state">No attendance sessions found.</div>
+            <div class="empty-state">@Text("No attendance sessions found.", "لا توجد جلسات حضور.")</div>
         }
         else
         {
@@ -58,14 +60,14 @@
                 <table class="table align-middle">
                     <thead>
                         <tr>
-                            <th>Employee</th>
-                            <th>Type</th>
-                            <th>Status</th>
-                            <th>Actual start</th>
-                            <th>Actual end</th>
-                            <th>Shift window</th>
-                            <th>Hours</th>
-                            <th>Distance</th>
+                            <th>@Text("Employee", "الموظف")</th>
+                            <th>@Text("Type", "النوع")</th>
+                            <th>@Text("Status", "الحالة")</th>
+                            <th>@Text("Actual start", "وقت البداية الفعلي")</th>
+                            <th>@Text("Actual end", "وقت النهاية الفعلي")</th>
+                            <th>@Text("Shift window", "وقت الوردية")</th>
+                            <th>@Text("Hours", "الساعات")</th>
+                            <th>@Text("Distance", "المسافة")</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -73,13 +75,13 @@
                         {
                             <tr>
                                 <td>@EmployeeLabel(session.EmployeeId)</td>
-                                <td>@session.AttendanceType</td>
-                                <td><span class="badge @StatusClass(session.Status)">@session.Status</span></td>
+                                <td>@AttendanceTypeText(session.AttendanceType)</td>
+                                <td><span class="badge @StatusClass(session.Status)">@SessionStatusText(session.Status)</span></td>
                                 <td>@FormatDate(session.ActualStartTime)</td>
                                 <td>@FormatDate(session.ActualEndTime)</td>
                                 <td>@session.ShiftStart.ToLocalTime().ToString("g") - @session.ShiftEnd.ToLocalTime().ToString("g")</td>
                                 <td>@session.TotalHours</td>
-                                <td>@session.TotalDistanceKm km</td>
+                                <td>@session.TotalDistanceKm @Text("km", "كم")</td>
                             </tr>
                         }
                     </tbody>
@@ -128,7 +130,7 @@
         }
         else
         {
-            errorMessage = response.Error?.Detail ?? "Unable to load sessions.";
+            errorMessage = response.Error?.Detail ?? Text("Unable to load sessions.", "تعذر تحميل الجلسات.");
         }
 
         isLoading = false;
@@ -145,6 +147,22 @@
 
     private static string FormatDate(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "-";
 
+    private string AttendanceTypeText(EmployeeAttendanceType type) => type switch
+    {
+        EmployeeAttendanceType.FixedLocation => Text("Fixed location", "موقع ثابت"),
+        EmployeeAttendanceType.Mobile => Text("Mobile", "متنقل"),
+        _ => type.ToString()
+    };
+
+    private string SessionStatusText(AttendanceSessionStatus status) => status switch
+    {
+        AttendanceSessionStatus.Active => Text("Active", "نشط"),
+        AttendanceSessionStatus.OnBreak => Text("On break", "في استراحة"),
+        AttendanceSessionStatus.Completed => Text("Completed", "مكتمل"),
+        AttendanceSessionStatus.Cancelled => Text("Cancelled", "ملغى"),
+        _ => status.ToString()
+    };
+
     private static string StatusClass(AttendanceSessionStatus status) => status switch
     {
         AttendanceSessionStatus.Active => "text-bg-success",
@@ -152,6 +170,8 @@
         AttendanceSessionStatus.Completed => "text-bg-secondary",
         _ => "text-bg-light"
     };
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 }
 
 <style>

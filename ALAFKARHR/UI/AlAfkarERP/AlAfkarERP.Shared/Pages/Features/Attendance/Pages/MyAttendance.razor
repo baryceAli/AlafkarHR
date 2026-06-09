@@ -2,27 +2,29 @@
 @page "/Attendance/MyAttendance"
 
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Utilities
 @using Microsoft.JSInterop
 @using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
 
 @inject IAttendanceService AttendanceService
 @inject IJSRuntime JSRuntime
+@inject SharedDataService SharedDataService
 
-<section class="attendance-terminal">
+<section class="attendance-terminal" dir="@SharedDataService.PageDirection">
     <div class="terminal-header">
         <div>
-            <p class="eyebrow">My attendance</p>
-            <h1>Check in for today</h1>
+            <p class="eyebrow">@Text("My attendance", "حضوري")</p>
+            <h1>@Text("Check in for today", "تسجيل حضور اليوم")</h1>
         </div>
         <div class="header-actions">
             <button class="btn btn-outline-primary" @onclick="CaptureLocationAndRefreshPreviewAsync" disabled="@isBusy">
                 <i class="bi bi-crosshair"></i>
-                Refresh location
+                @Text("Refresh location", "تحديث الموقع")
             </button>
             <button class="btn btn-outline-secondary" @onclick="ReloadPageDataAsync" disabled="@isBusy">
                 <i class="bi bi-arrow-clockwise"></i>
-                Reload
+                @Text("Reload", "إعادة تحميل")
             </button>
         </div>
     </div>
@@ -35,10 +37,10 @@
     <div class="terminal-grid">
         <section class="terminal-panel identity-panel">
             <div class="panel-title">
-                <h2>Employee</h2>
+                <h2>@Text("Employee", "الموظف")</h2>
                 @if (preview is not null)
                 {
-                    <span class="badge text-bg-light">@preview.AttendanceType</span>
+                    <span class="badge text-bg-light">@AttendanceTypeText(preview.AttendanceType)</span>
                 }
             </div>
 
@@ -46,7 +48,7 @@
             {
                 <div class="empty-state">
                     <i class="bi bi-person-exclamation"></i>
-                    <p>Loading your employee profile.</p>
+                    <p>@Text("Loading your employee profile.", "جاري تحميل بيانات الموظف.")</p>
                 </div>
             }
             else
@@ -60,16 +62,16 @@
                 </div>
                 <div class="detail-list">
                     <div>
-                        <span>Employee code / username</span>
+                        <span>@Text("Employee code / username", "كود الموظف / اسم المستخدم")</span>
                         <strong>@EmptyValue(preview.EmployeeCode)</strong>
                     </div>
                     <div>
-                        <span>Employee id</span>
+                        <span>@Text("Employee id", "معرف الموظف")</span>
                         <strong>@preview.EmployeeId</strong>
                     </div>
                     <div>
-                        <span>Attendance mode</span>
-                        <strong>@preview.AttendanceType</strong>
+                        <span>@Text("Attendance mode", "نوع الحضور")</span>
+                        <strong>@AttendanceTypeText(preview.AttendanceType)</strong>
                     </div>
                 </div>
             }
@@ -77,7 +79,7 @@
 
         <section class="terminal-panel">
             <div class="panel-title">
-                <h2>Effective shift</h2>
+                <h2>@Text("Effective shift", "الوردية الفعلية")</h2>
                 @if (preview?.ShiftName is not null)
                 {
                     <span class="badge text-bg-primary">@preview.ShiftName</span>
@@ -86,19 +88,19 @@
 
             <div class="detail-list">
                 <div>
-                    <span>Start</span>
+                    <span>@Text("Start", "البداية")</span>
                     <strong>@FormatDate(preview?.ShiftStart)</strong>
                 </div>
                 <div>
-                    <span>End</span>
+                    <span>@Text("End", "النهاية")</span>
                     <strong>@FormatDate(preview?.ShiftEnd)</strong>
                 </div>
                 <div>
-                    <span>Late after</span>
+                    <span>@Text("Late after", "التأخير بعد")</span>
                     <strong>@FormatDate(preview?.LateAfterUtc)</strong>
                 </div>
                 <div>
-                    <span>Check-in closes</span>
+                    <span>@Text("Check-in closes", "إغلاق تسجيل الحضور")</span>
                     <strong>@FormatDate(preview?.ProhibitCheckInAfterUtc)</strong>
                 </div>
             </div>
@@ -106,29 +108,29 @@
 
         <section class="terminal-panel">
             <div class="panel-title">
-                <h2>Location</h2>
+                <h2>@Text("Location", "الموقع")</h2>
                 <span class="badge @LocationBadgeClass">@LocationBadgeText</span>
             </div>
 
             <div class="detail-list">
                 <div>
-                    <span>Latitude</span>
+                    <span>@Text("Latitude", "خط العرض")</span>
                     <strong>@Coordinate(latitude)</strong>
                 </div>
                 <div>
-                    <span>Longitude</span>
+                    <span>@Text("Longitude", "خط الطول")</span>
                     <strong>@Coordinate(longitude)</strong>
                 </div>
                 <div>
-                    <span>Accuracy</span>
+                    <span>@Text("Accuracy", "الدقة")</span>
                     <strong>@Meters(accuracyMeters)</strong>
                 </div>
                 <div>
-                    <span>Distance to allowed location</span>
+                    <span>@Text("Distance to allowed location", "المسافة إلى الموقع المسموح")</span>
                     <strong>@Meters(preview?.DistanceMeters)</strong>
                 </div>
                 <div>
-                    <span>Allowed radius</span>
+                    <span>@Text("Allowed radius", "نطاق السماح")</span>
                     <strong>@Meters(preview?.AllowedRadiusMeters)</strong>
                 </div>
             </div>
@@ -136,15 +138,15 @@
 
         <section class="terminal-panel action-panel">
             <div class="panel-title">
-                <h2>Session</h2>
+                <h2>@Text("Session", "الجلسة")</h2>
                 @if (activeSession is not null)
                 {
-                    <span class="badge @StatusClass(activeSession.Status)">@activeSession.Status</span>
+                    <span class="badge @StatusClass(activeSession.Status)">@SessionStatusText(activeSession.Status)</span>
                 }
                 else if (preview is not null)
                 {
                     <span class="badge @(preview.CanCheckIn ? "text-bg-success" : "text-bg-warning")">
-                        @(preview.CanCheckIn ? "Ready" : "Blocked")
+                        @(preview.CanCheckIn ? Text("Ready", "جاهز") : Text("Blocked", "غير متاح"))
                     </span>
                 }
             </div>
@@ -153,26 +155,26 @@
                 <i class="bi @(preview?.CanCheckIn == true ? "bi-check-circle" : "bi-info-circle")"></i>
                 <div>
                     <strong>@ReadinessTitle</strong>
-                    <span>@(preview?.Message ?? "Loading employee, shift, and current location...")</span>
+                    <span>@(preview?.Message ?? Text("Loading employee, shift, and current location...", "جاري تحميل بيانات الموظف والوردية والموقع الحالي..."))</span>
                 </div>
             </div>
 
             <div class="action-row">
                 <button class="btn btn-primary" @onclick="StartSessionAsync" disabled="@(!CanStartSession)">
                     <i class="bi bi-play-circle"></i>
-                    Check in
+                    @Text("Check in", "تسجيل حضور")
                 </button>
                 <button class="btn btn-outline-warning" @onclick="StartBreakAsync" disabled="@(activeSession is null || activeSession.Status != AttendanceSessionStatus.Active || isBusy)">
                     <i class="bi bi-pause-circle"></i>
-                    Break
+                    @Text("Break", "استراحة")
                 </button>
                 <button class="btn btn-outline-success" @onclick="EndBreakAsync" disabled="@(activeSession is null || activeSession.Status != AttendanceSessionStatus.OnBreak || isBusy)">
                     <i class="bi bi-play"></i>
-                    Resume
+                    @Text("Resume", "استئناف")
                 </button>
                 <button class="btn btn-outline-danger" @onclick="EndSessionAsync" disabled="@(activeSession is null || isBusy)">
                     <i class="bi bi-stop-circle"></i>
-                    End
+                    @Text("End", "إنهاء")
                 </button>
             </div>
 
@@ -180,15 +182,15 @@
             {
                 <div class="session-card">
                     <div>
-                        <span>Session</span>
+                        <span>@Text("Session", "الجلسة")</span>
                         <strong>@activeSession.Id</strong>
                     </div>
                     <div>
-                        <span>Started</span>
+                        <span>@Text("Started", "بدأت")</span>
                         <strong>@FormatDate(activeSession.ActualStartTime)</strong>
                     </div>
                     <div>
-                        <span>Shift</span>
+                        <span>@Text("Shift", "الوردية")</span>
                         <strong>@FormatDate(activeSession.ShiftStart) - @FormatDate(activeSession.ShiftEnd)</strong>
                     </div>
                 </div>
@@ -199,49 +201,49 @@
     <div class="terminal-grid secondary-grid">
         <section class="terminal-panel">
             <div class="panel-title">
-                <h2>Mobile actions</h2>
+                <h2>@Text("Mobile actions", "إجراءات الموظف المتنقل")</h2>
             </div>
 
             <div class="action-stack">
                 <button class="btn btn-outline-primary" @onclick="SubmitPingAsync" disabled="@(activeSession is null || activeSession.Status != AttendanceSessionStatus.Active || isBusy || !HasLocation)">
                     <i class="bi bi-geo-alt"></i>
-                    Submit GPS ping
+                    @Text("Submit GPS ping", "إرسال إحداثيات GPS")
                 </button>
 
                 <label>
-                    Site name
+                    @Text("Site name", "اسم الموقع")
                     <input class="form-control" @bind="siteName" />
                 </label>
                 <label>
-                    Notes
+                    @Text("Notes", "ملاحظات")
                     <textarea class="form-control" rows="3" @bind="siteNotes"></textarea>
                 </label>
                 <button class="btn btn-outline-primary" @onclick="CreateSiteCheckInAsync" disabled="@(activeSession is null || activeSession.Status != AttendanceSessionStatus.Active || isBusy || !HasLocation)">
                     <i class="bi bi-pin-map"></i>
-                    Check in at site
+                    @Text("Check in at site", "تسجيل حضور في الموقع")
                 </button>
             </div>
         </section>
 
         <section class="terminal-panel">
             <div class="panel-title">
-                <h2>Late check-in request</h2>
-                <span class="text-muted">Available after the check-in closing time.</span>
+                <h2>@Text("Late check-in request", "طلب تسجيل حضور متأخر")</h2>
+                <span class="text-muted">@Text("Available after the check-in closing time.", "متاح بعد وقت إغلاق تسجيل الحضور.")</span>
             </div>
             <div class="form-grid">
                 <label>
-                    Requested check-in time
+                    @Text("Requested check-in time", "وقت الحضور المطلوب")
                     <input class="form-control" type="datetime-local" @bind="lateRequestedLocal" />
                 </label>
                 <label class="wide">
-                    Reason
+                    @Text("Reason", "السبب")
                     <textarea class="form-control" rows="3" @bind="lateReason"></textarea>
                 </label>
             </div>
             <div class="action-row">
                 <button class="btn btn-warning" @onclick="CreateLateRequestAsync" disabled="@(!CanSubmitLateRequest)">
                     <i class="bi bi-send"></i>
-                    Send request
+                    @Text("Send request", "إرسال الطلب")
                 </button>
             </div>
         </section>
@@ -267,8 +269,8 @@
     private bool HasLocation => latitude.HasValue && longitude.HasValue;
     private bool CanStartSession => !isBusy && preview?.CanCheckIn == true && activeSession is null && HasLocation;
     private bool CanSubmitLateRequest => !isBusy && preview?.CanSubmitLateRequest == true && HasLocation;
-    private string ReadinessTitle => preview?.CanCheckIn == true ? "Ready to check in" : "Check-in is not available";
-    private string LocationBadgeText => !HasLocation ? "Waiting" : preview?.IsWithinAllowedRadius == false ? "Outside" : "Captured";
+    private string ReadinessTitle => preview?.CanCheckIn == true ? Text("Ready to check in", "جاهز لتسجيل الحضور") : Text("Check-in is not available", "تسجيل الحضور غير متاح");
+    private string LocationBadgeText => !HasLocation ? Text("Waiting", "بانتظار الموقع") : preview?.IsWithinAllowedRadius == false ? Text("Outside", "خارج النطاق") : Text("Captured", "تم التقاط الموقع");
     private string LocationBadgeClass => !HasLocation ? "text-bg-secondary" : preview?.IsWithinAllowedRadius == false ? "text-bg-danger" : "text-bg-success";
 
     protected override async Task OnInitializedAsync()
@@ -296,7 +298,7 @@
     private async Task CaptureLocationAndRefreshPreviewAsync()
     {
         isBusy = true;
-        SetMessage("Reading your current GPS location...", "alert-info");
+        SetMessage(Text("Reading your current GPS location...", "جاري قراءة موقع GPS الحالي..."), "alert-info");
 
         try
         {
@@ -309,12 +311,12 @@
             }
             else
             {
-                SetMessage(result.Message ?? "Unable to read your current location.", "alert-warning");
+                SetMessage(result.Message ?? Text("Unable to read your current location.", "تعذرت قراءة موقعك الحالي."), "alert-warning");
             }
         }
         catch (JSException)
         {
-            SetMessage("Unable to access the location service. Refresh the page and allow location access.", "alert-warning");
+            SetMessage(Text("Unable to access the location service. Refresh the page and allow location access.", "تعذر الوصول إلى خدمة الموقع. حدث الصفحة واسمح بالوصول إلى الموقع."), "alert-warning");
         }
 
         isBusy = false;
@@ -340,7 +342,7 @@
         }
         else
         {
-            SetMessage(response.Error?.Detail ?? "Unable to validate check-in readiness.", "alert-danger");
+            SetMessage(response.Error?.Detail ?? Text("Unable to validate check-in readiness.", "تعذر التحقق من جاهزية تسجيل الحضور."), "alert-danger");
         }
 
         isBusy = false;
@@ -350,7 +352,7 @@
     {
         if (!CanStartSession || preview is null)
         {
-            SetMessage(preview?.Message ?? "Check-in is not available yet.", "alert-warning");
+            SetMessage(preview?.Message ?? Text("Check-in is not available yet.", "تسجيل الحضور غير متاح حاليا."), "alert-warning");
             return;
         }
 
@@ -368,11 +370,11 @@
         if (response.IsSuccess && response.Data is not null)
         {
             activeSession = response.Data;
-            SetMessage("Attendance session started.", "alert-success");
+            SetMessage(Text("Attendance session started.", "تم بدء جلسة الحضور."), "alert-success");
         }
         else
         {
-            SetMessage(response.Error?.Detail ?? "Unable to start session.", "alert-danger");
+            SetMessage(response.Error?.Detail ?? Text("Unable to start session.", "تعذر بدء الجلسة."), "alert-danger");
         }
 
         isBusy = false;
@@ -388,11 +390,11 @@
         if (response.IsSuccess)
         {
             activeSession = response.Data;
-            SetMessage("Attendance session ended.", "alert-success");
+            SetMessage(Text("Attendance session ended.", "تم إنهاء جلسة الحضور."), "alert-success");
         }
         else
         {
-            SetMessage(response.Error?.Detail ?? "Unable to end session.", "alert-danger");
+            SetMessage(response.Error?.Detail ?? Text("Unable to end session.", "تعذر إنهاء الجلسة."), "alert-danger");
         }
 
         isBusy = false;
@@ -414,11 +416,11 @@
         if (response.IsSuccess)
         {
             activeSession = response.Data;
-            SetMessage(startBreak ? "Break started." : "Break ended.", "alert-success");
+            SetMessage(startBreak ? Text("Break started.", "بدأت الاستراحة.") : Text("Break ended.", "انتهت الاستراحة."), "alert-success");
         }
         else
         {
-            SetMessage(response.Error?.Detail ?? "Unable to update break state.", "alert-danger");
+            SetMessage(response.Error?.Detail ?? Text("Unable to update break state.", "تعذر تحديث حالة الاستراحة."), "alert-danger");
         }
 
         isBusy = false;
@@ -441,7 +443,7 @@
             RecordedAtUtc = DateTime.UtcNow
         });
 
-        SetMessage(response.IsSuccess ? "Location ping submitted." : response.Error?.Detail ?? "Unable to submit ping.", response.IsSuccess ? "alert-success" : "alert-danger");
+        SetMessage(response.IsSuccess ? Text("Location ping submitted.", "تم إرسال إحداثيات الموقع.") : response.Error?.Detail ?? Text("Unable to submit ping.", "تعذر إرسال إحداثيات الموقع."), response.IsSuccess ? "alert-success" : "alert-danger");
         isBusy = false;
     }
 
@@ -450,7 +452,7 @@
         if (activeSession is null || !HasLocation) return;
         if (string.IsNullOrWhiteSpace(siteName))
         {
-            SetMessage("Site name is required.", "alert-warning");
+            SetMessage(Text("Site name is required.", "اسم الموقع مطلوب."), "alert-warning");
             return;
         }
 
@@ -467,7 +469,7 @@
             Notes = siteNotes
         });
 
-        SetMessage(response.IsSuccess ? "Site check-in saved." : response.Error?.Detail ?? "Unable to save site check-in.", response.IsSuccess ? "alert-success" : "alert-danger");
+        SetMessage(response.IsSuccess ? Text("Site check-in saved.", "تم حفظ تسجيل الحضور في الموقع.") : response.Error?.Detail ?? Text("Unable to save site check-in.", "تعذر حفظ تسجيل الحضور في الموقع."), response.IsSuccess ? "alert-success" : "alert-danger");
         isBusy = false;
     }
 
@@ -475,13 +477,13 @@
     {
         if (!CanSubmitLateRequest || preview is null)
         {
-            SetMessage(preview?.Message ?? "Late check-in request is not available now.", "alert-warning");
+            SetMessage(preview?.Message ?? Text("Late check-in request is not available now.", "طلب تسجيل الحضور المتأخر غير متاح الآن."), "alert-warning");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(lateReason))
         {
-            SetMessage("Reason is required for late check-in request.", "alert-warning");
+            SetMessage(Text("Reason is required for late check-in request.", "السبب مطلوب لطلب تسجيل الحضور المتأخر."), "alert-warning");
             return;
         }
 
@@ -499,7 +501,7 @@
             AccuracyMeters = accuracyMeters
         });
 
-        SetMessage(response.IsSuccess ? "Late check-in request sent." : response.Error?.Detail ?? "Unable to send late request.", response.IsSuccess ? "alert-success" : "alert-danger");
+        SetMessage(response.IsSuccess ? Text("Late check-in request sent.", "تم إرسال طلب تسجيل الحضور المتأخر.") : response.Error?.Detail ?? Text("Unable to send late request.", "تعذر إرسال طلب التأخير."), response.IsSuccess ? "alert-success" : "alert-danger");
         isBusy = false;
     }
 
@@ -535,7 +537,23 @@
     private static string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
     private static string FormatDate(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "-";
     private static string Coordinate(double? value) => value.HasValue ? value.Value.ToString("F6") : "-";
-    private static string Meters(double? value) => value.HasValue ? $"{value.Value:N0} m" : "-";
+    private string Meters(double? value) => value.HasValue ? $"{value.Value:N0} {Text("m", "م")}" : "-";
+
+    private string AttendanceTypeText(EmployeeAttendanceType type) => type switch
+    {
+        EmployeeAttendanceType.FixedLocation => Text("Fixed location", "موقع ثابت"),
+        EmployeeAttendanceType.Mobile => Text("Mobile", "متنقل"),
+        _ => type.ToString()
+    };
+
+    private string SessionStatusText(AttendanceSessionStatus status) => status switch
+    {
+        AttendanceSessionStatus.Active => Text("Active", "نشط"),
+        AttendanceSessionStatus.OnBreak => Text("On break", "في استراحة"),
+        AttendanceSessionStatus.Completed => Text("Completed", "مكتمل"),
+        AttendanceSessionStatus.Cancelled => Text("Cancelled", "ملغى"),
+        _ => status.ToString()
+    };
 
     private static string StatusClass(AttendanceSessionStatus status) => status switch
     {
@@ -544,6 +562,8 @@
         AttendanceSessionStatus.Completed => "text-bg-secondary",
         _ => "text-bg-light"
     };
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 
     private sealed class LocationResult
     {

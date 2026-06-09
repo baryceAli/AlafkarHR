@@ -2,26 +2,28 @@
 @page "/Attendance/Dashboard"
 
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Utilities
 @using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
 
 @inject IAttendanceService AttendanceService
 @inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
 
-<section class="attendance-page">
+<section class="attendance-page" dir="@SharedDataService.PageDirection">
     <div class="attendance-header">
         <div>
-            <p class="eyebrow">Attendance</p>
-            <h1>Live attendance dashboard</h1>
+            <p class="eyebrow">@Text("Attendance", "الحضور والانصراف")</p>
+            <h1>@Text("Live attendance dashboard", "لوحة الحضور المباشرة")</h1>
         </div>
         <div class="header-actions">
             <button class="btn btn-outline-primary" @onclick="LoadDashboard">
                 <i class="bi bi-arrow-clockwise"></i>
-                Refresh
+                @Text("Refresh", "تحديث")
             </button>
             <button class="btn btn-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/MyAttendance")'>
                 <i class="bi bi-person-check"></i>
-                Employee terminal
+                @Text("Employee terminal", "بوابة الموظف")
             </button>
         </div>
     </div>
@@ -33,25 +35,25 @@
 
     @if (isLoading)
     {
-        <div class="attendance-empty">Loading attendance dashboard...</div>
+        <div class="attendance-empty">@Text("Loading attendance dashboard...", "جاري تحميل لوحة الحضور...")</div>
     }
     else if (dashboard is not null)
     {
         <div class="metric-grid">
             <div class="metric-card">
-                <span>Active</span>
+                <span>@Text("Active", "نشط")</span>
                 <strong>@dashboard.ActiveSessions</strong>
             </div>
             <div class="metric-card warning">
-                <span>On break</span>
+                <span>@Text("On break", "في استراحة")</span>
                 <strong>@dashboard.OnBreakSessions</strong>
             </div>
             <div class="metric-card success">
-                <span>Completed today</span>
+                <span>@Text("Completed today", "مكتمل اليوم")</span>
                 <strong>@dashboard.CompletedToday</strong>
             </div>
             <div class="metric-card danger">
-                <span>Pending requests</span>
+                <span>@Text("Pending requests", "طلبات معلقة")</span>
                 <strong>@dashboard.PendingLateCheckInRequests</strong>
             </div>
         </div>
@@ -59,12 +61,12 @@
         <div class="attendance-layout">
             <section class="panel">
                 <div class="panel-title">
-                    <h2>Today by attendance type</h2>
+                    <h2>@Text("Today by attendance type", "اليوم حسب نوع الحضور")</h2>
                 </div>
                 <div class="type-bars">
                     <div>
                         <div class="d-flex justify-content-between">
-                            <span>Fixed location</span>
+                            <span>@Text("Fixed location", "موقع ثابت")</span>
                             <strong>@dashboard.FixedLocationSessionsToday</strong>
                         </div>
                         <div class="progress">
@@ -73,7 +75,7 @@
                     </div>
                     <div>
                         <div class="d-flex justify-content-between">
-                            <span>Mobile</span>
+                            <span>@Text("Mobile", "متنقل")</span>
                             <strong>@dashboard.MobileSessionsToday</strong>
                         </div>
                         <div class="progress">
@@ -85,12 +87,12 @@
 
             <section class="panel">
                 <div class="panel-title">
-                    <h2>Pending late check-ins</h2>
-                    <button class="btn btn-sm btn-outline-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/LateRequests")'>Review</button>
+                    <h2>@Text("Pending late check-ins", "طلبات الحضور المتأخر المعلقة")</h2>
+                    <button class="btn btn-sm btn-outline-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/LateRequests")'>@Text("Review", "مراجعة")</button>
                 </div>
                 @if (!dashboard.PendingRequests.Any())
                 {
-                    <p class="muted">No pending requests.</p>
+                    <p class="muted">@Text("No pending requests.", "لا توجد طلبات معلقة.")</p>
                 }
                 else
                 {
@@ -102,7 +104,7 @@
                                     <strong>@ShortId(request.EmployeeId)</strong>
                                     <span>@request.RequestedCheckInTimeUtc.ToLocalTime().ToString("g")</span>
                                 </div>
-                                <span class="badge text-bg-warning">@request.Status</span>
+                                <span class="badge text-bg-warning">@LateRequestStatusText(request.Status)</span>
                             </div>
                         }
                     </div>
@@ -112,19 +114,19 @@
 
         <section class="panel mt-3">
             <div class="panel-title">
-                <h2>Recent sessions</h2>
-                <button class="btn btn-sm btn-outline-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/Sessions")'>View all</button>
+                <h2>@Text("Recent sessions", "أحدث جلسات الحضور")</h2>
+                <button class="btn btn-sm btn-outline-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/Sessions")'>@Text("View all", "عرض الكل")</button>
             </div>
             <div class="table-responsive">
                 <table class="table align-middle">
                     <thead>
                         <tr>
-                            <th>Employee</th>
-                            <th>Type</th>
-                            <th>Status</th>
-                            <th>Start</th>
-                            <th>End</th>
-                            <th>Hours</th>
+                            <th>@Text("Employee", "الموظف")</th>
+                            <th>@Text("Type", "النوع")</th>
+                            <th>@Text("Status", "الحالة")</th>
+                            <th>@Text("Start", "البداية")</th>
+                            <th>@Text("End", "النهاية")</th>
+                            <th>@Text("Hours", "الساعات")</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -132,8 +134,8 @@
                         {
                             <tr>
                                 <td>@ShortId(session.EmployeeId)</td>
-                                <td>@session.AttendanceType</td>
-                                <td><span class="badge @StatusClass(session.Status)">@session.Status</span></td>
+                                <td>@AttendanceTypeText(session.AttendanceType)</td>
+                                <td><span class="badge @StatusClass(session.Status)">@SessionStatusText(session.Status)</span></td>
                                 <td>@FormatDate(session.ActualStartTime ?? session.ShiftStart)</td>
                                 <td>@FormatNullable(session.ActualEndTime)</td>
                                 <td>@session.TotalHours</td>
@@ -169,7 +171,7 @@
         }
         else
         {
-            errorMessage = result.Error?.Detail ?? "Unable to load attendance dashboard.";
+            errorMessage = result.Error?.Detail ?? Text("Unable to load attendance dashboard.", "تعذر تحميل لوحة الحضور.");
         }
 
         isLoading = false;
@@ -178,6 +180,32 @@
     private static string ShortId(Guid id) => id.ToString()[..8];
     private static string FormatDate(DateTime value) => value.ToLocalTime().ToString("g");
     private static string FormatNullable(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "-";
+
+    private string AttendanceTypeText(EmployeeAttendanceType type) => type switch
+    {
+        EmployeeAttendanceType.FixedLocation => Text("Fixed location", "موقع ثابت"),
+        EmployeeAttendanceType.Mobile => Text("Mobile", "متنقل"),
+        _ => type.ToString()
+    };
+
+    private string SessionStatusText(AttendanceSessionStatus status) => status switch
+    {
+        AttendanceSessionStatus.Active => Text("Active", "نشط"),
+        AttendanceSessionStatus.OnBreak => Text("On break", "في استراحة"),
+        AttendanceSessionStatus.Completed => Text("Completed", "مكتمل"),
+        AttendanceSessionStatus.Cancelled => Text("Cancelled", "ملغى"),
+        _ => status.ToString()
+    };
+
+    private string LateRequestStatusText(AttendanceExceptionStatus status) => status switch
+    {
+        AttendanceExceptionStatus.Pending => Text("Pending", "معلق"),
+        AttendanceExceptionStatus.Approved => Text("Approved", "موافق عليه"),
+        AttendanceExceptionStatus.Rejected => Text("Rejected", "مرفوض"),
+        _ => status.ToString()
+    };
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 
     private static string StatusClass(AttendanceSessionStatus status) => status switch
     {

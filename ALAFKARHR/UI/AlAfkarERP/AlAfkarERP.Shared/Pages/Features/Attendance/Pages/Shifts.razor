@@ -4,21 +4,23 @@
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
 @using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Organization.Dtos
 
 @inject IAttendanceService AttendanceService
 @inject ICompanyService CompanyService
+@inject SharedDataService SharedDataService
 
-<section class="shift-page">
+<section class="shift-page" dir="@SharedDataService.PageDirection">
     <div class="shift-header">
         <div>
-            <p class="eyebrow">Attendance</p>
-            <h1>Shifts</h1>
+            <p class="eyebrow">@Text("Attendance", "الحضور والانصراف")</p>
+            <h1>@Text("Shifts", "الورديات")</h1>
         </div>
         <button class="btn btn-outline-primary" @onclick="LoadData" disabled="@isBusy">
             <i class="bi bi-arrow-clockwise"></i>
-            Refresh
+            @Text("Refresh", "تحديث")
         </button>
     </div>
 
@@ -29,46 +31,46 @@
 
     <section class="shift-panel">
         <div class="panel-title">
-            <h2>Create shift</h2>
-            <span>Define the working window and check-in cutoffs.</span>
+            <h2>@Text("Create shift", "إنشاء وردية")</h2>
+            <span>@Text("Define the working window and check-in cutoffs.", "حدد وقت العمل وحدود السماح بتسجيل الحضور.")</span>
         </div>
 
         <div class="form-grid">
             <label>
-                Company
+                @Text("Company", "الشركة")
                 <AutoCompleteComponent TItem="CompanyDto"
                                        Items="companies"
                                        ItemText="CompanySearchText"
                                        Value="selectedCompany"
-                                       PlaceHolder="Search company by name or code"
+                                       PlaceHolder="@Text("Search company by name or code", "ابحث عن الشركة بالاسم أو الكود")"
                                        ValueChanged="OnCompanySelected" />
             </label>
             <label>
-                Shift name
-                <input class="form-control" @bind="model.Name" placeholder="Morning shift" />
+                @Text("Shift name", "اسم الوردية")
+                <input class="form-control" @bind="model.Name" placeholder="@Text("Morning shift", "وردية صباحية")" />
             </label>
             <label>
-                Beginning time
+                @Text("Beginning time", "وقت البداية")
                 <input class="form-control" type="time" @bind="startTime" />
             </label>
             <label>
-                End time
+                @Text("End time", "وقت النهاية")
                 <input class="form-control" type="time" @bind="endTime" />
             </label>
             <label>
-                Grace period minutes
+                @Text("Grace period minutes", "دقائق فترة السماح")
                 <input class="form-control" type="number" min="0" @bind="model.GracePeriodMinutes" />
             </label>
             <label>
-                Consider late after minutes
+                @Text("Consider late after minutes", "اعتبار الموظف متأخرا بعد")
                 <input class="form-control" type="number" min="0" @bind="model.LateAfterMinutes" />
             </label>
             <label>
-                Prohibit check-in after minutes
+                @Text("Prohibit check-in after minutes", "منع تسجيل الحضور بعد")
                 <input class="form-control" type="number" min="0" @bind="model.ProhibitCheckInAfterMinutes" />
             </label>
             <label>
-                Break minutes
+                @Text("Break minutes", "دقائق الاستراحة")
                 <input class="form-control" type="number" min="0" @bind="model.BreakMinutes" />
             </label>
         </div>
@@ -76,26 +78,26 @@
         <div class="action-row">
             <button class="btn btn-primary" @onclick="CreateShiftAsync" disabled="@isBusy">
                 <i class="bi bi-plus-circle"></i>
-                Create shift
+                @Text("Create shift", "إنشاء وردية")
             </button>
         </div>
     </section>
 
     <section class="shift-panel mt-3">
         <div class="panel-title">
-            <h2>Existing shifts</h2>
-            <span>@shifts.Count shift(s)</span>
+            <h2>@Text("Existing shifts", "الورديات الحالية")</h2>
+            <span>@Text($"{shifts.Count} shift(s)", $"{shifts.Count} وردية")</span>
         </div>
         <div class="table-responsive">
             <table class="table align-middle">
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Company</th>
-                        <th>Time</th>
-                        <th>Late after</th>
-                        <th>Prohibit after</th>
-                        <th>Break</th>
+                        <th>@Text("Name", "الاسم")</th>
+                        <th>@Text("Company", "الشركة")</th>
+                        <th>@Text("Time", "الوقت")</th>
+                        <th>@Text("Late after", "التأخير بعد")</th>
+                        <th>@Text("Prohibit after", "المنع بعد")</th>
+                        <th>@Text("Break", "الاستراحة")</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -105,9 +107,9 @@
                             <td>@shift.Name</td>
                             <td>@CompanyName(shift.CompanyId)</td>
                             <td>@shift.StartTime.ToString(@"hh\:mm") - @shift.EndTime.ToString(@"hh\:mm")</td>
-                            <td>@shift.LateAfterMinutes min</td>
-                            <td>@shift.ProhibitCheckInAfterMinutes min</td>
-                            <td>@shift.BreakMinutes min</td>
+                            <td>@shift.LateAfterMinutes @Text("min", "دقيقة")</td>
+                            <td>@shift.ProhibitCheckInAfterMinutes @Text("min", "دقيقة")</td>
+                            <td>@shift.BreakMinutes @Text("min", "دقيقة")</td>
                         </tr>
                     }
                 </tbody>
@@ -171,19 +173,19 @@
     {
         if (selectedCompany is null || model.CompanyId == Guid.Empty)
         {
-            SetMessage("Select a company first.", "alert-warning");
+            SetMessage(Text("Select a company first.", "اختر الشركة أولا."), "alert-warning");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(model.Name))
         {
-            SetMessage("Shift name is required.", "alert-warning");
+            SetMessage(Text("Shift name is required.", "اسم الوردية مطلوب."), "alert-warning");
             return;
         }
 
         if (model.ProhibitCheckInAfterMinutes < model.LateAfterMinutes)
         {
-            SetMessage("Prohibit check-in time must be after or equal to late time.", "alert-warning");
+            SetMessage(Text("Prohibit check-in time must be after or equal to late time.", "وقت منع تسجيل الحضور يجب أن يكون بعد وقت التأخير أو مساويا له."), "alert-warning");
             return;
         }
 
@@ -194,7 +196,7 @@
         var result = await AttendanceService.CreateShiftAsync(model);
         if (result.IsSuccess)
         {
-            SetMessage("Shift created.", "alert-success");
+            SetMessage(Text("Shift created.", "تم إنشاء الوردية."), "alert-success");
             var company = selectedCompany;
             model = NewShift();
             selectedCompany = company;
@@ -209,7 +211,7 @@
         }
         else
         {
-            SetMessage(result.Error?.Detail ?? "Unable to create shift.", "alert-danger");
+            SetMessage(result.Error?.Detail ?? Text("Unable to create shift.", "تعذر إنشاء الوردية."), "alert-danger");
         }
 
         isBusy = false;
@@ -230,6 +232,7 @@
 
     private string CompanyName(Guid companyId) => companies.FirstOrDefault(x => x.Id == companyId)?.Name ?? companyId.ToString()[..8];
     private static string CompanySearchText(CompanyDto company) => $"{company.Name} | {company.NameEng} | {company.Code}";
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 }
 
 <style>

@@ -109,30 +109,32 @@
         selectedIndex = -1;
     }
 
-    private async Task Filter()
+    private Task Filter()
     {
-        // ✅ Case 1: empty search → show ALL items (limited)
-        if (string.IsNullOrWhiteSpace(searchText))
+        var text = searchText?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(text))
         {
             filteredItems = Items
-                .Take(10)
+                // .Take(MaxItems)
                 .ToList();
-
-            isOpen = filteredItems.Any();
-            selectedIndex = isOpen ? 0 : -1;
-
-            return;
         }
-
-        // ✅ Case 2: normal filtering
-        filteredItems = Items
-            .Where(x => ItemText(x)
-            .Contains(searchText, StringComparison.OrdinalIgnoreCase))
-            .Take(10)
-            .ToList();
+        else
+        {
+            filteredItems = Items
+                .Where(x =>
+                {
+                    var itemText = ItemText?.Invoke(x) ?? string.Empty;
+                    return itemText.Contains(text, StringComparison.OrdinalIgnoreCase);
+                })
+                // .Take(MaxItems)
+                .ToList();
+        }
 
         isOpen = filteredItems.Any();
         selectedIndex = isOpen ? 0 : -1;
+
+        return Task.CompletedTask;
     }
 
     private async Task SelectItem(TItem item)

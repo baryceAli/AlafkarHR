@@ -37,6 +37,7 @@ public class EmployeeDto
 
 
     public string FullName => $"{FirstName} {MiddleName} {LastName}";
+    public string FullNameEng => $"{FirstNameEng} {MiddleNameEng} {LastNameEng}";
 
     public string PhotoUrl { get; set; }
 
