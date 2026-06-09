@@ -25,77 +25,89 @@
     <div class="alert alert-warning">
     <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page","ليس لديك الصلاحيات لعرض هذه الصفحة")</span>
 </div>
+    return;
 }
-<!-- Branches -->
-<h5>@SharedDataService.SelectViewLang("Specialization Management", "ادارة التخصص العلمي")</h5>
 
-@* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
-<button class="btn btn-primary mb-3"
-        @onclick="CreateNew"
-        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.SpecializationPermissions.Create}") ? true : false)>
-    <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
-</button>
-
-<div class="card p-3 mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <!--
-
-        Export to xls and pdf
-        <div class="d-flex gap-2">
-
-            <button class="btn btn-success btn-sm" @onclick="ExportToExcel">
-                <i class="bi bi-file-earmark-excel"></i> Excel
-            </button>
-
-            <button class="btn btn-danger btn-sm" @onclick="ExportToPdf">
-                <i class="bi bi-file-earmark-pdf"></i> PDF
-            </button>
-
-        </div>
-        -->
-        <!-- 🔍 Search -->
+<div class="employee-lookup-page" dir="@SharedDataService.PageDirection">
+    <div class="employee-lookup-header mb-4">
         <div>
-            <input class="form-control"
-                   placeholder="Search..."
-                   @bind="searchText" />
+            <div class="text-uppercase text-primary fw-semibold small mb-1">@Text("Employee Setup", "اعدادات الموظفين")</div>
+            <h3 class="mb-1">@Text("Specialization Management", "ادارة التخصصات العلمية")</h3>
+            <div class="text-muted">@Text("Organize academic and professional specializations used in employee records.", "تنظيم التخصصات العلمية والمهنية المستخدمة في سجلات الموظفين.")</div>
         </div>
-
-        <!--
-
-        🎯 Filter
-        <div class="col-md-3">
-            <select class="form-select" @bind="filterMainBranch">
-                <option value="">All</option>
-                <option value="true">Main Branch</option>
-                <option value="false">Not Main</option>
-            </select>
-        </div>
-        -->
-        <!-- 📄 Page Size -->
-        <div>
-            @* <select class="form-select" @bind="pageSize"> *@
-            <select class="form-select" @onchange="OnPageSizeChanged">
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-            </select>
-        </div>
-
+        <button class="btn btn-primary"
+                @onclick="CreateNew"
+                disabled="@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.SpecializationPermissions.Create))">
+            <i class="bi bi-plus-lg"></i>
+            @Text("Create New", "اضافة جديد")
+        </button>
     </div>
-    <table class="table">
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="employee-lookup-stat border-primary">
+                <div class="employee-lookup-stat-icon text-primary"><i class="bi bi-journal-bookmark"></i></div>
+                <div>
+                    <div class="text-muted small">@Text("Visible Specializations", "التخصصات المعروضة")</div>
+                    <div class="employee-lookup-stat-value">@specializations.Count</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="employee-lookup-stat border-success">
+                <div class="employee-lookup-stat-icon text-success"><i class="bi bi-type"></i></div>
+                <div>
+                    <div class="text-muted small">@Text("Arabic Names", "اسماء عربية")</div>
+                    <div class="employee-lookup-stat-value">@specializations.Count(s => !string.IsNullOrWhiteSpace(s.Name))</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="employee-lookup-stat border-info">
+                <div class="employee-lookup-stat-icon text-info"><i class="bi bi-translate"></i></div>
+                <div>
+                    <div class="text-muted small">@Text("English Names", "اسماء انجليزية")</div>
+                    <div class="employee-lookup-stat-value">@specializations.Count(s => !string.IsNullOrWhiteSpace(s.NameEng))</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="employee-lookup-toolbar mb-3">
+                <div class="employee-lookup-search">
+                    <i class="bi bi-search"></i>
+                    <input class="form-control"
+                           placeholder="@Text("Search specializations...", "بحث في التخصصات...")"
+                           @bind="searchText" />
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <label class="text-muted small mb-0">@Text("Rows", "الصفوف")</label>
+                    <select class="form-select employee-lookup-page-size" @onchange="OnPageSizeChanged" value="@pageSize">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+            </div>
+
+    <div class="table-responsive">
+    <table class="table employee-lookup-table align-middle mb-0">
         <thead>
             <tr>
-                <th @onclick="() => Sort(nameof(SpecializationDto.Name))">
-                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                <th @onclick="() => Sort(nameof(SpecializationDto.Name))" class="sortable">
                     @SharedDataService.SelectViewLang("Name", "الاسم")
+                    <i class="@SortIcon(nameof(SpecializationDto.Name))"></i>
                 </th>
-                <th @onclick="() => Sort(nameof(SpecializationDto.NameEng))">
-                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                <th @onclick="() => Sort(nameof(SpecializationDto.NameEng))" class="sortable">
                     @SharedDataService.SelectViewLang("Name (Eng.)", "الاسم بالانجليزية")
+                    <i class="@SortIcon(nameof(SpecializationDto.NameEng))"></i>
                 </th>
-                <th></th>
+                <th class="text-center">@Text("Actions", "الاجراءات")</th>
             </tr>
         </thead>
         <tbody>
@@ -107,7 +119,7 @@
                         <td colspan="3">
                             <EditForm Model="specialization" OnValidSubmit="() => SaveSpecialization(specialization)">
                                 <DataAnnotationsValidator />
-                                <div class="row bg-info-subtle p-3">
+                                <div class="employee-lookup-edit-panel">
                                     
                                     <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Specialization", "التخصص")</label>
@@ -131,8 +143,8 @@
                                     <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label"></label>
                                         <div class="col-sm-10">
-                                            <button type="submit" class="btn btn-success btn-sm">@SharedDataService.SelectViewLang("Save", "حفظ")</button>
-                                            <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">@SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>
+                                            <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> @SharedDataService.SelectViewLang("Save", "حفظ")</button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelEdit"><i class="bi bi-x-lg"></i> @SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>
                                         </div>
                                     </div>
 
@@ -147,49 +159,87 @@
                 
                 <tr>
 
-                        <td>@specialization.Name</td>
-                        <td>@specialization.NameEng</td>
-                        <td>
-                            <button class="btn btn-warning btn-sm"
+                        <td class="fw-semibold">@EmptyValue(specialization.Name)</td>
+                        <td>@EmptyValue(specialization.NameEng)</td>
+                        <td class="text-end">
+                            <div class="d-flex justify-content-end gap-2">
+                            <button class="btn btn-outline-warning btn-sm employee-lookup-action"
                                     @onclick="() => EditSpecialization(specialization.Id)"
-                                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.SpecializationPermissions.Edit}"))>
-                                @SharedDataService.SelectViewLang("Edit", "تعديل")
+                                    disabled="@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.SpecializationPermissions.Edit))"
+                                    title="@SharedDataService.SelectViewLang("Edit", "تعديل")">
+                                <i class="bi bi-pencil"></i>
                             </button>
-                            <button class="btn btn-danger btn-sm"
+                            <button class="btn btn-outline-danger btn-sm employee-lookup-action"
                                     @onclick="() => DeleteSpecialization(specialization)"
-                                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.SpecializationPermissions.Delete}"))>
-                                @SharedDataService.SelectViewLang("Delete", "حذف")
+                                    disabled="@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.SpecializationPermissions.Delete))"
+                                    title="@SharedDataService.SelectViewLang("Delete", "حذف")">
+                                <i class="bi bi-trash"></i>
                             </button>
+                            </div>
                         </td>
                     </tr>
                 
             }
         </tbody>
     </table>
-    <div class="d-flex justify-content-end align-items-center mt-3">
+    </div>
+    <div class="employee-lookup-pagination">
 
-        <button class="btn btn-sm btn-secondary"
+        <button class="btn btn-sm btn-outline-secondary"
                 @onclick="PrevPage"
                 disabled="@(pageIndex == 0)">
-            Previous
+            <i class="bi bi-chevron-left"></i> @Text("Previous", "السابق")
         </button>
 
-        <span class="mx-3">Page @(pageIndex + 1) of @TotalPages @(TotalPages == 1 ? "" : "Pages")</span>
+        <span class="mx-3">@Text("Page", "صفحة") @(pageIndex + 1) @Text("of", "من") @TotalPages</span>
 
-        <button class="btn btn-sm btn-secondary"
+        <button class="btn btn-sm btn-outline-secondary"
                 @onclick="NextPage"
-                disabled="@(pageIndex >= TotalPages)">
-            Next
+                disabled="@(pageIndex >= TotalPages - 1)">
+            @Text("Next", "التالي") <i class="bi bi-chevron-right"></i>
         </button>
 
     </div>
+        </div>
+    </div>
 </div>
+
+<style>
+    .employee-lookup-page { max-width: 1320px; }
+    .employee-lookup-header { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
+    .employee-lookup-stat { align-items: center; background: #fff; border-left: 4px solid; border-radius: 8px; box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.08); display: flex; gap: 0.875rem; min-height: 86px; padding: 1rem; }
+    .employee-lookup-stat-icon { align-items: center; background: #f8fafc; border-radius: 8px; display: inline-flex; font-size: 1.4rem; height: 44px; justify-content: center; width: 44px; }
+    .employee-lookup-stat-value { color: #111827; font-size: 1.55rem; font-weight: 700; line-height: 1.1; }
+    .employee-lookup-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: space-between; }
+    .employee-lookup-search { flex: 1 1 320px; position: relative; }
+    .employee-lookup-search i { color: #64748b; left: 0.85rem; position: absolute; top: 50%; transform: translateY(-50%); }
+    .employee-lookup-search .form-control { padding-left: 2.5rem; }
+    .employee-lookup-page-size { min-width: 86px; }
+    .employee-lookup-table thead th { background: #f8fafc; color: #334155; font-size: 0.82rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; white-space: nowrap; }
+    .employee-lookup-table .sortable { cursor: pointer; user-select: none; }
+    .employee-lookup-table tbody tr:hover { background: #f8fafc; }
+    .employee-lookup-edit-panel { background: #f8fafc; border: 1px solid #dbeafe; border-radius: 8px; padding: 1rem; }
+    .employee-lookup-action { align-items: center; display: inline-flex; height: 32px; justify-content: center; width: 34px; }
+    .employee-lookup-pagination { align-items: center; border-top: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem; padding-top: 1rem; }
+    [dir="rtl"] .employee-lookup-stat { border-left: 0; border-right: 4px solid; }
+    [dir="rtl"] .employee-lookup-search i { left: auto; right: 0.85rem; }
+    [dir="rtl"] .employee-lookup-search .form-control { padding-left: 0.75rem; padding-right: 2.5rem; }
+</style>
 
 @code {
     private List<SpecializationDto> specializations = new();
     private Guid? editingSpecializationId;
     private Guid companyId;
     private AuthenticationState AuthState;
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private string SortIcon(string column)
+        => sortColumn != column
+            ? "bi bi-arrow-down-up"
+            : sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down";
+
     protected override async Task OnInitializedAsync()
     {
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();

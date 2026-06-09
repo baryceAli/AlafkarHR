@@ -27,27 +27,77 @@
     return;
 }
 
-<h5>@SharedDataService.SelectViewLang("Employees Management", "ادارة الموظفين")</h5>
+<div class="employee-list-page" dir="@SharedDataService.PageDirection">
+    <div class="employee-list-header mb-4">
+        <div>
+            <div class="text-uppercase text-primary fw-semibold small mb-1">@Text("People", "الأفراد")</div>
+            <h3 class="mb-1">@Text("Employees Management", "ادارة الموظفين")</h3>
+            <div class="text-muted">@Text("Manage employee profiles, positions, hire dates, and quick actions.", "ادارة ملفات الموظفين والمسميات وتواريخ التعيين والإجراءات السريعة.")</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-outline-primary" @onclick="LoadEmployees" disabled="@isLoading">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+            <button class="btn btn-primary"
+                    @onclick="CreateNew"
+                    disabled="@(!CanCreateEmployee)">
+                <i class="bi bi-plus-lg"></i>
+                @Text("Create New", "إضافة جديد")
+            </button>
+        </div>
+    </div>
 
-<button class="btn btn-primary mb-3"
-        @onclick="CreateNew"
-        disabled="@(!CanCreateEmployee)">
-    <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
-</button>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="employee-stat border-primary">
+                <div class="employee-stat-icon text-primary"><i class="bi bi-people"></i></div>
+                <div>
+                    <div class="text-muted small">@Text("Visible Employees", "الموظفون المعروضون")</div>
+                    <div class="employee-stat-value">@employees.Count</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="employee-stat border-success">
+                <div class="employee-stat-icon text-success"><i class="bi bi-briefcase"></i></div>
+                <div>
+                    <div class="text-muted small">@Text("With Position", "لديهم مسمى وظيفي")</div>
+                    <div class="employee-stat-value">@employees.Count(e => e.PositionId.HasValue)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="employee-stat border-info">
+                <div class="employee-stat-icon text-info"><i class="bi bi-telephone"></i></div>
+                <div>
+                    <div class="text-muted small">@Text("With Phone", "لديهم هاتف")</div>
+                    <div class="employee-stat-value">@employees.Count(e => !string.IsNullOrWhiteSpace(e.Phone))</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<div class="card p-3 mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
-        <input class="form-control"
-               placeholder="Search..."
-               @bind="searchText" />
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+    <div class="employee-toolbar mb-3">
+        <div class="employee-search">
+            <i class="bi bi-search"></i>
+            <input class="form-control"
+                   placeholder="@Text("Search by employee name, number, email, or position...", "بحث باسم الموظف أو رقمه أو البريد أو المسمى...")"
+                   @bind="searchText" />
+        </div>
 
-        <select class="form-select" style="max-width: 100px;" @onchange="OnPageSizeChanged">
-            <option value="5" selected="@(pageSize==5)">5</option>
-            <option value="10" selected="@(pageSize==10)">10</option>
-            <option value="20" selected="@(pageSize==20)">20</option>
-            <option value="50" selected="@(pageSize==50)">50</option>
-            <option value="100" selected="@(pageSize==100)">100</option>
-        </select>
+        <div class="d-flex align-items-center gap-2">
+            <label class="text-muted small mb-0">@Text("Rows", "الصفوف")</label>
+            <select class="form-select employee-page-size" @onchange="OnPageSizeChanged" value="@pageSize">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
     </div>
 
     @if (isLoading)
@@ -67,20 +117,21 @@
     else
     {
         <div class="table-responsive">
-            <table class="table">
+            <table class="table employee-table align-middle mb-0">
                 <thead>
                     <tr>
                         <th>@SharedDataService.SelectViewLang("EmployeeNo", "الرقم الوظيفي")</th>
-                        <th @onclick="() => Sort(nameof(EmployeeDto.FullName))" class="cursor-pointer">
-                            <span class=@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")></span>
+                        <th @onclick="() => Sort(nameof(EmployeeDto.FullName))" class="sortable">
                             @SharedDataService.SelectViewLang("Name", "الاسم")
+                            <i class="@SortIcon(nameof(EmployeeDto.FullName))"></i>
                         </th>
                         <th>@SharedDataService.SelectViewLang("DOB", "الميلاد")</th>
                         @* <th>@SharedDataService.SelectViewLang("Email", "الايميل")</th> *@
                         <th>@SharedDataService.SelectViewLang("Phone", "الهاتف")</th>
                         <th>@SharedDataService.SelectViewLang("Hire Date", "تاريخ التعيين")</th>
-                        <th @onclick="() => Sort(nameof(EmployeeDto.PositionName))" class="cursor-pointer">
+                        <th @onclick="() => Sort(nameof(EmployeeDto.PositionName))" class="sortable">
                             @SharedDataService.SelectViewLang("Position", "المسمى الوظيفي")
+                            <i class="@SortIcon(nameof(EmployeeDto.PositionName))"></i>
                         </th>
                         <th class="text-center">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
                     </tr>
@@ -89,31 +140,37 @@
                     @foreach (var emp in ProcessedEmployees)
                     {
                         <tr>
-                            <td>@emp.EmployeeNo</td>
-                            <td>@emp.FullName</td>
+                            <td>
+                                <div class="fw-semibold">@EmptyValue(emp.EmployeeNo)</div>
+                                <div class="text-muted small">@EmptyValue(emp.Code)</div>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">@EmptyValue(emp.FullName)</div>
+                                <div class="text-muted small">@EmptyValue(emp.Email)</div>
+                            </td>
                             <td>@FormatDate(emp.DateOfBirth)</td>
                             @* <td>@emp.Email</td> *@
-                            <td>@emp.Phone</td>
+                            <td>@EmptyValue(emp.Phone)</td>
                             <td>@FormatDate(emp.HireDate)</td>
-                            <td>@GetPositionName(emp.PositionId)</td>
+                            <td><span class="badge rounded-pill text-bg-light">@EmptyValue(GetPositionName(emp.PositionId))</span></td>
                             <td class="text-end">
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <a class="btn btn-info" href="Employee/Employee/view/@emp.Id" title="@SharedDataService.SelectViewLang("View", "عرض")">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a class="btn btn-outline-info btn-sm employee-action" href="Employee/Employee/view/@emp.Id" title="@SharedDataService.SelectViewLang("View", "عرض")">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <button class="btn btn-warning"
+                                    <button class="btn btn-outline-warning btn-sm employee-action"
                                             @onclick="() => EditEmployee(emp.Id)"
                                             disabled="@(!CanEditEmployee)"
                                             title="@SharedDataService.SelectViewLang("Edit", "تعديل")">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button class="btn btn-danger"
+                                    <button class="btn btn-outline-danger btn-sm employee-action"
                                             @onclick="() => DeleteEmployee(emp)"
                                             disabled="@(!CanDeleteEmployee)"
                                             title="@SharedDataService.SelectViewLang("Delete", "حذف")">
                                         <i class="bi bi-trash"></i>
                                     </button>
-                                    <a class="btn btn-secondary" href="Employee/Employee/QR/@emp.Id" title="@SharedDataService.SelectViewLang("QR Code", "QR")">
+                                    <a class="btn btn-outline-secondary btn-sm employee-action" href="Employee/Employee/QR/@emp.Id" title="@SharedDataService.SelectViewLang("QR Code", "QR")">
                                         <i class="bi bi-qr-code"></i>
                                     </a>
                                 </div>
@@ -125,7 +182,7 @@
         </div>
     }
 
-    <div class="d-flex justify-content-between align-items-center mt-3">
+    <div class="employee-pagination">
         <div>
             <span class="text-muted">
                 @SharedDataService.SelectViewLang(
@@ -134,7 +191,7 @@
             </span>
         </div>
         <div>
-            <button class="btn btn-sm btn-secondary"
+            <button class="btn btn-sm btn-outline-secondary"
                     @onclick="PrevPage"
                     disabled="@(pageIndex == 0)">
                 <i class="bi bi-chevron-left"></i> @SharedDataService.SelectViewLang("Previous", "السابق")
@@ -142,14 +199,151 @@
 
             <span class="mx-3">@SharedDataService.SelectViewLang("Page", "صفحة") @(pageIndex + 1) @SharedDataService.SelectViewLang("of", "من") @TotalPages</span>
 
-            <button class="btn btn-sm btn-secondary"
+            <button class="btn btn-sm btn-outline-secondary"
                     @onclick="NextPage"
                     disabled="@(pageIndex >= TotalPages - 1)">
                 @SharedDataService.SelectViewLang("Next", "التالي") <i class="bi bi-chevron-right"></i>
             </button>
         </div>
     </div>
+    </div>
 </div>
+</div>
+
+<style>
+    .employee-list-page {
+        max-width: 1400px;
+    }
+
+    .employee-list-header {
+        align-items: flex-start;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: space-between;
+    }
+
+    .employee-stat {
+        align-items: center;
+        background: #fff;
+        border-left: 4px solid;
+        border-radius: 8px;
+        box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.08);
+        display: flex;
+        gap: 0.875rem;
+        min-height: 88px;
+        padding: 1rem;
+    }
+
+    .employee-stat-icon {
+        align-items: center;
+        background: #f8f9fa;
+        border-radius: 8px;
+        display: inline-flex;
+        font-size: 1.35rem;
+        height: 44px;
+        justify-content: center;
+        width: 44px;
+    }
+
+    .employee-stat-value {
+        color: #212529;
+        font-size: 1.35rem;
+        font-weight: 700;
+        line-height: 1.15;
+    }
+
+    .employee-toolbar {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: space-between;
+    }
+
+    .employee-search {
+        max-width: 520px;
+        position: relative;
+        width: min(100%, 520px);
+    }
+
+    .employee-search i {
+        color: #6c757d;
+        left: 0.875rem;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .employee-search .form-control {
+        padding-left: 2.5rem;
+    }
+
+    .employee-page-size {
+        min-width: 82px;
+    }
+
+    .table-responsive {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+    }
+
+    .employee-table thead th {
+        background: #f8f9fa;
+        color: #495057;
+        font-size: 0.8125rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .employee-table tbody tr:hover {
+        background: #fbfcfe;
+    }
+
+    .employee-table .sortable {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .employee-table .sortable i {
+        color: #6c757d;
+        font-size: 0.75rem;
+        margin-inline-start: 0.35rem;
+    }
+
+    .employee-action {
+        align-items: center;
+        display: inline-flex;
+        height: 32px;
+        justify-content: center;
+        width: 36px;
+    }
+
+    .employee-pagination {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: space-between;
+        margin-top: 1rem;
+    }
+
+    [dir="rtl"] .employee-stat {
+        border-left: 0;
+        border-right: 4px solid;
+    }
+
+    [dir="rtl"] .employee-search i {
+        left: auto;
+        right: 0.875rem;
+    }
+
+    [dir="rtl"] .employee-search .form-control {
+        padding-left: 0.75rem;
+        padding-right: 2.5rem;
+    }
+</style>
 
 @code {
     private List<PositionDto> positions = [];
@@ -240,6 +434,14 @@
         positionId.HasValue && positionCache.TryGetValue(positionId.Value, out var name) ? name : "";
 
     private string FormatDate(DateTime date) => date.ToString("yyyy/MM/dd");
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private string SortIcon(string column)
+        => sortColumn != column
+            ? "bi bi-arrow-down-up"
+            : sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down";
 
     void CreateNew() => NavigationManager.NavigateTo("/Employee/Employee/Form");
 

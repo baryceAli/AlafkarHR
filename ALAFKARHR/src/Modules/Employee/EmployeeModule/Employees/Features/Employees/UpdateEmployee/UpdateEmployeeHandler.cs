@@ -25,6 +25,7 @@ public class UpdateEmployeeCommandValidator : AbstractValidator<UpdateEmployeeCo
         RuleFor(e=> e.Employee.DateOfBirth).NotEmpty().WithMessage("DateOfBirth is required");
         RuleFor(e=> e.Employee.EmployeeNo).NotEmpty().WithMessage("EmployeeNo is required");
         RuleFor(e=> e.Employee.NationalId).NotEmpty().WithMessage("NationalId is required");
+        RuleFor(e=> e.Employee.PositionId).NotEmpty().WithMessage("Position is required");
     }
 }
 public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAccessor httpContextAccessor)
@@ -80,6 +81,8 @@ public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             request.Employee.AcademicInstituteId.Value,
             request.Employee.GraduationYear,
             userId);
+
+        employee.ChangePosition(request.Employee.PositionId!.Value, userId);
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
