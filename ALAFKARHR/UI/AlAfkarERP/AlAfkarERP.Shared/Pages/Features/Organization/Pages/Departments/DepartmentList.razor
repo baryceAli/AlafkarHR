@@ -7,6 +7,7 @@
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
 @using SharedWithUI.Auth.Dtos
 @using SharedWithUI.Permissions
 
@@ -24,6 +25,7 @@
 
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
+@inject IJSRuntime JSRuntime
 
 @if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.DepartmentPermissions.View}"))
 {
@@ -224,7 +226,6 @@
                                             <ValidationMessage For="() => dept.Latitude" />
                                     </div>
 
-
                                     <div class="col-md-4">
                                         <label class="form-label d-block">@SharedDataService.SelectViewLang("Is Active?", "فعال؟")</label>
                                         <div class="org-check">
@@ -233,6 +234,31 @@
                                         </div>
                                     </div>
 
+                                    <div class="col-12">
+                                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                            <label class="form-label mb-0">@Text("Pick Department Location", "اختيار موقع القسم")</label>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <button type="button" class="btn btn-outline-secondary btn-sm map-zoom-button" @onclick="ZoomOutMapAsync" title="@Text("Zoom Out", "تصغير")">
+                                                    <i class="bi bi-dash-lg"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm map-zoom-button" @onclick="ZoomInMapAsync" title="@Text("Zoom In", "تكبير")">
+                                                    <i class="bi bi-plus-lg"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CenterMapFromDepartmentAsync">
+                                                    <i class="bi bi-crosshair"></i>
+                                                    @Text("Center from Fields", "توسيط من الحقول")
+                                                </button>
+                                                <button type="button" class="btn btn-outline-primary btn-sm" @onclick="UseCurrentLocationAsync">
+                                                    <i class="bi bi-geo-alt"></i>
+                                                    @Text("Use Current Location", "استخدام موقعي")
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div id="@mapElementId" class="department-map"></div>
+                                        <div class="text-muted small mt-2">
+                                            @Text("Click the map to update longitude and latitude.", "اضغط على الخريطة لتحديث خط الطول وخط العرض.")
+                                        </div>
+                                    </div>
 
 
                                     <div class="col-12 d-flex justify-content-end gap-2">
@@ -463,6 +489,49 @@
         margin: 0;
     }
 
+    .department-map {
+        background: #eef2f5;
+        border: 1px solid #ced4da;
+        border-radius: 8px;
+        cursor: grab;
+        height: 320px;
+        overflow: hidden;
+        position: relative;
+        width: 100%;
+    }
+
+    .department-map.is-dragging {
+        cursor: grabbing;
+    }
+
+    .location-picker-tile {
+        height: 256px;
+        position: absolute;
+        user-select: none;
+        width: 256px;
+    }
+
+    .location-picker-marker {
+        color: #dc3545;
+        font-size: 2rem;
+        left: 50%;
+        line-height: 1;
+        pointer-events: none;
+        position: absolute;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+        top: 50%;
+        transform: translate(-50%, -100%);
+        z-index: 2;
+    }
+
+    .map-zoom-button {
+        align-items: center;
+        display: inline-flex;
+        height: 31px;
+        justify-content: center;
+        width: 36px;
+    }
+
     .org-pagination {
         align-items: center;
         display: flex;
@@ -499,6 +568,29 @@
     private bool isNew = false;
     private Guid companyId;
     private AuthenticationState AuthState;
+    private readonly string mapElementId = $"department-location-map-{Guid.NewGuid():N}";
+    private DotNetObjectReference<DepartmentList>? dotNetReference;
+    private Guid? mapInitializedDepartmentId;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (editingDepartmentId is not null && mapInitializedDepartmentId != editingDepartmentId)
+        {
+            var department = EditingDepartment;
+            if (department is not null)
+            {
+                dotNetReference ??= DotNetObjectReference.Create(this);
+                await JSRuntime.InvokeVoidAsync(
+                    "alafkarLocationPicker.init",
+                    mapElementId,
+                    MapLatitude(department),
+                    MapLongitude(department),
+                    dotNetReference);
+                mapInitializedDepartmentId = editingDepartmentId;
+            }
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
@@ -584,11 +676,16 @@
         }
         var newItem = new DepartmentDto()
         {
-            Id = Guid.NewGuid()
+            Id = Guid.NewGuid(),
+            Latitude = DefaultDepartmentLatitude(),
+            Longitude = DefaultDepartmentLongitude(),
+            AllowedRadiusMeters = 100,
+            IsActive = true
         };
         newItem.AdministrationId = selectedAdministration.Id;
         departments.Insert(0, newItem);
         editingDepartmentId = newItem.Id;
+        mapInitializedDepartmentId = null;
         manager = null;
         isNew = true;
     }
@@ -597,6 +694,7 @@
     {
 
         editingDepartmentId = dept.Id;
+        mapInitializedDepartmentId = null;
         manager = users?.FirstOrDefault(u => u.Id == dept.HeadOfDepartment) ?? null;
         isNew = false;
     }
@@ -670,6 +768,7 @@
         //     branches = response.Data?.ToList() ?? [];
         // }
         editingDepartmentId = null;
+        mapInitializedDepartmentId = null;
         isNew = false;
         StateHasChanged();
     }
@@ -726,6 +825,8 @@
         {
             departments = [];
             isNew = false;
+            editingDepartmentId = null;
+            mapInitializedDepartmentId = null;
             return;
         }
         // editingDepartmentId = null;
@@ -746,6 +847,7 @@
             departments.Remove(item);
         }
         editingDepartmentId = null;
+        mapInitializedDepartmentId = null;
         isNew = false;
 
         
@@ -867,6 +969,92 @@
         => sortColumn != column
             ? "bi bi-arrow-down-up"
             : sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down";
+
+    private DepartmentDto? EditingDepartment =>
+        editingDepartmentId is null ? null : departments.FirstOrDefault(department => department.Id == editingDepartmentId);
+
+    private BranchDto? DepartmentBranch =>
+        selectedBranch is not null && selectedBranch.Id != Guid.Empty
+            ? selectedBranch
+            : selectedAdministration?.BranchId is Guid branchId
+                ? branches.FirstOrDefault(branch => branch.Id == branchId)
+                : null;
+
+    private double DefaultDepartmentLatitude()
+        => DepartmentBranch?.Latitude is > 0 ? DepartmentBranch.Latitude : 24.7136;
+
+    private double DefaultDepartmentLongitude()
+        => DepartmentBranch?.Longitude is > 0 ? DepartmentBranch.Longitude : 46.6753;
+
+    private double MapLatitude(DepartmentDto department)
+        => department.Latitude is > 0 ? department.Latitude : DefaultDepartmentLatitude();
+
+    private double MapLongitude(DepartmentDto department)
+        => department.Longitude is > 0 ? department.Longitude : DefaultDepartmentLongitude();
+
+    private async Task CenterMapFromDepartmentAsync()
+    {
+        var department = EditingDepartment;
+        if (department is null || mapInitializedDepartmentId is null)
+        {
+            return;
+        }
+
+        await JSRuntime.InvokeVoidAsync(
+            "alafkarLocationPicker.setCenter",
+            mapElementId,
+            MapLatitude(department),
+            MapLongitude(department),
+            false);
+    }
+
+    private async Task UseCurrentLocationAsync()
+    {
+        if (mapInitializedDepartmentId is null)
+        {
+            return;
+        }
+
+        var isSupported = await JSRuntime.InvokeAsync<bool>("alafkarLocationPicker.useCurrentLocation", mapElementId);
+        if (!isSupported)
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Type = "warning",
+                Message = Text("Current location is not supported in this browser.", "الموقع الحالي غير مدعوم في هذا المتصفح.")
+            });
+        }
+    }
+
+    private async Task ZoomInMapAsync()
+    {
+        if (mapInitializedDepartmentId is not null)
+        {
+            await JSRuntime.InvokeAsync<int>("alafkarLocationPicker.zoomIn", mapElementId);
+        }
+    }
+
+    private async Task ZoomOutMapAsync()
+    {
+        if (mapInitializedDepartmentId is not null)
+        {
+            await JSRuntime.InvokeAsync<int>("alafkarLocationPicker.zoomOut", mapElementId);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnMapLocationSelected(double latitude, double longitude)
+    {
+        var department = EditingDepartment;
+        if (department is null)
+        {
+            return;
+        }
+
+        department.Latitude = Math.Round(latitude, 6);
+        department.Longitude = Math.Round(longitude, 6);
+        await InvokeAsync(StateHasChanged);
+    }
     #endregion Table helpers
 
     protected override void OnInitialized()
@@ -881,6 +1069,12 @@
 
     public void Dispose()
     {
+        if (mapInitializedDepartmentId is not null)
+        {
+            _ = JSRuntime.InvokeVoidAsync("alafkarLocationPicker.dispose", mapElementId);
+        }
+
+        dotNetReference?.Dispose();
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }
