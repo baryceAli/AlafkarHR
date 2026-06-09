@@ -21,24 +21,31 @@ public class AdministrationConfiguration : IEntityTypeConfiguration<Administrati
             .IsRequired()
             .HasMaxLength(200);
 
-        builder.Property(x => x.BranchId).IsRequired();
+        builder.Property(x => x.BranchId).IsRequired(false);
         builder.Property(x => x.CompanyId).IsRequired();
+        builder.Property(x => x.ParentAdministrationId).IsRequired(false);
 
 
 
         builder.HasOne(x => x.Branch)
     .WithMany(x => x.Administrations)
     .HasForeignKey(x => x.BranchId)
-    .OnDelete(DeleteBehavior.Cascade);
+    .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne<Company>()
     .WithMany()
     .HasForeignKey(x => x.CompanyId)
     .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(x => x.ParentAdministration)
+            .WithMany(x => x.ChildAdministrations)
+            .HasForeignKey(x => x.ParentAdministrationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // 🔍 Indexes
         builder.HasIndex(x => x.CompanyId);
         builder.HasIndex(x => x.BranchId);
+        builder.HasIndex(x => x.ParentAdministrationId);
         builder.HasIndex(x => new { x.CompanyId, x.BranchId });
 
         // 🧾 Audit

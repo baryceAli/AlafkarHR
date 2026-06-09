@@ -14,8 +14,11 @@ public class AdministrationDto
     [Required(ErrorMessage = "Name is required")]
     public string NameEng { get; set; }
 
-    [Required(ErrorMessage ="Branch is required")]
+    //[Required(ErrorMessage ="Branch is required")]
     public Guid? BranchId { get; set; }
+    public Guid? ParentAdministrationId { get; set; }
+    public string? ParentAdministrationName { get; set; }
+    public string? ParentAdministrationNameEng { get; set; }
     
     //public Branch Branch { get; private set; }
 

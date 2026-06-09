@@ -12,9 +12,18 @@ public class CreateAdministrationHandler(OrganizationDbContext dbContext, IHttpC
         if (company is null)
             throw new NotFoundException($"Company not found: {request.Administration.CompanyId}");
 
-        var branch = await dbContext.Branches.FindAsync([request.Administration.BranchId]);
-        if (branch is null)
-            throw new NotFoundException($"Branch not found: {request.Administration.BranchId}");
+        Guid? branchId = null;
+        if (request.Administration.BranchId.HasValue)
+        {
+            var branchIdValue = request.Administration.BranchId.Value;
+            var branch = await dbContext.Branches.FindAsync([branchIdValue]);
+            if (branch is null)
+                throw new NotFoundException($"Branch not found: {branchIdValue}");
+
+            branchId = branchIdValue;
+        }
+
+        await ValidateParentAdministrationAsync(request.Administration, cancellationToken);
 
         var userId = httpContextAccessor.HttpContext?
                         .User?
@@ -27,7 +36,8 @@ public class CreateAdministrationHandler(OrganizationDbContext dbContext, IHttpC
             request.Administration.Name,
             request.Administration.NameEng,
             request.Administration.Code,
-            request.Administration.BranchId.Value,
+            branchId,
+            request.Administration.ParentAdministrationId,
             request.Administration.ManagerId,
             request.Administration.IsActive,
             request.Administration.CompanyId,
@@ -37,5 +47,37 @@ public class CreateAdministrationHandler(OrganizationDbContext dbContext, IHttpC
         await dbContext.SaveChangesAsync();
 
         return new CreateAdministrationResult(administration.Adapt<AdministrationDto>());
+    }
+
+    private async Task ValidateParentAdministrationAsync(
+        AdministrationDto administration,
+        CancellationToken cancellationToken)
+    {
+        if (!administration.ParentAdministrationId.HasValue)
+        {
+            return;
+        }
+
+        var parent = await dbContext.Administrations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == administration.ParentAdministrationId.Value, cancellationToken)
+            ?? throw new NotFoundException($"Parent administration not found: {administration.ParentAdministrationId.Value}");
+
+        if (parent.CompanyId != administration.CompanyId)
+        {
+            throw new BadRequestException("Parent administration must belong to the same company.");
+        }
+
+        if (!administration.BranchId.HasValue && parent.BranchId.HasValue)
+        {
+            throw new BadRequestException("Company-level administration cannot be assigned under a branch administration.");
+        }
+
+        if (administration.BranchId.HasValue
+            && parent.BranchId.HasValue
+            && parent.BranchId != administration.BranchId)
+        {
+            throw new BadRequestException("Branch administration cannot be assigned under a parent from another branch.");
+        }
     }
 }

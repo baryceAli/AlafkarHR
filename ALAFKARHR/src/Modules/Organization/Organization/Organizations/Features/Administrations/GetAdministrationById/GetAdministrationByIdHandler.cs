@@ -13,6 +13,19 @@ public class GetAdministrationByIdHandler(OrganizationDbContext dbContext)
         if (administration is null)
             throw new NotFoundException($"Administration not found: {request.Id}");
 
-        return new GetAdministrationByIdResult(administration.Adapt<AdministrationDto>());
+        var administrationDto = administration.Adapt<AdministrationDto>();
+        if (administrationDto.ParentAdministrationId.HasValue)
+        {
+            var parent = await dbContext.Administrations
+                .AsNoTracking()
+                .Where(x => x.Id == administrationDto.ParentAdministrationId.Value)
+                .Select(x => new { x.Name, x.NameEng })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            administrationDto.ParentAdministrationName = parent?.Name;
+            administrationDto.ParentAdministrationNameEng = parent?.NameEng;
+        }
+
+        return new GetAdministrationByIdResult(administrationDto);
     }
 }

@@ -38,7 +38,7 @@
         <div>
             <div class="text-uppercase text-primary fw-semibold small mb-1">@Text("Organization", "المنظمة")</div>
             <h3 class="mb-1">@Text("Administrations Management", "ادارة الإدارات")</h3>
-            <div class="text-muted">@Text("Manage branch administrations, managers, and active status.", "ادارة الإدارات التابعة للفروع والمدراء وحالة التفعيل.")</div>
+            <div class="text-muted">@Text("Manage company higher management, branch administrations, hierarchy, managers, and active status.", "إدارة الإدارة العليا على مستوى الشركة وإدارات الفروع والتسلسل الإداري والمدراء وحالة التفعيل.")</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <button class="btn btn-outline-primary" @onclick="LoadAdministrations">
@@ -88,13 +88,16 @@
         <div class="card-body">
             <div class="org-toolbar mb-3">
                 <div class="org-selector">
-                    <label class="form-label mb-1">@Text("Select Branch", "اختر الفرع")</label>
+                    <label class="form-label mb-1">@Text("Branch filter", "تصفية حسب الفرع")</label>
                     <AutoCompleteComponent TItem="BranchDto"
                                            Items="branches"
                                            Value="selectedBranch"
                                            ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
                                            ValueChanged="OnBranchSelected">
                     </AutoCompleteComponent>
+                    <button type="button" class="btn btn-link btn-sm px-0" @onclick="ClearBranchFilter">
+                        @Text("Show company-level and all branches", "عرض مستوى الشركة وجميع الفروع")
+                    </button>
                 </div>
 
                 <div class="org-search">
@@ -126,11 +129,12 @@
                     @Text("Name (English)", "الاسم بالانجليزية")
                     <i class="@SortIcon(nameof(AdministrationDto.NameEng))"></i>
                 </th>
-                @* <th @onclick="() => Sort(nameof(AdministrationDto.BranchId))">Branch</th> *@
+                <th>@Text("Scope", "النطاق")</th>
                 <th @onclick="() => Sort(nameof(AdministrationDto.ManagerId))" class="sortable">
                     @Text("Manager", "المدير")
                     <i class="@SortIcon(nameof(AdministrationDto.ManagerId))"></i>
                 </th>
+                <th>@Text("Parent", "الإدارة الأعلى")</th>
                 <th>@Text("Status", "الحالة")</th>
                 <th class="text-end">@Text("Actions", "العمليات")</th>
             </tr>
@@ -140,7 +144,7 @@
             {
                 var admin = administrations.FirstOrDefault(a => a.Id == editingAdministrationId);
                 <tr class="org-edit-row">
-                    <td colspan="5">
+                    <td colspan="7">
                         <EditForm Model="admin" OnValidSubmit="async () => await SaveAdministration(admin)">
                             <DataAnnotationsValidator />
                             <ValidationSummary />
@@ -180,6 +184,18 @@
                                                                @* ItemText='(p=> SharedDataService.SelectViewLang( p.FullNameEng,p.FullName))' *@
                                         
                                 </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Parent administration", "الإدارة الأعلى")</label>
+                                    <AutoCompleteComponent TItem="AdministrationDto"
+                                                           Items="ParentAdministrationOptions(admin)"
+                                                           Value="parentAdministration"
+                                                           PlaceHolder="@Text("Search parent administration...", "ابحث عن الإدارة الأعلى...")"
+                                                           ItemText="AdministrationSearchText"
+                                                           ValueChanged="OnParentAdministrationSelected">
+                                    </AutoCompleteComponent>
+                                    <div class="form-text">@Text("Leave empty for CEO, General Manager, or another top-level administration.", "اتركه فارغا للرئيس التنفيذي أو المدير العام أو أي إدارة عليا.")</div>
+                                </div>
                                     
                                 <div class="col-md-6">
                                     <label class="form-label d-block">@SharedDataService.SelectViewLang("Active?", "فعال؟")</label>
@@ -209,8 +225,9 @@
                             <div class="text-muted small">@EmptyValue(admin.Code)</div>
                         </td>
                         <td>@EmptyValue(admin.NameEng)</td>
-                        @* <td>@admin.BranchId</td> *@
+                        <td>@EmptyValue(BranchScopeLabel(admin))</td>
                         <td>@EmptyValue(SharedDataService.SelectViewLang(employees.FirstOrDefault(u => u.Id == admin.ManagerId)?.FullName ?? "",employees.FirstOrDefault(u => u.Id == admin.ManagerId)?.FullName ?? ""))</td>
+                        <td>@EmptyValue(ParentAdministrationLabel(admin))</td>
                         <td>
                             <span class="badge rounded-pill @(admin.IsActive ? "text-bg-success" : "text-bg-secondary")">
                                 @(admin.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))
@@ -433,8 +450,10 @@
 @code {
     private List<BranchDto> branches = new();
     private List<AdministrationDto> administrations = new();
+    private List<AdministrationDto> allBranchAdministrations = new();
     private List<EmployeeDto> employees = [];
     private EmployeeDto? manager = new();
+    private AdministrationDto? parentAdministration;
     private Guid? editingAdministrationId;
     // private Guid? newAdministrationId;
     private bool isEdit = false;
@@ -457,12 +476,16 @@
         {
             branches = branchResponse.Data?.Data?.ToList() ?? [];
         }
+
+        await LoadParentAdministrationOptions();
+        await LoadAdministrations();
     }
-    BranchDto selectedBranch = new();
-    private async Task OnBranchSelected(BranchDto branch)
+    BranchDto? selectedBranch;
+    private async Task OnBranchSelected(BranchDto? branch)
     {
         selectedBranch = branch;
 
+        await LoadParentAdministrationOptions();
         await LoadAdministrations();
         StateHasChanged();
         
@@ -483,38 +506,32 @@
         StateHasChanged();
     }
 
+    private async Task OnParentAdministrationSelected(AdministrationDto? administration)
+    {
+        parentAdministration = administration;
+        StateHasChanged();
+    }
+
+
+    private async Task ClearBranchFilter()
+    {
+        selectedBranch = null;
+        pageIndex = 0;
+        await LoadParentAdministrationOptions();
+        await LoadAdministrations();
+    }
 
     // Branch
     async Task CreateNew()
     {
-
-        if (selectedBranch == null || selectedBranch.Id == Guid.Empty)
-        {
-            await ModalService.ShowAsync(new ModalOptions
-            {
-                Title = SharedDataService.SelectViewLang("Create New", "إضافة"),
-                Message = SharedDataService.SelectViewLang($"Please select branch first", $"يرجى اختيار الفرع اولا"),
-                // ShowCancel = true,
-                // OkText = SharedDataService.SelectViewLang("Yes", "نعم"),
-                // CancelText = SharedDataService.SelectViewLang("No", "لا"),
-
-                OnOk = async () =>
-                {
-
-
-
-                }
-            });
-
-            return;
-        }
         isEdit = false;
         var newItem = new AdministrationDto()
         {
             Id = Guid.NewGuid(),
-            BranchId = selectedBranch.Id
+            BranchId = selectedBranch?.Id
         };
         administrations.Insert(0, newItem);
+        parentAdministration = null;
         editingAdministrationId = newItem.Id;
     }
 
@@ -525,6 +542,7 @@
 
         editingAdministrationId = admin.Id;
         manager = employees?.FirstOrDefault(u => u.Id == admin.ManagerId) ?? null;
+        parentAdministration = allBranchAdministrations.FirstOrDefault(x => x.Id == admin.ParentAdministrationId);
     }
 
     async Task SaveAdministration(AdministrationDto admin)
@@ -540,6 +558,7 @@
             admin.CompanyId = companyId;
             admin.BranchId = selectedBranch?.Id ?? null;
             admin.ManagerId = manager?.Id ?? null;
+            admin.ParentAdministrationId = parentAdministration?.Id;
             var bResponse = await AdministrationService.CreateAsync(admin);
             if (bResponse.IsSuccess)
             {
@@ -569,6 +588,7 @@
             {
                 admin.ManagerId = manager?.Id ?? null;
             }
+            admin.ParentAdministrationId = parentAdministration?.Id;
             var bresponse = await AdministrationService.UpdateAsync(admin);
             if (bresponse.IsSuccess)
             {
@@ -600,6 +620,7 @@
         //     branches = response.Data?.ToList() ?? [];
         // }
         editingAdministrationId = null;
+        parentAdministration = null;
         // newAdministrationId = null;
         isEdit = false;
         StateHasChanged();
@@ -654,20 +675,10 @@
     async Task CancelEdit()
     {
 
-        //new
-        if (selectedBranch == null || selectedBranch.Id == Guid.Empty)
-        {
-            administrations = [];
-            return;
-        }
         var item = administrations.FirstOrDefault(x => x.Id == editingAdministrationId);
         if (item != null && isEdit)
         {
-            var adminRes = await AdministrationService.GetByBranchAsync(selectedBranch.Id, 0, 1000);
-            if (adminRes.IsSuccess)
-            {
-                administrations = adminRes.Data?.Data?.ToList() ?? [];
-            }
+            await LoadAdministrations();
         }
         else
         {
@@ -676,6 +687,7 @@
         }
         isEdit = false;
         editingAdministrationId = null;
+        parentAdministration = null;
         // newAdministrationId = null;
     }
 
@@ -695,14 +707,10 @@
     private async Task LoadAdministrations()
     {
         TotalPages = 0;
-        if (selectedBranch == null || selectedBranch.Id == Guid.Empty)
-        {
-            administrations = [];
-            return;
-        }
 
-
-        var response = await AdministrationService.GetByBranchAsync(selectedBranch.Id, pageIndex, pageSize);//,searchText);
+        var response = selectedBranch is null || selectedBranch.Id == Guid.Empty
+            ? await AdministrationService.GetAsync(pageIndex, pageSize)
+            : await AdministrationService.GetByBranchAsync(selectedBranch.Id, pageIndex, pageSize);//,searchText);
 
         if (response.IsSuccess)
         {
@@ -710,10 +718,27 @@
 
             // branches = result.Data.ToList();
             administrations = response.Data?.Data.ToList() ?? [];
+            await LoadParentAdministrationOptions();
             // TotalPages = (int)response.Data!.Count;
             TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
         }
     }
+
+    private async Task LoadParentAdministrationOptions()
+    {
+        var response = await AdministrationService.GetAsync(0, 10000);
+        if (response.IsSuccess)
+        {
+            allBranchAdministrations = response.Data?.Data?.ToList() ?? [];
+        }
+    }
+
+    private List<AdministrationDto> ParentAdministrationOptions(AdministrationDto? admin)
+        => allBranchAdministrations
+            .Where(x => admin is null || x.Id != admin.Id)
+            .Where(x => admin?.BranchId is null ? x.BranchId is null : x.BranchId is null || x.BranchId == admin.BranchId)
+            .OrderBy(x => x.Name)
+            .ToList();
     async Task OnPageSizeChanged(ChangeEventArgs e)
     {
         pageSize = int.Parse(e.Value!.ToString()!);
@@ -726,7 +751,9 @@
         .Where(b =>
             string.IsNullOrWhiteSpace(searchText) ||
             (b.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (b.NameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+            (b.NameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (BranchScopeLabel(b)?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (ParentAdministrationLabel(b)?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
         // (b.Email?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
         )
 
@@ -789,6 +816,32 @@
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private string AdministrationSearchText(AdministrationDto administration)
+        => $"{SharedDataService.SelectViewLang(administration.NameEng, administration.Name)} | {administration.Code}";
+
+    private string BranchScopeLabel(AdministrationDto administration)
+    {
+        if (!administration.BranchId.HasValue)
+        {
+            return Text("Company level", "مستوى الشركة");
+        }
+
+        var branch = branches.FirstOrDefault(x => x.Id == administration.BranchId.Value);
+        return SharedDataService.SelectViewLang(branch?.NameEng ?? "", branch?.Name ?? "");
+    }
+
+    private string? ParentAdministrationLabel(AdministrationDto administration)
+    {
+        if (!administration.ParentAdministrationId.HasValue)
+        {
+            return null;
+        }
+
+        var parent = allBranchAdministrations.FirstOrDefault(x => x.Id == administration.ParentAdministrationId.Value);
+        return SharedDataService.SelectViewLang(
+            parent?.NameEng ?? administration.ParentAdministrationNameEng ?? "",
+            parent?.Name ?? administration.ParentAdministrationName ?? "");
+    }
 
     private string SortIcon(string column)
         => sortColumn != column

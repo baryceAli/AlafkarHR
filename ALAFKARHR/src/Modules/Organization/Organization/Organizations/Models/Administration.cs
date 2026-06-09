@@ -6,8 +6,10 @@ public class Administration:Entity<Guid>
 {
     public string Name { get;private set; }
     public string NameEng { get; private set; }
-    public Guid BranchId { get; private set; }
-    public Branch Branch { get; private set; }
+    public Guid? BranchId { get; private set; }
+    public Branch? Branch { get; private set; }
+    public Guid? ParentAdministrationId { get; private set; }
+    public Administration? ParentAdministration { get; private set; }
 
     public string Code { get; private set; }
     public Guid? ManagerId { get; private set; } // future employee reference
@@ -18,6 +20,8 @@ public class Administration:Entity<Guid>
 
     private readonly List<Department> _departments = new();
     public IReadOnlyCollection<Department> Departments=> _departments;
+    private readonly List<Administration> _childAdministrations = new();
+    public IReadOnlyCollection<Administration> ChildAdministrations => _childAdministrations;
 
     private Administration() { }
 
@@ -36,7 +40,8 @@ public class Administration:Entity<Guid>
         string name,
         string nameEng,
         string code,
-        Guid branchId,
+        Guid? branchId,
+        Guid? parentAdministrationId,
         Guid?managerId,
         bool isActive,
         Guid comapnyId,
@@ -53,6 +58,7 @@ public class Administration:Entity<Guid>
             NameEng = nameEng,
             Code = code,
             BranchId = branchId,
+            ParentAdministrationId = parentAdministrationId,
             ManagerId=managerId,
             IsActive=isActive,
             CompanyId = comapnyId,
@@ -64,6 +70,7 @@ public class Administration:Entity<Guid>
         string name,
         string nameEng,
         bool isActive,
+        Guid? parentAdministrationId,
         Guid? managerId,
         string modifiedBy)
     {
@@ -72,6 +79,7 @@ public class Administration:Entity<Guid>
         Name = name; 
         NameEng=nameEng;
         IsActive = isActive;
+        ParentAdministrationId = parentAdministrationId;
         ManagerId = managerId;
         ModifiedAt=DateTime.UtcNow;
         ModifiedBy=modifiedBy;
