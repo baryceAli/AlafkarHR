@@ -47,6 +47,36 @@ public class Shift : Aggregate<Guid>
         };
     }
 
+    public void Update(
+        string name,
+        TimeSpan start,
+        TimeSpan end,
+        int graceMinutes,
+        int lateAfterMinutes,
+        int prohibitCheckInAfterMinutes,
+        int breakMinutes,
+        string? modifiedBy)
+    {
+        Name = name;
+        StartTime = start;
+        EndTime = end;
+        GracePeriodMinutes = graceMinutes;
+        LateAfterMinutes = lateAfterMinutes;
+        ProhibitCheckInAfterMinutes = prohibitCheckInAfterMinutes;
+        BreakMinutes = breakMinutes;
+        ModifiedBy = modifiedBy;
+        ModifiedAt = DateTime.UtcNow;
+    }
+
+    public void Delete(string? deletedBy)
+    {
+        IsDeleted = true;
+        DeletedBy = deletedBy;
+        DeletedAt = DateTime.UtcNow;
+        ModifiedBy = deletedBy;
+        ModifiedAt = DateTime.UtcNow;
+    }
+
     public DateTime BuildShiftStart(DateTime workDateUtc)
         => DateTime.SpecifyKind(workDateUtc.Date.Add(StartTime), DateTimeKind.Utc);
 

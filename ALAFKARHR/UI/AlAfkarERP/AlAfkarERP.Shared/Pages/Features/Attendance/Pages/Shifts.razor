@@ -2,14 +2,14 @@
 @page "/Attendance/Shifts"
 
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
-@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Attendance.Dtos
-@using SharedWithUI.Organization.Dtos
 
 @inject IAttendanceService AttendanceService
-@inject ICompanyService CompanyService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ModalService ModalService
 @inject SharedDataService SharedDataService
 
 <section class="shift-page" dir="@SharedDataService.PageDirection">
@@ -17,8 +17,9 @@
         <div>
             <p class="eyebrow">@Text("Attendance", "الحضور والانصراف")</p>
             <h1>@Text("Shifts", "الورديات")</h1>
+            <p class="subtitle">@Text("Create and maintain company shifts, late rules, and check-in cutoff rules.", "انشاء وادارة ورديات الشركة وقواعد التأخير ومنع تسجيل الحضور.")</p>
         </div>
-        <button class="btn btn-outline-primary" @onclick="LoadData" disabled="@isBusy">
+        <button class="btn btn-outline-primary" @onclick="LoadShifts" disabled="@isBusy">
             <i class="bi bi-arrow-clockwise"></i>
             @Text("Refresh", "تحديث")
         </button>
@@ -31,20 +32,20 @@
 
     <section class="shift-panel">
         <div class="panel-title">
-            <h2>@Text("Create shift", "إنشاء وردية")</h2>
-            <span>@Text("Define the working window and check-in cutoffs.", "حدد وقت العمل وحدود السماح بتسجيل الحضور.")</span>
+            <div>
+                <h2>@(isEditing ? Text("Update shift", "تعديل الوردية") : Text("Create shift", "انشاء وردية"))</h2>
+                <span>@Text("The shift will be saved for the signed-in user's company.", "سيتم حفظ الوردية على شركة المستخدم الحالي.")</span>
+            </div>
+            @if (isEditing)
+            {
+                <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelEdit" disabled="@isBusy">
+                    <i class="bi bi-x-lg"></i>
+                    @Text("Cancel edit", "الغاء التعديل")
+                </button>
+            }
         </div>
 
         <div class="form-grid">
-            <label>
-                @Text("Company", "الشركة")
-                <AutoCompleteComponent TItem="CompanyDto"
-                                       Items="companies"
-                                       ItemText="CompanySearchText"
-                                       Value="selectedCompany"
-                                       PlaceHolder="@Text("Search company by name or code", "ابحث عن الشركة بالاسم أو الكود")"
-                                       ValueChanged="OnCompanySelected" />
-            </label>
             <label>
                 @Text("Shift name", "اسم الوردية")
                 <input class="form-control" @bind="model.Name" placeholder="@Text("Morning shift", "وردية صباحية")" />
@@ -76,40 +77,69 @@
         </div>
 
         <div class="action-row">
-            <button class="btn btn-primary" @onclick="CreateShiftAsync" disabled="@isBusy">
-                <i class="bi bi-plus-circle"></i>
-                @Text("Create shift", "إنشاء وردية")
+            <button class="btn btn-primary" @onclick="SaveShiftAsync" disabled="@isBusy">
+                <i class="bi @(isEditing ? "bi-check-circle" : "bi-plus-circle")"></i>
+                @(isEditing ? Text("Update shift", "تعديل الوردية") : Text("Create shift", "انشاء وردية"))
             </button>
         </div>
     </section>
 
     <section class="shift-panel mt-3">
         <div class="panel-title">
-            <h2>@Text("Existing shifts", "الورديات الحالية")</h2>
-            <span>@Text($"{shifts.Count} shift(s)", $"{shifts.Count} وردية")</span>
+            <div>
+                <h2>@Text("Existing shifts", "الورديات الحالية")</h2>
+                <span>@Text($"{shifts.Count} shift(s)", $"{shifts.Count} وردية")</span>
+            </div>
         </div>
         <div class="table-responsive">
-            <table class="table align-middle">
+            <table class="table align-middle shift-table">
                 <thead>
                     <tr>
                         <th>@Text("Name", "الاسم")</th>
-                        <th>@Text("Company", "الشركة")</th>
                         <th>@Text("Time", "الوقت")</th>
+                        <th>@Text("Grace", "السماح")</th>
                         <th>@Text("Late after", "التأخير بعد")</th>
                         <th>@Text("Prohibit after", "المنع بعد")</th>
                         <th>@Text("Break", "الاستراحة")</th>
+                        <th class="text-center">@Text("Actions", "الاجراءات")</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var shift in shifts)
+                    @if (!shifts.Any())
                     {
                         <tr>
-                            <td>@shift.Name</td>
-                            <td>@CompanyName(shift.CompanyId)</td>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                @Text("No shifts found.", "لا توجد ورديات.")
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var shift in shifts)
+                    {
+                        <tr class="@(model.Id == shift.Id ? "table-active" : "")">
+                            <td class="fw-semibold">@shift.Name</td>
                             <td>@shift.StartTime.ToString(@"hh\:mm") - @shift.EndTime.ToString(@"hh\:mm")</td>
+                            <td>@shift.GracePeriodMinutes @Text("min", "دقيقة")</td>
                             <td>@shift.LateAfterMinutes @Text("min", "دقيقة")</td>
                             <td>@shift.ProhibitCheckInAfterMinutes @Text("min", "دقيقة")</td>
                             <td>@shift.BreakMinutes @Text("min", "دقيقة")</td>
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <button type="button"
+                                            class="btn btn-outline-warning btn-sm shift-action"
+                                            title="@Text("Edit", "تعديل")"
+                                            @onclick="() => EditShift(shift)"
+                                            disabled="@isBusy">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-outline-danger btn-sm shift-action"
+                                            title="@Text("Delete", "حذف")"
+                                            @onclick="() => DeleteShiftAsync(shift)"
+                                            disabled="@isBusy">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -119,103 +149,191 @@
 </section>
 
 @code {
-    private CreateShiftDto model = NewShift();
+    private ShiftDto model = new();
     private List<ShiftDto> shifts = [];
-    private List<CompanyDto> companies = [];
-    private CompanyDto? selectedCompany;
+    private Guid companyId;
     private TimeOnly startTime = new(8, 0);
     private TimeOnly endTime = new(17, 0);
     private bool isBusy;
+    private bool isEditing;
     private string? message;
     private string messageClass = "alert-info";
 
-    protected override async Task OnInitializedAsync() => await LoadData();
-
-    private async Task LoadData()
+    protected override async Task OnInitializedAsync()
     {
-        isBusy = true;
-        await LoadCompanies();
-        await LoadShifts();
-        isBusy = false;
-    }
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        var companyClaim = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
 
-    private async Task LoadCompanies()
-    {
-        var result = await CompanyService.GetAsync(0, 5000);
-        if (result.IsSuccess)
+        if (!Guid.TryParse(companyClaim, out companyId))
         {
-            companies = result.Data?.Items.ToList() ?? [];
-            selectedCompany ??= companies.FirstOrDefault();
-            if (selectedCompany is not null)
-            {
-                model.CompanyId = selectedCompany.Id;
-            }
+            SetMessage(Text("The signed-in user does not have a valid company.", "المستخدم الحالي لا يحتوي على شركة صحيحة."), "alert-danger");
+            return;
         }
+
+        ResetModel();
+        await LoadShifts();
     }
 
     private async Task LoadShifts()
     {
-        var result = await AttendanceService.GetShiftsAsync();
+        if (companyId == Guid.Empty)
+        {
+            return;
+        }
+
+        isBusy = true;
+        var result = await AttendanceService.GetShiftsAsync(companyId);
         if (result.IsSuccess)
         {
             shifts = result.Data ?? [];
         }
-    }
-
-    private Task OnCompanySelected(CompanyDto? company)
-    {
-        selectedCompany = company;
-        model.CompanyId = company?.Id ?? Guid.Empty;
-        return Task.CompletedTask;
-    }
-
-    private async Task CreateShiftAsync()
-    {
-        if (selectedCompany is null || model.CompanyId == Guid.Empty)
+        else
         {
-            SetMessage(Text("Select a company first.", "اختر الشركة أولا."), "alert-warning");
+            SetMessage(result.Error?.Detail ?? Text("Unable to load shifts.", "تعذر تحميل الورديات."), "alert-danger");
+        }
+
+        isBusy = false;
+    }
+
+    private async Task SaveShiftAsync()
+    {
+        if (!ValidateModel())
+        {
             return;
+        }
+
+        model.CompanyId = companyId;
+        model.StartTime = startTime.ToTimeSpan();
+        model.EndTime = endTime.ToTimeSpan();
+
+        isBusy = true;
+        var result = isEditing
+            ? await AttendanceService.UpdateShiftAsync(model)
+            : await AttendanceService.CreateShiftAsync(ToCreateDto(model));
+
+        if (result.IsSuccess)
+        {
+            SetMessage(
+                isEditing ? Text("Shift updated.", "تم تعديل الوردية.") : Text("Shift created.", "تم انشاء الوردية."),
+                "alert-success");
+
+            ResetModel();
+            await LoadShifts();
+        }
+        else
+        {
+            SetMessage(result.Error?.Detail ?? Text("Unable to save shift.", "تعذر حفظ الوردية."), "alert-danger");
+        }
+
+        isBusy = false;
+    }
+
+    private void EditShift(ShiftDto shift)
+    {
+        model = new ShiftDto
+        {
+            Id = shift.Id,
+            Name = shift.Name,
+            CompanyId = shift.CompanyId,
+            StartTime = shift.StartTime,
+            EndTime = shift.EndTime,
+            GracePeriodMinutes = shift.GracePeriodMinutes,
+            LateAfterMinutes = shift.LateAfterMinutes,
+            ProhibitCheckInAfterMinutes = shift.ProhibitCheckInAfterMinutes,
+            BreakMinutes = shift.BreakMinutes,
+            IsFlexible = shift.IsFlexible
+        };
+
+        startTime = TimeOnly.FromTimeSpan(shift.StartTime);
+        endTime = TimeOnly.FromTimeSpan(shift.EndTime);
+        isEditing = true;
+        message = null;
+    }
+
+    private async Task DeleteShiftAsync(ShiftDto shift)
+    {
+        await ModalService.ShowAsync(new ModalOptions
+        {
+            Title = Text("Confirm Delete", "تأكيد الحذف"),
+            Message = Text($"Are you sure you want to delete shift: {shift.Name}?", $"هل ترغب فعلا في حذف الوردية: {shift.Name}؟"),
+            ShowCancel = true,
+            OkText = Text("Yes", "نعم"),
+            CancelText = Text("No", "لا"),
+            OnOk = async () =>
+            {
+                isBusy = true;
+                var result = await AttendanceService.DeleteShiftAsync(shift.Id);
+                if (result.IsSuccess)
+                {
+                    SetMessage(Text("Shift deleted.", "تم حذف الوردية."), "alert-success");
+                    if (model.Id == shift.Id)
+                    {
+                        ResetModel();
+                    }
+
+                    await LoadShifts();
+                }
+                else
+                {
+                    SetMessage(result.Error?.Detail ?? Text("Unable to delete shift.", "تعذر حذف الوردية."), "alert-danger");
+                }
+
+                isBusy = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        });
+    }
+
+    private void CancelEdit() => ResetModel();
+
+    private bool ValidateModel()
+    {
+        if (companyId == Guid.Empty)
+        {
+            SetMessage(Text("The signed-in user's company could not be resolved.", "تعذر تحديد شركة المستخدم الحالي."), "alert-warning");
+            return false;
         }
 
         if (string.IsNullOrWhiteSpace(model.Name))
         {
             SetMessage(Text("Shift name is required.", "اسم الوردية مطلوب."), "alert-warning");
-            return;
+            return false;
         }
 
         if (model.ProhibitCheckInAfterMinutes < model.LateAfterMinutes)
         {
             SetMessage(Text("Prohibit check-in time must be after or equal to late time.", "وقت منع تسجيل الحضور يجب أن يكون بعد وقت التأخير أو مساويا له."), "alert-warning");
-            return;
+            return false;
         }
 
-        model.StartTime = startTime.ToTimeSpan();
-        model.EndTime = endTime.ToTimeSpan();
-
-        isBusy = true;
-        var result = await AttendanceService.CreateShiftAsync(model);
-        if (result.IsSuccess)
-        {
-            SetMessage(Text("Shift created.", "تم إنشاء الوردية."), "alert-success");
-            var company = selectedCompany;
-            model = NewShift();
-            selectedCompany = company;
-            if (selectedCompany is not null)
-            {
-                model.CompanyId = selectedCompany.Id;
-            }
-
-            startTime = new TimeOnly(8, 0);
-            endTime = new TimeOnly(17, 0);
-            await LoadShifts();
-        }
-        else
-        {
-            SetMessage(result.Error?.Detail ?? Text("Unable to create shift.", "تعذر إنشاء الوردية."), "alert-danger");
-        }
-
-        isBusy = false;
+        return true;
     }
+
+    private void ResetModel()
+    {
+        model = new ShiftDto
+        {
+            CompanyId = companyId,
+            GracePeriodMinutes = 15,
+            LateAfterMinutes = 15,
+            ProhibitCheckInAfterMinutes = 120
+        };
+        startTime = new TimeOnly(8, 0);
+        endTime = new TimeOnly(17, 0);
+        isEditing = false;
+    }
+
+    private static CreateShiftDto ToCreateDto(ShiftDto shift) => new()
+    {
+        Name = shift.Name,
+        StartTime = shift.StartTime,
+        EndTime = shift.EndTime,
+        GracePeriodMinutes = shift.GracePeriodMinutes,
+        LateAfterMinutes = shift.LateAfterMinutes,
+        ProhibitCheckInAfterMinutes = shift.ProhibitCheckInAfterMinutes,
+        BreakMinutes = shift.BreakMinutes,
+        CompanyId = shift.CompanyId
+    };
 
     private void SetMessage(string text, string cssClass)
     {
@@ -223,15 +341,6 @@
         messageClass = cssClass;
     }
 
-    private static CreateShiftDto NewShift() => new()
-    {
-        GracePeriodMinutes = 15,
-        LateAfterMinutes = 15,
-        ProhibitCheckInAfterMinutes = 120
-    };
-
-    private string CompanyName(Guid companyId) => companies.FirstOrDefault(x => x.Id == companyId)?.Name ?? companyId.ToString()[..8];
-    private static string CompanySearchText(CompanyDto company) => $"{company.Name} | {company.NameEng} | {company.Code}";
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 }
 
@@ -243,10 +352,10 @@
     .shift-header,
     .panel-title,
     .action-row {
-        display: flex;
         align-items: center;
-        justify-content: space-between;
+        display: flex;
         gap: .75rem;
+        justify-content: space-between;
     }
 
     .shift-header {
@@ -254,25 +363,30 @@
     }
 
     .shift-header h1 {
-        margin: 0;
         font-size: 1.6rem;
         font-weight: 700;
+        margin: 0;
+    }
+
+    .subtitle {
+        color: #65758b;
+        margin: .25rem 0 0;
     }
 
     .eyebrow {
-        margin: 0 0 .25rem;
         color: #65758b;
         font-size: .78rem;
+        letter-spacing: 0;
+        margin: 0 0 .25rem;
         text-transform: uppercase;
-        letter-spacing: .06em;
     }
 
     .shift-panel {
         background: #fff;
         border: 1px solid #e5e9f0;
         border-radius: 8px;
-        padding: 1rem;
         box-shadow: 0 8px 22px rgba(15, 23, 42, .04);
+        padding: 1rem;
     }
 
     .panel-title {
@@ -280,9 +394,9 @@
     }
 
     .panel-title h2 {
-        margin: 0;
         font-size: 1rem;
         font-weight: 700;
+        margin: 0;
     }
 
     .panel-title span {
@@ -292,21 +406,43 @@
 
     .form-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: .75rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .form-grid label {
-        display: grid;
-        gap: .35rem;
         color: #526174;
+        display: grid;
         font-size: .9rem;
         font-weight: 600;
+        gap: .35rem;
     }
 
     .action-row {
         justify-content: flex-start;
         margin-top: 1rem;
+    }
+
+    .shift-table thead th {
+        background: #f8fafc;
+        color: #334155;
+        font-size: .82rem;
+        font-weight: 700;
+        letter-spacing: 0;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .shift-table tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .shift-action {
+        align-items: center;
+        display: inline-flex;
+        height: 32px;
+        justify-content: center;
+        width: 34px;
     }
 
     @@media (max-width: 760px) {

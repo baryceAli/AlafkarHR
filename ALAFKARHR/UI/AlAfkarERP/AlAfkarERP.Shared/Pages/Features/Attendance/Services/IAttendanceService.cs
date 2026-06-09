@@ -10,6 +10,8 @@ public interface IAttendanceService
     Task<ApiResult<PaginatedResult<AttendanceSessionDto>>> GetSessionsAsync(int pageIndex, int pageSize, Guid? employeeId = null, DateTime? fromUtc = null, DateTime? toUtc = null);
     Task<ApiResult<List<ShiftDto>>> GetShiftsAsync(Guid? companyId = null);
     Task<ApiResult<ShiftDto>> CreateShiftAsync(CreateShiftDto shift);
+    Task<ApiResult<ShiftDto>> UpdateShiftAsync(ShiftDto shift);
+    Task<ApiResult<bool>> DeleteShiftAsync(Guid shiftId);
     Task<ApiResult<AttendanceCheckInPreviewDto>> GetCheckInPreviewAsync(Guid employeeId, double? latitude = null, double? longitude = null, double? accuracyMeters = null, DateTime? workDateUtc = null);
     Task<ApiResult<AttendanceCheckInPreviewDto>> GetMyCheckInPreviewAsync(double? latitude = null, double? longitude = null, double? accuracyMeters = null, DateTime? workDateUtc = null);
     Task<ApiResult<PaginatedResult<ShiftAssignmentDto>>> GetShiftAssignmentsAsync(int pageIndex, int pageSize, Guid? companyId = null, ShiftAssignmentScope? scope = null);

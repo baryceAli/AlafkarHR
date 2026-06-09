@@ -40,6 +40,7 @@ public class CreateShiftHandler(AttendanceDbContext dbContext)
     {
         var duplicateExists = await dbContext.Shifts.AnyAsync(
             x => x.CompanyId == request.Shift.CompanyId
+                && !x.IsDeleted
                 && x.Name.ToLower() == request.Shift.Name.Trim().ToLower(),
             cancellationToken);
 

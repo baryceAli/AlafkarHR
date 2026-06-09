@@ -122,7 +122,7 @@ public class GetAttendanceShiftsHandler(AttendanceDbContext dbContext)
 {
     public async Task<GetAttendanceShiftsResult> Handle(GetAttendanceShiftsQuery request, CancellationToken cancellationToken)
     {
-        var query = dbContext.Shifts.AsNoTracking();
+        var query = dbContext.Shifts.AsNoTracking().Where(x => !x.IsDeleted);
 
         if (request.CompanyId.HasValue)
         {
@@ -298,7 +298,7 @@ public class GetAttendanceCheckInPreviewHandler(AttendanceDbContext dbContext, I
 
         var shift = await dbContext.Shifts
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == assignedShiftId.Value, cancellationToken)
+            .FirstOrDefaultAsync(x => x.Id == assignedShiftId.Value && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException("Shift", assignedShiftId.Value);
 
         var shiftStart = shift.BuildShiftStart(workDateUtc);

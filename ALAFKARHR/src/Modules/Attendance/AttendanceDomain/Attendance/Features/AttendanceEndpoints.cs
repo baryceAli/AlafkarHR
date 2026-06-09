@@ -26,6 +26,7 @@ public record CreateLateCheckInRequestRequest(CreateLateCheckInRequestDto Reques
 public record ReviewLateCheckInRequestRequest(ReviewLateCheckInRequestDto Review);
 public record AssignShiftRequest(AssignShiftDto Assignment);
 public record CreateShiftRequest(CreateShiftDto Shift);
+public record UpdateShiftRequest(ShiftDto Shift);
 
 public class AttendanceEndpoints : ICarterModule
 {
@@ -58,6 +59,21 @@ public class AttendanceEndpoints : ICarterModule
             .Produces<CreateShiftResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Create an attendance shift")
+            .RequireAuthorization(PermissionList.AttendancePermissions.Edit);
+
+        group.MapPut("/shifts/{shiftId:guid}", UpdateShift)
+            .WithName("UpdateAttendanceShift")
+            .Produces<UpdateShiftResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Update an attendance shift")
+            .RequireAuthorization(PermissionList.AttendancePermissions.Edit);
+
+        group.MapDelete("/shifts/{shiftId:guid}", DeleteShift)
+            .WithName("DeleteAttendanceShift")
+            .Produces<DeleteShiftResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Delete an attendance shift")
             .RequireAuthorization(PermissionList.AttendancePermissions.Edit);
 
         group.MapGet("/checkin-preview", GetCheckInPreview)
@@ -190,6 +206,24 @@ public class AttendanceEndpoints : ICarterModule
         ISender sender)
     {
         var result = await sender.Send(new CreateShiftCommand(request.Shift));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<UpdateShiftResult>> UpdateShift(
+        Guid shiftId,
+        [FromBody] UpdateShiftRequest request,
+        ISender sender)
+    {
+        request.Shift.Id = shiftId;
+        var result = await sender.Send(new UpdateShiftCommand(request.Shift));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<DeleteShiftResult>> DeleteShift(
+        Guid shiftId,
+        ISender sender)
+    {
+        var result = await sender.Send(new DeleteShiftCommand(shiftId));
         return TypedResults.Ok(result);
     }
 

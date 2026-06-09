@@ -83,7 +83,7 @@ public class CreateLateCheckInRequestHandler(AttendanceDbContext dbContext, ISen
 
         var shift = await dbContext.Shifts
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == effectiveShiftId.Value, cancellationToken)
+            .FirstOrDefaultAsync(x => x.Id == effectiveShiftId.Value && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException("Shift", effectiveShiftId.Value);
 
         var shiftStart = shift.BuildShiftStart(workDateUtc);

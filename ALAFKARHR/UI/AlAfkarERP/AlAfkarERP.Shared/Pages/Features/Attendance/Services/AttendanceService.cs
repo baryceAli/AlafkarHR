@@ -61,6 +61,19 @@ public class AttendanceService : BaseApiService, IAttendanceService
         }, "shift");
     }
 
+    public async Task<ApiResult<ShiftDto>> UpdateShiftAsync(ShiftDto shift)
+    {
+        return await SendAsync<ShiftDto>(new HttpRequestMessage(HttpMethod.Put, $"{path}/shifts/{shift.Id}")
+        {
+            Content = JsonContent.Create(new { Shift = shift })
+        }, "shift");
+    }
+
+    public async Task<ApiResult<bool>> DeleteShiftAsync(Guid shiftId)
+    {
+        return await SendAsync<bool>(new HttpRequestMessage(HttpMethod.Delete, $"{path}/shifts/{shiftId}"), "isSuccess");
+    }
+
     public async Task<ApiResult<AttendanceCheckInPreviewDto>> GetCheckInPreviewAsync(
         Guid employeeId,
         double? latitude = null,

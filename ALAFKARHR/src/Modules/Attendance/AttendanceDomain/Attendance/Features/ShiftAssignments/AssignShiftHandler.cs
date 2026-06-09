@@ -12,7 +12,7 @@ public class AssignShiftHandler(AttendanceDbContext dbContext)
     {
         var shift = await dbContext.Shifts
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == request.Assignment.ShiftId, cancellationToken)
+            .FirstOrDefaultAsync(x => x.Id == request.Assignment.ShiftId && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException("Shift", request.Assignment.ShiftId);
 
         if (shift.CompanyId != request.Assignment.CompanyId)
