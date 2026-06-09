@@ -189,6 +189,18 @@ public class GetAttendanceCheckInPreviewHandler(AttendanceDbContext dbContext, I
             return new GetAttendanceCheckInPreviewResult(preview);
         }
 
+        if (preview.HasLocation)
+        {
+            if (employee.AttendanceType == EmployeeAttendanceType.FixedLocation)
+            {
+                await ApplyFixedLocationPreviewAsync(request, employee, preview, cancellationToken);
+            }
+            else
+            {
+                preview.IsWithinAllowedRadius = true;
+            }
+        }
+
         if (activeSession is not null)
         {
             preview.Message = activeSession.Status == AttendanceSessionStatus.OnBreak
@@ -200,6 +212,14 @@ public class GetAttendanceCheckInPreviewHandler(AttendanceDbContext dbContext, I
         if (!shiftWindow.ShiftId.HasValue || !shiftWindow.ShiftStart.HasValue || !shiftWindow.ShiftEnd.HasValue)
         {
             preview.Message = "No effective shift was found for you today. Ask the administrator to assign a shift to your employee, department, administration, or company.";
+            return new GetAttendanceCheckInPreviewResult(preview);
+        }
+
+        if (!preview.HasLocation)
+        {
+            preview.Message = employee.AttendanceType == EmployeeAttendanceType.FixedLocation
+                ? "Allow location access so the system can confirm that you are inside your department attendance radius."
+                : "Allow location access so the system can record your starting location.";
             return new GetAttendanceCheckInPreviewResult(preview);
         }
 
@@ -220,25 +240,9 @@ public class GetAttendanceCheckInPreviewHandler(AttendanceDbContext dbContext, I
             return new GetAttendanceCheckInPreviewResult(preview);
         }
 
-        if (!preview.HasLocation)
+        if (!preview.IsWithinAllowedRadius)
         {
-            preview.Message = employee.AttendanceType == EmployeeAttendanceType.FixedLocation
-                ? "Allow location access so the system can confirm that you are inside your department attendance radius."
-                : "Allow location access so the system can record your starting location.";
             return new GetAttendanceCheckInPreviewResult(preview);
-        }
-
-        if (employee.AttendanceType == EmployeeAttendanceType.FixedLocation)
-        {
-            await ApplyFixedLocationPreviewAsync(request, employee, preview, cancellationToken);
-            if (!preview.IsWithinAllowedRadius)
-            {
-                return new GetAttendanceCheckInPreviewResult(preview);
-            }
-        }
-        else
-        {
-            preview.IsWithinAllowedRadius = true;
         }
 
         preview.CanCheckIn = true;

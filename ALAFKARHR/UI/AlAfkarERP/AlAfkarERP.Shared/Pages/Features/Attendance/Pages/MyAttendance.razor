@@ -267,11 +267,25 @@
     private bool firstLocationCheckCompleted;
 
     private bool HasLocation => latitude.HasValue && longitude.HasValue;
+    private bool HasGeofencePreview => preview?.AttendanceType != EmployeeAttendanceType.FixedLocation
+        || (preview?.DistanceMeters.HasValue == true && preview?.AllowedRadiusMeters.HasValue == true);
     private bool CanStartSession => !isBusy && preview?.CanCheckIn == true && activeSession is null && HasLocation;
     private bool CanSubmitLateRequest => !isBusy && preview?.CanSubmitLateRequest == true && HasLocation;
     private string ReadinessTitle => preview?.CanCheckIn == true ? Text("Ready to check in", "جاهز لتسجيل الحضور") : Text("Check-in is not available", "تسجيل الحضور غير متاح");
-    private string LocationBadgeText => !HasLocation ? Text("Waiting", "بانتظار الموقع") : preview?.IsWithinAllowedRadius == false ? Text("Outside", "خارج النطاق") : Text("Captured", "تم التقاط الموقع");
-    private string LocationBadgeClass => !HasLocation ? "text-bg-secondary" : preview?.IsWithinAllowedRadius == false ? "text-bg-danger" : "text-bg-success";
+    private string LocationBadgeText => !HasLocation
+        ? Text("Waiting", "بانتظار الموقع")
+        : !HasGeofencePreview
+            ? Text("Validating", "جاري التحقق")
+            : preview?.IsWithinAllowedRadius == false
+                ? Text("Outside", "خارج النطاق")
+                : Text("Captured", "تم التقاط الموقع");
+    private string LocationBadgeClass => !HasLocation
+        ? "text-bg-secondary"
+        : !HasGeofencePreview
+            ? "text-bg-warning"
+            : preview?.IsWithinAllowedRadius == false
+                ? "text-bg-danger"
+                : "text-bg-success";
 
     protected override async Task OnInitializedAsync()
     {
@@ -572,6 +586,20 @@
         public double? Longitude { get; set; }
         public double? AccuracyMeters { get; set; }
         public string? Message { get; set; }
+    }
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }
 

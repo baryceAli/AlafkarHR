@@ -7,9 +7,12 @@
 @using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
 @using SharedWithUI.Employees.Dtos
-
+@using Microsoft.AspNetCore.Components.Authorization;
 @inject IAttendanceService AttendanceService
 @inject IEmployeeService EmployeeService
+
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 
 <section class="sessions-page" dir="@SharedDataService.PageDirection">
@@ -77,9 +80,9 @@
                                 <td>@EmployeeLabel(session.EmployeeId)</td>
                                 <td>@AttendanceTypeText(session.AttendanceType)</td>
                                 <td><span class="badge @StatusClass(session.Status)">@SessionStatusText(session.Status)</span></td>
-                                <td>@FormatDate(session.ActualStartTime)</td>
+                                <td dir="ltr">@FormatDate(session.ActualStartTime)</td>
                                 <td>@FormatDate(session.ActualEndTime)</td>
-                                <td>@session.ShiftStart.ToLocalTime().ToString("g") - @session.ShiftEnd.ToLocalTime().ToString("g")</td>
+                                <td>@session.ShiftStart.ToLocalTime().ToString("g") <br /> @session.ShiftEnd.ToLocalTime().ToString("g")</td>
                                 <td>@session.TotalHours</td>
                                 <td>@session.TotalDistanceKm @Text("km", "كم")</td>
                             </tr>
@@ -99,16 +102,25 @@
     private DateTime? toDate = DateTime.Today;
     private bool isLoading;
     private string? errorMessage;
-
+    private Guid companyId;
+    private AuthenticationState AuthState;
     protected override async Task OnInitializedAsync()
     {
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (!AuthState.User.Identity.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/login", true);
+
+        }
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+
         await LoadEmployees();
         await LoadSessions();
     }
 
     private async Task LoadEmployees()
     {
-        var response = await EmployeeService.GetAsync(0, 500);
+        var response = await EmployeeService.GetByCompanyIdAsync(companyId,0, 50000);
         if (response.IsSuccess)
         {
             employees = response.Data?.Data.ToList() ?? [];
@@ -172,6 +184,21 @@
     };
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
 }
 
 <style>
