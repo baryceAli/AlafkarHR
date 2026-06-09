@@ -26,6 +26,11 @@ public class UpdateEmployeeCommandValidator : AbstractValidator<UpdateEmployeeCo
         RuleFor(e=> e.Employee.EmployeeNo).NotEmpty().WithMessage("EmployeeNo is required");
         RuleFor(e=> e.Employee.NationalId).NotEmpty().WithMessage("NationalId is required");
         RuleFor(e=> e.Employee.PositionId).NotEmpty().WithMessage("Position is required");
+        RuleFor(e => e.Employee.AttendanceType).IsInEnum().WithMessage("AttendanceType is invalid");
+        RuleFor(e => e.Employee.AllowedRadiusMeters)
+            .GreaterThan(0)
+            .When(e => e.Employee.AllowedRadiusMeters.HasValue)
+            .WithMessage("Allowed radius must be greater than 0");
     }
 }
 public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAccessor httpContextAccessor)
@@ -76,6 +81,7 @@ public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             request.Employee.MaritalStatus,
             request.Employee.EmploymentType,
             request.Employee.AttendanceType,
+            request.Employee.AllowedRadiusMeters,
             request.Employee.Qualification,
             request.Employee.SpecializationId.Value,
             request.Employee.AcademicInstituteId.Value,

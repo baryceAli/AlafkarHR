@@ -48,6 +48,9 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
             .HasDefaultValue(SharedWithUI.Attendance.Enums.EmployeeAttendanceType.FixedLocation)
             .IsRequired();
 
+        builder.Property(x => x.AllowedRadiusMeters)
+            .IsRequired(false);
+
        // builder.HasOne<Department>()
        //.WithMany()
        //.HasForeignKey(x => x.DepartmentId)

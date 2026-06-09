@@ -13,6 +13,7 @@ public record GetEmployeeAttendanceProfileResult(
     Guid AdministrationId,
     Guid? DepartmentId,
     EmployeeAttendanceType AttendanceType,
+    int? AllowedRadiusMeters,
     bool IsActive,
     string? Code = null,
     string? Email = null,

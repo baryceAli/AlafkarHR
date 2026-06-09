@@ -11,7 +11,7 @@
 @using SharedWithUI.Employees.Dtos
 @using SharedWithUI.Employees.Enums
 @using SharedWithUI.Permissions
-
+@using SharedWithUI.Attendance.Enums
 @inject IBranchService BranchService
 @inject IAdministrationService AdministrationService
 @inject IDepartmentService DepartmentService
@@ -439,6 +439,40 @@
                         </div>
                     </div>
 
+                    <div class="mb-3 row">
+                        <label class="col-sm-2 col-form-label">
+                            @SharedDataService.SelectViewLang("Attendance Type", "نوع الحضور")
+                        </label>
+                        <div class="col-sm-10">
+                            <InputSelect class="form-control" @bind-Value="employee.AttendanceType">
+                                @foreach (var attendanceType in Enum.GetValues<EmployeeAttendanceType>())
+                                {
+                                    <option value="@attendanceType">
+                                        @GetAttendanceTypeDisplay(attendanceType)
+                                    </option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="() => employee.AttendanceType" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-2 col-form-label">
+                            @SharedDataService.SelectViewLang("Allowed Radius (meters)", "النطاق المسموح بالمتر")
+                        </label>
+                        <div class="col-sm-10">
+                            <InputNumber class="form-control"
+                                         min="1"
+                                         @bind-Value="employee.AllowedRadiusMeters" />
+                            <div class="form-text">
+                                @SharedDataService.SelectViewLang(
+                                    "Used for fixed-location attendance. If left empty, the assigned department radius is used.",
+                                    "يستخدم لحضور الموقع الثابت. عند تركه فارغا سيتم استخدام نطاق القسم.")
+                            </div>
+                            <ValidationMessage For="() => employee.AllowedRadiusMeters" />
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -570,6 +604,8 @@
             Qualification = Qualification.Bachelor,
             GraduationYear = DateTime.Now.Year - 1,
             EmploymentType = EmploymentType.Full,
+            AttendanceType = EmployeeAttendanceType.FixedLocation,
+            AllowedRadiusMeters = 100,
 
 
         };
@@ -776,6 +812,16 @@
             Qualification.Master => SharedDataService.SelectViewLang("Master", "ماجستير"),
             Qualification.PHD => SharedDataService.SelectViewLang("PHD", "دكتوراه"),
             _ => qualification.ToString()
+        };
+    }
+
+    private string GetAttendanceTypeDisplay(EmployeeAttendanceType attendanceType)
+    {
+        return attendanceType switch
+        {
+            EmployeeAttendanceType.FixedLocation => SharedDataService.SelectViewLang("Fixed Location", "موقع ثابت"),
+            EmployeeAttendanceType.Mobile => SharedDataService.SelectViewLang("Mobile", "متنقل"),
+            _ => attendanceType.ToString()
         };
     }
     

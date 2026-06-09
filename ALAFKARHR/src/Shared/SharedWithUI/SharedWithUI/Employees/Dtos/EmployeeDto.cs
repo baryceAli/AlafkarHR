@@ -119,6 +119,8 @@ public class EmployeeDto
     public EmploymentType EmploymentType { get; set; }
     public Qualification Qualification { get; set; }
     public EmployeeAttendanceType AttendanceType { get; set; } = EmployeeAttendanceType.FixedLocation;
+    [Range(1, 100000, ErrorMessage = "Allowed radius must be greater than 0")]
+    public int? AllowedRadiusMeters { get; set; }
     [Required(ErrorMessage ="Specialization is required")]
     public Guid? SpecializationId { get; set; }
 

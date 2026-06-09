@@ -230,7 +230,7 @@ public class GetAttendanceCheckInPreviewHandler(AttendanceDbContext dbContext, I
 
         if (employee.AttendanceType == EmployeeAttendanceType.FixedLocation)
         {
-            await ApplyFixedLocationPreviewAsync(request, employee.DepartmentId, preview, cancellationToken);
+            await ApplyFixedLocationPreviewAsync(request, employee, preview, cancellationToken);
             if (!preview.IsWithinAllowedRadius)
             {
                 return new GetAttendanceCheckInPreviewResult(preview);
@@ -251,18 +251,18 @@ public class GetAttendanceCheckInPreviewHandler(AttendanceDbContext dbContext, I
 
     private async Task ApplyFixedLocationPreviewAsync(
         GetAttendanceCheckInPreviewQuery request,
-        Guid? departmentId,
+        GetEmployeeAttendanceProfileResult employee,
         AttendanceCheckInPreviewDto preview,
         CancellationToken cancellationToken)
     {
-        if (!departmentId.HasValue)
+        if (!employee.DepartmentId.HasValue)
         {
             preview.Message = "Fixed-location attendance requires an assigned department with an attendance location.";
             return;
         }
 
         var department = await sender.Send(
-            new GetDepartmentAttendanceLocationQuery(departmentId.Value),
+            new GetDepartmentAttendanceLocationQuery(employee.DepartmentId.Value),
             cancellationToken);
 
         if (!department.IsActive)
@@ -271,17 +271,18 @@ public class GetAttendanceCheckInPreviewHandler(AttendanceDbContext dbContext, I
             return;
         }
 
-        preview.AllowedRadiusMeters = department.AllowedRadiusMeters;
+        var allowedRadiusMeters = employee.AllowedRadiusMeters ?? department.AllowedRadiusMeters;
+        preview.AllowedRadiusMeters = allowedRadiusMeters;
         preview.DistanceMeters = AttendanceGeo.DistanceMeters(
             request.Latitude!.Value,
             request.Longitude!.Value,
             department.Latitude,
             department.Longitude);
-        preview.IsWithinAllowedRadius = preview.DistanceMeters <= department.AllowedRadiusMeters;
+        preview.IsWithinAllowedRadius = preview.DistanceMeters <= allowedRadiusMeters;
 
         if (!preview.IsWithinAllowedRadius)
         {
-            preview.Message = $"You are {preview.DistanceMeters:N0} meters away from department '{department.Name}'. The allowed radius is {department.AllowedRadiusMeters:N0} meters.";
+            preview.Message = $"You are {preview.DistanceMeters:N0} meters away from department '{department.Name}'. The allowed radius is {allowedRadiusMeters:N0} meters.";
         }
     }
 

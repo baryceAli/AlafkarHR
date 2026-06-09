@@ -60,6 +60,7 @@ public class Employee : Aggregate<Guid>
     public EmploymentType EmploymentType { get; set; }
     public Qualification Qualification { get; set; }
     public EmployeeAttendanceType AttendanceType { get; private set; }
+    public int? AllowedRadiusMeters { get; private set; }
     public Guid SpecializationId { get; set; }
     public Guid AcademicInstituteId { get; set; }
     public int GraduationYear { get; set; }
@@ -93,6 +94,7 @@ public class Employee : Aggregate<Guid>
         MaritalStatus maritalStatus,
         EmploymentType employmentType,
         EmployeeAttendanceType attendanceType,
+        int? allowedRadiusMeters,
         Qualification qualification,
         Guid specializationId,
         Guid academicInstituteId,
@@ -156,6 +158,7 @@ public class Employee : Aggregate<Guid>
             MaritalStatus = maritalStatus,
             EmploymentType = employmentType,
             AttendanceType = attendanceType,
+            AllowedRadiusMeters = allowedRadiusMeters,
             CreatedAt = DateTime.UtcNow,
 
 
@@ -181,6 +184,7 @@ public class Employee : Aggregate<Guid>
         MaritalStatus maritalStatus,
         EmploymentType employmentType,
         EmployeeAttendanceType attendanceType,
+        int? allowedRadiusMeters,
         Qualification qualification,
         Guid specializationId,
         Guid academicInstituteId,
@@ -202,6 +206,7 @@ public class Employee : Aggregate<Guid>
         MaritalStatus = maritalStatus;
         EmploymentType = employmentType;
         AttendanceType = attendanceType;
+        AllowedRadiusMeters = allowedRadiusMeters;
         Qualification= qualification;
         SpecializationId = specializationId;
         AcademicInstituteId= academicInstituteId;

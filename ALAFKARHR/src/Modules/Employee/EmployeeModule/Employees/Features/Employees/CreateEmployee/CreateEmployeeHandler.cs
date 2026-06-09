@@ -27,6 +27,11 @@ public class CreateEmployeeCommandValidator : AbstractValidator<CreateEmployeeCo
         RuleFor(e => e.Employee.Address).NotEmpty().WithMessage("Address is required");
         RuleFor(e => e.Employee.MaritalStatus).IsInEnum().WithMessage("MartialStatus Should be in Single, Married, Devoreced or Widowed");
         RuleFor(e => e.Employee.EmploymentType).IsInEnum().WithMessage("EmploymentType Should be in Full, Parttime or Remote");
+        RuleFor(e => e.Employee.AttendanceType).IsInEnum().WithMessage("AttendanceType is invalid");
+        RuleFor(e => e.Employee.AllowedRadiusMeters)
+            .GreaterThan(0)
+            .When(e => e.Employee.AllowedRadiusMeters.HasValue)
+            .WithMessage("Allowed radius must be greater than 0");
     }
 }
 public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
@@ -82,6 +87,7 @@ public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             request.Employee.MaritalStatus,
             request.Employee.EmploymentType,
             request.Employee.AttendanceType,
+            request.Employee.AllowedRadiusMeters,
             request.Employee.Qualification,
             request.Employee.SpecializationId.Value,
             request.Employee.AcademicInstituteId.Value,

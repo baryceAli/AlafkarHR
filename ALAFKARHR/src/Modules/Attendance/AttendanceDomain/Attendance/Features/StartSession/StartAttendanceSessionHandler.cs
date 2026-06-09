@@ -41,7 +41,7 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
 
         if (employee.AttendanceType == EmployeeAttendanceType.FixedLocation)
         {
-            await ValidateFixedLocationAsync(request.Session, employee.DepartmentId, cancellationToken);
+            await ValidateFixedLocationAsync(request.Session, employee, cancellationToken);
         }
 
         var session = AttendanceSession.Start(
@@ -176,10 +176,10 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
 
     private async Task ValidateFixedLocationAsync(
         StartAttendanceSessionDto session,
-        Guid? departmentId,
+        GetEmployeeAttendanceProfileResult employee,
         CancellationToken cancellationToken)
     {
-        if (!departmentId.HasValue)
+        if (!employee.DepartmentId.HasValue)
         {
             throw new BadRequestException("Fixed-location employees must be assigned to a department.");
         }
@@ -190,7 +190,7 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
         }
 
         var department = await sender.Send(
-            new GetDepartmentAttendanceLocationQuery(departmentId.Value),
+            new GetDepartmentAttendanceLocationQuery(employee.DepartmentId.Value),
             cancellationToken);
 
         if (!department.IsActive)
@@ -203,8 +203,9 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
             session.Longitude.Value,
             department.Latitude,
             department.Longitude);
+        var allowedRadiusMeters = employee.AllowedRadiusMeters ?? department.AllowedRadiusMeters;
 
-        if (distanceMeters <= department.AllowedRadiusMeters)
+        if (distanceMeters <= allowedRadiusMeters)
         {
             return;
         }
@@ -215,7 +216,7 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
                 session.EmployeeId,
                 null,
                 AttendanceExceptionType.OutsideZone,
-                $"Submitted location is {distanceMeters:N0} meters from department '{department.Name}'. Allowed radius is {department.AllowedRadiusMeters} meters."),
+                $"Submitted location is {distanceMeters:N0} meters from department '{department.Name}'. Allowed radius is {allowedRadiusMeters} meters."),
             cancellationToken);
 
         if (string.IsNullOrWhiteSpace(session.ManualOverrideReason))
