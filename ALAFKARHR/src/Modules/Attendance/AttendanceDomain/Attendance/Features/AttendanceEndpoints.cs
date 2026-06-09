@@ -1,10 +1,12 @@
 using AttendanceDomain.Attendance.Features.Breaks;
 using AttendanceDomain.Attendance.Features.CheckIns;
 using AttendanceDomain.Attendance.Features.EndSession;
+using AttendanceDomain.Attendance.Features.LateCheckInRequests;
 using AttendanceDomain.Attendance.Features.LocationPings;
 using AttendanceDomain.Attendance.Features.StartSession;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace AttendanceDomain.Attendance.Features;
 
@@ -14,6 +16,8 @@ public record AttendanceBreakRequest(Guid SessionId);
 public record SubmitAttendanceLocationPingRequest(AttendanceLocationPingDto Ping);
 public record SubmitAttendanceLocationPingBatchRequest(IReadOnlyCollection<AttendanceLocationPingDto> Pings);
 public record CreateAttendanceCheckInRequest(AttendanceCheckInDto CheckIn);
+public record CreateLateCheckInRequestRequest(CreateLateCheckInRequestDto Request);
+public record ReviewLateCheckInRequestRequest(ReviewLateCheckInRequestDto Review);
 
 public class AttendanceEndpoints : ICarterModule
 {
@@ -65,6 +69,18 @@ public class AttendanceEndpoints : ICarterModule
             .Produces<CreateAttendanceCheckInResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Create a mobile site or task check-in");
+
+        group.MapPost("/late-checkin-requests", CreateLateCheckInRequest)
+            .WithName("CreateLateCheckInRequest")
+            .Produces<CreateLateCheckInRequestResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Request admin approval for a prohibited late check-in");
+
+        group.MapPost("/late-checkin-requests/review", ReviewLateCheckInRequest)
+            .WithName("ReviewLateCheckInRequest")
+            .Produces<ReviewLateCheckInRequestResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Approve, adjust, or reject a late check-in request");
     }
 
     private static async Task<Ok<StartAttendanceSessionResult>> StartSession(
@@ -120,6 +136,26 @@ public class AttendanceEndpoints : ICarterModule
         ISender sender)
     {
         var result = await sender.Send(new CreateAttendanceCheckInCommand(request.CheckIn));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<CreateLateCheckInRequestResult>> CreateLateCheckInRequest(
+        [FromBody] CreateLateCheckInRequestRequest request,
+        ISender sender)
+    {
+        var result = await sender.Send(new CreateLateCheckInRequestCommand(request.Request));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<ReviewLateCheckInRequestResult>> ReviewLateCheckInRequest(
+        [FromBody] ReviewLateCheckInRequestRequest request,
+        ClaimsPrincipal user,
+        ISender sender)
+    {
+        var reviewedBy = user.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new UnauthorizedAccessException("User is not authenticated");
+
+        var result = await sender.Send(new ReviewLateCheckInRequestCommand(request.Review, reviewedBy));
         return TypedResults.Ok(result);
     }
 }

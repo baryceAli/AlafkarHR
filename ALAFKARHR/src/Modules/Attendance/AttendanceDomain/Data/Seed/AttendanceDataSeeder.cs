@@ -18,6 +18,8 @@ public class AttendanceDataSeeder : IDataSeeder<AttendanceDbContext>
             new TimeSpan(8, 0, 0),
             new TimeSpan(17, 0, 0),
             15,
+            15,
+            120,
             60,
             Guid.Parse("11111111-1111-1111-1111-111111111111")));
 

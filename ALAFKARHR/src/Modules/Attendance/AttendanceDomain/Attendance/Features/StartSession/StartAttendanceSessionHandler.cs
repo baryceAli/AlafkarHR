@@ -16,6 +16,8 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
         StartAttendanceSessionCommand request,
         CancellationToken cancellationToken)
     {
+        var shiftWindow = await ResolveShiftWindowAsync(request.Session, cancellationToken);
+
         var employee = await sender.Send(
             new GetEmployeeAttendanceProfileQuery(request.Session.EmployeeId),
             cancellationToken);
@@ -35,6 +37,8 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
             throw new BadRequestException("Employee already has an active attendance session.");
         }
 
+        await ValidateShiftCheckInWindowAsync(request.Session.EmployeeId, shiftWindow, cancellationToken);
+
         if (employee.AttendanceType == EmployeeAttendanceType.FixedLocation)
         {
             await ValidateFixedLocationAsync(request.Session, employee.DepartmentId, cancellationToken);
@@ -44,9 +48,10 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
             Guid.NewGuid(),
             employee.EmployeeId,
             employee.CompanyId,
+            shiftWindow.ShiftId,
             employee.AttendanceType,
-            request.Session.ShiftStart,
-            request.Session.ShiftEnd);
+            shiftWindow.ShiftStart,
+            shiftWindow.ShiftEnd);
 
         await dbContext.AttendanceSessions.AddAsync(session, cancellationToken);
 
@@ -65,6 +70,64 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new StartAttendanceSessionResult(session.Adapt<AttendanceSessionDto>());
+    }
+
+    private async Task<ShiftWindow> ResolveShiftWindowAsync(StartAttendanceSessionDto session, CancellationToken cancellationToken)
+    {
+        if (!session.ShiftId.HasValue)
+        {
+            return new ShiftWindow(
+                null,
+                DateTime.SpecifyKind(session.ShiftStart, DateTimeKind.Utc),
+                DateTime.SpecifyKind(session.ShiftEnd, DateTimeKind.Utc),
+                null,
+                null);
+        }
+
+        var shift = await dbContext.Shifts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == session.ShiftId.Value, cancellationToken)
+            ?? throw new NotFoundException("Shift", session.ShiftId.Value);
+
+        var workDateUtc = session.ShiftStart == default ? DateTime.UtcNow : session.ShiftStart;
+        var shiftStart = shift.BuildShiftStart(workDateUtc);
+        var shiftEnd = shift.BuildShiftEnd(workDateUtc);
+
+        return new ShiftWindow(
+            shift.Id,
+            shiftStart,
+            shiftEnd,
+            shift.LateAfter(shiftStart),
+            shift.ProhibitCheckInAfter(shiftStart));
+    }
+
+    private async Task ValidateShiftCheckInWindowAsync(
+        Guid employeeId,
+        ShiftWindow shiftWindow,
+        CancellationToken cancellationToken)
+    {
+        if (!shiftWindow.LateAfterUtc.HasValue || !shiftWindow.ProhibitCheckInAfterUtc.HasValue)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        if (now > shiftWindow.ProhibitCheckInAfterUtc.Value)
+        {
+            throw new BadRequestException("Check-in is prohibited because the employee is too late. Submit a late check-in request for admin review.");
+        }
+
+        if (now > shiftWindow.LateAfterUtc.Value)
+        {
+            await dbContext.AttendanceExceptions.AddAsync(
+                AttendanceException.Create(
+                    Guid.NewGuid(),
+                    employeeId,
+                    null,
+                    AttendanceExceptionType.Late,
+                    $"Employee checked in after the allowed late threshold. Late after: {shiftWindow.LateAfterUtc.Value:u}."),
+                cancellationToken);
+        }
     }
 
     private async Task ValidateFixedLocationAsync(
@@ -117,4 +180,11 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
             throw new BadRequestException("Employee is outside the assigned department geofence.");
         }
     }
+
+    private sealed record ShiftWindow(
+        Guid? ShiftId,
+        DateTime ShiftStart,
+        DateTime ShiftEnd,
+        DateTime? LateAfterUtc,
+        DateTime? ProhibitCheckInAfterUtc);
 }

@@ -17,6 +17,7 @@ public class AttendanceSessionConfiguration : IEntityTypeConfiguration<Attendanc
         builder.Property(x => x.TotalDistanceKm).HasColumnType("decimal(10,3)").HasDefaultValue(0);
 
         builder.HasIndex(x => x.EmployeeId);
+        builder.HasIndex(x => x.ShiftId);
         builder.HasIndex(x => new { x.EmployeeId, x.Status });
         builder.HasIndex(x => new { x.CompanyId, x.ShiftStart });
     }

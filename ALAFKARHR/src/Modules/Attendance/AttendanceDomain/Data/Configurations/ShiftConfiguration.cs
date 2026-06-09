@@ -17,6 +17,11 @@ public class ShiftConfiguration : IEntityTypeConfiguration<Shift>
             .IsRequired()
             .HasMaxLength(100);
 
+        builder.Property(x => x.GracePeriodMinutes).HasDefaultValue(15);
+        builder.Property(x => x.LateAfterMinutes).HasDefaultValue(15);
+        builder.Property(x => x.ProhibitCheckInAfterMinutes).HasDefaultValue(120);
+        builder.Property(x => x.BreakMinutes).HasDefaultValue(0);
+
         builder.HasIndex(x => new { x.CompanyId, x.Name });
     }
 }

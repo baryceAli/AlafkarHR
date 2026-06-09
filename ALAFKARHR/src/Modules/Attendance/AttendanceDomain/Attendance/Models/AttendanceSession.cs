@@ -5,6 +5,7 @@ namespace AttendanceDomain.Attendance.Models;
 public class AttendanceSession : Aggregate<Guid>
 {
     public Guid EmployeeId { get; private set; }
+    public Guid? ShiftId { get; private set; }
     public EmployeeAttendanceType AttendanceType { get; private set; }
     public DateTime ShiftStart { get; private set; }
     public DateTime ShiftEnd { get; private set; }
@@ -21,21 +22,27 @@ public class AttendanceSession : Aggregate<Guid>
         Guid id,
         Guid employeeId,
         Guid companyId,
+        Guid? shiftId,
         EmployeeAttendanceType attendanceType,
         DateTime shiftStart,
-        DateTime shiftEnd)
+        DateTime shiftEnd,
+        DateTime? actualStartTime = null)
     {
         var now = DateTime.UtcNow;
+        var startTime = actualStartTime.HasValue
+            ? DateTime.SpecifyKind(actualStartTime.Value, DateTimeKind.Utc)
+            : now;
 
         return new AttendanceSession
         {
             Id = id,
             EmployeeId = employeeId,
             CompanyId = companyId,
+            ShiftId = shiftId,
             AttendanceType = attendanceType,
             ShiftStart = DateTime.SpecifyKind(shiftStart, DateTimeKind.Utc),
             ShiftEnd = DateTime.SpecifyKind(shiftEnd, DateTimeKind.Utc),
-            ActualStartTime = now,
+            ActualStartTime = startTime,
             Status = AttendanceSessionStatus.Active,
             CreatedAt = now
         };

@@ -15,6 +15,7 @@ public class AttendanceDbContext(DbContextOptions<AttendanceDbContext> options) 
     public DbSet<AttendanceLocationPing> AttendanceLocationPings => Set<AttendanceLocationPing>();
     public DbSet<AttendanceCheckIn> AttendanceCheckIns => Set<AttendanceCheckIn>();
     public DbSet<AttendanceException> AttendanceExceptions => Set<AttendanceException>();
+    public DbSet<LateCheckInRequest> LateCheckInRequests => Set<LateCheckInRequest>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

@@ -12,6 +12,8 @@ public class Shift : Aggregate<Guid>
     public TimeSpan EndTime { get; private set; }
 
     public int GracePeriodMinutes { get; private set; }
+    public int LateAfterMinutes { get; private set; }
+    public int ProhibitCheckInAfterMinutes { get; private set; }
     public int BreakMinutes { get; private set; }
 
     public bool IsFlexible { get; private set; }
@@ -26,6 +28,8 @@ public class Shift : Aggregate<Guid>
         TimeSpan start,
         TimeSpan end,
         int graceMinutes,
+        int lateAfterMinutes,
+        int prohibitCheckInAfterMinutes,
         int breakMinutes,
         Guid companyId)
     {
@@ -36,8 +40,30 @@ public class Shift : Aggregate<Guid>
             StartTime = start,
             EndTime = end,
             GracePeriodMinutes = graceMinutes,
+            LateAfterMinutes = lateAfterMinutes,
+            ProhibitCheckInAfterMinutes = prohibitCheckInAfterMinutes,
             BreakMinutes = breakMinutes,
             CompanyId = companyId
         };
     }
+
+    public DateTime BuildShiftStart(DateTime workDateUtc)
+        => DateTime.SpecifyKind(workDateUtc.Date.Add(StartTime), DateTimeKind.Utc);
+
+    public DateTime BuildShiftEnd(DateTime workDateUtc)
+    {
+        var shiftEnd = workDateUtc.Date.Add(EndTime);
+        if (EndTime <= StartTime)
+        {
+            shiftEnd = shiftEnd.AddDays(1);
+        }
+
+        return DateTime.SpecifyKind(shiftEnd, DateTimeKind.Utc);
+    }
+
+    public DateTime LateAfter(DateTime shiftStartUtc)
+        => DateTime.SpecifyKind(shiftStartUtc.AddMinutes(LateAfterMinutes), DateTimeKind.Utc);
+
+    public DateTime ProhibitCheckInAfter(DateTime shiftStartUtc)
+        => DateTime.SpecifyKind(shiftStartUtc.AddMinutes(ProhibitCheckInAfterMinutes), DateTimeKind.Utc);
 }
