@@ -1,0 +1,788 @@
+@layout AdminLayout
+@page "/Attendance/MyAttendance"
+
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using Microsoft.JSInterop
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Attendance.Enums
+
+@inject IAttendanceService AttendanceService
+@inject IJSRuntime JSRuntime
+
+<section class="attendance-terminal">
+    <div class="terminal-header">
+        <div>
+            <p class="eyebrow">My attendance</p>
+            <h1>Check in for today</h1>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline-primary" @onclick="CaptureLocationAndRefreshPreviewAsync" disabled="@isBusy">
+                <i class="bi bi-crosshair"></i>
+                Refresh location
+            </button>
+            <button class="btn btn-outline-secondary" @onclick="ReloadPageDataAsync" disabled="@isBusy">
+                <i class="bi bi-arrow-clockwise"></i>
+                Reload
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @messageClass">@message</div>
+    }
+
+    <div class="terminal-grid">
+        <section class="terminal-panel identity-panel">
+            <div class="panel-title">
+                <h2>Employee</h2>
+                @if (preview is not null)
+                {
+                    <span class="badge text-bg-light">@preview.AttendanceType</span>
+                }
+            </div>
+
+            @if (preview is null)
+            {
+                <div class="empty-state">
+                    <i class="bi bi-person-exclamation"></i>
+                    <p>Loading your employee profile.</p>
+                </div>
+            }
+            else
+            {
+                <div class="profile-block">
+                    <div class="avatar">@Initials(preview.EmployeeName)</div>
+                    <div>
+                        <strong>@EmptyValue(preview.EmployeeName)</strong>
+                        <span>@EmptyValue(preview.EmployeeEmail)</span>
+                    </div>
+                </div>
+                <div class="detail-list">
+                    <div>
+                        <span>Employee code / username</span>
+                        <strong>@EmptyValue(preview.EmployeeCode)</strong>
+                    </div>
+                    <div>
+                        <span>Employee id</span>
+                        <strong>@preview.EmployeeId</strong>
+                    </div>
+                    <div>
+                        <span>Attendance mode</span>
+                        <strong>@preview.AttendanceType</strong>
+                    </div>
+                </div>
+            }
+        </section>
+
+        <section class="terminal-panel">
+            <div class="panel-title">
+                <h2>Effective shift</h2>
+                @if (preview?.ShiftName is not null)
+                {
+                    <span class="badge text-bg-primary">@preview.ShiftName</span>
+                }
+            </div>
+
+            <div class="detail-list">
+                <div>
+                    <span>Start</span>
+                    <strong>@FormatDate(preview?.ShiftStart)</strong>
+                </div>
+                <div>
+                    <span>End</span>
+                    <strong>@FormatDate(preview?.ShiftEnd)</strong>
+                </div>
+                <div>
+                    <span>Late after</span>
+                    <strong>@FormatDate(preview?.LateAfterUtc)</strong>
+                </div>
+                <div>
+                    <span>Check-in closes</span>
+                    <strong>@FormatDate(preview?.ProhibitCheckInAfterUtc)</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="terminal-panel">
+            <div class="panel-title">
+                <h2>Location</h2>
+                <span class="badge @LocationBadgeClass">@LocationBadgeText</span>
+            </div>
+
+            <div class="detail-list">
+                <div>
+                    <span>Latitude</span>
+                    <strong>@Coordinate(latitude)</strong>
+                </div>
+                <div>
+                    <span>Longitude</span>
+                    <strong>@Coordinate(longitude)</strong>
+                </div>
+                <div>
+                    <span>Accuracy</span>
+                    <strong>@Meters(accuracyMeters)</strong>
+                </div>
+                <div>
+                    <span>Distance to allowed location</span>
+                    <strong>@Meters(preview?.DistanceMeters)</strong>
+                </div>
+                <div>
+                    <span>Allowed radius</span>
+                    <strong>@Meters(preview?.AllowedRadiusMeters)</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="terminal-panel action-panel">
+            <div class="panel-title">
+                <h2>Session</h2>
+                @if (activeSession is not null)
+                {
+                    <span class="badge @StatusClass(activeSession.Status)">@activeSession.Status</span>
+                }
+                else if (preview is not null)
+                {
+                    <span class="badge @(preview.CanCheckIn ? "text-bg-success" : "text-bg-warning")">
+                        @(preview.CanCheckIn ? "Ready" : "Blocked")
+                    </span>
+                }
+            </div>
+
+            <div class="readiness-card @(preview?.CanCheckIn == true ? "ready" : "blocked")">
+                <i class="bi @(preview?.CanCheckIn == true ? "bi-check-circle" : "bi-info-circle")"></i>
+                <div>
+                    <strong>@ReadinessTitle</strong>
+                    <span>@(preview?.Message ?? "Loading employee, shift, and current location...")</span>
+                </div>
+            </div>
+
+            <div class="action-row">
+                <button class="btn btn-primary" @onclick="StartSessionAsync" disabled="@(!CanStartSession)">
+                    <i class="bi bi-play-circle"></i>
+                    Check in
+                </button>
+                <button class="btn btn-outline-warning" @onclick="StartBreakAsync" disabled="@(activeSession is null || activeSession.Status != AttendanceSessionStatus.Active || isBusy)">
+                    <i class="bi bi-pause-circle"></i>
+                    Break
+                </button>
+                <button class="btn btn-outline-success" @onclick="EndBreakAsync" disabled="@(activeSession is null || activeSession.Status != AttendanceSessionStatus.OnBreak || isBusy)">
+                    <i class="bi bi-play"></i>
+                    Resume
+                </button>
+                <button class="btn btn-outline-danger" @onclick="EndSessionAsync" disabled="@(activeSession is null || isBusy)">
+                    <i class="bi bi-stop-circle"></i>
+                    End
+                </button>
+            </div>
+
+            @if (activeSession is not null)
+            {
+                <div class="session-card">
+                    <div>
+                        <span>Session</span>
+                        <strong>@activeSession.Id</strong>
+                    </div>
+                    <div>
+                        <span>Started</span>
+                        <strong>@FormatDate(activeSession.ActualStartTime)</strong>
+                    </div>
+                    <div>
+                        <span>Shift</span>
+                        <strong>@FormatDate(activeSession.ShiftStart) - @FormatDate(activeSession.ShiftEnd)</strong>
+                    </div>
+                </div>
+            }
+        </section>
+    </div>
+
+    <div class="terminal-grid secondary-grid">
+        <section class="terminal-panel">
+            <div class="panel-title">
+                <h2>Mobile actions</h2>
+            </div>
+
+            <div class="action-stack">
+                <button class="btn btn-outline-primary" @onclick="SubmitPingAsync" disabled="@(activeSession is null || activeSession.Status != AttendanceSessionStatus.Active || isBusy || !HasLocation)">
+                    <i class="bi bi-geo-alt"></i>
+                    Submit GPS ping
+                </button>
+
+                <label>
+                    Site name
+                    <input class="form-control" @bind="siteName" />
+                </label>
+                <label>
+                    Notes
+                    <textarea class="form-control" rows="3" @bind="siteNotes"></textarea>
+                </label>
+                <button class="btn btn-outline-primary" @onclick="CreateSiteCheckInAsync" disabled="@(activeSession is null || activeSession.Status != AttendanceSessionStatus.Active || isBusy || !HasLocation)">
+                    <i class="bi bi-pin-map"></i>
+                    Check in at site
+                </button>
+            </div>
+        </section>
+
+        <section class="terminal-panel">
+            <div class="panel-title">
+                <h2>Late check-in request</h2>
+                <span class="text-muted">Available after the check-in closing time.</span>
+            </div>
+            <div class="form-grid">
+                <label>
+                    Requested check-in time
+                    <input class="form-control" type="datetime-local" @bind="lateRequestedLocal" />
+                </label>
+                <label class="wide">
+                    Reason
+                    <textarea class="form-control" rows="3" @bind="lateReason"></textarea>
+                </label>
+            </div>
+            <div class="action-row">
+                <button class="btn btn-warning" @onclick="CreateLateRequestAsync" disabled="@(!CanSubmitLateRequest)">
+                    <i class="bi bi-send"></i>
+                    Send request
+                </button>
+            </div>
+        </section>
+    </div>
+</section>
+
+@code {
+    private AttendanceCheckInPreviewDto? preview;
+    private StartAttendanceSessionDto startModel = new();
+    private AttendanceSessionDto? activeSession;
+    private DateTime lateRequestedLocal = DateTime.Now;
+    private double? latitude;
+    private double? longitude;
+    private double? accuracyMeters;
+    private string siteName = "";
+    private string? siteNotes;
+    private string lateReason = "";
+    private string? message;
+    private string messageClass = "alert-info";
+    private bool isBusy;
+    private bool firstLocationCheckCompleted;
+
+    private bool HasLocation => latitude.HasValue && longitude.HasValue;
+    private bool CanStartSession => !isBusy && preview?.CanCheckIn == true && activeSession is null && HasLocation;
+    private bool CanSubmitLateRequest => !isBusy && preview?.CanSubmitLateRequest == true && HasLocation;
+    private string ReadinessTitle => preview?.CanCheckIn == true ? "Ready to check in" : "Check-in is not available";
+    private string LocationBadgeText => !HasLocation ? "Waiting" : preview?.IsWithinAllowedRadius == false ? "Outside" : "Captured";
+    private string LocationBadgeClass => !HasLocation ? "text-bg-secondary" : preview?.IsWithinAllowedRadius == false ? "text-bg-danger" : "text-bg-success";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshPreviewAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || firstLocationCheckCompleted)
+        {
+            return;
+        }
+
+        firstLocationCheckCompleted = true;
+        await CaptureLocationAndRefreshPreviewAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ReloadPageDataAsync()
+    {
+        await CaptureLocationAndRefreshPreviewAsync();
+    }
+
+    private async Task CaptureLocationAndRefreshPreviewAsync()
+    {
+        isBusy = true;
+        SetMessage("Reading your current GPS location...", "alert-info");
+
+        try
+        {
+            var result = await JSRuntime.InvokeAsync<LocationResult>("attendanceLocation.getCurrentPosition");
+            if (result.Success)
+            {
+                latitude = result.Latitude;
+                longitude = result.Longitude;
+                accuracyMeters = result.AccuracyMeters;
+            }
+            else
+            {
+                SetMessage(result.Message ?? "Unable to read your current location.", "alert-warning");
+            }
+        }
+        catch (JSException)
+        {
+            SetMessage("Unable to access the location service. Refresh the page and allow location access.", "alert-warning");
+        }
+
+        isBusy = false;
+        await RefreshPreviewAsync();
+    }
+
+    private async Task RefreshPreviewAsync()
+    {
+        isBusy = true;
+        var response = await AttendanceService.GetMyCheckInPreviewAsync(
+            latitude,
+            longitude,
+            accuracyMeters,
+            DateTime.UtcNow);
+
+        if (response.IsSuccess && response.Data is not null)
+        {
+            preview = response.Data;
+            activeSession = preview.ActiveSession;
+            lateRequestedLocal = DateTime.Now;
+
+            SetMessage(preview.Message, PreviewMessageClass(preview));
+        }
+        else
+        {
+            SetMessage(response.Error?.Detail ?? "Unable to validate check-in readiness.", "alert-danger");
+        }
+
+        isBusy = false;
+    }
+
+    private async Task StartSessionAsync()
+    {
+        if (!CanStartSession || preview is null)
+        {
+            SetMessage(preview?.Message ?? "Check-in is not available yet.", "alert-warning");
+            return;
+        }
+
+        isBusy = true;
+        startModel.EmployeeId = preview.EmployeeId;
+        startModel.ShiftId = preview.ShiftId;
+        startModel.ShiftStart = preview.ShiftStart!.Value;
+        startModel.ShiftEnd = preview.ShiftEnd!.Value;
+        startModel.Latitude = latitude;
+        startModel.Longitude = longitude;
+        startModel.AccuracyMeters = accuracyMeters;
+        startModel.ManualOverrideReason = null;
+
+        var response = await AttendanceService.StartSessionAsync(startModel);
+        if (response.IsSuccess && response.Data is not null)
+        {
+            activeSession = response.Data;
+            SetMessage("Attendance session started.", "alert-success");
+        }
+        else
+        {
+            SetMessage(response.Error?.Detail ?? "Unable to start session.", "alert-danger");
+        }
+
+        isBusy = false;
+        await RefreshPreviewAsync();
+    }
+
+    private async Task EndSessionAsync()
+    {
+        if (activeSession is null) return;
+
+        isBusy = true;
+        var response = await AttendanceService.EndSessionAsync(activeSession.Id);
+        if (response.IsSuccess)
+        {
+            activeSession = response.Data;
+            SetMessage("Attendance session ended.", "alert-success");
+        }
+        else
+        {
+            SetMessage(response.Error?.Detail ?? "Unable to end session.", "alert-danger");
+        }
+
+        isBusy = false;
+        await RefreshPreviewAsync();
+    }
+
+    private async Task StartBreakAsync() => await ChangeBreakStateAsync(true);
+    private async Task EndBreakAsync() => await ChangeBreakStateAsync(false);
+
+    private async Task ChangeBreakStateAsync(bool startBreak)
+    {
+        if (activeSession is null) return;
+
+        isBusy = true;
+        var response = startBreak
+            ? await AttendanceService.StartBreakAsync(activeSession.Id)
+            : await AttendanceService.EndBreakAsync(activeSession.Id);
+
+        if (response.IsSuccess)
+        {
+            activeSession = response.Data;
+            SetMessage(startBreak ? "Break started." : "Break ended.", "alert-success");
+        }
+        else
+        {
+            SetMessage(response.Error?.Detail ?? "Unable to update break state.", "alert-danger");
+        }
+
+        isBusy = false;
+        await RefreshPreviewAsync();
+    }
+
+    private async Task SubmitPingAsync()
+    {
+        if (activeSession is null || !HasLocation) return;
+
+        isBusy = true;
+        var response = await AttendanceService.SubmitLocationPingAsync(new AttendanceLocationPingDto
+        {
+            ClientPingId = Guid.NewGuid(),
+            SessionId = activeSession.Id,
+            EmployeeId = activeSession.EmployeeId,
+            Latitude = latitude!.Value,
+            Longitude = longitude!.Value,
+            AccuracyMeters = accuracyMeters,
+            RecordedAtUtc = DateTime.UtcNow
+        });
+
+        SetMessage(response.IsSuccess ? "Location ping submitted." : response.Error?.Detail ?? "Unable to submit ping.", response.IsSuccess ? "alert-success" : "alert-danger");
+        isBusy = false;
+    }
+
+    private async Task CreateSiteCheckInAsync()
+    {
+        if (activeSession is null || !HasLocation) return;
+        if (string.IsNullOrWhiteSpace(siteName))
+        {
+            SetMessage("Site name is required.", "alert-warning");
+            return;
+        }
+
+        isBusy = true;
+        var response = await AttendanceService.CreateCheckInAsync(new AttendanceCheckInDto
+        {
+            ClientCheckInId = Guid.NewGuid(),
+            SessionId = activeSession.Id,
+            EmployeeId = activeSession.EmployeeId,
+            SiteName = siteName.Trim(),
+            Latitude = latitude!.Value,
+            Longitude = longitude!.Value,
+            ArrivedAtUtc = DateTime.UtcNow,
+            Notes = siteNotes
+        });
+
+        SetMessage(response.IsSuccess ? "Site check-in saved." : response.Error?.Detail ?? "Unable to save site check-in.", response.IsSuccess ? "alert-success" : "alert-danger");
+        isBusy = false;
+    }
+
+    private async Task CreateLateRequestAsync()
+    {
+        if (!CanSubmitLateRequest || preview is null)
+        {
+            SetMessage(preview?.Message ?? "Late check-in request is not available now.", "alert-warning");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(lateReason))
+        {
+            SetMessage("Reason is required for late check-in request.", "alert-warning");
+            return;
+        }
+
+        isBusy = true;
+        var response = await AttendanceService.CreateLateCheckInRequestAsync(new CreateLateCheckInRequestDto
+        {
+            EmployeeId = preview.EmployeeId,
+            ShiftId = preview.ShiftId,
+            ShiftStart = preview.ShiftStart!.Value,
+            ShiftEnd = preview.ShiftEnd!.Value,
+            RequestedCheckInTimeUtc = lateRequestedLocal.ToUniversalTime(),
+            Reason = lateReason,
+            Latitude = latitude,
+            Longitude = longitude,
+            AccuracyMeters = accuracyMeters
+        });
+
+        SetMessage(response.IsSuccess ? "Late check-in request sent." : response.Error?.Detail ?? "Unable to send late request.", response.IsSuccess ? "alert-success" : "alert-danger");
+        isBusy = false;
+    }
+
+    private void SetMessage(string text, string cssClass)
+    {
+        message = text;
+        messageClass = cssClass;
+    }
+
+    private static string PreviewMessageClass(AttendanceCheckInPreviewDto preview)
+    {
+        if (preview.CanCheckIn)
+        {
+            return preview.IsLate ? "alert-warning" : "alert-success";
+        }
+
+        return preview.CanSubmitLateRequest || preview.IsWithinAllowedRadius == false ? "alert-warning" : "alert-info";
+    }
+
+    private static string Initials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "E";
+        }
+
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var first = parts.Length > 0 ? parts[0][..1] : "";
+        var last = parts.Length > 1 ? parts[^1][..1] : "";
+        return $"{first}{last}".ToUpperInvariant();
+    }
+
+    private static string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private static string FormatDate(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "-";
+    private static string Coordinate(double? value) => value.HasValue ? value.Value.ToString("F6") : "-";
+    private static string Meters(double? value) => value.HasValue ? $"{value.Value:N0} m" : "-";
+
+    private static string StatusClass(AttendanceSessionStatus status) => status switch
+    {
+        AttendanceSessionStatus.Active => "text-bg-success",
+        AttendanceSessionStatus.OnBreak => "text-bg-warning",
+        AttendanceSessionStatus.Completed => "text-bg-secondary",
+        _ => "text-bg-light"
+    };
+
+    private sealed class LocationResult
+    {
+        public bool Success { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+        public double? AccuracyMeters { get; set; }
+        public string? Message { get; set; }
+    }
+}
+
+<style>
+    .attendance-terminal {
+        color: #172033;
+    }
+
+    .terminal-header,
+    .panel-title,
+    .action-row,
+    .header-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+    }
+
+    .terminal-header {
+        margin-bottom: 1rem;
+    }
+
+    .terminal-header h1 {
+        margin: 0;
+        font-size: 1.55rem;
+        font-weight: 700;
+    }
+
+    .header-actions,
+    .action-row {
+        flex-wrap: wrap;
+    }
+
+    .eyebrow {
+        margin: 0 0 .25rem;
+        color: #65758b;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+
+    .terminal-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: .75rem;
+    }
+
+    .secondary-grid {
+        grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+        margin-top: .75rem;
+    }
+
+    .terminal-panel {
+        background: #fff;
+        border: 1px solid #e5e9f0;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, .04);
+    }
+
+    .action-panel {
+        grid-column: span 1;
+    }
+
+    .panel-title {
+        margin-bottom: .75rem;
+    }
+
+    .panel-title h2 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .profile-block {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        margin-bottom: .85rem;
+    }
+
+    .profile-block strong,
+    .profile-block span {
+        display: block;
+    }
+
+    .profile-block span,
+    .detail-list span {
+        color: #65758b;
+        font-size: .82rem;
+    }
+
+    .avatar {
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        background: #eaf2ff;
+        color: #174c99;
+        font-weight: 800;
+    }
+
+    .detail-list {
+        display: grid;
+        gap: .65rem;
+    }
+
+    .detail-list div {
+        display: grid;
+        gap: .15rem;
+    }
+
+    .detail-list strong {
+        font-size: .94rem;
+        overflow-wrap: anywhere;
+    }
+
+    .readiness-card {
+        display: flex;
+        gap: .75rem;
+        padding: .85rem;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+    }
+
+    .readiness-card.ready {
+        border-color: #a7f3d0;
+        background: #ecfdf5;
+        color: #065f46;
+    }
+
+    .readiness-card.blocked {
+        border-color: #fed7aa;
+        background: #fff7ed;
+        color: #7c2d12;
+    }
+
+    .readiness-card i {
+        font-size: 1.35rem;
+        margin-top: .1rem;
+    }
+
+    .readiness-card strong,
+    .readiness-card span {
+        display: block;
+    }
+
+    .readiness-card span {
+        margin-top: .2rem;
+        font-size: .9rem;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .75rem;
+    }
+
+    .form-grid label,
+    .action-stack label {
+        display: grid;
+        gap: .35rem;
+        color: #526174;
+        font-size: .9rem;
+        font-weight: 600;
+    }
+
+    .form-grid .wide {
+        grid-column: 1 / -1;
+    }
+
+    .action-row {
+        justify-content: flex-start;
+        margin-top: 1rem;
+    }
+
+    .action-stack {
+        display: grid;
+        gap: .75rem;
+    }
+
+    .session-card {
+        margin-top: 1rem;
+        display: grid;
+        gap: .5rem;
+        padding: .75rem;
+        background: #f8fafc;
+        border-radius: 8px;
+    }
+
+    .session-card span {
+        display: block;
+        color: #65758b;
+        font-size: .78rem;
+    }
+
+    .session-card strong {
+        overflow-wrap: anywhere;
+    }
+
+    .empty-state {
+        display: grid;
+        place-items: center;
+        gap: .5rem;
+        min-height: 150px;
+        text-align: center;
+        color: #64748b;
+    }
+
+    .empty-state i {
+        font-size: 2rem;
+    }
+
+    @@media (max-width: 1180px) {
+        .terminal-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 760px) {
+        .terminal-grid,
+        .secondary-grid,
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .terminal-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+    }
+</style>

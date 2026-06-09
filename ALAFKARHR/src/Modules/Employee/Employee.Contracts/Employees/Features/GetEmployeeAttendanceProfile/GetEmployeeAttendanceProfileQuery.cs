@@ -4,6 +4,7 @@ using SharedWithUI.Attendance.Enums;
 namespace EmployeeModule.Contracts.Employees.Features.GetEmployeeAttendanceProfile;
 
 public record GetEmployeeAttendanceProfileQuery(Guid EmployeeId) : IQuery<GetEmployeeAttendanceProfileResult>;
+public record GetEmployeeAttendanceProfileByCodeQuery(string Code) : IQuery<GetEmployeeAttendanceProfileResult>;
 
 public record GetEmployeeAttendanceProfileResult(
     Guid EmployeeId,
@@ -12,4 +13,7 @@ public record GetEmployeeAttendanceProfileResult(
     Guid AdministrationId,
     Guid? DepartmentId,
     EmployeeAttendanceType AttendanceType,
-    bool IsActive);
+    bool IsActive,
+    string? Code = null,
+    string? Email = null,
+    string? FullName = null);

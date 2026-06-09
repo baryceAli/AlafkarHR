@@ -1,5 +1,6 @@
 using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Pages.Features.Auth.Services;
+using AlAfkarERP.Shared.Pages.Features.Attendance.Services;
 using AlAfkarERP.Shared.Pages.Features.Catalog.Services;
 using AlAfkarERP.Shared.Pages.Features.Company.Services;
 using AlAfkarERP.Shared.Pages.Features.Customers.Services;
@@ -238,6 +239,15 @@ builder.Services.AddHttpClient<ICompanySettingService, CompanySettingService>(cl
 })
 .AddHttpMessageHandler<AuthMessageHandler>();
 #endregion GeneralSettings
+
+#region Attendance
+builder.Services.AddScoped<IAttendanceService, AttendanceService>();
+builder.Services.AddHttpClient<IAttendanceService, AttendanceService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+})
+.AddHttpMessageHandler<AuthMessageHandler>();
+#endregion Attendance
 
 #region TaskManagement
 builder.Services.AddScoped<ITaskManagementService, TaskManagementService>();

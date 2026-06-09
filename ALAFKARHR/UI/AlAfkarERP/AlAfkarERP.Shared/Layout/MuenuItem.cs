@@ -159,6 +159,65 @@ public class MenuItem
                 },
                 new MenuItem
                 {
+                    TextEn = "Attendance",
+                    TextAr = "الحضور والانصراف",
+                    Icon = "bi-calendar-check",
+                    Url = "/Attendance/Dashboard",
+                    PermissionPolicy = PermissionList.AttendancePermissions.Select,
+                    Children = new()
+                    {
+                        new MenuItem
+                        {
+                            TextEn = "Dashboard",
+                            TextAr = "لوحة الحضور",
+                            Icon = "bi-speedometer2",
+                            Url = "/Attendance/Dashboard",
+                            PermissionPolicy = PermissionList.AttendancePermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "My Attendance",
+                            TextAr = "حضوري",
+                            Icon = "bi-person-check",
+                            Url = "/Attendance/MyAttendance",
+                            PermissionPolicy = PermissionList.AttendancePermissions.Create
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Sessions",
+                            TextAr = "جلسات الحضور",
+                            Icon = "bi-clock-history",
+                            Url = "/Attendance/Sessions",
+                            PermissionPolicy = PermissionList.AttendancePermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Shifts",
+                            TextAr = "الورديات",
+                            Icon = "bi-calendar-range",
+                            Url = "/Attendance/Shifts",
+                            PermissionPolicy = PermissionList.AttendancePermissions.Edit
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Shift Assignments",
+                            TextAr = "تعيين الورديات",
+                            Icon = "bi-calendar2-week",
+                            Url = "/Attendance/ShiftAssignments",
+                            PermissionPolicy = PermissionList.AttendancePermissions.Edit
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Late Requests",
+                            TextAr = "طلبات التأخير",
+                            Icon = "bi-exclamation-triangle",
+                            Url = "/Attendance/LateRequests",
+                            PermissionPolicy = PermissionList.AttendancePermissions.ReviewRequests
+                        }
+                    }
+                },
+                new MenuItem
+                {
                     TextEn = "Customers Management",
                     TextAr = "إدارة العملاء",
                     Icon = "bi-person-vcard-fill",

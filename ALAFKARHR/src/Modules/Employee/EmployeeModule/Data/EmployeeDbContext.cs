@@ -7,7 +7,7 @@ namespace EmployeeModule.Data;
 public class EmployeeDbContext:DbContext
 {
     //add-migration EmployeeInitial -Project EmployeeModule -StartupProject Api -OutputDir Data/Migrations -Context EmployeeDbContext
-
+    //update-database -Project EmployeeModule -StartupProject Api -Context EmployeeDbContext
     public EmployeeDbContext(DbContextOptions<EmployeeDbContext> options):base(options)
     {
         

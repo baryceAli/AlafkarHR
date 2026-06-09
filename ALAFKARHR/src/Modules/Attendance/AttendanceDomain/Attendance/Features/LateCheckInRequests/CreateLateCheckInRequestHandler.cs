@@ -24,7 +24,7 @@ public class CreateLateCheckInRequestHandler(AttendanceDbContext dbContext, ISen
             throw new BadRequestException("Inactive employees cannot submit late check-in requests.");
         }
 
-        var shiftWindow = await ResolveShiftWindowAsync(request.Request, cancellationToken);
+        var shiftWindow = await ResolveShiftWindowAsync(request.Request, employee, cancellationToken);
 
         if (shiftWindow.ProhibitCheckInAfterUtc.HasValue &&
             request.Request.RequestedCheckInTimeUtc <= shiftWindow.ProhibitCheckInAfterUtc.Value)
@@ -63,9 +63,16 @@ public class CreateLateCheckInRequestHandler(AttendanceDbContext dbContext, ISen
         return new CreateLateCheckInRequestResult(lateRequest.Adapt<LateCheckInRequestDto>());
     }
 
-    private async Task<ShiftWindow> ResolveShiftWindowAsync(CreateLateCheckInRequestDto request, CancellationToken cancellationToken)
+    private async Task<ShiftWindow> ResolveShiftWindowAsync(
+        CreateLateCheckInRequestDto request,
+        GetEmployeeAttendanceProfileResult employee,
+        CancellationToken cancellationToken)
     {
-        if (!request.ShiftId.HasValue)
+        var workDateUtc = request.ShiftStart == default ? request.RequestedCheckInTimeUtc : DateTime.SpecifyKind(request.ShiftStart, DateTimeKind.Utc);
+        var assignedShiftId = await ResolveAssignedShiftIdAsync(employee, workDateUtc, cancellationToken);
+        var effectiveShiftId = assignedShiftId ?? request.ShiftId;
+
+        if (!effectiveShiftId.HasValue)
         {
             return new ShiftWindow(
                 null,
@@ -76,10 +83,9 @@ public class CreateLateCheckInRequestHandler(AttendanceDbContext dbContext, ISen
 
         var shift = await dbContext.Shifts
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == request.ShiftId.Value, cancellationToken)
-            ?? throw new NotFoundException("Shift", request.ShiftId.Value);
+            .FirstOrDefaultAsync(x => x.Id == effectiveShiftId.Value, cancellationToken)
+            ?? throw new NotFoundException("Shift", effectiveShiftId.Value);
 
-        var workDateUtc = request.ShiftStart == default ? request.RequestedCheckInTimeUtc : request.ShiftStart;
         var shiftStart = shift.BuildShiftStart(workDateUtc);
 
         return new ShiftWindow(
@@ -89,9 +95,52 @@ public class CreateLateCheckInRequestHandler(AttendanceDbContext dbContext, ISen
             shift.ProhibitCheckInAfter(shiftStart));
     }
 
+    private async Task<Guid?> ResolveAssignedShiftIdAsync(
+        GetEmployeeAttendanceProfileResult employee,
+        DateTime workDateUtc,
+        CancellationToken cancellationToken)
+    {
+        var assignments = await dbContext.EmployeeShifts
+            .AsNoTracking()
+            .Where(x => x.IsActive
+                && !x.IsDeleted
+                && x.EffectiveFrom <= workDateUtc
+                && (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= workDateUtc)
+                && (
+                    (x.Scope == ShiftAssignmentScope.Employee && x.EmployeeId == employee.EmployeeId)
+                    || (x.Scope == ShiftAssignmentScope.Department && employee.DepartmentId.HasValue && x.DepartmentId == employee.DepartmentId.Value)
+                    || (x.Scope == ShiftAssignmentScope.Administration && x.AdministrationId == employee.AdministrationId)
+                    || (x.Scope == ShiftAssignmentScope.Company && x.CompanyId == employee.CompanyId)))
+            .Select(x => new ShiftAssignmentCandidate(
+                x.ShiftId,
+                x.Scope,
+                x.EffectiveFrom))
+            .ToListAsync(cancellationToken);
+
+        return assignments
+            .OrderByDescending(x => Priority(x.Scope))
+            .ThenByDescending(x => x.EffectiveFrom)
+            .Select(x => (Guid?)x.ShiftId)
+            .FirstOrDefault();
+    }
+
+    private static int Priority(ShiftAssignmentScope scope) => scope switch
+    {
+        ShiftAssignmentScope.Employee => 4,
+        ShiftAssignmentScope.Department => 3,
+        ShiftAssignmentScope.Administration => 2,
+        ShiftAssignmentScope.Company => 1,
+        _ => 0
+    };
+
     private sealed record ShiftWindow(
         Guid? ShiftId,
         DateTime ShiftStart,
         DateTime ShiftEnd,
         DateTime? ProhibitCheckInAfterUtc);
+
+    private sealed record ShiftAssignmentCandidate(
+        Guid ShiftId,
+        ShiftAssignmentScope Scope,
+        DateTime EffectiveFrom);
 }

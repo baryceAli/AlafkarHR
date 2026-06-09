@@ -1,0 +1,230 @@
+@layout AdminLayout
+@page "/Attendance/Sessions"
+
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Attendance.Enums
+@using SharedWithUI.Employees.Dtos
+
+@inject IAttendanceService AttendanceService
+@inject IEmployeeService EmployeeService
+
+<section class="sessions-page">
+    <div class="sessions-header">
+        <div>
+            <p class="eyebrow">Attendance</p>
+            <h1>Attendance sessions</h1>
+        </div>
+        <button class="btn btn-outline-primary" @onclick="LoadSessions">
+            <i class="bi bi-arrow-clockwise"></i>
+            Refresh
+        </button>
+    </div>
+
+    <section class="filter-panel">
+        <select class="form-select" @bind="employeeIdFilter">
+            <option value="">All employees</option>
+            @foreach (var employee in employees)
+            {
+                <option value="@employee.Id">@EmployeeName(employee)</option>
+            }
+        </select>
+        <input class="form-control" type="date" @bind="fromDate" />
+        <input class="form-control" type="date" @bind="toDate" />
+        <button class="btn btn-primary" @onclick="LoadSessions">
+            <i class="bi bi-funnel"></i>
+            Apply
+        </button>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    <section class="sessions-panel">
+        @if (isLoading)
+        {
+            <div class="empty-state">Loading sessions...</div>
+        }
+        else if (!sessions.Any())
+        {
+            <div class="empty-state">No attendance sessions found.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Actual start</th>
+                            <th>Actual end</th>
+                            <th>Shift window</th>
+                            <th>Hours</th>
+                            <th>Distance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var session in sessions)
+                        {
+                            <tr>
+                                <td>@EmployeeLabel(session.EmployeeId)</td>
+                                <td>@session.AttendanceType</td>
+                                <td><span class="badge @StatusClass(session.Status)">@session.Status</span></td>
+                                <td>@FormatDate(session.ActualStartTime)</td>
+                                <td>@FormatDate(session.ActualEndTime)</td>
+                                <td>@session.ShiftStart.ToLocalTime().ToString("g") - @session.ShiftEnd.ToLocalTime().ToString("g")</td>
+                                <td>@session.TotalHours</td>
+                                <td>@session.TotalDistanceKm km</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</section>
+
+@code {
+    private List<AttendanceSessionDto> sessions = [];
+    private List<EmployeeDto> employees = [];
+    private Guid? employeeIdFilter;
+    private DateTime? fromDate = DateTime.Today.AddDays(-7);
+    private DateTime? toDate = DateTime.Today;
+    private bool isLoading;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEmployees();
+        await LoadSessions();
+    }
+
+    private async Task LoadEmployees()
+    {
+        var response = await EmployeeService.GetAsync(0, 500);
+        if (response.IsSuccess)
+        {
+            employees = response.Data?.Data.ToList() ?? [];
+        }
+    }
+
+    private async Task LoadSessions()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        var fromUtc = fromDate?.Date.ToUniversalTime();
+        var toUtc = toDate?.Date.AddDays(1).AddTicks(-1).ToUniversalTime();
+        var response = await AttendanceService.GetSessionsAsync(0, 200, employeeIdFilter, fromUtc, toUtc);
+
+        if (response.IsSuccess)
+        {
+            sessions = response.Data?.Data.ToList() ?? [];
+        }
+        else
+        {
+            errorMessage = response.Error?.Detail ?? "Unable to load sessions.";
+        }
+
+        isLoading = false;
+    }
+
+    private string EmployeeLabel(Guid employeeId)
+    {
+        var employee = employees.FirstOrDefault(x => x.Id == employeeId);
+        return employee is null ? employeeId.ToString()[..8] : EmployeeName(employee);
+    }
+
+    private static string EmployeeName(EmployeeDto employee)
+        => !string.IsNullOrWhiteSpace(employee.FullName) ? employee.FullName : employee.Id.ToString();
+
+    private static string FormatDate(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "-";
+
+    private static string StatusClass(AttendanceSessionStatus status) => status switch
+    {
+        AttendanceSessionStatus.Active => "text-bg-success",
+        AttendanceSessionStatus.OnBreak => "text-bg-warning",
+        AttendanceSessionStatus.Completed => "text-bg-secondary",
+        _ => "text-bg-light"
+    };
+}
+
+<style>
+    .sessions-page {
+        color: #172033;
+    }
+
+    .sessions-header,
+    .filter-panel {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+    }
+
+    .sessions-header {
+        margin-bottom: 1rem;
+    }
+
+    .sessions-header h1 {
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 700;
+    }
+
+    .eyebrow {
+        margin: 0 0 .25rem;
+        color: #65758b;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+
+    .filter-panel,
+    .sessions-panel {
+        background: #fff;
+        border: 1px solid #e5e9f0;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, .04);
+    }
+
+    .filter-panel {
+        margin-bottom: .75rem;
+        justify-content: flex-start;
+    }
+
+    .filter-panel .form-select {
+        max-width: 320px;
+    }
+
+    .filter-panel .form-control {
+        max-width: 180px;
+    }
+
+    .empty-state {
+        padding: 2rem;
+        color: #65758b;
+        text-align: center;
+    }
+
+    @@media (max-width: 760px) {
+        .sessions-header,
+        .filter-panel {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .filter-panel .form-select,
+        .filter-panel .form-control,
+        .filter-panel .btn {
+            max-width: none;
+            width: 100%;
+        }
+    }
+</style>

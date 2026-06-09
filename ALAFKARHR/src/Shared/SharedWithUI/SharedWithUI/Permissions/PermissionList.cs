@@ -36,6 +36,7 @@ public static class PermissionList
             .. SupplierPermissions.Permissions,
             .. SalesOrderPermissions.Permissions,
             .. PricingPermissions.Permissions,
+            .. AttendancePermissions.Permissions,
             .. TaskManagementPermissions.Permissions,
             .. SystemSettingsPermissions.Permissions,
         ];
@@ -698,6 +699,28 @@ public static class PermissionList
                 $"{Close}",
                 $"{ViewReports}",
                 $"{ManageAllTasks}",
+            };
+    }
+
+    public static class AttendancePermissions
+    {
+        public static string GroupName { get; set; } = "Attendance.Attendance";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string ReviewRequests { get; set; } = $"{GroupName}.ReviewRequests";
+        public static string ViewReports { get; set; } = $"{GroupName}.ViewReports";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{ReviewRequests}",
+                $"{ViewReports}",
             };
     }
 

@@ -1,0 +1,450 @@
+@layout AdminLayout
+@page "/Attendance/ShiftAssignments"
+
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Attendance.Enums
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Organization.Dtos
+
+@inject IAttendanceService AttendanceService
+@inject IAdministrationService AdministrationService
+@inject IDepartmentService DepartmentService
+@inject IEmployeeService EmployeeService
+
+<section class="shift-page">
+    <div class="shift-header">
+        <div>
+            <p class="eyebrow">Attendance</p>
+            <h1>Shift assignments</h1>
+        </div>
+        <button class="btn btn-outline-primary" @onclick="LoadData">
+            <i class="bi bi-arrow-clockwise"></i>
+            Refresh
+        </button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @messageClass">@message</div>
+    }
+
+    <section class="shift-panel">
+        <div class="panel-title">
+            <h2>Apply shift</h2>
+            <span>Priority is employee, department, administration, then company.</span>
+        </div>
+        <div class="form-grid">
+            <label>
+                Shift
+                <select class="form-select" @bind="model.ShiftId" @bind:after="OnShiftChangedAsync">
+                    <option value="@Guid.Empty">Select shift</option>
+                    @foreach (var shift in shifts)
+                    {
+                        <option value="@shift.Id">@shift.Name (@shift.StartTime.ToString(@"hh\:mm") - @shift.EndTime.ToString(@"hh\:mm"))</option>
+                    }
+                </select>
+            </label>
+            <label>
+                Apply to
+                <select class="form-select" @bind="model.Scope" @bind:after="OnScopeChanged">
+                    <option value="@ShiftAssignmentScope.Company">Company</option>
+                    <option value="@ShiftAssignmentScope.Administration">Administration</option>
+                    <option value="@ShiftAssignmentScope.Department">Department</option>
+                    <option value="@ShiftAssignmentScope.Employee">Employee</option>
+                </select>
+            </label>
+
+            @if (model.Scope == ShiftAssignmentScope.Administration)
+            {
+                <label>
+                    Administration
+                    <AutoCompleteComponent TItem="AdministrationDto"
+                                           Items="administrations"
+                                           ItemText="AdministrationSearchText"
+                                           Value="selectedAdministration"
+                                           PlaceHolder="Search administration by name or code"
+                                           ValueChanged="OnAdministrationSelected" />
+                </label>
+            }
+
+            @if (model.Scope == ShiftAssignmentScope.Department)
+            {
+                <label>
+                    Department
+                    <AutoCompleteComponent TItem="DepartmentDto"
+                                           Items="departments"
+                                           ItemText="DepartmentSearchText"
+                                           Value="selectedDepartment"
+                                           PlaceHolder="Search department by name or code"
+                                           ValueChanged="OnDepartmentSelected" />
+                </label>
+            }
+
+            @if (model.Scope == ShiftAssignmentScope.Employee)
+            {
+                <label>
+                    Employee
+                    <AutoCompleteComponent TItem="EmployeeDto"
+                                           Items="employees"
+                                           ItemText="EmployeeSearchText"
+                                           Value="selectedEmployee"
+                                           PlaceHolder="Search employee by name, code, number, or email"
+                                           ValueChanged="OnEmployeeSelected" />
+                    @if (model.ShiftId == Guid.Empty)
+                    {
+                        <small class="text-muted">Select a shift first to load employees for that company.</small>
+                    }
+                    else if (employees.Count == 0)
+                    {
+                        <small class="text-warning">No employees were loaded for the selected shift company.</small>
+                    }
+                </label>
+            }
+
+            <label>
+                Effective from
+                <input class="form-control" type="datetime-local" @bind="effectiveFromLocal" />
+            </label>
+            <label>
+                Effective to
+                <input class="form-control" type="datetime-local" @bind="effectiveToLocal" />
+            </label>
+        </div>
+        <div class="action-row">
+            <button class="btn btn-primary" @onclick="AssignShiftAsync" disabled="@isBusy">
+                <i class="bi bi-check2-circle"></i>
+                Apply shift
+            </button>
+        </div>
+    </section>
+
+    <section class="shift-panel mt-3">
+        <div class="panel-title">
+            <h2>Configured assignments</h2>
+            <select class="form-select form-select-sm scope-filter" @bind="scopeFilter">
+                <option value="">All scopes</option>
+                <option value="@ShiftAssignmentScope.Company">Company</option>
+                <option value="@ShiftAssignmentScope.Administration">Administration</option>
+                <option value="@ShiftAssignmentScope.Department">Department</option>
+                <option value="@ShiftAssignmentScope.Employee">Employee</option>
+            </select>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Scope</th>
+                        <th>Target</th>
+                        <th>Shift</th>
+                        <th>Effective</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var assignment in assignments)
+                    {
+                        <tr>
+                            <td>@assignment.Scope</td>
+                            <td>@TargetLabel(assignment)</td>
+                            <td>@ShiftName(assignment.ShiftId)</td>
+                            <td>@assignment.EffectiveFrom.ToLocalTime().ToString("g") - @FormatNullable(assignment.EffectiveTo)</td>
+                            <td><span class="badge @(assignment.IsActive ? "text-bg-success" : "text-bg-secondary")">@(assignment.IsActive ? "Active" : "Closed")</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+
+@code {
+    private AssignShiftDto model = new() { Scope = ShiftAssignmentScope.Company, EffectiveFrom = DateTime.UtcNow };
+    private List<ShiftDto> shifts = [];
+    private List<ShiftAssignmentDto> assignments = [];
+    private List<AdministrationDto> administrations = [];
+    private List<DepartmentDto> departments = [];
+    private List<EmployeeDto> employees = [];
+    private AdministrationDto? selectedAdministration;
+    private DepartmentDto? selectedDepartment;
+    private EmployeeDto? selectedEmployee;
+    private DateTime effectiveFromLocal = DateTime.Now;
+    private DateTime? effectiveToLocal;
+    private ShiftAssignmentScope? scopeFilter;
+    private bool isBusy;
+    private string? message;
+    private string messageClass = "alert-info";
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        await LoadReferenceData();
+        await LoadAssignments();
+    }
+
+    private async Task LoadReferenceData()
+    {
+        var shiftsResult = await AttendanceService.GetShiftsAsync();
+        if (shiftsResult.IsSuccess)
+        {
+            shifts = shiftsResult.Data ?? [];
+        }
+
+        var administrationsResult = await AdministrationService.GetAsync(0, 5000);
+        if (administrationsResult.IsSuccess)
+        {
+            administrations = administrationsResult.Data?.Data.ToList() ?? [];
+        }
+
+        var departmentsResult = await DepartmentService.GetAsync(0, 5000);
+        if (departmentsResult.IsSuccess)
+        {
+            departments = departmentsResult.Data?.Data.ToList() ?? [];
+        }
+
+        await LoadEmployeesForSelectedShiftAsync();
+    }
+
+    private async Task LoadEmployeesForSelectedShiftAsync()
+    {
+        var shift = shifts.FirstOrDefault(x => x.Id == model.ShiftId);
+        if (shift is null)
+        {
+            employees = [];
+            selectedEmployee = null;
+            model.EmployeeId = null;
+            return;
+        }
+
+        var employeesResult = await EmployeeService.GetByCompanyIdAsync(shift.CompanyId, 0, 5000);
+        if (employeesResult.IsSuccess)
+        {
+            employees = employeesResult.Data?.Data.ToList() ?? [];
+            selectedEmployee = employees.FirstOrDefault(x => x.Id == model.EmployeeId);
+        }
+        else
+        {
+            employees = [];
+            selectedEmployee = null;
+            model.EmployeeId = null;
+        }
+    }
+
+    private async Task LoadAssignments()
+    {
+        var response = await AttendanceService.GetShiftAssignmentsAsync(0, 200, null, scopeFilter);
+        if (response.IsSuccess)
+        {
+            assignments = response.Data?.Data.ToList() ?? [];
+        }
+    }
+
+    private async Task AssignShiftAsync()
+    {
+        var shift = shifts.FirstOrDefault(x => x.Id == model.ShiftId);
+        if (shift is null)
+        {
+            SetMessage("Select a shift first.", "alert-warning");
+            return;
+        }
+
+        model.CompanyId = shift.CompanyId;
+        model.EffectiveFrom = effectiveFromLocal.ToUniversalTime();
+        model.EffectiveTo = effectiveToLocal?.ToUniversalTime();
+        ClearUnusedTargets();
+
+        isBusy = true;
+        var response = await AttendanceService.AssignShiftAsync(model);
+        if (response.IsSuccess)
+        {
+            SetMessage("Shift assignment saved.", "alert-success");
+            await LoadAssignments();
+        }
+        else
+        {
+            SetMessage(response.Error?.Detail ?? "Unable to save shift assignment.", "alert-danger");
+        }
+
+        isBusy = false;
+    }
+
+    private void ClearUnusedTargets()
+    {
+        if (model.Scope != ShiftAssignmentScope.Employee)
+        {
+            model.EmployeeId = null;
+            selectedEmployee = null;
+        }
+
+        if (model.Scope != ShiftAssignmentScope.Department)
+        {
+            model.DepartmentId = null;
+            selectedDepartment = null;
+        }
+
+        if (model.Scope != ShiftAssignmentScope.Administration)
+        {
+            model.AdministrationId = null;
+            selectedAdministration = null;
+        }
+    }
+
+    private void OnScopeChanged()
+    {
+        ClearUnusedTargets();
+    }
+
+    private async Task OnShiftChangedAsync()
+    {
+        model.EmployeeId = null;
+        selectedEmployee = null;
+        await LoadEmployeesForSelectedShiftAsync();
+    }
+
+    private Task OnAdministrationSelected(AdministrationDto? administration)
+    {
+        selectedAdministration = administration;
+        model.AdministrationId = administration?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnDepartmentSelected(DepartmentDto? department)
+    {
+        selectedDepartment = department;
+        model.DepartmentId = department?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnEmployeeSelected(EmployeeDto? employee)
+    {
+        selectedEmployee = employee;
+        model.EmployeeId = employee?.Id;
+        return Task.CompletedTask;
+    }
+
+    private void SetMessage(string text, string cssClass)
+    {
+        message = text;
+        messageClass = cssClass;
+    }
+
+    private string TargetLabel(ShiftAssignmentDto assignment) => assignment.Scope switch
+    {
+        ShiftAssignmentScope.Employee => EmployeeName(employees.FirstOrDefault(x => x.Id == assignment.EmployeeId) ?? new EmployeeDto { Id = assignment.EmployeeId ?? Guid.Empty }),
+        ShiftAssignmentScope.Department => DepartmentName(departments.FirstOrDefault(x => x.Id == assignment.DepartmentId) ?? new DepartmentDto { Id = assignment.DepartmentId ?? Guid.Empty, Name = "Department" }),
+        ShiftAssignmentScope.Administration => AdminName(administrations.FirstOrDefault(x => x.Id == assignment.AdministrationId) ?? new AdministrationDto { Id = assignment.AdministrationId ?? Guid.Empty, Name = "Administration" }),
+        _ => "Company"
+    };
+
+    private string ShiftName(Guid shiftId) => shifts.FirstOrDefault(x => x.Id == shiftId)?.Name ?? shiftId.ToString()[..8];
+    private static string EmployeeName(EmployeeDto employee) => !string.IsNullOrWhiteSpace(employee.FullName) ? employee.FullName : employee.Id.ToString()[..8];
+    private static string DepartmentName(DepartmentDto department) => !string.IsNullOrWhiteSpace(department.Name) ? department.Name : department.Id.ToString()[..8];
+    private static string AdminName(AdministrationDto administration) => !string.IsNullOrWhiteSpace(administration.Name) ? administration.Name : administration.Id.ToString()[..8];
+    private static string EmployeeSearchText(EmployeeDto employee) => $"{EmployeeName(employee)} | {employee.Code} | {employee.EmployeeNo} | {employee.Email}";
+    private static string DepartmentSearchText(DepartmentDto department) => $"{DepartmentName(department)} | {department.Code}";
+    private static string AdministrationSearchText(AdministrationDto administration) => $"{AdminName(administration)} | {administration.Code}";
+    private static string FormatNullable(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "Open";
+}
+
+<style>
+    .shift-page {
+        color: #172033;
+    }
+
+    .shift-header,
+    .panel-title,
+    .action-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+    }
+
+    .shift-header {
+        margin-bottom: 1rem;
+    }
+
+    .shift-header h1 {
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 700;
+    }
+
+    .eyebrow {
+        margin: 0 0 .25rem;
+        color: #65758b;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+
+    .shift-panel {
+        background: #fff;
+        border: 1px solid #e5e9f0;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, .04);
+    }
+
+    .panel-title {
+        margin-bottom: .75rem;
+    }
+
+    .panel-title h2 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .panel-title span {
+        color: #65758b;
+        font-size: .9rem;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .75rem;
+    }
+
+    .form-grid label {
+        display: grid;
+        gap: .35rem;
+        color: #526174;
+        font-size: .9rem;
+        font-weight: 600;
+    }
+
+    .form-grid small {
+        font-weight: 500;
+    }
+
+    .action-row {
+        justify-content: flex-start;
+        margin-top: 1rem;
+    }
+
+    .scope-filter {
+        max-width: 180px;
+    }
+
+    @@media (max-width: 760px) {
+        .shift-header,
+        .panel-title {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .scope-filter {
+            max-width: none;
+        }
+    }
+</style>

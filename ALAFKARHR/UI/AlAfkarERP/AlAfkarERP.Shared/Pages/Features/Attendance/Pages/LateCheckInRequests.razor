@@ -1,0 +1,328 @@
+@layout AdminLayout
+@page "/Attendance/LateRequests"
+
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Attendance.Enums
+
+@inject IAttendanceService AttendanceService
+
+<section class="requests-page">
+    <div class="requests-header">
+        <div>
+            <p class="eyebrow">Attendance</p>
+            <h1>Late check-in requests</h1>
+        </div>
+        <div class="header-actions">
+            <select class="form-select" @bind="statusFilter">
+                <option value="">All statuses</option>
+                <option value="@AttendanceExceptionStatus.Pending">Pending</option>
+                <option value="@AttendanceExceptionStatus.Approved">Approved</option>
+                <option value="@AttendanceExceptionStatus.Rejected">Rejected</option>
+            </select>
+            <button class="btn btn-outline-primary" @onclick="LoadRequests">
+                <i class="bi bi-arrow-clockwise"></i>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @messageClass">@message</div>
+    }
+
+    <section class="requests-panel">
+        @if (isLoading)
+        {
+            <div class="empty-state">Loading requests...</div>
+        }
+        else if (!requests.Any())
+        {
+            <div class="empty-state">No late check-in requests found.</div>
+        }
+        else
+        {
+            <div class="request-list">
+                @foreach (var request in requests)
+                {
+                    var review = GetReviewState(request);
+                    <article class="request-card">
+                        <div class="request-main">
+                            <div>
+                                <div class="request-title">Employee @ShortId(request.EmployeeId)</div>
+                                <div class="request-meta">
+                                    Requested @request.RequestedCheckInTimeUtc.ToLocalTime().ToString("g")
+                                    <span>Shift @request.ShiftStart.ToLocalTime().ToString("g") - @request.ShiftEnd.ToLocalTime().ToString("g")</span>
+                                </div>
+                            </div>
+                            <span class="badge @StatusClass(request.Status)">@request.Status</span>
+                        </div>
+
+                        <p class="reason">@request.Reason</p>
+
+                        @if (request.Status == AttendanceExceptionStatus.Pending)
+                        {
+                            <div class="review-grid">
+                                <label>
+                                    Registered check-in time
+                                    <input class="form-control" type="datetime-local" @bind="review.RegisteredLocal" />
+                                </label>
+                                <label>
+                                    Manager note
+                                    <input class="form-control" @bind="review.ManagerNote" />
+                                </label>
+                            </div>
+                            <div class="action-row">
+                                <button class="btn btn-success" @onclick="() => ReviewAsync(request, true)" disabled="@isBusy">
+                                    <i class="bi bi-check2-circle"></i>
+                                    Approve
+                                </button>
+                                <button class="btn btn-outline-danger" @onclick="() => ReviewAsync(request, false)" disabled="@isBusy">
+                                    <i class="bi bi-x-circle"></i>
+                                    Reject
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="reviewed">
+                                <span>Registered: @FormatNullable(request.RegisteredCheckInTimeUtc)</span>
+                                <span>Reviewed: @FormatNullable(request.ReviewedAt)</span>
+                                @if (!string.IsNullOrWhiteSpace(request.ManagerNote))
+                                {
+                                    <span>Note: @request.ManagerNote</span>
+                                }
+                            </div>
+                        }
+                    </article>
+                }
+            </div>
+        }
+    </section>
+</section>
+
+@code {
+    private List<LateCheckInRequestDto> requests = [];
+    private readonly Dictionary<Guid, LateReviewState> reviewStates = new();
+    private AttendanceExceptionStatus? statusFilter = AttendanceExceptionStatus.Pending;
+    private bool isLoading;
+    private bool isBusy;
+    private string? message;
+    private string messageClass = "alert-info";
+
+    protected override async Task OnInitializedAsync() => await LoadRequests();
+
+    private async Task LoadRequests()
+    {
+        isLoading = true;
+        message = null;
+
+        var response = await AttendanceService.GetLateCheckInRequestsAsync(0, 100, statusFilter);
+        if (response.IsSuccess)
+        {
+            requests = response.Data?.Data.ToList() ?? [];
+            foreach (var request in requests.Where(x => x.Status == AttendanceExceptionStatus.Pending))
+            {
+                _ = GetReviewState(request);
+            }
+        }
+        else
+        {
+            SetMessage(response.Error?.Detail ?? "Unable to load late requests.", "alert-danger");
+        }
+
+        isLoading = false;
+    }
+
+    private LateReviewState GetReviewState(LateCheckInRequestDto request)
+    {
+        if (!reviewStates.TryGetValue(request.Id, out var state))
+        {
+            state = new LateReviewState
+            {
+                RegisteredLocal = request.RequestedCheckInTimeUtc.ToLocalTime(),
+                ManagerNote = ""
+            };
+            reviewStates[request.Id] = state;
+        }
+
+        return state;
+    }
+
+    private async Task ReviewAsync(LateCheckInRequestDto request, bool approve)
+    {
+        isBusy = true;
+        var reviewState = GetReviewState(request);
+
+        var response = await AttendanceService.ReviewLateCheckInRequestAsync(new ReviewLateCheckInRequestDto
+        {
+            RequestId = request.Id,
+            IsApproved = approve,
+            RegisteredCheckInTimeUtc = approve ? reviewState.RegisteredLocal.ToUniversalTime() : null,
+            ManagerNote = reviewState.ManagerNote
+        });
+
+        if (response.IsSuccess)
+        {
+            SetMessage(approve ? "Late check-in approved." : "Late check-in rejected.", "alert-success");
+            await LoadRequests();
+        }
+        else
+        {
+            SetMessage(response.Error?.Detail ?? "Unable to review request.", "alert-danger");
+        }
+
+        isBusy = false;
+    }
+
+    private void SetMessage(string text, string cssClass)
+    {
+        message = text;
+        messageClass = cssClass;
+    }
+
+    private static string ShortId(Guid id) => id.ToString()[..8];
+    private static string FormatNullable(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "-";
+
+    private static string StatusClass(AttendanceExceptionStatus status) => status switch
+    {
+        AttendanceExceptionStatus.Pending => "text-bg-warning",
+        AttendanceExceptionStatus.Approved => "text-bg-success",
+        AttendanceExceptionStatus.Rejected => "text-bg-danger",
+        _ => "text-bg-light"
+    };
+
+    private sealed class LateReviewState
+    {
+        public DateTime RegisteredLocal { get; set; }
+        public string? ManagerNote { get; set; }
+    }
+}
+
+<style>
+    .requests-page {
+        color: #172033;
+    }
+
+    .requests-header,
+    .request-main,
+    .action-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+    }
+
+    .requests-header {
+        margin-bottom: 1rem;
+    }
+
+    .requests-header h1 {
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 700;
+    }
+
+    .eyebrow {
+        margin: 0 0 .25rem;
+        color: #65758b;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: .5rem;
+        min-width: 320px;
+    }
+
+    .requests-panel,
+    .request-card {
+        background: #fff;
+        border: 1px solid #e5e9f0;
+        border-radius: 8px;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, .04);
+    }
+
+    .requests-panel {
+        padding: 1rem;
+    }
+
+    .request-list {
+        display: grid;
+        gap: .75rem;
+    }
+
+    .request-card {
+        padding: 1rem;
+    }
+
+    .request-title {
+        font-weight: 700;
+    }
+
+    .request-meta,
+    .reviewed {
+        color: #65758b;
+        font-size: .88rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75rem;
+    }
+
+    .reason {
+        margin: .75rem 0;
+        padding: .75rem;
+        background: #f8fafc;
+        border-radius: 8px;
+    }
+
+    .review-grid {
+        display: grid;
+        grid-template-columns: minmax(240px, .5fr) minmax(0, 1fr);
+        gap: .75rem;
+    }
+
+    .review-grid label {
+        display: grid;
+        gap: .35rem;
+        color: #526174;
+        font-size: .9rem;
+        font-weight: 600;
+    }
+
+    .action-row {
+        justify-content: flex-start;
+        margin-top: .75rem;
+    }
+
+    .empty-state {
+        padding: 2rem;
+        color: #65758b;
+        text-align: center;
+    }
+
+    @@media (max-width: 760px) {
+        .requests-header,
+        .request-main,
+        .header-actions {
+            display: block;
+        }
+
+        .header-actions {
+            min-width: 0;
+            margin-top: .75rem;
+        }
+
+        .header-actions .btn {
+            margin-top: .5rem;
+            width: 100%;
+        }
+
+        .review-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

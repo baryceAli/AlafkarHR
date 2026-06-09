@@ -16,8 +16,6 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
         StartAttendanceSessionCommand request,
         CancellationToken cancellationToken)
     {
-        var shiftWindow = await ResolveShiftWindowAsync(request.Session, cancellationToken);
-
         var employee = await sender.Send(
             new GetEmployeeAttendanceProfileQuery(request.Session.EmployeeId),
             cancellationToken);
@@ -26,6 +24,8 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
         {
             throw new BadRequestException("Inactive employees cannot start attendance sessions.");
         }
+
+        var shiftWindow = await ResolveShiftWindowAsync(request.Session, employee, cancellationToken);
 
         var hasActiveSession = await dbContext.AttendanceSessions.AnyAsync(
             x => x.EmployeeId == request.Session.EmployeeId
@@ -72,9 +72,16 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
         return new StartAttendanceSessionResult(session.Adapt<AttendanceSessionDto>());
     }
 
-    private async Task<ShiftWindow> ResolveShiftWindowAsync(StartAttendanceSessionDto session, CancellationToken cancellationToken)
+    private async Task<ShiftWindow> ResolveShiftWindowAsync(
+        StartAttendanceSessionDto session,
+        GetEmployeeAttendanceProfileResult employee,
+        CancellationToken cancellationToken)
     {
-        if (!session.ShiftId.HasValue)
+        var workDateUtc = session.ShiftStart == default ? DateTime.UtcNow : DateTime.SpecifyKind(session.ShiftStart, DateTimeKind.Utc);
+        var assignedShiftId = await ResolveAssignedShiftIdAsync(employee, workDateUtc, cancellationToken);
+        var effectiveShiftId = assignedShiftId ?? session.ShiftId;
+
+        if (!effectiveShiftId.HasValue)
         {
             return new ShiftWindow(
                 null,
@@ -86,10 +93,9 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
 
         var shift = await dbContext.Shifts
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == session.ShiftId.Value, cancellationToken)
-            ?? throw new NotFoundException("Shift", session.ShiftId.Value);
+            .FirstOrDefaultAsync(x => x.Id == effectiveShiftId.Value, cancellationToken)
+            ?? throw new NotFoundException("Shift", effectiveShiftId.Value);
 
-        var workDateUtc = session.ShiftStart == default ? DateTime.UtcNow : session.ShiftStart;
         var shiftStart = shift.BuildShiftStart(workDateUtc);
         var shiftEnd = shift.BuildShiftEnd(workDateUtc);
 
@@ -100,6 +106,44 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
             shift.LateAfter(shiftStart),
             shift.ProhibitCheckInAfter(shiftStart));
     }
+
+    private async Task<Guid?> ResolveAssignedShiftIdAsync(
+        GetEmployeeAttendanceProfileResult employee,
+        DateTime workDateUtc,
+        CancellationToken cancellationToken)
+    {
+        var assignments = await dbContext.EmployeeShifts
+            .AsNoTracking()
+            .Where(x => x.IsActive
+                && !x.IsDeleted
+                && x.EffectiveFrom <= workDateUtc
+                && (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= workDateUtc)
+                && (
+                    (x.Scope == ShiftAssignmentScope.Employee && x.EmployeeId == employee.EmployeeId)
+                    || (x.Scope == ShiftAssignmentScope.Department && employee.DepartmentId.HasValue && x.DepartmentId == employee.DepartmentId.Value)
+                    || (x.Scope == ShiftAssignmentScope.Administration && x.AdministrationId == employee.AdministrationId)
+                    || (x.Scope == ShiftAssignmentScope.Company && x.CompanyId == employee.CompanyId)))
+            .Select(x => new ShiftAssignmentCandidate(
+                x.ShiftId,
+                x.Scope,
+                x.EffectiveFrom))
+            .ToListAsync(cancellationToken);
+
+        return assignments
+            .OrderByDescending(x => Priority(x.Scope))
+            .ThenByDescending(x => x.EffectiveFrom)
+            .Select(x => (Guid?)x.ShiftId)
+            .FirstOrDefault();
+    }
+
+    private static int Priority(ShiftAssignmentScope scope) => scope switch
+    {
+        ShiftAssignmentScope.Employee => 4,
+        ShiftAssignmentScope.Department => 3,
+        ShiftAssignmentScope.Administration => 2,
+        ShiftAssignmentScope.Company => 1,
+        _ => 0
+    };
 
     private async Task ValidateShiftCheckInWindowAsync(
         Guid employeeId,
@@ -187,4 +231,9 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
         DateTime ShiftEnd,
         DateTime? LateAfterUtc,
         DateTime? ProhibitCheckInAfterUtc);
+
+    private sealed record ShiftAssignmentCandidate(
+        Guid ShiftId,
+        ShiftAssignmentScope Scope,
+        DateTime EffectiveFrom);
 }

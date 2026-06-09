@@ -1,0 +1,320 @@
+@layout AdminLayout
+@page "/Attendance/Shifts"
+
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Organization.Dtos
+
+@inject IAttendanceService AttendanceService
+@inject ICompanyService CompanyService
+
+<section class="shift-page">
+    <div class="shift-header">
+        <div>
+            <p class="eyebrow">Attendance</p>
+            <h1>Shifts</h1>
+        </div>
+        <button class="btn btn-outline-primary" @onclick="LoadData" disabled="@isBusy">
+            <i class="bi bi-arrow-clockwise"></i>
+            Refresh
+        </button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @messageClass">@message</div>
+    }
+
+    <section class="shift-panel">
+        <div class="panel-title">
+            <h2>Create shift</h2>
+            <span>Define the working window and check-in cutoffs.</span>
+        </div>
+
+        <div class="form-grid">
+            <label>
+                Company
+                <AutoCompleteComponent TItem="CompanyDto"
+                                       Items="companies"
+                                       ItemText="CompanySearchText"
+                                       Value="selectedCompany"
+                                       PlaceHolder="Search company by name or code"
+                                       ValueChanged="OnCompanySelected" />
+            </label>
+            <label>
+                Shift name
+                <input class="form-control" @bind="model.Name" placeholder="Morning shift" />
+            </label>
+            <label>
+                Beginning time
+                <input class="form-control" type="time" @bind="startTime" />
+            </label>
+            <label>
+                End time
+                <input class="form-control" type="time" @bind="endTime" />
+            </label>
+            <label>
+                Grace period minutes
+                <input class="form-control" type="number" min="0" @bind="model.GracePeriodMinutes" />
+            </label>
+            <label>
+                Consider late after minutes
+                <input class="form-control" type="number" min="0" @bind="model.LateAfterMinutes" />
+            </label>
+            <label>
+                Prohibit check-in after minutes
+                <input class="form-control" type="number" min="0" @bind="model.ProhibitCheckInAfterMinutes" />
+            </label>
+            <label>
+                Break minutes
+                <input class="form-control" type="number" min="0" @bind="model.BreakMinutes" />
+            </label>
+        </div>
+
+        <div class="action-row">
+            <button class="btn btn-primary" @onclick="CreateShiftAsync" disabled="@isBusy">
+                <i class="bi bi-plus-circle"></i>
+                Create shift
+            </button>
+        </div>
+    </section>
+
+    <section class="shift-panel mt-3">
+        <div class="panel-title">
+            <h2>Existing shifts</h2>
+            <span>@shifts.Count shift(s)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Company</th>
+                        <th>Time</th>
+                        <th>Late after</th>
+                        <th>Prohibit after</th>
+                        <th>Break</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var shift in shifts)
+                    {
+                        <tr>
+                            <td>@shift.Name</td>
+                            <td>@CompanyName(shift.CompanyId)</td>
+                            <td>@shift.StartTime.ToString(@"hh\:mm") - @shift.EndTime.ToString(@"hh\:mm")</td>
+                            <td>@shift.LateAfterMinutes min</td>
+                            <td>@shift.ProhibitCheckInAfterMinutes min</td>
+                            <td>@shift.BreakMinutes min</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+
+@code {
+    private CreateShiftDto model = NewShift();
+    private List<ShiftDto> shifts = [];
+    private List<CompanyDto> companies = [];
+    private CompanyDto? selectedCompany;
+    private TimeOnly startTime = new(8, 0);
+    private TimeOnly endTime = new(17, 0);
+    private bool isBusy;
+    private string? message;
+    private string messageClass = "alert-info";
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        isBusy = true;
+        await LoadCompanies();
+        await LoadShifts();
+        isBusy = false;
+    }
+
+    private async Task LoadCompanies()
+    {
+        var result = await CompanyService.GetAsync(0, 5000);
+        if (result.IsSuccess)
+        {
+            companies = result.Data?.Items.ToList() ?? [];
+            selectedCompany ??= companies.FirstOrDefault();
+            if (selectedCompany is not null)
+            {
+                model.CompanyId = selectedCompany.Id;
+            }
+        }
+    }
+
+    private async Task LoadShifts()
+    {
+        var result = await AttendanceService.GetShiftsAsync();
+        if (result.IsSuccess)
+        {
+            shifts = result.Data ?? [];
+        }
+    }
+
+    private Task OnCompanySelected(CompanyDto? company)
+    {
+        selectedCompany = company;
+        model.CompanyId = company?.Id ?? Guid.Empty;
+        return Task.CompletedTask;
+    }
+
+    private async Task CreateShiftAsync()
+    {
+        if (selectedCompany is null || model.CompanyId == Guid.Empty)
+        {
+            SetMessage("Select a company first.", "alert-warning");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(model.Name))
+        {
+            SetMessage("Shift name is required.", "alert-warning");
+            return;
+        }
+
+        if (model.ProhibitCheckInAfterMinutes < model.LateAfterMinutes)
+        {
+            SetMessage("Prohibit check-in time must be after or equal to late time.", "alert-warning");
+            return;
+        }
+
+        model.StartTime = startTime.ToTimeSpan();
+        model.EndTime = endTime.ToTimeSpan();
+
+        isBusy = true;
+        var result = await AttendanceService.CreateShiftAsync(model);
+        if (result.IsSuccess)
+        {
+            SetMessage("Shift created.", "alert-success");
+            var company = selectedCompany;
+            model = NewShift();
+            selectedCompany = company;
+            if (selectedCompany is not null)
+            {
+                model.CompanyId = selectedCompany.Id;
+            }
+
+            startTime = new TimeOnly(8, 0);
+            endTime = new TimeOnly(17, 0);
+            await LoadShifts();
+        }
+        else
+        {
+            SetMessage(result.Error?.Detail ?? "Unable to create shift.", "alert-danger");
+        }
+
+        isBusy = false;
+    }
+
+    private void SetMessage(string text, string cssClass)
+    {
+        message = text;
+        messageClass = cssClass;
+    }
+
+    private static CreateShiftDto NewShift() => new()
+    {
+        GracePeriodMinutes = 15,
+        LateAfterMinutes = 15,
+        ProhibitCheckInAfterMinutes = 120
+    };
+
+    private string CompanyName(Guid companyId) => companies.FirstOrDefault(x => x.Id == companyId)?.Name ?? companyId.ToString()[..8];
+    private static string CompanySearchText(CompanyDto company) => $"{company.Name} | {company.NameEng} | {company.Code}";
+}
+
+<style>
+    .shift-page {
+        color: #172033;
+    }
+
+    .shift-header,
+    .panel-title,
+    .action-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+    }
+
+    .shift-header {
+        margin-bottom: 1rem;
+    }
+
+    .shift-header h1 {
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 700;
+    }
+
+    .eyebrow {
+        margin: 0 0 .25rem;
+        color: #65758b;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+
+    .shift-panel {
+        background: #fff;
+        border: 1px solid #e5e9f0;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, .04);
+    }
+
+    .panel-title {
+        margin-bottom: .75rem;
+    }
+
+    .panel-title h2 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .panel-title span {
+        color: #65758b;
+        font-size: .9rem;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .75rem;
+    }
+
+    .form-grid label {
+        display: grid;
+        gap: .35rem;
+        color: #526174;
+        font-size: .9rem;
+        font-weight: 600;
+    }
+
+    .action-row {
+        justify-content: flex-start;
+        margin-top: 1rem;
+    }
+
+    @@media (max-width: 760px) {
+        .shift-header,
+        .panel-title {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

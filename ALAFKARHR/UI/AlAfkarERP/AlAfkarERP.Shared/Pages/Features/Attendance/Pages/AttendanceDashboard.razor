@@ -1,0 +1,337 @@
+@layout AdminLayout
+@page "/Attendance/Dashboard"
+
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Attendance.Enums
+
+@inject IAttendanceService AttendanceService
+@inject NavigationManager NavigationManager
+
+<section class="attendance-page">
+    <div class="attendance-header">
+        <div>
+            <p class="eyebrow">Attendance</p>
+            <h1>Live attendance dashboard</h1>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline-primary" @onclick="LoadDashboard">
+                <i class="bi bi-arrow-clockwise"></i>
+                Refresh
+            </button>
+            <button class="btn btn-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/MyAttendance")'>
+                <i class="bi bi-person-check"></i>
+                Employee terminal
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="attendance-empty">Loading attendance dashboard...</div>
+    }
+    else if (dashboard is not null)
+    {
+        <div class="metric-grid">
+            <div class="metric-card">
+                <span>Active</span>
+                <strong>@dashboard.ActiveSessions</strong>
+            </div>
+            <div class="metric-card warning">
+                <span>On break</span>
+                <strong>@dashboard.OnBreakSessions</strong>
+            </div>
+            <div class="metric-card success">
+                <span>Completed today</span>
+                <strong>@dashboard.CompletedToday</strong>
+            </div>
+            <div class="metric-card danger">
+                <span>Pending requests</span>
+                <strong>@dashboard.PendingLateCheckInRequests</strong>
+            </div>
+        </div>
+
+        <div class="attendance-layout">
+            <section class="panel">
+                <div class="panel-title">
+                    <h2>Today by attendance type</h2>
+                </div>
+                <div class="type-bars">
+                    <div>
+                        <div class="d-flex justify-content-between">
+                            <span>Fixed location</span>
+                            <strong>@dashboard.FixedLocationSessionsToday</strong>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" style="width:@FixedPercent%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between">
+                            <span>Mobile</span>
+                            <strong>@dashboard.MobileSessionsToday</strong>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-info" style="width:@MobilePercent%"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-title">
+                    <h2>Pending late check-ins</h2>
+                    <button class="btn btn-sm btn-outline-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/LateRequests")'>Review</button>
+                </div>
+                @if (!dashboard.PendingRequests.Any())
+                {
+                    <p class="muted">No pending requests.</p>
+                }
+                else
+                {
+                    <div class="request-list">
+                        @foreach (var request in dashboard.PendingRequests)
+                        {
+                            <div class="request-row">
+                                <div>
+                                    <strong>@ShortId(request.EmployeeId)</strong>
+                                    <span>@request.RequestedCheckInTimeUtc.ToLocalTime().ToString("g")</span>
+                                </div>
+                                <span class="badge text-bg-warning">@request.Status</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+        </div>
+
+        <section class="panel mt-3">
+            <div class="panel-title">
+                <h2>Recent sessions</h2>
+                <button class="btn btn-sm btn-outline-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/Sessions")'>View all</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Hours</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var session in dashboard.RecentSessions)
+                        {
+                            <tr>
+                                <td>@ShortId(session.EmployeeId)</td>
+                                <td>@session.AttendanceType</td>
+                                <td><span class="badge @StatusClass(session.Status)">@session.Status</span></td>
+                                <td>@FormatDate(session.ActualStartTime ?? session.ShiftStart)</td>
+                                <td>@FormatNullable(session.ActualEndTime)</td>
+                                <td>@session.TotalHours</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+</section>
+
+@code {
+    private AttendanceDashboardDto? dashboard;
+    private bool isLoading;
+    private string? errorMessage;
+
+    private int TotalToday => (dashboard?.FixedLocationSessionsToday ?? 0) + (dashboard?.MobileSessionsToday ?? 0);
+    private int FixedPercent => TotalToday == 0 ? 0 : (dashboard!.FixedLocationSessionsToday * 100 / TotalToday);
+    private int MobilePercent => TotalToday == 0 ? 0 : (dashboard!.MobileSessionsToday * 100 / TotalToday);
+
+    protected override async Task OnInitializedAsync() => await LoadDashboard();
+
+    private async Task LoadDashboard()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        var result = await AttendanceService.GetDashboardAsync();
+        if (result.IsSuccess)
+        {
+            dashboard = result.Data;
+        }
+        else
+        {
+            errorMessage = result.Error?.Detail ?? "Unable to load attendance dashboard.";
+        }
+
+        isLoading = false;
+    }
+
+    private static string ShortId(Guid id) => id.ToString()[..8];
+    private static string FormatDate(DateTime value) => value.ToLocalTime().ToString("g");
+    private static string FormatNullable(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "-";
+
+    private static string StatusClass(AttendanceSessionStatus status) => status switch
+    {
+        AttendanceSessionStatus.Active => "text-bg-success",
+        AttendanceSessionStatus.OnBreak => "text-bg-warning",
+        AttendanceSessionStatus.Completed => "text-bg-secondary",
+        _ => "text-bg-light"
+    };
+}
+
+<style>
+    .attendance-page {
+        color: #172033;
+    }
+
+    .attendance-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .attendance-header h1 {
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 700;
+    }
+
+    .eyebrow {
+        margin: 0 0 .25rem;
+        color: #65758b;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: .5rem;
+        flex-wrap: wrap;
+    }
+
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: .75rem;
+        margin-bottom: .75rem;
+    }
+
+    .metric-card,
+    .panel {
+        background: #fff;
+        border: 1px solid #e5e9f0;
+        border-radius: 8px;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, .04);
+    }
+
+    .metric-card {
+        padding: 1rem;
+        border-top: 3px solid #2563eb;
+    }
+
+    .metric-card.warning { border-top-color: #f59e0b; }
+    .metric-card.success { border-top-color: #16a34a; }
+    .metric-card.danger { border-top-color: #dc2626; }
+
+    .metric-card span {
+        color: #65758b;
+        font-size: .85rem;
+    }
+
+    .metric-card strong {
+        display: block;
+        font-size: 2rem;
+        line-height: 1.1;
+        margin-top: .35rem;
+    }
+
+    .attendance-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(320px, .8fr);
+        gap: .75rem;
+    }
+
+    .panel {
+        padding: 1rem;
+    }
+
+    .panel-title {
+        display: flex;
+        justify-content: space-between;
+        gap: .75rem;
+        align-items: center;
+        margin-bottom: .75rem;
+    }
+
+    .panel-title h2 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .type-bars {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .request-list {
+        display: grid;
+        gap: .5rem;
+    }
+
+    .request-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: .75rem;
+        background: #f8fafc;
+        border-radius: 8px;
+    }
+
+    .request-row span,
+    .muted {
+        color: #65758b;
+    }
+
+    .attendance-empty {
+        padding: 2rem;
+        background: #fff;
+        border: 1px solid #e5e9f0;
+        border-radius: 8px;
+        color: #65758b;
+    }
+
+    @@media (max-width: 900px) {
+        .attendance-header,
+        .attendance-layout {
+            display: block;
+        }
+
+        .header-actions,
+        .panel {
+            margin-top: .75rem;
+        }
+
+        .metric-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 560px) {
+        .metric-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
