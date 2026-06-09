@@ -12,9 +12,13 @@
             @* <span class="btn" onclick="()=>{}"><i class="bi bi-plus-square"></i></span> *@
         </span>
 
+              <!--
+              @bind:event="oninput"
+              --> 
+
         <input class=@(SharedDataService.Language =="Ar"?"form-control border-start-0 text-end":"form-control border-start-0 text-start")
-               @bind="SearchText"
-               @bind:event="oninput"
+               value="@searchText"
+               @oninput="OnSearchInput" 
                @onfocus="ShowDropdown"
                @onblur="HideDropdown"
                @onkeydown="OnKeyDown"
@@ -108,7 +112,11 @@
         isOpen = false;
         selectedIndex = -1;
     }
-
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        searchText = e.Value?.ToString() ?? string.Empty;
+        await Filter();
+    }
     private Task Filter()
     {
         var text = searchText?.Trim() ?? string.Empty;

@@ -36,99 +36,120 @@
     return;
 }
 
-<!-- Branches -->
-<h5>@SharedDataService.SelectViewLang("Departments Management", "ادارة الأقسام")</h5>
-
-@* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
-<div>
-    <div class="mb-3">
-        <label for="Products" class="form-label">@(SharedDataService.Language == "Ar" ? "اختر الفرع" : "Select Branch")</label>
-        <AutoCompleteComponent TItem="BranchDto"
-                               Items="branches"
-                               Value="selectedBranch"
-                               ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
-                               ValueChanged="OnBranchSelected">
-        </AutoCompleteComponent>
-    </div>
-</div>
-<div>
-    <div class="mb-3">
-        <label for="Products" class="form-label">@(SharedDataService.Language == "Ar" ? "اختر الإدارة" : "Select Administration")</label>
-        <AutoCompleteComponent TItem="AdministrationDto"
-                               Items="administrations"
-                               Value="selectedAdministration"
-                               ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
-                               ValueChanged="OnAdministrationSelected">
-        </AutoCompleteComponent>
-    </div>
-</div>
-<button class="btn btn-primary mb-3"
-        @onclick="CreateNew"
-        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.DepartmentPermissions.Create}") ? true : false)>
-    <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
-</button>
-
-<div class="card p-3 mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <!--
-
-        Export to xls and pdf
-        <div class="d-flex gap-2">
-
-            <button class="btn btn-success btn-sm" @onclick="ExportToExcel">
-                <i class="bi bi-file-earmark-excel"></i> Excel
-            </button>
-
-            <button class="btn btn-danger btn-sm" @onclick="ExportToPdf">
-                <i class="bi bi-file-earmark-pdf"></i> PDF
-            </button>
-
-        </div>
-        -->
-        <!-- 🔍 Search -->
+<div class="org-list-page" dir="@SharedDataService.PageDirection">
+    <div class="org-list-header mb-4">
         <div>
-            <input class="form-control"
-                   placeholder="Search..."
-                   @bind="searchText" />
+            <div class="text-uppercase text-primary fw-semibold small mb-1">@Text("Organization", "المنظمة")</div>
+            <h3 class="mb-1">@Text("Departments Management", "ادارة الأقسام")</h3>
+            <div class="text-muted">@Text("Manage department structure, heads, locations, and attendance geofence coordinates.", "ادارة الأقسام والرؤساء والمواقع وإحداثيات نطاق الحضور.")</div>
         </div>
-
-        <!--
-
-        🎯 Filter
-        <div class="col-md-3">
-            <select class="form-select" @bind="filterMainBranch">
-                <option value="">All</option>
-                <option value="true">Main Branch</option>
-                <option value="false">Not Main</option>
-            </select>
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-outline-primary" @onclick="LoadDepartments">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+            <button class="btn btn-primary"
+                    @onclick="CreateNew"
+                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.DepartmentPermissions.Create}") ? true : false)>
+                <i class="bi bi-plus-lg"></i>
+                @Text("Create New", "إضافة جديد")
+            </button>
         </div>
-        -->
-        <!-- 📄 Page Size -->
-        <div>
-            @* <select class="form-select" @bind="pageSize"> *@
-            <select class="form-select" @onchange="OnPageSizeChanged">
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-            </select>
-        </div>
-
     </div>
-    <table class="table">
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="org-stat border-primary">
+                <div class="org-stat-icon text-primary"><i class="bi bi-grid-1x2"></i></div>
+                <div>
+                    <div class="text-muted small">@Text("Visible Departments", "الأقسام المعروضة")</div>
+                    <div class="org-stat-value">@departments.Count</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="org-stat border-success">
+                <div class="org-stat-icon text-success"><i class="bi bi-check-circle"></i></div>
+                <div>
+                    <div class="text-muted small">@Text("Active", "النشطة")</div>
+                    <div class="org-stat-value">@departments.Count(d => d.IsActive)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="org-stat border-info">
+                <div class="org-stat-icon text-info"><i class="bi bi-geo-alt-fill"></i></div>
+                <div>
+                    <div class="text-muted small">@Text("With Coordinates", "لديها احداثيات")</div>
+                    <div class="org-stat-value">@departments.Count(HasCoordinates)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="org-toolbar mb-3">
+                <div class="org-selector">
+                    <label class="form-label mb-1">@Text("Select Branch", "اختر الفرع")</label>
+                    <AutoCompleteComponent TItem="BranchDto"
+                                           Items="branches"
+                                           Value="selectedBranch"
+                                           ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                           ValueChanged="OnBranchSelected">
+                    </AutoCompleteComponent>
+                </div>
+                <div class="org-selector">
+                    <label class="form-label mb-1">@Text("Select Administration", "اختر الإدارة")</label>
+                    <AutoCompleteComponent TItem="AdministrationDto"
+                                           Items="administrations"
+                                           Value="selectedAdministration"
+                                           ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                           ValueChanged="OnAdministrationSelected">
+                    </AutoCompleteComponent>
+                </div>
+
+                <div class="org-search">
+                    <i class="bi bi-search"></i>
+                    <input class="form-control"
+                           placeholder="@Text("Search by name...", "بحث بالاسم...")"
+                           @bind="searchText" />
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <label class="text-muted small mb-0">@Text("Rows", "الصفوف")</label>
+                    <select class="form-select org-page-size" @onchange="OnPageSizeChanged" value="@pageSize">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                    </select>
+                </div>
+            </div>
+
+    <div class="table-responsive org-table-wrap">
+    <table class="table org-table align-middle mb-0">
         <thead>
             <tr>
-                <th @onclick="() => Sort(nameof(DepartmentDto.Name))">
-                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
-                    Name
+                <th @onclick="() => Sort(nameof(DepartmentDto.Name))" class="sortable">
+                    @Text("Name", "الاسم")
+                    <i class="@SortIcon(nameof(DepartmentDto.Name))"></i>
                 </th>
-                <th @onclick="() => Sort(nameof(DepartmentDto.NameEng))">NameEng</th>
+                <th @onclick="() => Sort(nameof(DepartmentDto.NameEng))" class="sortable">
+                    @Text("Name (English)", "الاسم بالانجليزية")
+                    <i class="@SortIcon(nameof(DepartmentDto.NameEng))"></i>
+                </th>
                 @* <th @onclick="() => Sort(nameof(AdministrationDto.BranchId))">Branch</th> *@
-                <th @onclick="() => Sort(nameof(DepartmentDto.HeadOfDepartment))">@SharedDataService.SelectViewLang("Head of Dept.", "رئيس القسم")</th>
-                <th @onclick="() => Sort(nameof(DepartmentDto.Location))">Location</th>
-                <th>Longitude</th>
-                <th>Latitude</th>
-                <th>@SharedDataService.SelectViewLang("IsActive?", "فعال؟")</th>
-                <th></th>
+                <th @onclick="() => Sort(nameof(DepartmentDto.HeadOfDepartment))" class="sortable">
+                    @Text("Head of Dept.", "رئيس القسم")
+                    <i class="@SortIcon(nameof(DepartmentDto.HeadOfDepartment))"></i>
+                </th>
+                <th @onclick="() => Sort(nameof(DepartmentDto.Location))" class="sortable">
+                    @Text("Location", "الموقع")
+                    <i class="@SortIcon(nameof(DepartmentDto.Location))"></i>
+                </th>
+                <th>@Text("Coordinates", "الاحداثيات")</th>
+                <th>@Text("Status", "الحالة")</th>
+                <th class="text-end">@Text("Actions", "العمليات")</th>
             </tr>
         </thead>
         <tbody>
@@ -136,94 +157,90 @@
             @if (editingDepartmentId != null)
                 {
                     var dept = departments.FirstOrDefault(d => d.Id == editingDepartmentId);
-                    <tr>
+                    <tr class="org-edit-row">
                         <td colspan="8">
                             <EditForm Model="dept" OnValidSubmit="async () => await SaveDepartment(dept)">
                                 <DataAnnotationsValidator />
                                 @* <ValidationSummary/> *@
-                                <div class="row bg-info-subtle p-3">
+                                <div class="org-edit-panel">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                                        <div>
+                                            <h5 class="mb-1">@Text(isNew ? "Create Department" : "Edit Department", isNew ? "اضافة قسم" : "تعديل القسم")</h5>
+                                            <div class="text-muted small">@Text("Update department identity, head, location, and active state.", "تحديث بيانات القسم والرئيس والموقع والحالة.")</div>
+                                        </div>
+                                        <span class="badge text-bg-light">@Text("Inline Form", "نموذج داخلي")</span>
+                                    </div>
+
+                                <div class="row g-3">
 
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
-                                        <div class="col-sm-10">
+                                    <div class="col-md-6">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
                                             <InputText class="form-control" @bind-Value="dept.Name" />
                                             <ValidationMessage For="() => dept.Name" />
-                                        </div>
                                     </div>
 
                             
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name (En)", "الاسم (En)")</label>
-                                        <div class="col-sm-10">
+                                    <div class="col-md-6">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Name (En)", "الاسم (En)")</label>
                                             <InputText class="form-control" @bind-Value="dept.NameEng" />
                                             <ValidationMessage For="() => dept.NameEng" />
-                                        </div>
                                     </div>
 
                                     
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Head of Department", "رئيس القسم")</label>
-                                        <div class="col-sm-10">
+                                    <div class="col-md-6">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Head of Department", "رئيس القسم")</label>
                                             <AutoCompleteComponent TItem="UserDto"
                                                                    Items="users"
                                                                    Value="manager"
-                                                                   PlaceHolder="search manager ..."
+                                                                   PlaceHolder="@Text("Search manager...", "ابحث عن الرئيس...")"
                                                                    ItemText='(p=> p.UserName)'
                                                                    ValueChanged="OnUserSelected">
                                             </AutoCompleteComponent>
-                                        </div>
                                     </div>
 
 
 
                                     
-                                    <div class="col">
-                                    </div>
-
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Location", "الموقع")</label>
-                                        <div class="col-sm-10">
+                                    <div class="col-md-6">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Location", "الموقع")</label>
                                             <InputText class="form-control" @bind-Value="dept.Location" />
                                             <ValidationMessage For="() => dept.Location" />
-                                        </div>
                                     </div>
 
 
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Longitude", "خط الطول")</label>
-                                        <div class="col-sm-10">
+                                    <div class="col-md-4">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Longitude", "خط الطول")</label>
                                             <InputNumber class="form-control" @bind-Value="dept.Longitude" />
                                             <ValidationMessage For="() => dept.Longitude" />
-                                        </div>
                                     </div>
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Latitude", "خط العرض")</label>
-                                        <div class="col-sm-10">
+                                    <div class="col-md-4">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Latitude", "خط العرض")</label>
                                             <InputNumber class="form-control" @bind-Value="dept.Latitude" />
                                             <ValidationMessage For="() => dept.Latitude" />
-                                        </div>
                                     </div>
 
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Is Active?", "فعال؟")</label>
-                                        <div class="col-sm-10">
+                                    <div class="col-md-4">
+                                        <label class="form-label d-block">@SharedDataService.SelectViewLang("Is Active?", "فعال؟")</label>
+                                        <div class="org-check">
                                             <InputCheckbox class="form-check-input" @bind-Value="dept.IsActive" />
+                                            <span>@Text("Active department", "قسم نشط")</span>
                                         </div>
                                     </div>
 
 
 
-                                    <div class="col">
-                                        <button type="submit" 
-                                            class="btn btn-success btn-sm">@SharedDataService.SelectViewLang("Save","حفظ")</button>
-                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">@SharedDataService.SelectViewLang("Cancel","إلغاء")</button>
+                                    <div class="col-12 d-flex justify-content-end gap-2">
+                                        <button type="button" class="btn btn-outline-secondary" @onclick="CancelEdit">@SharedDataService.SelectViewLang("Cancel","إلغاء")</button>
+                                        <button type="submit"
+                                            class="btn btn-success"><i class="bi bi-check2"></i> @SharedDataService.SelectViewLang("Save","حفظ")</button>
                                     </div>
+                                </div>
                                 </div>
                             </EditForm>
                         </td>
@@ -234,46 +251,242 @@
             {
                 
                 <tr>
-                        <td>@dept.Name</td>
-                        <td>@dept.NameEng</td>
-                        <td>@(users.FirstOrDefault(u => u.Id == dept.HeadOfDepartment)?.UserName ?? "")</td>
-                        <td>@dept.Location</td>
-                        <td>@dept.Longitude</td>
-                        <td>@dept.Latitude</td>
-                        <td>@dept.IsActive</td>
                         <td>
-                            <button class="btn btn-warning btn-sm" 
+                            <div class="fw-semibold">@EmptyValue(dept.Name)</div>
+                            <div class="text-muted small">@EmptyValue(dept.Code)</div>
+                        </td>
+                        <td>@EmptyValue(dept.NameEng)</td>
+                        <td>@EmptyValue(users.FirstOrDefault(u => u.Id == dept.HeadOfDepartment)?.UserName)</td>
+                        <td>@EmptyValue(dept.Location)</td>
+                        <td>
+                            @if (HasCoordinates(dept))
+                            {
+                                <div class="small">@dept.Latitude</div>
+                                <div class="text-muted small">@dept.Longitude</div>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
+                        <td>
+                            <span class="badge rounded-pill @(dept.IsActive ? "text-bg-success" : "text-bg-secondary")">
+                                @(dept.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex justify-content-end gap-2">
+                            <button class="btn btn-outline-warning btn-sm org-action"
                             @onclick="() => EditDepartment(dept)"
-                            disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.DepartmentPermissions.Edit}"))>
-                            @SharedDataService.SelectViewLang("Edit", "تعديل")</button>
-                            <button 
-                                class="btn btn-danger btn-sm" @onclick="() => DeleteDepartment(dept)"
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.DepartmentPermissions.Delete}"))>
-                                @SharedDataService.SelectViewLang("Delete", "حذف")</button>
+                            disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.DepartmentPermissions.Edit}"))
+                            title="@Text("Edit", "تعديل")">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                            <button
+                                class="btn btn-outline-danger btn-sm org-action" @onclick="() => DeleteDepartment(dept)"
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.DepartmentPermissions.Delete}"))
+                                title="@Text("Delete", "حذف")">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            </div>
                         </td>
                     </tr>
                 
                 }
         </tbody>
     </table>
-    <div class="d-flex justify-content-end align-items-center mt-3">
+    </div>
+    <div class="org-pagination">
+        <div class="text-muted small">
+            @Text("Page", "صفحة") @(pageIndex + 1) @Text("of", "من") @Math.Max(TotalPages, 1)
+        </div>
+        <div class="d-flex gap-2">
 
-        <button class="btn btn-sm btn-secondary"
+        <button class="btn btn-sm btn-outline-secondary"
                 @onclick="PrevPage"
-                disabled="@(pageIndex == 1)">
-            Previous
+                disabled="@(pageIndex == 0)">
+            <i class="bi bi-chevron-left"></i>
+            @Text("Previous", "السابق")
         </button>
 
-        <span class="mx-3">Page @(pageIndex + 1) of @TotalPages @(TotalPages == 1 ? "" : "Pages")</span>
-
-        <button class="btn btn-sm btn-secondary"
+        <button class="btn btn-sm btn-outline-secondary"
                 @onclick="NextPage"
-                disabled="@(pageIndex >= TotalPages)">
-            Next
+                disabled="@(pageIndex >= TotalPages - 1)">
+            @Text("Next", "التالي")
+            <i class="bi bi-chevron-right"></i>
         </button>
 
+        </div>
+    </div>
+        </div>
     </div>
 </div>
+
+<style>
+    .org-list-page {
+        max-width: 1400px;
+    }
+
+    .org-list-header {
+        align-items: flex-start;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: space-between;
+    }
+
+    .org-stat {
+        align-items: center;
+        background: #fff;
+        border-left: 4px solid;
+        border-radius: 8px;
+        box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.08);
+        display: flex;
+        gap: 0.875rem;
+        min-height: 88px;
+        padding: 1rem;
+    }
+
+    .org-stat-icon {
+        align-items: center;
+        background: #f8f9fa;
+        border-radius: 8px;
+        display: inline-flex;
+        font-size: 1.35rem;
+        height: 44px;
+        justify-content: center;
+        width: 44px;
+    }
+
+    .org-stat-value {
+        color: #212529;
+        font-size: 1.35rem;
+        font-weight: 700;
+        line-height: 1.15;
+    }
+
+    .org-toolbar {
+        align-items: end;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: space-between;
+    }
+
+    .org-selector {
+        min-width: 240px;
+        width: min(100%, 320px);
+    }
+
+    .org-search {
+        max-width: 360px;
+        position: relative;
+        width: min(100%, 360px);
+    }
+
+    .org-search i {
+        color: #6c757d;
+        left: 0.875rem;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .org-search .form-control {
+        padding-left: 2.5rem;
+    }
+
+    .org-page-size {
+        min-width: 82px;
+    }
+
+    .org-table-wrap {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+    }
+
+    .org-table thead th {
+        background: #f8f9fa;
+        color: #495057;
+        font-size: 0.8125rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .org-table tbody tr:hover {
+        background: #fbfcfe;
+    }
+
+    .org-table .sortable {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .org-table .sortable i {
+        color: #6c757d;
+        font-size: 0.75rem;
+        margin-inline-start: 0.35rem;
+    }
+
+    .org-action {
+        align-items: center;
+        display: inline-flex;
+        height: 32px;
+        justify-content: center;
+        width: 36px;
+    }
+
+    .org-edit-row > td {
+        background: #f8fbff;
+        padding: 1rem;
+    }
+
+    .org-edit-panel {
+        background: #fff;
+        border: 1px solid #dbeafe;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .org-check {
+        align-items: center;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        display: inline-flex;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+    }
+
+    .org-check .form-check-input {
+        margin: 0;
+    }
+
+    .org-pagination {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: space-between;
+        margin-top: 1rem;
+    }
+
+    [dir="rtl"] .org-stat {
+        border-left: 0;
+        border-right: 4px solid;
+    }
+
+    [dir="rtl"] .org-search i {
+        left: auto;
+        right: 0.875rem;
+    }
+
+    [dir="rtl"] .org-search .form-control {
+        padding-left: 0.75rem;
+        padding-right: 2.5rem;
+    }
+</style>
 
 @code {
 
@@ -645,6 +858,15 @@
             sortAscending = true;
         }
     }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private static bool HasCoordinates(DepartmentDto department) => department.Latitude != 0 || department.Longitude != 0;
+
+    private string SortIcon(string column)
+        => sortColumn != column
+            ? "bi bi-arrow-down-up"
+            : sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down";
     #endregion Table helpers
 
     protected override void OnInitialized()

@@ -16,13 +16,15 @@ public class GetByCompanyIdHandler(OrganizationDbContext dbContext)
         // 🔍 Search
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
         {
-            var search = request.PaginationRequest.SearchText.ToLower();
+            var search = request.PaginationRequest.SearchText.Trim();
 
             query = query.Where(b =>
-                b.Name.ToLower().Contains(search) ||
-                b.NameEng.ToLower().Contains(search) ||
-                (b.Email != null && b.Email.ToLower().Contains(search)) ||
-                (b.Phone != null && b.Phone.Contains(search))
+                b.Name.Contains(search) ||
+                b.NameEng.Contains(search) ||
+                b.Code.Contains(search) ||
+                (b.Email != null && b.Email.Contains(search)) ||
+                (b.Phone != null && b.Phone.Contains(search)) ||
+                (b.Location != null && b.Location.Contains(search))
             );
         }
 

@@ -105,7 +105,9 @@
                     <i class="bi bi-search"></i>
                     <input class="form-control"
                            placeholder="@Text("Search by name or email...", "بحث بالاسم او البريد...")"
-                           @bind="searchText" />
+                           @bind="searchText"
+                           @bind:event="oninput"
+                           @onkeydown="OnSearchKeyDown" />
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <label class="text-muted small mb-0">@Text("Rows", "الصفوف")</label>
@@ -246,7 +248,7 @@
                             }
             }
                 
-            @foreach (var branch in ProcessedBranches.Where(b => b.Id != editingBranchId))
+            @foreach (var branch in BranchesForDisplay.Where(b => b.Id != editingBranchId))
             {
                 
                 <tr>
@@ -305,7 +307,7 @@
                 </tr>
                 
             }
-                        @if (!ProcessedBranches.Any() && editingBranchId is null)
+                        @if (!BranchesForDisplay.Any() && editingBranchId is null)
                         {
                             <tr>
                                 <td colspan="7">
@@ -324,6 +326,8 @@
             <div class="branch-pagination">
                 <div class="text-muted small">
                     @Text("Page", "صفحة") @(pageIndex + 1) @Text("of", "من") @Math.Max(TotalPages, 1)
+                    <span class="mx-1">•</span>
+                    @Text("Total", "الإجمالي") @totalCount
                 </div>
                 <div class="d-flex gap-2">
 
@@ -801,11 +805,7 @@
         if (item != null && item.Id != Guid.Empty)
         {
             // existing record → keep it
-            var brRes = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
-            if (brRes.IsSuccess)
-            {
-                branches = brRes.Data?.Data?.ToList() ?? [];
-            }
+            await LoadBranches();
         }
         else
         {
@@ -822,6 +822,7 @@
 
     // Searching
     private string searchText = "";
+    private string appliedSearchText = "";
 
     // Sorting
     private string sortColumn = nameof(BranchDto.Name);
@@ -830,58 +831,52 @@
     // Pagination
     private int pageSize = 5;
     private int pageIndex = 0;
+    private long totalCount;
     private async Task LoadBranches()
     {
-        // var request = new PaginationRequest(pageIndex, pageSize, searchText);
-
-        var response = await BranchService.GetByCompanyIdAsync(companyId, pageIndex, pageSize);//,searchText);
+        var response = await BranchService.GetByCompanyIdAsync(companyId, pageIndex, pageSize, appliedSearchText);
 
         if (response.IsSuccess)
         {
-            // var result = response.Data!.Data;
-
-            // branches = result.Data.ToList();
             branches = response.Data?.Data.ToList() ?? [];
-            // TotalPages = (int)response.Data!.Count;
-            TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
+            totalCount = response.Data?.Count ?? 0;
+            TotalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            if (pageIndex >= TotalPages)
+            {
+                pageIndex = TotalPages - 1;
+                await LoadBranches();
+            }
         }
     }
+
+    private async Task OnSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter")
+        {
+            return;
+        }
+
+        appliedSearchText = searchText.Trim();
+        pageIndex = 0;
+        editingBranchId = null;
+        mapInitializedBranchId = null;
+        await LoadBranches();
+    }
+
     async Task OnPageSizeChanged(ChangeEventArgs e)
     {
         pageSize = int.Parse(e.Value!.ToString()!);
         pageIndex = 0;
         await LoadBranches();
     }
-    private IEnumerable<BranchDto> ProcessedBranches =>
-    branches
-        .Where(b =>
-            string.IsNullOrWhiteSpace(searchText) ||
-            (b.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (b.NameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (b.Email?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
-        )
-
-        .Where(b =>
-            filterMainBranch == null || b.IsMainBranch == filterMainBranch
-        )
-
-        .OrderByDynamic(sortColumn, sortAscending);
+    private IEnumerable<BranchDto> BranchesForDisplay => branches.OrderByDynamic(sortColumn, sortAscending);
 
 
 
-    // Filtering example
-    private bool? filterMainBranch = null;
-    // private long totalCount = 0;
     private int TotalPages = 1;
-    // private int TotalPages =>
-    // (int)Math.Ceiling(
-    //     totalCount/ (double)pageSize);
 
     async Task NextPage()
     {
-        // if (currentPage < TotalPages)
-        //     currentPage++;
-
         if (pageIndex < TotalPages - 1)
         {
             pageIndex++;
@@ -891,9 +886,6 @@
 
     async Task PrevPage()
     {
-        // if (pageIndex > 1)
-        //     pageIndex--;
-        
         if (pageIndex > 0)
         {
             pageIndex--;

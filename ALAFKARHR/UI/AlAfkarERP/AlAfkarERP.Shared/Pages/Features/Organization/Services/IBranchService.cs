@@ -12,5 +12,5 @@ public interface IBranchService
     Task<ApiResult<BranchDto>> GetByIdAsync(Guid Id);
     Task<ApiResult<PaginatedResult<BranchDto>>> GetAsync(int pageIndex, int pageSize);
     //Task<ApiResult<PagedResult<BranchDto>>> GetAsync(Guid companyId ,int pageIndex, int pageSize, string? searchText);
-    Task<ApiResult<PaginatedResult<BranchDto>>> GetByCompanyIdAsync(Guid companyId, int pageIndex, int pageSize);
+    Task<ApiResult<PaginatedResult<BranchDto>>> GetByCompanyIdAsync(Guid companyId, int pageIndex, int pageSize, string? searchText = null);
 }

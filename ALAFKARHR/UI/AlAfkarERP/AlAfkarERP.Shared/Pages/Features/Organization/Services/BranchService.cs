@@ -40,9 +40,12 @@ public class BranchService : BaseApiService, IBranchService
         return await SendAsync<PaginatedResult<BranchDto>>(request, "branchList");
     }
 
-    public async Task<ApiResult<PaginatedResult<BranchDto>>> GetByCompanyIdAsync(Guid companyId, int pageIndex, int pageSize)
+    public async Task<ApiResult<PaginatedResult<BranchDto>>> GetByCompanyIdAsync(Guid companyId, int pageIndex, int pageSize, string? searchText = null)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/GetByCompanyId/{companyId}?PageIndex={pageIndex}&PageSize={pageSize}");
+        var searchQuery = string.IsNullOrWhiteSpace(searchText)
+            ? string.Empty
+            : $"&SearchText={Uri.EscapeDataString(searchText.Trim())}";
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/GetByCompanyId/{companyId}?PageIndex={pageIndex}&PageSize={pageSize}{searchQuery}");
         return await SendAsync<PaginatedResult<BranchDto>>(request, "branchList");
     }
 
