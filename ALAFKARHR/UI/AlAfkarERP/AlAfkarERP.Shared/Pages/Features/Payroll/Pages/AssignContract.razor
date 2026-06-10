@@ -1,0 +1,221 @@
+@layout AdminLayout
+@page "/Payroll/AssignContract"
+
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.Payroll.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Payroll.Dtos
+@using SharedWithUI.Permissions
+
+@inject IPayrollService PayrollService
+@inject IEmployeeService EmployeeService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (AuthState is not null && !CanView)
+{
+    <div class="alert alert-warning">
+        @Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")
+    </div>
+    return;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="text-black mb-0">@Text("Assign Contract To Employee", "تعيين عقد للموظف")</h5>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="border rounded p-3 bg-light">
+            <EditForm Model="assignment" OnValidSubmit="SaveAssignment">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label class="form-label">@Text("Employee", "الموظف")</label>
+                    <InputSelect class="form-select" @bind-Value="assignment.EmployeeId">
+                        <option value="@Guid.Empty">@Text("Select employee", "اختر الموظف")</option>
+                        @foreach (var employee in employees)
+                        {
+                            <option value="@employee.Id">@EmployeeName(employee)</option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">@Text("Contract", "العقد")</label>
+                    <InputSelect class="form-select" @bind-Value="assignment.ContractId">
+                        <option value="@Guid.Empty">@Text("Select contract", "اختر العقد")</option>
+                        @foreach (var contract in contracts)
+                        {
+                            <option value="@contract.Id">@ContractName(contract)</option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">@Text("Effective From", "تاريخ السريان")</label>
+                    <InputDate class="form-control" @bind-Value="assignment.EffectiveFrom" />
+                </div>
+
+                <button type="submit" class="btn btn-primary" disabled="@(!CanCreate || isBusy)">
+                    <i class="bi bi-check2"></i> @Text("Assign Contract", "تعيين العقد")
+                </button>
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="border rounded p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">@Text("Assigned Contracts", "العقود المعينة")</h6>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="LoadAssignments" disabled="@isBusy">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>@Text("Employee", "الموظف")</th>
+                        <th>@Text("Contract", "العقد")</th>
+                        <th>@Text("Effective From", "تاريخ السريان")</th>
+                        <th>@Text("Status", "الحالة")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in assignments)
+                    {
+                        <tr>
+                            <td>@EmployeeName(item.EmployeeId)</td>
+                            <td>@ContractName(item.ContractId)</td>
+                            <td>@item.EffectiveFrom.ToString("yyyy-MM-dd")</td>
+                            <td>
+                                <span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">
+                                    @(item.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    private AuthenticationState? AuthState;
+    private Guid companyId;
+    private bool isBusy;
+    private EmployeeContractDto assignment = new();
+    private List<EmployeeDto> employees = [];
+    private List<ContractDto> contracts = [];
+    private List<EmployeeContractDto> assignments = [];
+
+    private bool CanView => HasPermission(PermissionList.PayrollContractPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.PayrollContractPermissions.Create);
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+        assignment = NewAssignment();
+        await LoadLookups();
+        await LoadAssignments();
+    }
+
+    private EmployeeContractDto NewAssignment() => new()
+    {
+        CompanyId = companyId,
+        EffectiveFrom = DateTime.Today
+    };
+
+    private async Task LoadLookups()
+    {
+        var employeeResult = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 500);
+        if (employeeResult.IsSuccess)
+        {
+            employees = employeeResult.Data?.Data?.Where(x => x.IsActive).ToList() ?? [];
+        }
+
+        var contractResult = await PayrollService.GetContractsByCompanyAsync(companyId, 0, 500);
+        if (contractResult.IsSuccess)
+        {
+            contracts = contractResult.Data?.Data?.ToList() ?? [];
+        }
+    }
+
+    private async Task LoadAssignments()
+    {
+        var result = await PayrollService.GetEmployeeContractsByCompanyAsync(companyId, 0, 500);
+        if (result.IsSuccess)
+        {
+            assignments = result.Data?.Data?.ToList() ?? [];
+        }
+        else
+        {
+            ShowToast(result.Error?.Detail ?? "Unable to load assignments", "error");
+        }
+    }
+
+    private async Task SaveAssignment()
+    {
+        if (assignment.EmployeeId == Guid.Empty || assignment.ContractId == Guid.Empty)
+        {
+            ShowToast(Text("Select employee and contract", "اختر الموظف والعقد"), "warning");
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            assignment.CompanyId = companyId;
+            var result = await PayrollService.AssignEmployeeContractAsync(assignment);
+            if (result.IsSuccess)
+            {
+                ShowToast(Text("Contract assigned", "تم تعيين العقد"), "success");
+                assignment = NewAssignment();
+                await LoadAssignments();
+            }
+            else
+            {
+                ShowToast(result.Error?.Detail ?? "Unable to assign contract", "error");
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private string EmployeeName(Guid employeeId)
+        => EmployeeName(employees.FirstOrDefault(x => x.Id == employeeId));
+
+    private string EmployeeName(EmployeeDto? employee)
+        => employee is null ? string.Empty : Text(employee.FullNameEng, employee.FullName);
+
+    private string ContractName(Guid contractId)
+        => ContractName(contracts.FirstOrDefault(x => x.Id == contractId));
+
+    private string ContractName(ContractDto? contract)
+        => contract is null ? string.Empty : Text(contract.NameEng, contract.Name);
+
+    private bool HasPermission(string permission)
+        => AuthState?.User.Claims.Any(c => c.Value == permission) == true;
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private void ShowToast(string message, string type)
+        => ToastService.Show(new ToastMessage { Message = message, Type = type });
+}

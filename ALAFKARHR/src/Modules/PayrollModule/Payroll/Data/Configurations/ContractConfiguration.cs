@@ -21,6 +21,14 @@ public class ContractConfiguration : IEntityTypeConfiguration<Contract>
         builder.Property(x => x.Description)
             .HasMaxLength(1000);
 
+        builder.Property(x => x.TaxPercentage)
+            .HasPrecision(5, 2)
+            .IsRequired();
+
+        builder.Property(x => x.InsurancePercentage)
+            .HasPrecision(5, 2)
+            .IsRequired();
+
         builder.Property(x => x.CompanyId)
             .IsRequired();
 

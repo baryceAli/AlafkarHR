@@ -1,5 +1,3 @@
-using Payroll.Salaries.Features.Contracts.CreateContract;
-
 namespace Payroll.Salaries.Features.Contracts.GetContractById;
 
 public record GetContractByIdResponse(
@@ -7,6 +5,8 @@ public record GetContractByIdResponse(
     string Name,
     string NameEng,
     string? Description,
+    decimal TaxPercentage,
+    decimal InsurancePercentage,
     Guid CompanyId,
     List<ContractItemDto> Items);
 

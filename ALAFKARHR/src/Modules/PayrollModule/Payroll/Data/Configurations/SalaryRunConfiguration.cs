@@ -36,6 +36,26 @@ public class SalaryRunConfiguration : IEntityTypeConfiguration<SalaryRun>
             .HasPrecision(18, 2)
             .IsRequired();
 
+        builder.Property(x => x.TaxPercentage)
+            .HasPrecision(5, 2)
+            .IsRequired();
+
+        builder.Property(x => x.TaxableAmount)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
+        builder.Property(x => x.TaxAmount)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
+        builder.Property(x => x.InsurancePercentage)
+            .HasPrecision(5, 2)
+            .IsRequired();
+
+        builder.Property(x => x.InsuranceAmount)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
         builder.Property(x => x.Status)
             .IsRequired()
             .HasConversion<string>();

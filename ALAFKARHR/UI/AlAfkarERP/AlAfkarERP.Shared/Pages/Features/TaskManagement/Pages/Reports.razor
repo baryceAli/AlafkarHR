@@ -4,58 +4,71 @@
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using SharedWithUI.TaskManagement.Dtos
+@using AlAfkarERP.Shared.Utilities
 
 @inject ITaskManagementService TaskService
 @inject IDepartmentService DepartmentService
+@inject SharedDataService SharedDataService
 
-<h5 class="text-black">Task Reports</h5>
+<section class="task-page" dir="@SharedDataService.PageDirection">
+    <h5 class="text-black">@Text("Task Reports", "تقارير المهام")</h5>
 
-<div class="card p-3 mb-3">
-    <button class="btn btn-primary" @onclick="LoadReports"><i class="bi bi-arrow-repeat"></i> Refresh</button>
-</div>
-
-@if (summary is not null)
-{
-    <div class="row g-3 mb-3">
-        <KpiCard Title="Total" Value="@summary.TotalTasks.ToString()" Icon="bi-list-task" />
-        <KpiCard Title="Open" Value="@summary.OpenTasks.ToString()" Icon="bi-hourglass" />
-        <KpiCard Title="Completed" Value="@summary.CompletedTasks.ToString()" Icon="bi-check-circle" />
-        <KpiCard Title="Overdue" Value="@summary.OverdueTasks.ToString()" Icon="bi-exclamation-circle" />
+    <div class="card p-3 mb-3">
+        <button class="btn btn-primary" @onclick="LoadReports"><i class="bi bi-arrow-repeat"></i> @Text("Refresh", "تحديث")</button>
     </div>
-}
 
-<div class="row g-3">
-    <div class="col-lg-6">
-        <div class="card p-3">
-            <h6>Employee Productivity</h6>
-            @foreach (var item in employeeReport)
-            {
-                <div class="d-flex justify-content-between border-bottom py-2">
-                    <span>@item.UserCode</span>
-                    <span dir="ltr">@item.CompletedTasks / @item.AssignedTasks (@item.CompletionRate%)</span>
-                </div>
-            }
+    @if (summary is not null)
+    {
+        <div class="row g-3 mb-3">
+            <KpiCard Title="@Text("Total", "الإجمالي")" Value="@summary.TotalTasks.ToString()" Icon="bi-list-task" />
+            <KpiCard Title="@Text("Open", "مفتوحة")" Value="@summary.OpenTasks.ToString()" Icon="bi-hourglass" />
+            <KpiCard Title="@Text("Completed", "مكتملة")" Value="@summary.CompletedTasks.ToString()" Icon="bi-check-circle" />
+            <KpiCard Title="@Text("Overdue", "متأخرة")" Value="@summary.OverdueTasks.ToString()" Icon="bi-exclamation-circle" />
+        </div>
+    }
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card p-3">
+                <h6>@Text("Employee Productivity", "إنتاجية الموظفين")</h6>
+                @if (!employeeReport.Any())
+                {
+                    <div class="text-muted">@Text("No employee productivity data.", "لا توجد بيانات لإنتاجية الموظفين.")</div>
+                }
+                @foreach (var item in employeeReport)
+                {
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span>@item.UserCode</span>
+                        <span dir="ltr">@item.CompletedTasks / @item.AssignedTasks (@item.CompletionRate%)</span>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card p-3">
+                <h6>@Text("Department Performance", "أداء الأقسام")</h6>
+                @if (!departmentReport.Any())
+                {
+                    <div class="text-muted">@Text("No department performance data.", "لا توجد بيانات لأداء الأقسام.")</div>
+                }
+                @foreach (var item in departmentReport)
+                {
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span>@DepartmentName(item.DepartmentId)</span>
+                        <span dir="ltr">@Text($"{item.CompletionPercentage}% complete, {item.OverdueTasks} overdue", $"مكتملة {item.CompletionPercentage}%، متأخرة {item.OverdueTasks}")</span>
+                    </div>
+                }
+            </div>
         </div>
     </div>
-    <div class="col-lg-6">
-        <div class="card p-3">
-            <h6>Department Performance</h6>
-            @foreach (var item in departmentReport)
-            {
-                <div class="d-flex justify-content-between border-bottom py-2">
-                    <span>@(departments.FirstOrDefault(d=>d.Id== item.DepartmentId)?.Name??"")</span>
-                    <span dir="ltr">@item.CompletionPercentage% complete, @item.OverdueTasks overdue</span>
-                </div>
-            }
-        </div>
-    </div>
-</div>
+</section>
 
 @code {
     private TaskSummaryReportDto? summary;
     private List<EmployeeProductivityReportDto> employeeReport = [];
     private List<DepartmentPerformanceDto> departmentReport = [];
     private List<DepartmentDto> departments = [];
+
     protected override async Task OnInitializedAsync() => await LoadReports();
 
     private async Task LoadReports()
@@ -71,11 +84,32 @@
         var departmentResponse = await TaskService.GetDepartmentPerformanceReportAsync();
         if (departmentResponse.IsSuccess)
             departmentReport = departmentResponse.Data ?? [];
-    
-    
-        var departmentsResponse = await DepartmentService.GetAsync(0,10000);
+
+        var departmentsResponse = await DepartmentService.GetAsync(0, 10000);
         if (departmentsResponse.IsSuccess)
             departments = departmentsResponse.Data?.Data?.ToList() ?? [];
-    
+    }
+
+    private string DepartmentName(Guid departmentId)
+    {
+        var department = departments.FirstOrDefault(d => d.Id == departmentId);
+        return department is null ? string.Empty : Text(department.NameEng, department.Name);
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }

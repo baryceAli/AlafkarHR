@@ -5,6 +5,8 @@ public record CreateContractRequest(
     string Name,
     string NameEng,
     string? Description,
+    decimal TaxPercentage,
+    decimal InsurancePercentage,
     Guid CompanyId,
     List<ContractItemDto> ContractItems);
 

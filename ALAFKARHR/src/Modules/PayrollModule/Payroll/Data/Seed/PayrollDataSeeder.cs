@@ -10,6 +10,7 @@ public class PayrollDataSeeder : IDataSeeder<PayrollDbContext>
     public Task SeedAllAsync(PayrollDbContext context)
     {
         //if(!await context.salaries.anyasync())
-        throw new NotImplementedException();
+        //throw new NotImplementedException();
+        return Task.CompletedTask;
     }
 }

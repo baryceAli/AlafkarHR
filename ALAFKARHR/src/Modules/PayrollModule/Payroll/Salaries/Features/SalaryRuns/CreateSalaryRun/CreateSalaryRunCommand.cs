@@ -26,6 +26,6 @@ public class CreateSalaryRunCommandValidator : AbstractValidator<CreateSalaryRun
             .GreaterThan(2000).WithMessage("Salary year must be valid");
 
         RuleFor(x => x.BaseSalary)
-            .GreaterThan(0).WithMessage("Base salary must be greater than 0");
+            .GreaterThanOrEqualTo(0).WithMessage("Base salary cannot be negative");
     }
 }

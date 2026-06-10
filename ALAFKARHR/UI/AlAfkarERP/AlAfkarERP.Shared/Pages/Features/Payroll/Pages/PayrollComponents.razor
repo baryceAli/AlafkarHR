@@ -1,0 +1,265 @@
+@layout AdminLayout
+@page "/Payroll/Components"
+
+@using AlAfkarERP.Shared.Pages.Features.Payroll.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Payroll.Dtos
+@using SharedWithUI.Payroll.Enums
+@using SharedWithUI.Permissions
+
+@inject IPayrollService PayrollService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (AuthState is not null && !CanView)
+{
+    <div class="alert alert-warning">
+        @SharedDataService.SelectViewLang("You don't have permissions to view this page", "You don't have permissions to view this page")
+    </div>
+    return;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="text-black mb-0">@SharedDataService.SelectViewLang("Payroll Components", "Payroll Components")</h5>
+    <button class="btn btn-primary" @onclick="ShowCreate" disabled="@(!CanCreate)">
+        <i class="bi bi-plus-lg"></i> @SharedDataService.SelectViewLang("New Component", "New Component")
+    </button>
+</div>
+
+@if (editingComponent is not null)
+{
+    <div class="border rounded p-3 mb-3 bg-light">
+        <EditForm Model="editingComponent" OnValidSubmit="SaveComponent">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Name", "Name")</label>
+                    <InputText class="form-control" @bind-Value="editingComponent.Name" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">@SharedDataService.SelectViewLang("English Name", "English Name")</label>
+                    <InputText class="form-control" @bind-Value="editingComponent.NameEng" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Type", "Type")</label>
+                    <InputSelect class="form-select" @bind-Value="editingComponent.ComponentType">
+                        @foreach (var type in Enum.GetValues<ComponentType>())
+                        {
+                            <option value="@type">@type</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Order", "Order")</label>
+                    <InputNumber class="form-control" @bind-Value="editingComponent.Order" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Description", "Description")</label>
+                    <InputText class="form-control" @bind-Value="editingComponent.Description" />
+                </div>
+                <div class="col-md-2">
+                    <div class="form-check mt-4">
+                        <InputCheckbox class="form-check-input" @bind-Value="editingComponent.IsActive" />
+                        <label class="form-check-label">@SharedDataService.SelectViewLang("Active", "Active")</label>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-check mt-4">
+                        <InputCheckbox class="form-check-input" @bind-Value="editingComponent.IsTaxable" />
+                        <label class="form-check-label">@SharedDataService.SelectViewLang("Taxable", "Taxable")</label>
+                    </div>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button class="btn btn-success btn-sm" type="submit" disabled="@(!CanSaveCurrent)">
+                        <i class="bi bi-check-lg"></i> @SharedDataService.SelectViewLang("Save", "Save")
+                    </button>
+                    <button class="btn btn-secondary btn-sm" type="button" @onclick="CancelEdit">
+                        @SharedDataService.SelectViewLang("Cancel", "Cancel")
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+}
+
+<div class="border rounded p-3">
+    <div class="row g-2 align-items-center mb-3">
+        <div class="col-md-4">
+            <input class="form-control" placeholder="@SharedDataService.SelectViewLang("Search", "Search")" @bind="searchText" @bind:event="oninput" />
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" @onclick="LoadComponents">
+                <i class="bi bi-search"></i> @SharedDataService.SelectViewLang("Search", "Search")
+            </button>
+        </div>
+    </div>
+
+    <table class="table table-sm align-middle">
+        <thead>
+            <tr>
+                <th>@SharedDataService.SelectViewLang("Name", "Name")</th>
+                <th>@SharedDataService.SelectViewLang("Type", "Type")</th>
+                <th>@SharedDataService.SelectViewLang("Order", "Order")</th>
+                <th>@SharedDataService.SelectViewLang("Description", "Description")</th>
+                <th>@SharedDataService.SelectViewLang("Taxable", "Taxable")</th>
+                <th>@SharedDataService.SelectViewLang("Status", "Status")</th>
+                <th style="width: 150px"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in components)
+            {
+                <tr>
+                    <td>
+                        <div>@SharedDataService.SelectViewLang(item.NameEng, item.Name)</div>
+                        <div class="text-muted small">@item.NameEng</div>
+                    </td>
+                    <td><span class="badge text-bg-light">@item.ComponentType</span></td>
+                    <td>@item.Order</td>
+                    <td>@item.Description</td>
+                    <td>
+                        <span class="badge @(item.IsTaxable ? "text-bg-info" : "text-bg-light")">
+                            @(item.IsTaxable ? SharedDataService.SelectViewLang("Taxable", "Taxable") : SharedDataService.SelectViewLang("No", "No"))
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">
+                            @(item.IsActive ? SharedDataService.SelectViewLang("Active", "Active") : SharedDataService.SelectViewLang("Inactive", "Inactive"))
+                        </span>
+                    </td>
+                    <td class="text-end">
+                        <button class="btn btn-warning btn-sm" @onclick="() => EditComponent(item)" disabled="@(!CanEdit)">
+                            @SharedDataService.SelectViewLang("Edit", "Edit")
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteComponent(item)" disabled="@(!CanDelete)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private AuthenticationState? AuthState;
+    private Guid companyId;
+    private string searchText = string.Empty;
+    private ComponentDto? editingComponent;
+    private List<ComponentDto> components = [];
+
+    private bool CanView => HasPermission(PermissionList.PayrollContractPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.PayrollContractPermissions.Create);
+    private bool CanEdit => HasPermission(PermissionList.PayrollContractPermissions.Edit);
+    private bool CanDelete => HasPermission(PermissionList.PayrollContractPermissions.Delete);
+    private bool CanSaveCurrent => editingComponent?.Id == Guid.Empty ? CanCreate : CanEdit;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+        await LoadComponents();
+    }
+
+    private async Task LoadComponents()
+    {
+        var result = await PayrollService.GetComponentsByCompanyAsync(companyId, 0, 500, searchText);
+        if (result.IsSuccess)
+        {
+            components = result.Data?.Data?.ToList() ?? [];
+        }
+        else
+        {
+            ShowToast(result.Error?.Detail ?? "Unable to load payroll components", "error");
+        }
+    }
+
+    private void ShowCreate()
+    {
+        editingComponent = new ComponentDto
+        {
+            CompanyId = companyId,
+            ComponentType = ComponentType.Basic,
+            IsActive = true,
+            Order = components.Count + 1
+        };
+    }
+
+    private void EditComponent(ComponentDto item)
+    {
+        editingComponent = new ComponentDto
+        {
+            Id = item.Id,
+            Name = item.Name,
+            NameEng = item.NameEng,
+            ComponentType = item.ComponentType,
+            IsTaxable = item.IsTaxable,
+            IsActive = item.IsActive,
+            Order = item.Order,
+            Description = item.Description,
+            CompanyId = item.CompanyId
+        };
+    }
+
+    private void CancelEdit()
+    {
+        editingComponent = null;
+    }
+
+    private async Task SaveComponent()
+    {
+        if (editingComponent is null)
+            return;
+
+        editingComponent.CompanyId = companyId;
+        var result = editingComponent.Id == Guid.Empty
+            ? await PayrollService.CreateComponentAsync(editingComponent)
+            : await PayrollService.UpdateComponentAsync(editingComponent);
+
+        if (result.IsSuccess)
+        {
+            ShowToast(SharedDataService.SelectViewLang("Component saved", "Component saved"), "success");
+            editingComponent = null;
+            await LoadComponents();
+        }
+        else
+        {
+            ShowToast(result.Error?.Detail ?? "Unable to save component", "error");
+        }
+    }
+
+    private async Task DeleteComponent(ComponentDto item)
+    {
+        var result = await PayrollService.DeleteComponentAsync(item.Id);
+        if (result.IsSuccess)
+        {
+            ShowToast(SharedDataService.SelectViewLang("Component deleted", "Component deleted"), "success");
+            if (editingComponent?.Id == item.Id)
+            {
+                editingComponent = null;
+            }
+            await LoadComponents();
+        }
+        else
+        {
+            ShowToast(result.Error?.Detail ?? "Unable to delete component", "error");
+        }
+    }
+
+    private bool HasPermission(string permission)
+        => AuthState?.User.Claims.Any(c => c.Value == permission) == true;
+
+    private void ShowToast(string message, string type)
+        => ToastService.Show(new ToastMessage { Message = message, Type = type });
+}

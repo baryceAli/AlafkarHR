@@ -218,6 +218,49 @@ public class MenuItem
                 },
                 new MenuItem
                 {
+                    TextEn = "Payroll",
+                    TextAr = "الرواتب",
+                    Icon = "bi-cash-stack",
+                    Url = "/Payroll/SalaryRuns",
+                    PermissionPolicy = PermissionList.SalaryRunPermissions.Select,
+                    Children = new()
+                    {
+                        new MenuItem
+                        {
+                            TextEn = "Generate Salaries",
+                            TextAr = "توليد الرواتب",
+                            Icon = "bi-calculator",
+                            Url = "/Payroll/SalaryRuns",
+                            PermissionPolicy = PermissionList.SalaryRunPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Salary Contracts",
+                            TextAr = "عقود الرواتب",
+                            Icon = "bi-file-earmark-text",
+                            Url = "/Payroll/Contracts",
+                            PermissionPolicy = PermissionList.PayrollContractPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Assign Contract",
+                            TextAr = "تعيين عقد",
+                            Icon = "bi-person-check",
+                            Url = "/Payroll/AssignContract",
+                            PermissionPolicy = PermissionList.PayrollContractPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Payroll Components",
+                            TextAr = "مكونات الرواتب",
+                            Icon = "bi-sliders",
+                            Url = "/Payroll/Components",
+                            PermissionPolicy = PermissionList.PayrollContractPermissions.View
+                        }
+                    }
+                },
+                new MenuItem
+                {
                     TextEn = "Customers Management",
                     TextAr = "إدارة العملاء",
                     Icon = "bi-person-vcard-fill",

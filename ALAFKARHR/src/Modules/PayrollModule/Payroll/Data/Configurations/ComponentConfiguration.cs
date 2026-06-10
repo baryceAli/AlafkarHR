@@ -22,6 +22,10 @@ public class ComponentConfiguration : IEntityTypeConfiguration<Component>
             .IsRequired()
             .HasConversion<string>();
 
+        builder.Property(x => x.IsTaxable)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         builder.Property(x => x.IsActive)
             .IsRequired()
             .HasDefaultValue(true);

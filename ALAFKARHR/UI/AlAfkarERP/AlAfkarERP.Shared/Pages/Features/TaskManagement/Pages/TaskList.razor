@@ -16,84 +16,92 @@
 
 @if (!CanView)
 {
-    <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+    <div class="alert alert-warning" dir="@SharedDataService.PageDirection">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
     return;
 }
 
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <h5 class="text-black mb-0">@SharedDataService.SelectViewLang("Task List", "قائمة المهام")</h5>
-    <button class="btn btn-primary" @onclick='() => NavigationManager.NavigateTo("/TaskManagement/Create")' disabled="@(!CanCreate)">
-        <i class="bi bi-plus-square"></i> @SharedDataService.SelectViewLang("Create New", "إضافة جديد")
-    </button>
-</div>
-
-<div class="card p-3 mb-3">
-    <div class="row g-2 mb-3">
-        <div class="col-md-4">
-            <input class="form-control" placeholder="Search..." @bind="searchText" @bind:event="oninput" />
-        </div>
-        <div class="col-md-3">
-            <select class="form-select" @bind="selectedStatus">
-                <option value="">All statuses</option>
-                @foreach (var status in Enum.GetValues<TaskWorkflowStatus>())
-                {
-                    <option value="@status">@status</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-3">
-            <select class="form-select" @bind="selectedPriority">
-                <option value="">All priorities</option>
-                @foreach (var priority in Enum.GetValues<TaskPriority>())
-                {
-                    <option value="@priority">@priority</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-outline-primary w-100" @onclick="LoadTasks"><i class="bi bi-search"></i></button>
-        </div>
+<div class="task-page" dir="@SharedDataService.PageDirection">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="text-black mb-0">@Text("Task List", "قائمة المهام")</h5>
+        <button class="btn btn-primary" @onclick='() => NavigationManager.NavigateTo("/TaskManagement/Create")' disabled="@(!CanCreate)">
+            <i class="bi bi-plus-square"></i> @Text("Create New", "إضافة جديد")
+        </button>
     </div>
 
-    <table class="table align-middle">
-        <thead>
-            <tr>
-                <th>Number</th>
-                <th>Title</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>Due</th>
-                <th>Progress</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var task in tasks)
-            {
-                <tr>
-                    <td>@task.TaskNumber</td>
-                    <td>@task.Title</td>
-                    <td><span class="badge bg-secondary">@task.Priority</span></td>
-                    <td><span class="badge bg-info text-dark">@task.Status</span></td>
-                    <td>@task.DueDate.ToShortDateString()</td>
-                    <td style="min-width:160px">
-                        <div class="progress">
-                            <div class="progress-bar" style="width:@task.ProgressPercentage%">@task.ProgressPercentage%</div>
-                        </div>
-                    </td>
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/View/{task.Id}")'><i class="bi bi-eye"></i></button>
-                        <button class="btn btn-sm btn-outline-warning" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/Edit/{task.Id}")' disabled="@(!CanEdit)"><i class="bi bi-pencil-square"></i></button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <div class="card p-3 mb-3">
+        <div class="row g-2 mb-3">
+            <div class="col-md-4">
+                <input class="form-control" placeholder="@Text("Search...", "بحث...")" @bind="searchText" @bind:event="oninput" />
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" @bind="selectedStatus">
+                    <option value="">@Text("All statuses", "كل الحالات")</option>
+                    @foreach (var status in Enum.GetValues<TaskWorkflowStatus>())
+                    {
+                        <option value="@status">@StatusText(status)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" @bind="selectedPriority">
+                    <option value="">@Text("All priorities", "كل الأولويات")</option>
+                    @foreach (var priority in Enum.GetValues<TaskPriority>())
+                    {
+                        <option value="@priority">@PriorityText(priority)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-primary w-100" @onclick="LoadTasks"><i class="bi bi-search"></i></button>
+            </div>
+        </div>
 
-    <div class="d-flex justify-content-end align-items-center gap-2">
-        <button class="btn btn-sm btn-secondary" @onclick="PrevPage" disabled="@(pageIndex == 0)">Previous</button>
-        <span>Page @(pageIndex + 1) of @TotalPages</span>
-        <button class="btn btn-sm btn-secondary" @onclick="NextPage" disabled="@(pageIndex >= TotalPages - 1)">Next</button>
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>@Text("Number", "الرقم")</th>
+                    <th>@Text("Title", "العنوان")</th>
+                    <th>@Text("Priority", "الأولوية")</th>
+                    <th>@Text("Status", "الحالة")</th>
+                    <th>@Text("Due", "تاريخ الاستحقاق")</th>
+                    <th>@Text("Progress", "التقدم")</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!tasks.Any())
+                {
+                    <tr>
+                        <td colspan="7" class="text-muted text-center py-4">@Text("No tasks found.", "لا توجد مهام.")</td>
+                    </tr>
+                }
+                @foreach (var task in tasks)
+                {
+                    <tr>
+                        <td>@task.TaskNumber</td>
+                        <td>@task.Title</td>
+                        <td><span class="badge bg-secondary">@PriorityText(task.Priority)</span></td>
+                        <td><span class="badge bg-info text-dark">@StatusText(task.Status)</span></td>
+                        <td>@task.DueDate.ToShortDateString()</td>
+                        <td style="min-width:160px">
+                            <div class="progress">
+                                <div class="progress-bar" style="width:@task.ProgressPercentage%">@task.ProgressPercentage%</div>
+                            </div>
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/View/{task.Id}")'><i class="bi bi-eye"></i></button>
+                            <button class="btn btn-sm btn-outline-warning" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/Edit/{task.Id}")' disabled="@(!CanEdit)"><i class="bi bi-pencil-square"></i></button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="d-flex justify-content-end align-items-center gap-2">
+            <button class="btn btn-sm btn-secondary" @onclick="PrevPage" disabled="@(pageIndex == 0)">@Text("Previous", "السابق")</button>
+            <span>@Text("Page", "صفحة") @(pageIndex + 1) @Text("of", "من") @TotalPages</span>
+            <button class="btn btn-sm btn-secondary" @onclick="NextPage" disabled="@(pageIndex >= TotalPages - 1)">@Text("Next", "التالي")</button>
+        </div>
     </div>
 </div>
 
@@ -154,5 +162,44 @@
             pageIndex--;
             await LoadTasks();
         }
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private string StatusText(TaskWorkflowStatus status) => status switch
+    {
+        TaskWorkflowStatus.Draft => Text("Draft", "مسودة"),
+        TaskWorkflowStatus.Assigned => Text("Assigned", "مسندة"),
+        TaskWorkflowStatus.InProgress => Text("In Progress", "قيد التنفيذ"),
+        TaskWorkflowStatus.OnHold => Text("On Hold", "معلقة"),
+        TaskWorkflowStatus.Completed => Text("Completed", "مكتملة"),
+        TaskWorkflowStatus.Cancelled => Text("Cancelled", "ملغاة"),
+        TaskWorkflowStatus.Overdue => Text("Overdue", "متأخرة"),
+        _ => status.ToString()
+    };
+
+    private string PriorityText(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Low => Text("Low", "منخفضة"),
+        TaskPriority.Normal => Text("Normal", "عادية"),
+        TaskPriority.High => Text("High", "عالية"),
+        TaskPriority.Urgent => Text("Urgent", "عاجلة"),
+        TaskPriority.Critical => Text("Critical", "حرجة"),
+        _ => priority.ToString()
+    };
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }

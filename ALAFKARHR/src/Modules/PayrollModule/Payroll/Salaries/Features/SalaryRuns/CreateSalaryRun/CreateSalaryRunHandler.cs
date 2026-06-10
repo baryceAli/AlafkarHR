@@ -33,6 +33,11 @@ public class CreateSalaryRunHandler(PayrollDbContext dbContext, IHttpContextAcce
             TotalSalary = request.BaseSalary,
             TotalAllowances = 0,
             TotalDeductions = 0,
+            TaxPercentage = 0,
+            TaxableAmount = 0,
+            TaxAmount = 0,
+            InsurancePercentage = 0,
+            InsuranceAmount = 0,
             Status = SalaryRunStatus.Draft,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = userId

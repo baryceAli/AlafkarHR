@@ -14,7 +14,12 @@ public class SalaryRun:Aggregate<Guid>
     public decimal TotalSalary { get; set; }
     public decimal TotalAllowances { get; set; }
     public decimal TotalDeductions { get; set; }
-    public decimal NetSalary => TotalSalary + TotalAllowances - TotalDeductions;
+    public decimal TaxPercentage { get; set; }
+    public decimal TaxableAmount { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal InsurancePercentage { get; set; }
+    public decimal InsuranceAmount { get; set; }
+    public decimal NetSalary => TotalSalary + TotalAllowances - TotalDeductions - TaxAmount;
 
     private readonly List<SalaryRunItem> _salaryRunItems= new();
     public IReadOnlyCollection<SalaryRunItem> SalaryRunItems=> _salaryRunItems;
@@ -32,4 +37,21 @@ public class SalaryRun:Aggregate<Guid>
         _salaryRunItems.Add(SalaryRunItem.Create(Id, itemId, componentType, amount));
     }
 
+    public void UndoGeneration(string modifiedBy)
+    {
+        if (Status != SalaryRunStatus.Calculated)
+            throw new InvalidOperationException("Only calculated salary runs can be undone");
+
+        ClearItems();
+        TotalAllowances = 0;
+        TotalDeductions = 0;
+        TaxPercentage = 0;
+        TaxableAmount = 0;
+        TaxAmount = 0;
+        InsurancePercentage = 0;
+        InsuranceAmount = 0;
+        Status = SalaryRunStatus.Draft;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
 }

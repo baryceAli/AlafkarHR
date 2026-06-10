@@ -3,83 +3,96 @@
 
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
 @using SharedWithUI.TaskManagement.Dtos
 @using SharedWithUI.TaskManagement.Enums
 @using TaskWorkflowStatus = SharedWithUI.TaskManagement.Enums.TaskStatus
 
 @inject ITaskManagementService TaskService
 @inject ToastService ToastService
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
 
-@if (task is null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <div class="d-flex justify-content-between align-items-start mb-3">
-        <div>
-            <h5 class="text-black">@task.Title</h5>
-            <div class="text-muted">@task.TaskNumber</div>
-        </div>
-        <div class="d-flex gap-2">
-            <select class="form-select form-select-sm" @bind="selectedStatus">
-                @foreach (var status in Enum.GetValues<TaskWorkflowStatus>())
-                {
-                    <option value="@status">@status</option>
-                }
-            </select>
-            <button class="btn btn-sm btn-primary" @onclick="ChangeStatus"><i class="bi bi-arrow-repeat"></i></button>
-        </div>
-    </div>
-
-    <div class="row g-3">
-        <div class="col-lg-8">
-            <div class="card p-3 mb-3">
-                <p>@task.Description</p>
-                <div class="row">
-                    <div class="col-md-3"><strong>Priority</strong><div>@task.Priority</div></div>
-                    <div class="col-md-3"><strong>Status</strong><div>@task.Status</div></div>
-                    <div class="col-md-3"><strong>Due</strong><div>@task.DueDate.ToShortDateString()</div></div>
-                    <div class="col-md-3"><strong>Progress</strong><div>@task.ProgressPercentage%</div></div>
-                </div>
-                <div class="mt-3">
-                    <label class="form-label">Progress</label>
-                    <div class="d-flex gap-2">
-                        <InputNumber class="form-control" @bind-Value="progress" />
-                        <button class="btn btn-outline-primary" @onclick="UpdateProgress">Update</button>
-                    </div>
-                </div>
+<div class="task-page" dir="@SharedDataService.PageDirection">
+    @if (task is null)
+    {
+        <p>@Text("Loading...", "جاري التحميل...")</p>
+    }
+    else
+    {
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+                <h5 class="text-black">@task.Title</h5>
+                <div class="text-muted" dir="ltr">@task.TaskNumber</div>
             </div>
-
-            <div class="card p-3">
-                <h6>Comments</h6>
-                <div class="mb-3">
-                    <textarea class="form-control" rows="3" @bind="commentText"></textarea>
-                    <button class="btn btn-sm btn-primary mt-2" @onclick="AddComment"><i class="bi bi-chat-left-text"></i> Add Comment</button>
-                </div>
-                @foreach (var comment in task.Comments.OrderByDescending(x => x.CreatedDate))
-                {
-                    <div class="border-top py-2">
-                        <div>@comment.Comment</div>
-                        <small class="text-muted">@comment.CreatedDate.ToLocalTime()</small>
-                    </div>
-                }
+            <div class="d-flex gap-2">
+                <select class="form-select form-select-sm" @bind="selectedStatus">
+                    @foreach (var status in Enum.GetValues<TaskWorkflowStatus>())
+                    {
+                        <option value="@status">@StatusText(status)</option>
+                    }
+                </select>
+                <button class="btn btn-sm btn-primary" @onclick="ChangeStatus" title="@Text("Change status", "تغيير الحالة")"><i class="bi bi-arrow-repeat"></i></button>
             </div>
         </div>
-        <div class="col-lg-4">
-            <div class="card p-3">
-                <h6>History</h6>
-                @foreach (var history in task.History.OrderByDescending(x => x.ActionDate))
-                {
-                    <div class="border-bottom py-2">
-                        <strong>@history.Action</strong>
-                        <div class="small text-muted">@history.ActionDate.ToLocalTime()</div>
+
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <div class="card p-3 mb-3">
+                    <p>@task.Description</p>
+                    <div class="row">
+                        <div class="col-md-3"><strong>@Text("Priority", "الأولوية")</strong><div>@PriorityText(task.Priority)</div></div>
+                        <div class="col-md-3"><strong>@Text("Status", "الحالة")</strong><div>@StatusText(task.Status)</div></div>
+                        <div class="col-md-3"><strong>@Text("Due", "تاريخ الاستحقاق")</strong><div>@task.DueDate.ToShortDateString()</div></div>
+                        <div class="col-md-3"><strong>@Text("Progress", "التقدم")</strong><div>@task.ProgressPercentage%</div></div>
                     </div>
-                }
+                    <div class="mt-3">
+                        <label class="form-label">@Text("Progress", "التقدم")</label>
+                        <div class="d-flex gap-2">
+                            <InputNumber class="form-control" @bind-Value="progress" />
+                            <button class="btn btn-outline-primary" @onclick="UpdateProgress">@Text("Update", "تحديث")</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-3">
+                    <h6>@Text("Comments", "التعليقات")</h6>
+                    <div class="mb-3">
+                        <textarea class="form-control" rows="3" @bind="commentText"></textarea>
+                        <button class="btn btn-sm btn-primary mt-2" @onclick="AddComment"><i class="bi bi-chat-left-text"></i> @Text("Add Comment", "إضافة تعليق")</button>
+                    </div>
+                    @if (!task.Comments.Any())
+                    {
+                        <div class="text-muted">@Text("No comments yet.", "لا توجد تعليقات بعد.")</div>
+                    }
+                    @foreach (var comment in task.Comments.OrderByDescending(x => x.CreatedDate))
+                    {
+                        <div class="border-top py-2">
+                            <div>@comment.Comment</div>
+                            <small class="text-muted">@comment.CreatedDate.ToLocalTime()</small>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card p-3">
+                    <h6>@Text("History", "السجل")</h6>
+                    @if (!task.History.Any())
+                    {
+                        <div class="text-muted">@Text("No history yet.", "لا يوجد سجل بعد.")</div>
+                    }
+                    @foreach (var history in task.History.OrderByDescending(x => x.ActionDate))
+                    {
+                        <div class="border-bottom py-2">
+                            <strong>@history.Action</strong>
+                            <div class="small text-muted">@history.ActionDate.ToLocalTime()</div>
+                        </div>
+                    }
+                </div>
             </div>
         </div>
-    </div>
-}
+    }
+</div>
 
 @code {
     [Parameter] public Guid Id { get; set; }
@@ -128,7 +141,46 @@ else
         }
         else
         {
-            ToastService.Show(new ToastMessage { Message = response.Error?.Detail ?? "Unable to add comment.", Type = "error" });
+            ToastService.Show(new ToastMessage { Message = response.Error?.Detail ?? Text("Unable to add comment.", "تعذر إضافة التعليق."), Type = "error" });
         }
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private string StatusText(TaskWorkflowStatus status) => status switch
+    {
+        TaskWorkflowStatus.Draft => Text("Draft", "مسودة"),
+        TaskWorkflowStatus.Assigned => Text("Assigned", "مسندة"),
+        TaskWorkflowStatus.InProgress => Text("In Progress", "قيد التنفيذ"),
+        TaskWorkflowStatus.OnHold => Text("On Hold", "معلقة"),
+        TaskWorkflowStatus.Completed => Text("Completed", "مكتملة"),
+        TaskWorkflowStatus.Cancelled => Text("Cancelled", "ملغاة"),
+        TaskWorkflowStatus.Overdue => Text("Overdue", "متأخرة"),
+        _ => status.ToString()
+    };
+
+    private string PriorityText(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Low => Text("Low", "منخفضة"),
+        TaskPriority.Normal => Text("Normal", "عادية"),
+        TaskPriority.High => Text("High", "عالية"),
+        TaskPriority.Urgent => Text("Urgent", "عاجلة"),
+        TaskPriority.Critical => Text("Critical", "حرجة"),
+        _ => priority.ToString()
+    };
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }

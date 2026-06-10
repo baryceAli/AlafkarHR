@@ -1,0 +1,380 @@
+@layout AdminLayout
+@page "/Payroll/SalaryRuns"
+
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.Payroll.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Payroll.Dtos
+@using SharedWithUI.Payroll.Enums
+@using SharedWithUI.Permissions
+
+@inject IPayrollService PayrollService
+@inject IEmployeeService EmployeeService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (AuthState is not null && !CanView)
+{
+    <div class="alert alert-warning">
+        @Text("You don't have permissions to view this page", "You don't have permissions to view this page")
+    </div>
+    return;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="text-black mb-0">@Text("Generate Salaries", "Generate Salaries")</h5>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="border rounded p-3 bg-light">
+            <div class="row g-3">
+                <div class="col-6">
+                    <label class="form-label">@Text("Month", "Month")</label>
+                    <InputSelect class="form-select" @bind-Value="salaryMonth" @bind-Value:after="BuildSalaryPreview">
+                        @for (var month = 1; month <= 12; month++)
+                        {
+                            <option value="@month">@month</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-6">
+                    <label class="form-label">@Text("Year", "Year")</label>
+                    <InputNumber class="form-control" @bind-Value="salaryYear" @bind-Value:after="BuildSalaryPreview" />
+                </div>
+                <div class="col-12">
+                    <button type="button" class="btn btn-primary w-100" @onclick="Generate" disabled="@(!CanCreate || isBusy || payableRows.Count == 0)">
+                        <i class="bi bi-play-fill"></i> @Text("Generate Salaries", "Generate Salaries")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="border rounded p-3 h-100">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <div class="border rounded p-2 bg-white">
+                        <div class="text-muted small">@Text("Employees with contracts", "Employees with contracts")</div>
+                        <div class="fw-semibold">@payableRows.Count</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="border rounded p-2 bg-white">
+                        <div class="text-muted small">@Text("No contract", "No contract")</div>
+                        <div class="fw-semibold text-danger">@noContractRows.Count</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="border rounded p-2 bg-white">
+                        <div class="text-muted small">@Text("Total salary", "Total salary")</div>
+                        <div class="fw-semibold">@payableRows.Sum(x => x.TotalSalary).ToString("N2")</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="border rounded p-2 bg-white">
+                        <div class="text-muted small">@Text("Net salary", "Net salary")</div>
+                        <div class="fw-bold">@payableRows.Sum(x => x.NetSalary).ToString("N2")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="border rounded p-3 mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="mb-0">@Text("Salary Preview", "Salary Preview")</h6>
+        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadLookups" disabled="@isBusy">
+            <i class="bi bi-arrow-clockwise"></i>
+        </button>
+    </div>
+
+    <table class="table table-sm align-middle">
+        <thead>
+            <tr>
+                <th>@Text("Employee", "Employee")</th>
+                <th>@Text("Contract", "Contract")</th>
+                <th>@Text("Components", "Components")</th>
+                <th class="text-end">@Text("Total", "Total")</th>
+                <th class="text-end">@Text("Insurance", "Insurance")</th>
+                <th class="text-end">@Text("Tax", "Tax")</th>
+                <th class="text-end">@Text("Net", "Net")</th>
+                <th>@Text("Status", "Status")</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in payableRows)
+            {
+                <tr>
+                    <td>
+                        <div>@EmployeeName(row.Employee)</div>
+                        <div class="text-muted small">@row.Employee.EmployeeNo</div>
+                    </td>
+                    <td>@ContractName(row.Contract)</td>
+                    <td>
+                        @foreach (var item in row.Contract.Items)
+                        {
+                            <span class="badge text-bg-light me-1">@ComponentName(item.ComponentId): @item.Value.ToString("N2")</span>
+                        }
+                    </td>
+                    <td class="text-end">@row.TotalSalary.ToString("N2")</td>
+                    <td class="text-end text-danger">@row.InsuranceAmount.ToString("N2")</td>
+                    <td class="text-end text-danger">@row.TaxAmount.ToString("N2")</td>
+                    <td class="text-end fw-semibold">@row.NetSalary.ToString("N2")</td>
+                    <td><span class="badge @row.StatusBadge">@row.StatusText</span></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (noContractRows.Count > 0)
+{
+    <div class="border rounded p-3 mt-3">
+        <h6>@Text("Employees Without Salary Contract", "Employees Without Salary Contract")</h6>
+        <div class="text-muted small mb-2">@Text("No salary will be generated for these employees.", "No salary will be generated for these employees.")</div>
+        <table class="table table-sm align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>@Text("Employee", "Employee")</th>
+                    <th>@Text("Position", "Position")</th>
+                    <th>@Text("Status", "Status")</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var employee in noContractRows)
+                {
+                    <tr>
+                        <td>
+                            <div>@EmployeeName(employee)</div>
+                            <div class="text-muted small">@employee.EmployeeNo</div>
+                        </td>
+                        <td>@employee.PositionName</td>
+                        <td><span class="badge text-bg-warning">@Text("No salary generated", "No salary generated")</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private AuthenticationState? AuthState;
+    private Guid companyId;
+    private bool isBusy;
+    private int salaryMonth = DateTime.Today.Month;
+    private int salaryYear = DateTime.Today.Year;
+    private List<EmployeeDto> employees = [];
+    private List<ComponentDto> components = [];
+    private List<ContractDto> contracts = [];
+    private List<EmployeeContractDto> assignments = [];
+    private List<SalaryPreviewRow> payableRows = [];
+    private List<EmployeeDto> noContractRows = [];
+
+    private bool CanView => HasPermission(PermissionList.SalaryRunPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.SalaryRunPermissions.Create);
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+        await LoadLookups();
+    }
+
+    private async Task LoadLookups()
+    {
+        var employeeResult = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 500);
+        if (employeeResult.IsSuccess)
+        {
+            employees = employeeResult.Data?.Data?.Where(x => x.IsActive).ToList() ?? [];
+        }
+
+        var componentResult = await PayrollService.GetComponentsByCompanyAsync(companyId, 0, 500);
+        if (componentResult.IsSuccess)
+        {
+            components = componentResult.Data?.Data?.ToList() ?? [];
+        }
+
+        var contractResult = await PayrollService.GetContractsByCompanyAsync(companyId, 0, 500);
+        if (contractResult.IsSuccess)
+        {
+            contracts = contractResult.Data?.Data?.ToList() ?? [];
+        }
+
+        var assignmentResult = await PayrollService.GetEmployeeContractsByCompanyAsync(companyId, 0, 500);
+        if (assignmentResult.IsSuccess)
+        {
+            assignments = assignmentResult.Data?.Data?.ToList() ?? [];
+        }
+
+        BuildSalaryPreview();
+    }
+
+    private async Task Generate()
+    {
+        if (payableRows.Count == 0)
+        {
+            ShowToast(Text("No employees have active contracts for this period", "No employees have active contracts for this period"), "warning");
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            foreach (var row in payableRows)
+            {
+                row.StatusText = Text("Generating", "Generating");
+                row.StatusBadge = "text-bg-info";
+
+                var createResult = await PayrollService.CreateSalaryRunAsync(new CreateSalaryRunDto
+                {
+                    EmployeeId = row.Employee.Id,
+                    ContractId = row.Contract.Id,
+                    SalaryMonth = salaryMonth,
+                    SalaryYear = salaryYear,
+                    BaseSalary = row.BasicSalary
+                });
+
+                if (!createResult.IsSuccess || createResult.Data is null)
+                {
+                    row.StatusText = createResult.Error?.Detail ?? Text("Not generated", "Not generated");
+                    row.StatusBadge = "text-bg-danger";
+                    continue;
+                }
+
+                var calculateResult = await PayrollService.CalculateSalaryRunAsync(createResult.Data.Id);
+                if (calculateResult.IsSuccess && calculateResult.Data is not null)
+                {
+                    ApplyCalculatedAmounts(row, calculateResult.Data);
+                    row.GeneratedRun = calculateResult.Data;
+                    row.StatusText = Text("Generated", "Generated");
+                    row.StatusBadge = "text-bg-success";
+                }
+                else
+                {
+                    row.StatusText = calculateResult.Error?.Detail ?? Text("Not generated", "Not generated");
+                    row.StatusBadge = "text-bg-danger";
+                }
+            }
+
+            ShowToast(Text("Salary generation finished", "Salary generation finished"), "success");
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void BuildSalaryPreview()
+    {
+        var periodEnd = new DateTime(salaryYear, salaryMonth, DateTime.DaysInMonth(salaryYear, salaryMonth));
+        payableRows = [];
+        noContractRows = [];
+
+        foreach (var employee in employees)
+        {
+            var assignment = assignments
+                .Where(x => x.EmployeeId == employee.Id && x.IsActive && x.EffectiveFrom.Date <= periodEnd.Date)
+                .OrderByDescending(x => x.EffectiveFrom)
+                .FirstOrDefault();
+
+            var contract = assignment is null ? null : contracts.FirstOrDefault(x => x.Id == assignment.ContractId);
+            if (contract is null)
+            {
+                noContractRows.Add(employee);
+                continue;
+            }
+
+            payableRows.Add(CreatePreviewRow(employee, contract));
+        }
+    }
+
+    private SalaryPreviewRow CreatePreviewRow(EmployeeDto employee, ContractDto contract)
+    {
+        var basicSalary = SumByType(contract, ComponentType.Basic);
+        var allowances = SumByType(contract, ComponentType.Allowance);
+        var deductions = SumByType(contract, ComponentType.Deduction);
+        var totalSalary = basicSalary + allowances;
+        var taxableAmount = contract.Items
+            .Where(item => ComponentOf(item.ComponentId)?.IsTaxable == true)
+            .Sum(item => item.Value);
+        var insuranceAmount = totalSalary * contract.InsurancePercentage / 100m;
+        var taxAmount = taxableAmount * contract.TaxPercentage / 100m;
+
+        return new SalaryPreviewRow
+        {
+            Employee = employee,
+            Contract = contract,
+            BasicSalary = basicSalary,
+            TotalSalary = totalSalary,
+            InsuranceAmount = insuranceAmount,
+            TaxAmount = taxAmount,
+            NetSalary = totalSalary - deductions - insuranceAmount - taxAmount,
+            StatusText = Text("Ready", "Ready"),
+            StatusBadge = "text-bg-light"
+        };
+    }
+
+    private void ApplyCalculatedAmounts(SalaryPreviewRow row, SalaryRunDto salaryRun)
+    {
+        row.TotalSalary = salaryRun.TotalSalary + salaryRun.TotalAllowances;
+        row.InsuranceAmount = salaryRun.InsuranceAmount;
+        row.TaxAmount = salaryRun.TaxAmount;
+        row.NetSalary = salaryRun.NetSalary;
+    }
+
+    private decimal SumByType(ContractDto contract, ComponentType type)
+        => contract.Items
+            .Where(item => ComponentOf(item.ComponentId)?.ComponentType == type)
+            .Sum(item => item.Value);
+
+    private ComponentDto? ComponentOf(Guid componentId)
+        => components.FirstOrDefault(x => x.Id == componentId);
+
+    private string ComponentName(Guid componentId)
+    {
+        var component = ComponentOf(componentId);
+        return component is null ? componentId.ToString() : Text(component.NameEng, component.Name);
+    }
+
+    private string EmployeeName(EmployeeDto employee)
+        => Text(employee.FullNameEng, employee.FullName);
+
+    private string ContractName(ContractDto contract)
+        => Text(contract.NameEng, contract.Name);
+
+    private bool HasPermission(string permission)
+        => AuthState?.User.Claims.Any(c => c.Value == permission) == true;
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private void ShowToast(string message, string type)
+        => ToastService.Show(new ToastMessage { Message = message, Type = type });
+
+    private class SalaryPreviewRow
+    {
+        public required EmployeeDto Employee { get; set; }
+        public required ContractDto Contract { get; set; }
+        public decimal BasicSalary { get; set; }
+        public decimal TotalSalary { get; set; }
+        public decimal InsuranceAmount { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal NetSalary { get; set; }
+        public string StatusText { get; set; } = string.Empty;
+        public string StatusBadge { get; set; } = "text-bg-light";
+        public SalaryRunDto? GeneratedRun { get; set; }
+    }
+}

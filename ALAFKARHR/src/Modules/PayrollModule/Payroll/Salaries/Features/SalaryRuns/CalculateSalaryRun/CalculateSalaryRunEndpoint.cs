@@ -3,11 +3,21 @@ namespace Payroll.Salaries.Features.SalaryRuns.CalculateSalaryRun;
 public record CalculateSalaryRunRequest(Guid SalaryRunId);
 
 public record CalculateSalaryRunResponse(
-    Guid SalaryRunId,
+    Guid Id,
+    Guid EmployeeId,
+    Guid ContractId,
+    int SalaryMonth,
+    int SalaryYear,
     decimal TotalSalary,
     decimal TotalAllowances,
     decimal TotalDeductions,
+    decimal TaxPercentage,
+    decimal TaxableAmount,
+    decimal TaxAmount,
+    decimal InsurancePercentage,
+    decimal InsuranceAmount,
     decimal NetSalary,
+    string Status,
     string Message);
 
 public class CalculateSalaryRunEndpoint : ICarterModule

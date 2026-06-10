@@ -11,82 +11,79 @@
 @using SharedWithUI.TaskManagement.Dtos
 @using SharedWithUI.TaskManagement.Enums
 
-
 @inject ITaskManagementService TaskService
 @inject IEmployeeService EmployeeService
 @inject IDepartmentService DepartmentService
-
 @inject AuthenticationStateProvider AuthenticationStateProvider
-
 @inject SharedDataService SharedDataService
 @inject NavigationManager NavigationManager
 @inject ToastService ToastService
 
-<h5 class="text-black">Create Task</h5>
+<div class="task-page" dir="@SharedDataService.PageDirection">
+    <h5 class="text-black">@Text("Create Task", "إنشاء مهمة")</h5>
 
-<div class="card p-3">
-    <EditForm Model="task" OnValidSubmit="Save">
-        <DataAnnotationsValidator />
-        <div class="row g-3">
-            <div class="col-md-8">
-                <label class="form-label">Title</label>
-                <InputText class="form-control" @bind-Value="task.Title" />
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Priority</label>
-                <InputSelect class="form-select" @bind-Value="task.Priority">
-                    @foreach (var priority in Enum.GetValues<TaskPriority>())
-                    {
-                        <option value="@priority">@priority</option>
-                    }
-                </InputSelect>
-            </div>
-            <div class="col-12">
-                <label class="form-label">Description</label>
-                <InputTextArea class="form-control" rows="4" @bind-Value="task.Description" />
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">Assigned User Id</label>
-                <AutoCompleteComponent TItem="EmployeeDto"
-                                       Items="employees"
-                                       ItemText="@(e => e.FullName)"
-                                       Value="selectedEmployee"
-                                       ValueChanged="onEmployeeSelected"/>
-                @* <InputText class="form-control" @bind-Value="assignedUserText" /> *@
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">Department Id</label>
-                <AutoCompleteComponent TItem="DepartmentDto"
-                                       Items="departments"
-                                       ItemText="@(d =>  d.Name)"
-                                       Value="selectedDepartment"
-                                       ValueChanged="onDepartmentSelected" />
-                @* <InputText class="form-control" @bind-Value="departmentText" /> *@
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">Start Date</label>
-                <InputDate class="form-control" @bind-Value="task.StartDate" />
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">Due Date</label>
-                <InputDate class="form-control" @bind-Value="task.DueDate" />
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">Reminder Date</label>
-                <InputDate class="form-control" @bind-Value="task.ReminderDate" />
-            </div>
-            <div class="col-md-6 d-flex align-items-end">
-                <div class="form-check">
-                    <InputCheckbox class="form-check-input" @bind-Value="task.IsRecurring" />
-                    <label class="form-check-label">Recurring</label>
+    <div class="card p-3">
+        <EditForm Model="task" OnValidSubmit="Save">
+            <DataAnnotationsValidator />
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">@Text("Title", "العنوان")</label>
+                    <InputText class="form-control" @bind-Value="task.Title" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">@Text("Priority", "الأولوية")</label>
+                    <InputSelect class="form-select" @bind-Value="task.Priority">
+                        @foreach (var priority in Enum.GetValues<TaskPriority>())
+                        {
+                            <option value="@priority">@PriorityText(priority)</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">@Text("Description", "الوصف")</label>
+                    <InputTextArea class="form-control" rows="4" @bind-Value="task.Description" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">@Text("Assigned Employee", "الموظف المسند إليه")</label>
+                    <AutoCompleteComponent TItem="EmployeeDto"
+                                           Items="employees"
+                                           ItemText="@(e => Text(e.FullNameEng, e.FullName))"
+                                           Value="selectedEmployee"
+                                           ValueChanged="onEmployeeSelected" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">@Text("Department", "القسم")</label>
+                    <AutoCompleteComponent TItem="DepartmentDto"
+                                           Items="departments"
+                                           ItemText="@(d => Text(d.NameEng, d.Name))"
+                                           Value="selectedDepartment"
+                                           ValueChanged="onDepartmentSelected" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">@Text("Start Date", "تاريخ البداية")</label>
+                    <InputDate class="form-control" @bind-Value="task.StartDate" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">@Text("Due Date", "تاريخ الاستحقاق")</label>
+                    <InputDate class="form-control" @bind-Value="task.DueDate" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">@Text("Reminder Date", "تاريخ التذكير")</label>
+                    <InputDate class="form-control" @bind-Value="task.ReminderDate" />
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input" @bind-Value="task.IsRecurring" />
+                        <label class="form-check-label">@Text("Recurring", "متكررة")</label>
+                    </div>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @Text("Save", "حفظ")</button>
+                    <button class="btn btn-secondary" type="button" @onclick='() => NavigationManager.NavigateTo("/TaskManagement/List")'>@Text("Cancel", "إلغاء")</button>
                 </div>
             </div>
-            <div class="col-12 d-flex gap-2">
-                <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> Save</button>
-                <button class="btn btn-secondary" type="button" @onclick='() => NavigationManager.NavigateTo("/TaskManagement/List")'>Cancel</button>
-            </div>
-        </div>
-    </EditForm>
+        </EditForm>
+    </div>
 </div>
 
 @code {
@@ -100,15 +97,16 @@
 
     private List<DepartmentDto> departments = new();
     private DepartmentDto? selectedDepartment;
-    AuthenticationState AuthState ;
+    AuthenticationState AuthState;
+
     protected override async Task OnInitializedAsync()
     {
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
         if (!AuthState.User.Identity.IsAuthenticated)
         {
             NavigationManager.NavigateTo("/login", true);
-
         }
+
         companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
 
         var empRes = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 10000);
@@ -119,11 +117,12 @@
         if (deptRes.IsSuccess)
             departments = deptRes.Data?.Data?.ToList() ?? new List<DepartmentDto>();
     }
+
     private async Task Save()
     {
         if (string.IsNullOrEmpty(assignedUserText) || !Guid.TryParse(departmentText, out var departmentId))
         {
-            ToastService.Show(new ToastMessage { Message = "Assigned user and department must be valid.", Type = "error" });
+            ToastService.Show(new ToastMessage { Message = Text("Assigned user and department must be valid.", "يجب اختيار موظف وقسم صحيحين."), Type = "error" });
             return;
         }
 
@@ -133,16 +132,45 @@
         if (response.IsSuccess)
             NavigationManager.NavigateTo("/TaskManagement/List");
         else
-            ToastService.Show(new ToastMessage { Message = response.Error?.Detail ?? "Unable to create task.", Type = "error" });
+            ToastService.Show(new ToastMessage { Message = response.Error?.Detail ?? Text("Unable to create task.", "تعذر إنشاء المهمة."), Type = "error" });
     }
+
     private void onEmployeeSelected(EmployeeDto employee)
     {
         selectedEmployee = employee;
         assignedUserText = employee.Code.ToString();
     }
+
     private void onDepartmentSelected(DepartmentDto department)
     {
         selectedDepartment = department;
         departmentText = department.Id.ToString();
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private string PriorityText(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Low => Text("Low", "منخفضة"),
+        TaskPriority.Normal => Text("Normal", "عادية"),
+        TaskPriority.High => Text("High", "عالية"),
+        TaskPriority.Urgent => Text("Urgent", "عاجلة"),
+        TaskPriority.Critical => Text("Critical", "حرجة"),
+        _ => priority.ToString()
+    };
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }

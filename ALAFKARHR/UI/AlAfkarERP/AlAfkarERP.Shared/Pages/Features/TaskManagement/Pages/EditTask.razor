@@ -5,60 +5,64 @@
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using SharedWithUI.TaskManagement.Dtos
 @using SharedWithUI.TaskManagement.Enums
+@using AlAfkarERP.Shared.Utilities
 
 @inject ITaskManagementService TaskService
 @inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
 @inject ToastService ToastService
 
-<h5 class="text-black">Edit Task</h5>
+<div class="task-page" dir="@SharedDataService.PageDirection">
+    <h5 class="text-black">@Text("Edit Task", "تعديل المهمة")</h5>
 
-@if (task is null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <div class="card p-3">
-        <EditForm Model="task" OnValidSubmit="Save">
-            <DataAnnotationsValidator />
-            <div class="row g-3">
-                <div class="col-md-8">
-                    <label class="form-label">Title</label>
-                    <InputText class="form-control" @bind-Value="task.Title" />
+    @if (task is null)
+    {
+        <p>@Text("Loading...", "جاري التحميل...")</p>
+    }
+    else
+    {
+        <div class="card p-3">
+            <EditForm Model="task" OnValidSubmit="Save">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">@Text("Title", "العنوان")</label>
+                        <InputText class="form-control" @bind-Value="task.Title" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">@Text("Priority", "الأولوية")</label>
+                        <InputSelect class="form-select" @bind-Value="task.Priority">
+                            @foreach (var priority in Enum.GetValues<TaskPriority>())
+                            {
+                                <option value="@priority">@PriorityText(priority)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">@Text("Description", "الوصف")</label>
+                        <InputTextArea class="form-control" rows="4" @bind-Value="task.Description" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">@Text("Department Id", "معرف القسم")</label>
+                        <InputText class="form-control" @bind-Value="departmentText" dir="ltr" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@Text("Start Date", "تاريخ البداية")</label>
+                        <InputDate class="form-control" @bind-Value="task.StartDate" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@Text("Due Date", "تاريخ الاستحقاق")</label>
+                        <InputDate class="form-control" @bind-Value="task.DueDate" />
+                    </div>
+                    <div class="col-12 d-flex gap-2">
+                        <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @Text("Save", "حفظ")</button>
+                        <button class="btn btn-secondary" type="button" @onclick='() => NavigationManager.NavigateTo("/TaskManagement/List")'>@Text("Cancel", "إلغاء")</button>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Priority</label>
-                    <InputSelect class="form-select" @bind-Value="task.Priority">
-                        @foreach (var priority in Enum.GetValues<TaskPriority>())
-                        {
-                            <option value="@priority">@priority</option>
-                        }
-                    </InputSelect>
-                </div>
-                <div class="col-12">
-                    <label class="form-label">Description</label>
-                    <InputTextArea class="form-control" rows="4" @bind-Value="task.Description" />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Department Id</label>
-                    <InputText class="form-control" @bind-Value="departmentText" />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Start Date</label>
-                    <InputDate class="form-control" @bind-Value="task.StartDate" />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Due Date</label>
-                    <InputDate class="form-control" @bind-Value="task.DueDate" />
-                </div>
-                <div class="col-12 d-flex gap-2">
-                    <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> Save</button>
-                    <button class="btn btn-secondary" type="button" @onclick='() => NavigationManager.NavigateTo("/TaskManagement/List")'>Cancel</button>
-                </div>
-            </div>
-        </EditForm>
-    </div>
-}
+            </EditForm>
+        </div>
+    }
+</div>
 
 @code {
     [Parameter] public Guid Id { get; set; }
@@ -92,7 +96,7 @@ else
             return;
         if (!Guid.TryParse(departmentText, out var departmentId))
         {
-            ToastService.Show(new ToastMessage { Message = "Department must be a valid id.", Type = "error" });
+            ToastService.Show(new ToastMessage { Message = Text("Department must be a valid id.", "يجب أن يكون القسم معرفا صحيحا."), Type = "error" });
             return;
         }
 
@@ -101,6 +105,33 @@ else
         if (response.IsSuccess)
             NavigationManager.NavigateTo($"/TaskManagement/View/{Id}");
         else
-            ToastService.Show(new ToastMessage { Message = response.Error?.Detail ?? "Unable to update task.", Type = "error" });
+            ToastService.Show(new ToastMessage { Message = response.Error?.Detail ?? Text("Unable to update task.", "تعذر تحديث المهمة."), Type = "error" });
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private string PriorityText(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Low => Text("Low", "منخفضة"),
+        TaskPriority.Normal => Text("Normal", "عادية"),
+        TaskPriority.High => Text("High", "عالية"),
+        TaskPriority.Urgent => Text("Urgent", "عاجلة"),
+        TaskPriority.Critical => Text("Critical", "حرجة"),
+        _ => priority.ToString()
+    };
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }

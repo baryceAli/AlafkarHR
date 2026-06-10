@@ -7,31 +7,42 @@ public class Contract:Entity<Guid>
     public string Name { get; set; } = null!;
     public string NameEng { get; set; } = null!;
     public string? Description { get; set; }
+    public decimal TaxPercentage { get; private set; }
+    public decimal InsurancePercentage { get; private set; }
     public Guid CompanyId { get; set; }
 
     private readonly List<ContractItem> _Items = new();
     public IReadOnlyCollection<ContractItem> Items=> _Items.AsReadOnly();
     private Contract(){}
 
-    public static Contract Create(Guid id, string name, string nameEng, string? description,Guid companyId,string createdBy)
+    public static Contract Create(Guid id, string name, string nameEng, string? description, decimal taxPercentage, decimal insurancePercentage, Guid companyId, string createdBy)
     {
         if(string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException("Name is required");
+        if(taxPercentage < 0) throw new ArgumentOutOfRangeException(nameof(taxPercentage));
+        if(insurancePercentage < 0) throw new ArgumentOutOfRangeException(nameof(insurancePercentage));
         return new Contract
         {
             Id = id,
             Name = name,
             NameEng = nameEng,
             Description = description,
+            TaxPercentage = taxPercentage,
+            InsurancePercentage = insurancePercentage,
             CompanyId = companyId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
     }
-    public void Update(string name, string nameEng, string? notes, string modifiedBy)
+    public void Update(string name, string nameEng, string? notes, decimal taxPercentage, decimal insurancePercentage, string modifiedBy)
     {
+        if(taxPercentage < 0) throw new ArgumentOutOfRangeException(nameof(taxPercentage));
+        if(insurancePercentage < 0) throw new ArgumentOutOfRangeException(nameof(insurancePercentage));
+
         Name=name;
         NameEng=nameEng;
         Description=notes;
+        TaxPercentage = taxPercentage;
+        InsurancePercentage = insurancePercentage;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }

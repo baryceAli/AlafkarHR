@@ -13,10 +13,10 @@ public class UpdateContractHandler(PayrollDbContext dbContext, IHttpContextAcces
 
         var contract = await dbContext.Set<Contract>()
             .Include(x => x.Items)
-            .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
+            .FirstOrDefaultAsync(x => x.Id == request.Id && !x.IsDeleted, cancellationToken)
             ?? throw new KeyNotFoundException($"Contract with ID {request.Id} not found");
 
-        contract.Update(request.Name, request.NameEng, request.Description, userId);
+        contract.Update(request.Name, request.NameEng, request.Description, request.TaxPercentage, request.InsurancePercentage, userId);
 
         // Clear existing items and add new ones
         contract.ClearItems();

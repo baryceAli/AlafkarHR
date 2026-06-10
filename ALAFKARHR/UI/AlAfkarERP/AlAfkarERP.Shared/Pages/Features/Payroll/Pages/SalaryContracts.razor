@@ -1,0 +1,400 @@
+@layout AdminLayout
+@page "/Payroll/Contracts"
+
+@using AlAfkarERP.Shared.Pages.Features.Payroll.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Payroll.Dtos
+@using SharedWithUI.Payroll.Enums
+@using SharedWithUI.Permissions
+
+@inject IPayrollService PayrollService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (AuthState is not null && !CanView)
+{
+    <div class="alert alert-warning">
+        @SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")
+    </div>
+    return;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="text-black mb-0">@SharedDataService.SelectViewLang("Salary Contracts", "عقود الرواتب")</h5>
+    <button class="btn btn-primary" @onclick="CreateNew" disabled="@(!CanCreate)">
+        <i class="bi bi-plus-lg"></i> @SharedDataService.SelectViewLang("New Contract", "عقد جديد")
+    </button>
+</div>
+
+@if (editingContract is not null)
+{
+    <div class="border rounded p-3 mb-3 bg-light">
+        <EditForm Model="editingContract" OnValidSubmit="SaveContract">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
+                    <InputText class="form-control" @bind-Value="editingContract.Name" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">@SharedDataService.SelectViewLang("English Name", "الاسم الإنجليزي")</label>
+                    <InputText class="form-control" @bind-Value="editingContract.NameEng" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Description", "الوصف")</label>
+                    <InputText class="form-control" @bind-Value="editingContract.Description" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Tax %", "Tax %")</label>
+                    <InputNumber class="form-control" @bind-Value="editingContract.TaxPercentage" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Insurance %", "Insurance %")</label>
+                    <InputNumber class="form-control" @bind-Value="editingContract.InsurancePercentage" />
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
+                <strong>@SharedDataService.SelectViewLang("Components", "المكونات")</strong>
+                <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddItem">
+                    <i class="bi bi-plus-lg"></i> @SharedDataService.SelectViewLang("Add Component", "إضافة مكون")
+                </button>
+            </div>
+
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>@SharedDataService.SelectViewLang("Component", "المكون")</th>
+                        <th style="width: 180px">@SharedDataService.SelectViewLang("Value", "القيمة")</th>
+                        <th style="width: 80px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in editingContract.Items)
+                    {
+                        <tr @key="item">
+                            <td>
+                                <InputSelect class="form-select" @bind-Value="item.ComponentId">
+                                    <option value="@Guid.Empty">@SharedDataService.SelectViewLang("Select component", "اختر المكون")</option>
+                                    @foreach (var component in AvailableComponents(item))
+                                    {
+                                        <option value="@component.Id">
+                                            @SharedDataService.SelectViewLang(component.NameEng, component.Name) - @component.ComponentType
+                                        </option>
+                                    }
+                                </InputSelect>
+                            </td>
+                            <td>
+                                <InputNumber class="form-control" @bind-Value="item.Value" />
+                            </td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => RemoveItem(item)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="row g-2 mb-3">
+                <div class="col-md-3">
+                    <div class="border rounded p-2 bg-white">
+                        <div class="text-muted small">@SharedDataService.SelectViewLang("Basic", "Basic")</div>
+                        <div class="fw-semibold">@ContractBasicTotal.ToString("N2")</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="border rounded p-2 bg-white">
+                        <div class="text-muted small">@SharedDataService.SelectViewLang("Allowances", "Allowances")</div>
+                        <div class="fw-semibold text-success">@ContractAllowanceTotal.ToString("N2")</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="border rounded p-2 bg-white">
+                        <div class="text-muted small">@SharedDataService.SelectViewLang("Deductions", "Deductions")</div>
+                        <div class="fw-semibold text-danger">@ContractDeductionTotal.ToString("N2")</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="border rounded p-2 bg-white">
+                        <div class="text-muted small">@SharedDataService.SelectViewLang("Total Salary", "Total Salary")</div>
+                        <div class="fw-bold">@ContractTotalSalary.ToString("N2")</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success btn-sm" disabled="@(!CanEditCurrent)">
+                    <i class="bi bi-check-lg"></i> @SharedDataService.SelectViewLang("Save", "حفظ")
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">
+                    @SharedDataService.SelectViewLang("Cancel", "إلغاء")
+                </button>
+            </div>
+        </EditForm>
+    </div>
+}
+
+<div class="border rounded p-3">
+    <div class="row g-2 align-items-center mb-3">
+        <div class="col-md-4">
+            <input class="form-control" placeholder="@SharedDataService.SelectViewLang("Search", "بحث")" @bind="searchText" @bind:event="oninput" />
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" @onclick="LoadContracts">
+                <i class="bi bi-search"></i> @SharedDataService.SelectViewLang("Search", "بحث")
+            </button>
+        </div>
+    </div>
+
+    <table class="table table-sm align-middle">
+        <thead>
+            <tr>
+                <th>@SharedDataService.SelectViewLang("Contract", "العقد")</th>
+                <th>@SharedDataService.SelectViewLang("Items", "المكونات")</th>
+                <th>@SharedDataService.SelectViewLang("Tax %", "Tax %")</th>
+                <th>@SharedDataService.SelectViewLang("Insurance %", "Insurance %")</th>
+                <th>@SharedDataService.SelectViewLang("Total Salary", "Total Salary")</th>
+                <th style="width: 150px"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var contract in contracts)
+            {
+                <tr>
+                    <td>
+                        <div>@SharedDataService.SelectViewLang(contract.NameEng, contract.Name)</div>
+                        <div class="text-muted small">@contract.Description</div>
+                    </td>
+                    <td>
+                        @foreach (var item in contract.Items)
+                        {
+                            <span class="badge text-bg-light me-1">@ComponentName(item.ComponentId): @item.Value.ToString("N2")</span>
+                        }
+                    </td>
+                    <td>@contract.TaxPercentage.ToString("N2")</td>
+                    <td>@contract.InsurancePercentage.ToString("N2")</td>
+                    <td>@ContractListTotalSalary(contract).ToString("N2")</td>
+                    <td class="text-end">
+                        <button class="btn btn-warning btn-sm" @onclick="() => EditContract(contract)" disabled="@(!CanEdit)">
+                            @SharedDataService.SelectViewLang("Edit", "تعديل")
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteContract(contract)" disabled="@(!CanDelete)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private AuthenticationState? AuthState;
+    private Guid companyId;
+    private string searchText = string.Empty;
+    private List<ComponentDto> components = [];
+    private List<ContractDto> contracts = [];
+    private ContractDto? editingContract;
+
+    private bool CanView => HasPermission(PermissionList.PayrollContractPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.PayrollContractPermissions.Create);
+    private bool CanEdit => HasPermission(PermissionList.PayrollContractPermissions.Edit);
+    private bool CanDelete => HasPermission(PermissionList.PayrollContractPermissions.Delete);
+    private bool CanEditCurrent => editingContract?.Id == Guid.Empty ? CanCreate : CanEdit;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+        await LoadComponents();
+        await LoadContracts();
+    }
+
+    private async Task LoadComponents()
+    {
+        var result = await PayrollService.GetComponentsByCompanyAsync(companyId, 0, 500);
+        if (result.IsSuccess)
+        {
+            components = result.Data?.Data?.ToList() ?? [];
+        }
+    }
+
+    private async Task LoadContracts()
+    {
+        var result = await PayrollService.GetContractsByCompanyAsync(companyId, 0, 500, searchText);
+        if (result.IsSuccess)
+        {
+            contracts = result.Data?.Data?.ToList() ?? [];
+        }
+        else
+        {
+            ShowToast(result.Error?.Detail ?? "Unable to load contracts", "error");
+        }
+    }
+
+    private void CreateNew()
+    {
+        editingContract = new ContractDto
+        {
+            CompanyId = companyId,
+            Items = []
+        };
+        AddItem();
+    }
+
+    private void EditContract(ContractDto contract)
+    {
+        editingContract = new ContractDto
+        {
+            Id = contract.Id,
+            Name = contract.Name,
+            NameEng = contract.NameEng,
+            Description = contract.Description,
+            TaxPercentage = contract.TaxPercentage,
+            InsurancePercentage = contract.InsurancePercentage,
+            CompanyId = contract.CompanyId,
+            Items = contract.Items.Select(x => new ContractItemDto { ComponentId = x.ComponentId, Value = x.Value }).ToList()
+        };
+    }
+
+    private void AddItem()
+    {
+        if (editingContract is null)
+            return;
+
+        if (editingContract.Items.Count(x => x.ComponentId != Guid.Empty) >= components.Count)
+        {
+            ShowToast(SharedDataService.SelectViewLang("All available components are already added", "تمت إضافة كل المكونات المتاحة"), "warning");
+            return;
+        }
+
+        editingContract.Items.Add(new ContractItemDto());
+    }
+
+    private void RemoveItem(ContractItemDto item)
+    {
+        editingContract?.Items.Remove(item);
+    }
+
+    private async Task SaveContract()
+    {
+        if (editingContract is null)
+            return;
+
+        editingContract.CompanyId = companyId;
+        if (editingContract.TaxPercentage < 0)
+        {
+            ShowToast(SharedDataService.SelectViewLang("Tax percentage cannot be negative", "Tax percentage cannot be negative"), "warning");
+            return;
+        }
+        if (editingContract.InsurancePercentage < 0)
+        {
+            ShowToast(SharedDataService.SelectViewLang("Insurance percentage cannot be negative", "Insurance percentage cannot be negative"), "warning");
+            return;
+        }
+
+        editingContract.Items = editingContract.Items.Where(x => x.ComponentId != Guid.Empty && x.Value > 0).ToList();
+        if (editingContract.Items.Select(x => x.ComponentId).Distinct().Count() != editingContract.Items.Count)
+        {
+            ShowToast(SharedDataService.SelectViewLang("Contract components cannot be duplicated", "لا يمكن تكرار مكونات العقد"), "warning");
+            return;
+        }
+
+        if (editingContract.Items.Count == 0)
+        {
+            ShowToast(SharedDataService.SelectViewLang("Add at least one component", "أضف مكون واحد على الأقل"), "warning");
+            return;
+        }
+
+        var result = editingContract.Id == Guid.Empty
+            ? await PayrollService.CreateContractAsync(editingContract)
+            : await PayrollService.UpdateContractAsync(editingContract);
+
+        if (result.IsSuccess)
+        {
+            ShowToast(SharedDataService.SelectViewLang("Contract saved", "تم حفظ العقد"), "success");
+            editingContract = null;
+            await LoadContracts();
+        }
+        else
+        {
+            ShowToast(result.Error?.Detail ?? "Unable to save contract", "error");
+        }
+    }
+
+    private void CancelEdit()
+    {
+        editingContract = null;
+    }
+
+    private async Task DeleteContract(ContractDto contract)
+    {
+        var result = await PayrollService.DeleteContractAsync(contract.Id);
+        if (result.IsSuccess)
+        {
+            ShowToast(SharedDataService.SelectViewLang("Contract deleted", "تم حذف العقد"), "success");
+            if (editingContract?.Id == contract.Id)
+            {
+                editingContract = null;
+            }
+            await LoadContracts();
+        }
+        else
+        {
+            ShowToast(result.Error?.Detail ?? "Unable to delete contract", "error");
+        }
+    }
+
+    private string ComponentName(Guid componentId)
+    {
+        var component = components.FirstOrDefault(x => x.Id == componentId);
+        return component is null ? componentId.ToString() : SharedDataService.SelectViewLang(component.NameEng, component.Name);
+    }
+
+    private IEnumerable<ComponentDto> AvailableComponents(ContractItemDto currentItem)
+    {
+        var selected = editingContract?.Items
+            .Where(x => !ReferenceEquals(x, currentItem) && x.ComponentId != Guid.Empty)
+            .Select(x => x.ComponentId)
+            .ToHashSet() ?? [];
+
+        return components.Where(x => x.Id == currentItem.ComponentId || !selected.Contains(x.Id));
+    }
+
+    private decimal ContractBasicTotal => SumEditingByType(ComponentType.Basic);
+    private decimal ContractAllowanceTotal => SumEditingByType(ComponentType.Allowance);
+    private decimal ContractDeductionTotal => SumEditingByType(ComponentType.Deduction);
+    private decimal ContractTotalSalary => ContractBasicTotal + ContractAllowanceTotal - ContractDeductionTotal;
+
+    private decimal SumEditingByType(ComponentType type)
+        => editingContract?.Items
+            .Where(item => ComponentTypeOf(item.ComponentId) == type)
+            .Sum(item => item.Value) ?? 0;
+
+    private decimal ContractListTotalSalary(ContractDto contract)
+        => contract.Items
+            .Where(item => item.ComponentId != Guid.Empty)
+            .Sum(item => ComponentTypeOf(item.ComponentId) == ComponentType.Deduction ? -item.Value : item.Value);
+
+    private ComponentType? ComponentTypeOf(Guid componentId)
+        => components.FirstOrDefault(x => x.Id == componentId)?.ComponentType;
+
+    private bool HasPermission(string permission)
+        => AuthState?.User.Claims.Any(c => c.Value == permission) == true;
+
+    private void ShowToast(string message, string type)
+        => ToastService.Show(new ToastMessage { Message = message, Type = type });
+}

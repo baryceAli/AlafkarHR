@@ -1,4 +1,5 @@
 ﻿using Auth.Helpers;
+using Microsoft.Extensions.Logging;
 
 namespace Auth.Users.Features.Authentication.Login;
 
@@ -20,49 +21,76 @@ public class LoginHandler(
     AuthDbContext dbContext,
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
+    ILogger<LoginHandler> logger,
     IJwtTokenGenerator tokenGenerator)
     : ICommandHandler<LoginCommand, LoginResult>
 {
     public async Task<LoginResult> Handle(LoginCommand command, CancellationToken cancellationToken)
     {
-        
-        var user = await userManager.FindByEmailAsync(command.Login.Email);
-
-        if (user == null)
+        try
         {
-            user= await userManager.FindByNameAsync(command.Login.Email);
-            if(user == null)
-            throw new Exception("Invalid credentials");
+            logger.LogInformation("Login attempt for {Email}", command.Login.Email);
+
+            var user = await userManager.FindByEmailAsync(command.Login.Email);
+
+            if (user == null)
+            {
+                logger.LogInformation("User not found by email. Trying username.");
+
+                user = await userManager.FindByNameAsync(command.Login.Email);
+
+                if (user == null)
+                {
+                    logger.LogWarning("User not found.");
+                    throw new Exception("Invalid credentials");
+                }
+            }
+
+            logger.LogInformation("User found. Checking password.");
+
+            var result = await signInManager.CheckPasswordSignInAsync(
+                user,
+                command.Login.Password,
+                false);
+
+            if (!result.Succeeded)
+            {
+                logger.LogWarning("Invalid password.");
+                throw new Exception("Invalid credentials");
+            }
+
+            logger.LogInformation("Generating token.");
+
+            var accessToken = await tokenGenerator.GenerateTokenAsync(user);
+
+            logger.LogInformation("Creating refresh token.");
+
+            var refreshToken = RefreshToken.Create(
+                user.Id,
+                Guid.NewGuid().ToString(),
+                DateTime.UtcNow.AddDays(7),
+                user.Email);
+
+            dbContext.Set<RefreshToken>().Add(refreshToken);
+
+            logger.LogInformation("Updating user.");
+
+            await userManager.UpdateAsync(user);
+
+            var activeToken = user.GetActiveRefreshToken(refreshToken.Token);
+
+            logger.LogInformation("Active token found: {Found}", activeToken != null);
+
+            return new LoginResult(new LoginResponseDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = activeToken?.Token
+            });
         }
-
-        var result = await signInManager.CheckPasswordSignInAsync(user, command.Login.Password, false);
-
-        if (!result.Succeeded)
-            throw new Exception("Invalid credentials");
-
-        var roles = await userManager.GetRolesAsync(user);
-
-        //var accessToken = tokenGenerator.GenerateToken(user, roles);
-        var accessToken = await tokenGenerator.GenerateTokenAsync(user);
-        //var currentRefreshToken = Guid.NewGuid().ToString();
-
-        //Add RefreshToken
-        var refreshToken = RefreshToken.Create(
-            user.Id,
-            Guid.NewGuid().ToString(),
-            DateTime.UtcNow.AddDays(7),
-            user.Email);
-
-        dbContext.Set<RefreshToken>().Add(refreshToken);
-
-
-        //var refreshToken =Models.RefreshToken.Create(Guid.NewGuid().ToString(),DateTime.UtcNow.AddDays(10),user.Email);
-        //user.AddRefreshToken(user.Id,currentRefreshToken, DateTime.UtcNow.AddDays(10), user.Email);
-        //dbContext.RefreshTokens.Add(refreshToken);
-        //await dbContext.SaveChangesAsync();
-        await userManager.UpdateAsync(user);
-
-        //return new LoginResult(accessToken, user.GetActiveRefreshToken(refreshToken.Token).Token);
-        return new LoginResult(new LoginResponseDto {AccessToken= accessToken,RefreshToken= user.GetActiveRefreshToken(refreshToken.Token).Token });
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Login failed for {Email}", command.Login.Email);
+            throw;
+        }
     }
 }

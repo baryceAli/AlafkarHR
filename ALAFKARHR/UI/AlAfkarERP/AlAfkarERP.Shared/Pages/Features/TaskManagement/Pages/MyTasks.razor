@@ -3,41 +3,50 @@
 
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using SharedWithUI.TaskManagement.Dtos
+@using SharedWithUI.TaskManagement.Enums
 @using TaskWorkflowStatus = SharedWithUI.TaskManagement.Enums.TaskStatus
+@using AlAfkarERP.Shared.Utilities
 
 @inject ITaskManagementService TaskService
 @inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
 
-<h5 class="text-black">My Tasks</h5>
+<section class="task-page" dir="@SharedDataService.PageDirection">
+    <h5 class="text-black">@Text("My Tasks", "مهامي")</h5>
 
-<div class="card p-3">
-    <div class="row g-2 mb-3">
-        <div class="col-md-10"><input class="form-control" placeholder="Search..." @bind="searchText" /></div>
-        <div class="col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadTasks"><i class="bi bi-search"></i></button></div>
+    <div class="card p-3">
+        <div class="row g-2 mb-3">
+            <div class="col-md-10"><input class="form-control" placeholder="@Text("Search...", "بحث...")" @bind="searchText" /></div>
+            <div class="col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadTasks"><i class="bi bi-search"></i></button></div>
+        </div>
+        <div class="list-group">
+            @if (!tasks.Any())
+            {
+                <div class="text-muted py-3">@Text("No tasks assigned to you.", "لا توجد مهام مسندة إليك.")</div>
+            }
+            @foreach (var task in tasks)
+            {
+                var attentionBadge = GetAttentionBadge(task);
+                <button class="list-group-item list-group-item-action task-item @(attentionBadge is not null ? $"task-item-{attentionBadge.CssSuffix}" : "")"
+                        @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/View/{task.Id}")'>
+                    <div class="d-flex justify-content-between gap-2">
+                        <strong class="task-title">@task.Title</strong>
+                        <span class="d-inline-flex align-items-center gap-2 flex-wrap justify-content-end">
+                            @if (attentionBadge is not null)
+                            {
+                                <span class="badge rounded-pill @attentionBadge.CssClass" title="@attentionBadge.Title">
+                                    @attentionBadge.Text
+                                </span>
+                            }
+                            <span class="badge rounded-pill text-bg-light border">@StatusText(task.Status)</span>
+                        </span>
+                    </div>
+                    <small>@task.TaskNumber - @Text("Due", "الاستحقاق") @task.DueDate.ToShortDateString()</small>
+                </button>
+            }
+        </div>
     </div>
-    <div class="list-group">
-        @foreach (var task in tasks)
-        {
-            var attentionBadge = GetAttentionBadge(task);
-            <button class="list-group-item list-group-item-action task-item @(attentionBadge is not null ? $"task-item-{attentionBadge.CssSuffix}" : "")"
-                    @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/View/{task.Id}")'>
-                <div class="d-flex justify-content-between gap-2">
-                    <strong class="task-title">@task.Title</strong>
-                    <span class="d-inline-flex align-items-center gap-2 flex-wrap justify-content-end">
-                        @if (attentionBadge is not null)
-                        {
-                            <span class="badge rounded-pill @attentionBadge.CssClass" title="@attentionBadge.Title">
-                                @attentionBadge.Text
-                            </span>
-                        }
-                        <span class="badge rounded-pill text-bg-light border">@task.Status</span>
-                    </span>
-                </div>
-                <small>@task.TaskNumber - Due @task.DueDate.ToShortDateString()</small>
-            </button>
-        }
-    </div>
-</div>
+</section>
 
 @code {
     private List<TaskItemDto> tasks = [];
@@ -52,7 +61,7 @@
             tasks = response.Data?.Data.ToList() ?? [];
     }
 
-    private static TaskAttentionBadge? GetAttentionBadge(TaskItemDto task)
+    private TaskAttentionBadge? GetAttentionBadge(TaskItemDto task)
     {
         if (IsCompletedOrCancelled(task))
         {
@@ -64,17 +73,17 @@
 
         if (task.Status == TaskWorkflowStatus.Overdue || dueDate < today)
         {
-            return new TaskAttentionBadge("Overdue", "text-bg-danger", "danger", "This task is overdue");
+            return new TaskAttentionBadge(Text("Overdue", "متأخرة"), "text-bg-danger", "danger", Text("This task is overdue", "هذه المهمة متأخرة"));
         }
 
         if (dueDate == today)
         {
-            return new TaskAttentionBadge("Due today", "text-bg-warning", "warning", "This task is due today");
+            return new TaskAttentionBadge(Text("Due today", "مستحقة اليوم"), "text-bg-warning", "warning", Text("This task is due today", "هذه المهمة مستحقة اليوم"));
         }
 
         if (IsOpen(task))
         {
-            return new TaskAttentionBadge("Open", "text-bg-primary", "primary", "This task is open");
+            return new TaskAttentionBadge(Text("Open", "مفتوحة"), "text-bg-primary", "primary", Text("This task is open", "هذه المهمة مفتوحة"));
         }
 
         return null;
@@ -89,7 +98,36 @@
     private static bool IsCompletedOrCancelled(TaskItemDto task)
         => task.Status is TaskWorkflowStatus.Completed or TaskWorkflowStatus.Cancelled;
 
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private string StatusText(TaskWorkflowStatus status) => status switch
+    {
+        TaskWorkflowStatus.Draft => Text("Draft", "مسودة"),
+        TaskWorkflowStatus.Assigned => Text("Assigned", "مسندة"),
+        TaskWorkflowStatus.InProgress => Text("In Progress", "قيد التنفيذ"),
+        TaskWorkflowStatus.OnHold => Text("On Hold", "معلقة"),
+        TaskWorkflowStatus.Completed => Text("Completed", "مكتملة"),
+        TaskWorkflowStatus.Cancelled => Text("Cancelled", "ملغاة"),
+        TaskWorkflowStatus.Overdue => Text("Overdue", "متأخرة"),
+        _ => status.ToString()
+    };
+
     private sealed record TaskAttentionBadge(string Text, string CssClass, string CssSuffix, string Title);
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
 }
 
 <style>

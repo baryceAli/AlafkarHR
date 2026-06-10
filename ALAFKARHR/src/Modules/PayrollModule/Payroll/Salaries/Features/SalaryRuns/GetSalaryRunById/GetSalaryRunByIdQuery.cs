@@ -11,5 +11,10 @@ public record GetSalaryRunByIdResult(
     decimal TotalSalary,
     decimal TotalAllowances,
     decimal TotalDeductions,
+    decimal TaxPercentage,
+    decimal TaxableAmount,
+    decimal TaxAmount,
+    decimal InsurancePercentage,
+    decimal InsuranceAmount,
     decimal NetSalary,
     string Status);

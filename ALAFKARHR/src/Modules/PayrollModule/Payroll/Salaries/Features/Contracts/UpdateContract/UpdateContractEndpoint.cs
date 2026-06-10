@@ -1,5 +1,3 @@
-using Payroll.Salaries.Features.Contracts.CreateContract;
-
 namespace Payroll.Salaries.Features.Contracts.UpdateContract;
 
 public record UpdateContractRequest(
@@ -7,6 +5,8 @@ public record UpdateContractRequest(
     string Name,
     string NameEng,
     string? Description,
+    decimal TaxPercentage,
+    decimal InsurancePercentage,
     List<ContractItemDto> ContractItems);
 
 public record UpdateContractResponse(Guid Id, string Name);
@@ -22,6 +22,8 @@ public class UpdateContractEndpoint : ICarterModule
                 request.Name,
                 request.NameEng,
                 request.Description,
+                request.TaxPercentage,
+                request.InsurancePercentage,
                 request.ContractItems));
 
             return Results.Ok(result.Adapt<UpdateContractResponse>());

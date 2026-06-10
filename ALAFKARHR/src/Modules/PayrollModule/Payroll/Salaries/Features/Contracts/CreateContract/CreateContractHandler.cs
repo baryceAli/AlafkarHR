@@ -16,6 +16,8 @@ public class CreateContractHandler(PayrollDbContext dbContext, IHttpContextAcces
             request.Name,
             request.NameEng,
             request.Description,
+            request.TaxPercentage,
+            request.InsurancePercentage,
             request.CompanyId,
             userId);
 
