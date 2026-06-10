@@ -14,8 +14,13 @@
 
 @if (isLoading)
 {
-    <div class="card p-4">
-        <span>@SharedDataService.SelectViewLang("Loading customer dashboard...", "جاري تحميل لوحة العملاء...")</span>
+    <div class="branches-page">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body py-5 text-center">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="fw-semibold">@SharedDataService.SelectViewLang("Loading customer dashboard...", "جاري تحميل لوحة العملاء...")</div>
+            </div>
+        </div>
     </div>
 }
 else if (!CanSelect)
@@ -26,61 +31,79 @@ else if (!CanSelect)
 }
 else
 {
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div class="branches-page">
+    <div class="branches-header mb-4">
         <div>
-            <h5 class="mb-1">@SharedDataService.SelectViewLang("Customers Dashboard", "لوحة العملاء")</h5>
-            <div class="text-muted small">
+            <div class="text-uppercase text-primary fw-semibold small mb-1">@SharedDataService.SelectViewLang("Customers", "العملاء")</div>
+            <h3 class="mb-1">@SharedDataService.SelectViewLang("Customers Dashboard", "لوحة العملاء")</h3>
+            <div class="text-muted">
                 @SharedDataService.SelectViewLang("A quick view of customer activity for the selected company.", "نظرة سريعة على عملاء الشركة الحالية.")
             </div>
         </div>
 
         <button class="btn btn-primary" @onclick="OpenCustomers">
+            <i class="bi bi-people"></i>
             @SharedDataService.SelectViewLang("Open Customers", "فتح العملاء")
         </button>
     </div>
 
-    <div class="row g-3 mb-3">
+    <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="card p-3 h-100">
-                <div class="text-muted small">@SharedDataService.SelectViewLang("Total Customers", "اجمالي العملاء")</div>
-                <div class="fs-4 fw-semibold">@totalCustomers</div>
+            <div class="branch-stat border-primary">
+                <div class="branch-stat-icon text-primary"><i class="bi bi-people"></i></div>
+                <div>
+                    <div class="text-muted small">@SharedDataService.SelectViewLang("Total Customers", "اجمالي العملاء")</div>
+                    <div class="branch-stat-value">@totalCustomers</div>
+                </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card p-3 h-100">
-                <div class="text-muted small">@SharedDataService.SelectViewLang("Recent Active", "النشطون حديثا")</div>
-                <div class="fs-4 fw-semibold">@activeCustomers</div>
+            <div class="branch-stat border-success">
+                <div class="branch-stat-icon text-success"><i class="bi bi-check2-circle"></i></div>
+                <div>
+                    <div class="text-muted small">@SharedDataService.SelectViewLang("Recent Active", "النشطون حديثا")</div>
+                    <div class="branch-stat-value">@activeCustomers</div>
+                </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card p-3 h-100">
-                <div class="text-muted small">@SharedDataService.SelectViewLang("Recent Tax Exempt", "المعفون حديثا من الضريبة")</div>
-                <div class="fs-4 fw-semibold">@taxExemptCustomers</div>
+            <div class="branch-stat border-info">
+                <div class="branch-stat-icon text-info"><i class="bi bi-receipt-cutoff"></i></div>
+                <div>
+                    <div class="text-muted small">@SharedDataService.SelectViewLang("Recent Tax Exempt", "المعفون حديثا من الضريبة")</div>
+                    <div class="branch-stat-value">@taxExemptCustomers</div>
+                </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card p-3 h-100">
-                <div class="text-muted small">@SharedDataService.SelectViewLang("Recent Blocked/Suspended", "محظور/معلق حديثا")</div>
-                <div class="fs-4 fw-semibold">@blockedOrSuspendedCustomers</div>
+            <div class="branch-stat border-warning">
+                <div class="branch-stat-icon text-warning"><i class="bi bi-pause-circle"></i></div>
+                <div>
+                    <div class="text-muted small">@SharedDataService.SelectViewLang("Recent Blocked/Suspended", "محظور/معلق حديثا")</div>
+                    <div class="branch-stat-value">@blockedOrSuspendedCustomers</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="card p-3">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="mb-0">@SharedDataService.SelectViewLang("Recent Customers", "احدث العملاء")</h6>
-        </div>
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">@SharedDataService.SelectViewLang("Recent Customers", "احدث العملاء")</h5>
+            </div>
 
         @if (!recentCustomers.Any())
         {
-            <div class="text-muted py-4 text-center">
-                @SharedDataService.SelectViewLang("No customers found.", "لا يوجد عملاء.")
+            <div class="branch-empty">
+                <i class="bi bi-inboxes"></i>
+                <div class="fw-semibold">@SharedDataService.SelectViewLang("No customers found", "لم يتم العثور على عملاء")</div>
+                <div class="text-muted small">@SharedDataService.SelectViewLang("Customer activity will appear here once records are available.", "ستظهر حركة العملاء هنا عند توفر البيانات.")</div>
             </div>
         }
         else
         {
-            <div class="table-responsive">
-                <table class="table align-middle">
+            <div class="table-responsive branch-table-wrap">
+                <table class="table branch-table align-middle mb-0">
                     <thead>
                         <tr>
                             <th>@SharedDataService.SelectViewLang("Name", "الاسم")</th>
@@ -105,8 +128,24 @@ else
                 </table>
             </div>
         }
+        </div>
+    </div>
     </div>
 }
+
+<style>
+    .branches-page { max-width: 1400px; }
+    .branches-header { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
+    .branch-stat { align-items: center; background: #fff; border-left: 4px solid; border-radius: 8px; box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.08); display: flex; gap: 0.875rem; min-height: 88px; padding: 1rem; }
+    .branch-stat-icon { align-items: center; background: #f8f9fa; border-radius: 8px; display: inline-flex; font-size: 1.35rem; height: 44px; justify-content: center; width: 44px; }
+    .branch-stat-value { color: #212529; font-size: 1.35rem; font-weight: 700; line-height: 1.15; }
+    .branch-table-wrap { border: 1px solid #e9ecef; border-radius: 8px; }
+    .branch-table thead th { background: #f8f9fa; color: #495057; font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
+    .branch-table tbody tr:hover { background: #fbfcfe; }
+    .branch-empty { align-items: center; color: #6c757d; display: grid; justify-items: center; padding: 2rem; text-align: center; }
+    .branch-empty i { color: #adb5bd; font-size: 2rem; margin-bottom: 0.5rem; }
+    [dir="rtl"] .branch-stat { border-left: 0; border-right: 4px solid; }
+</style>
 
 @code {
     private bool isLoading = true;

@@ -38,197 +38,194 @@
     return;
 }
 
-<!-- Branches -->
-<h5 class="text-black">@SharedDataService.SelectViewLang("Stock Release", "إطلاق مخزون")</h5>
+<div class="operation-page" dir="@SharedDataService.PageDirection">
+    <div class="operation-header mb-4">
+        <div>
+            <div class="text-uppercase text-primary fw-semibold small mb-1">@SharedDataService.SelectViewLang("Inventory Operations", "عمليات المخزون")</div>
+            <h3 class="mb-1">@SharedDataService.SelectViewLang("Stock Release", "إطلاق مخزون")</h3>
+            <div class="text-muted">@SharedDataService.SelectViewLang("Release reserved stock back into available inventory.", "إطلاق المخزون المحجوز وإعادته إلى الكمية المتاحة.")</div>
+        </div>
 
+        <button type="button" class="btn btn-outline-secondary" @onclick="CancelEdit">
+            <i class="bi bi-arrow-counterclockwise"></i>
+            @SharedDataService.SelectViewLang("Reset", "إعادة تعيين")
+        </button>
+    </div>
 
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="operation-panel">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                    <div>
+                        <h5 class="mb-1">@SharedDataService.SelectViewLang("Stock Selection", "اختيار المخزون")</h5>
+                        <div class="text-muted small">@SharedDataService.SelectViewLang("Choose the warehouse, product, SKU, and batch before loading reserved stock.", "اختر المستودع والمنتج والمنتج المخزني والدفعة قبل عرض المخزون المحجوز.")</div>
+                    </div>
+                    <button class="btn btn-primary" @onclick="onShow">
+                        <i class="bi bi-search"></i>
+                        @SharedDataService.SelectViewLang("Show", "عرض")
+                    </button>
+                </div>
 
-<div class="card p-3 mb-3">
-    <div class="mb-3">
-        <div class="row bg-info-subtle p-3">
-            <div class="mb-3 row">
-                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Warehouse", "المستودع")</label>
-                <div class="col-sm-10">
-                    <AutoCompleteComponent TItem="WarehouseDto"
-                                           Items="warehouses"
-                                           Value="selectedWarehouse"
-                                           ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
-                                           PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse","اختر مستودع")"
-                                           ValueChanged="onWarehouseChanged" />
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Warehouse", "المستودع")</label>
+                        <AutoCompleteComponent TItem="WarehouseDto"
+                                               Items="warehouses"
+                                               Value="selectedWarehouse"
+                                               ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                               PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse","اختر مستودع")"
+                                               ValueChanged="onWarehouseChanged" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
+                        <AutoCompleteComponent TItem="ProductDto"
+                                               Items="products"
+                                               Value="selectedProduct"
+                                               ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                               PlaceHolder="@SharedDataService.SelectViewLang("Select product","اختر منتج")"
+                                               ValueChanged="onProductChanged" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("SKU", "المنتج المخزني")</label>
+                        <AutoCompleteComponent TItem="ProductSkuDto"
+                                               Items="productSkus"
+                                               Value="selectedProductSku"
+                                               ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                               PlaceHolder="@SharedDataService.SelectViewLang("Select product sku","اختر منتج مخزني")"
+                                               ValueChanged="onProductSkuChanged" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Batch", "الدفعة")</label>
+                        <AutoCompleteComponent TItem="BatchDto"
+                                               Items="batches"
+                                               Value="selectedBatch"
+                                               ItemText='(p=> p.BatchNumber)'
+                                               PlaceHolder="@SharedDataService.SelectViewLang("Select batch","اختر دفعة")"
+                                               ValueChanged="onBatchChanged" />
+                    </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <div class="mb-3 row">
-                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
-                <div class="col-sm-10">
-                    <AutoCompleteComponent TItem="ProductDto"
-                                           Items="products"
-                                           Value="selectedProduct"
-                                           ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
-                                           PlaceHolder="@SharedDataService.SelectViewLang("Select product","اختر منتج")"
-                                           ValueChanged="onProductChanged" />
+    @if (inventory != null && inventory.Id != Guid.Empty)
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="operation-stat border-primary">
+                    <div class="operation-stat-icon text-primary"><i class="bi bi-box-seam"></i></div>
+                    <div>
+                        <div class="text-muted small">@SharedDataService.SelectViewLang("Total Quantity", "إجمالي الكمية")</div>
+                        <div class="operation-stat-value">@inventory.TotalQuantity</div>
+                    </div>
                 </div>
             </div>
-                                    
-            <div class="mb-3 row">
-                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("SKU", "المنتج المخزني")</label>
-                <div class="col-sm-10">
-                    <AutoCompleteComponent TItem="ProductSkuDto"
-                                           Items="productSkus"
-                                           Value="selectedProductSku"
-                                           ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
-                                           PlaceHolder="@SharedDataService.SelectViewLang("Select product sku","اختر منتج مخزني")"
-                                           ValueChanged="onProductSkuChanged" />
+            <div class="col-md-4">
+                <div class="operation-stat border-warning">
+                    <div class="operation-stat-icon text-warning"><i class="bi bi-lock"></i></div>
+                    <div>
+                        <div class="text-muted small">@SharedDataService.SelectViewLang("Reserved Quantity", "الكمية المحجوزة")</div>
+                        <div class="operation-stat-value">@inventory.TotalReserved</div>
+                    </div>
                 </div>
             </div>
-            <div class="mb-3 row">
-                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Batch", "الدفعة")</label>
-                <div class="col-sm-10">
-                    <AutoCompleteComponent TItem="BatchDto"
-                                           Items="batches"
-                                           Value="selectedBatch"
-                                           ItemText='(p=> p.BatchNumber)'
-                                           PlaceHolder="@SharedDataService.SelectViewLang("Select batch","اختر دفعة")"
-                                           ValueChanged="onBatchChanged" />
+            <div class="col-md-4">
+                <div class="operation-stat border-success">
+                    <div class="operation-stat-icon text-success"><i class="bi bi-check2-circle"></i></div>
+                    <div>
+                        <div class="text-muted small">@SharedDataService.SelectViewLang("Available Quantity", "الكمية المتاحة")</div>
+                        <div class="operation-stat-value">@inventory.TotalAvailable</div>
+                    </div>
                 </div>
-            </div>
-                
-            <div class="mb-3">
-                <button class="btn btn-primary" @onclick="onShow">@SharedDataService.SelectViewLang("Show", "عرض")</button>
             </div>
         </div>
 
-        @if (inventory != null && inventory.Id != Guid.Empty)
-        {
-            
-            <EditForm Model="createInventoryAggregateDto" OnValidSubmit="() => SaveInventory(createInventoryAggregateDto)">
-                <DataAnnotationsValidator />
-                <ValidationSummary />
-                @* <InputHidden @bind-Value="branch.Id"/> *@
-                <div class="row bg-info-subtle p-3">
-                
-                    <div class="mb-3 row">
-                        <label for="inputQuantity" class="col-sm-2 col-form-label">
-                            @SharedDataService.SelectViewLang("Total Quantity", "إجمالي الكمية")
-                        </label>
-                        <div class="col-sm-10">
-                            <InputNumber class="form-control" disabled="true"
-                                         Value="inventory.TotalQuantity"
-                                         TValue="decimal"
-                                         ValueExpression="() => createInventoryAggregateDto.InitialQuantity" />
-                     
-                            @* ValueChanged="OnQuantityChanged" *@
-                            @* <ValidationMessage For="() => createInventoryAggregateDto.InitialQuantity" /> *@
-                        </div>
-                    </div>
-                    <div class="mb-3 row">
-                        <label for="inputQuantity" class="col-sm-2 col-form-label">
-                            @SharedDataService.SelectViewLang("Reserved Quantity", "الكمية المحجوزة")
-                        </label>
-                        <div class="col-sm-10">
-                            <InputNumber class="form-control" disabled="true"
-                                         Value="inventory.TotalReserved"
-                                         TValue="decimal"
-                                         ValueExpression="() => createInventoryAggregateDto.InitialQuantity" />
-                     
-                            @* ValueChanged="OnQuantityChanged" *@
-                            @* <ValidationMessage For="() => createInventoryAggregateDto.InitialQuantity" /> *@
-                        </div>
-                    </div>
-                    <div class="mb-3 row">
-                        <label for="inputQuantity" class="col-sm-2 col-form-label">
-                            @SharedDataService.SelectViewLang("Available Quantity", "الكمية المتاحة")
-                        </label>
-                        <div class="col-sm-10">
-                            <InputNumber class="form-control" disabled="true"
-                                         Value="inventory.TotalAvailable"
-                                         TValue="decimal"
-                                         ValueExpression="() => createInventoryAggregateDto.InitialQuantity" />
-                     
-                            @* ValueChanged="OnQuantityChanged" *@
-                            <ValidationMessage For="() => createInventoryAggregateDto.InitialQuantity" />
-                        </div>
-                    </div>
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body">
+                <EditForm Model="createInventoryAggregateDto" OnValidSubmit="() => SaveInventory(createInventoryAggregateDto)">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
 
-              
-                    <div class="mb-3 row">
-                        <label for="inputQuantity" class="col-sm-2 col-form-label">
-                            @SharedDataService.SelectViewLang("Quantity to release", "الكمية المراد إطلاقها")
-                        </label>
-                        <div class="col-sm-10">
-                            <InputNumber class="form-control"
-                                         Value="createInventoryAggregateDto.InitialQuantity"
-                                         TValue="decimal"
-                                         ValueChanged="OnQuantityChanged"
-                                         ValueExpression="() => createInventoryAggregateDto.InitialQuantity" />
-                     
-                            @* <ValidationMessage For="() => createInventoryAggregateDto.InitialQuantity" /> *@
-                        </div>
-                    </div>
-                
-                    <div class="mb-3 row">
-                        <label for="inputQuantity" class="col-sm-2 col-form-label">
-                            @SharedDataService.SelectViewLang("Unit Cost", "سعر الوحدة")
-                        </label>
-                        <div class="col-sm-10">
-                            <InputNumber class="form-control"
-                                         Value="createInventoryAggregateDto.UnitCost"
-                                         TValue="decimal"
-                                         ValueChanged="OnUnitCostChanged"
-                                         ValueExpression="() => createInventoryAggregateDto.UnitCost" />
-
-                            <ValidationMessage For="() => createInventoryAggregateDto.UnitCost" />
-                        </div>
-                    </div>
-
-                
-                    <div class="mb-3 row">
-                        <label for="inputQuantity" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Total Cost", "السعر الاجمالي")</label>
-                        <div class="col-sm-10">
-                            <InputNumber class="form-control" disabled="true" @bind-Value="createInventoryAggregateDto.TotalCost" />
-                            <ValidationMessage For="() => createInventoryAggregateDto.TotalCost" />
-                        </div>
-                    </div>
-
-                
-                    
-                    <div class="mb-3 row">
-                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Currency", "العملة")</label>
-                        <div class="col-sm-10">
-                            <AutoCompleteComponent TItem="CurrencyDto"
-                                                   Items="currencies"
-                                                   Value="selectedCurrency"
-                                                   ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
-                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select Currency","اختر العملة")"
-                                                   ValueChanged="onCurrencyChanged" />
-
-                        
+                    <div class="operation-panel">
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                            <div>
+                                <h5 class="mb-1">@SharedDataService.SelectViewLang("Release Details", "تفاصيل الإطلاق")</h5>
+                                <div class="text-muted small">@SharedDataService.SelectViewLang("Enter the quantity to release and its valuation.", "أدخل الكمية المراد إطلاقها وتقييمها.")</div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-secondary" @onclick="CancelEdit">
+                                    @SharedDataService.SelectViewLang("Cancel", "إلغاء")
+                                </button>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-check2"></i>
+                                    @SharedDataService.SelectViewLang("Save", "حفظ")
+                                </button>
+                            </div>
                         </div>
 
-                    </div>
-                
-                    <div class="mb-3 row">
-                        <label for="inputNotes" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Notes", "ملاحظات")</label>
-                        <div class="col-sm-10">
-                            <InputTextArea class="form-control" @bind-Value="createInventoryAggregateDto.Notes" />
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Quantity to release", "الكمية المراد إطلاقها")</label>
+                                <InputNumber class="form-control"
+                                             Value="createInventoryAggregateDto.InitialQuantity"
+                                             TValue="decimal"
+                                             ValueChanged="OnQuantityChanged"
+                                             ValueExpression="() => createInventoryAggregateDto.InitialQuantity" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Unit Cost", "سعر الوحدة")</label>
+                                <InputNumber class="form-control"
+                                             Value="createInventoryAggregateDto.UnitCost"
+                                             TValue="decimal"
+                                             ValueChanged="OnUnitCostChanged"
+                                             ValueExpression="() => createInventoryAggregateDto.UnitCost" />
+                                <ValidationMessage For="() => createInventoryAggregateDto.UnitCost" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Total Cost", "السعر الاجمالي")</label>
+                                <InputNumber class="form-control" disabled="true" @bind-Value="createInventoryAggregateDto.TotalCost" />
+                                <ValidationMessage For="() => createInventoryAggregateDto.TotalCost" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Currency", "العملة")</label>
+                                <AutoCompleteComponent TItem="CurrencyDto"
+                                                       Items="currencies"
+                                                       Value="selectedCurrency"
+                                                       ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                                       PlaceHolder="@SharedDataService.SelectViewLang("Select Currency","اختر العملة")"
+                                                       ValueChanged="onCurrencyChanged" />
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Notes", "ملاحظات")</label>
+                                <InputTextArea class="form-control" rows="3" @bind-Value="createInventoryAggregateDto.Notes" />
+                            </div>
                         </div>
                     </div>
-
-                    
-                                    
-
-                    <div class="">
-                        <button type="submit" class="btn btn-success btn-sm">Save</button>
-                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
-                    </div>
-                </div>
-            </EditForm>
-
-        }
-        
-    </div>
-
+                </EditForm>
+            </div>
+        </div>
+    }
 </div>
+
+<style>
+    .operation-page { max-width: 1400px; }
+    .operation-header { align-items: flex-start; display: flex; gap: 1rem; justify-content: space-between; }
+    .operation-panel { background: #fff; border: 1px solid #dbeafe; border-radius: 8px; padding: 1rem; }
+    .operation-stat { align-items: center; background: #fff; border-left: 4px solid; border-radius: 8px; box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.08); display: flex; gap: 0.875rem; min-height: 88px; padding: 1rem; }
+    .operation-stat-icon { align-items: center; background: #f8f9fa; border-radius: 8px; display: inline-flex; font-size: 1.35rem; height: 44px; justify-content: center; width: 44px; }
+    .operation-stat-value { color: #212529; font-size: 1.35rem; font-weight: 700; line-height: 1.15; }
+    [dir="rtl"] .operation-stat { border-left: 0; border-right: 4px solid; }
+    @@media (max-width: 767.98px) {
+        .operation-header { flex-direction: column; }
+    }
+</style>
 
 @code {
 

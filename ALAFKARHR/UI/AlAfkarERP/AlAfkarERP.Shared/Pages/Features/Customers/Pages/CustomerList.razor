@@ -20,8 +20,13 @@
 
 @if (isLoading)
 {
-    <div class="card p-4">
-        <span>@SharedDataService.SelectViewLang("Loading customers...", "جاري تحميل العملاء...")</span>
+    <div class="branches-page">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body py-5 text-center">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="fw-semibold">@SharedDataService.SelectViewLang("Loading customers...", "جاري تحميل العملاء...")</div>
+            </div>
+        </div>
     </div>
 }
 else if (!CanView)
@@ -32,40 +37,95 @@ else if (!CanView)
 }
 else
 {
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div class="branches-page">
+    <div class="branches-header mb-4">
         <div>
-            <h5 class="mb-1">@SharedDataService.SelectViewLang("Customers Management", "ادارة العملاء")</h5>
-            <div class="text-muted small">
+            <div class="text-uppercase text-primary fw-semibold small mb-1">@SharedDataService.SelectViewLang("Customers", "العملاء")</div>
+            <h3 class="mb-1">@SharedDataService.SelectViewLang("Customers Management", "ادارة العملاء")</h3>
+            <div class="text-muted">
                 @SharedDataService.SelectViewLang("Create, edit, search, and archive customer records.", "انشاء وتعديل وبحث وارشفة بيانات العملاء.")
             </div>
         </div>
 
-        <button class="btn btn-primary"
-                @onclick="CreateNew"
-                disabled="@(!CanCreate || editingCustomerId is not null)">
-            <i class="bi bi-file-earmark-plus-fill"></i>
-            @SharedDataService.SelectViewLang("Create New", "اضافة جديد")
-        </button>
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-outline-primary"
+                    @onclick="LoadCustomers"
+                    disabled="@(editingCustomerId is not null)">
+                <i class="bi bi-arrow-clockwise"></i>
+                @SharedDataService.SelectViewLang("Refresh", "تحديث")
+            </button>
+            <button class="btn btn-primary"
+                    @onclick="CreateNew"
+                    disabled="@(!CanCreate || editingCustomerId is not null)">
+                <i class="bi bi-plus-lg"></i>
+                @SharedDataService.SelectViewLang("Create New", "اضافة جديد")
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="branch-stat border-primary">
+                <div class="branch-stat-icon text-primary"><i class="bi bi-people"></i></div>
+                <div>
+                    <div class="text-muted small">@SharedDataService.SelectViewLang("Visible Customers", "العملاء المعروضون")</div>
+                    <div class="branch-stat-value">@customers.Count</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="branch-stat border-success">
+                <div class="branch-stat-icon text-success"><i class="bi bi-check2-circle"></i></div>
+                <div>
+                    <div class="text-muted small">@SharedDataService.SelectViewLang("Active", "نشط")</div>
+                    <div class="branch-stat-value">@customers.Count(c => c.Status == CustomerStatus.Active)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="branch-stat border-info">
+                <div class="branch-stat-icon text-info"><i class="bi bi-receipt-cutoff"></i></div>
+                <div>
+                    <div class="text-muted small">@SharedDataService.SelectViewLang("Tax Exempt", "معفى من الضريبة")</div>
+                    <div class="branch-stat-value">@customers.Count(c => c.IsTaxExempt)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="branch-stat border-warning">
+                <div class="branch-stat-icon text-warning"><i class="bi bi-person-lines-fill"></i></div>
+                <div>
+                    <div class="text-muted small">@SharedDataService.SelectViewLang("Contacts", "جهات الاتصال")</div>
+                    <div class="branch-stat-value">@customers.Sum(c => c.Contacts?.Count ?? 0)</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     @if (editingCustomerId is not null)
     {
-        <div class="card p-3 mb-3">
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body">
             <EditForm Model="editingCustomer" OnValidSubmit="SaveCustomer">
                 <DataAnnotationsValidator />
 
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="mb-0">
-                        @(isEdit
-                            ? SharedDataService.SelectViewLang("Edit Customer", "تعديل العميل")
-                            : SharedDataService.SelectViewLang("New Customer", "عميل جديد"))
-                    </h6>
+                <div class="branch-edit-panel">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                    <div>
+                        <h5 class="mb-1">
+                            @(isEdit
+                                ? SharedDataService.SelectViewLang("Edit Customer", "تعديل العميل")
+                                : SharedDataService.SelectViewLang("New Customer", "عميل جديد"))
+                        </h5>
+                        <div class="text-muted small">@SharedDataService.SelectViewLang("Update customer identity, group, addresses, and contacts.", "تحديث بيانات العميل والفئة والعناوين وجهات الاتصال.")</div>
+                    </div>
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-success btn-sm">
-                            @SharedDataService.SelectViewLang("Save", "حفظ")
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CancelEdit">
                             @SharedDataService.SelectViewLang("Cancel", "الغاء")
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check2"></i>
+                            @SharedDataService.SelectViewLang("Save", "حفظ")
                         </button>
                     </div>
                 </div>
@@ -237,29 +297,32 @@ else
                         </div>
                     }
                 }
+                </div>
             </EditForm>
+            </div>
         </div>
     }
 
-    <div class="card p-3">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-            <input class="form-control"
-                   style="max-width: 320px"
-                   placeholder="@SharedDataService.SelectViewLang("Search customers...", "بحث في العملاء...")"
-                   @bind="searchText"
-                   @bind:event="oninput" />
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+        <div class="branch-toolbar mb-3">
+            <div class="branch-search">
+                <i class="bi bi-search"></i>
+                <input class="form-control"
+                       placeholder="@SharedDataService.SelectViewLang("Search customers...", "بحث في العملاء...")"
+                       @bind="searchText"
+                       @bind:event="oninput" />
+            </div>
 
             <div class="d-flex align-items-center gap-2">
-                <select class="form-select" style="width: 110px" @onchange="OnPageSizeChanged">
-                    <option value="5" selected="@(pageSize == 5)">5</option>
-                    <option value="10" selected="@(pageSize == 10)">10</option>
-                    <option value="20" selected="@(pageSize == 20)">20</option>
-                    <option value="50" selected="@(pageSize == 50)">50</option>
-                    <option value="100" selected="@(pageSize == 100)">100</option>
+                <label class="text-muted small mb-0">@SharedDataService.SelectViewLang("Rows", "الصفوف")</label>
+                <select class="form-select branch-page-size" @onchange="OnPageSizeChanged" value="@pageSize">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
                 </select>
-                <button class="btn btn-outline-secondary" @onclick="LoadCustomers">
-                    @SharedDataService.SelectViewLang("Refresh", "تحديث")
-                </button>
             </div>
         </div>
 
@@ -271,11 +334,14 @@ else
         }
         else
         {
-            <div class="table-responsive">
-                <table class="table align-middle">
+            <div class="table-responsive branch-table-wrap">
+                <table class="table branch-table align-middle mb-0">
                     <thead>
                         <tr>
-                            <th @onclick="() => Sort(nameof(CustomerDto.Name))">@SharedDataService.SelectViewLang("Name", "الاسم")</th>
+                            <th class="sortable" @onclick="() => Sort(nameof(CustomerDto.Name))">
+                                @SharedDataService.SelectViewLang("Name", "الاسم")
+                                <i class="@SortIcon(nameof(CustomerDto.Name))"></i>
+                            </th>
                             <th>@SharedDataService.SelectViewLang("Commercial Name", "الاسم التجاري")</th>
                             <th>@SharedDataService.SelectViewLang("Group", "الفئة")</th>
                             <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
@@ -303,16 +369,20 @@ else
                                 <td>@customer.CreditLimit.ToString("N2")</td>
                                 <td>@(customer.Contacts?.Count ?? 0)</td>
                                 <td class="text-end">
-                                    <button class="btn btn-warning btn-sm"
+                                    <div class="d-flex justify-content-end gap-2">
+                                    <button class="btn btn-outline-warning btn-sm branch-action"
                                             @onclick="() => EditCustomer(customer.Id)"
-                                            disabled="@(!CanEdit || editingCustomerId is not null)">
-                                        @SharedDataService.SelectViewLang("Edit", "تعديل")
+                                            disabled="@(!CanEdit || editingCustomerId is not null)"
+                                            title="@SharedDataService.SelectViewLang("Edit", "تعديل")">
+                                        <i class="bi bi-pencil-square"></i>
                                     </button>
-                                    <button class="btn btn-danger btn-sm"
+                                    <button class="btn btn-outline-danger btn-sm branch-action"
                                             @onclick="() => DeleteCustomer(customer)"
-                                            disabled="@(!CanDelete || editingCustomerId is not null)">
-                                        @SharedDataService.SelectViewLang("Delete", "حذف")
+                                            disabled="@(!CanDelete || editingCustomerId is not null)"
+                                            title="@SharedDataService.SelectViewLang("Delete", "حذف")">
+                                        <i class="bi bi-trash"></i>
                                     </button>
+                                    </div>
                                 </td>
                             </tr>
                         }
@@ -321,19 +391,49 @@ else
             </div>
         }
 
-        <div class="d-flex justify-content-end align-items-center mt-3">
-            <button class="btn btn-sm btn-secondary" @onclick="PrevPage" disabled="@(pageIndex == 0)">
-                @SharedDataService.SelectViewLang("Previous", "السابق")
-            </button>
-            <span class="mx-3">
-                @SharedDataService.SelectViewLang("Page", "صفحة") @(pageIndex + 1) / @TotalPages
-            </span>
-            <button class="btn btn-sm btn-secondary" @onclick="NextPage" disabled="@(pageIndex >= TotalPages - 1)">
-                @SharedDataService.SelectViewLang("Next", "التالي")
-            </button>
+        <div class="branch-pagination">
+            <div class="text-muted small">
+                @SharedDataService.SelectViewLang("Page", "صفحة") @(pageIndex + 1) @SharedDataService.SelectViewLang("of", "من") @Math.Max(TotalPages, 1)
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary" @onclick="PrevPage" disabled="@(pageIndex == 0)">
+                    <i class="bi bi-chevron-left"></i>
+                    @SharedDataService.SelectViewLang("Previous", "السابق")
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="NextPage" disabled="@(pageIndex >= TotalPages - 1)">
+                    @SharedDataService.SelectViewLang("Next", "التالي")
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+        </div>
         </div>
     </div>
+    </div>
 }
+
+<style>
+    .branches-page { max-width: 1400px; }
+    .branches-header { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
+    .branch-stat { align-items: center; background: #fff; border-left: 4px solid; border-radius: 8px; box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.08); display: flex; gap: 0.875rem; min-height: 88px; padding: 1rem; }
+    .branch-stat-icon { align-items: center; background: #f8f9fa; border-radius: 8px; display: inline-flex; font-size: 1.35rem; height: 44px; justify-content: center; width: 44px; }
+    .branch-stat-value { color: #212529; font-size: 1.35rem; font-weight: 700; line-height: 1.15; }
+    .branch-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
+    .branch-search { max-width: 420px; position: relative; width: min(100%, 420px); }
+    .branch-search i { color: #6c757d; left: 0.875rem; position: absolute; top: 50%; transform: translateY(-50%); }
+    .branch-search .form-control { padding-left: 2.5rem; }
+    .branch-page-size { min-width: 82px; }
+    .branch-table-wrap { border: 1px solid #e9ecef; border-radius: 8px; }
+    .branch-table thead th { background: #f8f9fa; color: #495057; font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
+    .branch-table tbody tr:hover { background: #fbfcfe; }
+    .branch-table .sortable { cursor: pointer; user-select: none; }
+    .branch-table .sortable i { color: #6c757d; font-size: 0.75rem; margin-inline-start: 0.35rem; }
+    .branch-action { align-items: center; display: inline-flex; height: 32px; justify-content: center; width: 36px; }
+    .branch-edit-panel { background: #fff; border: 1px solid #dbeafe; border-radius: 8px; padding: 1rem; }
+    .branch-pagination { align-items: center; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; margin-top: 1rem; }
+    [dir="rtl"] .branch-stat { border-left: 0; border-right: 4px solid; }
+    [dir="rtl"] .branch-search i { left: auto; right: 0.875rem; }
+    [dir="rtl"] .branch-search .form-control { padding-left: 0.75rem; padding-right: 2.5rem; }
+</style>
 
 @code {
     private List<CustomerDto> customers = new();
@@ -576,6 +676,14 @@ else
             sortColumn = column;
             sortAscending = true;
         }
+    }
+
+    private string SortIcon(string column)
+    {
+        if (sortColumn != column)
+            return "bi bi-arrow-down-up";
+
+        return sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down";
     }
 
     private void AddAddress()
