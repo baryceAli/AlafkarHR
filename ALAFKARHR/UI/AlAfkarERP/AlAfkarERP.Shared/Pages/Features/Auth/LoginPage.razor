@@ -22,52 +22,79 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-<div class="container d-flex justify-content-center align-items-center min-vh-100">
-    <div class="card shadow-lg border-0 w-100" style="max-width: 600px;">
+<section class="login-page" dir="@SharedDataService.PageDirection" lang="@CurrentLangCode">
+    <button type="button" class="language-switch" @onclick="ChangeLanguage" aria-label="@Text("Change language", "تغيير اللغة")">
+        <span aria-hidden="true">◎</span>
+        <span>@(SharedDataService.Language == "Ar" ? "Eng" : "عربي")</span>
+    </button>
 
-        <!-- Card Header -->
-        <div class="card-header bg-primary text-white text-center">
-            <h3 class="mb-0">Login to Your Account</h3>
-        </div>
+    <div class="login-shell">
+        <aside class="login-hero" aria-label="@Text("ALAFKARHR overview", "نبذة عن نظام الأفكار للموارد البشرية")">
+            <div class="brand-mark">AF</div>
+            <div>
+                <p class="eyebrow">ALAFKARHR</p>
+                <h1>@Text("Welcome back to your HR workspace", "مرحباً بعودتك إلى مساحة الموارد البشرية")</h1>
+                <p class="hero-copy">
+                    @Text(
+                        "Manage employees, attendance, payroll, inventory, and sales operations from one secure ERP portal.",
+                        "أدر الموظفين والحضور والرواتب والمخزون وعمليات المبيعات من بوابة ERP آمنة واحدة.")
+                </p>
+            </div>
 
-        <!-- Card Body -->
-        <div class="card-body p-4 bg-light rounded-bottom">
-            <EditForm Model="@login" OnValidSubmit="HandleLogin">
+            <div class="hero-metrics" aria-label="@Text("Platform highlights", "مميزات المنصة")">
+                <div>
+                    <strong>360</strong>
+                    <span>@Text("employee profile", "ملف الموظف")</span>
+                </div>
+                <div>
+                    <strong>24/7</strong>
+                    <span>@Text("secure access", "وصول آمن")</span>
+                </div>
+                <div>
+                    <strong>ERP</strong>
+                    <span>@Text("operations hub", "مركز العمليات")</span>
+                </div>
+            </div>
+        </aside>
+
+        <div class="login-panel">
+            <div class="login-panel-header">
+                <p class="eyebrow">@Text("Secure sign in", "دخول آمن")</p>
+                <h2>@Text("Login to your account", "تسجيل الدخول إلى حسابك")</h2>
+                <p>@Text("Use your workspace credentials to continue.", "استخدم بيانات حسابك للمتابعة.")</p>
+            </div>
+
+            <EditForm Model="@login" OnValidSubmit="HandleLogin" class="login-form">
                 <DataAnnotationsValidator />
 
-                <div class="mb-3">
-                    <label for="userName" class="form-label">User name</label>
-                    <InputText id="userName" class="form-control" @bind-Value="login.Email" placeholder="Enter email" />
+                <div class="form-field">
+                    <label for="userName">@Text("User name", "اسم المستخدم")</label>
+                    <InputText id="userName" class="login-input" @bind-Value="login.Email" placeholder="@Text("Enter email or user name", "أدخل البريد الإلكتروني أو اسم المستخدم")" autocomplete="username" />
                     <ValidationMessage For="@(() => login.Email)" />
                 </div>
 
-                <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <InputText id="password" type="password" class="form-control" @bind-Value="login.Password" placeholder="Password" />
+                <div class="form-field">
+                    <div class="label-row">
+                        <label for="password">@Text("Password", "كلمة المرور")</label>
+                        <a href="/User/ForgetPassword">@Text("Forgot password?", "نسيت كلمة المرور؟")</a>
+                    </div>
+                    <InputText id="password" type="password" class="login-input" @bind-Value="login.Password" placeholder="@Text("Enter password", "أدخل كلمة المرور")" autocomplete="current-password" />
                     <ValidationMessage For="@(() => login.Password)" />
                 </div>
 
-                @* <div class="mb-3 form-check">
-                    <InputCheckbox id="rememberMe" class="form-check-input" @bind-Value="rememberMe" />
-                    <label class="form-check-label" for="rememberMe">Remember me</label>
-                </div> *@
+                <button type="submit" class="login-button">
+                    <span>@Text("Login", "تسجيل الدخول")</span>
+                    <span aria-hidden="true">@Text("->", "<-")</span>
+                </button>
 
-                <div class="d-grid mb-3">
-                    <button type="submit" class="btn btn-primary">Login</button>
-                </div>
-
-                <div class="text-center mb-2">
-                    <a href="/User/ForgetPassword" class="text-decoration-none">Forgot your password?</a>
-                </div>
-
-                <div class="text-center">
-                    <span>Don’t have an account?</span>
-                    <a href="/Register" class="text-decoration-none ms-1">Create one</a>
-                </div>
+                <p class="register-link">
+                    <span>@Text("Don’t have an account?", "ليس لديك حساب؟")</span>
+                    <a href="/Register">@Text("Create one", "إنشاء حساب")</a>
+                </p>
             </EditForm>
         </div>
     </div>
-</div>
+</section>
 
 
 
@@ -75,12 +102,21 @@
 @code {
 
     private LoginDto login = new LoginDto();
+    private string CurrentLangCode => SharedDataService.Language == "Ar" ? "ar" : "en";
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
     protected override void OnInitialized()
     {
         // login.Email = "baryce@gmail.com";
         // login.Password = "Admin@123";
         SharedDataService.OnChange1 += HandleChangeAsync;
     }
+
+    private async Task ChangeLanguage()
+    {
+        await SharedDataService.UpdateLanguageAsync();
+    }
+
     private async Task HandleChangeAsync()
     {
         await InvokeAsync(StateHasChanged);
