@@ -1,0 +1,257 @@
+@layout AdminLayout
+@page "/Attendance/Holidays"
+
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Attendance.Dtos
+
+@inject IAttendanceService AttendanceService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ModalService ModalService
+@inject SharedDataService SharedDataService
+
+<section class="erp-page" dir="@SharedDataService.PageDirection">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <p class="text-muted mb-1">@Text("Attendance", "الحضور والانصراف")</p>
+            <h3 class="mb-1">@Text("Predefined Holidays", "العطلات المحددة")</h3>
+            <p class="text-muted mb-0">@Text("Holidays are excluded from absence and late calculations.", "يتم استبعاد العطلات من حسابات الغياب والتأخير.")</p>
+        </div>
+        <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">@Text("Refresh", "تحديث")</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @messageClass">@message</div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="mb-1">@Text("Weekend Days", "أيام نهاية الأسبوع")</h5>
+                    <p class="text-muted mb-0">@Text("Selected weekend days are treated as non-working days in attendance calculations and reports.", "أيام نهاية الأسبوع المحددة تعامل كأيام غير عمل في حسابات وتقارير الحضور.")</p>
+                </div>
+                <button class="btn btn-primary" @onclick="SaveWeekendAsync" disabled="@isBusy">@Text("Save Weekend", "حفظ نهاية الأسبوع")</button>
+            </div>
+            <div class="d-flex flex-wrap gap-3">
+                @foreach (var day in Enum.GetValues<DayOfWeek>())
+                {
+                    <label class="form-check">
+                        <input class="form-check-input" type="checkbox" checked="@configuration.WeekendDays.Contains(day)" @onchange="args => ToggleWeekend(day, args)" />
+                        <span class="form-check-label">@day</span>
+                    </label>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">@Text("Name", "الاسم")</label>
+                    <input class="form-control" @bind="model.Name" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@Text("Start", "البداية")</label>
+                    <input class="form-control" type="date" @bind="model.StartDate" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@Text("End", "النهاية")</label>
+                    <input class="form-control" type="date" @bind="model.EndDate" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@Text("Administration Id", "معرف الادارة")</label>
+                    <input class="form-control" @bind="administrationIdText" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@Text("Department Id", "معرف القسم")</label>
+                    <input class="form-control" @bind="departmentIdText" />
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" @onclick="SaveAsync" disabled="@isBusy">@Text("Save", "حفظ")</button>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">@Text("Description", "الوصف")</label>
+                    <textarea class="form-control" rows="2" @bind="model.Description"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>@Text("Name", "الاسم")</th>
+                        <th>@Text("Dates", "التاريخ")</th>
+                        <th>@Text("Administration", "الادارة")</th>
+                        <th>@Text("Department", "القسم")</th>
+                        <th class="text-end">@Text("Actions", "الاجراءات")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var holiday in holidays)
+                    {
+                        <tr>
+                            <td>@holiday.Name</td>
+                            <td>@holiday.StartDate.ToShortDateString() - @holiday.EndDate.ToShortDateString()</td>
+                            <td>@holiday.AdministrationId</td>
+                            <td>@holiday.DepartmentId</td>
+                            <td class="text-end">
+                                <button class="btn btn-outline-warning btn-sm" @onclick="() => Edit(holiday)">@Text("Edit", "تعديل")</button>
+                                <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteAsync(holiday)">@Text("Delete", "حذف")</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+@code {
+    private UpsertAttendanceHolidayDto model = new() { StartDate = DateTime.Today, EndDate = DateTime.Today };
+    private AttendanceConfigurationDto configuration = new();
+    private List<AttendanceHolidayDto> holidays = [];
+    private Guid companyId;
+    private bool isBusy;
+    private string? administrationIdText;
+    private string? departmentIdText;
+    private string? message;
+    private string messageClass = "alert-info";
+
+    protected override async Task OnInitializedAsync()
+    {
+        companyId = await ResolveCompanyIdAsync();
+        model.CompanyId = companyId;
+        configuration.CompanyId = companyId;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isBusy = true;
+        var configResult = await AttendanceService.GetConfigurationAsync(companyId);
+        if (configResult.IsSuccess && configResult.Data is not null)
+        {
+            configuration = configResult.Data;
+            EnsureWeekRows();
+        }
+
+        var result = await AttendanceService.GetHolidaysAsync(companyId);
+        holidays = result.IsSuccess ? result.Data ?? [] : [];
+        if (!result.IsSuccess) SetMessage(result.Error?.Detail ?? Text("Unable to load holidays.", "تعذر تحميل العطلات."), "alert-danger");
+        isBusy = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        model.CompanyId = companyId;
+        model.AdministrationId = ParseGuid(administrationIdText);
+        model.DepartmentId = ParseGuid(departmentIdText);
+        var result = await AttendanceService.UpsertHolidayAsync(model);
+        if (result.IsSuccess)
+        {
+            SetMessage(Text("Holiday saved.", "تم حفظ العطلة."), "alert-success");
+            model = new() { CompanyId = companyId, StartDate = DateTime.Today, EndDate = DateTime.Today };
+            administrationIdText = departmentIdText = null;
+            await LoadAsync();
+        }
+        else
+        {
+            SetMessage(result.Error?.Detail ?? Text("Unable to save holiday.", "تعذر حفظ العطلة."), "alert-danger");
+        }
+    }
+
+    private async Task SaveWeekendAsync()
+    {
+        if (configuration.WeekendDays.Count == 0)
+        {
+            SetMessage(Text("Select at least one weekend day.", "اختر يوما واحدا على الأقل لنهاية الأسبوع."), "alert-warning");
+            return;
+        }
+
+        var result = await AttendanceService.UpsertConfigurationAsync(new UpsertAttendanceConfigurationDto
+        {
+            CompanyId = companyId,
+            FirstDayOfWeek = configuration.FirstDayOfWeek,
+            DaySchedules = configuration.DaySchedules,
+            WeekendDays = configuration.WeekendDays
+        });
+
+        SetMessage(result.IsSuccess ? Text("Weekend days saved.", "تم حفظ أيام نهاية الأسبوع.") : result.Error?.Detail ?? Text("Unable to save weekend days.", "تعذر حفظ أيام نهاية الأسبوع."), result.IsSuccess ? "alert-success" : "alert-danger");
+    }
+
+    private void Edit(AttendanceHolidayDto holiday)
+    {
+        model = new UpsertAttendanceHolidayDto
+        {
+            Id = holiday.Id,
+            CompanyId = holiday.CompanyId,
+            AdministrationId = holiday.AdministrationId,
+            DepartmentId = holiday.DepartmentId,
+            StartDate = holiday.StartDate,
+            EndDate = holiday.EndDate,
+            Name = holiday.Name,
+            Description = holiday.Description
+        };
+        administrationIdText = holiday.AdministrationId?.ToString();
+        departmentIdText = holiday.DepartmentId?.ToString();
+    }
+
+    private async Task DeleteAsync(AttendanceHolidayDto holiday)
+    {
+        await ModalService.ShowAsync(new ModalOptions
+        {
+            Title = Text("Confirm delete", "تأكيد الحذف"),
+            Message = Text("Delete this holiday?", "هل تريد حذف هذه العطلة؟"),
+            ShowCancel = true,
+            OnOk = async () =>
+            {
+                var result = await AttendanceService.DeleteHolidayAsync(holiday.Id);
+                SetMessage(result.IsSuccess ? Text("Holiday deleted.", "تم حذف العطلة.") : result.Error?.Detail ?? Text("Unable to delete.", "تعذر الحذف."), result.IsSuccess ? "alert-success" : "alert-danger");
+                await LoadAsync();
+            }
+        });
+    }
+
+    private async Task<Guid> ResolveCompanyIdAsync()
+    {
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        return Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
+    }
+
+    private static Guid? ParseGuid(string? value) => Guid.TryParse(value, out var id) ? id : null;
+    private void ToggleWeekend(DayOfWeek day, ChangeEventArgs args)
+    {
+        var isChecked = args.Value is bool value && value;
+        if (isChecked && !configuration.WeekendDays.Contains(day))
+        {
+            configuration.WeekendDays.Add(day);
+        }
+        else if (!isChecked)
+        {
+            configuration.WeekendDays.Remove(day);
+        }
+    }
+
+    private void EnsureWeekRows()
+    {
+        var existing = configuration.DaySchedules.ToDictionary(x => x.DayOfWeek);
+        configuration.DaySchedules = AttendanceDayScheduleDto.DefaultWeek()
+            .Select(defaultDay => existing.TryGetValue(defaultDay.DayOfWeek, out var day) ? day : defaultDay)
+            .ToList();
+
+        if (configuration.WeekendDays.Count == 0)
+        {
+            configuration.WeekendDays = [DayOfWeek.Friday, DayOfWeek.Saturday];
+        }
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private void SetMessage(string text, string cssClass) { message = text; messageClass = cssClass; }
+}

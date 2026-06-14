@@ -1,0 +1,255 @@
+@layout AdminLayout
+@page "/Attendance/Reports"
+@page "/Attendance/Reports/{ReportCategory}"
+
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Attendance.Enums
+
+@inject IAttendanceService AttendanceService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+
+<section class="erp-page" dir="@SharedDataService.PageDirection">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <p class="text-muted mb-1">@Text("Attendance Reports", "تقارير الحضور")</p>
+            <h3 class="mb-1">@ReportTitle</h3>
+            <p class="text-muted mb-0">@Text("Filter attendance data by date range, employee, department, administration, status, and report category.", "تصفية بيانات الحضور حسب التاريخ والموظف والقسم والادارة والحالة ونوع التقرير.")</p>
+        </div>
+        <button class="btn btn-primary" @onclick="LoadReportAsync" disabled="@isBusy">@Text("Run Report", "تشغيل التقرير")</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @messageClass">@message</div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">@Text("From", "من")</label>
+                    <input class="form-control" type="date" @bind="filter.FromDate" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@Text("To", "الى")</label>
+                    <input class="form-control" type="date" @bind="filter.ToDate" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">@Text("Employee Id", "معرف الموظف")</label>
+                    <input class="form-control" @bind="employeeIdText" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">@Text("Department Id", "معرف القسم")</label>
+                    <input class="form-control" @bind="departmentIdText" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">@Text("Administration Id", "معرف الادارة")</label>
+                    <input class="form-control" @bind="administrationIdText" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@Text("Status", "الحالة")</label>
+                    <select class="form-select" @bind="filter.Status">
+                        <option value="">@Text("All", "الكل")</option>
+                        @foreach (var status in Enum.GetValues<AttendanceExceptionStatus>())
+                        {
+                            <option value="@status">@status</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">@Text("Report", "التقرير")</label>
+                    <select class="form-select" @bind="filter.Category">
+                        <option value="">@Text("All Attendance Rows", "كل صفوف الحضور")</option>
+                        <option value="Attendance">@Text("Daily Attendance Report", "تقرير الحضور اليومي")</option>
+                        <option value="AttendanceSummary">@Text("Employee Attendance Summary", "ملخص حضور الموظف")</option>
+                        <option value="LateArrival">@Text("Late Arrival Report", "تقرير التأخير")</option>
+                        <option value="EarlyLeave">@Text("Early Leave Report", "تقرير الانصراف المبكر")</option>
+                        <option value="Break">@Text("Break Report", "تقرير الاستراحة")</option>
+                        <option value="MidDayPermission">@Text("Permission Requests Report", "تقرير طلبات الاذن")</option>
+                        <option value="Absence">@Text("Absence Report", "تقرير الغياب")</option>
+                        <option value="HolidayWeekend">@Text("Holiday / Weekend Report", "تقرير العطلات ونهاية الأسبوع")</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <span class="badge bg-light text-dark">@Text("First day:", "أول يوم:") @report.FirstDayOfWeek</span>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <span class="badge bg-light text-dark">@Text("Weekend:", "نهاية الأسبوع:") @string.Join(", ", report.WeekendDays)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <strong>@Text("Rows", "الصفوف")</strong>
+                    <div>@FilteredRows.Count</div>
+                </div>
+                <div class="col-md-3">
+                    <strong>@Text("Net hours", "صافي الساعات")</strong>
+                    <div>@FilteredRows.Sum(x => x.NetWorkingHours)</div>
+                </div>
+                <div class="col-md-3">
+                    <strong>@Text("Late arrivals", "حالات التأخير")</strong>
+                    <div>@FilteredRows.Count(x => x.Category == "LateArrival")</div>
+                </div>
+                <div class="col-md-3">
+                    <strong>@Text("Permissions", "الأذونات")</strong>
+                    <div>@FilteredRows.Count(x => x.Category == "MidDayPermission")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>@Text("Date", "التاريخ")</th>
+                        <th>@Text("Employee", "الموظف")</th>
+                        <th>@Text("Category", "التصنيف")</th>
+                        <th>@Text("Status", "الحالة")</th>
+                        <th>@Text("Shift", "الوردية")</th>
+                        <th>@Text("Check-in/out", "الحضور/الانصراف")</th>
+                        <th>@Text("Requested", "المطلوب")</th>
+                        <th>@Text("Approved", "المعتمد")</th>
+                        <th>@Text("Hours", "الساعات")</th>
+                        <th>@Text("Reason / Comment", "السبب / التعليق")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in FilteredRows)
+                    {
+                        <tr>
+                            <td>@row.Date.ToShortDateString()</td>
+                            <td>@row.EmployeeId</td>
+                            <td>@row.Category</td>
+                            <td>@(row.Status?.ToString() ?? row.SessionStatus?.ToString())</td>
+                            <td>@FormatRange(row.ShiftStartUtc, row.ShiftEndUtc)</td>
+                            <td>@FormatRange(row.CheckInUtc, row.CheckOutUtc)</td>
+                            <td>@FormatRange(row.RequestedStartUtc, row.RequestedEndUtc)</td>
+                            <td>@FormatRange(row.ApprovedStartUtc, row.ApprovedEndUtc)</td>
+                            <td>@row.NetWorkingHours</td>
+                            <td>@row.Reason @row.ApproverComment</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter] public string? ReportCategory { get; set; }
+
+    private AttendanceReportFilterDto filter = new()
+    {
+        FromDate = DateTime.Today.AddDays(-7),
+        ToDate = DateTime.Today
+    };
+    private AttendanceReportDto report = new();
+    private Guid companyId;
+    private string? employeeIdText;
+    private string? departmentIdText;
+    private string? administrationIdText;
+    private bool isBusy;
+    private string? message;
+    private string messageClass = "alert-info";
+
+    private List<AttendanceReportRowDto> FilteredRows => filter.Category == "AttendanceSummary"
+        ? BuildSummaryRows(report.Rows)
+        : report.Rows;
+
+    private string ReportTitle => filter.Category switch
+    {
+        "Attendance" => Text("Daily Attendance Report", "تقرير الحضور اليومي"),
+        "AttendanceSummary" => Text("Employee Attendance Summary", "ملخص حضور الموظف"),
+        "LateArrival" => Text("Late Arrival Report", "تقرير التأخير"),
+        "EarlyLeave" => Text("Early Leave Report", "تقرير الانصراف المبكر"),
+        "Break" => Text("Break Report", "تقرير الاستراحة"),
+        "MidDayPermission" => Text("Permission Requests Report", "تقرير طلبات الاذن"),
+        "Absence" => Text("Absence Report", "تقرير الغياب"),
+        "HolidayWeekend" => Text("Holiday / Weekend Report", "تقرير العطلات ونهاية الأسبوع"),
+        _ => Text("Attendance Reports", "تقارير الحضور")
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        companyId = await ResolveCompanyIdAsync();
+        filter.CompanyId = companyId;
+        filter.Category = NormalizeCategory(ReportCategory);
+        await LoadReportAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var category = NormalizeCategory(ReportCategory);
+        if (category != filter.Category)
+        {
+            filter.Category = category;
+            if (companyId != Guid.Empty)
+            {
+                await LoadReportAsync();
+            }
+        }
+    }
+
+    private async Task LoadReportAsync()
+    {
+        isBusy = true;
+        filter.CompanyId = companyId;
+        filter.EmployeeId = Guid.TryParse(employeeIdText, out var employeeId) ? employeeId : null;
+        filter.DepartmentId = Guid.TryParse(departmentIdText, out var departmentId) ? departmentId : null;
+        filter.AdministrationId = Guid.TryParse(administrationIdText, out var administrationId) ? administrationId : null;
+        var result = await AttendanceService.GetReportAsync(filter);
+        if (result.IsSuccess)
+        {
+            report = result.Data ?? new AttendanceReportDto();
+        }
+        else
+        {
+            SetMessage(result.Error?.Detail ?? Text("Unable to load report.", "تعذر تحميل التقرير."), "alert-danger");
+        }
+        isBusy = false;
+    }
+
+    private static string? NormalizeCategory(string? category)
+        => string.IsNullOrWhiteSpace(category) || category.Equals("All", StringComparison.OrdinalIgnoreCase) ? null : category;
+
+    private static List<AttendanceReportRowDto> BuildSummaryRows(List<AttendanceReportRowDto> rows)
+        => rows
+            .Where(x => x.EmployeeId.HasValue)
+            .GroupBy(x => x.EmployeeId)
+            .Select(group => new AttendanceReportRowDto
+            {
+                Date = group.Min(x => x.Date),
+                EmployeeId = group.Key,
+                Category = "AttendanceSummary",
+                NetWorkingHours = group.Sum(x => x.NetWorkingHours),
+                TotalWorkingHours = group.Sum(x => x.TotalWorkingHours),
+                Reason = $"Rows: {group.Count()}"
+            })
+            .ToList();
+
+    private async Task<Guid> ResolveCompanyIdAsync()
+    {
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        return Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
+    }
+
+    private static string FormatRange(DateTime? start, DateTime? end)
+        => start.HasValue || end.HasValue ? $"{FormatDateTime(start)} - {FormatDateTime(end)}" : "-";
+
+    private static string FormatDateTime(DateTime? value)
+        => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "-";
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private void SetMessage(string text, string cssClass) { message = text; messageClass = cssClass; }
+}

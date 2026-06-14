@@ -2,7 +2,7 @@ using AttendanceDomain.Attendance.Models;
 using System.Reflection;
 
 namespace AttendanceDomain.Data;
-//add-migration AuthInitial -Project AttendanceDomain -StartupProject Api -OutputDir Data/Migrations -Context AttendanceDbContext
+//add-migration AttendanceInitial -Project AttendanceDomain -StartupProject Api -OutputDir Data/Migrations -Context AttendanceDbContext
 //update-database -Project AttendanceDomain -StartupProject Api -Context AttendanceDbContext
 
 public class AttendanceDbContext(DbContextOptions<AttendanceDbContext> options) : DbContext(options)
@@ -16,6 +16,11 @@ public class AttendanceDbContext(DbContextOptions<AttendanceDbContext> options) 
     public DbSet<AttendanceCheckIn> AttendanceCheckIns => Set<AttendanceCheckIn>();
     public DbSet<AttendanceException> AttendanceExceptions => Set<AttendanceException>();
     public DbSet<LateCheckInRequest> LateCheckInRequests => Set<LateCheckInRequest>();
+    public DbSet<AttendanceConfiguration> AttendanceConfigurations => Set<AttendanceConfiguration>();
+    public DbSet<AttendanceHoliday> AttendanceHolidays => Set<AttendanceHoliday>();
+    public DbSet<AttendanceBreakPolicy> AttendanceBreakPolicies => Set<AttendanceBreakPolicy>();
+    public DbSet<EmergencyLeaveRequest> EmergencyLeaveRequests => Set<EmergencyLeaveRequest>();
+    public DbSet<MidDayPermissionRequest> MidDayPermissionRequests => Set<MidDayPermissionRequest>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

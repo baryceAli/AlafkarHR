@@ -4,6 +4,7 @@ using AttendanceDomain.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AttendanceDomain.Data.Migrations
 {
     [DbContext(typeof(AttendanceDbContext))]
-    partial class AttendanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260614201330_AddPendingChanges")]
+    partial class AddPendingChanges
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -37,11 +40,6 @@ namespace AttendanceDomain.Data.Migrations
 
                     b.Property<TimeSpan?>("BreakEndTime")
                         .HasColumnType("time");
-
-                    b.Property<int>("BreakMode")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
 
                     b.Property<TimeSpan?>("BreakStartTime")
                         .HasColumnType("time");
@@ -186,17 +184,6 @@ namespace AttendanceDomain.Data.Migrations
                     b.Property<int>("FirstDayOfWeek")
                         .HasColumnType("int");
 
-                    b.Property<TimeSpan?>("FridayEndTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("FridayIsWorkingDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<TimeSpan?>("FridayStartTime")
-                        .HasColumnType("time");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -205,79 +192,6 @@ namespace AttendanceDomain.Data.Migrations
 
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<TimeSpan?>("MondayEndTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("MondayIsWorkingDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<TimeSpan?>("MondayStartTime")
-                        .HasColumnType("time");
-
-                    b.Property<TimeSpan?>("SaturdayEndTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("SaturdayIsWorkingDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<TimeSpan?>("SaturdayStartTime")
-                        .HasColumnType("time");
-
-                    b.Property<TimeSpan?>("SundayEndTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("SundayIsWorkingDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<TimeSpan?>("SundayStartTime")
-                        .HasColumnType("time");
-
-                    b.Property<TimeSpan?>("ThursdayEndTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("ThursdayIsWorkingDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<TimeSpan?>("ThursdayStartTime")
-                        .HasColumnType("time");
-
-                    b.Property<TimeSpan?>("TuesdayEndTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("TuesdayIsWorkingDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<TimeSpan?>("TuesdayStartTime")
-                        .HasColumnType("time");
-
-                    b.Property<TimeSpan?>("WednesdayEndTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("WednesdayIsWorkingDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<TimeSpan?>("WednesdayStartTime")
-                        .HasColumnType("time");
-
-                    b.Property<string>("WeekendDays")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasDefaultValue("Friday,Saturday");
 
                     b.HasKey("Id");
 

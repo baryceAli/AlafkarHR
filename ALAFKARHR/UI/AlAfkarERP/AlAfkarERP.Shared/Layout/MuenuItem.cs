@@ -213,6 +213,113 @@ public class MenuItem
                             Icon = "bi-exclamation-triangle",
                             Url = "/Attendance/LateRequests",
                             PermissionPolicy = PermissionList.AttendancePermissions.ReviewRequests
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Configuration",
+                            TextAr = "اعدادات الحضور",
+                            Icon = "bi-gear",
+                            Url = "/Attendance/Configuration",
+                            PermissionPolicy = PermissionList.AttendancePermissions.ViewConfiguration
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Holidays",
+                            TextAr = "العطلات",
+                            Icon = "bi-calendar-event",
+                            Url = "/Attendance/Holidays",
+                            PermissionPolicy = PermissionList.AttendancePermissions.ManageHolidays
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Emergency Leaves",
+                            TextAr = "الاجازات الطارئة",
+                            Icon = "bi-life-preserver",
+                            Url = "/Attendance/EmergencyLeaves",
+                            PermissionPolicy = PermissionList.AttendancePermissions.RequestEmergencyLeave
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Permission Requests",
+                            TextAr = "طلبات الاذن",
+                            Icon = "bi-door-open",
+                            Url = "/Attendance/PermissionRequests",
+                            PermissionPolicy = PermissionList.AttendancePermissions.RequestMidDayPermission
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Reports",
+                            TextAr = "التقارير",
+                            Icon = "bi-file-earmark-bar-graph",
+                            Url = "/Attendance/Reports",
+                            PermissionPolicy = PermissionList.AttendancePermissions.ViewReports,
+                            Children = new()
+                            {
+                                new MenuItem
+                                {
+                                    TextEn = "Daily Attendance Report",
+                                    TextAr = "تقرير الحضور اليومي",
+                                    Icon = "bi-calendar-day",
+                                    Url = "/Attendance/Reports/Attendance",
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                },
+                                new MenuItem
+                                {
+                                    TextEn = "Employee Attendance Summary",
+                                    TextAr = "ملخص حضور الموظف",
+                                    Icon = "bi-person-lines-fill",
+                                    Url = "/Attendance/Reports/AttendanceSummary",
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                },
+                                new MenuItem
+                                {
+                                    TextEn = "Late Arrival Report",
+                                    TextAr = "تقرير التأخير",
+                                    Icon = "bi-clock",
+                                    Url = "/Attendance/Reports/LateArrival",
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                },
+                                new MenuItem
+                                {
+                                    TextEn = "Early Leave Report",
+                                    TextAr = "تقرير الانصراف المبكر",
+                                    Icon = "bi-box-arrow-right",
+                                    Url = "/Attendance/Reports/EarlyLeave",
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                },
+                                new MenuItem
+                                {
+                                    TextEn = "Break Report",
+                                    TextAr = "تقرير الاستراحة",
+                                    Icon = "bi-cup-hot",
+                                    Url = "/Attendance/Reports/Break",
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                },
+                                new MenuItem
+                                {
+                                    TextEn = "Permission Requests Report",
+                                    TextAr = "تقرير طلبات الاذن",
+                                    Icon = "bi-door-open",
+                                    Url = "/Attendance/Reports/MidDayPermission",
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                },
+                                new MenuItem
+                                {
+                                    TextEn = "Absence Report",
+                                    TextAr = "تقرير الغياب",
+                                    Icon = "bi-person-x",
+                                    Url = "/Attendance/Reports/Absence",
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                },
+                                new MenuItem
+                                {
+                                    TextEn = "Holiday / Weekend Report",
+                                    TextAr = "تقرير العطلات ونهاية الأسبوع",
+                                    Icon = "bi-calendar-event",
+                                    Url = "/Attendance/Reports/HolidayWeekend",
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                }
+                            }
                         }
                     }
                 },

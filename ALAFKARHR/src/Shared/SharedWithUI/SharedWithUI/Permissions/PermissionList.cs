@@ -755,6 +755,15 @@ public static class PermissionList
         public static string Edit { get; set; } = $"{GroupName}.Edit";
         public static string ReviewRequests { get; set; } = $"{GroupName}.ReviewRequests";
         public static string ViewReports { get; set; } = $"{GroupName}.ViewReports";
+        public static string ViewConfiguration { get; set; } = $"{GroupName}.ViewConfiguration";
+        public static string ManageConfiguration { get; set; } = $"{GroupName}.ManageConfiguration";
+        public static string ManageHolidays { get; set; } = $"{GroupName}.ManageHolidays";
+        public static string RequestEmergencyLeave { get; set; } = $"{GroupName}.RequestEmergencyLeave";
+        public static string ApproveEmergencyLeave { get; set; } = $"{GroupName}.ApproveEmergencyLeave";
+        public static string RequestMidDayPermission { get; set; } = $"{GroupName}.RequestMidDayPermission";
+        public static string ApproveMidDayPermission { get; set; } = $"{GroupName}.ApproveMidDayPermission";
+        public static string ViewAllReports { get; set; } = $"{GroupName}.ViewAllReports";
+        public static string ViewScopedReports { get; set; } = $"{GroupName}.ViewScopedReports";
 
         public static List<string> Permissions =>
             new List<string>
@@ -765,6 +774,15 @@ public static class PermissionList
                 $"{Edit}",
                 $"{ReviewRequests}",
                 $"{ViewReports}",
+                $"{ViewConfiguration}",
+                $"{ManageConfiguration}",
+                $"{ManageHolidays}",
+                $"{RequestEmergencyLeave}",
+                $"{ApproveEmergencyLeave}",
+                $"{RequestMidDayPermission}",
+                $"{ApproveMidDayPermission}",
+                $"{ViewAllReports}",
+                $"{ViewScopedReports}",
             };
     }
 

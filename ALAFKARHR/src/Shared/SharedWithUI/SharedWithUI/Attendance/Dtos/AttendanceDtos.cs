@@ -199,3 +199,206 @@ public class ShiftAssignmentDto
     public DateTime? EffectiveTo { get; set; }
     public bool IsActive { get; set; }
 }
+
+public class AttendanceConfigurationDto
+{
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public DayOfWeek FirstDayOfWeek { get; set; } = DayOfWeek.Saturday;
+    public List<AttendanceDayScheduleDto> DaySchedules { get; set; } = AttendanceDayScheduleDto.DefaultWeek();
+    public List<DayOfWeek> WeekendDays { get; set; } = [DayOfWeek.Friday, DayOfWeek.Saturday];
+}
+
+public class UpsertAttendanceConfigurationDto
+{
+    public Guid CompanyId { get; set; }
+    public DayOfWeek FirstDayOfWeek { get; set; } = DayOfWeek.Saturday;
+    public List<AttendanceDayScheduleDto> DaySchedules { get; set; } = AttendanceDayScheduleDto.DefaultWeek();
+    public List<DayOfWeek> WeekendDays { get; set; } = [DayOfWeek.Friday, DayOfWeek.Saturday];
+}
+
+public class AttendanceDayScheduleDto
+{
+    public DayOfWeek DayOfWeek { get; set; }
+    public bool IsWorkingDay { get; set; }
+    public TimeSpan? StartTime { get; set; }
+    public TimeSpan? EndTime { get; set; }
+
+    public static List<AttendanceDayScheduleDto> DefaultWeek()
+        => Enum.GetValues<DayOfWeek>()
+            .Select(day => new AttendanceDayScheduleDto
+            {
+                DayOfWeek = day,
+                IsWorkingDay = day is not DayOfWeek.Friday and not DayOfWeek.Saturday,
+                StartTime = day is DayOfWeek.Friday or DayOfWeek.Saturday ? null : new TimeSpan(8, 0, 0),
+                EndTime = day is DayOfWeek.Friday or DayOfWeek.Saturday ? null : new TimeSpan(17, 0, 0)
+            })
+            .ToList();
+}
+
+public class AttendanceHolidayDto
+{
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid? AdministrationId { get; set; }
+    public Guid? DepartmentId { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+}
+
+public class UpsertAttendanceHolidayDto
+{
+    public Guid? Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid? AdministrationId { get; set; }
+    public Guid? DepartmentId { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+}
+
+public class AttendanceBreakPolicyDto
+{
+    public Guid Id { get; set; }
+    public ShiftAssignmentScope Scope { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid? AdministrationId { get; set; }
+    public Guid? DepartmentId { get; set; }
+    public Guid? EmployeeId { get; set; }
+    public bool IsEnabled { get; set; }
+    public AttendanceBreakMode BreakMode { get; set; }
+    public TimeSpan? BreakStartTime { get; set; }
+    public TimeSpan? BreakEndTime { get; set; }
+    public int AllowedDurationMinutes { get; set; }
+    public bool IsPaid { get; set; }
+}
+
+public class UpsertAttendanceBreakPolicyDto
+{
+    public Guid? Id { get; set; }
+    public ShiftAssignmentScope Scope { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid? AdministrationId { get; set; }
+    public Guid? DepartmentId { get; set; }
+    public Guid? EmployeeId { get; set; }
+    public bool IsEnabled { get; set; } = true;
+    public AttendanceBreakMode BreakMode { get; set; } = AttendanceBreakMode.Flexible;
+    public TimeSpan? BreakStartTime { get; set; }
+    public TimeSpan? BreakEndTime { get; set; }
+    public int AllowedDurationMinutes { get; set; }
+    public bool IsPaid { get; set; } = true;
+}
+
+public class EmergencyLeaveRequestDto
+{
+    public Guid Id { get; set; }
+    public Guid EmployeeId { get; set; }
+    public Guid CompanyId { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string? AttachmentPath { get; set; }
+    public AttendanceExceptionStatus Status { get; set; }
+    public string? ApproverUserId { get; set; }
+    public DateTime? ApprovalDateUtc { get; set; }
+    public string? ApproverComment { get; set; }
+}
+
+public class CreateEmergencyLeaveRequestDto
+{
+    public Guid EmployeeId { get; set; }
+    public Guid CompanyId { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string? AttachmentPath { get; set; }
+}
+
+public class ReviewEmergencyLeaveRequestDto
+{
+    public Guid RequestId { get; set; }
+    public bool IsApproved { get; set; }
+    public string? ApproverComment { get; set; }
+}
+
+public class MidDayPermissionRequestDto
+{
+    public Guid Id { get; set; }
+    public Guid EmployeeId { get; set; }
+    public Guid CompanyId { get; set; }
+    public DateTime Date { get; set; }
+    public DateTime RequestedStartUtc { get; set; }
+    public DateTime RequestedEndUtc { get; set; }
+    public DateTime? ApprovedStartUtc { get; set; }
+    public DateTime? ApprovedEndUtc { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+    public AttendanceExceptionStatus Status { get; set; }
+    public string? ApproverUserId { get; set; }
+    public DateTime? ApprovalDateUtc { get; set; }
+    public string? ApproverComment { get; set; }
+}
+
+public class CreateMidDayPermissionRequestDto
+{
+    public Guid EmployeeId { get; set; }
+    public Guid CompanyId { get; set; }
+    public DateTime Date { get; set; }
+    public DateTime RequestedStartUtc { get; set; }
+    public DateTime RequestedEndUtc { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+}
+
+public class ReviewMidDayPermissionRequestDto
+{
+    public Guid RequestId { get; set; }
+    public bool IsApproved { get; set; }
+    public DateTime? ApprovedStartUtc { get; set; }
+    public DateTime? ApprovedEndUtc { get; set; }
+    public string? ApproverComment { get; set; }
+}
+
+public class AttendanceReportFilterDto
+{
+    public Guid CompanyId { get; set; }
+    public DateTime FromDate { get; set; }
+    public DateTime ToDate { get; set; }
+    public Guid? EmployeeId { get; set; }
+    public Guid? DepartmentId { get; set; }
+    public Guid? AdministrationId { get; set; }
+    public AttendanceExceptionStatus? Status { get; set; }
+    public string? Category { get; set; }
+}
+
+public class AttendanceReportRowDto
+{
+    public DateTime Date { get; set; }
+    public Guid? EmployeeId { get; set; }
+    public string Category { get; set; } = string.Empty;
+    public AttendanceExceptionStatus? Status { get; set; }
+    public AttendanceSessionStatus? SessionStatus { get; set; }
+    public DateTime? ShiftStartUtc { get; set; }
+    public DateTime? ShiftEndUtc { get; set; }
+    public DateTime? CheckInUtc { get; set; }
+    public DateTime? CheckOutUtc { get; set; }
+    public DateTime? RequestedStartUtc { get; set; }
+    public DateTime? RequestedEndUtc { get; set; }
+    public DateTime? ApprovedStartUtc { get; set; }
+    public DateTime? ApprovedEndUtc { get; set; }
+    public decimal TotalWorkingHours { get; set; }
+    public decimal NetWorkingHours { get; set; }
+    public int BreakMinutes { get; set; }
+    public string? Reason { get; set; }
+    public string? ApproverComment { get; set; }
+}
+
+public class AttendanceReportDto
+{
+    public DayOfWeek FirstDayOfWeek { get; set; }
+    public List<DayOfWeek> WeekendDays { get; set; } = [DayOfWeek.Friday, DayOfWeek.Saturday];
+    public List<AttendanceReportRowDto> Rows { get; set; } = [];
+}

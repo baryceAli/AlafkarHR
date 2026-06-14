@@ -1,0 +1,165 @@
+@layout AdminLayout
+@page "/Attendance/EmergencyLeaves"
+
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Attendance.Enums
+
+@inject IAttendanceService AttendanceService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+
+<section class="erp-page" dir="@SharedDataService.PageDirection">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <p class="text-muted mb-1">@Text("Attendance", "الحضور والانصراف")</p>
+            <h3 class="mb-1">@Text("Emergency Leave Requests", "طلبات الاجازة الطارئة")</h3>
+            <p class="text-muted mb-0">@Text("Register and review unplanned leave that affects attendance calculations.", "تسجيل ومراجعة الاجازات الطارئة المؤثرة على الحضور.")</p>
+        </div>
+        <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">@Text("Refresh", "تحديث")</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @messageClass">@message</div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">@Text("Employee Id", "معرف الموظف")</label>
+                    <input class="form-control" @bind="employeeIdText" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@Text("Start", "البداية")</label>
+                    <input class="form-control" type="date" @bind="createModel.StartDate" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@Text("End", "النهاية")</label>
+                    <input class="form-control" type="date" @bind="createModel.EndDate" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">@Text("Attachment path", "مسار المرفق")</label>
+                    <input class="form-control" @bind="createModel.AttachmentPath" />
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" @onclick="CreateAsync" disabled="@isBusy">@Text("Submit", "ارسال")</button>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">@Text("Reason", "السبب")</label>
+                    <textarea class="form-control" rows="2" @bind="createModel.Reason"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>@Text("Employee", "الموظف")</th>
+                        <th>@Text("Dates", "التاريخ")</th>
+                        <th>@Text("Reason", "السبب")</th>
+                        <th>@Text("Status", "الحالة")</th>
+                        <th>@Text("Comment", "التعليق")</th>
+                        <th class="text-end">@Text("Actions", "الاجراءات")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var request in requests)
+                    {
+                        <tr>
+                            <td>@request.EmployeeId</td>
+                            <td>@request.StartDate.ToShortDateString() - @request.EndDate.ToShortDateString()</td>
+                            <td>@request.Reason</td>
+                            <td>@request.Status</td>
+                            <td>@request.ApproverComment</td>
+                            <td class="text-end">
+                                @if (request.Status == AttendanceExceptionStatus.Pending)
+                                {
+                                    <button class="btn btn-outline-success btn-sm" @onclick="() => ReviewAsync(request.Id, true)">@Text("Approve", "اعتماد")</button>
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => ReviewAsync(request.Id, false)">@Text("Reject", "رفض")</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+@code {
+    private CreateEmergencyLeaveRequestDto createModel = new() { StartDate = DateTime.Today, EndDate = DateTime.Today };
+    private List<EmergencyLeaveRequestDto> requests = [];
+    private Guid companyId;
+    private string? employeeIdText;
+    private string? reviewComment;
+    private bool isBusy;
+    private string? message;
+    private string messageClass = "alert-info";
+
+    protected override async Task OnInitializedAsync()
+    {
+        companyId = await ResolveCompanyIdAsync();
+        createModel.CompanyId = companyId;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isBusy = true;
+        var result = await AttendanceService.GetEmergencyLeavesAsync(companyId, 0, 50);
+        requests = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+        if (!result.IsSuccess) SetMessage(result.Error?.Detail ?? Text("Unable to load emergency leave requests.", "تعذر تحميل طلبات الاجازة الطارئة."), "alert-danger");
+        isBusy = false;
+    }
+
+    private async Task CreateAsync()
+    {
+        if (!Guid.TryParse(employeeIdText, out var employeeId))
+        {
+            SetMessage(Text("Employee Id is required.", "معرف الموظف مطلوب."), "alert-warning");
+            return;
+        }
+
+        createModel.CompanyId = companyId;
+        createModel.EmployeeId = employeeId;
+        var result = await AttendanceService.CreateEmergencyLeaveAsync(createModel);
+        if (result.IsSuccess)
+        {
+            SetMessage(Text("Emergency leave submitted.", "تم ارسال الاجازة الطارئة."), "alert-success");
+            createModel = new() { CompanyId = companyId, StartDate = DateTime.Today, EndDate = DateTime.Today };
+            await LoadAsync();
+        }
+        else
+        {
+            SetMessage(result.Error?.Detail ?? Text("Unable to submit request.", "تعذر ارسال الطلب."), "alert-danger");
+        }
+    }
+
+    private async Task ReviewAsync(Guid requestId, bool isApproved)
+    {
+        var result = await AttendanceService.ReviewEmergencyLeaveAsync(new ReviewEmergencyLeaveRequestDto
+        {
+            RequestId = requestId,
+            IsApproved = isApproved,
+            ApproverComment = reviewComment
+        });
+        SetMessage(result.IsSuccess ? Text("Request reviewed.", "تمت مراجعة الطلب.") : result.Error?.Detail ?? Text("Unable to review request.", "تعذر مراجعة الطلب."), result.IsSuccess ? "alert-success" : "alert-danger");
+        await LoadAsync();
+    }
+
+    private async Task<Guid> ResolveCompanyIdAsync()
+    {
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        return Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private void SetMessage(string text, string cssClass) { message = text; messageClass = cssClass; }
+}

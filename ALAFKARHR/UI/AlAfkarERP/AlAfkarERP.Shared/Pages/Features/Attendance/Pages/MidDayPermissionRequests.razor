@@ -1,0 +1,195 @@
+@layout AdminLayout
+@page "/Attendance/PermissionRequests"
+
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Attendance.Enums
+
+@inject IAttendanceService AttendanceService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+
+<section class="erp-page" dir="@SharedDataService.PageDirection">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <p class="text-muted mb-1">@Text("Attendance", "الحضور والانصراف")</p>
+            <h3 class="mb-1">@Text("Permission Requests", "طلبات الاذن")</h3>
+            <p class="text-muted mb-0">@Text("Permission is requested for a time window inside one working day.", "يتم طلب الاذن لفترة زمنية داخل يوم عمل واحد.")</p>
+        </div>
+        <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">@Text("Refresh", "تحديث")</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @messageClass">@message</div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">@Text("Employee Id", "معرف الموظف")</label>
+                    <input class="form-control" @bind="employeeIdText" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">@Text("Working date", "تاريخ يوم العمل")</label>
+                    <input class="form-control" type="date" @bind="permissionDate" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@Text("Start time", "وقت البداية")</label>
+                    <input class="form-control" type="time" @bind="requestedStartTime" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@Text("End time", "وقت النهاية")</label>
+                    <input class="form-control" type="time" @bind="requestedEndTime" />
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" @onclick="CreateAsync" disabled="@isBusy">@Text("Submit", "ارسال")</button>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">@Text("Reason", "السبب")</label>
+                    <textarea class="form-control" rows="2" @bind="reason"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                    <textarea class="form-control" rows="2" @bind="notes"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>@Text("Employee", "الموظف")</th>
+                        <th>@Text("Date", "التاريخ")</th>
+                        <th>@Text("Requested", "المطلوب")</th>
+                        <th>@Text("Approved", "المعتمد")</th>
+                        <th>@Text("Status", "الحالة")</th>
+                        <th>@Text("Reason", "السبب")</th>
+                        <th class="text-end">@Text("Actions", "الاجراءات")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var request in requests)
+                    {
+                        <tr>
+                            <td>@request.EmployeeId</td>
+                            <td>@request.Date.ToShortDateString()</td>
+                            <td>@FormatTimeRange(request.RequestedStartUtc, request.RequestedEndUtc)</td>
+                            <td>@FormatTimeRange(request.ApprovedStartUtc, request.ApprovedEndUtc)</td>
+                            <td>@request.Status</td>
+                            <td>@request.Reason</td>
+                            <td class="text-end">
+                                @if (request.Status == AttendanceExceptionStatus.Pending)
+                                {
+                                    <button class="btn btn-outline-success btn-sm" @onclick="() => ReviewAsync(request, true)">@Text("Approve", "اعتماد")</button>
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => ReviewAsync(request, false)">@Text("Reject", "رفض")</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+@code {
+    private List<MidDayPermissionRequestDto> requests = [];
+    private Guid companyId;
+    private string? employeeIdText;
+    private DateTime permissionDate = DateTime.Today;
+    private TimeOnly requestedStartTime = new(12, 0);
+    private TimeOnly requestedEndTime = new(13, 0);
+    private string reason = string.Empty;
+    private string? notes;
+    private bool isBusy;
+    private string? message;
+    private string messageClass = "alert-info";
+
+    protected override async Task OnInitializedAsync()
+    {
+        companyId = await ResolveCompanyIdAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isBusy = true;
+        var result = await AttendanceService.GetMidDayPermissionsAsync(companyId, 0, 50);
+        requests = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+        if (!result.IsSuccess) SetMessage(result.Error?.Detail ?? Text("Unable to load permission requests.", "تعذر تحميل طلبات الاذن."), "alert-danger");
+        isBusy = false;
+    }
+
+    private async Task CreateAsync()
+    {
+        if (!Guid.TryParse(employeeIdText, out var employeeId))
+        {
+            SetMessage(Text("Employee Id is required.", "معرف الموظف مطلوب."), "alert-warning");
+            return;
+        }
+
+        if (requestedEndTime <= requestedStartTime)
+        {
+            SetMessage(Text("End time must be after start time.", "وقت النهاية يجب أن يكون بعد وقت البداية."), "alert-warning");
+            return;
+        }
+
+        var requestedStart = permissionDate.Date.Add(requestedStartTime.ToTimeSpan());
+        var requestedEnd = permissionDate.Date.Add(requestedEndTime.ToTimeSpan());
+
+        var result = await AttendanceService.CreateMidDayPermissionAsync(new CreateMidDayPermissionRequestDto
+        {
+            CompanyId = companyId,
+            EmployeeId = employeeId,
+            Date = permissionDate.Date,
+            RequestedStartUtc = requestedStart.ToUniversalTime(),
+            RequestedEndUtc = requestedEnd.ToUniversalTime(),
+            Reason = reason,
+            Notes = notes
+        });
+
+        if (result.IsSuccess)
+        {
+            SetMessage(Text("Permission request submitted.", "تم ارسال طلب الاذن."), "alert-success");
+            reason = string.Empty;
+            notes = null;
+            await LoadAsync();
+        }
+        else
+        {
+            SetMessage(result.Error?.Detail ?? Text("Unable to submit request.", "تعذر ارسال الطلب."), "alert-danger");
+        }
+    }
+
+    private async Task ReviewAsync(MidDayPermissionRequestDto request, bool isApproved)
+    {
+        var result = await AttendanceService.ReviewMidDayPermissionAsync(new ReviewMidDayPermissionRequestDto
+        {
+            RequestId = request.Id,
+            IsApproved = isApproved,
+            ApprovedStartUtc = request.RequestedStartUtc,
+            ApprovedEndUtc = request.RequestedEndUtc
+        });
+        SetMessage(result.IsSuccess ? Text("Request reviewed.", "تمت مراجعة الطلب.") : result.Error?.Detail ?? Text("Unable to review request.", "تعذر مراجعة الطلب."), result.IsSuccess ? "alert-success" : "alert-danger");
+        await LoadAsync();
+    }
+
+    private async Task<Guid> ResolveCompanyIdAsync()
+    {
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        return Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
+    }
+
+    private static string FormatTimeRange(DateTime? start, DateTime? end)
+        => start.HasValue && end.HasValue ? $"{start.Value.ToLocalTime():g} - {end.Value.ToLocalTime():t}" : "-";
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private void SetMessage(string text, string cssClass) { message = text; messageClass = cssClass; }
+}

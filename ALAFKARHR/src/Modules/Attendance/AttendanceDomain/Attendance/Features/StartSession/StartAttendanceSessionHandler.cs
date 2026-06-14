@@ -88,6 +88,12 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
 
         if (!effectiveShiftId.HasValue)
         {
+            var configuredWindow = await ResolveConfiguredWorkdayWindowAsync(employee.CompanyId, workDateUtc, cancellationToken);
+            if (configuredWindow is not null)
+            {
+                return configuredWindow;
+            }
+
             return new ShiftWindow(
                 null,
                 UtcDateTime.Normalize(session.ShiftStart),
@@ -110,6 +116,36 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
             shiftEnd,
             shift.LateAfter(shiftStart),
             shift.ProhibitCheckInAfter(shiftStart));
+    }
+
+    private async Task<ShiftWindow?> ResolveConfiguredWorkdayWindowAsync(
+        Guid companyId,
+        DateTime workDateUtc,
+        CancellationToken cancellationToken)
+    {
+        var configuration = await dbContext.AttendanceConfigurations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == companyId, cancellationToken);
+
+        var configurationDto = configuration?.ToDto() ?? AttendanceConfiguration.DefaultDto(companyId);
+        var schedule = configurationDto.DaySchedules.First(x => x.DayOfWeek == workDateUtc.DayOfWeek);
+        if (!schedule.IsWorkingDay || configurationDto.WeekendDays.Contains(workDateUtc.DayOfWeek))
+        {
+            throw new BadRequestException("Attendance cannot be started on a configured non-working day.");
+        }
+
+        if (!schedule.StartTime.HasValue || !schedule.EndTime.HasValue)
+        {
+            return null;
+        }
+
+        var workDate = UtcDateTime.Normalize(workDateUtc).Date;
+        return new ShiftWindow(
+            null,
+            workDate.Add(schedule.StartTime.Value),
+            workDate.Add(schedule.EndTime.Value),
+            null,
+            null);
     }
 
     private async Task<Guid?> ResolveAssignedShiftIdAsync(

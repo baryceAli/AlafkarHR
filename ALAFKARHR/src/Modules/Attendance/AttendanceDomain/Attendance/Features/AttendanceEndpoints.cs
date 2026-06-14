@@ -1,6 +1,7 @@
 using AttendanceDomain.Attendance.Features.Breaks;
 using AttendanceDomain.Attendance.Features.CheckIns;
 using AttendanceDomain.Attendance.Features.EndSession;
+using AttendanceDomain.Attendance.Features.Enhancements;
 using AttendanceDomain.Attendance.Features.LateCheckInRequests;
 using AttendanceDomain.Attendance.Features.LocationPings;
 using AttendanceDomain.Attendance.Features.Queries;
@@ -27,6 +28,14 @@ public record ReviewLateCheckInRequestRequest(ReviewLateCheckInRequestDto Review
 public record AssignShiftRequest(AssignShiftDto Assignment);
 public record CreateShiftRequest(CreateShiftDto Shift);
 public record UpdateShiftRequest(ShiftDto Shift);
+public record UpsertAttendanceConfigurationRequest(UpsertAttendanceConfigurationDto Configuration);
+public record UpsertAttendanceHolidayRequest(UpsertAttendanceHolidayDto Holiday);
+public record UpsertAttendanceBreakPolicyRequest(UpsertAttendanceBreakPolicyDto Policy);
+public record CreateEmergencyLeaveRequestRequest(CreateEmergencyLeaveRequestDto Request);
+public record ReviewEmergencyLeaveRequestRequest(ReviewEmergencyLeaveRequestDto Review);
+public record CreateMidDayPermissionRequestRequest(CreateMidDayPermissionRequestDto Request);
+public record ReviewMidDayPermissionRequestRequest(ReviewMidDayPermissionRequestDto Review);
+public record GetAttendanceReportRequest(AttendanceReportFilterDto Filter);
 
 public class AttendanceEndpoints : ICarterModule
 {
@@ -172,6 +181,99 @@ public class AttendanceEndpoints : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Assign a shift to company, administration, department, or employee")
             .RequireAuthorization(PermissionList.AttendancePermissions.Edit);
+
+        group.MapGet("/configuration", GetConfiguration)
+            .WithName("GetAttendanceConfiguration")
+            .Produces<GetAttendanceConfigurationResult>(StatusCodes.Status200OK)
+            .WithSummary("Get attendance configuration")
+            .RequireAuthorization(PermissionList.AttendancePermissions.ViewConfiguration);
+
+        group.MapPut("/configuration", UpsertConfiguration)
+            .WithName("UpsertAttendanceConfiguration")
+            .Produces<UpsertAttendanceConfigurationResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Create or update attendance configuration")
+            .RequireAuthorization(PermissionList.AttendancePermissions.ManageConfiguration);
+
+        group.MapGet("/holidays", GetHolidays)
+            .WithName("GetAttendanceHolidays")
+            .Produces<GetAttendanceHolidaysResult>(StatusCodes.Status200OK)
+            .WithSummary("Get predefined attendance holidays")
+            .RequireAuthorization(PermissionList.AttendancePermissions.ManageHolidays);
+
+        group.MapPost("/holidays", UpsertHoliday)
+            .WithName("UpsertAttendanceHoliday")
+            .Produces<UpsertAttendanceHolidayResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Create or update a predefined attendance holiday")
+            .RequireAuthorization(PermissionList.AttendancePermissions.ManageHolidays);
+
+        group.MapDelete("/holidays/{holidayId:guid}", DeleteHoliday)
+            .WithName("DeleteAttendanceHoliday")
+            .Produces<DeleteAttendanceHolidayResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Delete a predefined attendance holiday")
+            .RequireAuthorization(PermissionList.AttendancePermissions.ManageHolidays);
+
+        group.MapGet("/break-policies", GetBreakPolicies)
+            .WithName("GetAttendanceBreakPolicies")
+            .Produces<GetAttendanceBreakPoliciesResult>(StatusCodes.Status200OK)
+            .WithSummary("Get break policies")
+            .RequireAuthorization(PermissionList.AttendancePermissions.ViewConfiguration);
+
+        group.MapPost("/break-policies", UpsertBreakPolicy)
+            .WithName("UpsertAttendanceBreakPolicy")
+            .Produces<UpsertAttendanceBreakPolicyResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Create or update a break policy")
+            .RequireAuthorization(PermissionList.AttendancePermissions.ManageConfiguration);
+
+        group.MapGet("/emergency-leaves", GetEmergencyLeaves)
+            .WithName("GetEmergencyLeaveRequests")
+            .Produces<GetEmergencyLeaveRequestsResult>(StatusCodes.Status200OK)
+            .WithSummary("Get emergency leave requests")
+            .RequireAuthorization(PermissionList.AttendancePermissions.ApproveEmergencyLeave);
+
+        group.MapPost("/emergency-leaves", CreateEmergencyLeave)
+            .WithName("CreateEmergencyLeaveRequest")
+            .Produces<CreateEmergencyLeaveRequestResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Create an emergency leave request")
+            .RequireAuthorization(PermissionList.AttendancePermissions.RequestEmergencyLeave);
+
+        group.MapPost("/emergency-leaves/review", ReviewEmergencyLeave)
+            .WithName("ReviewEmergencyLeaveRequest")
+            .Produces<ReviewEmergencyLeaveRequestResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Approve or reject an emergency leave request")
+            .RequireAuthorization(PermissionList.AttendancePermissions.ApproveEmergencyLeave);
+
+        group.MapGet("/mid-day-permissions", GetMidDayPermissions)
+            .WithName("GetMidDayPermissionRequests")
+            .Produces<GetMidDayPermissionRequestsResult>(StatusCodes.Status200OK)
+            .WithSummary("Get mid-day permission requests")
+            .RequireAuthorization(PermissionList.AttendancePermissions.ApproveMidDayPermission);
+
+        group.MapPost("/mid-day-permissions", CreateMidDayPermission)
+            .WithName("CreateMidDayPermissionRequest")
+            .Produces<CreateMidDayPermissionRequestResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Create a mid-day permission request")
+            .RequireAuthorization(PermissionList.AttendancePermissions.RequestMidDayPermission);
+
+        group.MapPost("/mid-day-permissions/review", ReviewMidDayPermission)
+            .WithName("ReviewMidDayPermissionRequest")
+            .Produces<ReviewMidDayPermissionRequestResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Approve, adjust, or reject a mid-day permission request")
+            .RequireAuthorization(PermissionList.AttendancePermissions.ApproveMidDayPermission);
+
+        group.MapPost("/reports", GetAttendanceReport)
+            .WithName("GetDetailedAttendanceReport")
+            .Produces<GetAttendanceReportResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Get detailed attendance report rows")
+            .RequireAuthorization(PermissionList.AttendancePermissions.ViewReports);
     }
 
     private static async Task<Ok<GetAttendanceDashboardResult>> GetDashboard(
@@ -312,6 +414,138 @@ public class AttendanceEndpoints : ICarterModule
         ISender sender)
     {
         var result = await sender.Send(new AssignShiftCommand(request.Assignment));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<GetAttendanceConfigurationResult>> GetConfiguration(
+        [FromQuery] Guid companyId,
+        ISender sender)
+    {
+        var result = await sender.Send(new GetAttendanceConfigurationQuery(companyId));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<UpsertAttendanceConfigurationResult>> UpsertConfiguration(
+        [FromBody] UpsertAttendanceConfigurationRequest request,
+        ClaimsPrincipal user,
+        ISender sender)
+    {
+        var result = await sender.Send(new UpsertAttendanceConfigurationCommand(request.Configuration, user.FindFirstValue(ClaimTypes.NameIdentifier)));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<GetAttendanceHolidaysResult>> GetHolidays(
+        [FromQuery] Guid companyId,
+        [FromQuery] DateTime? fromDate,
+        [FromQuery] DateTime? toDate,
+        ISender sender)
+    {
+        var result = await sender.Send(new GetAttendanceHolidaysQuery(companyId, fromDate, toDate));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<UpsertAttendanceHolidayResult>> UpsertHoliday(
+        [FromBody] UpsertAttendanceHolidayRequest request,
+        ClaimsPrincipal user,
+        ISender sender)
+    {
+        var result = await sender.Send(new UpsertAttendanceHolidayCommand(request.Holiday, user.FindFirstValue(ClaimTypes.NameIdentifier)));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<DeleteAttendanceHolidayResult>> DeleteHoliday(
+        Guid holidayId,
+        ClaimsPrincipal user,
+        ISender sender)
+    {
+        var result = await sender.Send(new DeleteAttendanceHolidayCommand(holidayId, user.FindFirstValue(ClaimTypes.NameIdentifier)));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<GetAttendanceBreakPoliciesResult>> GetBreakPolicies(
+        [FromQuery] Guid companyId,
+        ISender sender)
+    {
+        var result = await sender.Send(new GetAttendanceBreakPoliciesQuery(companyId));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<UpsertAttendanceBreakPolicyResult>> UpsertBreakPolicy(
+        [FromBody] UpsertAttendanceBreakPolicyRequest request,
+        ClaimsPrincipal user,
+        ISender sender)
+    {
+        var result = await sender.Send(new UpsertAttendanceBreakPolicyCommand(request.Policy, user.FindFirstValue(ClaimTypes.NameIdentifier)));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<GetEmergencyLeaveRequestsResult>> GetEmergencyLeaves(
+        [FromQuery] Guid companyId,
+        [FromQuery] AttendanceExceptionStatus? status,
+        [FromQuery] Guid? employeeId,
+        [AsParameters] PaginationRequest request,
+        ISender sender)
+    {
+        var result = await sender.Send(new GetEmergencyLeaveRequestsQuery(companyId, status, employeeId, request));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<CreateEmergencyLeaveRequestResult>> CreateEmergencyLeave(
+        [FromBody] CreateEmergencyLeaveRequestRequest request,
+        ISender sender)
+    {
+        var result = await sender.Send(new CreateEmergencyLeaveRequestCommand(request.Request));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<ReviewEmergencyLeaveRequestResult>> ReviewEmergencyLeave(
+        [FromBody] ReviewEmergencyLeaveRequestRequest request,
+        ClaimsPrincipal user,
+        ISender sender)
+    {
+        var reviewedBy = user.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new UnauthorizedAccessException("User is not authenticated");
+
+        var result = await sender.Send(new ReviewEmergencyLeaveRequestCommand(request.Review, reviewedBy));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<GetMidDayPermissionRequestsResult>> GetMidDayPermissions(
+        [FromQuery] Guid companyId,
+        [FromQuery] AttendanceExceptionStatus? status,
+        [FromQuery] Guid? employeeId,
+        [AsParameters] PaginationRequest request,
+        ISender sender)
+    {
+        var result = await sender.Send(new GetMidDayPermissionRequestsQuery(companyId, status, employeeId, request));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<CreateMidDayPermissionRequestResult>> CreateMidDayPermission(
+        [FromBody] CreateMidDayPermissionRequestRequest request,
+        ISender sender)
+    {
+        var result = await sender.Send(new CreateMidDayPermissionRequestCommand(request.Request));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<ReviewMidDayPermissionRequestResult>> ReviewMidDayPermission(
+        [FromBody] ReviewMidDayPermissionRequestRequest request,
+        ClaimsPrincipal user,
+        ISender sender)
+    {
+        var reviewedBy = user.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new UnauthorizedAccessException("User is not authenticated");
+
+        var result = await sender.Send(new ReviewMidDayPermissionRequestCommand(request.Review, reviewedBy));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<GetAttendanceReportResult>> GetAttendanceReport(
+        [FromBody] GetAttendanceReportRequest request,
+        ISender sender)
+    {
+        var result = await sender.Send(new GetAttendanceReportQuery(request.Filter));
         return TypedResults.Ok(result);
     }
 

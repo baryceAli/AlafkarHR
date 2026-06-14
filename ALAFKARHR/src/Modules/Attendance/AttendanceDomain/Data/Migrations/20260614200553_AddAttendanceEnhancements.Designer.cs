@@ -4,6 +4,7 @@ using AttendanceDomain.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AttendanceDomain.Data.Migrations
 {
     [DbContext(typeof(AttendanceDbContext))]
-    partial class AttendanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260614200553_AddAttendanceEnhancements")]
+    partial class AddAttendanceEnhancements
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,75 +25,6 @@ namespace AttendanceDomain.Data.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("AttendanceDomain.Attendance.Models.AttendanceBreakPolicy", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("AdministrationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("AllowedDurationMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<TimeSpan?>("BreakEndTime")
-                        .HasColumnType("time");
-
-                    b.Property<int>("BreakMode")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<TimeSpan?>("BreakStartTime")
-                        .HasColumnType("time");
-
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid?>("DepartmentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("EmployeeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsPaid")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Scope")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CompanyId", "Scope", "EmployeeId", "DepartmentId", "AdministrationId");
-
-                    b.ToTable("AttendanceBreakPolicies", "Attendance");
-                });
 
             modelBuilder.Entity("AttendanceDomain.Attendance.Models.AttendanceCheckIn", b =>
                 {
@@ -160,131 +94,6 @@ namespace AttendanceDomain.Data.Migrations
                     b.HasIndex("EmployeeId", "ArrivedAtUtc");
 
                     b.ToTable("AttendanceCheckIns", "Attendance");
-                });
-
-            modelBuilder.Entity("AttendanceDomain.Attendance.Models.AttendanceConfiguration", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("FirstDayOfWeek")
-                        .HasColumnType("int");
-
-                    b.Property<TimeSpan?>("FridayEndTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("FridayIsWorkingDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<TimeSpan?>("FridayStartTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<TimeSpan?>("MondayEndTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("MondayIsWorkingDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<TimeSpan?>("MondayStartTime")
-                        .HasColumnType("time");
-
-                    b.Property<TimeSpan?>("SaturdayEndTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("SaturdayIsWorkingDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<TimeSpan?>("SaturdayStartTime")
-                        .HasColumnType("time");
-
-                    b.Property<TimeSpan?>("SundayEndTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("SundayIsWorkingDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<TimeSpan?>("SundayStartTime")
-                        .HasColumnType("time");
-
-                    b.Property<TimeSpan?>("ThursdayEndTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("ThursdayIsWorkingDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<TimeSpan?>("ThursdayStartTime")
-                        .HasColumnType("time");
-
-                    b.Property<TimeSpan?>("TuesdayEndTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("TuesdayIsWorkingDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<TimeSpan?>("TuesdayStartTime")
-                        .HasColumnType("time");
-
-                    b.Property<TimeSpan?>("WednesdayEndTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("WednesdayIsWorkingDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<TimeSpan?>("WednesdayStartTime")
-                        .HasColumnType("time");
-
-                    b.Property<string>("WeekendDays")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasDefaultValue("Friday,Saturday");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CompanyId")
-                        .IsUnique();
-
-                    b.ToTable("AttendanceConfigurations", "Attendance");
                 });
 
             modelBuilder.Entity("AttendanceDomain.Attendance.Models.AttendanceDay", b =>
@@ -420,67 +229,6 @@ namespace AttendanceDomain.Data.Migrations
                     b.HasIndex("Status", "ExceptionType");
 
                     b.ToTable("AttendanceExceptions", "Attendance");
-                });
-
-            modelBuilder.Entity("AttendanceDomain.Attendance.Models.AttendanceHoliday", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("AdministrationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid?>("DepartmentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AdministrationId", "StartDate", "EndDate");
-
-                    b.HasIndex("CompanyId", "StartDate", "EndDate");
-
-                    b.HasIndex("DepartmentId", "StartDate", "EndDate");
-
-                    b.ToTable("AttendanceHolidays", "Attendance");
                 });
 
             modelBuilder.Entity("AttendanceDomain.Attendance.Models.AttendanceLocationPing", b =>
@@ -680,77 +428,6 @@ namespace AttendanceDomain.Data.Migrations
                     b.ToTable("AttendanceSessions", "Attendance");
                 });
 
-            modelBuilder.Entity("AttendanceDomain.Attendance.Models.EmergencyLeaveRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("ApprovalDateUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ApproverComment")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("ApproverUserId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("AttachmentPath")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("EmployeeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CompanyId", "StartDate", "EndDate");
-
-                    b.HasIndex("EmployeeId", "Status", "StartDate");
-
-                    b.ToTable("EmergencyLeaveRequests", "Attendance");
-                });
-
             modelBuilder.Entity("AttendanceDomain.Attendance.Models.EmployeeShift", b =>
                 {
                     b.Property<Guid>("Id")
@@ -915,86 +592,6 @@ namespace AttendanceDomain.Data.Migrations
                     b.HasIndex("Status", "RequestedCheckInTimeUtc");
 
                     b.ToTable("LateCheckInRequests", "Attendance");
-                });
-
-            modelBuilder.Entity("AttendanceDomain.Attendance.Models.MidDayPermissionRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("ApprovalDateUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("ApprovedEndUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("ApprovedStartUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ApproverComment")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("ApproverUserId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("EmployeeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime>("RequestedEndUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("RequestedStartUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CompanyId", "Date");
-
-                    b.HasIndex("EmployeeId", "Status", "Date");
-
-                    b.ToTable("MidDayPermissionRequests", "Attendance");
                 });
 
             modelBuilder.Entity("AttendanceDomain.Attendance.Models.Shift", b =>

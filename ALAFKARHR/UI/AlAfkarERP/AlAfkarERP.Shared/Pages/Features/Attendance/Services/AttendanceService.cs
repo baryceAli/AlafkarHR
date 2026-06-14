@@ -218,4 +218,124 @@ public class AttendanceService : BaseApiService, IAttendanceService
             Content = JsonContent.Create(new { Review = review })
         }, null);
     }
+
+    public async Task<ApiResult<AttendanceConfigurationDto>> GetConfigurationAsync(Guid companyId)
+    {
+        return await SendAsync<AttendanceConfigurationDto>(
+            new HttpRequestMessage(HttpMethod.Get, $"{path}/configuration?companyId={companyId}"),
+            "configuration");
+    }
+
+    public async Task<ApiResult<AttendanceConfigurationDto>> UpsertConfigurationAsync(UpsertAttendanceConfigurationDto configuration)
+    {
+        return await SendAsync<AttendanceConfigurationDto>(new HttpRequestMessage(HttpMethod.Put, $"{path}/configuration")
+        {
+            Content = JsonContent.Create(new { Configuration = configuration })
+        }, "configuration");
+    }
+
+    public async Task<ApiResult<List<AttendanceHolidayDto>>> GetHolidaysAsync(Guid companyId, DateTime? fromDate = null, DateTime? toDate = null)
+    {
+        var url = $"{path}/holidays?companyId={companyId}";
+        if (fromDate.HasValue) url += $"&fromDate={Uri.EscapeDataString(fromDate.Value.ToUniversalTime().ToString("O"))}";
+        if (toDate.HasValue) url += $"&toDate={Uri.EscapeDataString(toDate.Value.ToUniversalTime().ToString("O"))}";
+
+        return await SendAsync<List<AttendanceHolidayDto>>(new HttpRequestMessage(HttpMethod.Get, url), "holidayList");
+    }
+
+    public async Task<ApiResult<AttendanceHolidayDto>> UpsertHolidayAsync(UpsertAttendanceHolidayDto holiday)
+    {
+        return await SendAsync<AttendanceHolidayDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/holidays")
+        {
+            Content = JsonContent.Create(new { Holiday = holiday })
+        }, "holiday");
+    }
+
+    public async Task<ApiResult<bool>> DeleteHolidayAsync(Guid holidayId)
+    {
+        return await SendAsync<bool>(new HttpRequestMessage(HttpMethod.Delete, $"{path}/holidays/{holidayId}"), "isSuccess");
+    }
+
+    public async Task<ApiResult<List<AttendanceBreakPolicyDto>>> GetBreakPoliciesAsync(Guid companyId)
+    {
+        return await SendAsync<List<AttendanceBreakPolicyDto>>(
+            new HttpRequestMessage(HttpMethod.Get, $"{path}/break-policies?companyId={companyId}"),
+            "policyList");
+    }
+
+    public async Task<ApiResult<AttendanceBreakPolicyDto>> UpsertBreakPolicyAsync(UpsertAttendanceBreakPolicyDto policy)
+    {
+        return await SendAsync<AttendanceBreakPolicyDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/break-policies")
+        {
+            Content = JsonContent.Create(new { Policy = policy })
+        }, "policy");
+    }
+
+    public async Task<ApiResult<PaginatedResult<EmergencyLeaveRequestDto>>> GetEmergencyLeavesAsync(
+        Guid companyId,
+        int pageIndex,
+        int pageSize,
+        AttendanceExceptionStatus? status = null,
+        Guid? employeeId = null)
+    {
+        var url = $"{path}/emergency-leaves?companyId={companyId}&pageIndex={pageIndex}&pageSize={pageSize}";
+        if (status.HasValue) url += $"&status={status.Value}";
+        if (employeeId.HasValue) url += $"&employeeId={employeeId.Value}";
+
+        return await SendAsync<PaginatedResult<EmergencyLeaveRequestDto>>(new HttpRequestMessage(HttpMethod.Get, url), "requestList");
+    }
+
+    public async Task<ApiResult<EmergencyLeaveRequestDto>> CreateEmergencyLeaveAsync(CreateEmergencyLeaveRequestDto request)
+    {
+        return await SendAsync<EmergencyLeaveRequestDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/emergency-leaves")
+        {
+            Content = JsonContent.Create(new { Request = request })
+        }, "request");
+    }
+
+    public async Task<ApiResult<EmergencyLeaveRequestDto>> ReviewEmergencyLeaveAsync(ReviewEmergencyLeaveRequestDto review)
+    {
+        return await SendAsync<EmergencyLeaveRequestDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/emergency-leaves/review")
+        {
+            Content = JsonContent.Create(new { Review = review })
+        }, "request");
+    }
+
+    public async Task<ApiResult<PaginatedResult<MidDayPermissionRequestDto>>> GetMidDayPermissionsAsync(
+        Guid companyId,
+        int pageIndex,
+        int pageSize,
+        AttendanceExceptionStatus? status = null,
+        Guid? employeeId = null)
+    {
+        var url = $"{path}/mid-day-permissions?companyId={companyId}&pageIndex={pageIndex}&pageSize={pageSize}";
+        if (status.HasValue) url += $"&status={status.Value}";
+        if (employeeId.HasValue) url += $"&employeeId={employeeId.Value}";
+
+        return await SendAsync<PaginatedResult<MidDayPermissionRequestDto>>(new HttpRequestMessage(HttpMethod.Get, url), "requestList");
+    }
+
+    public async Task<ApiResult<MidDayPermissionRequestDto>> CreateMidDayPermissionAsync(CreateMidDayPermissionRequestDto request)
+    {
+        return await SendAsync<MidDayPermissionRequestDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/mid-day-permissions")
+        {
+            Content = JsonContent.Create(new { Request = request })
+        }, "request");
+    }
+
+    public async Task<ApiResult<MidDayPermissionRequestDto>> ReviewMidDayPermissionAsync(ReviewMidDayPermissionRequestDto review)
+    {
+        return await SendAsync<MidDayPermissionRequestDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/mid-day-permissions/review")
+        {
+            Content = JsonContent.Create(new { Review = review })
+        }, "request");
+    }
+
+    public async Task<ApiResult<AttendanceReportDto>> GetReportAsync(AttendanceReportFilterDto filter)
+    {
+        return await SendAsync<AttendanceReportDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/reports")
+        {
+            Content = JsonContent.Create(new { Filter = filter })
+        }, "report");
+    }
 }

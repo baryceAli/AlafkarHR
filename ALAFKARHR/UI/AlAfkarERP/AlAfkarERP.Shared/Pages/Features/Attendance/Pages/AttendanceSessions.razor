@@ -48,6 +48,21 @@
         <div class="alert alert-danger">@errorMessage</div>
     }
 
+    <section class="sessions-panel mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0">@Text("Configured Working Week", "أسبوع العمل configured")</h5>
+            <span class="badge bg-light text-dark">@Text("Weekend:", "نهاية الأسبوع:") @string.Join(", ", configuration.WeekendDays)</span>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            @foreach (var day in configuration.DaySchedules.OrderBy(x => DayOrder(x.DayOfWeek)))
+            {
+                <span class="badge @(day.IsWorkingDay ? "text-bg-primary" : "text-bg-secondary")">
+                    @day.DayOfWeek: @(day.IsWorkingDay ? $"{FormatTime(day.StartTime)} - {FormatTime(day.EndTime)}" : Text("Non-working", "غير عمل"))
+                </span>
+            }
+        </div>
+    </section>
+
     <section class="sessions-panel">
         @if (isLoading)
         {
@@ -101,6 +116,7 @@
 @code {
     private List<AttendanceSessionDto> sessions = [];
     private List<EmployeeDto> employees = [];
+    private AttendanceConfigurationDto configuration = new();
     private Guid? employeeIdFilter;
     private DateTime? fromDate = DateTime.Today.AddDays(-7);
     private DateTime? toDate = DateTime.Today;
@@ -118,8 +134,18 @@
         }
         companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
 
+        await LoadConfiguration();
         await LoadEmployees();
         await LoadSessions();
+    }
+
+    private async Task LoadConfiguration()
+    {
+        var response = await AttendanceService.GetConfigurationAsync(companyId);
+        if (response.IsSuccess && response.Data is not null)
+        {
+            configuration = response.Data;
+        }
     }
 
     private async Task LoadEmployees()
@@ -163,6 +189,8 @@
 
     private static string FormatDate(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "-";
     private static string FormatShiftWindowDate(DateTime value) => value.ToString("g");
+    private static string FormatTime(TimeSpan? value) => value.HasValue ? value.Value.ToString(@"hh\:mm") : "-";
+    private static int DayOrder(DayOfWeek day) => day == DayOfWeek.Saturday ? 0 : (int)day + 1;
 
     private string AttendanceTypeText(EmployeeAttendanceType type) => type switch
     {
