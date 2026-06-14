@@ -28,6 +28,7 @@ public abstract class AuthBaseApiService
                 try
                 {
                     error = DeserializeAPIResponse.Deserialize<ErrorResponseDto>(content,node);
+                    error.Detail = $"{error.Detail} + statusCode: {response.StatusCode}";
                 }
                 catch
                 {

@@ -128,44 +128,63 @@
     }
     private async Task HandleLogin()
     {
-        LoadingService.Show();
-
-        var result = await AuthService.LoginAsync(login.Email, login.Password);
-        if (result.IsSuccess)
+        try
         {
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            LoadingService.Show();
 
-            if (authState.User.Identity!.IsAuthenticated)
+            Console.WriteLine("Submit clicked");
+            Console.WriteLine($"Email/UserName: {login.Email}");
+            Console.WriteLine($"Password: {login.Password}");
+
+            var result = await AuthService.LoginAsync(login.Email, login.Password);
+
+            if (result.IsSuccess)
             {
-                    LoadingService.Hide();
-                if (authState.User.Claims.Any(c => c.Type == JwtRegisteredClaimNames.Typ && c.Value == UserType.SystemUser.ToString()))
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+                if (authState.User.Identity?.IsAuthenticated == true)
                 {
-                    NavigationManager.NavigateTo("/Dashboard", true);
+                    if (authState.User.Claims.Any(c =>
+                        c.Type == JwtRegisteredClaimNames.Typ &&
+                        c.Value == UserType.SystemUser.ToString()))
+                    {
+                        NavigationManager.NavigateTo("/Dashboard", true);
+                        return;
+                    }
+
+                    NavigationManager.NavigateTo("/", true);
                     return;
                 }
-                NavigationManager.NavigateTo("/");
             }
-            // var user = authState.User;
-            // Console.WriteLine($"User is authenticated: {user.Identity.IsAuthenticated}");
-            // Console.WriteLine($"User name: {user.Identity.Name}");
+
+            await ModalService.ShowAsync(new ModalOptions
+            {
+                IsError = true,
+                Title = Text("Login", "تسجيل دخول"),
+                Message = Text("Credentials are incorrect.", "بيانات الدخول غير صحيحة."),
+                Details = $"{result.Error?.ToString()}, {result.Error?.Detail}",
+                OkText = Text("OK", "موافق"),
+                OnOk = async () => { }
+            });
         }
-        else
+        catch (Exception ex)
         {
-        LoadingService.Hide();
-            await ModalService.ShowAsync(
-                new ModalOptions
-                {
-                    IsError = true,
-                    Title = SharedDataService.SelectViewLang("Login", "تسجيل دخول"),
-                    Message = SharedDataService.SelectViewLang("Credentials are incorrect."
-                                    , "بيانات الدخول غير صحيحة."),
-                    Details = SharedDataService.SelectViewLang("Please reenter credentials and try again"
-                                    , "يرجى إعادة ادخال البيانات والمحاولة مرة أخرى"),
-                    OkText = SharedDataService.SelectViewLang("OK", "موافق"),
-                    OnOk = async () => { },
-                }
-            );
-            // Console.WriteLine("Login failed");
+            Console.WriteLine("LOGIN ERROR:");
+            Console.WriteLine(ex.ToString());
+
+            await ModalService.ShowAsync(new ModalOptions
+            {
+                IsError = true,
+                Title = Text("Login error", "خطأ تسجيل الدخول"),
+                Message = ex.Message,
+                Details = ex.ToString(),
+                OkText = Text("OK", "موافق"),
+                OnOk = async () => { }
+            });
+        }
+        finally
+        {
+            LoadingService.Hide();
         }
     }
 

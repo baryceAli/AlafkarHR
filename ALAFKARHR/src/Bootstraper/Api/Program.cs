@@ -114,11 +114,15 @@ builder.Services.AddExceptionHandler<CustomExceptionHandler>();
 
 var app = builder.Build();
 
-app.MapCarter();
+//if(!app.Environment.IsDevelopment())
+//{
+//    app.UsePathBase("/backend");
+//}
 app.UseExceptionHandler(options => { });
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapCarter();
 app
     .UseAuthModule(app.Environment)
     .UseAttendanceModule(app.Environment)

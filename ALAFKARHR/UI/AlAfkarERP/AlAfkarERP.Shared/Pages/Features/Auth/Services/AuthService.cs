@@ -9,7 +9,7 @@ namespace AlAfkarERP.Shared.Pages.Features.Auth.Services;
 
 public class AuthService : AuthBaseApiService, IAuthService
 {
-    private readonly HttpClient _http;
+    //private readonly HttpClient _http;
     private readonly string _path;
     private readonly ITokenService _tokenService;
     private readonly ApiConfig _apiConfig;
@@ -59,7 +59,7 @@ public class AuthService : AuthBaseApiService, IAuthService
         var tokens = await _tokenService.GetTokensAsync();
         if (tokens == null) return false;
 
-        var response = await _http.PostAsJsonAsync($"{_apiConfig.BaseURL}/api{_apiConfig.Version}/auth/refresh", new
+        var response = await _http.PostAsJsonAsync($"{_path}/refresh", new
         {
             accessToken = tokens.AccessToken,
             refreshToken = tokens.RefreshToken

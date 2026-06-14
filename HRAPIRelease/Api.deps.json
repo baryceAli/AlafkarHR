@@ -8,11 +8,21 @@
     ".NETCoreApp,Version=v10.0": {
       "Api/1.0.0": {
         "dependencies": {
+          "AttendanceDomain": "1.0.0",
           "Auth": "1.0.0",
+          "Catalog": "1.0.0",
+          "CustomersModule": "1.0.0",
           "EmployeeModule": "1.0.0",
+          "GeneralSettings": "1.0.0",
+          "Inventory": "1.0.0",
           "Microsoft.AspNetCore.OpenApi": "10.0.5",
           "Microsoft.EntityFrameworkCore.Design": "10.0.0",
-          "Organization": "1.0.0"
+          "Organization": "1.0.0",
+          "Payroll": "1.0.0",
+          "Pricing": "1.0.0",
+          "SalesOrder": "1.0.0",
+          "SuppliersModule": "1.0.0",
+          "TaskManagement": "1.0.0"
         },
         "runtime": {
           "Api.dll": {}
@@ -617,6 +627,21 @@
           }
         }
       },
+      "AttendanceDomain/1.0.0": {
+        "dependencies": {
+          "Employee.Contracts": "1.0.0",
+          "Organization.Contracts": "1.0.0",
+          "Shared": "1.0.0",
+          "Shared.Contracts": "1.0.0",
+          "SharedWithUI": "1.0.0"
+        },
+        "runtime": {
+          "AttendanceDomain.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
       "Auth/1.0.0": {
         "dependencies": {
           "Auth.Contracts": "1.0.0",
@@ -643,9 +668,71 @@
           }
         }
       },
+      "Catalog/1.0.0": {
+        "dependencies": {
+          "Catalog.Contracts": "1.0.0",
+          "Microsoft.EntityFrameworkCore": "10.0.0",
+          "Shared": "1.0.0"
+        },
+        "runtime": {
+          "Catalog.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Catalog.Contracts/1.0.0": {
+        "dependencies": {
+          "Shared": "1.0.0",
+          "Shared.Contracts": "1.0.0"
+        },
+        "runtime": {
+          "Catalog.Contracts.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Customers.Contracts/1.0.0": {
+        "dependencies": {
+          "Shared.Contracts": "1.0.0"
+        },
+        "runtime": {
+          "Customers.Contracts.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "CustomersModule/1.0.0": {
+        "dependencies": {
+          "Customers.Contracts": "1.0.0",
+          "Pricing.Contracts": "1.0.0",
+          "Shared": "1.0.0"
+        },
+        "runtime": {
+          "CustomersModule.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Employee.Contracts/1.0.0": {
+        "dependencies": {
+          "Shared.Contracts": "1.0.0",
+          "SharedWithUI": "1.0.0"
+        },
+        "runtime": {
+          "Employee.Contracts.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
       "EmployeeModule/1.0.0": {
         "dependencies": {
           "Auth.Contracts": "1.0.0",
+          "Employee.Contracts": "1.0.0",
           "Shared": "1.0.0",
           "Shared.Contracts": "1.0.0"
         },
@@ -656,16 +743,98 @@
           }
         }
       },
+      "GeneralSettings/1.0.0": {
+        "dependencies": {
+          "Shared": "1.0.0"
+        },
+        "runtime": {
+          "GeneralSettings.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Inventory/1.0.0": {
+        "dependencies": {
+          "Catalog.Contracts": "1.0.0",
+          "Shared": "1.0.0",
+          "Shared.Contracts": "1.0.0"
+        },
+        "runtime": {
+          "Inventory.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
       "Organization/1.0.0": {
         "dependencies": {
           "Auth.Contracts": "1.0.0",
-          "Microsoft.EntityFrameworkCore": "10.0.0",
-          "Microsoft.EntityFrameworkCore.Relational": "10.0.0",
+          "Organization.Contracts": "1.0.0",
           "Shared": "1.0.0",
           "Shared.Contracts": "1.0.0"
         },
         "runtime": {
           "Organization.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Organization.Contracts/1.0.0": {
+        "dependencies": {
+          "Shared.Contracts": "1.0.0"
+        },
+        "runtime": {
+          "Organization.Contracts.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Payroll/1.0.0": {
+        "dependencies": {
+          "Shared": "1.0.0"
+        },
+        "runtime": {
+          "Payroll.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Pricing/1.0.0": {
+        "dependencies": {
+          "Catalog.Contracts": "1.0.0",
+          "Customers.Contracts": "1.0.0",
+          "Pricing.Contracts": "1.0.0",
+          "Shared": "1.0.0"
+        },
+        "runtime": {
+          "Pricing.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Pricing.Contracts/1.0.0": {
+        "dependencies": {
+          "Shared": "1.0.0"
+        },
+        "runtime": {
+          "Pricing.Contracts.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "SalesOrder/1.0.0": {
+        "dependencies": {
+          "Pricing.Contracts": "1.0.0",
+          "Shared": "1.0.0"
+        },
+        "runtime": {
+          "SalesOrder.dll": {
             "assemblyVersion": "1.0.0.0",
             "fileVersion": "1.0.0.0"
           }
@@ -703,6 +872,44 @@
       "SharedWithUI/1.0.0": {
         "runtime": {
           "SharedWithUI.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "SuppliersModule/1.0.0": {
+        "dependencies": {
+          "Shared": "1.0.0"
+        },
+        "runtime": {
+          "SuppliersModule.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "TaskManagement/1.0.0": {
+        "dependencies": {
+          "Auth.Contracts": "1.0.0",
+          "Carter": "10.0.0",
+          "Microsoft.EntityFrameworkCore.SqlServer": "10.0.0",
+          "Shared": "1.0.0",
+          "TaskManagement.Contracts": "1.0.0"
+        },
+        "runtime": {
+          "TaskManagement.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "TaskManagement.Contracts/1.0.0": {
+        "dependencies": {
+          "Shared.Contracts": "1.0.0",
+          "SharedWithUI": "1.0.0"
+        },
+        "runtime": {
+          "TaskManagement.Contracts.dll": {
             "assemblyVersion": "1.0.0.0",
             "fileVersion": "1.0.0.0"
           }
@@ -1024,6 +1231,11 @@
       "path": "system.windows.extensions/9.0.0",
       "hashPath": "system.windows.extensions.9.0.0.nupkg.sha512"
     },
+    "AttendanceDomain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
     "Auth/1.0.0": {
       "type": "project",
       "serviceable": false,
@@ -1034,12 +1246,72 @@
       "serviceable": false,
       "sha512": ""
     },
+    "Catalog/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Catalog.Contracts/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Customers.Contracts/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "CustomersModule/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Employee.Contracts/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
     "EmployeeModule/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
+    "GeneralSettings/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Inventory/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
     "Organization/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Organization.Contracts/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Payroll/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Pricing/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Pricing.Contracts/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "SalesOrder/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
@@ -1055,6 +1327,21 @@
       "sha512": ""
     },
     "SharedWithUI/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "SuppliersModule/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "TaskManagement/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "TaskManagement.Contracts/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
