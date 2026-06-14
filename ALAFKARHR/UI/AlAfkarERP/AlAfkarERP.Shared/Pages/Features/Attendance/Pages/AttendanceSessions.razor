@@ -1,5 +1,6 @@
 @layout AdminLayout
 @page "/Attendance/Sessions"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
@@ -50,14 +51,14 @@
 
     <section class="sessions-panel mb-3">
         <div class="d-flex justify-content-between align-items-center mb-2">
-            <h5 class="mb-0">@Text("Configured Working Week", "أسبوع العمل configured")</h5>
-            <span class="badge bg-light text-dark">@Text("Weekend:", "نهاية الأسبوع:") @string.Join(", ", configuration.WeekendDays)</span>
+            <h5 class="mb-0">@Text("Configured Working Week", "أسبوع العمل المحدد")</h5>
+            <span class="badge bg-light text-dark">@Text("Weekend:", "نهاية الأسبوع:") @string.Join(", ", configuration.WeekendDays.Select(DayName))</span>
         </div>
         <div class="d-flex flex-wrap gap-2">
             @foreach (var day in configuration.DaySchedules.OrderBy(x => DayOrder(x.DayOfWeek)))
             {
                 <span class="badge @(day.IsWorkingDay ? "text-bg-primary" : "text-bg-secondary")">
-                    @day.DayOfWeek: @(day.IsWorkingDay ? $"{FormatTime(day.StartTime)} - {FormatTime(day.EndTime)}" : Text("Non-working", "غير عمل"))
+                    @DayName(day.DayOfWeek): @(day.IsWorkingDay ? $"{FormatTime(day.StartTime)} - {FormatTime(day.EndTime)}" : Text("Non-working", "غير عمل"))
                 </span>
             }
         </div>
@@ -184,13 +185,27 @@
         return employee is null ? employeeId.ToString()[..8] : EmployeeName(employee);
     }
 
-    private static string EmployeeName(EmployeeDto employee)
-        => !string.IsNullOrWhiteSpace(employee.FullName) ? employee.FullName : employee.Id.ToString();
+    private string EmployeeName(EmployeeDto employee)
+    {
+        var name = SharedDataService.SelectViewLang(employee.FullNameEng, employee.FullName);
+        return !string.IsNullOrWhiteSpace(name) ? name : employee.Id.ToString();
+    }
 
     private static string FormatDate(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "-";
     private static string FormatShiftWindowDate(DateTime value) => value.ToString("g");
     private static string FormatTime(TimeSpan? value) => value.HasValue ? value.Value.ToString(@"hh\:mm") : "-";
     private static int DayOrder(DayOfWeek day) => day == DayOfWeek.Saturday ? 0 : (int)day + 1;
+    private string DayName(DayOfWeek day) => day switch
+    {
+        DayOfWeek.Sunday => Text("Sunday", "الأحد"),
+        DayOfWeek.Monday => Text("Monday", "الإثنين"),
+        DayOfWeek.Tuesday => Text("Tuesday", "الثلاثاء"),
+        DayOfWeek.Wednesday => Text("Wednesday", "الأربعاء"),
+        DayOfWeek.Thursday => Text("Thursday", "الخميس"),
+        DayOfWeek.Friday => Text("Friday", "الجمعة"),
+        DayOfWeek.Saturday => Text("Saturday", "السبت"),
+        _ => day.ToString()
+    };
 
     private string AttendanceTypeText(EmployeeAttendanceType type) => type switch
     {

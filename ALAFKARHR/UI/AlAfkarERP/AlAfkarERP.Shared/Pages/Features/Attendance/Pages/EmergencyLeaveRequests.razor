@@ -1,5 +1,6 @@
 @layout AdminLayout
 @page "/Attendance/EmergencyLeaves"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
 @using AlAfkarERP.Shared.Utilities
@@ -110,6 +111,11 @@
         await LoadAsync();
     }
 
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
     private async Task LoadAsync()
     {
         isBusy = true;
@@ -160,6 +166,16 @@
         return Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
     }
 
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private void SetMessage(string text, string cssClass) { message = text; messageClass = cssClass; }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
 }

@@ -1,6 +1,7 @@
 @layout AdminLayout
 @page "/Attendance/Reports"
 @page "/Attendance/Reports/{ReportCategory}"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
 @using AlAfkarERP.Shared.Utilities
@@ -56,7 +57,7 @@
                         <option value="">@Text("All", "الكل")</option>
                         @foreach (var status in Enum.GetValues<AttendanceExceptionStatus>())
                         {
-                            <option value="@status">@status</option>
+                            <option value="@status">@ExceptionStatusText(status)</option>
                         }
                     </select>
                 </div>
@@ -75,10 +76,10 @@
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
-                    <span class="badge bg-light text-dark">@Text("First day:", "أول يوم:") @report.FirstDayOfWeek</span>
+                    <span class="badge bg-light text-dark">@Text("First day:", "أول يوم:") @DayName(report.FirstDayOfWeek)</span>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
-                    <span class="badge bg-light text-dark">@Text("Weekend:", "نهاية الأسبوع:") @string.Join(", ", report.WeekendDays)</span>
+                    <span class="badge bg-light text-dark">@Text("Weekend:", "نهاية الأسبوع:") @string.Join(", ", report.WeekendDays.Select(DayName))</span>
                 </div>
             </div>
         </div>
@@ -130,8 +131,8 @@
                         <tr>
                             <td>@row.Date.ToShortDateString()</td>
                             <td>@row.EmployeeId</td>
-                            <td>@row.Category</td>
-                            <td>@(row.Status?.ToString() ?? row.SessionStatus?.ToString())</td>
+                            <td>@CategoryText(row.Category)</td>
+                            <td>@StatusText(row)</td>
                             <td>@FormatRange(row.ShiftStartUtc, row.ShiftEndUtc)</td>
                             <td>@FormatRange(row.CheckInUtc, row.CheckOutUtc)</td>
                             <td>@FormatRange(row.RequestedStartUtc, row.RequestedEndUtc)</td>
@@ -186,6 +187,11 @@
         filter.CompanyId = companyId;
         filter.Category = NormalizeCategory(ReportCategory);
         await LoadReportAsync();
+    }
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -250,6 +256,68 @@
     private static string FormatDateTime(DateTime? value)
         => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "-";
 
+    private string StatusText(AttendanceReportRowDto row)
+    {
+        if (row.Status.HasValue)
+        {
+            return ExceptionStatusText(row.Status.Value);
+        }
+
+        return row.SessionStatus.HasValue ? SessionStatusText(row.SessionStatus.Value) : "-";
+    }
+
+    private string ExceptionStatusText(AttendanceExceptionStatus status) => status switch
+    {
+        AttendanceExceptionStatus.Pending => Text("Pending", "معلق"),
+        AttendanceExceptionStatus.Approved => Text("Approved", "موافق عليه"),
+        AttendanceExceptionStatus.Rejected => Text("Rejected", "مرفوض"),
+        _ => status.ToString()
+    };
+
+    private string SessionStatusText(AttendanceSessionStatus status) => status switch
+    {
+        AttendanceSessionStatus.Active => Text("Active", "نشط"),
+        AttendanceSessionStatus.OnBreak => Text("On break", "في استراحة"),
+        AttendanceSessionStatus.Completed => Text("Completed", "مكتمل"),
+        AttendanceSessionStatus.Cancelled => Text("Cancelled", "ملغى"),
+        _ => status.ToString()
+    };
+
+    private string CategoryText(string? category) => category switch
+    {
+        "Attendance" => Text("Daily Attendance", "الحضور اليومي"),
+        "AttendanceSummary" => Text("Attendance Summary", "ملخص الحضور"),
+        "LateArrival" => Text("Late Arrival", "التأخير"),
+        "EarlyLeave" => Text("Early Leave", "الانصراف المبكر"),
+        "Break" => Text("Break", "الاستراحة"),
+        "MidDayPermission" => Text("Permission Request", "طلب إذن"),
+        "Absence" => Text("Absence", "الغياب"),
+        "HolidayWeekend" => Text("Holiday / Weekend", "العطلات / نهاية الأسبوع"),
+        _ => string.IsNullOrWhiteSpace(category) ? "-" : category
+    };
+
+    private string DayName(DayOfWeek day) => day switch
+    {
+        DayOfWeek.Sunday => Text("Sunday", "الأحد"),
+        DayOfWeek.Monday => Text("Monday", "الإثنين"),
+        DayOfWeek.Tuesday => Text("Tuesday", "الثلاثاء"),
+        DayOfWeek.Wednesday => Text("Wednesday", "الأربعاء"),
+        DayOfWeek.Thursday => Text("Thursday", "الخميس"),
+        DayOfWeek.Friday => Text("Friday", "الجمعة"),
+        DayOfWeek.Saturday => Text("Saturday", "السبت"),
+        _ => day.ToString()
+    };
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private void SetMessage(string text, string cssClass) { message = text; messageClass = cssClass; }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
 }

@@ -1,5 +1,4 @@
 using AttendanceDomain.Attendance.Models;
-using EmployeeModule.Contracts.Employees.Features.GetEmployeeAttendanceProfile;
 using FluentValidation;
 using Shared.Pagination;
 
@@ -79,6 +78,8 @@ public class UpsertAttendanceHolidayValidator : AbstractValidator<UpsertAttendan
     public UpsertAttendanceHolidayValidator()
     {
         RuleFor(x => x.Holiday.CompanyId).NotEmpty();
+        RuleFor(x => x.Holiday.Name).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Holiday.Description).MaximumLength(1000);
         RuleFor(x => x.Holiday.EndDate.Date)
             .GreaterThanOrEqualTo(x => x.Holiday.StartDate.Date)
             .WithMessage("Holiday end date must be on or after start date.");
@@ -163,13 +164,13 @@ public class GetAttendanceHolidaysHandler(AttendanceDbContext dbContext)
         if (request.FromDate.HasValue)
         {
             var fromDate = UtcDateTime.Normalize(request.FromDate.Value).Date;
-            query = query.Where(x => x.EndDate >= fromDate);
+            query = query.Where(x => x.EndDate >= fromDate || x.IsRecurringYearly);
         }
 
         if (request.ToDate.HasValue)
         {
             var toDate = UtcDateTime.Normalize(request.ToDate.Value).Date;
-            query = query.Where(x => x.StartDate <= toDate);
+            query = query.Where(x => x.StartDate <= toDate || x.IsRecurringYearly);
         }
 
         var holidays = await query
@@ -194,10 +195,11 @@ public class UpsertAttendanceHolidayHandler(AttendanceDbContext dbContext)
                 ?? throw new NotFoundException("AttendanceHoliday", request.Holiday.Id.Value);
 
             holiday.Update(
-                request.Holiday.AdministrationId,
-                request.Holiday.DepartmentId,
+                request.Holiday.HolidayType,
                 request.Holiday.StartDate,
                 request.Holiday.EndDate,
+                request.Holiday.IsRecurringYearly,
+                request.Holiday.IsActive,
                 request.Holiday.Name,
                 request.Holiday.Description,
                 request.ModifiedBy);
@@ -207,10 +209,11 @@ public class UpsertAttendanceHolidayHandler(AttendanceDbContext dbContext)
             holiday = AttendanceHoliday.Create(
                 Guid.NewGuid(),
                 request.Holiday.CompanyId,
-                request.Holiday.AdministrationId,
-                request.Holiday.DepartmentId,
+                request.Holiday.HolidayType,
                 request.Holiday.StartDate,
                 request.Holiday.EndDate,
+                request.Holiday.IsRecurringYearly,
+                request.Holiday.IsActive,
                 request.Holiday.Name,
                 request.Holiday.Description);
             await dbContext.AttendanceHolidays.AddAsync(holiday, cancellationToken);
@@ -286,10 +289,76 @@ public class CreateEmergencyLeaveRequestHandler(AttendanceDbContext dbContext)
 {
     public async Task<CreateEmergencyLeaveRequestResult> Handle(CreateEmergencyLeaveRequestCommand request, CancellationToken cancellationToken)
     {
+        await EnsureLeaveContainsWorkingDayAsync(request.Request.CompanyId, request.Request.StartDate, request.Request.EndDate, cancellationToken);
+
         var leave = EmergencyLeaveRequest.Create(Guid.NewGuid(), request.Request);
         await dbContext.EmergencyLeaveRequests.AddAsync(leave, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new CreateEmergencyLeaveRequestResult(leave.Adapt<EmergencyLeaveRequestDto>());
+    }
+
+    private async Task EnsureLeaveContainsWorkingDayAsync(
+        Guid companyId,
+        DateTime startDate,
+        DateTime endDate,
+        CancellationToken cancellationToken)
+    {
+        var fromDate = UtcDateTime.Normalize(startDate).Date;
+        var toDate = UtcDateTime.Normalize(endDate).Date;
+        var configuration = await dbContext.AttendanceConfigurations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == companyId, cancellationToken);
+        var configurationDto = configuration?.ToDto() ?? AttendanceConfiguration.DefaultDto(companyId);
+        var holidays = await dbContext.AttendanceHolidays
+            .AsNoTracking()
+            .Where(x => x.CompanyId == companyId
+                && x.IsActive
+                && !x.IsDeleted
+                && (x.EndDate >= fromDate || x.IsRecurringYearly)
+                && (x.StartDate <= toDate || x.IsRecurringYearly))
+            .ToListAsync(cancellationToken);
+
+        for (var date = fromDate; date <= toDate; date = date.AddDays(1))
+        {
+            var schedule = configurationDto.DaySchedules.First(x => x.DayOfWeek == date.DayOfWeek);
+            if (schedule.IsWorkingDay
+                && !configurationDto.WeekendDays.Contains(date.DayOfWeek)
+                && !holidays.Any(x => HolidayMatchesDate(x, date)))
+            {
+                return;
+            }
+        }
+
+        throw new BadRequestException("Leave request must include at least one configured working day.");
+    }
+
+    private static bool HolidayMatchesDate(AttendanceHoliday holiday, DateTime date)
+    {
+        if (!holiday.IsRecurringYearly)
+        {
+            return holiday.StartDate.Date <= date.Date && holiday.EndDate.Date >= date.Date;
+        }
+
+        return RecurringHolidayMatchesYear(holiday, date.Date, date.Year)
+            || RecurringHolidayMatchesYear(holiday, date.Date, date.Year - 1);
+    }
+
+    private static DateTime BuildRecurringDate(DateTime date, int year)
+    {
+        var day = Math.Min(date.Day, DateTime.DaysInMonth(year, date.Month));
+        return new DateTime(year, date.Month, day);
+    }
+
+    private static bool RecurringHolidayMatchesYear(AttendanceHoliday holiday, DateTime date, int year)
+    {
+        var start = BuildRecurringDate(holiday.StartDate.Date, year);
+        var end = BuildRecurringDate(holiday.EndDate.Date, year);
+        if (end < start)
+        {
+            end = end.AddYears(1);
+        }
+
+        return start <= date && end >= date;
     }
 }
 
@@ -357,11 +426,55 @@ public class CreateMidDayPermissionRequestHandler(AttendanceDbContext dbContext)
     {
         var configuration = await LoadConfigurationAsync(request.Request.CompanyId, cancellationToken);
         ValidatePermissionWithinWorkingDay(request.Request.Date, request.Request.RequestedStartUtc, request.Request.RequestedEndUtc, configuration);
+        await EnsureNotCompanyHolidayAsync(request.Request.CompanyId, request.Request.Date, cancellationToken);
 
         var permission = MidDayPermissionRequest.Create(Guid.NewGuid(), request.Request);
         await dbContext.MidDayPermissionRequests.AddAsync(permission, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new CreateMidDayPermissionRequestResult(permission.Adapt<MidDayPermissionRequestDto>());
+    }
+
+    private async Task EnsureNotCompanyHolidayAsync(Guid companyId, DateTime requestDate, CancellationToken cancellationToken)
+    {
+        var date = UtcDateTime.Normalize(requestDate).Date;
+        var holidays = await dbContext.AttendanceHolidays
+            .AsNoTracking()
+            .Where(x => x.CompanyId == companyId && x.IsActive && !x.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        if (holidays.Any(x => HolidayMatchesDate(x, date)))
+        {
+            throw new BadRequestException("Permission request date must not be a configured company holiday.");
+        }
+    }
+
+    private static bool HolidayMatchesDate(AttendanceHoliday holiday, DateTime date)
+    {
+        if (!holiday.IsRecurringYearly)
+        {
+            return holiday.StartDate.Date <= date.Date && holiday.EndDate.Date >= date.Date;
+        }
+
+        return RecurringHolidayMatchesYear(holiday, date.Date, date.Year)
+            || RecurringHolidayMatchesYear(holiday, date.Date, date.Year - 1);
+    }
+
+    private static DateTime BuildRecurringDate(DateTime date, int year)
+    {
+        var day = Math.Min(date.Day, DateTime.DaysInMonth(year, date.Month));
+        return new DateTime(year, date.Month, day);
+    }
+
+    private static bool RecurringHolidayMatchesYear(AttendanceHoliday holiday, DateTime date, int year)
+    {
+        var start = BuildRecurringDate(holiday.StartDate.Date, year);
+        var end = BuildRecurringDate(holiday.EndDate.Date, year);
+        if (end < start)
+        {
+            end = end.AddYears(1);
+        }
+
+        return start <= date && end >= date;
     }
 
     private async Task<AttendanceConfiguration> LoadConfigurationAsync(Guid companyId, CancellationToken cancellationToken)
@@ -468,7 +581,7 @@ public class GetMidDayPermissionRequestsHandler(AttendanceDbContext dbContext)
     }
 }
 
-public class GetAttendanceReportHandler(AttendanceDbContext dbContext, ISender sender)
+public class GetAttendanceReportHandler(AttendanceDbContext dbContext)
     : IQueryHandler<GetAttendanceReportQuery, GetAttendanceReportResult>
 {
     public async Task<GetAttendanceReportResult> Handle(GetAttendanceReportQuery request, CancellationToken cancellationToken)
@@ -484,10 +597,6 @@ public class GetAttendanceReportHandler(AttendanceDbContext dbContext, ISender s
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.CompanyId == request.Filter.CompanyId, cancellationToken);
         var configurationDto = configuration?.ToDto() ?? AttendanceConfiguration.DefaultDto(request.Filter.CompanyId);
-
-        var profile = request.Filter.EmployeeId.HasValue
-            ? await sender.Send(new GetEmployeeAttendanceProfileQuery(request.Filter.EmployeeId.Value), cancellationToken)
-            : null;
 
         var rows = new List<AttendanceReportRowDto>();
 
@@ -546,12 +655,18 @@ public class GetAttendanceReportHandler(AttendanceDbContext dbContext, ISender s
                 var presentDates = sessionRows
                     .Select(x => x.Date.Date)
                     .ToHashSet();
+                var holidayDates = await GetCompanyHolidayDatesAsync(
+                    request.Filter.CompanyId,
+                    fromDate,
+                    toDate,
+                    cancellationToken);
 
                 for (var date = fromDate; date <= toDate; date = date.AddDays(1))
                 {
                     var schedule = configurationDto.DaySchedules.First(x => x.DayOfWeek == date.DayOfWeek);
                     if (schedule.IsWorkingDay
                         && !configurationDto.WeekendDays.Contains(date.DayOfWeek)
+                        && !holidayDates.Contains(date)
                         && !presentDates.Contains(date))
                     {
                         rows.Add(new AttendanceReportRowDto
@@ -574,25 +689,15 @@ public class GetAttendanceReportHandler(AttendanceDbContext dbContext, ISender s
         {
             var holidays = dbContext.AttendanceHolidays.AsNoTracking()
                 .Where(x => x.CompanyId == request.Filter.CompanyId
+                    && x.IsActive
                     && !x.IsDeleted
-                    && x.EndDate >= fromDate
-                    && x.StartDate <= toDate);
+                    && (x.EndDate >= fromDate || x.IsRecurringYearly)
+                    && (x.StartDate <= toDate || x.IsRecurringYearly));
 
-            if (profile is not null)
+            foreach (var holiday in await holidays.ToListAsync(cancellationToken))
             {
-                holidays = holidays.Where(x =>
-                    (!x.DepartmentId.HasValue && !x.AdministrationId.HasValue)
-                    || (profile.DepartmentId.HasValue && x.DepartmentId == profile.DepartmentId.Value)
-                    || (x.AdministrationId == profile.AdministrationId));
+                rows.AddRange(BuildHolidayRows(holiday, fromDate, toDate, request.Filter.EmployeeId));
             }
-
-            rows.AddRange(await holidays.Select(x => new AttendanceReportRowDto
-            {
-                Date = x.StartDate,
-                EmployeeId = request.Filter.EmployeeId,
-                Category = "Holiday",
-                Reason = x.Name ?? x.Description
-            }).ToListAsync(cancellationToken));
         }
 
         if (MatchesCategory(request.Filter.Category, "Weekend") || MatchesCategory(request.Filter.Category, "HolidayWeekend"))
@@ -688,4 +793,77 @@ public class GetAttendanceReportHandler(AttendanceDbContext dbContext, ISender s
 
     private static bool MatchesCategory(string? filter, string category)
         => string.IsNullOrWhiteSpace(filter) || string.Equals(filter, category, StringComparison.OrdinalIgnoreCase);
+
+    private async Task<HashSet<DateTime>> GetCompanyHolidayDatesAsync(
+        Guid companyId,
+        DateTime fromDate,
+        DateTime toDate,
+        CancellationToken cancellationToken)
+    {
+        var holidays = await dbContext.AttendanceHolidays.AsNoTracking()
+            .Where(x => x.CompanyId == companyId
+                && x.IsActive
+                && !x.IsDeleted
+                && (x.EndDate >= fromDate || x.IsRecurringYearly)
+                && (x.StartDate <= toDate || x.IsRecurringYearly))
+            .ToListAsync(cancellationToken);
+
+        return holidays
+            .SelectMany(x => BuildHolidayDates(x, fromDate, toDate))
+            .ToHashSet();
+    }
+
+    private static IEnumerable<AttendanceReportRowDto> BuildHolidayRows(
+        AttendanceHoliday holiday,
+        DateTime fromDate,
+        DateTime toDate,
+        Guid? employeeId)
+        => BuildHolidayDates(holiday, fromDate, toDate).Select(date => new AttendanceReportRowDto
+        {
+            Date = date,
+            EmployeeId = employeeId,
+            Category = "Holiday",
+            Reason = holiday.Name ?? holiday.Description
+        });
+
+    private static IEnumerable<DateTime> BuildHolidayDates(AttendanceHoliday holiday, DateTime fromDate, DateTime toDate)
+    {
+        if (!holiday.IsRecurringYearly)
+        {
+            for (var date = holiday.StartDate.Date > fromDate ? holiday.StartDate.Date : fromDate;
+                 date <= (holiday.EndDate.Date < toDate ? holiday.EndDate.Date : toDate);
+                 date = date.AddDays(1))
+            {
+                yield return date;
+            }
+
+            yield break;
+        }
+
+        for (var year = fromDate.Year - 1; year <= toDate.Year; year++)
+        {
+            var start = BuildRecurringDate(holiday.StartDate.Date, year);
+            var end = BuildRecurringDate(holiday.EndDate.Date, year);
+            if (end < start)
+            {
+                end = end.AddYears(1);
+            }
+
+            for (var date = start > fromDate ? start : fromDate;
+                 date <= (end < toDate ? end : toDate);
+                 date = date.AddDays(1))
+            {
+                yield return date;
+            }
+        }
+    }
+
+    private static bool HolidayMatchesDate(AttendanceHoliday holiday, DateTime date)
+        => BuildHolidayDates(holiday, date.Date, date.Date).Any();
+
+    private static DateTime BuildRecurringDate(DateTime date, int year)
+    {
+        var day = Math.Min(date.Day, DateTime.DaysInMonth(year, date.Month));
+        return new DateTime(year, date.Month, day);
+    }
 }

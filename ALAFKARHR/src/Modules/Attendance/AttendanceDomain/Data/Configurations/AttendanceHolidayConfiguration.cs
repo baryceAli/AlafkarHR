@@ -9,10 +9,10 @@ public class AttendanceHolidayConfiguration : IEntityTypeConfiguration<Attendanc
     {
         builder.ToTable("AttendanceHolidays");
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.HolidayType).HasConversion<int>();
         builder.Property(x => x.Name).HasMaxLength(200);
         builder.Property(x => x.Description).HasMaxLength(1000);
         builder.HasIndex(x => new { x.CompanyId, x.StartDate, x.EndDate });
-        builder.HasIndex(x => new { x.DepartmentId, x.StartDate, x.EndDate });
-        builder.HasIndex(x => new { x.AdministrationId, x.StartDate, x.EndDate });
+        builder.HasIndex(x => new { x.CompanyId, x.IsActive });
     }
 }

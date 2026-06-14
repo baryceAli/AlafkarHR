@@ -5,10 +5,11 @@ namespace AttendanceDomain.Attendance.Models;
 public class AttendanceHoliday : Entity<Guid>
 {
     public Guid CompanyId { get; private set; }
-    public Guid? AdministrationId { get; private set; }
-    public Guid? DepartmentId { get; private set; }
+    public AttendanceHolidayType HolidayType { get; private set; } = AttendanceHolidayType.PublicHoliday;
     public DateTime StartDate { get; private set; }
     public DateTime EndDate { get; private set; }
+    public bool IsRecurringYearly { get; private set; }
+    public bool IsActive { get; private set; } = true;
     public string? Name { get; private set; }
     public string? Description { get; private set; }
 
@@ -17,23 +18,25 @@ public class AttendanceHoliday : Entity<Guid>
     public static AttendanceHoliday Create(
         Guid id,
         Guid companyId,
-        Guid? administrationId,
-        Guid? departmentId,
+        AttendanceHolidayType holidayType,
         DateTime startDate,
         DateTime endDate,
+        bool isRecurringYearly,
+        bool isActive,
         string? name,
         string? description)
     {
-        ValidateDates(startDate, endDate);
+        Validate(companyId, startDate, endDate);
 
         return new AttendanceHoliday
         {
             Id = id,
             CompanyId = companyId,
-            AdministrationId = administrationId,
-            DepartmentId = departmentId,
+            HolidayType = holidayType,
             StartDate = UtcDateTime.Normalize(startDate).Date,
             EndDate = UtcDateTime.Normalize(endDate).Date,
+            IsRecurringYearly = isRecurringYearly,
+            IsActive = isActive,
             Name = string.IsNullOrWhiteSpace(name) ? null : name.Trim(),
             Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
             CreatedAt = DateTime.UtcNow
@@ -41,20 +44,22 @@ public class AttendanceHoliday : Entity<Guid>
     }
 
     public void Update(
-        Guid? administrationId,
-        Guid? departmentId,
+        AttendanceHolidayType holidayType,
         DateTime startDate,
         DateTime endDate,
+        bool isRecurringYearly,
+        bool isActive,
         string? name,
         string? description,
         string? modifiedBy)
     {
-        ValidateDates(startDate, endDate);
+        Validate(CompanyId, startDate, endDate);
 
-        AdministrationId = administrationId;
-        DepartmentId = departmentId;
+        HolidayType = holidayType;
         StartDate = UtcDateTime.Normalize(startDate).Date;
         EndDate = UtcDateTime.Normalize(endDate).Date;
+        IsRecurringYearly = isRecurringYearly;
+        IsActive = isActive;
         Name = string.IsNullOrWhiteSpace(name) ? null : name.Trim();
         Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
         ModifiedBy = modifiedBy;
@@ -70,8 +75,13 @@ public class AttendanceHoliday : Entity<Guid>
         ModifiedAt = DateTime.UtcNow;
     }
 
-    private static void ValidateDates(DateTime startDate, DateTime endDate)
+    private static void Validate(Guid companyId, DateTime startDate, DateTime endDate)
     {
+        if (companyId == Guid.Empty)
+        {
+            throw new BadRequestException("Company is required for attendance holidays.");
+        }
+
         if (UtcDateTime.Normalize(endDate).Date < UtcDateTime.Normalize(startDate).Date)
         {
             throw new BadRequestException("Holiday end date must be on or after start date.");

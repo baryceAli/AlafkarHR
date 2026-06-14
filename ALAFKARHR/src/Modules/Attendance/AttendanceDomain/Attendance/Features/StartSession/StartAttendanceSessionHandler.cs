@@ -134,6 +134,11 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
             throw new BadRequestException("Attendance cannot be started on a configured non-working day.");
         }
 
+        if (await IsCompanyHolidayAsync(companyId, workDateUtc, cancellationToken))
+        {
+            throw new BadRequestException("Attendance cannot be started on a configured company holiday.");
+        }
+
         if (!schedule.StartTime.HasValue || !schedule.EndTime.HasValue)
         {
             return null;
@@ -146,6 +151,46 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
             workDate.Add(schedule.EndTime.Value),
             null,
             null);
+    }
+
+    private async Task<bool> IsCompanyHolidayAsync(Guid companyId, DateTime workDateUtc, CancellationToken cancellationToken)
+    {
+        var date = UtcDateTime.Normalize(workDateUtc).Date;
+        var holidays = await dbContext.AttendanceHolidays
+            .AsNoTracking()
+            .Where(x => x.CompanyId == companyId && x.IsActive && !x.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        return holidays.Any(x => HolidayMatchesDate(x, date));
+    }
+
+    private static bool HolidayMatchesDate(AttendanceHoliday holiday, DateTime date)
+    {
+        if (!holiday.IsRecurringYearly)
+        {
+            return holiday.StartDate.Date <= date.Date && holiday.EndDate.Date >= date.Date;
+        }
+
+        return RecurringHolidayMatchesYear(holiday, date.Date, date.Year)
+            || RecurringHolidayMatchesYear(holiday, date.Date, date.Year - 1);
+    }
+
+    private static DateTime BuildRecurringDate(DateTime date, int year)
+    {
+        var day = Math.Min(date.Day, DateTime.DaysInMonth(year, date.Month));
+        return new DateTime(year, date.Month, day);
+    }
+
+    private static bool RecurringHolidayMatchesYear(AttendanceHoliday holiday, DateTime date, int year)
+    {
+        var start = BuildRecurringDate(holiday.StartDate.Date, year);
+        var end = BuildRecurringDate(holiday.EndDate.Date, year);
+        if (end < start)
+        {
+            end = end.AddYears(1);
+        }
+
+        return start <= date && end >= date;
     }
 
     private async Task<Guid?> ResolveAssignedShiftIdAsync(

@@ -1,5 +1,6 @@
 @layout AdminLayout
 @page "/Attendance/ShiftAssignments"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
@@ -355,12 +356,28 @@
     };
 
     private string ShiftName(Guid shiftId) => shifts.FirstOrDefault(x => x.Id == shiftId)?.Name ?? shiftId.ToString()[..8];
-    private static string EmployeeName(EmployeeDto employee) => !string.IsNullOrWhiteSpace(employee.FullName) ? employee.FullName : employee.Id.ToString()[..8];
-    private static string DepartmentName(DepartmentDto department) => !string.IsNullOrWhiteSpace(department.Name) ? department.Name : department.Id.ToString()[..8];
-    private static string AdminName(AdministrationDto administration) => !string.IsNullOrWhiteSpace(administration.Name) ? administration.Name : administration.Id.ToString()[..8];
-    private static string EmployeeSearchText(EmployeeDto employee) => $"{EmployeeName(employee)} | {employee.Code} | {employee.EmployeeNo} | {employee.Email}";
-    private static string DepartmentSearchText(DepartmentDto department) => $"{DepartmentName(department)} | {department.Code}";
-    private static string AdministrationSearchText(AdministrationDto administration) => $"{AdminName(administration)} | {administration.Code}";
+
+    private string EmployeeName(EmployeeDto employee)
+    {
+        var name = SharedDataService.SelectViewLang(employee.FullNameEng, employee.FullName);
+        return !string.IsNullOrWhiteSpace(name) ? name : employee.Id.ToString()[..8];
+    }
+
+    private string DepartmentName(DepartmentDto department)
+    {
+        var name = SharedDataService.SelectViewLang(department.NameEng, department.Name);
+        return !string.IsNullOrWhiteSpace(name) ? name : department.Id.ToString()[..8];
+    }
+
+    private string AdminName(AdministrationDto administration)
+    {
+        var name = SharedDataService.SelectViewLang(administration.NameEng, administration.Name);
+        return !string.IsNullOrWhiteSpace(name) ? name : administration.Id.ToString()[..8];
+    }
+
+    private string EmployeeSearchText(EmployeeDto employee) => $"{EmployeeName(employee)} | {employee.Code} | {employee.EmployeeNo} | {employee.Email}";
+    private string DepartmentSearchText(DepartmentDto department) => $"{DepartmentName(department)} | {department.Code}";
+    private string AdministrationSearchText(AdministrationDto administration) => $"{AdminName(administration)} | {administration.Code}";
     private string FormatNullable(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : Text("Open", "مفتوح");
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     

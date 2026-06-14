@@ -240,10 +240,11 @@ public class AttendanceHolidayDto
 {
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }
-    public Guid? AdministrationId { get; set; }
-    public Guid? DepartmentId { get; set; }
+    public AttendanceHolidayType HolidayType { get; set; } = AttendanceHolidayType.PublicHoliday;
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
+    public bool IsRecurringYearly { get; set; }
+    public bool IsActive { get; set; } = true;
     public string? Name { get; set; }
     public string? Description { get; set; }
 }
@@ -252,10 +253,11 @@ public class UpsertAttendanceHolidayDto
 {
     public Guid? Id { get; set; }
     public Guid CompanyId { get; set; }
-    public Guid? AdministrationId { get; set; }
-    public Guid? DepartmentId { get; set; }
+    public AttendanceHolidayType HolidayType { get; set; } = AttendanceHolidayType.PublicHoliday;
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
+    public bool IsRecurringYearly { get; set; }
+    public bool IsActive { get; set; } = true;
     public string? Name { get; set; }
     public string? Description { get; set; }
 }

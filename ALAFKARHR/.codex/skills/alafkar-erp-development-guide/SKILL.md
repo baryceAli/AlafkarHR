@@ -97,6 +97,31 @@ Blazor menu visibility uses `MenuItem.PermissionPolicy` and user claims. Backend
 
 Use `SharedDataService.SelectViewLang(en, ar)` for bilingual text and `SharedDataService.PageDirection` for direction. Data models often use Arabic and English name fields such as `Name` and `NameEng`; preserve those names.
 
+Any Blazor page or component that renders language-dependent text or direction from `SharedDataService` must respond to the language button toggle. Add `@implements IDisposable`, subscribe in `OnInitialized`, rerender in `HandleChangeAsync`, and unsubscribe in `Dispose`:
+
+```razor
+@implements IDisposable
+
+@code {
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
+```
+
+When editing existing localized pages, check whether this pattern already exists before finishing. If the page already implements `IDisposable`, merge the unsubscribe into the existing `Dispose` method instead of creating a duplicate.
+
 Avoid left/right-specific CSS where possible. Prefer logical CSS properties such as `margin-inline-start`, `margin-inline-end`, `padding-inline-start`, `padding-inline-end`, `inset-inline-start`, and `border-inline-start`. Respect `dir`/`lang` behavior and verify icons, spacing, and action groups work in Arabic and English.
 
 ## 17. API and Service Patterns

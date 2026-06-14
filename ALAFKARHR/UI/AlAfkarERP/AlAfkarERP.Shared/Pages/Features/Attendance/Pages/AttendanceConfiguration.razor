@@ -1,5 +1,6 @@
 @layout AdminLayout
 @page "/Attendance/Configuration"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
@@ -23,7 +24,7 @@
         <div>
             <p class="text-muted mb-1">@Text("Attendance", "الحضور والانصراف")</p>
             <h3 class="mb-1">@Text("Attendance Configuration", "اعدادات الحضور")</h3>
-            <p class="text-muted mb-0">@Text("Configure weekly working times, weekend days, and break policy rules.", "تحديد أوقات العمل الأسبوعية وأيام نهاية الأسبوع وسياسات الاستراحة.")</p>
+            <p class="text-muted mb-0">@Text("Configure weekly working times and break policy rules. Weekend days are maintained under Attendance > Holidays.", "تحديد أوقات العمل الأسبوعية وسياسات الاستراحة. تتم إدارة أيام نهاية الأسبوع من الحضور > العطلات.")</p>
         </div>
         <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">@Text("Refresh", "تحديث")</button>
     </div>
@@ -51,7 +52,7 @@
                 </div>
                 <div class="col-md-8">
                     <div class="alert alert-info mb-0">
-                        @Text("Working days require start and end times. Weekend days are treated as non-working days in reports and summaries.", "أيام العمل تتطلب وقت بداية ونهاية. أيام نهاية الأسبوع تعامل كأيام غير عمل في التقارير والملخصات.")
+                        @Text($"Working days require start and end times. Current weekend days: {CurrentWeekendDaysText()}. Manage weekends from Attendance > Holidays.", $"أيام العمل تتطلب وقت بداية ونهاية. أيام نهاية الأسبوع الحالية: {CurrentWeekendDaysText()}. تتم إدارة نهاية الأسبوع من الحضور > العطلات.")
                     </div>
                 </div>
             </div>
@@ -62,7 +63,6 @@
                         <tr>
                             <th>@Text("Day", "اليوم")</th>
                             <th>@Text("Working", "عمل")</th>
-                            <th>@Text("Weekend", "نهاية الأسبوع")</th>
                             <th>@Text("Start", "البداية")</th>
                             <th>@Text("End", "النهاية")</th>
                         </tr>
@@ -72,8 +72,7 @@
                         {
                             <tr>
                                 <td>@DayName(day.DayOfWeek)</td>
-                                <td><input class="form-check-input" type="checkbox" checked="@day.IsWorkingDay" @onchange="args => ToggleWorkingDay(day, args)" /></td>
-                                <td><input class="form-check-input" type="checkbox" checked="@configuration.WeekendDays.Contains(day.DayOfWeek)" @onchange="args => ToggleWeekend(day.DayOfWeek, args)" /></td>
+                                <td><input class="form-check-input" type="checkbox" checked="@day.IsWorkingDay" @onchange="args => ToggleWorkingDay(day, args)" disabled="@configuration.WeekendDays.Contains(day.DayOfWeek)" /></td>
                                 <td><input class="form-control" type="time" value="@FormatTimeInput(day.StartTime)" @onchange="args => SetStartTime(day, args)" disabled="@(!day.IsWorkingDay)" /></td>
                                 <td><input class="form-control" type="time" value="@FormatTimeInput(day.EndTime)" @onchange="args => SetEndTime(day, args)" disabled="@(!day.IsWorkingDay)" /></td>
                             </tr>
@@ -236,6 +235,11 @@
         await LoadAsync();
     }
 
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
     private async Task LoadAsync()
     {
         if (companyId == Guid.Empty) return;
@@ -371,9 +375,9 @@
 
     private string? ValidateBreakPolicyTarget() => breakPolicy.Scope switch
     {
-        ShiftAssignmentScope.Administration when !breakPolicy.AdministrationId.HasValue => Text("Select an administration.", "Select an administration."),
-        ShiftAssignmentScope.Department when !breakPolicy.DepartmentId.HasValue => Text("Select a department.", "Select a department."),
-        ShiftAssignmentScope.Employee when !breakPolicy.EmployeeId.HasValue => Text("Select an employee.", "Select an employee."),
+        ShiftAssignmentScope.Administration when !breakPolicy.AdministrationId.HasValue => Text("Select an administration.", "اختر الإدارة."),
+        ShiftAssignmentScope.Department when !breakPolicy.DepartmentId.HasValue => Text("Select a department.", "اختر القسم."),
+        ShiftAssignmentScope.Employee when !breakPolicy.EmployeeId.HasValue => Text("Select an employee.", "اختر الموظف."),
         _ => null
     };
 
@@ -399,45 +403,47 @@
     }
     private string YesNo(bool value) => value ? Text("Yes", "نعم") : Text("No", "لا");
     private string BreakModeText(AttendanceBreakMode mode) => mode == AttendanceBreakMode.Strict ? Text("Strict", "محدد") : Text("Flexible", "مرن");
-    private string DayName(DayOfWeek day) => Text(day.ToString(), day.ToString());
-    private static int DayOrder(DayOfWeek day) => day == DayOfWeek.Saturday ? 0 : (int)day + 1;
-    private static string EmployeeName(EmployeeDto employee) => !string.IsNullOrWhiteSpace(employee.FullName) ? employee.FullName : employee.Id.ToString()[..8];
-    private static string DepartmentName(DepartmentDto department) => !string.IsNullOrWhiteSpace(department.Name) ? department.Name : department.Id.ToString()[..8];
-    private static string AdminName(AdministrationDto administration) => !string.IsNullOrWhiteSpace(administration.Name) ? administration.Name : administration.Id.ToString()[..8];
-    private static string EmployeeSearchText(EmployeeDto employee) => $"{EmployeeName(employee)} | {employee.Code} | {employee.EmployeeNo} | {employee.Email}";
-    private static string DepartmentSearchText(DepartmentDto department) => $"{DepartmentName(department)} | {department.Code}";
-    private static string AdministrationSearchText(AdministrationDto administration) => $"{AdminName(administration)} | {administration.Code}";
-
-    private void ToggleWeekend(DayOfWeek day, ChangeEventArgs args)
+    private string DayName(DayOfWeek day) => day switch
     {
-        var isChecked = args.Value is bool value && value;
-        if (isChecked && !configuration.WeekendDays.Contains(day))
-        {
-            configuration.WeekendDays.Add(day);
-        }
-        else if (!isChecked)
-        {
-            configuration.WeekendDays.Remove(day);
-        }
-
-        if (isChecked)
-        {
-            var schedule = configuration.DaySchedules.FirstOrDefault(x => x.DayOfWeek == day);
-            if (schedule is not null)
-            {
-                schedule.IsWorkingDay = false;
-                schedule.StartTime = null;
-                schedule.EndTime = null;
-            }
-        }
+        DayOfWeek.Sunday => Text("Sunday", "الأحد"),
+        DayOfWeek.Monday => Text("Monday", "الإثنين"),
+        DayOfWeek.Tuesday => Text("Tuesday", "الثلاثاء"),
+        DayOfWeek.Wednesday => Text("Wednesday", "الأربعاء"),
+        DayOfWeek.Thursday => Text("Thursday", "الخميس"),
+        DayOfWeek.Friday => Text("Friday", "الجمعة"),
+        DayOfWeek.Saturday => Text("Saturday", "السبت"),
+        _ => day.ToString()
+    };
+    private static int DayOrder(DayOfWeek day) => day == DayOfWeek.Saturday ? 0 : (int)day + 1;
+    private string CurrentWeekendDaysText()
+        => string.Join(", ", configuration.WeekendDays.OrderBy(DayOrder).Select(DayName));
+    private string EmployeeName(EmployeeDto employee)
+    {
+        var name = SharedDataService.SelectViewLang(employee.FullNameEng, employee.FullName);
+        return !string.IsNullOrWhiteSpace(name) ? name : employee.Id.ToString()[..8];
     }
+
+    private string DepartmentName(DepartmentDto department)
+    {
+        var name = SharedDataService.SelectViewLang(department.NameEng, department.Name);
+        return !string.IsNullOrWhiteSpace(name) ? name : department.Id.ToString()[..8];
+    }
+
+    private string AdminName(AdministrationDto administration)
+    {
+        var name = SharedDataService.SelectViewLang(administration.NameEng, administration.Name);
+        return !string.IsNullOrWhiteSpace(name) ? name : administration.Id.ToString()[..8];
+    }
+
+    private string EmployeeSearchText(EmployeeDto employee) => $"{EmployeeName(employee)} | {employee.Code} | {employee.EmployeeNo} | {employee.Email}";
+    private string DepartmentSearchText(DepartmentDto department) => $"{DepartmentName(department)} | {department.Code}";
+    private string AdministrationSearchText(AdministrationDto administration) => $"{AdminName(administration)} | {administration.Code}";
 
     private void ToggleWorkingDay(AttendanceDayScheduleDto day, ChangeEventArgs args)
     {
         day.IsWorkingDay = args.Value is bool value && value;
         if (day.IsWorkingDay)
         {
-            configuration.WeekendDays.Remove(day.DayOfWeek);
             day.StartTime ??= new TimeSpan(8, 0, 0);
             day.EndTime ??= new TimeSpan(17, 0, 0);
         }
@@ -488,23 +494,33 @@
         {
             if (configuration.WeekendDays.Contains(day.DayOfWeek))
             {
-                return Text($"{day.DayOfWeek} cannot be both a working day and a weekend day.", $"{day.DayOfWeek} cannot be both a working day and a weekend day.");
+                return Text($"{DayName(day.DayOfWeek)} cannot be both a working day and a weekend day.", $"لا يمكن أن يكون {DayName(day.DayOfWeek)} يوم عمل ويوم نهاية أسبوع في نفس الوقت.");
             }
 
             if (!day.StartTime.HasValue || !day.EndTime.HasValue)
             {
-                return Text($"{day.DayOfWeek} requires start and end time.", $"{day.DayOfWeek} requires start and end time.");
+                return Text($"{DayName(day.DayOfWeek)} requires start and end time.", $"يتطلب {DayName(day.DayOfWeek)} وقت بداية ونهاية.");
             }
 
             if (day.EndTime <= day.StartTime)
             {
-                return Text($"{day.DayOfWeek} end time must be after start time.", $"{day.DayOfWeek} end time must be after start time.");
+                return Text($"{DayName(day.DayOfWeek)} end time must be after start time.", $"يجب أن يكون وقت نهاية {DayName(day.DayOfWeek)} بعد وقت البداية.");
             }
         }
 
         return null;
     }
 
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private void SetMessage(string text, string cssClass) { message = text; messageClass = cssClass; }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
 }

@@ -1,5 +1,6 @@
 @layout AdminLayout
 @page "/Attendance/PermissionRequests"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
 @using AlAfkarERP.Shared.Utilities
@@ -118,6 +119,11 @@
         await LoadAsync();
     }
 
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
     private async Task LoadAsync()
     {
         isBusy = true;
@@ -190,6 +196,16 @@
     private static string FormatTimeRange(DateTime? start, DateTime? end)
         => start.HasValue && end.HasValue ? $"{start.Value.ToLocalTime():g} - {end.Value.ToLocalTime():t}" : "-";
 
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private void SetMessage(string text, string cssClass) { message = text; messageClass = cssClass; }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
 }
