@@ -1,4 +1,4 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Customers/CustomerGroup/List"
 
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
@@ -120,6 +120,10 @@ else
             </div>
 
             <div class="table-responsive branch-table-wrap">
+                        <div class="d-flex justify-content-end mb-2">
+            <TableExportActions />
+        </div>
+
                 <table class="table branch-table align-middle mb-0">
                     <thead>
                         <tr>

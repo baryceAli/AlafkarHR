@@ -1,0 +1,13 @@
+<div class="mb-3 @CssClass">
+    <h2 class="erp-section-title">@Title</h2>
+    @if (!string.IsNullOrWhiteSpace(Subtitle))
+    {
+        <div class="erp-section-subtitle">@Subtitle</div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string? CssClass { get; set; }
+}

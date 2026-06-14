@@ -1,4 +1,4 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Employee/Employee/List"
 
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
@@ -117,6 +117,10 @@
     else
     {
         <div class="table-responsive">
+                    <div class="d-flex justify-content-end mb-2">
+            <TableExportActions />
+        </div>
+
             <table class="table employee-table align-middle mb-0">
                 <thead>
                     <tr>

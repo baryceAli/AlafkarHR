@@ -20,15 +20,25 @@
     return;
 }
 
-<!-- Branches -->
-<h5 class="text-black">@SharedDataService.SelectViewLang("Warehouse Transfer", "تحويل مخزون")</h5>
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Warehouse Transfer", "تحويل مخزون")"
+                Subtitle="@SharedDataService.SelectViewLang("Select source and destination warehouses, then choose the product and SKU to transfer.", "اختر المستودع المصدر والمستودع الوجهة ثم المنتج والمنتج المخزني المراد تحويله.")"
+                Overline="@SharedDataService.SelectViewLang("Inventory Operations", "عمليات المخزون")"
+                Icon="bi-arrow-left-right">
+        <Actions>
+            <a class="btn btn-outline-secondary" href="/Inventories/List">
+                <i class="bi bi-boxes"></i>
+                @SharedDataService.SelectViewLang("Current Stock", "المخزون الحالي")
+            </a>
+        </Actions>
+    </PageHeader>
 
-<div class="card p-3 mb-3">
-    <EditForm Model="warehouseTransfer">
-        <div class="row bg-info-subtle p-3">
-            <div class="mb-3 row">
-                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Source warehouse", "المستودع المحول منه")</label>
-                <div class="col-sm-10">
+    <AppCard Title="@SharedDataService.SelectViewLang("Transfer Details", "تفاصيل التحويل")"
+             Subtitle="@SharedDataService.SelectViewLang("This form keeps the current selection workflow while using the new ERP layout.", "يحافظ هذا النموذج على سير الاختيار الحالي ضمن تصميم ERP الجديد.")">
+        <EditForm Model="warehouseTransfer">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Source warehouse", "المستودع المحول منه")</label>
                     <AutoCompleteComponent TItem="WarehouseDto"
                                            Items="warehouses"
                                            Value="selectedSourceWarehouse"
@@ -36,11 +46,9 @@
                                            PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse","اختر مستودع")"
                                            ValueChanged="onSourceWarehouseSelected" />
                 </div>
-            </div>
 
-            <div class="mb-3 row">
-                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Destination warehouse", "المستودع المحول إليه")</label>
-                <div class="col-sm-10">
+                <div class="col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Destination warehouse", "المستودع المحول إليه")</label>
                     <AutoCompleteComponent TItem="WarehouseDto"
                                            Items="warehouses"
                                            Value="selectedDestinationWarehouse"
@@ -48,11 +56,9 @@
                                            PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse","اختر مستودع")"
                                            ValueChanged="onDestinationWarehouseSelected" />
                 </div>
-            </div>
 
-            <div class="mb-3 row">
-                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
-                <div class="col-sm-10">
+                <div class="col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
                     <AutoCompleteComponent TItem="ProductDto"
                                            Items="products"
                                            Value="selectedProduct"
@@ -60,11 +66,9 @@
                                            PlaceHolder="@SharedDataService.SelectViewLang("Select product","اختر منتج")"
                                            ValueChanged="onProductSelected" />
                 </div>
-            </div>
 
-            <div class="mb-3 row">
-                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Product Sku", "المنتج المخزني")</label>
-                <div class="col-sm-10">
+                <div class="col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Product Sku", "المنتج المخزني")</label>
                     <AutoCompleteComponent TItem="ProductSkuDto"
                                            Items="productSkus"
                                            Value="selectedProductSku"
@@ -72,11 +76,16 @@
                                            PlaceHolder="@SharedDataService.SelectViewLang("Select product sku","اختر منتج مخزني")"
                                            ValueChanged="onProductSkuSelected" />
                 </div>
-            </div>
-                                    
-        </div>
-    </EditForm>
 
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="ResetSelection">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                        @SharedDataService.SelectViewLang("Reset", "إعادة تعيين")
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    </AppCard>
 </div>
 @inject ToastService ToastService
 @inject ModalService ModalService
@@ -157,6 +166,15 @@
         {
             selectedProductSku = sku;
         }
+    }
+
+    private void ResetSelection()
+    {
+        selectedSourceWarehouse = null;
+        selectedDestinationWarehouse = null;
+        selectedProduct = null;
+        selectedProductSku = null;
+        productSkus = [];
     }
 
     protected override void OnInitialized()

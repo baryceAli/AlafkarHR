@@ -1,4 +1,4 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Warehouse/Product/Brand/List"
 
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
@@ -27,77 +27,60 @@
     return;
 }
 
-<!-- Branches -->
-<h5 class="text-black">@SharedDataService.SelectViewLang("Brand Management", "ادارة العلامة التجارية")</h5>
-
-@* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
-<button class="btn btn-primary mb-3"
-        @onclick="CreateNew"
-        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Create}") ? true : false)>
-    <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
-</button>
-
-<div class="card p-3 mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <!--
-
-        Export to xls and pdf
-        <div class="d-flex gap-2">
-
-            <button class="btn btn-success btn-sm" @onclick="ExportToExcel">
-                <i class="bi bi-file-earmark-excel"></i> Excel
+<div class="erp-page">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Brand Management", "ادارة العلامة التجارية")"
+                Subtitle="@SharedDataService.SelectViewLang("Maintain product brand names and descriptions.", "إدارة أسماء العلامات التجارية وأوصافها.")"
+                Overline="@SharedDataService.SelectViewLang("Catalog", "الكتالوج")"
+                Icon="bi-tags">
+        <Actions>
+            <button class="btn btn-primary"
+                    @onclick="CreateNew"
+                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Create}") ? true : false)>
+                <i class="bi bi-plus-lg"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
             </button>
+        </Actions>
+    </PageHeader>
 
-            <button class="btn btn-danger btn-sm" @onclick="ExportToPdf">
-                <i class="bi bi-file-earmark-pdf"></i> PDF
-            </button>
+    <AppCard Title="@SharedDataService.SelectViewLang("Brands", "العلامات التجارية")"
+             Subtitle="@SharedDataService.SelectViewLang("Search, sort, edit, and remove brand records.", "ابحث ورتب وعدل واحذف سجلات العلامات التجارية.")">
+        <FilterBar CssClass="mb-3">
+            <ChildContent>
+            <div class="input-group" style="max-width: 320px;">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input class="form-control"
+                       placeholder="@SharedDataService.SelectViewLang("Search brands...", "ابحث في العلامات...")"
+                       @bind="searchText" />
+            </div>
+            </ChildContent>
+            <Actions>
+                <select class="form-select" @onchange="OnPageSizeChanged" aria-label="@SharedDataService.SelectViewLang("Page size", "حجم الصفحة")">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </Actions>
+        </FilterBar>
 
-        </div>
-        -->
-        <!-- 🔍 Search -->
-        <div>
-            <input class="form-control"
-                   placeholder="Search..."
-                   @bind="searchText" />
-        </div>
-
-        <!--
-
-        🎯 Filter
-        <div class="col-md-3">
-            <select class="form-select" @bind="filterMainBranch">
-                <option value="">All</option>
-                <option value="true">Main Branch</option>
-                <option value="false">Not Main</option>
-            </select>
-        </div>
-        -->
-        <!-- 📄 Page Size -->
-        <div>
-            @* <select class="form-select" @bind="pageSize"> *@
-            <select class="form-select" @onchange="OnPageSizeChanged">
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-            </select>
+        <div class="erp-table-wrap">
+                    <div class="d-flex justify-content-end mb-2">
+            <TableExportActions />
         </div>
 
-    </div>
-    <table class="table">
-        <thead>
-            <tr>
-                <th @onclick="() => Sort(nameof(BrandDto.Name))">
-                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
-                    @SharedDataService.SelectViewLang("Name", "الاسم")
-                </th>
-                <th @onclick="() => Sort(nameof(BrandDto.NameEng))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
-                <th>@SharedDataService.SelectViewLang("Description", "الوصف")</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
+            <table class="table erp-table mb-0">
+                <thead>
+                    <tr>
+                        <th @onclick="() => Sort(nameof(BrandDto.Name))">
+                            <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
+                            @SharedDataService.SelectViewLang("Name", "الاسم")
+                        </th>
+                        <th @onclick="() => Sort(nameof(BrandDto.NameEng))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
+                        <th>@SharedDataService.SelectViewLang("Description", "الوصف")</th>
+                        <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
+                    </tr>
+                </thead>
+                <tbody>
             
             @if (editingBrandId != null)
             {
@@ -110,27 +93,27 @@
                                 <DataAnnotationsValidator />
                                 <ValidationSummary />
                                 @* <InputHidden @bind-Value="branch.Id"/> *@
-                                <div class="row bg-info-subtle p-3">
+                                <div class="row g-3 bg-info-subtle p-3">
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
-                                        <div class="col-sm-10">
+                                    <div class="col-md-6">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
+                                        <div>
                                             <InputText class="form-control" @bind-Value="editingItem.Name" />
                                             <ValidationMessage For="() => editingItem.Name" />
                                         </div>
                                     </div>
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name (En)", "الاسم (انجليزي)")</label>
-                                        <div class="col-sm-10">
+                                    <div class="col-md-6">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Name (En)", "الاسم (انجليزي)")</label>
+                                        <div>
                                             <InputText class="form-control" @bind-Value="editingItem.NameEng" />
                                             <ValidationMessage For="() => editingItem.NameEng" />
                                         </div>
                                     </div>
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Description", "الوصف")</label>
-                                        <div class="col-sm-10">
+                                    <div class="col-12">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Description", "الوصف")</label>
+                                        <div>
                                             <InputTextArea class="form-control" @bind-Value="editingItem.Description" />
                                             
                                         </div>
@@ -138,9 +121,9 @@
 
 
 
-                                    <div class="col">
-                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
-                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                    <div class="col-12 d-flex justify-content-end gap-2">
+                                        <button type="submit" class="btn btn-success btn-sm">@SharedDataService.SelectViewLang("Save", "حفظ")</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">@SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>
                                     </div>
                                 </div>
                             </EditForm>
@@ -159,39 +142,43 @@
                         <td>@brand.NameEng</td>
                         <td>@brand.Description</td>
                         <td>
-                            <button class="btn btn-warning btn-sm"
+                            <div class="d-flex justify-content-end gap-2">
+                            <button class="btn btn-outline-primary btn-sm"
                                     @onclick="() => EditBrand(brand.Id)"
                                     disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Edit}"))>
-                                @SharedDataService.SelectViewLang("Edit", "تعديل")
+                                <i class="bi bi-pencil-square"></i>
                             </button>
                             <button class="btn btn-danger btn-sm"
                                     @onclick="() => DeleteBrand(brand)"
                                     disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Delete}"))>
-                                @SharedDataService.SelectViewLang("Delete", "حذف")
+                                <i class="bi bi-trash"></i>
                             </button>
+                            </div>
                         </td>
                     </tr>
                 
             }
-        </tbody>
-    </table>
-    <div class="d-flex justify-content-end align-items-center mt-3">
+                </tbody>
+            </table>
+        </div>
+    <div class="d-flex flex-wrap justify-content-end align-items-center gap-2 mt-3">
 
         <button class="btn btn-sm btn-secondary"
                 @onclick="PrevPage"
                 disabled="@(pageIndex == 0)">
-            Previous
+            @SharedDataService.SelectViewLang("Previous", "السابق")
         </button>
 
-        <span class="mx-3">Page @(pageIndex + 1) of @TotalPages @(TotalPages == 1 ? "" : "Pages")</span>
+        <span class="text-muted">@SharedDataService.SelectViewLang("Page", "صفحة") @(pageIndex + 1) @SharedDataService.SelectViewLang("of", "من") @TotalPages</span>
 
         <button class="btn btn-sm btn-secondary"
                 @onclick="NextPage"
                 disabled="@(pageIndex >= TotalPages)">
-            Next
+            @SharedDataService.SelectViewLang("Next", "التالي")
         </button>
 
     </div>
+    </AppCard>
 </div>
 
 @code {

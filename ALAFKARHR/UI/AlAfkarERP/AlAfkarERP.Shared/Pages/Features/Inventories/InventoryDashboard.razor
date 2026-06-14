@@ -1,7 +1,55 @@
-﻿@layout  AdminLayout
+@layout AdminLayout
 @page "/Inventory/Dashboard"
-<h3>WarehouseDashboard</h3>
 
-@code {
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
 
-}
+@inject SharedDataService SharedDataService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Inventory Dashboard", "لوحة المخزون")"
+                Subtitle="@SharedDataService.SelectViewLang("Monitor stock balances and move into warehouse, batch, and operation workflows.", "متابعة أرصدة المخزون والانتقال إلى المستودعات والدفعات وعمليات المخزون.")"
+                Overline="@SharedDataService.SelectViewLang("Inventory Management", "إدارة المخزون")"
+                Icon="bi-box-seam">
+        <Actions>
+            <a class="btn btn-primary" href="/Inventories/List">
+                <i class="bi bi-boxes"></i>
+                @SharedDataService.SelectViewLang("Current Stock", "المخزون الحالي")
+            </a>
+            <a class="btn btn-outline-secondary" href="/Inventory/Warehouse/List">
+                <i class="bi bi-building"></i>
+                @SharedDataService.SelectViewLang("Warehouses", "المستودعات")
+            </a>
+        </Actions>
+    </PageHeader>
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <AppCard Title="@SharedDataService.SelectViewLang("Stock Balances", "أرصدة المخزون")"
+                     Subtitle="@SharedDataService.SelectViewLang("Review quantities by warehouse, product, and SKU.", "مراجعة الكميات حسب المستودع والمنتج والمنتج المخزني.")">
+                <a class="btn btn-outline-primary" href="/Inventories/List">
+                    <i class="bi bi-arrow-up-right"></i>
+                    @SharedDataService.SelectViewLang("Open", "فتح")
+                </a>
+            </AppCard>
+        </div>
+        <div class="col-md-4">
+            <AppCard Title="@SharedDataService.SelectViewLang("Batches", "الدفعات")"
+                     Subtitle="@SharedDataService.SelectViewLang("Manage batch numbers and production/expiry dates.", "إدارة أرقام الدفعات وتواريخ الإنتاج والانتهاء.")">
+                <a class="btn btn-outline-primary" href="/Inventory/Batch/List">
+                    <i class="bi bi-arrow-up-right"></i>
+                    @SharedDataService.SelectViewLang("Open", "فتح")
+                </a>
+            </AppCard>
+        </div>
+        <div class="col-md-4">
+            <AppCard Title="@SharedDataService.SelectViewLang("Operations", "العمليات")"
+                     Subtitle="@SharedDataService.SelectViewLang("Receive, issue, adjust, reserve, or release stock.", "استلام أو صرف أو تسوية أو حجز أو إطلاق المخزون.")">
+                <a class="btn btn-outline-primary" href="/Inventory/Operations/StockIn">
+                    <i class="bi bi-arrow-up-right"></i>
+                    @SharedDataService.SelectViewLang("Start", "بدء")
+                </a>
+            </AppCard>
+        </div>
+    </div>
+</div>

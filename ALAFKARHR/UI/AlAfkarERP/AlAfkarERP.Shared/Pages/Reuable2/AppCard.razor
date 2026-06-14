@@ -1,0 +1,39 @@
+<section class="erp-card @CssClass">
+    @if (HasHeader)
+    {
+        <div class="erp-card-header">
+            <div>
+                @if (!string.IsNullOrWhiteSpace(Title))
+                {
+                    <h2 class="erp-card-title">@Title</h2>
+                }
+                @if (!string.IsNullOrWhiteSpace(Subtitle))
+                {
+                    <div class="erp-card-subtitle">@Subtitle</div>
+                }
+            </div>
+            @if (Actions is not null)
+            {
+                <div class="d-flex flex-wrap gap-2">
+                    @Actions
+                </div>
+            }
+        </div>
+    }
+    <div class="erp-card-body @BodyClass">
+        @ChildContent
+    </div>
+</section>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string? CssClass { get; set; }
+    [Parameter] public string? BodyClass { get; set; }
+    [Parameter] public RenderFragment? Actions { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool HasHeader => !string.IsNullOrWhiteSpace(Title)
+                              || !string.IsNullOrWhiteSpace(Subtitle)
+                              || Actions is not null;
+}

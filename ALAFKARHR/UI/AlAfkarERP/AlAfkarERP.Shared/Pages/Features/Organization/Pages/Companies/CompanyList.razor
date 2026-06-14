@@ -19,7 +19,7 @@
 @inject ApiConfig ApiConfig
 @inject IJSRuntime JSRuntime
 
-<div class="company-profile">
+<div class="company-profile erp-page">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
             <h3 class="mb-1">@Text("Company Profile", "ملف الشركة")</h3>
@@ -271,11 +271,11 @@
 
     .profile-link {
         align-items: center;
-        background: #fff;
+        background: var(--erp-surface);
         border-left: 4px solid;
-        border-radius: 8px;
-        box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.08);
-        color: #212529;
+        border-radius: var(--erp-radius-lg);
+        box-shadow: var(--erp-shadow-sm);
+        color: var(--erp-text);
         display: flex;
         gap: 0.75rem;
         min-height: 86px;
@@ -284,12 +284,12 @@
     }
 
     .profile-link:hover {
-        box-shadow: 0 0.25rem 0.75rem rgba(15, 23, 42, 0.12);
+        box-shadow: var(--erp-shadow-md);
         transform: translateY(-1px);
     }
 
     .profile-link i {
-        color: #0d6efd;
+        color: var(--erp-primary);
         font-size: 1.5rem;
     }
 
@@ -300,10 +300,10 @@
 
     .company-logo {
         align-items: center;
-        background: #f8f9fa;
-        border: 1px solid #e9ecef;
-        border-radius: 8px;
-        color: #0d6efd;
+        background: var(--erp-surface-muted);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
+        color: var(--erp-primary);
         display: flex;
         height: 72px;
         justify-content: center;
@@ -323,10 +323,10 @@
 
     .company-logo-upload {
         align-items: center;
-        background: #f8f9fa;
-        border: 1px dashed #adb5bd;
-        border-radius: 8px;
-        color: #0d6efd;
+        background: var(--erp-surface-muted);
+        border: 1px dashed var(--erp-border-strong);
+        border-radius: var(--erp-radius-lg);
+        color: var(--erp-primary);
         cursor: pointer;
         display: flex;
         height: 88px;
@@ -346,7 +346,7 @@
     }
 
     .company-contact {
-        color: #6c757d;
+        color: var(--erp-text-muted);
         display: grid;
         gap: 0.35rem;
     }
@@ -357,16 +357,16 @@
     }
 
     .locked-fields label {
-        color: #6c757d;
+        color: var(--erp-text-muted);
         display: block;
         font-size: 0.875rem;
         margin-bottom: 0.25rem;
     }
 
     .company-map {
-        background: #eef2f5;
-        border: 1px solid #ced4da;
-        border-radius: 8px;
+        background: var(--erp-bg-subtle);
+        border: 1px solid var(--erp-border-strong);
+        border-radius: var(--erp-radius-lg);
         cursor: crosshair;
         height: 340px;
         overflow: hidden;

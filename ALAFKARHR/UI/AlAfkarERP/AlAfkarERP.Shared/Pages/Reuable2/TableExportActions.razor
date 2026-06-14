@@ -1,0 +1,74 @@
+@using AlAfkarERP.Shared.Utilities
+@inject IJSRuntime JSRuntime
+@inject SharedDataService SharedDataService
+
+<div class="d-flex flex-wrap align-items-center gap-2 @CssClass" @ref="RootElement">
+    <div class="dropdown">
+        <button class="btn btn-outline-success btn-sm dropdown-toggle"
+                type="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                disabled="@Disabled">
+            <i class="bi bi-download"></i>
+            @Text("Download", "تحميل")
+        </button>
+        <ul class="dropdown-menu">
+            <li>
+                <button class="dropdown-item" type="button" @onclick="DownloadExcelAsync">
+                    <i class="bi bi-file-earmark-excel me-2"></i>
+                    @Text("Excel", "اكسل")
+                </button>
+            </li>
+            <li>
+                <button class="dropdown-item" type="button" @onclick="DownloadPdfAsync">
+                    <i class="bi bi-file-earmark-pdf me-2"></i>
+                    @Text("PDF", "PDF")
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <button class="btn btn-outline-secondary btn-sm"
+            type="button"
+            @onclick="PrintAsync"
+            disabled="@Disabled">
+        <i class="bi bi-printer"></i>
+        @Text("Print", "طباعة")
+    </button>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string TableSelector { get; set; } = "table";
+    [Parameter] public string FileName { get; set; } = "table.xls";
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? CssClass { get; set; }
+
+    private ElementReference RootElement;
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private object BuildMeta() => new
+    {
+        Title,
+        Subtitle = Subtitle ?? Text("Table content from the current page view.", "محتوى الجدول من عرض الصفحة الحالي."),
+        Direction = SharedDataService.PageDirection,
+        GeneratedAtLabel = Text("Generated at", "تم الانشاء في")
+    };
+
+    private async Task DownloadExcelAsync()
+    {
+        await JSRuntime.InvokeVoidAsync("alafkarTableExport.downloadNearestTableExcel", RootElement, TableSelector, BuildMeta(), FileName);
+    }
+
+    private async Task DownloadPdfAsync()
+    {
+        await JSRuntime.InvokeVoidAsync("alafkarTableExport.exportNearestTablePdf", RootElement, TableSelector, BuildMeta());
+    }
+
+    private async Task PrintAsync()
+    {
+        await JSRuntime.InvokeVoidAsync("alafkarTableExport.printNearestTable", RootElement, TableSelector, BuildMeta());
+    }
+}

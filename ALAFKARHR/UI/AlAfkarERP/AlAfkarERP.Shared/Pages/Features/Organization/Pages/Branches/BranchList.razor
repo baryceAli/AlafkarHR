@@ -25,7 +25,7 @@
 
 @if (AuthState is null)
 {
-    <div class="branches-page">
+    <div class="branches-page erp-page">
         <div class="card border-0 shadow-sm">
             <div class="card-body py-5 text-center">
                 <div class="spinner-border text-primary mb-3" role="status"></div>
@@ -45,7 +45,7 @@
     return;
 }
 
-<div class="branches-page">
+<div class="branches-page erp-page">
     <div class="branches-header mb-4">
         <div>
             <div class="text-uppercase text-primary fw-semibold small mb-1">@Text("Organization", "المنظمة")</div>
@@ -109,13 +109,46 @@
                            @bind:event="oninput"
                            @onkeydown="OnSearchKeyDown" />
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <label class="text-muted small mb-0">@Text("Rows", "الصفوف")</label>
-                    <select class="form-select branch-page-size" @onchange="OnPageSizeChanged" value="@pageSize">
-                        <option value="5">5</option>
-                        <option value="10">10</option>
-                        <option value="20">20</option>
-                    </select>
+                <div class="branch-table-actions">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-success btn-sm dropdown-toggle"
+                                type="button"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                                disabled="@(!ExportBranches.Any())">
+                            <i class="bi bi-download"></i>
+                            @Text("Download", "تحميل")
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <button class="dropdown-item" type="button" @onclick="ExportToExcelAsync">
+                                    <i class="bi bi-file-earmark-excel me-2"></i>
+                                    @Text("Excel", "اكسل")
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item" type="button" @onclick="ExportToPdfAsync">
+                                    <i class="bi bi-file-earmark-pdf me-2"></i>
+                                    @Text("PDF", "PDF")
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <button class="btn btn-outline-secondary btn-sm"
+                            type="button"
+                            @onclick="PrintTableAsync"
+                            disabled="@(!ExportBranches.Any())">
+                        <i class="bi bi-printer"></i>
+                        @Text("Print", "طباعة")
+                    </button>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="text-muted small mb-0">@Text("Rows", "الصفوف")</label>
+                        <select class="form-select branch-page-size" @onchange="OnPageSizeChanged" value="@pageSize">
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -365,10 +398,10 @@
 
     .branch-stat {
         align-items: center;
-        background: #fff;
+        background: var(--erp-surface);
         border-left: 4px solid;
-        border-radius: 8px;
-        box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.08);
+        border-radius: var(--erp-radius-lg);
+        box-shadow: var(--erp-shadow-sm);
         display: flex;
         gap: 0.875rem;
         min-height: 88px;
@@ -377,8 +410,8 @@
 
     .branch-stat-icon {
         align-items: center;
-        background: #f8f9fa;
-        border-radius: 8px;
+        background: var(--erp-primary-soft);
+        border-radius: var(--erp-radius-md);
         display: inline-flex;
         font-size: 1.35rem;
         height: 44px;
@@ -387,7 +420,7 @@
     }
 
     .branch-stat-value {
-        color: #212529;
+        color: var(--erp-text);
         font-size: 1.35rem;
         font-weight: 700;
         line-height: 1.15;
@@ -408,7 +441,7 @@
     }
 
     .branch-search i {
-        color: #6c757d;
+        color: var(--erp-text-muted);
         left: 0.875rem;
         position: absolute;
         top: 50%;
@@ -423,14 +456,22 @@
         min-width: 82px;
     }
 
+    .branch-table-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: flex-end;
+    }
+
     .branch-table-wrap {
-        border: 1px solid #e9ecef;
-        border-radius: 8px;
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
     }
 
     .branch-table thead th {
-        background: #f8f9fa;
-        color: #495057;
+        background: var(--erp-surface-muted);
+        color: var(--erp-text-muted);
         font-size: 0.8125rem;
         font-weight: 700;
         text-transform: uppercase;
@@ -438,7 +479,7 @@
     }
 
     .branch-table tbody tr:hover {
-        background: #fbfcfe;
+        background: var(--erp-primary-soft);
     }
 
     .branch-table .sortable {
@@ -447,7 +488,7 @@
     }
 
     .branch-table .sortable i {
-        color: #6c757d;
+        color: var(--erp-text-muted);
         font-size: 0.75rem;
         margin-inline-start: 0.35rem;
     }
@@ -455,14 +496,14 @@
     .branch-contact-line,
     .branch-location {
         align-items: center;
-        color: #495057;
+        color: var(--erp-text);
         display: flex;
         gap: 0.45rem;
         min-width: 0;
     }
 
     .branch-contact-line + .branch-contact-line {
-        color: #6c757d;
+        color: var(--erp-text-muted);
         font-size: 0.875rem;
         margin-top: 0.25rem;
     }
@@ -483,22 +524,22 @@
     }
 
     .branch-edit-row > td {
-        background: #f8fbff;
+        background: var(--erp-primary-soft);
         padding: 1rem;
     }
 
     .branch-edit-panel {
-        background: #fff;
-        border: 1px solid #dbeafe;
-        border-radius: 8px;
+        background: var(--erp-surface);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
         padding: 1rem;
     }
 
     .branch-check {
         align-items: center;
-        background: #f8f9fa;
-        border: 1px solid #e9ecef;
-        border-radius: 8px;
+        background: var(--erp-surface-muted);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
         display: inline-flex;
         gap: 0.5rem;
         padding: 0.75rem 1rem;
@@ -509,9 +550,9 @@
     }
 
     .branch-map {
-        background: #eef2f5;
-        border: 1px solid #ced4da;
-        border-radius: 8px;
+        background: var(--erp-bg-subtle);
+        border: 1px solid var(--erp-border-strong);
+        border-radius: var(--erp-radius-lg);
         cursor: grab;
         height: 320px;
         overflow: hidden;
@@ -553,7 +594,7 @@
 
     .branch-empty {
         align-items: center;
-        color: #6c757d;
+        color: var(--erp-text-muted);
         display: grid;
         justify-items: center;
         padding: 2rem;
@@ -561,7 +602,7 @@
     }
 
     .branch-empty i {
-        color: #adb5bd;
+        color: var(--erp-text-soft);
         font-size: 2rem;
         margin-bottom: 0.5rem;
     }
@@ -870,6 +911,7 @@
         await LoadBranches();
     }
     private IEnumerable<BranchDto> BranchesForDisplay => branches.OrderByDynamic(sortColumn, sortAscending);
+    private IEnumerable<BranchDto> ExportBranches => BranchesForDisplay.Where(branch => branch.Id != editingBranchId);
 
 
 
@@ -915,6 +957,61 @@
         => sortColumn != column
             ? "bi bi-arrow-down-up"
             : sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down";
+
+    private async Task ExportToExcelAsync()
+    {
+        await JSRuntime.InvokeVoidAsync(
+            "alafkarTableExport.downloadExcel",
+            BuildBranchExportPayload(),
+            "branches.xls");
+    }
+
+    private async Task ExportToPdfAsync()
+    {
+        await JSRuntime.InvokeVoidAsync("alafkarTableExport.exportPdf", BuildBranchExportPayload());
+    }
+
+    private async Task PrintTableAsync()
+    {
+        await JSRuntime.InvokeVoidAsync("alafkarTableExport.print", BuildBranchExportPayload());
+    }
+
+    private object BuildBranchExportPayload()
+    {
+        var rows = ExportBranches
+            .Select(branch => new[]
+            {
+                EmptyValue(branch.Name),
+                EmptyValue(branch.NameEng),
+                EmptyValue(branch.Code),
+                EmptyValue(branch.Phone),
+                EmptyValue(branch.Email),
+                EmptyValue(branch.Location),
+                HasCoordinates(branch) ? $"{branch.Latitude}, {branch.Longitude}" : "-",
+                branch.IsMainBranch ? Text("Main", "رئيسي") : Text("Branch", "فرع")
+            })
+            .ToArray();
+
+        return new
+        {
+            Title = Text("Branches Management", "ادارة الفروع"),
+            Subtitle = Text("Table content from the current branch list view.", "محتوى الجدول من عرض قائمة الفروع الحالي."),
+            Direction = SharedDataService.PageDirection,
+            GeneratedAtLabel = Text("Generated at", "تم الانشاء في"),
+            Columns = new[]
+            {
+                Text("Name", "الاسم"),
+                Text("Name (English)", "الاسم بالانجليزية"),
+                Text("Code", "الكود"),
+                Text("Phone", "الهاتف"),
+                Text("Email", "الايميل"),
+                Text("Location", "الموقع"),
+                Text("Coordinates", "الاحداثيات"),
+                Text("Status", "الحالة")
+            },
+            Rows = rows
+        };
+    }
 
     private BranchDto? EditingBranch =>
         editingBranchId is null ? null : branches.FirstOrDefault(branch => branch.Id == editingBranchId);

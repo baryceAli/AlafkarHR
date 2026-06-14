@@ -1,4 +1,4 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Auth/Role/List"
 @* @using AlAfkarERP.Shared.Pages.Features.Auth.Layout *@
 @using AlAfkarERP.Shared.Pages.Features.Auth.Services
@@ -25,6 +25,10 @@
 
     <h3>@SharedDataService.SelectViewLang("Roles Management", "إدارة الصلاحيات")</h3>
     <a class="btn btn-primary mb-3" href="/Auth/Role/Form">Create new</a>
+            <div class="d-flex justify-content-end mb-2">
+            <TableExportActions />
+        </div>
+
     <table class="table table-striped">
         <thead>
             <tr>

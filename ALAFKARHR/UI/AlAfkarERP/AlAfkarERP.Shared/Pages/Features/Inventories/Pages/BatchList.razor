@@ -1,4 +1,4 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Inventory/Batch/List"
 
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
@@ -32,65 +32,49 @@
     return;
 }
 
-<!-- Branches -->
-<h5 class="text-black">@SharedDataService.SelectViewLang("Batch Management", "ادارة الدفعات")</h5>
-
-@* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
-<button class="btn btn-primary mb-3"
-        @onclick="CreateNew"
-        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BatchPermissions.Create}") ? true : false)>
-    <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
-</button>
-
-<div class="card p-3 mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <!--
-
-        Export to xls and pdf
-        <div class="d-flex gap-2">
-
-            <button class="btn btn-success btn-sm" @onclick="ExportToExcel">
-                <i class="bi bi-file-earmark-excel"></i> Excel
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Batch Management", "إدارة الدفعات")"
+                Subtitle="@SharedDataService.SelectViewLang("Maintain batch identities, SKU links, and manufacturing and expiry dates.", "إدارة بيانات الدفعات وربطها بالمنتجات المخزنية وتواريخ الإنتاج والانتهاء.")"
+                Overline="@SharedDataService.SelectViewLang("Inventory", "المخزون")"
+                Icon="bi-upc-scan">
+        <Actions>
+            <button class="btn btn-primary"
+                    @onclick="CreateNew"
+                    disabled="@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BatchPermissions.Create}"))">
+                <i class="bi bi-plus-lg"></i>
+                @SharedDataService.SelectViewLang("Create New", "إضافة جديد")
             </button>
+        </Actions>
+    </PageHeader>
 
-            <button class="btn btn-danger btn-sm" @onclick="ExportToPdf">
-                <i class="bi bi-file-earmark-pdf"></i> PDF
-            </button>
+    <AppCard Title="@SharedDataService.SelectViewLang("Batches", "الدفعات")"
+             Subtitle="@SharedDataService.SelectViewLang("Search, sort, and update batch records for inventory movement.", "البحث والفرز وتحديث سجلات الدفعات لحركات المخزون.")">
+        <FilterBar CssClass="mb-3">
+            <ChildContent>
+                <div class="input-group erp-filter-search">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input class="form-control"
+                           placeholder="@SharedDataService.SelectViewLang("Search batches...", "ابحث في الدفعات...")"
+                           @bind="searchText" />
+                </div>
+            </ChildContent>
+            <Actions>
+                <select class="form-select erp-page-size-select" @onchange="OnPageSizeChanged" aria-label="@SharedDataService.SelectViewLang("Page size", "حجم الصفحة")">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </Actions>
+        </FilterBar>
 
-        </div>
-        -->
-        <!-- 🔍 Search -->
-        <div>
-            <input class="form-control"
-                   placeholder="Search..."
-                   @bind="searchText" />
-        </div>
-
-        <!--
-
-        🎯 Filter
-        <div class="col-md-3">
-            <select class="form-select" @bind="filterMainBranch">
-                <option value="">All</option>
-                <option value="true">Main Branch</option>
-                <option value="false">Not Main</option>
-            </select>
-        </div>
-        -->
-        <!-- 📄 Page Size -->
-        <div>
-            @* <select class="form-select" @bind="pageSize"> *@
-            <select class="form-select" @onchange="OnPageSizeChanged">
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-            </select>
+        <div class="erp-table-wrap">
+                    <div class="d-flex justify-content-end mb-2">
+            <TableExportActions />
         </div>
 
-    </div>
-    <table class="table">
+            <table class="table erp-table mb-0">
         <thead>
             <tr>
                 <th @onclick='() => Sort(SharedDataService.Language=="Ar"? nameof(BatchDto.ProductName):nameof(BatchDto.ProductNameEng))'>
@@ -124,11 +108,14 @@
                             <EditForm Model="editingItem" OnValidSubmit="() => SaveBatch(editingItem)">
                                 <DataAnnotationsValidator />
                                 <ValidationSummary />
-                                @* <InputHidden @bind-Value="branch.Id"/> *@
-                                <div class="row bg-info-subtle p-3">
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
-                                        <div class="col-sm-10">
+                                <div class="p-3">
+                                    <div class="mb-3">
+                                        <div class="fw-semibold">@SharedDataService.SelectViewLang("Batch Details", "تفاصيل الدفعة")</div>
+                                        <div class="text-muted small">@SharedDataService.SelectViewLang("Choose the product and SKU, then set batch dates.", "اختر المنتج والمنتج المخزني ثم حدد تواريخ الدفعة.")</div>
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
                                             <AutoCompleteComponent TItem="ProductDto"
                                                                    Items="products"
                                                                    Value="selectedProduct"
@@ -136,11 +123,9 @@
                                                                    PlaceHolder="@SharedDataService.SelectViewLang("Select product","اختر منتج")"
                                                                    ValueChanged="onProductChanged" />
                                         </div>
-                                    </div>
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Product Sku", "المنتج المخزني")</label>
-                                        <div class="col-sm-10">
+                                        <div class="col-md-6">
+                                            <label class="form-label">@SharedDataService.SelectViewLang("Product Sku", "المنتج المخزني")</label>
                                             <AutoCompleteComponent TItem="ProductSkuDto"
                                                                    Items="productSkus"
                                                                    Value="selectedProductSku"
@@ -148,37 +133,29 @@
                                                                    PlaceHolder="@SharedDataService.SelectViewLang("Select product sku","اختر منتج مخزني")"
                                                                    ValueChanged="onProductSkuChanged" />
                                         </div>
-                                    </div>
-                                    
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Batch Number", "رقم الدفعة")</label>
-                                        <div class="col-sm-10">
+
+                                        <div class="col-md-4">
+                                            <label class="form-label">@SharedDataService.SelectViewLang("Batch Number", "رقم الدفعة")</label>
                                             <InputText class="form-control" @bind-Value="editingItem.BatchNumber" />
                                             <ValidationMessage For="() => editingItem.BatchNumber" />
                                         </div>
-                                    </div>
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Manufacturing Date", "تاريخ الانتاج")</label>
-                                        <div class="col-sm-10">
+                                        <div class="col-md-4">
+                                            <label class="form-label">@SharedDataService.SelectViewLang("Manufacturing Date", "تاريخ الانتاج")</label>
                                             <InputDate class="form-control" @bind-Value="editingItem.ManufacturingDate" />
                                             <ValidationMessage For="() => editingItem.ManufacturingDate" />
                                         </div>
-                                    </div>
 
-                                    
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Expire Date", "تاريخ الانتهاء")</label>
-                                        <div class="col-sm-10">
+                                        <div class="col-md-4">
+                                            <label class="form-label">@SharedDataService.SelectViewLang("Expire Date", "تاريخ الانتهاء")</label>
                                             <InputDate class="form-control" @bind-Value="editingItem.ExpiryDate" />
                                             <ValidationMessage For="() => editingItem.ExpiryDate" />
                                         </div>
-                                    </div>
 
-                                    
-                                    <div class="col">
-                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
-                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                        <div class="col-12 d-flex justify-content-end gap-2">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelEdit">@SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>
+                                            <button type="submit" class="btn btn-success btn-sm">@SharedDataService.SelectViewLang("Save", "حفظ")</button>
+                                        </div>
                                     </div>
                                 </div>
                             </EditForm>
@@ -218,25 +195,35 @@
                 </tr>
                 
             }
-        </tbody>
-    </table>
-    <div class="d-flex justify-content-end align-items-center mt-3">
+            </tbody>
+        </table>
+        </div>
+
+        @if (!ProcessedBatch.Any() && editingBatchId == null)
+        {
+            <EmptyState Icon="bi-upc-scan"
+                        Title="@SharedDataService.SelectViewLang("No batches found", "لا توجد دفعات")"
+                        Message="@SharedDataService.SelectViewLang("Create a batch or adjust your search.", "أنشئ دفعة أو عدل عبارة البحث.")" />
+        }
+
+    <div class="d-flex flex-wrap justify-content-end align-items-center gap-2 mt-3">
 
         <button class="btn btn-sm btn-secondary"
                 @onclick="PrevPage"
                 disabled="@(pageIndex == 0)">
-            Previous
+            @SharedDataService.SelectViewLang("Previous", "السابق")
         </button>
 
-        <span class="mx-3">Page @(pageIndex + 1) of @TotalPages @(TotalPages == 1 ? "" : "Pages")</span>
+        <span class="text-muted small">@SharedDataService.SelectViewLang("Page", "صفحة") @(pageIndex + 1) @SharedDataService.SelectViewLang("of", "من") @TotalPages</span>
 
         <button class="btn btn-sm btn-secondary"
                 @onclick="NextPage"
                 disabled="@(pageIndex >= TotalPages)">
-            Next
+            @SharedDataService.SelectViewLang("Next", "التالي")
         </button>
 
     </div>
+    </AppCard>
 </div>
 
 @code {

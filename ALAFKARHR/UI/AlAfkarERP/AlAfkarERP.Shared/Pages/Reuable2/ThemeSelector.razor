@@ -1,0 +1,60 @@
+@inject IJSRuntime JSRuntime
+@inject AlAfkarERP.Shared.Utilities.SharedDataService SharedDataService
+
+<div class="theme-selector d-flex align-items-center gap-2">
+    <select class="form-select form-select-sm"
+            title="@Text("Interface color", "لون الواجهة")"
+            aria-label="@Text("Interface color", "لون الواجهة")"
+            value="@colorScheme"
+            @onchange="OnColorChanged">
+        <option value="blue">@Text("Blue", "أزرق")</option>
+        <option value="emerald">@Text("Emerald", "زمردي")</option>
+        <option value="purple">@Text("Purple", "بنفسجي")</option>
+        <option value="orange">@Text("Orange", "برتقالي")</option>
+        <option value="slate">@Text("Slate", "رصاصي")</option>
+    </select>
+    <button type="button"
+            class="btn erp-icon-btn btn-sm"
+            title="@Text("Toggle light or dark mode", "تبديل الوضع الفاتح أو الداكن")"
+            @onclick="ToggleMode">
+        <i class="bi @(mode == "dark" ? "bi-moon-stars-fill" : "bi-sun-fill")"></i>
+    </button>
+</div>
+
+@code {
+    private string colorScheme = "blue";
+    private string mode = "light";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        var theme = await JSRuntime.InvokeAsync<ThemeState>("alafkarTheme.get");
+        colorScheme = theme.ColorScheme ?? "blue";
+        mode = theme.Mode ?? "light";
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnColorChanged(ChangeEventArgs e)
+    {
+        colorScheme = e.Value?.ToString() ?? "blue";
+        await JSRuntime.InvokeVoidAsync("alafkarTheme.set", colorScheme, mode);
+    }
+
+    private async Task ToggleMode()
+    {
+        mode = mode == "dark" ? "light" : "dark";
+        await JSRuntime.InvokeVoidAsync("alafkarTheme.set", colorScheme, mode);
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private sealed class ThemeState
+    {
+        public string? ColorScheme { get; set; }
+        public string? Mode { get; set; }
+    }
+}

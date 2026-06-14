@@ -1,4 +1,4 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Inventory/Warehouse/List"
 
 @using AlAfkarERP.Shared.Pages.Features.Inventories.Services
@@ -27,65 +27,49 @@
     return;
 }
 
-<!-- Branches -->
-<h5 class="text-black">@SharedDataService.SelectViewLang("Warehouse Management", "ادارة المستودعات")</h5>
-
-@* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
-<button class="btn btn-primary mb-3"
-        @onclick="CreateNew"
-        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.WarehousePermissions.Create}") ? true : false)>
-    <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
-</button>
-
-<div class="card p-3 mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <!--
-
-        Export to xls and pdf
-        <div class="d-flex gap-2">
-
-            <button class="btn btn-success btn-sm" @onclick="ExportToExcel">
-                <i class="bi bi-file-earmark-excel"></i> Excel
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Warehouse Management", "إدارة المستودعات")"
+                Subtitle="@SharedDataService.SelectViewLang("Create, edit, and maintain company warehouse locations.", "إنشاء وتعديل ومتابعة مواقع مستودعات الشركة.")"
+                Overline="@SharedDataService.SelectViewLang("Inventory", "المخزون")"
+                Icon="bi-building">
+        <Actions>
+            <button class="btn btn-primary"
+                    @onclick="CreateNew"
+                    disabled="@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.WarehousePermissions.Create}"))">
+                <i class="bi bi-plus-lg"></i>
+                @SharedDataService.SelectViewLang("Create New", "إضافة جديد")
             </button>
+        </Actions>
+    </PageHeader>
 
-            <button class="btn btn-danger btn-sm" @onclick="ExportToPdf">
-                <i class="bi bi-file-earmark-pdf"></i> PDF
-            </button>
+    <AppCard Title="@SharedDataService.SelectViewLang("Warehouses", "المستودعات")"
+             Subtitle="@SharedDataService.SelectViewLang("Search warehouse records and manage their address and coordinates.", "البحث في سجلات المستودعات وإدارة العنوان والإحداثيات.")">
+        <FilterBar CssClass="mb-3">
+            <ChildContent>
+                <div class="input-group erp-filter-search">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input class="form-control"
+                           placeholder="@SharedDataService.SelectViewLang("Search warehouses...", "ابحث في المستودعات...")"
+                           @bind="searchText" />
+                </div>
+            </ChildContent>
+            <Actions>
+                <select class="form-select erp-page-size-select" @onchange="OnPageSizeChanged" aria-label="@SharedDataService.SelectViewLang("Page size", "حجم الصفحة")">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </Actions>
+        </FilterBar>
 
-        </div>
-        -->
-        <!-- 🔍 Search -->
-        <div>
-            <input class="form-control"
-                   placeholder="Search..."
-                   @bind="searchText" />
-        </div>
-
-        <!--
-
-        🎯 Filter
-        <div class="col-md-3">
-            <select class="form-select" @bind="filterMainBranch">
-                <option value="">All</option>
-                <option value="true">Main Branch</option>
-                <option value="false">Not Main</option>
-            </select>
-        </div>
-        -->
-        <!-- 📄 Page Size -->
-        <div>
-            @* <select class="form-select" @bind="pageSize"> *@
-            <select class="form-select" @onchange="OnPageSizeChanged">
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-            </select>
+        <div class="erp-table-wrap">
+                    <div class="d-flex justify-content-end mb-2">
+            <TableExportActions />
         </div>
 
-    </div>
-    <table class="table">
+            <table class="table erp-table mb-0">
         <thead>
             <tr>
                 <th @onclick="() => Sort(nameof(WarehouseDto.Name))">
@@ -109,59 +93,53 @@
                             <EditForm Model="editingItem" OnValidSubmit="() => SaveWarehouse(editingItem)">
                                 <DataAnnotationsValidator />
                                 <ValidationSummary />
-                                @* <InputHidden @bind-Value="branch.Id"/> *@
-                                <div class="row bg-info-subtle p-3">
+                                <div class="p-3">
+                                    <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+                                        <div>
+                                            <div class="fw-semibold">@SharedDataService.SelectViewLang("Warehouse Details", "تفاصيل المستودع")</div>
+                                            <div class="text-muted small">@SharedDataService.SelectViewLang("Update the warehouse name, location, and address.", "تحديث اسم المستودع والموقع والعنوان.")</div>
+                                        </div>
+                                    </div>
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
-                                        <div class="col-sm-10">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
                                             <InputText class="form-control" @bind-Value="editingItem.Name" />
                                             <ValidationMessage For="() => editingItem.Name" />
                                         </div>
-                                    </div>
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name (En)", "الاسم (انجليزي)")</label>
-                                        <div class="col-sm-10">
+                                        <div class="col-md-6">
+                                            <label class="form-label">@SharedDataService.SelectViewLang("Name (En)", "الاسم (انجليزي)")</label>
                                             <InputText class="form-control" @bind-Value="editingItem.NameEng" />
                                             <ValidationMessage For="() => editingItem.NameEng" />
                                         </div>
-                                    </div>
 
-                                    
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Location", "الموقع")</label>
-                                        <div class="col-sm-10">
+                                        <div class="col-md-4">
+                                            <label class="form-label">@SharedDataService.SelectViewLang("Location", "الموقع")</label>
                                             <InputText class="form-control" @bind-Value="editingItem.Location" />
-                                            
                                         </div>
-                                    </div>
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Longitude", "خط الطول")</label>
-                                        <div class="col-sm-10">
+
+                                        <div class="col-md-4">
+                                            <label class="form-label">@SharedDataService.SelectViewLang("Longitude", "خط الطول")</label>
                                             <InputNumber class="form-control" @bind-Value="editingItem.Longitude" />
                                             <ValidationMessage For="()=> editingItem.Longitude"/>
                                         </div>
-                                    </div>
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Latitude", "خط العرض")</label>
-                                        <div class="col-sm-10">
+
+                                        <div class="col-md-4">
+                                            <label class="form-label">@SharedDataService.SelectViewLang("Latitude", "خط العرض")</label>
                                             <InputNumber class="form-control" @bind-Value="editingItem.Latitude" />
                                             <ValidationMessage For="() => editingItem.Latitude" />
                                         </div>
-                                    </div>
 
-                                    <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Address", "العنوان")</label>
-                                        <div class="col-sm-10">
+                                        <div class="col-12">
+                                            <label class="form-label">@SharedDataService.SelectViewLang("Address", "العنوان")</label>
                                             <InputTextArea class="form-control" @bind-Value="editingItem.Address" />
-                                            
                                         </div>
-                                    </div>
 
-                                    <div class="col">
-                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
-                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                        <div class="col-12 d-flex justify-content-end gap-2">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelEdit">@SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>
+                                            <button type="submit" class="btn btn-success btn-sm">@SharedDataService.SelectViewLang("Save", "حفظ")</button>
+                                        </div>
                                     </div>
                                 </div>
                             </EditForm>
@@ -195,25 +173,35 @@
                 </tr>
                 
             }
-        </tbody>
-    </table>
-    <div class="d-flex justify-content-end align-items-center mt-3">
+            </tbody>
+        </table>
+        </div>
+
+        @if (!ProcessedWarehouse.Any() && editingWarehouseId == null)
+        {
+            <EmptyState Icon="bi-building"
+                        Title="@SharedDataService.SelectViewLang("No warehouses found", "لا توجد مستودعات")"
+                        Message="@SharedDataService.SelectViewLang("Create a warehouse or adjust your search.", "أنشئ مستودعا أو عدل عبارة البحث.")" />
+        }
+
+    <div class="d-flex flex-wrap justify-content-end align-items-center gap-2 mt-3">
 
         <button class="btn btn-sm btn-secondary"
                 @onclick="PrevPage"
                 disabled="@(pageIndex == 0)">
-            Previous
+            @SharedDataService.SelectViewLang("Previous", "السابق")
         </button>
 
-        <span class="mx-3">Page @(pageIndex + 1) of @TotalPages @(TotalPages == 1 ? "" : "Pages")</span>
+        <span class="text-muted small">@SharedDataService.SelectViewLang("Page", "صفحة") @(pageIndex + 1) @SharedDataService.SelectViewLang("of", "من") @TotalPages</span>
 
         <button class="btn btn-sm btn-secondary"
                 @onclick="NextPage"
                 disabled="@(pageIndex >= TotalPages)">
-            Next
+            @SharedDataService.SelectViewLang("Next", "التالي")
         </button>
 
     </div>
+    </AppCard>
 </div>
 
 @code {

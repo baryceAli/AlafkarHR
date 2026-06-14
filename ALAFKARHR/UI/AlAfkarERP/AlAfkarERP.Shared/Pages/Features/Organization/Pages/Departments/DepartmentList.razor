@@ -1,4 +1,4 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Organization/Department/List"
 @using AlAfkarERP.Shared.Pages.Features.Auth.Services
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
@@ -129,6 +129,10 @@
             </div>
 
     <div class="table-responsive org-table-wrap">
+            <div class="d-flex justify-content-end mb-2">
+            <TableExportActions />
+        </div>
+
     <table class="table org-table align-middle mb-0">
         <thead>
             <tr>

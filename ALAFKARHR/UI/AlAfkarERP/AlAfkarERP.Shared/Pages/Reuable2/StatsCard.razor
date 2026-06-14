@@ -1,0 +1,27 @@
+<article class="erp-stat-card @ToneClass @CssClass">
+    @if (!string.IsNullOrWhiteSpace(Icon))
+    {
+        <div class="erp-stat-icon">
+            <i class="bi @Icon"></i>
+        </div>
+    }
+    <div>
+        <div class="erp-stat-label">@Title</div>
+        <div class="erp-stat-value">@Value</div>
+        @if (!string.IsNullOrWhiteSpace(Subtitle))
+        {
+            <div class="text-muted small">@Subtitle</div>
+        }
+    </div>
+</article>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string? Tone { get; set; }
+    [Parameter] public string? CssClass { get; set; }
+
+    private string ToneClass => string.IsNullOrWhiteSpace(Tone) ? "" : $"erp-stat-{Tone}";
+}

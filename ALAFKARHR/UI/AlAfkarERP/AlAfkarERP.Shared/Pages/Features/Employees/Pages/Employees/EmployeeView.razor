@@ -1,4 +1,4 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Employee/Employee/view/{Id:guid?}"
 @using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
@@ -40,6 +40,10 @@
                 
             </div>
             <div class="card-body">
+                        <div class="d-flex justify-content-end mb-2">
+            <TableExportActions />
+        </div>
+
                 <table class="table table-striped">
                     <tbody>
                         <tr>

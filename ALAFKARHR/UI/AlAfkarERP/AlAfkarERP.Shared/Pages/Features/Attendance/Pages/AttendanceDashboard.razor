@@ -118,6 +118,10 @@
                 <button class="btn btn-sm btn-outline-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/Sessions")'>@Text("View all", "عرض الكل")</button>
             </div>
             <div class="table-responsive">
+                        <div class="d-flex justify-content-end mb-2">
+            <TableExportActions />
+        </div>
+
                 <table class="table align-middle">
                     <thead>
                         <tr>

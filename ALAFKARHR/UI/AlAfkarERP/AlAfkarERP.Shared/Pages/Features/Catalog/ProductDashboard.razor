@@ -1,7 +1,44 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Warehouse/Product/Dashboard"
-<h3>ProductDashboard</h3>
 
-@code {
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@inject SharedDataService SharedDataService
 
-}
+<div class="erp-page">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Catalog Dashboard", "لوحة الكتالوج")"
+                Subtitle="@SharedDataService.SelectViewLang("A quick entry point for product setup, pricing, packages, units, brands, and variants.", "مدخل سريع لإعداد المنتجات والأسعار والعبوات والوحدات والعلامات التجارية والخيارات.")"
+                Overline="@SharedDataService.SelectViewLang("Catalog", "الكتالوج")"
+                Icon="bi-grid-1x2" />
+
+    <div class="row g-3">
+        <div class="col-md-6 col-xl-4">
+            <AppCard Title="@SharedDataService.SelectViewLang("Products", "المنتجات")"
+                     Subtitle="@SharedDataService.SelectViewLang("Create products and manage their SKU records.", "إنشاء المنتجات وإدارة منتجاتها المخزنية.")">
+                <a class="btn btn-outline-primary" href="/Catalog/Product/List">
+                    <i class="bi bi-box"></i> @SharedDataService.SelectViewLang("Open Products", "فتح المنتجات")
+                </a>
+            </AppCard>
+        </div>
+        <div class="col-md-6 col-xl-4">
+            <AppCard Title="@SharedDataService.SelectViewLang("Pricing", "التسعير")"
+                     Subtitle="@SharedDataService.SelectViewLang("Maintain price lists and effective dates.", "إدارة قوائم الأسعار وتواريخ السريان.")">
+                <a class="btn btn-outline-primary" href="/Catalog/Pricing/List">
+                    <i class="bi bi-cash-coin"></i> @SharedDataService.SelectViewLang("Open Pricing", "فتح التسعير")
+                </a>
+            </AppCard>
+        </div>
+        <div class="col-md-6 col-xl-4">
+            <AppCard Title="@SharedDataService.SelectViewLang("Setup", "الإعداد")"
+                     Subtitle="@SharedDataService.SelectViewLang("Manage brands, categories, units, packages, and variants.", "إدارة العلامات التجارية والأصناف والوحدات والعبوات والخيارات.")">
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-outline-primary btn-sm" href="/Warehouse/Product/Brand/List">@SharedDataService.SelectViewLang("Brands", "العلامات")</a>
+                    <a class="btn btn-outline-primary btn-sm" href="/Warehouse/Product/Category/List">@SharedDataService.SelectViewLang("Categories", "الأصناف")</a>
+                    <a class="btn btn-outline-primary btn-sm" href="/Warehouse/Product/Unit/List">@SharedDataService.SelectViewLang("Units", "الوحدات")</a>
+                    <a class="btn btn-outline-primary btn-sm" href="/Warehouse/Product/Packages/List">@SharedDataService.SelectViewLang("Packages", "العبوات")</a>
+                    <a class="btn btn-outline-primary btn-sm" href="/Catalog/Variant/List">@SharedDataService.SelectViewLang("Variants", "الخيارات")</a>
+                </div>
+            </AppCard>
+        </div>
+    </div>
+</div>
