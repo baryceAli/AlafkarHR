@@ -145,12 +145,12 @@
                     <td>@brand.Quantity</td>
                     <td>
                         <div class="d-flex justify-content-end gap-2">
-                        <button class="btn btn-outline-primary btn-sm"
+                        <button class="btn btn-outline-warning btn-sm erp-row-action"
                                 @onclick="() => EditPackage(brand.Id)"
                                 disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPackagePermissions.Edit}"))>
                             <i class="bi bi-pencil-square"></i>
                         </button>
-                        <button class="btn btn-danger btn-sm"
+                        <button class="btn btn-outline-danger btn-sm erp-row-action"
                                 @onclick="() => DeletePackage(brand)"
                                 disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPackagePermissions.Delete}"))>
                             <i class="bi bi-trash"></i>

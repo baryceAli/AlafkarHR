@@ -143,12 +143,12 @@
                         <td>@brand.Description</td>
                         <td>
                             <div class="d-flex justify-content-end gap-2">
-                            <button class="btn btn-outline-primary btn-sm"
+                            <button class="btn btn-outline-warning btn-sm erp-row-action"
                                     @onclick="() => EditBrand(brand.Id)"
                                     disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Edit}"))>
                                 <i class="bi bi-pencil-square"></i>
                             </button>
-                            <button class="btn btn-danger btn-sm"
+                            <button class="btn btn-outline-danger btn-sm erp-row-action"
                                     @onclick="() => DeleteBrand(brand)"
                                     disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Delete}"))>
                                 <i class="bi bi-trash"></i>

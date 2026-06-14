@@ -335,6 +335,29 @@ body {
     font-weight: 700;
 }
 
+.erp-row-action,
+.branch-action,
+.org-action,
+.employee-action,
+.employee-lookup-action,
+.shift-action {
+    align-items: center;
+    display: inline-flex;
+    height: 32px;
+    justify-content: center;
+    padding: 0;
+    width: 36px;
+}
+
+.erp-row-action i,
+.branch-action i,
+.org-action i,
+.employee-action i,
+.employee-lookup-action i,
+.shift-action i {
+    margin: 0;
+}
+
 .btn-primary {
     --bs-btn-bg: var(--erp-primary);
     --bs-btn-border-color: var(--erp-primary);

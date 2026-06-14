@@ -139,7 +139,7 @@
 
                                                                     <div class="col-md-2 text-end">
                                                                         <button type="button"
-                                                                                class="btn btn-danger btn-sm"
+                                            class="btn btn-outline-danger btn-sm erp-row-action"
                                                                                 @onclick="() => RemoveVariantValue(editingItem, value)">
                                                                             <i class="bi bi-trash"></i>
                                                                         </button>
@@ -194,12 +194,12 @@
                     </td>
                     <td>
                             <div class="d-flex justify-content-end gap-2">
-                            <button class="btn btn-outline-primary btn-sm"
+                            <button class="btn btn-outline-warning btn-sm erp-row-action"
                                 @onclick="() => EditVariant(variant.Id)"
                                 disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.Edit}"))>
                             <i class="bi bi-pencil-square"></i>
                         </button>
-                        <button class="btn btn-danger btn-sm"
+                        <button class="btn btn-outline-danger btn-sm erp-row-action"
                                 @onclick="() => DeleteVariant(variant)"
                                 disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.Delete}"))>
                             <i class="bi bi-trash"></i>

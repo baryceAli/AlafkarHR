@@ -190,17 +190,17 @@
                     @* <td>@product.UnitName</td> *@
                     <td>
                         <div class="d-flex justify-content-end gap-2">
-                        <button class="btn btn-outline-primary btn-sm"
+                        <button class="btn btn-outline-warning btn-sm erp-row-action"
                                 @onclick="() => EditProduct(product.Id)"
                                 disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.Edit}"))>
                             <i class="bi bi-pencil-square"></i>
                         </button>
-                        <button class="btn btn-outline-primary btn-sm"
+                        <button class="btn btn-outline-primary btn-sm erp-row-action"
                                 @onclick='() => NavigationManager.NavigateTo($"/Catalog/Product/{product.Id}/ProductSku")'
                                 disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.Edit}"))>
                             <i class="bi bi-upc-scan"></i>
                         </button>
-                        <button class="btn btn-danger btn-sm"
+                        <button class="btn btn-outline-danger btn-sm erp-row-action"
                                 @onclick="() => DeleteProduct(product)"
                                 disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.Delete}"))>
                             <i class="bi bi-trash"></i>

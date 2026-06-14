@@ -138,10 +138,16 @@
                         </span>
                     </td>
                     <td class="text-end">
-                        <button class="btn btn-warning btn-sm" @onclick="() => EditComponent(item)" disabled="@(!CanEdit)">
-                            @SharedDataService.SelectViewLang("Edit", "Edit")
+                        <button class="btn btn-outline-warning btn-sm erp-row-action"
+                                @onclick="() => EditComponent(item)"
+                                disabled="@(!CanEdit)"
+                                title="@SharedDataService.SelectViewLang("Edit", "Edit")">
+                            <i class="bi bi-pencil-square"></i>
                         </button>
-                        <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteComponent(item)" disabled="@(!CanDelete)">
+                        <button class="btn btn-outline-danger btn-sm erp-row-action"
+                                @onclick="() => DeleteComponent(item)"
+                                disabled="@(!CanDelete)"
+                                title="@SharedDataService.SelectViewLang("Delete", "Delete")">
                             <i class="bi bi-trash"></i>
                         </button>
                     </td>

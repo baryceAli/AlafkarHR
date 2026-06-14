@@ -133,7 +133,7 @@
                                             title="@Text("Edit", "تعديل")"
                                             @onclick="() => EditShift(shift)"
                                             disabled="@isBusy">
-                                        <i class="bi bi-pencil"></i>
+                                        <i class="bi bi-pencil-square"></i>
                                     </button>
                                     <button type="button"
                                             class="btn btn-outline-danger btn-sm shift-action"
@@ -485,7 +485,8 @@
         display: inline-flex;
         height: 32px;
         justify-content: center;
-        width: 34px;
+        padding: 0;
+        width: 36px;
     }
 
     @@media (max-width: 760px) {

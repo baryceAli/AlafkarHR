@@ -4,60 +4,125 @@
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using SharedWithUI.TaskManagement.Dtos
+@using SharedWithUI.TaskManagement.Enums
 @using AlAfkarERP.Shared.Utilities
+@using TaskWorkflowStatus = SharedWithUI.TaskManagement.Enums.TaskStatus
 
 @inject ITaskManagementService TaskService
 @inject IDepartmentService DepartmentService
 @inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
 
 <section class="task-page" dir="@SharedDataService.PageDirection">
-    <h5 class="text-black">@Text("Task Management Dashboard", "لوحة إدارة المهام")</h5>
+    <PageHeader Title="@Text("Task Management Dashboard", "لوحة إدارة المهام")"
+                Subtitle="@Text("Track workload, completion, overdue risk, and drill into the tasks behind each card.", "تابع عبء العمل والإنجاز والمهام المتأخرة وافتح المهام المرتبطة بكل بطاقة.")"
+                Overline="@Text("Task Management", "إدارة المهام")"
+                Icon="bi-kanban" />
 
     @if (dashboard is null)
     {
-        <p>@Text("Loading...", "جاري التحميل...")</p>
+        <div class="erp-loading">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2">@Text("Loading dashboard...", "جاري تحميل اللوحة...")</div>
+        </div>
     }
     else
     {
         <div class="row g-3 mb-3">
-            <KpiCard Title="@Text("Total Tasks", "إجمالي المهام")" Value="@dashboard.TotalTasks.ToString()" Icon="bi-list-task" />
-            <KpiCard Title="@Text("Open Tasks", "المهام المفتوحة")" Value="@dashboard.OpenTasks.ToString()" Icon="bi-hourglass-split" />
-            <KpiCard Title="@Text("Completed", "مكتملة")" Value="@dashboard.CompletedTasks.ToString()" Icon="bi-check2-circle" />
-            <KpiCard Title="@Text("Overdue", "متأخرة")" Value="@dashboard.OverdueTasks.ToString()" Icon="bi-exclamation-triangle" />
+            <KpiCard Title="@Text("Total Tasks", "إجمالي المهام")" Value="@dashboard.TotalTasks.ToString()" Icon="bi-list-task" Tone="primary" IsActive="@(selectedFilter == TaskDashboardFilter.Total)" OnClick="@(() => SelectFilterAsync(TaskDashboardFilter.Total))" />
+            <KpiCard Title="@Text("Open Tasks", "المهام المفتوحة")" Value="@dashboard.OpenTasks.ToString()" Icon="bi-hourglass-split" Tone="warning" IsActive="@(selectedFilter == TaskDashboardFilter.Open)" OnClick="@(() => SelectFilterAsync(TaskDashboardFilter.Open))" />
+            <KpiCard Title="@Text("Completed", "مكتملة")" Value="@dashboard.CompletedTasks.ToString()" Icon="bi-check2-circle" Tone="success" IsActive="@(selectedFilter == TaskDashboardFilter.Completed)" OnClick="@(() => SelectFilterAsync(TaskDashboardFilter.Completed))" />
+            <KpiCard Title="@Text("Overdue", "متأخرة")" Value="@dashboard.OverdueTasks.ToString()" Icon="bi-exclamation-triangle" Tone="danger" IsActive="@(selectedFilter == TaskDashboardFilter.Overdue)" OnClick="@(() => SelectFilterAsync(TaskDashboardFilter.Overdue))" />
         </div>
+
+        <AppCard Title="@SelectedFilterTitle"
+                 Subtitle="@Text("Click a card above to switch the related task list.", "اضغط على أي بطاقة بالأعلى لتغيير قائمة المهام المرتبطة.")"
+                 CssClass="mb-3">
+            @if (isLoadingTasks)
+            {
+                <div class="erp-loading py-4">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <div class="mt-2">@Text("Loading related tasks...", "جاري تحميل المهام المرتبطة...")</div>
+                </div>
+            }
+            else if (!relatedTasks.Any())
+            {
+                <EmptyState Title="@Text("No related tasks", "لا توجد مهام مرتبطة")"
+                            Message="@Text("This card has no tasks to show right now.", "لا توجد مهام لعرضها لهذه البطاقة حالياً.")"
+                            Icon="bi-inboxes" />
+            }
+            else
+            {
+                <div class="erp-table-wrap">
+                    <table class="table erp-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@Text("Number", "الرقم")</th>
+                                <th>@Text("Title", "العنوان")</th>
+                                <th>@Text("Status", "الحالة")</th>
+                                <th>@Text("Priority", "الأولوية")</th>
+                                <th>@Text("Due", "الاستحقاق")</th>
+                                <th>@Text("Progress", "التقدم")</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var task in relatedTasks)
+                            {
+                                <tr>
+                                    <td class="text-nowrap fw-semibold">@task.TaskNumber</td>
+                                    <td class="task-dashboard-title">@task.Title</td>
+                                    <td><span class="badge rounded-pill @StatusBadgeClass(task.Status)">@StatusText(task.Status)</span></td>
+                                    <td><span class="badge rounded-pill text-bg-light">@PriorityText(task.Priority)</span></td>
+                                    <td class="text-nowrap">@task.DueDate.ToShortDateString()</td>
+                                    <td class="task-dashboard-progress">
+                                        <div class="progress">
+                                            <div class="progress-bar" style="width:@task.ProgressPercentage%">@task.ProgressPercentage%</div>
+                                        </div>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-secondary erp-row-action" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/View/{task.Id}")' title="@Text("View", "عرض")">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </AppCard>
 
         <div class="row g-3">
             <div class="col-lg-6">
-                <div class="card p-3">
-                    <h6>@Text("Employee Workload", "عبء عمل الموظفين")</h6>
+                <AppCard Title="@Text("Employee Workload", "عبء عمل الموظفين")">
                     @if (!dashboard.EmployeeWorkload.Any())
                     {
                         <div class="text-muted">@Text("No employee workload data.", "لا توجد بيانات لعبء عمل الموظفين.")</div>
                     }
                     @foreach (var item in dashboard.EmployeeWorkload)
                     {
-                        <div class="d-flex justify-content-between border-bottom py-2">
+                        <div class="task-dashboard-summary-row">
                             <span>@item.UserCode</span>
                             <span dir="ltr">@Text($"{item.OpenTasks} open / {item.CompletedTasks} done", $"{item.OpenTasks} مفتوحة / {item.CompletedTasks} مكتملة")</span>
                         </div>
                     }
-                </div>
+                </AppCard>
             </div>
             <div class="col-lg-6">
-                <div class="card p-3">
-                    <h6>@Text("Department Performance Ranking", "ترتيب أداء الأقسام")</h6>
+                <AppCard Title="@Text("Department Performance Ranking", "ترتيب أداء الأقسام")">
                     @if (!dashboard.DepartmentPerformanceRanking.Any())
                     {
                         <div class="text-muted">@Text("No department performance data.", "لا توجد بيانات لأداء الأقسام.")</div>
                     }
                     @foreach (var item in dashboard.DepartmentPerformanceRanking)
                     {
-                        <div class="d-flex justify-content-between border-bottom py-2">
+                        <div class="task-dashboard-summary-row">
                             <span>@DepartmentName(item.DepartmentId)</span>
                             <span dir="ltr">@item.CompletionPercentage%</span>
                         </div>
                     }
-                </div>
+                </AppCard>
             </div>
         </div>
     }
@@ -66,6 +131,18 @@
 @code {
     private TaskDashboardDto? dashboard;
     private List<DepartmentDto> departments = [];
+    private List<TaskItemDto> relatedTasks = [];
+    private TaskDashboardFilter selectedFilter = TaskDashboardFilter.Total;
+    private bool isLoadingTasks;
+    private const int RelatedTaskPageSize = 50;
+
+    private string SelectedFilterTitle => selectedFilter switch
+    {
+        TaskDashboardFilter.Open => Text("Open Tasks", "المهام المفتوحة"),
+        TaskDashboardFilter.Completed => Text("Completed Tasks", "المهام المكتملة"),
+        TaskDashboardFilter.Overdue => Text("Overdue Tasks", "المهام المتأخرة"),
+        _ => Text("All Tasks", "كل المهام")
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -76,6 +153,75 @@
         var departmentResponse = await DepartmentService.GetAsync(0, 10000);
         if (departmentResponse.IsSuccess)
             departments = departmentResponse.Data?.Data?.ToList() ?? [];
+
+        await LoadRelatedTasksAsync();
+    }
+
+    private async Task SelectFilterAsync(TaskDashboardFilter filter)
+    {
+        if (selectedFilter == filter && relatedTasks.Any())
+        {
+            return;
+        }
+
+        selectedFilter = filter;
+        await LoadRelatedTasksAsync();
+    }
+
+    private async Task LoadRelatedTasksAsync()
+    {
+        isLoadingTasks = true;
+
+        try
+        {
+            relatedTasks = selectedFilter switch
+            {
+                TaskDashboardFilter.Open => await LoadOpenTasksAsync(),
+                TaskDashboardFilter.Completed => await LoadTasksByStatusAsync(TaskWorkflowStatus.Completed),
+                TaskDashboardFilter.Overdue => await LoadTasksByStatusAsync(TaskWorkflowStatus.Overdue),
+                _ => await LoadTasksByStatusAsync(null)
+            };
+        }
+        finally
+        {
+            isLoadingTasks = false;
+        }
+    }
+
+    private async Task<List<TaskItemDto>> LoadOpenTasksAsync()
+    {
+        var statuses = new[]
+        {
+            TaskWorkflowStatus.Draft,
+            TaskWorkflowStatus.Assigned,
+            TaskWorkflowStatus.InProgress,
+            TaskWorkflowStatus.OnHold
+        };
+
+        var requests = statuses.Select(status => TaskService.GetAsync(0, RelatedTaskPageSize, status: status));
+        var responses = await Task.WhenAll(requests);
+
+        return responses
+            .Where(response => response.IsSuccess)
+            .SelectMany(response => response.Data?.Data ?? [])
+            .OrderBy(task => task.DueDate)
+            .ThenBy(task => task.TaskNumber)
+            .Take(RelatedTaskPageSize)
+            .ToList();
+    }
+
+    private async Task<List<TaskItemDto>> LoadTasksByStatusAsync(TaskWorkflowStatus? status)
+    {
+        var response = await TaskService.GetAsync(0, RelatedTaskPageSize, status: status);
+        if (!response.IsSuccess)
+        {
+            return [];
+        }
+
+        return response.Data?.Data
+            .OrderBy(task => task.DueDate)
+            .ThenBy(task => task.TaskNumber)
+            .ToList() ?? [];
     }
 
     private string DepartmentName(Guid departmentId)
@@ -84,7 +230,46 @@
         return department is null ? string.Empty : Text(department.NameEng, department.Name);
     }
 
+    private string StatusText(TaskWorkflowStatus status) => status switch
+    {
+        TaskWorkflowStatus.Draft => Text("Draft", "مسودة"),
+        TaskWorkflowStatus.Assigned => Text("Assigned", "مسندة"),
+        TaskWorkflowStatus.InProgress => Text("In Progress", "قيد التنفيذ"),
+        TaskWorkflowStatus.OnHold => Text("On Hold", "معلقة"),
+        TaskWorkflowStatus.Completed => Text("Completed", "مكتملة"),
+        TaskWorkflowStatus.Cancelled => Text("Cancelled", "ملغاة"),
+        TaskWorkflowStatus.Overdue => Text("Overdue", "متأخرة"),
+        _ => status.ToString()
+    };
+
+    private string PriorityText(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Low => Text("Low", "منخفضة"),
+        TaskPriority.Normal => Text("Normal", "عادية"),
+        TaskPriority.High => Text("High", "عالية"),
+        TaskPriority.Urgent => Text("Urgent", "عاجلة"),
+        TaskPriority.Critical => Text("Critical", "حرجة"),
+        _ => priority.ToString()
+    };
+
+    private static string StatusBadgeClass(TaskWorkflowStatus status) => status switch
+    {
+        TaskWorkflowStatus.Completed => "text-bg-success",
+        TaskWorkflowStatus.Overdue => "text-bg-danger",
+        TaskWorkflowStatus.OnHold => "text-bg-warning",
+        TaskWorkflowStatus.Cancelled => "text-bg-secondary",
+        _ => "text-bg-primary"
+    };
+
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private enum TaskDashboardFilter
+    {
+        Total,
+        Open,
+        Completed,
+        Overdue
+    }
 
     protected override void OnInitialized()
     {
@@ -101,3 +286,27 @@
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }
+
+<style>
+    .task-dashboard-title {
+        min-width: 220px;
+        overflow-wrap: anywhere;
+    }
+
+    .task-dashboard-progress {
+        min-width: 150px;
+    }
+
+    .task-dashboard-summary-row {
+        align-items: center;
+        border-bottom: 1px solid var(--erp-border);
+        display: flex;
+        gap: var(--erp-space-3);
+        justify-content: space-between;
+        padding-block: var(--erp-space-3);
+    }
+
+    .task-dashboard-summary-row:last-child {
+        border-bottom: 0;
+    }
+</style>

@@ -98,7 +98,10 @@
                                 <InputNumber class="form-control" @bind-Value="item.Value" />
                             </td>
                             <td class="text-end">
-                                <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => RemoveItem(item)">
+                                <button type="button"
+                                        class="btn btn-outline-danger btn-sm erp-row-action"
+                                        @onclick="() => RemoveItem(item)"
+                                        title="@SharedDataService.SelectViewLang("Delete", "حذف")">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>
@@ -192,10 +195,16 @@
                     <td>@contract.InsurancePercentage.ToString("N2")</td>
                     <td>@ContractListTotalSalary(contract).ToString("N2")</td>
                     <td class="text-end">
-                        <button class="btn btn-warning btn-sm" @onclick="() => EditContract(contract)" disabled="@(!CanEdit)">
-                            @SharedDataService.SelectViewLang("Edit", "تعديل")
+                        <button class="btn btn-outline-warning btn-sm erp-row-action"
+                                @onclick="() => EditContract(contract)"
+                                disabled="@(!CanEdit)"
+                                title="@SharedDataService.SelectViewLang("Edit", "تعديل")">
+                            <i class="bi bi-pencil-square"></i>
                         </button>
-                        <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteContract(contract)" disabled="@(!CanDelete)">
+                        <button class="btn btn-outline-danger btn-sm erp-row-action"
+                                @onclick="() => DeleteContract(contract)"
+                                disabled="@(!CanDelete)"
+                                title="@SharedDataService.SelectViewLang("Delete", "حذف")">
                             <i class="bi bi-trash"></i>
                         </button>
                     </td>

@@ -188,7 +188,7 @@
                                 @onclick="() => EditPosition(position.Id)"
                                 disabled="@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.PositionPermissions.Edit))"
                                 title="@SharedDataService.SelectViewLang("Edit", "تعديل")">
-                            <i class="bi bi-pencil"></i>
+                            <i class="bi bi-pencil-square"></i>
                         </button>
                         <button class="btn btn-outline-danger btn-sm employee-lookup-action"
                                 @onclick="() => DeletePosition(position)"
@@ -329,7 +329,8 @@
         display: inline-flex;
         height: 32px;
         justify-content: center;
-        width: 34px;
+        padding: 0;
+        width: 36px;
     }
 
     .employee-lookup-pagination {

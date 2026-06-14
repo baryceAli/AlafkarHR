@@ -171,7 +171,7 @@
                                     @onclick="() => EditSpecialization(specialization.Id)"
                                     disabled="@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.SpecializationPermissions.Edit))"
                                     title="@SharedDataService.SelectViewLang("Edit", "تعديل")">
-                                <i class="bi bi-pencil"></i>
+                                <i class="bi bi-pencil-square"></i>
                             </button>
                             <button class="btn btn-outline-danger btn-sm employee-lookup-action"
                                     @onclick="() => DeleteSpecialization(specialization)"
@@ -223,7 +223,7 @@
     .employee-lookup-table .sortable { cursor: pointer; user-select: none; }
     .employee-lookup-table tbody tr:hover { background: #f8fafc; }
     .employee-lookup-edit-panel { background: #f8fafc; border: 1px solid #dbeafe; border-radius: 8px; padding: 1rem; }
-    .employee-lookup-action { align-items: center; display: inline-flex; height: 32px; justify-content: center; width: 34px; }
+    .employee-lookup-action { align-items: center; display: inline-flex; height: 32px; justify-content: center; padding: 0; width: 36px; }
     .employee-lookup-pagination { align-items: center; border-top: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem; padding-top: 1rem; }
     [dir="rtl"] .employee-lookup-stat { border-left: 0; border-right: 4px solid; }
     [dir="rtl"] .employee-lookup-search i { left: auto; right: 0.85rem; }

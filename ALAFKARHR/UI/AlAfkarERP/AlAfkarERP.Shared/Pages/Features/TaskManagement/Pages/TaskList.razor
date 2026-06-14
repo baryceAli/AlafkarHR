@@ -94,8 +94,8 @@
                             </div>
                         </td>
                         <td class="text-end">
-                            <button class="btn btn-sm btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/View/{task.Id}")'><i class="bi bi-eye"></i></button>
-                            <button class="btn btn-sm btn-outline-warning" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/Edit/{task.Id}")' disabled="@(!CanEdit)"><i class="bi bi-pencil-square"></i></button>
+                            <button class="btn btn-sm btn-outline-secondary erp-row-action" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/View/{task.Id}")' title="@Text("View", "عرض")"><i class="bi bi-eye"></i></button>
+                            <button class="btn btn-sm btn-outline-warning erp-row-action" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/Edit/{task.Id}")' disabled="@(!CanEdit)" title="@Text("Edit", "تعديل")"><i class="bi bi-pencil-square"></i></button>
                         </td>
                     </tr>
                 }

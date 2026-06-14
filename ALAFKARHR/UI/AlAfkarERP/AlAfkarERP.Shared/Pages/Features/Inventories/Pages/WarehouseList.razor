@@ -159,15 +159,17 @@
                     <td>@warehouse.Location</td>
                     <td>@warehouse.Address</td>
                     <td>
-                        <button class="btn btn-warning btn-sm"
+                        <button class="btn btn-outline-warning btn-sm erp-row-action"
                                 @onclick="() => EditWarehouse(warehouse.Id)"
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.WarehousePermissions.Edit}"))>
-                            @SharedDataService.SelectViewLang("Edit", "تعديل")
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.WarehousePermissions.Edit}"))
+                                title="@SharedDataService.SelectViewLang("Edit", "تعديل")">
+                            <i class="bi bi-pencil-square"></i>
                         </button>
-                        <button class="btn btn-danger btn-sm"
+                        <button class="btn btn-outline-danger btn-sm erp-row-action"
                                 @onclick="() => DeleteWarehouse(warehouse)"
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.WarehousePermissions.Delete}"))>
-                            @SharedDataService.SelectViewLang("Delete", "حذف")
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.WarehousePermissions.Delete}"))
+                                title="@SharedDataService.SelectViewLang("Delete", "حذف")">
+                            <i class="bi bi-trash"></i>
                         </button>
                     </td>
                 </tr>

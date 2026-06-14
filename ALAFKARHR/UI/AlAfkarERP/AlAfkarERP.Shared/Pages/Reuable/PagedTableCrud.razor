@@ -77,7 +77,11 @@
 
                                             var isDisabled = action.Disabled?.Invoke(item) == true;
 
+                                            var isIconOnlyAction = IsIconOnlyAction(action);
+
                                             <button class="@action.CssClass"
+                                                    title="@action.Text"
+                                                    aria-label="@action.Text"
                                                     disabled="@isDisabled"
                                                     @onclick='async () =>
                                                             {
@@ -93,7 +97,10 @@
                                                             <i class="@action.Icon  mx-1"></i>
                                                         }
 
-                                                        @action.Text
+                                                        @if (!isIconOnlyAction)
+                                                        {
+                                                            @action.Text
+                                                        }
                                                     </button>
                                                 }
                                             </div>
@@ -214,6 +221,14 @@
             CurrentPage = 1;
         }
     }
+
+    private static bool IsIconOnlyAction(RowAction<TItem> action)
+        => action.CssClass.Contains("erp-row-action", StringComparison.OrdinalIgnoreCase)
+           || action.CssClass.Contains("branch-action", StringComparison.OrdinalIgnoreCase)
+           || action.CssClass.Contains("org-action", StringComparison.OrdinalIgnoreCase)
+           || action.CssClass.Contains("employee-action", StringComparison.OrdinalIgnoreCase)
+           || action.CssClass.Contains("employee-lookup-action", StringComparison.OrdinalIgnoreCase)
+           || action.CssClass.Contains("shift-action", StringComparison.OrdinalIgnoreCase);
 
     public class RowAction<T>
     {

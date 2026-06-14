@@ -97,7 +97,8 @@
                                 actions.Add(new RowAction<TItem>
                                 {
                                     Text = IsArabic ? "تعديل" : "Edit",
-                                    CssClass = "btn btn-warning btn-sm",
+                                    CssClass = "btn btn-outline-warning btn-sm erp-row-action",
+                                    Icon = "bi bi-pencil-square",
                                     Visible = _ => !EqualityComparer<TItem>.Default.Equals(EditingItem, item),
                                     OnClick = EventCallback.Factory.Create<TItem>(this, StartEdit)
                                 });
@@ -105,7 +106,8 @@
                                 actions.Add(new RowAction<TItem>
                                 {
                                     Text = IsArabic ? "حفظ" : "Save",
-                                    CssClass = "btn btn-success btn-sm",
+                                    CssClass = "btn btn-outline-success btn-sm erp-row-action",
+                                    Icon = "bi bi-check2",
                                     Visible = _ => EqualityComparer<TItem>.Default.Equals(EditingItem, item),
                                     OnClick = EventCallback.Factory.Create<TItem>(this, SaveEdit)
                                 });
@@ -113,7 +115,8 @@
                                 actions.Add(new RowAction<TItem>
                                 {
                                     Text = IsArabic ? "حذف" : "Delete",
-                                    CssClass = "btn btn-danger btn-sm",
+                                    CssClass = "btn btn-outline-danger btn-sm erp-row-action",
+                                    Icon = "bi bi-trash",
                                     ConfirmMessage = _ => IsArabic ? "هل أنت متأكد؟" : "Are you sure?",
                                     OnClick = EventCallback.Factory.Create<TItem>(this, DeleteItem)
                                 });
@@ -132,7 +135,11 @@
 
                                             var isDisabled = action.Disabled?.Invoke(item) == true;
 
+                                            var isIconOnlyAction = IsIconOnlyAction(action);
+
                                             <button class="@action.CssClass"
+                                                    title="@action.Text"
+                                                    aria-label="@action.Text"
                                                     disabled="@isDisabled"
                                                     @onclick='async () =>
                                                             {
@@ -148,7 +155,10 @@
                                                             <i class="@action.Icon  mx-1"></i>
                                                         }
 
-                                                        @action.Text
+                                                        @if (!isIconOnlyAction)
+                                                        {
+                                                            @action.Text
+                                                        }
                                                     </button>
                                                 }
                                             </div>
@@ -351,6 +361,14 @@
             CurrentPage = 1;
         }
     }
+
+    private static bool IsIconOnlyAction(RowAction<TItem> action)
+        => action.CssClass.Contains("erp-row-action", StringComparison.OrdinalIgnoreCase)
+           || action.CssClass.Contains("branch-action", StringComparison.OrdinalIgnoreCase)
+           || action.CssClass.Contains("org-action", StringComparison.OrdinalIgnoreCase)
+           || action.CssClass.Contains("employee-action", StringComparison.OrdinalIgnoreCase)
+           || action.CssClass.Contains("employee-lookup-action", StringComparison.OrdinalIgnoreCase)
+           || action.CssClass.Contains("shift-action", StringComparison.OrdinalIgnoreCase);
 
     public class RowAction<T>
     {

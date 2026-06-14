@@ -166,7 +166,7 @@
                                             @onclick="() => EditEmployee(emp.Id)"
                                             disabled="@(!CanEditEmployee)"
                                             title="@SharedDataService.SelectViewLang("Edit", "تعديل")">
-                                        <i class="bi bi-pencil"></i>
+                                        <i class="bi bi-pencil-square"></i>
                                     </button>
                                     <button class="btn btn-outline-danger btn-sm employee-action"
                                             @onclick="() => DeleteEmployee(emp)"
@@ -321,6 +321,7 @@
         display: inline-flex;
         height: 32px;
         justify-content: center;
+        padding: 0;
         width: 36px;
     }
 

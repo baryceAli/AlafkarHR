@@ -1,21 +1,32 @@
 @using AlAfkarERP.Shared.Utilities
 @inject SharedDataService SharedDataService
 <div class="col-md-3" dir="@SharedDataService.PageDirection">
-    <div class="card p-3 h-100">
+    <button type="button"
+            class="card task-kpi-card task-kpi-@Tone @(IsActive ? "is-active" : "") p-3 h-100 w-100 text-start"
+            disabled="@(!Clickable)"
+            @onclick="OnClick">
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <div class="text-muted small">@Title</div>
                 <div class="fs-4 fw-bold">@Value</div>
             </div>
-            <i class="bi @Icon fs-3"></i>
+            <span class="task-kpi-icon">
+                <i class="bi @Icon fs-3"></i>
+            </span>
         </div>
-    </div>
+    </button>
 </div>
 
 @code {
     [Parameter] public string Title { get; set; } = string.Empty;
     [Parameter] public string Value { get; set; } = string.Empty;
     [Parameter] public string Icon { get; set; } = "bi-list-task";
+    [Parameter] public string Tone { get; set; } = "primary";
+    [Parameter] public bool IsActive { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private bool Clickable => OnClick.HasDelegate;
+
     protected override void OnInitialized()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
@@ -31,3 +42,63 @@
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }
+
+<style>
+    .task-kpi-card {
+        --task-kpi-color: var(--erp-primary);
+        --task-kpi-soft: var(--erp-primary-soft);
+        appearance: none;
+        border-inline-start: 4px solid var(--task-kpi-color) !important;
+        color: var(--erp-text);
+        cursor: pointer;
+        transition: border-color var(--erp-transition-fast), box-shadow var(--erp-transition-fast), transform var(--erp-transition-fast);
+    }
+
+    .task-kpi-card:disabled {
+        cursor: default;
+        opacity: 1;
+    }
+
+    .task-kpi-card:not(:disabled):hover,
+    .task-kpi-card.is-active {
+        box-shadow: var(--erp-shadow-md);
+        transform: translateY(-1px);
+    }
+
+    .task-kpi-card.is-active {
+        background: color-mix(in srgb, var(--task-kpi-soft) 62%, var(--erp-surface));
+        border-color: color-mix(in srgb, var(--task-kpi-color) 60%, var(--erp-border)) !important;
+    }
+
+    .task-kpi-icon {
+        align-items: center;
+        background: var(--task-kpi-soft);
+        border-radius: var(--erp-radius-md);
+        color: var(--task-kpi-color);
+        display: inline-flex;
+        height: 48px;
+        justify-content: center;
+        width: 48px;
+    }
+
+    .task-kpi-success {
+        --task-kpi-color: var(--erp-success);
+        --task-kpi-soft: color-mix(in srgb, var(--erp-success) 12%, var(--erp-surface));
+    }
+
+    .task-kpi-warning {
+        --task-kpi-color: var(--erp-warning);
+        --task-kpi-soft: color-mix(in srgb, var(--erp-warning) 14%, var(--erp-surface));
+    }
+
+    .task-kpi-danger {
+        --task-kpi-color: var(--erp-danger);
+        --task-kpi-soft: color-mix(in srgb, var(--erp-danger) 12%, var(--erp-surface));
+    }
+
+    [dir="rtl"] .task-kpi-card {
+        border-inline-start: 1px solid var(--erp-border) !important;
+        border-inline-end: 4px solid var(--task-kpi-color) !important;
+        text-align: right !important;
+    }
+</style>
