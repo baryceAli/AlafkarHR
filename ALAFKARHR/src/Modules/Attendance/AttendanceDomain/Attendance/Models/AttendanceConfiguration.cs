@@ -158,11 +158,17 @@ public class AttendanceConfiguration : Entity<Guid>
             throw new BadRequestException("At least one weekend day is required.");
         }
 
+        var weekendDays = dto.WeekendDays.ToHashSet();
         foreach (var schedule in dto.DaySchedules)
         {
             if (!schedule.IsWorkingDay)
             {
                 continue;
+            }
+
+            if (weekendDays.Contains(schedule.DayOfWeek))
+            {
+                throw new BadRequestException($"{schedule.DayOfWeek} cannot be both a working day and a weekend day.");
             }
 
             if (!schedule.StartTime.HasValue || !schedule.EndTime.HasValue)

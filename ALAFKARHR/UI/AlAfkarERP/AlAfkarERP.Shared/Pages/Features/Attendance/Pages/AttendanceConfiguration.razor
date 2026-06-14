@@ -2,12 +2,19 @@
 @page "/Attendance/Configuration"
 
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Organization.Dtos
 
 @inject IAttendanceService AttendanceService
+@inject IAdministrationService AdministrationService
+@inject IDepartmentService DepartmentService
+@inject IEmployeeService EmployeeService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 
@@ -65,7 +72,7 @@
                         {
                             <tr>
                                 <td>@DayName(day.DayOfWeek)</td>
-                                <td><input class="form-check-input" type="checkbox" @bind="day.IsWorkingDay" /></td>
+                                <td><input class="form-check-input" type="checkbox" checked="@day.IsWorkingDay" @onchange="args => ToggleWorkingDay(day, args)" /></td>
                                 <td><input class="form-check-input" type="checkbox" checked="@configuration.WeekendDays.Contains(day.DayOfWeek)" @onchange="args => ToggleWeekend(day.DayOfWeek, args)" /></td>
                                 <td><input class="form-control" type="time" value="@FormatTimeInput(day.StartTime)" @onchange="args => SetStartTime(day, args)" disabled="@(!day.IsWorkingDay)" /></td>
                                 <td><input class="form-control" type="time" value="@FormatTimeInput(day.EndTime)" @onchange="args => SetEndTime(day, args)" disabled="@(!day.IsWorkingDay)" /></td>
@@ -86,25 +93,49 @@
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label">@Text("Scope", "النطاق")</label>
-                    <select class="form-select" @bind="breakPolicy.Scope">
+                    <select class="form-select" @bind="breakPolicy.Scope" @bind:after="OnBreakPolicyScopeChanged">
                         <option value="@ShiftAssignmentScope.Company">@Text("Organization", "المنظمة")</option>
                         <option value="@ShiftAssignmentScope.Administration">@Text("Administration", "الادارة")</option>
                         <option value="@ShiftAssignmentScope.Department">@Text("Department", "القسم")</option>
                         <option value="@ShiftAssignmentScope.Employee">@Text("Employee", "الموظف")</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">@Text("Administration Id", "معرف الادارة")</label>
-                    <input class="form-control" @bind="administrationIdText" />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">@Text("Department Id", "معرف القسم")</label>
-                    <input class="form-control" @bind="departmentIdText" />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">@Text("Employee Id", "معرف الموظف")</label>
-                    <input class="form-control" @bind="employeeIdText" />
-                </div>
+                @if (breakPolicy.Scope == ShiftAssignmentScope.Administration)
+                {
+                    <div class="col-md-3">
+                        <label class="form-label">@Text("Administration", "الادارة")</label>
+                        <AutoCompleteComponent TItem="AdministrationDto"
+                                               Items="administrations"
+                                               ItemText="AdministrationSearchText"
+                                               Value="selectedAdministration"
+                                               PlaceHolder="@Text("Search administration by name or code", "ابحث عن الادارة بالاسم أو الكود")"
+                                               ValueChanged="OnAdministrationSelected" />
+                    </div>
+                }
+                @if (breakPolicy.Scope == ShiftAssignmentScope.Department)
+                {
+                    <div class="col-md-3">
+                        <label class="form-label">@Text("Department", "القسم")</label>
+                        <AutoCompleteComponent TItem="DepartmentDto"
+                                               Items="departments"
+                                               ItemText="DepartmentSearchText"
+                                               Value="selectedDepartment"
+                                               PlaceHolder="@Text("Search department by name or code", "ابحث عن القسم بالاسم أو الكود")"
+                                               ValueChanged="OnDepartmentSelected" />
+                    </div>
+                }
+                @if (breakPolicy.Scope == ShiftAssignmentScope.Employee)
+                {
+                    <div class="col-md-3">
+                        <label class="form-label">@Text("Employee", "الموظف")</label>
+                        <AutoCompleteComponent TItem="EmployeeDto"
+                                               Items="employees"
+                                               ItemText="EmployeeSearchText"
+                                               Value="selectedEmployee"
+                                               PlaceHolder="@Text("Search employee by name, code, number, or email", "ابحث عن الموظف بالاسم أو الكود أو الرقم أو البريد")"
+                                               ValueChanged="OnEmployeeSelected" />
+                    </div>
+                }
                 <div class="col-md-2">
                     <label class="form-label">@Text("Enabled", "مفعل")</label>
                     <select class="form-select" @bind="breakPolicy.IsEnabled">
@@ -183,11 +214,14 @@
     private AttendanceConfigurationDto configuration = new();
     private UpsertAttendanceBreakPolicyDto breakPolicy = new() { AllowedDurationMinutes = 60 };
     private List<AttendanceBreakPolicyDto> policies = [];
+    private List<AdministrationDto> administrations = [];
+    private List<DepartmentDto> departments = [];
+    private List<EmployeeDto> employees = [];
+    private AdministrationDto? selectedAdministration;
+    private DepartmentDto? selectedDepartment;
+    private EmployeeDto? selectedEmployee;
     private TimeOnly breakStart = new(12, 0);
     private TimeOnly breakEnd = new(13, 0);
-    private string? administrationIdText;
-    private string? departmentIdText;
-    private string? employeeIdText;
     private Guid companyId;
     private bool isBusy;
     private string? message;
@@ -206,6 +240,8 @@
     {
         if (companyId == Guid.Empty) return;
         isBusy = true;
+        await LoadReferenceDataAsync();
+
         var configResult = await AttendanceService.GetConfigurationAsync(companyId);
         if (configResult.IsSuccess && configResult.Data is not null)
         {
@@ -249,9 +285,15 @@
     private async Task SaveBreakPolicyAsync()
     {
         breakPolicy.CompanyId = companyId;
-        breakPolicy.AdministrationId = ParseGuid(administrationIdText);
-        breakPolicy.DepartmentId = ParseGuid(departmentIdText);
-        breakPolicy.EmployeeId = ParseGuid(employeeIdText);
+        ClearUnusedBreakPolicyTargets();
+
+        var targetValidation = ValidateBreakPolicyTarget();
+        if (!string.IsNullOrWhiteSpace(targetValidation))
+        {
+            SetMessage(targetValidation, "alert-warning");
+            return;
+        }
+
         breakPolicy.BreakStartTime = breakStart.ToTimeSpan();
         breakPolicy.BreakEndTime = breakEnd.ToTimeSpan();
 
@@ -280,11 +322,91 @@
         return Guid.TryParse(value, out var id) ? id : Guid.Empty;
     }
 
-    private static Guid? ParseGuid(string? value) => Guid.TryParse(value, out var id) ? id : null;
+    private async Task LoadReferenceDataAsync()
+    {
+        var administrationsResult = await AdministrationService.GetAsync(0, 5000);
+        if (administrationsResult.IsSuccess)
+        {
+            administrations = administrationsResult.Data?.Data.ToList() ?? [];
+        }
+
+        var departmentsResult = await DepartmentService.GetAsync(0, 5000);
+        if (departmentsResult.IsSuccess)
+        {
+            departments = departmentsResult.Data?.Data.ToList() ?? [];
+        }
+
+        var employeesResult = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 5000);
+        if (employeesResult.IsSuccess)
+        {
+            employees = employeesResult.Data?.Data.ToList() ?? [];
+        }
+    }
+
+    private void OnBreakPolicyScopeChanged()
+    {
+        ClearUnusedBreakPolicyTargets();
+    }
+
+    private void ClearUnusedBreakPolicyTargets()
+    {
+        if (breakPolicy.Scope != ShiftAssignmentScope.Administration)
+        {
+            breakPolicy.AdministrationId = null;
+            selectedAdministration = null;
+        }
+
+        if (breakPolicy.Scope != ShiftAssignmentScope.Department)
+        {
+            breakPolicy.DepartmentId = null;
+            selectedDepartment = null;
+        }
+
+        if (breakPolicy.Scope != ShiftAssignmentScope.Employee)
+        {
+            breakPolicy.EmployeeId = null;
+            selectedEmployee = null;
+        }
+    }
+
+    private string? ValidateBreakPolicyTarget() => breakPolicy.Scope switch
+    {
+        ShiftAssignmentScope.Administration when !breakPolicy.AdministrationId.HasValue => Text("Select an administration.", "Select an administration."),
+        ShiftAssignmentScope.Department when !breakPolicy.DepartmentId.HasValue => Text("Select a department.", "Select a department."),
+        ShiftAssignmentScope.Employee when !breakPolicy.EmployeeId.HasValue => Text("Select an employee.", "Select an employee."),
+        _ => null
+    };
+
+    private Task OnAdministrationSelected(AdministrationDto? administration)
+    {
+        selectedAdministration = administration;
+        breakPolicy.AdministrationId = administration?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnDepartmentSelected(DepartmentDto? department)
+    {
+        selectedDepartment = department;
+        breakPolicy.DepartmentId = department?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnEmployeeSelected(EmployeeDto? employee)
+    {
+        selectedEmployee = employee;
+        breakPolicy.EmployeeId = employee?.Id;
+        return Task.CompletedTask;
+    }
     private string YesNo(bool value) => value ? Text("Yes", "نعم") : Text("No", "لا");
     private string BreakModeText(AttendanceBreakMode mode) => mode == AttendanceBreakMode.Strict ? Text("Strict", "محدد") : Text("Flexible", "مرن");
     private string DayName(DayOfWeek day) => Text(day.ToString(), day.ToString());
     private static int DayOrder(DayOfWeek day) => day == DayOfWeek.Saturday ? 0 : (int)day + 1;
+    private static string EmployeeName(EmployeeDto employee) => !string.IsNullOrWhiteSpace(employee.FullName) ? employee.FullName : employee.Id.ToString()[..8];
+    private static string DepartmentName(DepartmentDto department) => !string.IsNullOrWhiteSpace(department.Name) ? department.Name : department.Id.ToString()[..8];
+    private static string AdminName(AdministrationDto administration) => !string.IsNullOrWhiteSpace(administration.Name) ? administration.Name : administration.Id.ToString()[..8];
+    private static string EmployeeSearchText(EmployeeDto employee) => $"{EmployeeName(employee)} | {employee.Code} | {employee.EmployeeNo} | {employee.Email}";
+    private static string DepartmentSearchText(DepartmentDto department) => $"{DepartmentName(department)} | {department.Code}";
+    private static string AdministrationSearchText(AdministrationDto administration) => $"{AdminName(administration)} | {administration.Code}";
 
     private void ToggleWeekend(DayOfWeek day, ChangeEventArgs args)
     {
@@ -296,6 +418,33 @@
         else if (!isChecked)
         {
             configuration.WeekendDays.Remove(day);
+        }
+
+        if (isChecked)
+        {
+            var schedule = configuration.DaySchedules.FirstOrDefault(x => x.DayOfWeek == day);
+            if (schedule is not null)
+            {
+                schedule.IsWorkingDay = false;
+                schedule.StartTime = null;
+                schedule.EndTime = null;
+            }
+        }
+    }
+
+    private void ToggleWorkingDay(AttendanceDayScheduleDto day, ChangeEventArgs args)
+    {
+        day.IsWorkingDay = args.Value is bool value && value;
+        if (day.IsWorkingDay)
+        {
+            configuration.WeekendDays.Remove(day.DayOfWeek);
+            day.StartTime ??= new TimeSpan(8, 0, 0);
+            day.EndTime ??= new TimeSpan(17, 0, 0);
+        }
+        else
+        {
+            day.StartTime = null;
+            day.EndTime = null;
         }
     }
 
@@ -319,6 +468,13 @@
         {
             configuration.WeekendDays = [DayOfWeek.Friday, DayOfWeek.Saturday];
         }
+
+        foreach (var day in configuration.DaySchedules.Where(x => configuration.WeekendDays.Contains(x.DayOfWeek)))
+        {
+            day.IsWorkingDay = false;
+            day.StartTime = null;
+            day.EndTime = null;
+        }
     }
 
     private string? ValidateConfiguration()
@@ -330,6 +486,11 @@
 
         foreach (var day in configuration.DaySchedules.Where(x => x.IsWorkingDay))
         {
+            if (configuration.WeekendDays.Contains(day.DayOfWeek))
+            {
+                return Text($"{day.DayOfWeek} cannot be both a working day and a weekend day.", $"{day.DayOfWeek} cannot be both a working day and a weekend day.");
+            }
+
             if (!day.StartTime.HasValue || !day.EndTime.HasValue)
             {
                 return Text($"{day.DayOfWeek} requires start and end time.", $"{day.DayOfWeek} requires start and end time.");

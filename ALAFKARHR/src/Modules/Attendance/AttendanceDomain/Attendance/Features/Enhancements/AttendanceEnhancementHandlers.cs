@@ -55,6 +55,10 @@ public class UpsertAttendanceConfigurationValidator : AbstractValidator<UpsertAt
     {
         RuleFor(x => x.Configuration.CompanyId).NotEmpty();
         RuleFor(x => x.Configuration.WeekendDays).NotEmpty().WithMessage("At least one weekend day is required.");
+        RuleFor(x => x.Configuration)
+            .Must(configuration => !configuration.DaySchedules
+                .Any(day => day.IsWorkingDay && configuration.WeekendDays.Contains(day.DayOfWeek)))
+            .WithMessage("A day cannot be both a working day and a weekend day.");
         RuleForEach(x => x.Configuration.DaySchedules).ChildRules(day =>
         {
             day.When(x => x.IsWorkingDay, () =>
