@@ -30,6 +30,11 @@
         </button>
     </div>
 
+    <AppPageMessage Message="@pageMessage"
+                    Type="@pageMessageType"
+                    Direction="@SharedDataService.PageDirection"
+                    OnDismiss="ClearPageMessage" />
+
     @if (isLoading)
     {
         <div class="card border-0 shadow-sm">
@@ -48,10 +53,10 @@
     }
     else if (!string.IsNullOrWhiteSpace(errorMessage))
     {
-        <div class="alert alert-warning d-flex align-items-center gap-2">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            <span>@errorMessage</span>
-        </div>
+        <AppPageMessage Message="@errorMessage"
+                        Type="error"
+                        Direction="@SharedDataService.PageDirection"
+                        Dismissible="false" />
     }
     else
     {
@@ -160,6 +165,8 @@
     private bool isSaving;
     private bool mapReady;
     private string? errorMessage;
+    private string? pageMessage;
+    private string pageMessageType = "warning";
 
     private bool CanView => AuthState?.User.Claims.Any(c => c.Value == PermissionList.SystemSettingsPermissions.View) == true;
     private bool CanEdit => AuthState?.User.Claims.Any(c => c.Value == PermissionList.SystemSettingsPermissions.Edit) == true;
@@ -222,7 +229,7 @@
         }
         else
         {
-            errorMessage = response.Error?.Detail ?? Text("Unable to load system settings.", "تعذر تحميل إعدادات النظام.");
+            errorMessage = response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load system settings.", "تعذر تحميل إعدادات النظام.");
         }
 
         isLoading = false;
@@ -243,20 +250,13 @@
         if (response.IsSuccess && response.Data is not null)
         {
             settings = response.Data;
-            ToastService.Show(new ToastMessage
-            {
-                Message = Text("System settings saved successfully.", "تم حفظ إعدادات النظام بنجاح."),
-                Type = "success"
-            });
+            ClearPageMessage();
+            ToastService.ShowSuccess(Text("System settings saved successfully.", "تم حفظ إعدادات النظام بنجاح."));
             await CenterMapAsync();
         }
         else
         {
-            ToastService.Show(new ToastMessage
-            {
-                Message = response.Error?.Detail ?? Text("Unable to save system settings.", "تعذر حفظ إعدادات النظام."),
-                Type = "error"
-            });
+            ShowPageError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to save system settings.", "تعذر حفظ إعدادات النظام."));
         }
 
         isSaving = false;
@@ -326,6 +326,19 @@
     private double MapLatitude => settings.DefaultLatitude == 0 ? KsaDefaultLatitude : settings.DefaultLatitude;
     private double MapLongitude => settings.DefaultLongitude == 0 ? KsaDefaultLongitude : settings.DefaultLongitude;
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private void ShowPageError(string message)
+    {
+        pageMessage = message;
+        pageMessageType = "error";
+        ToastService.ShowError(message);
+    }
+
+    private void ClearPageMessage()
+    {
+        pageMessage = null;
+        pageMessageType = "warning";
+    }
 
     private async Task HandleLanguageChangeAsync()
     {

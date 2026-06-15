@@ -1,0 +1,61 @@
+@if (!string.IsNullOrWhiteSpace(Message))
+{
+    <div class="alert @AlertClass d-flex align-items-start gap-2" role="alert" dir="@Direction">
+        <i class="bi @IconClass mt-1"></i>
+        <div class="flex-grow-1">
+            @if (!string.IsNullOrWhiteSpace(Title))
+            {
+                <div class="fw-semibold">@Title</div>
+            }
+            <div>@Message</div>
+            @if (DetailItems.Count > 0)
+            {
+                <ul class="mb-0 mt-2 ps-3">
+                    @foreach (var detail in DetailItems)
+                    {
+                        <li>@detail</li>
+                    }
+                </ul>
+            }
+        </div>
+        @if (Dismissible)
+        {
+            <button type="button" class="btn-close" aria-label="Close" @onclick="DismissAsync"></button>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string Type { get; set; } = "warning";
+    [Parameter] public string Direction { get; set; } = "ltr";
+    [Parameter] public IEnumerable<string>? Details { get; set; }
+    [Parameter] public bool Dismissible { get; set; } = true;
+    [Parameter] public EventCallback OnDismiss { get; set; }
+
+    private List<string> DetailItems => Details?
+        .Where(detail => !string.IsNullOrWhiteSpace(detail))
+        .ToList() ?? [];
+
+    private string AlertClass => Type switch
+    {
+        "success" => "alert-success",
+        "error" => "alert-danger",
+        "danger" => "alert-danger",
+        "info" => "alert-info",
+        _ => "alert-warning"
+    };
+
+    private string IconClass => Type switch
+    {
+        "success" => "bi-check-circle-fill",
+        "error" => "bi-exclamation-triangle-fill",
+        "danger" => "bi-exclamation-triangle-fill",
+        "info" => "bi-info-circle-fill",
+        _ => "bi-exclamation-circle-fill"
+    };
+
+    private Task DismissAsync()
+        => OnDismiss.InvokeAsync();
+}

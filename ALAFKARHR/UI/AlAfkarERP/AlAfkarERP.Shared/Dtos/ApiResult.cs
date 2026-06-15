@@ -26,10 +26,24 @@ public class PaginatedResult<TEntity>
 
 public class ErrorResponseDto
 {
-    public string Title { get; set; } = default!;
-    public int Status { get; set; } = default!;
-    public string Detail { get; set; } = default!;
-    public string Instance { get; set; } = default!;
-    public string TraceId { get; set; } = default!;
+    public string Title { get; set; } = "";
+    public int Status { get; set; }
+    public string Detail { get; set; } = "";
+    public string Instance { get; set; } = "";
+    public string TraceId { get; set; } = "";
+    public string UserMessageEn { get; set; } = "";
+    public string UserMessageAr { get; set; } = "";
+    public Dictionary<string, string[]>? Errors { get; set; }
 
+    public string GetDisplayMessage(string language)
+    {
+        var localizedMessage = language == "Ar" ? UserMessageAr : UserMessageEn;
+
+        if (!string.IsNullOrWhiteSpace(localizedMessage))
+        {
+            return localizedMessage;
+        }
+
+        return !string.IsNullOrWhiteSpace(Detail) ? Detail : Title;
+    }
 }

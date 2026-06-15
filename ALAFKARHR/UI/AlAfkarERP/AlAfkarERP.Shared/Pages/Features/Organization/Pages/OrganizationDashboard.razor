@@ -16,8 +16,9 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
+@inject ToastService ToastService
 
-<div class="org-dashboard erp-page">
+<div class="org-dashboard erp-page" dir="@SharedDataService.PageDirection">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
             <h3 class="mb-1">@Text("Organizational Structure", "الهيكل التنظيمي")</h3>
@@ -46,10 +47,10 @@
     }
     else if (!string.IsNullOrWhiteSpace(errorMessage))
     {
-        <div class="alert alert-warning d-flex align-items-center gap-2">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            <span>@errorMessage</span>
-        </div>
+        <AppPageMessage Message="@errorMessage"
+                        Type="error"
+                        Direction="@SharedDataService.PageDirection"
+                        Dismissible="false" />
     }
     else
     {
@@ -337,7 +338,7 @@
             var companyIdValue = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
             if (!Guid.TryParse(companyIdValue, out var companyId))
             {
-                errorMessage = Text("The current user is not linked to a company.", "المستخدم الحالي غير مرتبط بشركة.");
+                SetError(Text("The current user is not linked to a company.", "المستخدم الحالي غير مرتبط بشركة."));
                 return;
             }
 
@@ -356,7 +357,7 @@
             var branchResult = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
             if (!branchResult.IsSuccess)
             {
-                errorMessage = Text("Unable to load branches.", "تعذر تحميل الفروع.");
+                SetError(branchResult.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load branches.", "تعذر تحميل الفروع."));
                 return;
             }
 
@@ -386,7 +387,7 @@
         }
         catch
         {
-            errorMessage = Text("An error occurred while loading the organization structure.", "حدث خطأ أثناء تحميل الهيكل التنظيمي.");
+            SetError(Text("An error occurred while loading the organization structure.", "حدث خطأ أثناء تحميل الهيكل التنظيمي."));
         }
         finally
         {
@@ -395,6 +396,12 @@
     }
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private void SetError(string message)
+    {
+        errorMessage = message;
+        ToastService.ShowError(message);
+    }
 
     private string DisplayName(string? name, string? nameEng)
         => SharedDataService.Language == "Ar"
