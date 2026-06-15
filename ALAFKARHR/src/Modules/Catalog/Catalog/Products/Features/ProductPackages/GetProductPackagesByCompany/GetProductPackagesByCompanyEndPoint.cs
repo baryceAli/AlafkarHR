@@ -19,6 +19,7 @@ public class GetProductPackagesByCompanyEndPoint : ICarterModule
             .Produces<GetProductPackagesByCompanyResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Get Product Packages By Company")
-            .WithDescription("Get Product Packages By Company");
+            .WithDescription("Get Product Packages By Company")
+            .RequireAuthorization(PermissionList.ProductPackagePermissions.View);
     }
 }

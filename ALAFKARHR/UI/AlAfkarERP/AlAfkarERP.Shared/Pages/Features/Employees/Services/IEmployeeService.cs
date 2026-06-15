@@ -14,6 +14,7 @@ public interface IEmployeeService
     public Task<ApiResult<UpdateDeleteResponseDto>> TransferDepartmentAsync(TransferDepartmentDto transferDepartment);
 
     public Task<ApiResult<EmployeeDto>> GetByIdAsync(Guid id);
+    public Task<ApiResult<PublicEmployeeViewDto>> GetPublicViewAsync(Guid id);
     public Task<ApiResult<PaginatedResult<EmployeeDto>>> GetAsync(int pageIndex, int pageSize);
     public Task<ApiResult<PaginatedResult<EmployeeDto>>> GetByCompanyIdAsync(Guid companyId, int pageIndex, int pageSize,string? searchText="");
     public Task<ApiResult<PaginatedResult<EmployeeDto>>> GetByBranchAsync(Guid branchId, int pageIndex, int pageSize);

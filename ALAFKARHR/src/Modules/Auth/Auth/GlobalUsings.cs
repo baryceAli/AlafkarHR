@@ -12,6 +12,7 @@ global using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 global using System.Reflection;
 //global using Auth.Users.Services;
 global using Microsoft.AspNetCore.Authentication.JwtBearer;
+global using Microsoft.AspNetCore.Authorization;
 global using Microsoft.IdentityModel.Tokens;
 global using System.Text;
 global using Shared.DDD;

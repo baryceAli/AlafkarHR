@@ -18,6 +18,7 @@ public class ConfirmOTPEndPoint : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Confirm OTP")
-            .WithDescription("Confirm OTP");
+            .WithDescription("Confirm OTP")
+            .AllowAnonymous();
     }
 }

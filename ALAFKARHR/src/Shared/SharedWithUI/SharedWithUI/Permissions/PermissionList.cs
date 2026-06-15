@@ -809,6 +809,7 @@ public static class PermissionList
         public static string GroupName { get; set; } = "GeneralSettings.SystemSettings";
         public static string Select { get; set; } = $"{GroupName}.Select";
         public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
         public static string Edit { get; set; } = $"{GroupName}.Edit";
 
         public static List<string> Permissions =>
@@ -816,6 +817,7 @@ public static class PermissionList
             {
                 $"{Select}",
                 $"{View}",
+                $"{Create}",
                 $"{Edit}",
             };
     }

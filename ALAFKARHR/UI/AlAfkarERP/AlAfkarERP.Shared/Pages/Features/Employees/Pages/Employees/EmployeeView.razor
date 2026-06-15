@@ -1,14 +1,12 @@
 @layout AdminLayout
 @page "/Employee/Employee/view/{Id:guid?}"
+@implements IDisposable
 @using AlAfkarERP.Shared.Dtos
-@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @using AlAfkarERP.Shared.Utilities
 @using SharedWithUI.Employees.Dtos
 
 @inject IEmployeeService EmployeeService
-@inject IPositionService PositionService
-@inject IBranchService BranchService
 @inject SharedDataService SharedDataService
 
 @inject ApiConfig ApiConfig
@@ -50,7 +48,7 @@
                             <td>
                                 <strong>اسم الموظف</strong>
                             </td>
-                            <td>@(employee?.FirstName ?? "") @employee.MiddleName @employee.LastName</td>
+                            <td>@employee.FullName</td>
                         </tr>
                         <tr>
                             <td><strong>رقم الهوية</strong></td>
@@ -60,20 +58,19 @@
                             <td><strong>الجنسية</strong></td>
                             <td>@employee.Nationality</td>
                         </tr>
-                        @if (positions != null && positions.Any())
+                        @if (!string.IsNullOrWhiteSpace(employee.PositionName) || !string.IsNullOrWhiteSpace(employee.PositionNameEng))
                         {
                             <tr>
                                 <td><strong>المسمى الوظيفي</strong></td>
-                                <td>@SharedDataService.SelectViewLang(positions.FirstOrDefault(p => p.Id == employee.PositionId)?.TitleEng ?? "", 
-                                                                    positions.FirstOrDefault(p => p.Id == employee.PositionId)?.Title?? "") </td>
+                                <td>@SharedDataService.SelectViewLang(employee.PositionNameEng ?? "", employee.PositionName ?? "")</td>
                             </tr>
                             
                         }
-                        @if(branches!=null && branches.Any())
+                        @if (!string.IsNullOrWhiteSpace(employee.BranchName) || !string.IsNullOrWhiteSpace(employee.BranchLocation))
                         {
                             <tr>
                                 <td style="width:35%;"><strong>الموقع الوظيفي</strong></td>
-                                <td>@(branches.FirstOrDefault(p => p.Id == employee.BranchId)?.Name ?? "") - @branches.FirstOrDefault(b => b.Id == employee.BranchId).Location</td>
+                                <td>@employee.BranchName@if (!string.IsNullOrWhiteSpace(employee.BranchLocation)) { <span> - @employee.BranchLocation</span> }</td>
                             </tr>
                         }
                     </tbody>
@@ -122,33 +119,18 @@
     [Parameter]
     public Guid? Id { get; set; }
 
-    private EmployeeDto? employee;
-    private List<PositionDto> positions = [];
-    private List<BranchDto> branches = [];
+    private PublicEmployeeViewDto? employee;
     private bool isLoading = false;
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
         if (Id.HasValue)
         {
-            var empRes = await EmployeeService.GetByIdAsync(Id.Value);
+            var empRes = await EmployeeService.GetPublicViewAsync(Id.Value);
             if (empRes.IsSuccess)
             {
                 employee = empRes.Data ?? null;
-                var posRes = await PositionService.GetAsync(employee.CompanyId.Value, 0, 1000);
-                if (posRes.IsSuccess)
-                {
-                    positions = posRes.Data?.Data?.ToList() ?? [];
-                }
-
-                var brRes = await BranchService.GetByCompanyIdAsync(employee.CompanyId.Value, 0, 1000);
-                if (brRes.IsSuccess)
-                {
-                    branches = brRes.Data?.Data?.ToList() ?? [];
-                }
             }
-
-
         }
         isLoading = false;
     }

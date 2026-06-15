@@ -12,6 +12,7 @@ public class IsAliveEndpoint : ICarterModule
             .Produces(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("IsAlive")
-            .WithDescription("IsAlive");
+            .WithDescription("IsAlive")
+            .AllowAnonymous();
     }
 }

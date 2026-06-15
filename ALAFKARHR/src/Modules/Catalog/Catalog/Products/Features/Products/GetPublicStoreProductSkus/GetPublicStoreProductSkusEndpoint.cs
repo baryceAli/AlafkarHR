@@ -18,6 +18,7 @@ public class GetPublicStoreProductSkusEndpoint : ICarterModule
             .Produces<GetPublicStoreProductSkusResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Get public store product SKUs")
-            .WithDescription("Returns product SKUs marked to show on the public store without requiring authentication.");
+            .WithDescription("Returns product SKUs marked to show on the public store without requiring authentication.")
+            .AllowAnonymous();
     }
 }

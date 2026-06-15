@@ -21,6 +21,7 @@ public class ChangePasswordEndPoint : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Change Password")
-            .WithDescription("Allows a user to change their password by providing their current password and a new password.");
+            .WithDescription("Allows a user to change their password by providing their current password and a new password.")
+            .RequireAuthorization();
     }
 }

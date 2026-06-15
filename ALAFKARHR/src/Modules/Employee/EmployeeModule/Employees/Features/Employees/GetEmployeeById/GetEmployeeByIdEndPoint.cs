@@ -18,6 +18,7 @@ public class GetEmployeeByIdEndPoint : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("GetEmployeeById")
-            .WithDescription("GetEmployeeById");
+            .WithDescription("GetEmployeeById")
+            .RequireAuthorization(PermissionList.EmployeePermissions.View);
     }
 }

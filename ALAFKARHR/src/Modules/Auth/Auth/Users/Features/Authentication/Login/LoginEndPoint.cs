@@ -36,6 +36,7 @@ public class LoginEndPoint : ICarterModule
             .Produces<LoginResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Login")
-            .WithDescription("Login");
+            .WithDescription("Login")
+            .AllowAnonymous();
     }
 }

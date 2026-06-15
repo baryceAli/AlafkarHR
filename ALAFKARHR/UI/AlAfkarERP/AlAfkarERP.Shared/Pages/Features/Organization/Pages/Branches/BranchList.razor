@@ -37,7 +37,7 @@
     return;
 }
 
-@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.SpecializationPermissions.View}"))
+    @if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BranchPermissions.View}"))
 {
     <div class="alert alert-warning">
         <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>

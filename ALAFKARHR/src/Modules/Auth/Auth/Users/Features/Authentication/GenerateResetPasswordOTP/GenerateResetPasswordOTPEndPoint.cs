@@ -23,7 +23,8 @@ public class GenerateResetPasswordOTPEndPoint : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Generates a reset password OTP and sends it to the user")
-            .WithDescription("This endpoint generates a one-time password (OTP) for resetting the user's password and sends it to the user. The user can then use this OTP to reset their password.");
+            .WithDescription("This endpoint generates a one-time password (OTP) for resetting the user's password and sends it to the user. The user can then use this OTP to reset their password.")
+            .AllowAnonymous();
 
 
         //    app.MapPost("/api/v1/catalog/auth/reset-password-phone", async (GenerateResetPasswordOTPRequest request, ISender sender) =>

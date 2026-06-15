@@ -10,6 +10,23 @@ public class CreateRoleHanlder(RoleManager<ApplicationRole> roleManager)
 {
     public async Task<CreateRoleResult> Handle(CreateRoleCommand request, CancellationToken cancellationToken)
     {
+        if (request.Role.CompanyId is null || request.Role.CompanyId == Guid.Empty)
+            throw new BadRequestException("Company is required.");
+
+        var knownPermissions = PermissionList.GetAll().ToHashSet(StringComparer.Ordinal);
+        var requestedPermissions = (request.Role.Permissions ?? [])
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Select(p => p.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        var invalidPermissions = requestedPermissions
+            .Where(p => !knownPermissions.Contains(p))
+            .ToList();
+
+        if (invalidPermissions.Count > 0)
+            throw new BadRequestException($"Unknown permission(s): {string.Join(", ", invalidPermissions)}");
+
         var existingRole = await roleManager.RoleExistsAsync(request.Role.RoleName);
         //= await roleManager.FindByNameAsync(request.Role.RoleName);
         if (!existingRole)
@@ -18,7 +35,8 @@ public class CreateRoleHanlder(RoleManager<ApplicationRole> roleManager)
             var identityRole =
                 new ApplicationRole() { Name = request.Role.RoleName, CompanyId = request.Role.CompanyId.Value };
             var result = await roleManager.CreateAsync(identityRole);
-
+            if (!result.Succeeded)
+                throw new BadRequestException(string.Join(", ", result.Errors.Select(e => e.Description)));
 
         }
 
@@ -33,13 +51,13 @@ public class CreateRoleHanlder(RoleManager<ApplicationRole> roleManager)
         else
         {
             var claims = await roleManager.GetClaimsAsync(createdRole);
-            foreach (var c in claims)
+            foreach (var c in claims.Where(c => c.Type == "Permission"))
             {
                 await roleManager.RemoveClaimAsync(createdRole, c);
             }
 
             // add claims
-            foreach (var perm in request.Role.Permissions)
+            foreach (var perm in requestedPermissions)
             {
                 await roleManager.AddClaimAsync(createdRole, new Claim("Permission", perm));
 

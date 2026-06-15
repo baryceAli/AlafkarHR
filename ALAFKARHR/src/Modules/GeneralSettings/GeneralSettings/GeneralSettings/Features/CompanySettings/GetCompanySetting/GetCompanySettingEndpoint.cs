@@ -24,6 +24,7 @@ public class GetCompanySettingEndpoint : ICarterModule
         .Produces<GetCompanySettingResponse>(StatusCodes.Status200OK)
         .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Get Company Setting")
-        .WithDescription("Get Company Setting");
+        .WithDescription("Get Company Setting")
+        .RequireAuthorization(PermissionList.SystemSettingsPermissions.View);
     }
 }

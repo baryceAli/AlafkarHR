@@ -183,13 +183,13 @@
                     <td>
                         <button class="btn btn-outline-warning btn-sm erp-row-action"
                                 @onclick="() => EditBatch(batch.Id)"
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.WarehousePermissions.Edit}"))
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BatchPermissions.Edit}"))
                                 title="@SharedDataService.SelectViewLang("Edit", "تعديل")">
                             <i class="bi bi-pencil-square"></i>
                         </button>
                         <button class="btn btn-outline-danger btn-sm erp-row-action"
                                 @onclick="() => DeleteWarehouse(batch)"
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.WarehousePermissions.Delete}"))
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BatchPermissions.Delete}"))
                                 title="@SharedDataService.SelectViewLang("Delete", "حذف")">
                             <i class="bi bi-trash"></i>
                         </button>

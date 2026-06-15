@@ -17,6 +17,7 @@ public class RefreshTokenEndPoint : ICarterModule
             .Produces<RefreshTokenResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Refresh Token")
-            .WithDescription("Refresh Token");
+            .WithDescription("Refresh Token")
+            .AllowAnonymous();
     }
 }

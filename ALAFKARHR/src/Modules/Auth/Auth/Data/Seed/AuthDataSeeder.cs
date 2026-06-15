@@ -26,14 +26,11 @@ public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManage
         else
         {
             var roleClaims = await roleManager.GetClaimsAsync(role);
-            if(roleClaims is not null && roleClaims.Count < PermissionList.GetAll().Count)
+            foreach (var permission in PermissionList.GetAll())
             {
-                foreach (var permission in PermissionList.GetAll())
+                if (!roleClaims.Any(rc => rc.Type == "Permission" && rc.Value == permission))
                 {
-                    if (!roleClaims.Any(rc => rc.Type == "Permission" && rc.Value == permission))
-                    {
-                        await roleManager.AddClaimAsync(role, new Claim("Permission", permission));
-                    }
+                    await roleManager.AddClaimAsync(role, new Claim("Permission", permission));
                 }
             }
         }

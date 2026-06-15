@@ -26,7 +26,7 @@
 @inject ApiConfig ApiConfig
 
 
-@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.View}"))
+    @if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.View}"))
 {
     <div class="alert alert-warning">
         <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
@@ -42,7 +42,7 @@
         <Actions>
             <button class="btn btn-primary"
                     @onclick="CreateNew"
-                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.Create}") ? true : false)>
+                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.Create}") ? true : false)>
                 <i class="bi bi-plus-lg"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
             </button>
         </Actions>
@@ -401,12 +401,12 @@
                         <div class="d-flex justify-content-end gap-2">
                         <button class="btn btn-outline-warning btn-sm erp-row-action"
                                 @onclick="() => EditProductSku(sku.Id)"
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Edit}"))>
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.Edit}"))>
                             <i class="bi bi-pencil-square"></i>
                         </button>
                         <button class="btn btn-outline-danger btn-sm erp-row-action"
                                 @onclick="() => DeleteVariant(sku)"
-                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BrandPermissions.Delete}"))>
+                                disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.Delete}"))>
                             <i class="bi bi-trash"></i>
                         </button>
                         </div>

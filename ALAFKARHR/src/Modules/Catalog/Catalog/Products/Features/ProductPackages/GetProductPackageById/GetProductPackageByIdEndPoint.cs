@@ -18,7 +18,8 @@ public class GetProductPackageByIdEndPoint : ICarterModule
             .Produces<GetProductPackageByIdResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Get Product Packages By Id")
-            .WithDescription("Get Product Packages By Id");
+            .WithDescription("Get Product Packages By Id")
+            .RequireAuthorization(PermissionList.ProductPackagePermissions.View);
 
 
     }

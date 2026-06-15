@@ -21,6 +21,7 @@ public class GetVariantsEndPoint : ICarterModule
             .Produces<GetVariantsResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Get Variants")
-            .WithDescription("Get Variants");
+            .WithDescription("Get Variants")
+            .RequireAuthorization(PermissionList.VariantPermissions.View);
     }
 }

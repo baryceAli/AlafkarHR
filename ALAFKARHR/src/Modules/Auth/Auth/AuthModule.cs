@@ -85,9 +85,15 @@ public static class AuthModule
             };
         });
 
-        services.AddAuthorization();
         services.AddAuthorization(options =>
         {
+            var authenticatedUserPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
+                .RequireAuthenticatedUser()
+                .Build();
+
+            options.DefaultPolicy = authenticatedUserPolicy;
+            options.FallbackPolicy = authenticatedUserPolicy;
+
             foreach (var permissions in PermissionList.GetAll())
             {
                 options.AddPolicy(permissions, policy => policy.AddRequirements(new PermissionRequirement(permissions)));

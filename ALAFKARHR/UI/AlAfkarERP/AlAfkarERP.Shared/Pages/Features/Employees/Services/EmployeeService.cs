@@ -85,6 +85,12 @@ public class EmployeeService :BaseApiService, IEmployeeService
         return await SendAsync<EmployeeDto>(request, "employee");
     }
 
+    public async Task<ApiResult<PublicEmployeeViewDto>> GetPublicViewAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/public-view/{id}");
+        return await SendAsync<PublicEmployeeViewDto>(request, "employee");
+    }
+
     public async Task<ApiResult<PaginatedResult<EmployeeDto>>> GetByPositionAsync(Guid positionId, int pageIndex, int pageSize)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/position/{positionId}?pageIndex={pageIndex}&pageSize={pageSize}");

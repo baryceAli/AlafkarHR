@@ -19,6 +19,7 @@ public class GetVariantByIdEndPoint : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .WithSummary("Get Variant By Id")
-            .WithSummary("Get Variant By Id");
+            .WithSummary("Get Variant By Id")
+            .RequireAuthorization(PermissionList.VariantPermissions.View);
     }
 }
