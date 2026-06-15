@@ -1,5 +1,6 @@
 @layout AdminLayout
 @page "/Payroll/SalaryRuns"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @using AlAfkarERP.Shared.Pages.Features.Payroll.Services
@@ -36,7 +37,7 @@
             <div class="row g-3">
                 <div class="col-6">
                     <label class="form-label">@Text("Month", "Month")</label>
-                    <InputSelect class="form-select" @bind-Value="salaryMonth" @bind-Value:after="BuildSalaryPreview">
+                    <InputSelect class="form-select" @bind-Value="salaryMonth" @bind-Value:after="OnPeriodChanged">
                         @for (var month = 1; month <= 12; month++)
                         {
                             <option value="@month">@month</option>
@@ -45,12 +46,26 @@
                 </div>
                 <div class="col-6">
                     <label class="form-label">@Text("Year", "Year")</label>
-                    <InputNumber class="form-control" @bind-Value="salaryYear" @bind-Value:after="BuildSalaryPreview" />
+                    <InputNumber class="form-control" @bind-Value="salaryYear" @bind-Value:after="OnPeriodChanged" />
                 </div>
                 <div class="col-12">
-                    <button type="button" class="btn btn-primary w-100" @onclick="Generate" disabled="@(!CanCreate || isBusy || payableRows.Count == 0)">
-                        <i class="bi bi-play-fill"></i> @Text("Generate Salaries", "Generate Salaries")
-                    </button>
+                    @if (HasPeriodSalaryRuns)
+                    {
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-success w-100" @onclick="CommitPeriod" disabled="@(!CanApprove || isBusy || !CanCommitPeriod)">
+                                <i class="bi bi-check2-circle"></i> @Text("Commit", "Commit")
+                            </button>
+                            <button type="button" class="btn btn-outline-warning w-100" @onclick="UndoPeriod" disabled="@(!CanUndoPeriod || isBusy)">
+                                <i class="bi bi-arrow-counterclockwise"></i> @Text("Undo", "Undo")
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-primary w-100" @onclick="Generate" disabled="@(!CanCreate || isBusy || payableRows.Count == 0)">
+                            <i class="bi bi-play-fill"></i> @Text("Generate Salaries", "Generate Salaries")
+                        </button>
+                    }
                 </div>
             </div>
         </div>
@@ -62,7 +77,7 @@
                 <div class="col-md-3">
                     <div class="border rounded p-2 bg-white">
                         <div class="text-muted small">@Text("Employees with contracts", "Employees with contracts")</div>
-                        <div class="fw-semibold">@payableRows.Count</div>
+                        <div class="fw-semibold">@DisplayRows.Count</div>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -74,13 +89,13 @@
                 <div class="col-md-3">
                     <div class="border rounded p-2 bg-white">
                         <div class="text-muted small">@Text("Total salary", "Total salary")</div>
-                        <div class="fw-semibold">@payableRows.Sum(x => x.TotalSalary).ToString("N2")</div>
+                        <div class="fw-semibold">@DisplayRows.Sum(x => x.TotalSalary).ToString("N2")</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="border rounded p-2 bg-white">
                         <div class="text-muted small">@Text("Net salary", "Net salary")</div>
-                        <div class="fw-bold">@payableRows.Sum(x => x.NetSalary).ToString("N2")</div>
+                        <div class="fw-bold">@DisplayRows.Sum(x => x.NetSalary).ToString("N2")</div>
                     </div>
                 </div>
             </div>
@@ -90,7 +105,7 @@
 
 <div class="border rounded p-3 mt-3">
     <div class="d-flex justify-content-between align-items-center mb-2">
-        <h6 class="mb-0">@Text("Salary Preview", "Salary Preview")</h6>
+        <h6 class="mb-0">@(HasPeriodSalaryRuns ? Text("Generated Salaries", "Generated Salaries") : Text("Salary Preview", "Salary Preview"))</h6>
         <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadLookups" disabled="@isBusy">
             <i class="bi bi-arrow-clockwise"></i>
         </button>
@@ -115,7 +130,7 @@
             </tr>
         </thead>
         <tbody>
-            @foreach (var row in payableRows)
+            @foreach (var row in DisplayRows)
             {
                 <tr>
                     <td>
@@ -140,7 +155,7 @@
     </table>
 </div>
 
-@if (noContractRows.Count > 0)
+@if (!HasPeriodSalaryRuns && noContractRows.Count > 0)
 {
     <div class="border rounded p-3 mt-3">
         <h6>@Text("Employees Without Salary Contract", "Employees Without Salary Contract")</h6>
@@ -186,9 +201,25 @@
     private List<EmployeeContractDto> assignments = [];
     private List<SalaryPreviewRow> payableRows = [];
     private List<EmployeeDto> noContractRows = [];
+    private List<SalaryRunDto> periodSalaryRuns = [];
 
     private bool CanView => HasPermission(PermissionList.SalaryRunPermissions.View);
     private bool CanCreate => HasPermission(PermissionList.SalaryRunPermissions.Create);
+    private bool CanEdit => HasPermission(PermissionList.SalaryRunPermissions.Edit);
+    private bool CanApprove => HasPermission(PermissionList.SalaryRunPermissions.Approve);
+    private bool CanAdminOverride => HasPermission(PermissionList.SalaryRunPermissions.AdminOverride);
+    private bool HasPeriodSalaryRuns => periodSalaryRuns.Count > 0;
+    private bool HasApprovedPeriodRuns => periodSalaryRuns.Any(x => x.Status == "Approved");
+    private bool CanCommitPeriod => HasPeriodSalaryRuns && periodSalaryRuns.Any(x => x.Status == "Calculated");
+    private bool CanUndoPeriod => HasPeriodSalaryRuns && (HasApprovedPeriodRuns ? CanAdminOverride : CanEdit);
+    private List<SalaryPreviewRow> DisplayRows => HasPeriodSalaryRuns
+        ? payableRows.Where(x => x.GeneratedRun is not null).ToList()
+        : payableRows;
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -230,6 +261,7 @@
         }
 
         BuildSalaryPreview();
+        await LoadPeriodSalaryRuns();
     }
 
     private async Task Generate()
@@ -279,7 +311,60 @@
                 }
             }
 
+            await LoadPeriodSalaryRuns();
             ShowToast(Text("Salary generation finished", "Salary generation finished"), "success");
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task CommitPeriod()
+    {
+        if (!HasPeriodSalaryRuns)
+        {
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            var commitResult = await PayrollService.CommitSalaryRunsPeriodAsync(companyId, salaryMonth, salaryYear);
+            if (!commitResult.IsSuccess)
+            {
+                ShowToast(commitResult.Error?.Detail ?? Text("Commit failed", "Commit failed"), "danger");
+                return;
+            }
+
+            await LoadPeriodSalaryRuns();
+            ShowToast(Text("Salary runs committed", "Salary runs committed"), "success");
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task UndoPeriod()
+    {
+        if (!HasPeriodSalaryRuns)
+        {
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            var undoResult = await PayrollService.UndoSalaryRunsPeriodAsync(companyId, salaryMonth, salaryYear);
+            if (!undoResult.IsSuccess)
+            {
+                ShowToast(undoResult.Error?.Detail ?? Text("Undo failed", "Undo failed"), "danger");
+                return;
+            }
+
+            await LoadPeriodSalaryRuns();
+            ShowToast(Text("Salary runs removed", "Salary runs removed"), "success");
         }
         finally
         {
@@ -309,6 +394,55 @@
 
             payableRows.Add(CreatePreviewRow(employee, contract));
         }
+
+        ApplyPeriodSalaryRuns();
+    }
+
+    private async Task OnPeriodChanged()
+    {
+        BuildSalaryPreview();
+        await LoadPeriodSalaryRuns();
+    }
+
+    private async Task LoadPeriodSalaryRuns()
+    {
+        var salaryRunResult = await PayrollService.GetSalaryRunsByPeriodAsync(companyId, salaryMonth, salaryYear);
+        if (salaryRunResult.IsSuccess)
+        {
+            periodSalaryRuns = salaryRunResult.Data?.ToList() ?? [];
+            ApplyPeriodSalaryRuns();
+        }
+        else
+        {
+            periodSalaryRuns = [];
+            ApplyPeriodSalaryRuns();
+            ShowToast(salaryRunResult.Error?.Detail ?? Text("Failed to load generated salaries", "Failed to load generated salaries"), "danger");
+        }
+    }
+
+    private void ApplyPeriodSalaryRuns()
+    {
+        foreach (var row in payableRows)
+        {
+            ResetPreviewAmounts(row);
+            row.GeneratedRun = null;
+            row.StatusText = Text("Ready", "Ready");
+            row.StatusBadge = "text-bg-light";
+        }
+
+        foreach (var salaryRun in periodSalaryRuns)
+        {
+            var row = payableRows.FirstOrDefault(x => x.Employee.Id == salaryRun.EmployeeId);
+            if (row is null)
+            {
+                continue;
+            }
+
+            ApplyCalculatedAmounts(row, salaryRun);
+            row.GeneratedRun = salaryRun;
+            row.StatusText = SalaryRunStatusText(salaryRun.Status);
+            row.StatusBadge = SalaryRunStatusBadge(salaryRun.Status);
+        }
     }
 
     private SalaryPreviewRow CreatePreviewRow(EmployeeDto employee, ContractDto contract)
@@ -332,6 +466,10 @@
             InsuranceAmount = insuranceAmount,
             TaxAmount = taxAmount,
             NetSalary = totalSalary - deductions - insuranceAmount - taxAmount,
+            PreviewTotalSalary = totalSalary,
+            PreviewInsuranceAmount = insuranceAmount,
+            PreviewTaxAmount = taxAmount,
+            PreviewNetSalary = totalSalary - deductions - insuranceAmount - taxAmount,
             StatusText = Text("Ready", "Ready"),
             StatusBadge = "text-bg-light"
         };
@@ -343,6 +481,14 @@
         row.InsuranceAmount = salaryRun.InsuranceAmount;
         row.TaxAmount = salaryRun.TaxAmount;
         row.NetSalary = salaryRun.NetSalary;
+    }
+
+    private static void ResetPreviewAmounts(SalaryPreviewRow row)
+    {
+        row.TotalSalary = row.PreviewTotalSalary;
+        row.InsuranceAmount = row.PreviewInsuranceAmount;
+        row.TaxAmount = row.PreviewTaxAmount;
+        row.NetSalary = row.PreviewNetSalary;
     }
 
     private decimal SumByType(ContractDto contract, ComponentType type)
@@ -365,6 +511,22 @@
     private string ContractName(ContractDto contract)
         => Text(contract.NameEng, contract.Name);
 
+    private string SalaryRunStatusText(string status)
+        => status switch
+        {
+            "Approved" => Text("Committed", "Committed"),
+            "Calculated" => Text("Generated", "Generated"),
+            _ => status
+        };
+
+    private static string SalaryRunStatusBadge(string status)
+        => status switch
+        {
+            "Approved" => "text-bg-primary",
+            "Calculated" => "text-bg-success",
+            _ => "text-bg-light"
+        };
+
     private bool HasPermission(string permission)
         => AuthState?.User.Claims.Any(c => c.Value == permission) == true;
 
@@ -372,6 +534,16 @@
 
     private void ShowToast(string message, string type)
         => ToastService.Show(new ToastMessage { Message = message, Type = type });
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
 
     private class SalaryPreviewRow
     {
@@ -382,6 +554,11 @@
         public decimal InsuranceAmount { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal NetSalary { get; set; }
+        public decimal PreviewTotalSalary { get; set; }
+        public decimal PreviewInsuranceAmount { get; set; }
+        public decimal PreviewTaxAmount { get; set; }
+        public decimal PreviewNetSalary { get; set; }
+        public bool IsUndoing { get; set; }
         public string StatusText { get; set; } = string.Empty;
         public string StatusBadge { get; set; } = "text-bg-light";
         public SalaryRunDto? GeneratedRun { get; set; }

@@ -44,6 +44,14 @@ public record GetEmergencyLeaveRequestsQuery(
     PaginationRequest PaginationRequest)
     : IQuery<GetEmergencyLeaveRequestsResult>;
 public record GetEmergencyLeaveRequestsResult(PaginatedResult<EmergencyLeaveRequestDto> RequestList);
+public record GetEmployeeLeaveBalancesQuery(Guid CompanyId, int Year, Guid? EmployeeId)
+    : IQuery<GetEmployeeLeaveBalancesResult>;
+public record GetEmployeeLeaveBalancesResult(List<EmployeeLeaveBalanceDto> BalanceList);
+public record UpsertEmployeeLeaveBalanceCommand(UpsertEmployeeLeaveBalanceDto Balance, string? ModifiedBy)
+    : ICommand<UpsertEmployeeLeaveBalanceResult>;
+public record UpsertEmployeeLeaveBalanceResult(EmployeeLeaveBalanceDto Balance);
+public record GetLeaveReportQuery(LeaveReportFilterDto Filter) : IQuery<GetLeaveReportResult>;
+public record GetLeaveReportResult(LeaveReportDto Report);
 
 public record CreateMidDayPermissionRequestCommand(CreateMidDayPermissionRequestDto Request)
     : ICommand<CreateMidDayPermissionRequestResult>;
@@ -111,6 +119,18 @@ public class CreateEmergencyLeaveRequestValidator : AbstractValidator<CreateEmer
         RuleFor(x => x.Request.EndDate.Date)
             .GreaterThanOrEqualTo(x => x.Request.StartDate.Date)
             .WithMessage("Emergency leave end date must be on or after start date.");
+    }
+}
+
+public class UpsertEmployeeLeaveBalanceValidator : AbstractValidator<UpsertEmployeeLeaveBalanceCommand>
+{
+    public UpsertEmployeeLeaveBalanceValidator()
+    {
+        RuleFor(x => x.Balance.EmployeeId).NotEmpty();
+        RuleFor(x => x.Balance.CompanyId).NotEmpty();
+        RuleFor(x => x.Balance.Year).InclusiveBetween(2000, 2100);
+        RuleFor(x => x.Balance.AnnualLeaveDays).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.Balance.MaxCarryForwardDays).GreaterThanOrEqualTo(0);
     }
 }
 
@@ -461,6 +481,28 @@ public class ReviewEmergencyLeaveRequestHandler(AttendanceDbContext dbContext, I
 
         if (request.Review.IsApproved)
         {
+            for (var year = leave.StartDate.Year; year <= leave.EndDate.Year; year++)
+            {
+                var yearStart = new DateTime(year, 1, 1);
+                var yearEnd = new DateTime(year, 12, 31);
+                var start = leave.StartDate > yearStart ? leave.StartDate : yearStart;
+                var end = leave.EndDate < yearEnd ? leave.EndDate : yearEnd;
+                var leaveDays = await CountWorkingLeaveDaysAsync(leave.CompanyId, start, end, cancellationToken);
+
+                if (leaveDays <= 0)
+                {
+                    continue;
+                }
+
+                var balance = await dbContext.EmployeeLeaveBalances
+                    .FirstOrDefaultAsync(x => x.CompanyId == leave.CompanyId
+                        && x.EmployeeId == leave.EmployeeId
+                        && x.Year == year, cancellationToken)
+                    ?? throw new BadRequestException($"Employee leave balance must be configured for {year} before approving leave.");
+
+                balance.AddTakenDays(leaveDays, request.ReviewedBy);
+            }
+
             leave.Approve(request.ReviewedBy, request.Review.ApproverComment);
         }
         else
@@ -470,6 +512,58 @@ public class ReviewEmergencyLeaveRequestHandler(AttendanceDbContext dbContext, I
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return new ReviewEmergencyLeaveRequestResult(leave.Adapt<EmergencyLeaveRequestDto>());
+    }
+
+    private async Task<decimal> CountWorkingLeaveDaysAsync(Guid companyId, DateTime startDate, DateTime endDate, CancellationToken cancellationToken)
+    {
+        var configuration = await dbContext.AttendanceConfigurations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == companyId, cancellationToken);
+
+        var weekendDays = configuration?.ToDto().WeekendDays ?? [DayOfWeek.Friday, DayOfWeek.Saturday];
+        var holidays = await dbContext.AttendanceHolidays
+            .AsNoTracking()
+            .Where(x => x.CompanyId == companyId
+                && x.IsActive
+                && !x.IsDeleted
+                && (x.EndDate >= startDate.Date || x.IsRecurringYearly)
+                && (x.StartDate <= endDate.Date || x.IsRecurringYearly))
+            .ToListAsync(cancellationToken);
+
+        decimal days = 0;
+        for (var date = startDate.Date; date <= endDate.Date; date = date.AddDays(1))
+        {
+            if (!weekendDays.Contains(date.DayOfWeek)
+                && !holidays.Any(x => HolidayMatchesDate(x, date)))
+            {
+                days++;
+            }
+        }
+
+        return days;
+    }
+
+    private static bool HolidayMatchesDate(AttendanceHoliday holiday, DateTime date)
+    {
+        if (!holiday.IsRecurringYearly)
+        {
+            return holiday.StartDate.Date <= date.Date && holiday.EndDate.Date >= date.Date;
+        }
+
+        return RecurringHolidayMatchesYear(holiday, date.Date, date.Year)
+            || RecurringHolidayMatchesYear(holiday, date.Date, date.Year - 1);
+    }
+
+    private static bool RecurringHolidayMatchesYear(AttendanceHoliday holiday, DateTime date, int year)
+    {
+        var start = new DateTime(year, holiday.StartDate.Month, holiday.StartDate.Day);
+        var endYear = holiday.EndDate.Month < holiday.StartDate.Month
+            || (holiday.EndDate.Month == holiday.StartDate.Month && holiday.EndDate.Day < holiday.StartDate.Day)
+                ? year + 1
+                : year;
+        var end = new DateTime(endYear, holiday.EndDate.Month, holiday.EndDate.Day);
+
+        return start <= date && end >= date;
     }
 
     private async Task EnsureReviewerCanReviewAsync(Guid reviewerEmployeeId, Guid employeeId, CancellationToken cancellationToken)
@@ -579,6 +673,244 @@ public class GetEmergencyLeaveRequestsHandler(AttendanceDbContext dbContext, ISe
         }
 
         return reviewer.AdministrationId == employee.AdministrationId;
+    }
+}
+
+public class GetEmployeeLeaveBalancesHandler(AttendanceDbContext dbContext)
+    : IQueryHandler<GetEmployeeLeaveBalancesQuery, GetEmployeeLeaveBalancesResult>
+{
+    public async Task<GetEmployeeLeaveBalancesResult> Handle(GetEmployeeLeaveBalancesQuery request, CancellationToken cancellationToken)
+    {
+        var query = dbContext.EmployeeLeaveBalances.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId && x.Year == request.Year);
+
+        if (request.EmployeeId.HasValue)
+        {
+            query = query.Where(x => x.EmployeeId == request.EmployeeId.Value);
+        }
+
+        var balanceEntities = await query
+            .OrderBy(x => x.EmployeeId)
+            .ToListAsync(cancellationToken);
+
+        return new GetEmployeeLeaveBalancesResult(balanceEntities.Select(ToDto).ToList());
+    }
+
+    private static EmployeeLeaveBalanceDto ToDto(EmployeeLeaveBalance balance)
+        => new()
+        {
+            Id = balance.Id,
+            EmployeeId = balance.EmployeeId,
+            CompanyId = balance.CompanyId,
+            Year = balance.Year,
+            AnnualLeaveDays = balance.AnnualLeaveDays,
+            AllowCarryForward = balance.AllowCarryForward,
+            MaxCarryForwardDays = balance.MaxCarryForwardDays,
+            CarriedForwardDays = balance.CarriedForwardDays,
+            TakenDays = balance.TakenDays,
+            AvailableDays = balance.AvailableDays,
+            RemainingDays = balance.RemainingDays
+        };
+}
+
+public class UpsertEmployeeLeaveBalanceHandler(AttendanceDbContext dbContext)
+    : ICommandHandler<UpsertEmployeeLeaveBalanceCommand, UpsertEmployeeLeaveBalanceResult>
+{
+    public async Task<UpsertEmployeeLeaveBalanceResult> Handle(UpsertEmployeeLeaveBalanceCommand request, CancellationToken cancellationToken)
+    {
+        var carriedForwardDays = await CalculateCarryForwardDaysAsync(request.Balance, cancellationToken);
+        var takenDays = await CalculateApprovedLeaveDaysAsync(
+            request.Balance.CompanyId,
+            request.Balance.EmployeeId,
+            request.Balance.Year,
+            cancellationToken);
+
+        var balance = await dbContext.EmployeeLeaveBalances
+            .FirstOrDefaultAsync(x => x.CompanyId == request.Balance.CompanyId
+                && x.EmployeeId == request.Balance.EmployeeId
+                && x.Year == request.Balance.Year, cancellationToken);
+
+        if (balance is null)
+        {
+            balance = EmployeeLeaveBalance.Create(Guid.NewGuid(), request.Balance, carriedForwardDays, request.ModifiedBy);
+            await dbContext.EmployeeLeaveBalances.AddAsync(balance, cancellationToken);
+        }
+        else
+        {
+            balance.Update(request.Balance, carriedForwardDays, request.ModifiedBy);
+        }
+
+        balance.RecalculateTakenDays(takenDays, request.ModifiedBy);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new UpsertEmployeeLeaveBalanceResult(ToDto(balance));
+    }
+
+    private async Task<decimal> CalculateCarryForwardDaysAsync(UpsertEmployeeLeaveBalanceDto dto, CancellationToken cancellationToken)
+    {
+        if (!dto.AllowCarryForward)
+        {
+            return 0;
+        }
+
+        var previous = await dbContext.EmployeeLeaveBalances
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == dto.CompanyId
+                && x.EmployeeId == dto.EmployeeId
+                && x.Year == dto.Year - 1, cancellationToken);
+
+        return previous is null
+            ? 0
+            : Math.Min(previous.RemainingDays, dto.MaxCarryForwardDays);
+    }
+
+    private async Task<decimal> CalculateApprovedLeaveDaysAsync(Guid companyId, Guid employeeId, int year, CancellationToken cancellationToken)
+    {
+        var fromDate = new DateTime(year, 1, 1);
+        var toDate = new DateTime(year, 12, 31);
+        var leaves = await dbContext.EmergencyLeaveRequests.AsNoTracking()
+            .Where(x => x.CompanyId == companyId
+                && x.EmployeeId == employeeId
+                && x.Status == AttendanceExceptionStatus.Approved
+                && x.StartDate <= toDate
+                && x.EndDate >= fromDate)
+            .ToListAsync(cancellationToken);
+
+        decimal days = 0;
+        foreach (var leave in leaves)
+        {
+            var start = leave.StartDate < fromDate ? fromDate : leave.StartDate;
+            var end = leave.EndDate > toDate ? toDate : leave.EndDate;
+            days += await CountWorkingLeaveDaysAsync(companyId, start, end, cancellationToken);
+        }
+
+        return days;
+    }
+
+    private async Task<decimal> CountWorkingLeaveDaysAsync(Guid companyId, DateTime startDate, DateTime endDate, CancellationToken cancellationToken)
+    {
+        var configuration = await dbContext.AttendanceConfigurations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == companyId, cancellationToken);
+
+        var weekendDays = configuration?.ToDto().WeekendDays ?? [DayOfWeek.Friday, DayOfWeek.Saturday];
+        var holidays = await dbContext.AttendanceHolidays
+            .AsNoTracking()
+            .Where(x => x.CompanyId == companyId
+                && x.IsActive
+                && !x.IsDeleted
+                && (x.EndDate >= startDate.Date || x.IsRecurringYearly)
+                && (x.StartDate <= endDate.Date || x.IsRecurringYearly))
+            .ToListAsync(cancellationToken);
+
+        decimal days = 0;
+        for (var date = startDate.Date; date <= endDate.Date; date = date.AddDays(1))
+        {
+            if (!weekendDays.Contains(date.DayOfWeek)
+                && !holidays.Any(x => HolidayMatchesDate(x, date)))
+            {
+                days++;
+            }
+        }
+
+        return days;
+    }
+
+    private static bool HolidayMatchesDate(AttendanceHoliday holiday, DateTime date)
+    {
+        if (!holiday.IsRecurringYearly)
+        {
+            return holiday.StartDate.Date <= date.Date && holiday.EndDate.Date >= date.Date;
+        }
+
+        return RecurringHolidayMatchesYear(holiday, date.Date, date.Year)
+            || RecurringHolidayMatchesYear(holiday, date.Date, date.Year - 1);
+    }
+
+    private static bool RecurringHolidayMatchesYear(AttendanceHoliday holiday, DateTime date, int year)
+    {
+        var start = new DateTime(year, holiday.StartDate.Month, holiday.StartDate.Day);
+        var endYear = holiday.EndDate.Month < holiday.StartDate.Month
+            || (holiday.EndDate.Month == holiday.StartDate.Month && holiday.EndDate.Day < holiday.StartDate.Day)
+                ? year + 1
+                : year;
+        var end = new DateTime(endYear, holiday.EndDate.Month, holiday.EndDate.Day);
+
+        return start <= date && end >= date;
+    }
+
+    private static EmployeeLeaveBalanceDto ToDto(EmployeeLeaveBalance balance)
+        => new()
+        {
+            Id = balance.Id,
+            EmployeeId = balance.EmployeeId,
+            CompanyId = balance.CompanyId,
+            Year = balance.Year,
+            AnnualLeaveDays = balance.AnnualLeaveDays,
+            AllowCarryForward = balance.AllowCarryForward,
+            MaxCarryForwardDays = balance.MaxCarryForwardDays,
+            CarriedForwardDays = balance.CarriedForwardDays,
+            TakenDays = balance.TakenDays,
+            AvailableDays = balance.AvailableDays,
+            RemainingDays = balance.RemainingDays
+        };
+}
+
+public class GetLeaveReportHandler(AttendanceDbContext dbContext)
+    : IQueryHandler<GetLeaveReportQuery, GetLeaveReportResult>
+{
+    public async Task<GetLeaveReportResult> Handle(GetLeaveReportQuery request, CancellationToken cancellationToken)
+    {
+        var balances = await dbContext.EmployeeLeaveBalances.AsNoTracking()
+            .Where(x => x.CompanyId == request.Filter.CompanyId && x.Year == request.Filter.Year)
+            .ToListAsync(cancellationToken);
+
+        if (request.Filter.EmployeeId.HasValue)
+        {
+            balances = balances.Where(x => x.EmployeeId == request.Filter.EmployeeId.Value).ToList();
+        }
+
+        var fromDate = new DateTime(request.Filter.Year, 1, 1);
+        var toDate = new DateTime(request.Filter.Year, 12, 31);
+        var requests = await dbContext.EmergencyLeaveRequests.AsNoTracking()
+            .Where(x => x.CompanyId == request.Filter.CompanyId
+                && x.StartDate <= toDate
+                && x.EndDate >= fromDate)
+            .ToListAsync(cancellationToken);
+
+        if (request.Filter.EmployeeId.HasValue)
+        {
+            requests = requests.Where(x => x.EmployeeId == request.Filter.EmployeeId.Value).ToList();
+        }
+
+        if (request.Filter.Status.HasValue)
+        {
+            requests = requests.Where(x => x.Status == request.Filter.Status.Value).ToList();
+        }
+
+        var rows = balances.Select(balance =>
+        {
+            var employeeRequests = requests.Where(x => x.EmployeeId == balance.EmployeeId).ToList();
+            return new LeaveReportRowDto
+            {
+                EmployeeId = balance.EmployeeId,
+                Year = balance.Year,
+                AnnualLeaveDays = balance.AnnualLeaveDays,
+                CarriedForwardDays = balance.CarriedForwardDays,
+                AvailableDays = balance.AvailableDays,
+                TakenDays = balance.TakenDays,
+                RemainingDays = balance.RemainingDays,
+                PendingRequests = employeeRequests.Count(x => x.Status == AttendanceExceptionStatus.Pending),
+                ApprovedRequests = employeeRequests.Count(x => x.Status == AttendanceExceptionStatus.Approved),
+                RejectedRequests = employeeRequests.Count(x => x.Status == AttendanceExceptionStatus.Rejected)
+            };
+        }).ToList();
+
+        return new GetLeaveReportResult(new LeaveReportDto
+        {
+            Year = request.Filter.Year,
+            Rows = rows
+        });
     }
 }
 

@@ -659,6 +659,7 @@ public static class PermissionList
         public static string Create { get; set; } = $"{GroupName}.Create";
         public static string Edit { get; set; } = $"{GroupName}.Edit";
         public static string Approve { get; set; } = $"{GroupName}.Approve";
+        public static string AdminOverride { get; set; } = $"{GroupName}.AdminOverride";
 
         public static List<string> Permissions =>
             new List<string>
@@ -668,6 +669,7 @@ public static class PermissionList
                 $"{Create}",
                 $"{Edit}",
                 $"{Approve}",
+                $"{AdminOverride}",
             };
     }
 
@@ -760,6 +762,9 @@ public static class PermissionList
         public static string ManageHolidays { get; set; } = $"{GroupName}.ManageHolidays";
         public static string RequestEmergencyLeave { get; set; } = $"{GroupName}.RequestEmergencyLeave";
         public static string ApproveEmergencyLeave { get; set; } = $"{GroupName}.ApproveEmergencyLeave";
+        public static string ViewLeaveBalances { get; set; } = $"{GroupName}.ViewLeaveBalances";
+        public static string ManageLeaveBalances { get; set; } = $"{GroupName}.ManageLeaveBalances";
+        public static string ViewLeaveReports { get; set; } = $"{GroupName}.ViewLeaveReports";
         public static string RequestMidDayPermission { get; set; } = $"{GroupName}.RequestMidDayPermission";
         public static string ApproveMidDayPermission { get; set; } = $"{GroupName}.ApproveMidDayPermission";
         public static string ViewAllReports { get; set; } = $"{GroupName}.ViewAllReports";
@@ -779,6 +784,9 @@ public static class PermissionList
                 $"{ManageHolidays}",
                 $"{RequestEmergencyLeave}",
                 $"{ApproveEmergencyLeave}",
+                $"{ViewLeaveBalances}",
+                $"{ManageLeaveBalances}",
+                $"{ViewLeaveReports}",
                 $"{RequestMidDayPermission}",
                 $"{ApproveMidDayPermission}",
                 $"{ViewAllReports}",

@@ -37,6 +37,9 @@ public interface IAttendanceService
     Task<ApiResult<string>> UploadEmergencyLeaveAttachmentAsync(IBrowserFile file);
     Task<ApiResult<EmergencyLeaveRequestDto>> CreateEmergencyLeaveAsync(CreateEmergencyLeaveRequestDto request);
     Task<ApiResult<EmergencyLeaveRequestDto>> ReviewEmergencyLeaveAsync(ReviewEmergencyLeaveRequestDto review);
+    Task<ApiResult<List<EmployeeLeaveBalanceDto>>> GetLeaveBalancesAsync(Guid companyId, int year, Guid? employeeId = null);
+    Task<ApiResult<EmployeeLeaveBalanceDto>> UpsertLeaveBalanceAsync(UpsertEmployeeLeaveBalanceDto balance);
+    Task<ApiResult<LeaveReportDto>> GetLeaveReportAsync(LeaveReportFilterDto filter);
     Task<ApiResult<PaginatedResult<MidDayPermissionRequestDto>>> GetMidDayPermissionsAsync(Guid companyId, int pageIndex, int pageSize, AttendanceExceptionStatus? status = null, Guid? employeeId = null);
     Task<ApiResult<MidDayPermissionRequestDto>> CreateMidDayPermissionAsync(CreateMidDayPermissionRequestDto request);
     Task<ApiResult<MidDayPermissionRequestDto>> ReviewMidDayPermissionAsync(ReviewMidDayPermissionRequestDto review);

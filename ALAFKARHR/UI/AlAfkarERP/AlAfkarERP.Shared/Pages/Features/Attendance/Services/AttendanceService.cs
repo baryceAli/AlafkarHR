@@ -316,6 +316,33 @@ public class AttendanceService : BaseApiService, IAttendanceService
         }, "request");
     }
 
+    public async Task<ApiResult<List<EmployeeLeaveBalanceDto>>> GetLeaveBalancesAsync(Guid companyId, int year, Guid? employeeId = null)
+    {
+        var url = $"{path}/leave-balances?companyId={companyId}&year={year}";
+        if (employeeId.HasValue)
+        {
+            url += $"&employeeId={employeeId.Value}";
+        }
+
+        return await SendAsync<List<EmployeeLeaveBalanceDto>>(new HttpRequestMessage(HttpMethod.Get, url), "balanceList");
+    }
+
+    public async Task<ApiResult<EmployeeLeaveBalanceDto>> UpsertLeaveBalanceAsync(UpsertEmployeeLeaveBalanceDto balance)
+    {
+        return await SendAsync<EmployeeLeaveBalanceDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/leave-balances")
+        {
+            Content = JsonContent.Create(new { Balance = balance })
+        }, "balance");
+    }
+
+    public async Task<ApiResult<LeaveReportDto>> GetLeaveReportAsync(LeaveReportFilterDto filter)
+    {
+        return await SendAsync<LeaveReportDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/leave-reports")
+        {
+            Content = JsonContent.Create(new { Filter = filter })
+        }, "report");
+    }
+
     public async Task<ApiResult<PaginatedResult<MidDayPermissionRequestDto>>> GetMidDayPermissionsAsync(
         Guid companyId,
         int pageIndex,

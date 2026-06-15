@@ -232,22 +232,6 @@ public class MenuItem
                         },
                         new MenuItem
                         {
-                            TextEn = "Emergency Leaves",
-                            TextAr = "الاجازات الطارئة",
-                            Icon = "bi-life-preserver",
-                            Url = "/Attendance/EmergencyLeaves",
-                            PermissionPolicy = PermissionList.AttendancePermissions.RequestEmergencyLeave
-                        },
-                        new MenuItem
-                        {
-                            TextEn = "Approve Emergency Leave",
-                            TextAr = "اعتماد الاجازة الطارئة",
-                            Icon = "bi-patch-check",
-                            Url = "/Attendance/ApproveEmergencyLeaves",
-                            PermissionPolicy = PermissionList.AttendancePermissions.ApproveEmergencyLeave
-                        },
-                        new MenuItem
-                        {
                             TextEn = "Permission Requests",
                             TextAr = "طلبات الاذن",
                             Icon = "bi-door-open",
@@ -336,6 +320,49 @@ public class MenuItem
                                     PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
                                 }
                             }
+                        }
+                    }
+                },
+                new MenuItem
+                {
+                    TextEn = "Leave Management",
+                    TextAr = "إدارة الإجازات",
+                    Icon = "bi-calendar-heart",
+                    Url = "/LeavesManagement/EmergencyLeaves",
+                    PermissionPolicy = PermissionList.AttendancePermissions.RequestEmergencyLeave,
+                    Children = new()
+                    {
+                        new MenuItem
+                        {
+                            TextEn = "Emergency Leaves",
+                            TextAr = "الإجازات الطارئة",
+                            Icon = "bi-life-preserver",
+                            Url = "/LeavesManagement/EmergencyLeaves",
+                            PermissionPolicy = PermissionList.AttendancePermissions.RequestEmergencyLeave
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Approve Emergency Leave",
+                            TextAr = "اعتماد الإجازة الطارئة",
+                            Icon = "bi-patch-check",
+                            Url = "/LeavesManagement/ApproveEmergencyLeaves",
+                            PermissionPolicy = PermissionList.AttendancePermissions.ApproveEmergencyLeave
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Leave Balances",
+                            TextAr = "أرصدة الإجازات",
+                            Icon = "bi-sliders",
+                            Url = "/LeavesManagement/Balances",
+                            PermissionPolicy = PermissionList.AttendancePermissions.ViewLeaveBalances
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Leave Reports",
+                            TextAr = "تقارير الإجازات",
+                            Icon = "bi-file-earmark-bar-graph",
+                            Url = "/LeavesManagement/Reports",
+                            PermissionPolicy = PermissionList.AttendancePermissions.ViewLeaveReports
                         }
                     }
                 },

@@ -81,6 +81,32 @@ public class PayrollService : BaseApiService, IPayrollService
         return await SendAsync<ApproveSalaryRunDto>(request, null);
     }
 
+    public async Task<ApiResult<List<SalaryRunDto>>> GetSalaryRunsByPeriodAsync(Guid companyId, int salaryMonth, int salaryYear)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/salary-runs/company/{companyId}/period?month={salaryMonth}&year={salaryYear}");
+        return await SendAsync<List<SalaryRunDto>>(request, "salaryRunList");
+    }
+
+    public async Task<ApiResult<CommitSalaryRunsPeriodDto>> CommitSalaryRunsPeriodAsync(Guid companyId, int salaryMonth, int salaryYear)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/salary-runs/period/commit")
+        {
+            Content = JsonContent.Create(new { CompanyId = companyId, SalaryMonth = salaryMonth, SalaryYear = salaryYear })
+        };
+
+        return await SendAsync<CommitSalaryRunsPeriodDto>(request, null);
+    }
+
+    public async Task<ApiResult<UndoSalaryRunsPeriodDto>> UndoSalaryRunsPeriodAsync(Guid companyId, int salaryMonth, int salaryYear)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/salary-runs/period/undo")
+        {
+            Content = JsonContent.Create(new { CompanyId = companyId, SalaryMonth = salaryMonth, SalaryYear = salaryYear })
+        };
+
+        return await SendAsync<UndoSalaryRunsPeriodDto>(request, null);
+    }
+
     public async Task<ApiResult<SalaryRunDto>> CalculateSalaryRunAsync(Guid salaryRunId)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/salary-runs/{salaryRunId}/calculate");

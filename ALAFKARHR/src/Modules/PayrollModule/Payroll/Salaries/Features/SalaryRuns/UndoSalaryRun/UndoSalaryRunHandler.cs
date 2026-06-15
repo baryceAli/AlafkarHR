@@ -12,12 +12,14 @@ public class UndoSalaryRunHandler(PayrollDbContext dbContext, IHttpContextAccess
                     throw new UnauthorizedAccessException("User is not authenticated");
 
         var salaryRun = await dbContext.Set<SalaryRun>()
-            .Include(x => x.SalaryRunItems)
             .FirstOrDefaultAsync(x => x.Id == request.SalaryRunId && !x.IsDeleted, cancellationToken)
             ?? throw new KeyNotFoundException($"Salary run with ID {request.SalaryRunId} not found");
 
+        await dbContext.Set<SalaryRunItem>()
+            .Where(x => x.SalaryRunId == salaryRun.Id)
+            .ExecuteDeleteAsync(cancellationToken);
+
         salaryRun.UndoGeneration(userId);
-        dbContext.Set<SalaryRun>().Update(salaryRun);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new UndoSalaryRunResult(

@@ -12,12 +12,29 @@ public class CalculateSalaryRunHandler(PayrollDbContext dbContext, IHttpContextA
                     throw new UnauthorizedAccessException("User is not authenticated");
 
         var salaryRun = await dbContext.Set<SalaryRun>()
-            .Include(x => x.SalaryRunItems)
-            .FirstOrDefaultAsync(x => x.Id == request.SalaryRunId, cancellationToken)
+            .FirstOrDefaultAsync(x => x.Id == request.SalaryRunId && !x.IsDeleted, cancellationToken)
             ?? throw new KeyNotFoundException($"Salary run with ID {request.SalaryRunId} not found");
 
         if (salaryRun.Status != SalaryRunStatus.Draft)
-            throw new InvalidOperationException("Only draft salary runs can be calculated");
+        {
+            return new CalculateSalaryRunResult(
+                salaryRun.Id,
+                salaryRun.EmployeeId,
+                salaryRun.ContractId,
+                salaryRun.SalaryMonth,
+                salaryRun.SalaryYear,
+                salaryRun.TotalSalary,
+                salaryRun.TotalAllowances,
+                salaryRun.TotalDeductions,
+                salaryRun.TaxPercentage,
+                salaryRun.TaxableAmount,
+                salaryRun.TaxAmount,
+                salaryRun.InsurancePercentage,
+                salaryRun.InsuranceAmount,
+                salaryRun.NetSalary,
+                salaryRun.Status.ToString(),
+                "Salary run already calculated");
+        }
 
         var contract = await dbContext.Set<Contract>()
             .Include(x => x.Items)
@@ -48,9 +65,13 @@ public class CalculateSalaryRunHandler(PayrollDbContext dbContext, IHttpContextA
         decimal totalAllowances = 0;
         decimal totalDeductions = 0;
         decimal taxableAmount = 0;
+        var salaryRunItems = new List<SalaryRunItem>();
 
-        salaryRun.ClearItems();
-        salaryRun.AddItem(salaryRun.ContractId, ComponentType.Basic, salaryRun.TotalSalary);
+        await dbContext.Set<SalaryRunItem>()
+            .Where(x => x.SalaryRunId == salaryRun.Id)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        salaryRunItems.Add(SalaryRunItem.Create(salaryRun.Id, salaryRun.ContractId, ComponentType.Basic, salaryRun.TotalSalary));
 
         if (contract.Items.Any(x =>
                 components.TryGetValue(x.ComponentId, out var component) &&
@@ -78,7 +99,7 @@ public class CalculateSalaryRunHandler(PayrollDbContext dbContext, IHttpContextA
                 totalDeductions += item.Amount;
             }
 
-            salaryRun.AddItem(item.Id, component.ComponentType, item.Amount);
+            salaryRunItems.Add(SalaryRunItem.Create(salaryRun.Id, item.Id, component.ComponentType, item.Amount));
         }
 
         foreach (var allowance in allowances)
@@ -92,7 +113,7 @@ public class CalculateSalaryRunHandler(PayrollDbContext dbContext, IHttpContextA
             {
                 taxableAmount += allowanceAmount;
             }
-            salaryRun.AddItem(allowance.Id, ComponentType.Allowance, allowanceAmount);
+            salaryRunItems.Add(SalaryRunItem.Create(salaryRun.Id, allowance.Id, ComponentType.Allowance, allowanceAmount));
         }
 
         foreach (var deduction in deductions)
@@ -113,7 +134,7 @@ public class CalculateSalaryRunHandler(PayrollDbContext dbContext, IHttpContextA
             }
 
             totalDeductions += deductionAmount;
-            salaryRun.AddItem(deduction.Id, ComponentType.Deduction, deductionAmount);
+            salaryRunItems.Add(SalaryRunItem.Create(salaryRun.Id, deduction.Id, ComponentType.Deduction, deductionAmount));
         }
 
         var insuranceAmount = (salaryRun.TotalSalary + totalAllowances) * contract.InsurancePercentage / 100m;
@@ -126,8 +147,10 @@ public class CalculateSalaryRunHandler(PayrollDbContext dbContext, IHttpContextA
         salaryRun.InsurancePercentage = contract.InsurancePercentage;
         salaryRun.InsuranceAmount = insuranceAmount;
         salaryRun.Status = SalaryRunStatus.Calculated;
+        salaryRun.ModifiedAt = DateTime.UtcNow;
+        salaryRun.ModifiedBy = userId;
 
-        dbContext.Set<SalaryRun>().Update(salaryRun);
+        await dbContext.Set<SalaryRunItem>().AddRangeAsync(salaryRunItems, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new CalculateSalaryRunResult(

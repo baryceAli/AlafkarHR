@@ -20,6 +20,9 @@ public interface IPayrollService
     Task<ApiResult<SalaryRunDto>> CalculateSalaryRunAsync(Guid salaryRunId);
     Task<ApiResult<ApproveSalaryRunDto>> ApproveSalaryRunAsync(Guid salaryRunId);
     Task<ApiResult<ApproveSalaryRunDto>> UndoSalaryRunAsync(Guid salaryRunId);
+    Task<ApiResult<List<SalaryRunDto>>> GetSalaryRunsByPeriodAsync(Guid companyId, int salaryMonth, int salaryYear);
+    Task<ApiResult<CommitSalaryRunsPeriodDto>> CommitSalaryRunsPeriodAsync(Guid companyId, int salaryMonth, int salaryYear);
+    Task<ApiResult<UndoSalaryRunsPeriodDto>> UndoSalaryRunsPeriodAsync(Guid companyId, int salaryMonth, int salaryYear);
     Task<ApiResult<SalaryRunDto>> GetSalaryRunByIdAsync(Guid id);
 }
 
@@ -43,6 +46,19 @@ public class ApproveSalaryRunDto
 {
     public Guid SalaryRunId { get; set; }
     public string Status { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+}
+
+public class CommitSalaryRunsPeriodDto
+{
+    public int CommittedCount { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+}
+
+public class UndoSalaryRunsPeriodDto
+{
+    public int DeletedCount { get; set; }
     public string Message { get; set; } = string.Empty;
 }
 

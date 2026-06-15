@@ -1,0 +1,189 @@
+@layout AdminLayout
+@page "/LeavesManagement/Reports"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Attendance.Enums
+@using SharedWithUI.Employees.Dtos
+
+@inject IAttendanceService AttendanceService
+@inject IEmployeeService EmployeeService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+
+<section class="erp-page" dir="@SharedDataService.PageDirection">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+        <div>
+            <p class="text-muted mb-1">@Text("Leave Management", "إدارة الإجازات")</p>
+            <h3 class="mb-1">@Text("Leave Reports", "تقارير الإجازات")</h3>
+            <p class="text-muted mb-0">@Text("Review annual entitlement, carried days, taken days, remaining balances, and request counts.", "مراجعة الاستحقاق السنوي والأيام المرحلة والمستخدمة والمتبقية وعدد الطلبات.")</p>
+        </div>
+        <button class="btn btn-outline-primary" @onclick="LoadReportAsync" disabled="@isBusy">@Text("Run report", "تشغيل التقرير")</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @messageClass">@message</div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">@Text("Year", "السنة")</label>
+                    <input class="form-control" type="number" min="2000" max="2100" @bind="filter.Year" />
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">@Text("Employee", "الموظف")</label>
+                    <select class="form-select" @bind="selectedEmployeeId">
+                        <option value="@Guid.Empty">@Text("All employees", "كل الموظفين")</option>
+                        @foreach (var employee in employees)
+                        {
+                            <option value="@employee.Id">@EmployeeName(employee)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">@Text("Request status", "حالة الطلب")</label>
+                    <select class="form-select" @bind="selectedStatus">
+                        <option value="">@Text("All statuses", "كل الحالات")</option>
+                        <option value="@AttendanceExceptionStatus.Pending">@Text("Pending", "معلق")</option>
+                        <option value="@AttendanceExceptionStatus.Approved">@Text("Approved", "موافق عليه")</option>
+                        <option value="@AttendanceExceptionStatus.Rejected">@Text("Rejected", "مرفوض")</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted">@Text("Available", "متاح")</div><h4>@FormatDays(report.Rows.Sum(x => x.AvailableDays))</h4></div></div></div>
+        <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted">@Text("Taken", "مستخدم")</div><h4>@FormatDays(report.Rows.Sum(x => x.TakenDays))</h4></div></div></div>
+        <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted">@Text("Remaining", "متبقي")</div><h4>@FormatDays(report.Rows.Sum(x => x.RemainingDays))</h4></div></div></div>
+        <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted">@Text("Pending requests", "طلبات معلقة")</div><h4>@report.Rows.Sum(x => x.PendingRequests)</h4></div></div></div>
+    </div>
+
+    <div class="card">
+        <div class="card-body table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>@Text("Employee", "الموظف")</th>
+                        <th>@Text("Annual", "سنوي")</th>
+                        <th>@Text("Carried", "مرحّل")</th>
+                        <th>@Text("Available", "متاح")</th>
+                        <th>@Text("Taken", "مستخدم")</th>
+                        <th>@Text("Remaining", "متبقي")</th>
+                        <th>@Text("Pending", "معلق")</th>
+                        <th>@Text("Approved", "موافق عليه")</th>
+                        <th>@Text("Rejected", "مرفوض")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (report.Rows.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">@Text("No leave report rows found.", "لا توجد بيانات لتقرير الإجازات.")</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in report.Rows)
+                        {
+                            <tr>
+                                <td>@EmployeeName(row.EmployeeId)</td>
+                                <td>@FormatDays(row.AnnualLeaveDays)</td>
+                                <td>@FormatDays(row.CarriedForwardDays)</td>
+                                <td>@FormatDays(row.AvailableDays)</td>
+                                <td>@FormatDays(row.TakenDays)</td>
+                                <td><span class="badge text-bg-@(row.RemainingDays <= 0 ? "danger" : "success")">@FormatDays(row.RemainingDays)</span></td>
+                                <td>@row.PendingRequests</td>
+                                <td>@row.ApprovedRequests</td>
+                                <td>@row.RejectedRequests</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+@code {
+    private Guid companyId;
+    private Guid selectedEmployeeId;
+    private string? selectedStatus;
+    private bool isBusy;
+    private string? message;
+    private string messageClass = "alert-info";
+    private List<EmployeeDto> employees = [];
+    private LeaveReportDto report = new() { Year = DateTime.Today.Year };
+    private LeaveReportFilterDto filter = new() { Year = DateTime.Today.Year };
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        companyId = await ResolveCompanyIdAsync();
+        filter.CompanyId = companyId;
+        await LoadEmployeesAsync();
+        await LoadReportAsync();
+    }
+
+    private async Task LoadEmployeesAsync()
+    {
+        var result = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 5000);
+        employees = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+    }
+
+    private async Task LoadReportAsync()
+    {
+        isBusy = true;
+        filter.CompanyId = companyId;
+        filter.EmployeeId = selectedEmployeeId == Guid.Empty ? null : selectedEmployeeId;
+        filter.Status = Enum.TryParse<AttendanceExceptionStatus>(selectedStatus, out var status) ? status : null;
+
+        var result = await AttendanceService.GetLeaveReportAsync(filter);
+        report = result.IsSuccess ? result.Data ?? new LeaveReportDto { Year = filter.Year } : new LeaveReportDto { Year = filter.Year };
+        if (!result.IsSuccess)
+        {
+            SetMessage(result.Error?.Detail ?? Text("Unable to load leave report.", "تعذر تحميل تقرير الإجازات."), "alert-danger");
+        }
+
+        isBusy = false;
+    }
+
+    private string EmployeeName(Guid employeeId)
+        => employees.FirstOrDefault(x => x.Id == employeeId) is { } employee ? EmployeeName(employee) : employeeId.ToString();
+
+    private string EmployeeName(EmployeeDto employee)
+        => SharedDataService.SelectViewLang(employee.FullNameEng, employee.FullName);
+
+    private static string FormatDays(decimal days) => days.ToString("0.##");
+
+    private async Task<Guid> ResolveCompanyIdAsync()
+    {
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        return Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private void SetMessage(string text, string cssClass) { message = text; messageClass = cssClass; }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

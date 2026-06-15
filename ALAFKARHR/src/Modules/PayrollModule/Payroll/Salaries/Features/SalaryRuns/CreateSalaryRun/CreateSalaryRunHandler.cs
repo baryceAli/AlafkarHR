@@ -17,11 +17,12 @@ public class CreateSalaryRunHandler(PayrollDbContext dbContext, IHttpContextAcce
             .FirstOrDefaultAsync(x =>
                 x.EmployeeId == request.EmployeeId &&
                 x.SalaryMonth == request.SalaryMonth &&
-                x.SalaryYear == request.SalaryYear,
+                x.SalaryYear == request.SalaryYear &&
+                !x.IsDeleted,
                 cancellationToken);
 
         if (existingRun != null)
-            throw new InvalidOperationException($"Salary run already exists for employee {request.EmployeeId} in {request.SalaryMonth}/{request.SalaryYear}");
+            return new CreateSalaryRunResult(existingRun.Id, "Salary run already exists");
 
         var salaryRun = new SalaryRun
         {
