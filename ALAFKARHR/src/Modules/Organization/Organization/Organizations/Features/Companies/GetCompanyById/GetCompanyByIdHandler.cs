@@ -8,11 +8,19 @@ public class GetCompanyByIdHandler(OrganizationDbContext dbContext)
 {
     public async Task<GetCompanyByIdResult> Handle(GetCompanyByIdQuery request, CancellationToken cancellationToken)
     {
-        var company = await dbContext.Companies.Include("Branches").FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
+        var company = await dbContext.Companies
+            .Include("Branches")
+            .Include(x => x.ParentCompany)
+            .Include(x => x.ChildCompanies)
+            .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (company is null)
             throw new NotFoundException($"Company not found: {request.Id}");
 
-        return new GetCompanyByIdResult(company.Adapt<CompanyDto>());
+        var companyDto = company.Adapt<CompanyDto>();
+        companyDto.ParentCompanyName = company.ParentCompany?.Name;
+        companyDto.ChildCompaniesCount = company.ChildCompanies.Count;
+
+        return new GetCompanyByIdResult(companyDto);
     }
 }

@@ -20,6 +20,22 @@ public class UpdateCompanyHandler(OrganizationDbContext dbContext, IHttpContextA
                         .Value
                         ?? throw new UnauthorizedAccessException("User not authenticated");
 
+        if (request.Company.ParentCompanyId == request.Company.Id)
+            throw new Exception("A company cannot be its own parent");
+
+        if (request.Company.ParentCompanyId.HasValue)
+        {
+            var parentCompany = await dbContext.Companies
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == request.Company.ParentCompanyId.Value, cancellationToken);
+
+            if (parentCompany is null)
+                throw new NotFoundException($"Parent company not found: {request.Company.ParentCompanyId.Value}");
+
+            if (await WouldCreateCycleAsync(company.Id, request.Company.ParentCompanyId.Value, cancellationToken))
+                throw new Exception("Company hierarchy cannot contain circular ownership");
+        }
+
         string finalLogoPath = company.Logo;
         var incomingLogo = request.Company.Logo;
 
@@ -45,8 +61,31 @@ public class UpdateCompanyHandler(OrganizationDbContext dbContext, IHttpContextA
             request.Company.HqLatitude,
             request.Company.VatNo,
             userId);
+        company.UpdateParentCompany(request.Company.ParentCompanyId, userId);
 
         await dbContext.SaveChangesAsync();
         return new UpdateCompanyResult(true);
+    }
+
+    private async Task<bool> WouldCreateCycleAsync(Guid companyId, Guid parentCompanyId, CancellationToken cancellationToken)
+    {
+        var currentParentId = parentCompanyId;
+
+        while (true)
+        {
+            if (currentParentId == companyId)
+                return true;
+
+            var nextParentId = await dbContext.Companies
+                .AsNoTracking()
+                .Where(x => x.Id == currentParentId)
+                .Select(x => x.ParentCompanyId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (!nextParentId.HasValue)
+                return false;
+
+            currentParentId = nextParentId.Value;
+        }
     }
 }

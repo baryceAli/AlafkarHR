@@ -13,9 +13,16 @@ public class GetCompaniesHandler(OrganizationDbContext dbContext)
             .Skip(request.PaginationRequest.PageSize * request.PaginationRequest.PageIndex)
             .Take(request.PaginationRequest.PageSize)
             .Include("Branches")
+            .Include(x => x.ParentCompany)
+            .Include(x => x.ChildCompanies)
             .ToListAsync();
 
         var companyDtos=companies.Adapt<List<CompanyDto>>();
+        for (var i = 0; i < companies.Count; i++)
+        {
+            companyDtos[i].ParentCompanyName = companies[i].ParentCompany?.Name;
+            companyDtos[i].ChildCompaniesCount = companies[i].ChildCompanies.Count;
+        }
 
         return new GetCompaniesResult(
             new PaginatedResult<CompanyDto>(

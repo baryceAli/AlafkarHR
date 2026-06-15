@@ -3,6 +3,9 @@
 public class CompanyDto
 {
     public Guid Id { get; set; }
+    public Guid? ParentCompanyId { get; set; }
+    public string? ParentCompanyName { get; set; }
+    public int ChildCompaniesCount { get; set; }
     public string Name { get;  set; }
     public string NameEng { get; set; }
     public string Logo { get; set; }
@@ -19,6 +22,11 @@ public class CompanyDto
 
     public string Phone { get; set; }
     public string Email { get; set; }
+
+    public string? AdminUserName { get; set; }
+    public string? AdminEmail { get; set; }
+    public string? AdminPhoneNumber { get; set; }
+    public string? AdminTemporaryPassword { get; set; }
 
 
 

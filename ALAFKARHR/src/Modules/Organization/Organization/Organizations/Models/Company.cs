@@ -4,6 +4,8 @@ namespace Organization.Organizations.Models;
 
 public class Company : Aggregate<Guid>
 {
+    public Guid? ParentCompanyId { get; private set; }
+    public Company? ParentCompany { get; private set; }
     public string Name { get; private set; }
     public string NameEng { get; private set; }
     public string Logo { get; private set; }
@@ -25,6 +27,8 @@ public class Company : Aggregate<Guid>
 
     private readonly List<Branch> _branches = new();
     public IReadOnlyCollection<Branch> Branches => _branches;
+    private readonly List<Company> _childCompanies = new();
+    public IReadOnlyCollection<Company> ChildCompanies => _childCompanies;
 
     private Company() { }
 
@@ -54,6 +58,7 @@ public class Company : Aggregate<Guid>
 
     public static Company Create(
         Guid id,
+        Guid? parentCompanyId,
         string name,
         string nameEng,
         string logo,
@@ -75,6 +80,7 @@ public class Company : Aggregate<Guid>
         return new Company
         {
             Id = id,
+            ParentCompanyId = parentCompanyId,
             Name = name,
             NameEng = nameEng,
             Logo = logo,
@@ -109,6 +115,15 @@ public class Company : Aggregate<Guid>
         HqLongitude = hqLongitude;
         HqLatitude = hqLatitude;
         VatNo = vatNo;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+    public void UpdateParentCompany(Guid? parentCompanyId, string modifiedBy)
+    {
+        if (parentCompanyId == Id)
+            throw new Exception("A company cannot be its own parent");
+
+        ParentCompanyId = parentCompanyId;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }

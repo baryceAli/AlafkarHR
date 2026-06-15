@@ -4,6 +4,7 @@ public class InitialData
 {
     public static Company Company => Company.Create(
                         Guid.Parse("4c3d205f-7e2b-42c2-a081-1700b229d91e"),
+                        null,
                         "ALAFKAR",
                         "ALAFKAR",
                         "logo",

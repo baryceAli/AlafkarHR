@@ -12,6 +12,10 @@ public class DeleteCompanyHandler(OrganizationDbContext dbContext, IHttpContextA
         if (company is null)
             throw new NotFoundException($"Company not found: {request.Id}");
 
+        var hasChildCompanies = await dbContext.Companies.AnyAsync(x => x.ParentCompanyId == request.Id, cancellationToken);
+        if (hasChildCompanies)
+            throw new Exception("Cannot delete a company that has child companies");
+
         var userId = httpContextAccessor.HttpContext?
                         .User?
                         .FindFirst(ClaimTypes.NameIdentifier)

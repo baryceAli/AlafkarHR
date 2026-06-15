@@ -11,6 +11,10 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
 
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.ParentCompanyId)
+            .HasColumnType("uniqueidentifier")
+            .IsRequired(false);
+
         builder.Property(x => x.Name)
             .IsRequired()
             .HasMaxLength(200);
@@ -40,8 +44,14 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
     .HasForeignKey(x => x.CompanyId)
     .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasOne(x => x.ParentCompany)
+            .WithMany(x => x.ChildCompanies)
+            .HasForeignKey(x => x.ParentCompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // 🔍 Indexes
         builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.ParentCompanyId);
         builder.HasIndex(x => x.VatNo).IsUnique();
         builder.HasIndex(x => x.Code).IsUnique();
         
