@@ -1,0 +1,179 @@
+@layout AdminLayout
+@page "/Attendance/ApproveEmergencyLeaves"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Attendance.Enums
+
+@inject IAttendanceService AttendanceService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+
+<section class="erp-page" dir="@SharedDataService.PageDirection">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+        <div>
+            <p class="text-muted mb-1">@Text("Attendance", "الحضور والانصراف")</p>
+            <h3 class="mb-1">@Text("Approve Emergency Leave", "اعتماد الاجازة الطارئة")</h3>
+            <p class="text-muted mb-0">@Text("Approve or reject emergency leave requests for employees in your department, or administration when no department scope applies.", "اعتماد أو رفض طلبات الاجازة الطارئة لموظفي القسم، أو الادارة عند عدم توفر نطاق القسم.")</p>
+        </div>
+        <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">
+            <i class="bi bi-arrow-clockwise me-1"></i>@Text("Refresh", "تحديث")
+        </button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @messageClass">@message</div>
+    }
+
+    <div class="card">
+        <div class="card-body">
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-md-8">
+                    <label class="form-label">@Text("Approval comment", "تعليق الاعتماد")</label>
+                    <textarea class="form-control" rows="2" @bind="reviewComment" placeholder="@Text("Optional note for the employee", "ملاحظة اختيارية للموظف")"></textarea>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <span class="badge text-bg-warning">@Text("Pending", "معلق"): @requests.Count</span>
+                </div>
+            </div>
+
+            @if (isBusy)
+            {
+                <div class="text-muted py-4">@Text("Loading emergency leave requests...", "جاري تحميل طلبات الاجازة الطارئة...")</div>
+            }
+            else if (requests.Count == 0)
+            {
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-check2-circle fs-3 d-block mb-2"></i>
+                    @Text("No pending emergency leave requests are available for your approval scope.", "لا توجد طلبات اجازة طارئة معلقة ضمن نطاق اعتمادك.")
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>@Text("Employee", "الموظف")</th>
+                                <th>@Text("Dates", "التاريخ")</th>
+                                <th>@Text("Reason", "السبب")</th>
+                                <th>@Text("Attachment", "المرفق")</th>
+                                <th class="text-end">@Text("Actions", "الاجراءات")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in requests)
+                            {
+                                <tr>
+                                    <td>@request.EmployeeId</td>
+                                    <td>@request.StartDate.ToShortDateString() - @request.EndDate.ToShortDateString()</td>
+                                    <td>@request.Reason</td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(request.AttachmentPath))
+                                        {
+                                            <a href="@request.AttachmentPath" target="_blank" rel="noopener">@Text("Open", "فتح")</a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="@Text("Approval actions", "اجراءات الاعتماد")">
+                                            <button class="btn btn-outline-success" @onclick="() => ReviewAsync(request.Id, true)" disabled="@isBusy">
+                                                @Text("Approve", "اعتماد")
+                                            </button>
+                                            <button class="btn btn-outline-danger" @onclick="() => ReviewAsync(request.Id, false)" disabled="@isBusy">
+                                                @Text("Reject", "رفض")
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    private List<EmergencyLeaveRequestDto> requests = [];
+    private Guid companyId;
+    private string? reviewComment;
+    private bool isBusy;
+    private string? message;
+    private string messageClass = "alert-info";
+
+    protected override async Task OnInitializedAsync()
+    {
+        companyId = await ResolveCompanyIdAsync();
+        await LoadAsync();
+    }
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task LoadAsync()
+    {
+        isBusy = true;
+        var result = await AttendanceService.GetEmergencyLeavesAsync(companyId, 0, 50, AttendanceExceptionStatus.Pending);
+        requests = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+        if (!result.IsSuccess)
+        {
+            SetMessage(result.Error?.Detail ?? Text("Unable to load emergency leave requests.", "تعذر تحميل طلبات الاجازة الطارئة."), "alert-danger");
+        }
+        isBusy = false;
+    }
+
+    private async Task ReviewAsync(Guid requestId, bool isApproved)
+    {
+        isBusy = true;
+        var result = await AttendanceService.ReviewEmergencyLeaveAsync(new ReviewEmergencyLeaveRequestDto
+        {
+            RequestId = requestId,
+            IsApproved = isApproved,
+            ApproverComment = reviewComment
+        });
+
+        SetMessage(
+            result.IsSuccess
+                ? Text("Emergency leave request reviewed.", "تمت مراجعة طلب الاجازة الطارئة.")
+                : result.Error?.Detail ?? Text("Unable to review request.", "تعذر مراجعة الطلب."),
+            result.IsSuccess ? "alert-success" : "alert-danger");
+
+        if (result.IsSuccess)
+        {
+            reviewComment = null;
+        }
+
+        isBusy = false;
+        await LoadAsync();
+    }
+
+    private async Task<Guid> ResolveCompanyIdAsync()
+    {
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        return Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private void SetMessage(string text, string cssClass) { message = text; messageClass = cssClass; }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

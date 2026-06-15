@@ -48,10 +48,15 @@ public record GetEmergencyLeaveRequestsResult(PaginatedResult<EmergencyLeaveRequ
 public record CreateMidDayPermissionRequestCommand(CreateMidDayPermissionRequestDto Request)
     : ICommand<CreateMidDayPermissionRequestResult>;
 public record CreateMidDayPermissionRequestResult(MidDayPermissionRequestDto Request);
-public record ReviewMidDayPermissionRequestCommand(ReviewMidDayPermissionRequestDto Review, string ReviewedBy)
+public record ReviewMidDayPermissionRequestCommand(ReviewMidDayPermissionRequestDto Review, string ReviewedBy, Guid ReviewerEmployeeId)
     : ICommand<ReviewMidDayPermissionRequestResult>;
 public record ReviewMidDayPermissionRequestResult(MidDayPermissionRequestDto Request);
-public record GetMidDayPermissionRequestsQuery(Guid CompanyId, AttendanceExceptionStatus? Status, Guid? EmployeeId, PaginationRequest PaginationRequest)
+public record GetMidDayPermissionRequestsQuery(
+    Guid CompanyId,
+    AttendanceExceptionStatus? Status,
+    Guid? EmployeeId,
+    Guid ReviewerEmployeeId,
+    PaginationRequest PaginationRequest)
     : IQuery<GetMidDayPermissionRequestsResult>;
 public record GetMidDayPermissionRequestsResult(PaginatedResult<MidDayPermissionRequestDto> RequestList);
 
@@ -678,7 +683,7 @@ public class CreateMidDayPermissionRequestHandler(AttendanceDbContext dbContext)
     }
 }
 
-public class ReviewMidDayPermissionRequestHandler(AttendanceDbContext dbContext)
+public class ReviewMidDayPermissionRequestHandler(AttendanceDbContext dbContext, ISender sender)
     : ICommandHandler<ReviewMidDayPermissionRequestCommand, ReviewMidDayPermissionRequestResult>
 {
     public async Task<ReviewMidDayPermissionRequestResult> Handle(ReviewMidDayPermissionRequestCommand request, CancellationToken cancellationToken)
@@ -686,6 +691,8 @@ public class ReviewMidDayPermissionRequestHandler(AttendanceDbContext dbContext)
         var permission = await dbContext.MidDayPermissionRequests
             .FirstOrDefaultAsync(x => x.Id == request.Review.RequestId, cancellationToken)
             ?? throw new NotFoundException("MidDayPermissionRequest", request.Review.RequestId);
+
+        await EnsureReviewerCanReviewAsync(request.ReviewerEmployeeId, permission.EmployeeId, cancellationToken);
 
         if (request.Review.IsApproved)
         {
@@ -703,9 +710,42 @@ public class ReviewMidDayPermissionRequestHandler(AttendanceDbContext dbContext)
         await dbContext.SaveChangesAsync(cancellationToken);
         return new ReviewMidDayPermissionRequestResult(permission.Adapt<MidDayPermissionRequestDto>());
     }
+
+    private async Task EnsureReviewerCanReviewAsync(Guid reviewerEmployeeId, Guid employeeId, CancellationToken cancellationToken)
+    {
+        if (reviewerEmployeeId == employeeId)
+        {
+            throw new UnauthorizedAccessException("Employees cannot review their own permission requests.");
+        }
+
+        var reviewer = await sender.Send(new GetEmployeeAttendanceProfileQuery(reviewerEmployeeId), cancellationToken);
+        var employee = await sender.Send(new GetEmployeeAttendanceProfileQuery(employeeId), cancellationToken);
+
+        if (!CanReviewAttendanceRequest(reviewer, employee))
+        {
+            throw new UnauthorizedAccessException("The signed-in employee cannot review this permission request.");
+        }
+    }
+
+    private static bool CanReviewAttendanceRequest(
+        GetEmployeeAttendanceProfileResult reviewer,
+        GetEmployeeAttendanceProfileResult employee)
+    {
+        if (reviewer.CompanyId != employee.CompanyId)
+        {
+            return false;
+        }
+
+        if (employee.DepartmentId.HasValue && reviewer.DepartmentId == employee.DepartmentId)
+        {
+            return true;
+        }
+
+        return reviewer.AdministrationId == employee.AdministrationId;
+    }
 }
 
-public class GetMidDayPermissionRequestsHandler(AttendanceDbContext dbContext)
+public class GetMidDayPermissionRequestsHandler(AttendanceDbContext dbContext, ISender sender)
     : IQueryHandler<GetMidDayPermissionRequestsQuery, GetMidDayPermissionRequestsResult>
 {
     public async Task<GetMidDayPermissionRequestsResult> Handle(GetMidDayPermissionRequestsQuery request, CancellationToken cancellationToken)
@@ -723,19 +763,61 @@ public class GetMidDayPermissionRequestsHandler(AttendanceDbContext dbContext)
             query = query.Where(x => x.EmployeeId == request.EmployeeId.Value);
         }
 
-        var total = await query.LongCountAsync(cancellationToken);
-        var rows = await query
+        var reviewer = await sender.Send(new GetEmployeeAttendanceProfileQuery(request.ReviewerEmployeeId), cancellationToken);
+        var scopedRows = new List<MidDayPermissionRequestDto>();
+        var employeeProfiles = new Dictionary<Guid, GetEmployeeAttendanceProfileResult>();
+        var candidateRows = await query
             .OrderByDescending(x => x.Date)
-            .Skip(request.PaginationRequest.PageIndex * request.PaginationRequest.PageSize)
-            .Take(request.PaginationRequest.PageSize)
             .ProjectToType<MidDayPermissionRequestDto>()
             .ToListAsync(cancellationToken);
+
+        foreach (var row in candidateRows)
+        {
+            if (row.EmployeeId == request.ReviewerEmployeeId)
+            {
+                continue;
+            }
+
+            if (!employeeProfiles.TryGetValue(row.EmployeeId, out var employee))
+            {
+                employee = await sender.Send(new GetEmployeeAttendanceProfileQuery(row.EmployeeId), cancellationToken);
+                employeeProfiles[row.EmployeeId] = employee;
+            }
+
+            if (CanReviewAttendanceRequest(reviewer, employee))
+            {
+                scopedRows.Add(row);
+            }
+        }
+
+        var total = scopedRows.Count;
+        var rows = scopedRows
+            .Skip(request.PaginationRequest.PageIndex * request.PaginationRequest.PageSize)
+            .Take(request.PaginationRequest.PageSize)
+            .ToList();
 
         return new GetMidDayPermissionRequestsResult(new PaginatedResult<MidDayPermissionRequestDto>(
             request.PaginationRequest.PageIndex,
             request.PaginationRequest.PageSize,
             total,
             rows));
+    }
+
+    private static bool CanReviewAttendanceRequest(
+        GetEmployeeAttendanceProfileResult reviewer,
+        GetEmployeeAttendanceProfileResult employee)
+    {
+        if (reviewer.CompanyId != employee.CompanyId)
+        {
+            return false;
+        }
+
+        if (employee.DepartmentId.HasValue && reviewer.DepartmentId == employee.DepartmentId)
+        {
+            return true;
+        }
+
+        return reviewer.AdministrationId == employee.AdministrationId;
     }
 }
 

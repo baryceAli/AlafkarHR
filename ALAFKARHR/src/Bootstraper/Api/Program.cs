@@ -111,13 +111,14 @@ builder.Services
 //// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 //builder.Services.AddOpenApi();
 builder.Services.AddExceptionHandler<CustomExceptionHandler>();
-
+//builder.Services.AddAntiforgery();
 var app = builder.Build();
 
 //if(!app.Environment.IsDevelopment())
 //{
 //    app.UsePathBase("/backend");
 //}
+//app.UseAntiforgery();
 app.UseExceptionHandler(options => { });
 app.UseStaticFiles();
 app.UseAuthentication();

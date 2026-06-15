@@ -247,7 +247,8 @@ public class AttendanceEndpoints : ICarterModule
             .Produces<UploadEmergencyLeaveAttachmentResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Upload an emergency leave attachment")
-            .RequireAuthorization(PermissionList.AttendancePermissions.RequestEmergencyLeave);
+            .RequireAuthorization(PermissionList.AttendancePermissions.RequestEmergencyLeave)
+            .DisableAntiforgery();
 
         group.MapPost("/emergency-leaves/review", ReviewEmergencyLeave)
             .WithName("ReviewEmergencyLeaveRequest")
@@ -369,24 +370,10 @@ public class AttendanceEndpoints : ICarterModule
         ClaimsPrincipal user,
         ISender sender)
     {
-        var employeeId = ResolveEmployeeIdClaim(user);
-        if (!employeeId.HasValue)
-        {
-            var userName = FirstClaimValue(
-                user,
-                ClaimTypes.Name,
-                "name",
-                "unique_name",
-                "preferred_username",
-                "upn")
-                ?? throw new UnauthorizedAccessException("The signed-in user does not have a username claim that can be matched to an employee code.");
-
-            var employee = await sender.Send(new GetEmployeeAttendanceProfileByCodeQuery(userName));
-            employeeId = employee.EmployeeId;
-        }
+        var employeeId = await ResolveSignedInEmployeeIdAsync(user, sender);
 
         var result = await sender.Send(new GetAttendanceCheckInPreviewQuery(
-            employeeId.Value,
+            employeeId,
             latitude,
             longitude,
             accuracyMeters,
@@ -495,8 +482,7 @@ public class AttendanceEndpoints : ICarterModule
         ClaimsPrincipal user,
         ISender sender)
     {
-        var reviewerEmployeeId = ResolveEmployeeIdClaim(user)
-            ?? throw new UnauthorizedAccessException("The signed-in user does not have an employee_id claim.");
+        var reviewerEmployeeId = await ResolveSignedInEmployeeIdAsync(user, sender);
 
         var result = await sender.Send(new GetEmergencyLeaveRequestsQuery(companyId, status, employeeId, reviewerEmployeeId, request));
         return TypedResults.Ok(result);
@@ -507,8 +493,7 @@ public class AttendanceEndpoints : ICarterModule
         ClaimsPrincipal user,
         ISender sender)
     {
-        var employeeId = ResolveEmployeeIdClaim(user)
-            ?? throw new UnauthorizedAccessException("The signed-in user does not have an employee_id claim.");
+        var employeeId = await ResolveSignedInEmployeeIdAsync(user, sender);
 
         var employee = await sender.Send(new GetEmployeeAttendanceProfileQuery(employeeId));
         request.Request.EmployeeId = employee.EmployeeId;
@@ -537,8 +522,7 @@ public class AttendanceEndpoints : ICarterModule
     {
         var reviewedBy = user.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new UnauthorizedAccessException("User is not authenticated");
-        var reviewerEmployeeId = ResolveEmployeeIdClaim(user)
-            ?? throw new UnauthorizedAccessException("The signed-in user does not have an employee_id claim.");
+        var reviewerEmployeeId = await ResolveSignedInEmployeeIdAsync(user, sender);
 
         var result = await sender.Send(new ReviewEmergencyLeaveRequestCommand(request.Review, reviewedBy, reviewerEmployeeId));
         return TypedResults.Ok(result);
@@ -549,16 +533,25 @@ public class AttendanceEndpoints : ICarterModule
         [FromQuery] AttendanceExceptionStatus? status,
         [FromQuery] Guid? employeeId,
         [AsParameters] PaginationRequest request,
+        ClaimsPrincipal user,
         ISender sender)
     {
-        var result = await sender.Send(new GetMidDayPermissionRequestsQuery(companyId, status, employeeId, request));
+        var reviewerEmployeeId = await ResolveSignedInEmployeeIdAsync(user, sender);
+
+        var result = await sender.Send(new GetMidDayPermissionRequestsQuery(companyId, status, employeeId, reviewerEmployeeId, request));
         return TypedResults.Ok(result);
     }
 
     private static async Task<Ok<CreateMidDayPermissionRequestResult>> CreateMidDayPermission(
         [FromBody] CreateMidDayPermissionRequestRequest request,
+        ClaimsPrincipal user,
         ISender sender)
     {
+        var employeeId = await ResolveSignedInEmployeeIdAsync(user, sender);
+        var employee = await sender.Send(new GetEmployeeAttendanceProfileQuery(employeeId));
+        request.Request.EmployeeId = employee.EmployeeId;
+        request.Request.CompanyId = employee.CompanyId;
+
         var result = await sender.Send(new CreateMidDayPermissionRequestCommand(request.Request));
         return TypedResults.Ok(result);
     }
@@ -570,8 +563,9 @@ public class AttendanceEndpoints : ICarterModule
     {
         var reviewedBy = user.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new UnauthorizedAccessException("User is not authenticated");
+        var reviewerEmployeeId = await ResolveSignedInEmployeeIdAsync(user, sender);
 
-        var result = await sender.Send(new ReviewMidDayPermissionRequestCommand(request.Review, reviewedBy));
+        var result = await sender.Send(new ReviewMidDayPermissionRequestCommand(request.Review, reviewedBy, reviewerEmployeeId));
         return TypedResults.Ok(result);
     }
 
@@ -668,6 +662,27 @@ public class AttendanceEndpoints : ICarterModule
             "EmployeeId");
 
         return Guid.TryParse(value, out var employeeId) ? employeeId : null;
+    }
+
+    private static async Task<Guid> ResolveSignedInEmployeeIdAsync(ClaimsPrincipal user, ISender sender)
+    {
+        var employeeId = ResolveEmployeeIdClaim(user);
+        if (employeeId.HasValue)
+        {
+            return employeeId.Value;
+        }
+
+        var userName = FirstClaimValue(
+            user,
+            ClaimTypes.Name,
+            "name",
+            "unique_name",
+            "preferred_username",
+            "upn")
+            ?? throw new UnauthorizedAccessException("The signed-in user does not have a username claim that can be matched to an employee code.");
+
+        var employee = await sender.Send(new GetEmployeeAttendanceProfileByCodeQuery(userName));
+        return employee.EmployeeId;
     }
 
     private static string? FirstClaimValue(ClaimsPrincipal user, params string[] claimTypes)

@@ -30,19 +30,15 @@
     <div class="card mb-3">
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">@Text("Employee Id", "معرف الموظف")</label>
-                    <input class="form-control" @bind="employeeIdText" />
-                </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label class="form-label">@Text("Working date", "تاريخ يوم العمل")</label>
                     <input class="form-control" type="date" @bind="permissionDate" />
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label class="form-label">@Text("Start time", "وقت البداية")</label>
                     <input class="form-control" type="time" @bind="requestedStartTime" />
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label class="form-label">@Text("End time", "وقت النهاية")</label>
                     <input class="form-control" type="time" @bind="requestedEndTime" />
                 </div>
@@ -103,7 +99,6 @@
 @code {
     private List<MidDayPermissionRequestDto> requests = [];
     private Guid companyId;
-    private string? employeeIdText;
     private DateTime permissionDate = DateTime.Today;
     private TimeOnly requestedStartTime = new(12, 0);
     private TimeOnly requestedEndTime = new(13, 0);
@@ -135,12 +130,6 @@
 
     private async Task CreateAsync()
     {
-        if (!Guid.TryParse(employeeIdText, out var employeeId))
-        {
-            SetMessage(Text("Employee Id is required.", "معرف الموظف مطلوب."), "alert-warning");
-            return;
-        }
-
         if (requestedEndTime <= requestedStartTime)
         {
             SetMessage(Text("End time must be after start time.", "وقت النهاية يجب أن يكون بعد وقت البداية."), "alert-warning");
@@ -153,7 +142,6 @@
         var result = await AttendanceService.CreateMidDayPermissionAsync(new CreateMidDayPermissionRequestDto
         {
             CompanyId = companyId,
-            EmployeeId = employeeId,
             Date = permissionDate.Date,
             RequestedStartUtc = requestedStart.ToUniversalTime(),
             RequestedEndUtc = requestedEnd.ToUniversalTime(),

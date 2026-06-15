@@ -240,11 +240,27 @@ public class MenuItem
                         },
                         new MenuItem
                         {
+                            TextEn = "Approve Emergency Leave",
+                            TextAr = "اعتماد الاجازة الطارئة",
+                            Icon = "bi-patch-check",
+                            Url = "/Attendance/ApproveEmergencyLeaves",
+                            PermissionPolicy = PermissionList.AttendancePermissions.ApproveEmergencyLeave
+                        },
+                        new MenuItem
+                        {
                             TextEn = "Permission Requests",
                             TextAr = "طلبات الاذن",
                             Icon = "bi-door-open",
                             Url = "/Attendance/PermissionRequests",
                             PermissionPolicy = PermissionList.AttendancePermissions.RequestMidDayPermission
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Approve Permission Requests",
+                            TextAr = "اعتماد طلبات الاذن",
+                            Icon = "bi-person-check",
+                            Url = "/Attendance/ApprovePermissionRequests",
+                            PermissionPolicy = PermissionList.AttendancePermissions.ApproveMidDayPermission
                         },
                         new MenuItem
                         {
