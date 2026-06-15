@@ -25,24 +25,26 @@
 
 <section class="login-page" dir="@SharedDataService.PageDirection" lang="@CurrentLangCode">
     <header class="login-topbar">
-        <div class="login-logo" aria-label="ALAFKARERP">ALAFKARERP</div>
+        <div class="login-brand" aria-label="ALAFKARERP">
+            <span class="login-brand-mark" aria-hidden="true">A</span>
+            <span>ALAFKARERP</span>
+        </div>
 
         <button type="button" class="language-switch" @onclick="ChangeLanguage" aria-label="@Text("Change language", "تغيير اللغة")">
             <i class="bi bi-globe2" aria-hidden="true"></i>
-            <span>Language</span>
+            <span>@Text("العربية", "English")</span>
         </button>
     </header>
 
     <main class="login-main">
-        <div class="login-bg-orb login-bg-orb-primary" aria-hidden="true"></div>
-        <div class="login-bg-orb login-bg-orb-secondary" aria-hidden="true"></div>
-
         <div class="login-shell">
             <div class="login-panel">
                 <div class="login-panel-inner">
+                    <div class="login-kicker">@Text("Secure ERP access", "دخول آمن للنظام")</div>
+
                     <div class="login-panel-header">
                         <h1>@Text("Welcome back", "مرحباً بك مجدداً")</h1>
-                        <p>@Text("Sign in to continue to your human resources workspace and manage your team efficiently.", "سجل الدخول للمتابعة إلى مساحة الموارد البشرية لإدارة فريقك بكفاءة.")</p>
+                        <p>@Text("Sign in to continue managing your people, payroll, attendance, and approvals from one workspace.", "سجل الدخول لمتابعة إدارة الموظفين والرواتب والحضور والموافقات من مساحة عمل واحدة.")</p>
                     </div>
 
                     <EditForm Model="@login" OnValidSubmit="HandleLogin" class="login-form">
@@ -52,7 +54,7 @@
                             <label for="userName">@Text("Username or email", "اسم المستخدم أو البريد الإلكتروني")</label>
                             <div class="input-shell">
                                 <i class="bi bi-person" aria-hidden="true"></i>
-                                <InputText id="userName" class="login-input" @bind-Value="login.Email" placeholder="john.doe@example.com" autocomplete="username" />
+                                <InputText id="userName" class="form-control login-input" @bind-Value="login.Email" placeholder="john.doe@example.com" autocomplete="username" />
                             </div>
                             <ValidationMessage For="@(() => login.Email)" />
                         </div>
@@ -64,7 +66,7 @@
                             </div>
                             <div class="input-shell password-shell">
                                 <i class="bi bi-lock" aria-hidden="true"></i>
-                                <InputText id="password" type="@(showPassword ? "text" : "password")" class="login-input" @bind-Value="login.Password" placeholder="••••••••" autocomplete="current-password" />
+                                <InputText id="password" type="@(showPassword ? "text" : "password")" class="form-control login-input" @bind-Value="login.Password" placeholder="••••••••" autocomplete="current-password" />
                                 <button type="button" class="password-toggle" @onclick="TogglePassword" aria-label="@Text("Toggle password visibility", "إظهار أو إخفاء كلمة المرور")">
                                     <i class="bi @(showPassword ? "bi-eye-slash" : "bi-eye")" aria-hidden="true"></i>
                                 </button>
@@ -86,39 +88,45 @@
                             else
                             {
                                 <span>@Text("Login", "تسجيل الدخول")</span>
-                                <i class="bi bi-arrow-left-short" aria-hidden="true"></i>
+                                <i class="bi bi-arrow-right-short" aria-hidden="true"></i>
                             }
                         </button>
 
                         <p class="register-link">
                             <span>@Text("Don’t have an account?", "ليس لديك حساب؟")</span>
-                            <a href="/Register">@Text("Create a new account", "إنشاء حساب جديد")</a>
+                            <a href="/register">@Text("Create a new account", "إنشاء حساب جديد")</a>
                         </p>
                     </EditForm>
                 </div>
             </div>
 
             <aside class="login-hero" aria-label="@Text("Human resources overview", "نبذة عن نظام إدارة الموارد البشرية")">
-                <div class="hero-accent-circle" aria-hidden="true"></div>
-                <div class="hero-accent-band" aria-hidden="true"></div>
-
                 <div class="hero-content">
+                    <div class="hero-badge">
+                        <i class="bi bi-shield-check" aria-hidden="true"></i>
+                        <span>@Text("Trusted business workspace", "مساحة عمل موثوقة")</span>
+                    </div>
+
                     <h2>@Text("Human Resources Management", "إدارة الموارد البشرية")</h2>
                     <p>
                         @Text(
-                            "A complete system for workforce management, payroll, analytical reports, and high-precision professional procedures.",
-                            "نظام متكامل لإدارة القوى العاملة، كشوف المرتبات، والتقارير التحليلية بدقة واحترافية عالية.")
+                            "A focused workspace for workforce records, payroll, attendance, approvals, and operational reporting.",
+                            "مساحة عمل مركزة لسجلات القوى العاملة والرواتب والحضور والموافقات والتقارير التشغيلية.")
                     </p>
                 </div>
 
                 <div class="hero-features">
                     <div class="hero-feature">
-                        <i class="bi bi-shield-lock-fill" aria-hidden="true"></i>
-                        <span>@Text("Enterprise-grade data security", "أمان عالي المستوى للبيانات")</span>
+                        <i class="bi bi-lock" aria-hidden="true"></i>
+                        <span>@Text("Protected company and employee data", "حماية بيانات الشركة والموظفين")</span>
                     </div>
                     <div class="hero-feature">
-                        <i class="bi bi-speedometer2" aria-hidden="true"></i>
-                        <span>@Text("Fast performance and instant analytics", "أداء سريع وتحليلات فورية")</span>
+                        <i class="bi bi-diagram-3" aria-hidden="true"></i>
+                        <span>@Text("Connected HR workflows", "سير عمل مترابط للموارد البشرية")</span>
+                    </div>
+                    <div class="hero-feature">
+                        <i class="bi bi-bar-chart-line" aria-hidden="true"></i>
+                        <span>@Text("Clear reporting for better decisions", "تقارير واضحة لقرارات أفضل")</span>
                     </div>
                 </div>
             </aside>
@@ -126,11 +134,11 @@
     </main>
 
     <footer class="login-footer">
-        <p>© 2024 ALAFKARERP. All rights reserved.</p>
+        <p>@Text($"© {DateTime.Now.Year} ALAFKARERP. All rights reserved.", $"© {DateTime.Now.Year} ألفكار ERP. جميع الحقوق محفوظة.")</p>
         <nav aria-label="@Text("Footer links", "روابط التذييل")">
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
-            <a href="#">Support</a>
+            <a href="#">@Text("Privacy", "الخصوصية")</a>
+            <a href="#">@Text("Terms", "الشروط")</a>
+            <a href="#">@Text("Support", "الدعم")</a>
         </nav>
     </footer>
 </section>

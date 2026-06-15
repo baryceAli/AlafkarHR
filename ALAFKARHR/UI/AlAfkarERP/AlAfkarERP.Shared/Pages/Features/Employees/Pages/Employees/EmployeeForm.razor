@@ -1,4 +1,5 @@
 ﻿@layout AdminLayout
+@implements IDisposable
 @page "/Employee/Employee/Form/{Id:guid?}"
 
 @using AlAfkarERP.Shared.Dtos
@@ -39,463 +40,553 @@
     </div>
     return;
 }
-<h3>@title</h3>
-<section>
-    <EditForm Model="employee" OnValidSubmit="HandleSubmit">
+<div class="erp-page employee-form-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@title"
+                Overline="@(SharedDataService.SelectViewLang("People", "الأفراد"))"
+                Icon="bi-person-badge"
+                Subtitle="@(SharedDataService.SelectViewLang("Create and maintain employee identity, position, qualification, and attendance settings.", "إنشاء وتحديث بيانات الهوية والموقع الوظيفي والمؤهلات وإعدادات الحضور للموظف."))">
+        <Actions>
+            <button type="button" class="btn btn-outline-secondary employee-form-action" @onclick="onCancel">
+                <i class="bi bi-x-lg"></i>
+                @SharedDataService.SelectViewLang("Cancel", "إلغاء")
+            </button>
+            <button type="submit" form="employee-form" class="btn btn-primary employee-form-action">
+                <i class="bi bi-floppy2-fill"></i>
+                @(Id.HasValue ? SharedDataService.SelectViewLang("Update", "تعديل") : SharedDataService.SelectViewLang("Save", "حفظ"))
+            </button>
+        </Actions>
+    </PageHeader>
+
+    <EditForm id="employee-form" Model="employee" OnValidSubmit="HandleSubmit">
         <DataAnnotationsValidator />
-        <ValidationSummary />
-        <section>
-            @if (!Id.HasValue||1==1)
-            {
-                <!--Position Information-->
-                <div class="card mb-3">
-                    <div class="card-header">
-                        @SharedDataService.SelectViewLang("Employment Position Information", "بيانات الموقع الوظيفي")
-                    </div>
-                    <div class="card-body">
 
-                        <div class="mb-3 row">
-                            <label for="branch" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Select Branch", "اختر الفرع")</label>
-                            <div class="col-sm-10">
-                                <AutoCompleteComponent TItem="BranchDto"
-                                                       Items="branches"
-                                                       Value="selectedBranch"
-                                                       ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
-                                                       ValueChanged="OnBranchSelected">
-                                </AutoCompleteComponent>
-                                <ValidationMessage For="() => employee.BranchId" />
+        <div class="employee-form-stack">
+            <AppCard Title="@(SharedDataService.SelectViewLang("Employment Location", "الموقع الوظيفي"))"
+                     Subtitle="@(SharedDataService.SelectViewLang("Connect the employee to the correct branch, administration, and department.", "ربط الموظف بالفرع والإدارة والقسم المناسب."))">
+                @if (!Id.HasValue || 1 == 1)
+                {
+                    <div class="employee-form-grid employee-form-grid-three">
+                        <div class="employee-field">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Branch", "الفرع")</label>
+                            <AutoCompleteComponent TItem="BranchDto"
+                                                   Items="branches"
+                                                   Value="selectedBranch"
+                                                   ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
+                                                   ValueChanged="OnBranchSelected">
+                            </AutoCompleteComponent>
+                            <ValidationMessage For="() => employee.BranchId" />
+                        </div>
+
+                        <div class="employee-field">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Administration", "الإدارة")</label>
+                            <AutoCompleteComponent TItem="AdministrationDto"
+                                                   Items="administrations"
+                                                   Value="selectedAdministration"
+                                                   ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
+                                                   ValueChanged="OnAdministrationSelected">
+                            </AutoCompleteComponent>
+                            <ValidationMessage For="() => employee.AdministrationId" />
+                        </div>
+
+                        <div class="employee-field">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Department", "القسم")</label>
+                            <AutoCompleteComponent TItem="DepartmentDto"
+                                                   Items="departments"
+                                                   Value="selectedDepartment"
+                                                   ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
+                                                   ValueChanged="OnDepartmentSelected">
+                            </AutoCompleteComponent>
+                            @* <ValidationMessage For="() => employee.DepartmentId" /> *@
+                        </div>
+                    </div>
+                }
+            </AppCard>
+
+            <AppCard Title="@(SharedDataService.SelectViewLang("Profile & Identity", "الملف والهوية"))"
+                     Subtitle="@(SharedDataService.SelectViewLang("Core personal information used across HR and authentication.", "البيانات الشخصية الأساسية المستخدمة في الموارد البشرية وتسجيل الدخول."))">
+                <div class="employee-profile-layout">
+                    <div class="employee-photo-panel">
+                        <label for="profileUpload" class="employee-avatar-upload">
+                            <img src="@(string.IsNullOrEmpty(employee?.PhotoUrl)
+                                ? "_content/AlAfkarERP.Shared/images/empPlaceholder.png"
+                                : (employee.PhotoUrl.Contains("data:")
+                                    ? employee.PhotoUrl
+                                    : $"{ApiConfig.BaseURL}/Images/Employees/{employee.PhotoUrl}"))"
+                                 alt="@(SharedDataService.SelectViewLang("Employee photo", "صورة الموظف"))"
+                                 class="employee-avatar" />
+                            <span class="btn btn-outline-primary btn-sm employee-photo-button">
+                                <i class="bi bi-camera"></i>
+                                @SharedDataService.SelectViewLang("Change photo", "تغيير الصورة")
+                            </span>
+                        </label>
+
+                        <InputFile id="profileUpload"
+                                   class="employee-file-input"
+                                   OnChange="OnEmployeeImageSelected"
+                                   accept="image/*" />
+                        <div class="employee-help-text">
+                            @SharedDataService.SelectViewLang("Upload a clear profile image for employee records.", "ارفع صورة واضحة لملف الموظف.")
+                        </div>
+                        <ValidationMessage For="@(() => employee.PhotoUrl)" class="text-danger" />
+                    </div>
+
+                    <div class="employee-profile-fields">
+                        <div class="employee-form-grid">
+                            <div class="employee-field">
+                                <label for="employee-code" class="form-label">@SharedDataService.SelectViewLang("Code", "الكود")</label>
+                                <InputText class="form-control" id="employee-code" @bind-Value="employee.Code" disabled="@Id.HasValue" />
+                                <div class="employee-help-text">
+                                    @SharedDataService.SelectViewLang("Used as the username when the employee signs in.", "يمثل اسم المستخدم ويتم استخدامه عند تسجيل الدخول.")
+                                </div>
+                                <ValidationMessage For="() => employee.Code" />
                             </div>
+
+                            @if (!Id.HasValue || 1 == 1)
+                            {
+                                <div class="employee-field">
+                                    <label for="employee-date-of-birth" class="form-label">@SharedDataService.SelectViewLang("Date Of Birth", "تاريخ الميلاد")</label>
+                                    <InputDate class="form-control" id="employee-date-of-birth" @bind-Value="employee.DateOfBirth" />
+                                    <ValidationMessage For="() => employee.DateOfBirth" />
+                                </div>
+                            }
                         </div>
 
-
-                        <div class="mb-3 row">
-                            <label for="admin" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Select Administration", "اختر الإدارة")</label>
-                            <div class="col-sm-10">
-                                <AutoCompleteComponent TItem="AdministrationDto"
-                                                       Items="administrations"
-                                                       Value="selectedAdministration"
-                                                       ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
-                                                       ValueChanged="OnAdministrationSelected">
-                                </AutoCompleteComponent>
-                                <ValidationMessage For="() => employee.AdministrationId" />
-                            </div>
-                        </div>
-
-                        <div class="mb-3 row">
-                            <label for="admin" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Select Department", "اختر القسم")</label>
-                            <div class="col-sm-10">
-                                <AutoCompleteComponent TItem="DepartmentDto"
-                                                       Items="departments"
-                                                       Value="selectedDepartment"
-                                                       ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
-                                                       ValueChanged="OnDepartmentSelected">
-                                </AutoCompleteComponent>
-                                @* <ValidationMessage For="() => employee.DepartmentId" /> *@
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!--Position Information-->
-            }
-
-            <!--Personal Information-->
-            <div class="card mb-3">
-                <div class="card-header">
-                    @SharedDataService.SelectViewLang("Personal information", "المعلومات الشخصية")
-                </div>
-                <div class="card-body">
-                    @* emp photo *@
-                    <div class="mb-3 row">
-                        <label for="DateOfBirth" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Photo", "الصورة")</label>
-                        <div class="col-sm-10">
-                            <label for="profileUpload" style="cursor:pointer;">
-                                <img src="@(string.IsNullOrEmpty(employee?.PhotoUrl)
-                                    ? "_content/AlAfkarERP.Shared/images/empPlaceholder.png"
-                                    : (employee.PhotoUrl.Contains("data:")
-                                        ? employee.PhotoUrl
-                                        : $"{ApiConfig.BaseURL}/Images/Employees/{employee.PhotoUrl}"))"
-                                     alt="Add product image"
-                                     height="50"
-                                     width="50"
-                                     class="card-img-top" />
-
-                            </label>
-
-                            <InputFile id="profileUpload"
-                                       style="display:none"
-                                       OnChange="OnEmployeeImageSelected"
-                                       accept="image/*" />
-                            <ValidationMessage For="@(() => employee.PhotoUrl)" class="text-danger" />
-                        </div>
-                    </div>
-
-                    <div class="mb-3 row">
-                        <label for="Phone" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Code", "الكود")</label>
-                        <div class="col-sm-10">
-                            <InputText class="form-control" id="Phone" @bind-Value="employee.Code" disabled="@Id.HasValue" />
-                            <label class="text-muted text-danger">يمثل اسم المستخدم ويتم استخدامه عند تسجيل الدخول</label>
-                            <ValidationMessage For="() => employee.Code" />
-                        </div>
-                    </div>
-                
-                    <!--Name Arabic-->
-                    <div class="mb-3 row">
-                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Employee Name (Ar)", "اسم الموظف (ع)")</label>
-                        <div class="col-sm-10">
-                            <div class="mb-3 row">
-                                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("First", "الاول")</label>
-                                <div class="col-sm-10">
-                                    <InputText class="form-control" id="inputFirstName" @bind-Value="employee.FirstName" />
+                        <div class="employee-name-group">
+                            <div class="employee-group-label">@SharedDataService.SelectViewLang("Employee Name (Ar)", "اسم الموظف (ع)")</div>
+                            <div class="employee-form-grid employee-form-grid-three">
+                                <div class="employee-field">
+                                    <label for="employee-first-name-ar" class="form-label">@SharedDataService.SelectViewLang("First", "الأول")</label>
+                                    <InputText class="form-control" id="employee-first-name-ar" @bind-Value="employee.FirstName" />
                                     <ValidationMessage For="() => employee.FirstName" />
                                 </div>
-                            </div>
-                            <div class="mb-3 row">
-                                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Middle", "الأوسط")</label>
-                                <div class="col-sm-10">
-                                    <InputText class="form-control" id="inputFirstName" @bind-Value="employee.MiddleName" />
+                                <div class="employee-field">
+                                    <label for="employee-middle-name-ar" class="form-label">@SharedDataService.SelectViewLang("Middle", "الأوسط")</label>
+                                    <InputText class="form-control" id="employee-middle-name-ar" @bind-Value="employee.MiddleName" />
                                     <ValidationMessage For="() => employee.MiddleName" />
                                 </div>
-                            </div>
-                            <div class="mb-3 row">
-                                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Last", "الأخير")</label>
-                                <div class="col-sm-10">
-                                    <InputText class="form-control" id="inputFirstName" @bind-Value="employee.LastName" />
+                                <div class="employee-field">
+                                    <label for="employee-last-name-ar" class="form-label">@SharedDataService.SelectViewLang("Last", "الأخير")</label>
+                                    <InputText class="form-control" id="employee-last-name-ar" @bind-Value="employee.LastName" />
                                     <ValidationMessage For="() => employee.LastName" />
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!--Name Eng-->
-                    <div class="mb-3 row">
-                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Employee Name (Eng.)", "اسم الموظف (E)")</label>
-                        <div class="col-sm-10">
-                            <div class="mb-3 row">
-                                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("First", "الاول")</label>
-                                <div class="col-sm-10">
-                                    <InputText class="form-control" id="inputFirstName" @bind-Value="employee.FirstNameEng" />
+                        <div class="employee-name-group">
+                            <div class="employee-group-label">@SharedDataService.SelectViewLang("Employee Name (Eng.)", "اسم الموظف (E)")</div>
+                            <div class="employee-form-grid employee-form-grid-three">
+                                <div class="employee-field">
+                                    <label for="employee-first-name-en" class="form-label">@SharedDataService.SelectViewLang("First", "الأول")</label>
+                                    <InputText class="form-control" id="employee-first-name-en" @bind-Value="employee.FirstNameEng" />
                                     <ValidationMessage For="() => employee.FirstNameEng" />
                                 </div>
-                            </div>
-                            <div class="mb-3 row">
-                                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Middle", "الأوسط")</label>
-                                <div class="col-sm-10">
-                                    <InputText class="form-control" id="inputFirstName" @bind-Value="employee.MiddleNameEng" />
+                                <div class="employee-field">
+                                    <label for="employee-middle-name-en" class="form-label">@SharedDataService.SelectViewLang("Middle", "الأوسط")</label>
+                                    <InputText class="form-control" id="employee-middle-name-en" @bind-Value="employee.MiddleNameEng" />
                                     <ValidationMessage For="() => employee.MiddleNameEng" />
                                 </div>
-                            </div>
-                            <div class="mb-3 row">
-                                <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Last", "الأخير")</label>
-                                <div class="col-sm-10">
-                                    <InputText class="form-control" id="inputFirstName" @bind-Value="employee.LastNameEng" />
+                                <div class="employee-field">
+                                    <label for="employee-last-name-en" class="form-label">@SharedDataService.SelectViewLang("Last", "الأخير")</label>
+                                    <InputText class="form-control" id="employee-last-name-en" @bind-Value="employee.LastNameEng" />
                                     <ValidationMessage For="() => employee.LastNameEng" />
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    
-                    @if (!Id.HasValue || 1==1)
-                    {
-                        <div class="mb-3 row">
-                            <label for="DateOfBirth" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Date Of Birth", "تاريخ الميلاد")</label>
-                            <div class="col-sm-10">
-                                <InputDate class="form-control" id="DateOfBirth" @bind-Value="employee.DateOfBirth" />
-                                <ValidationMessage For="() => employee.DateOfBirth" />
+                        <div class="employee-form-grid">
+                            @if (!Id.HasValue || 1 == 1)
+                            {
+                                <div class="employee-field">
+                                    <label for="employee-nationality" class="form-label">@SharedDataService.SelectViewLang("Nationality", "الجنسية")</label>
+                                    <InputSelect class="form-select" id="employee-nationality" @bind-Value="employee.Nationality">
+                                        @foreach (var nationality in Enum.GetValues<Nationality>())
+                                        {
+                                            <option value="@nationality">
+                                                @NationalityTranslator.GetDisplay(nationality, SharedDataService.Language)
+                                            </option>
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="() => employee.Nationality" />
+                                </div>
+                            }
+
+                            <div class="employee-field">
+                                <label for="employee-national-id" class="form-label">@SharedDataService.SelectViewLang("NationalId", "رقم الهوية")</label>
+                                <InputText class="form-control" id="employee-national-id" @bind-Value="employee.NationalId" />
+                                <ValidationMessage For="() => employee.NationalId" />
                             </div>
-                        </div>
-                        
-                        <div class="mb-3 row">
-                            <label class="col-sm-2 col-form-label">
-                                @SharedDataService.SelectViewLang("Nationality", "الجنسية")
-                            </label>
-                            <div class="col-sm-10">
-                                <InputSelect class="form-control" @bind-Value="employee.Nationality">
-                                    @foreach (var nationality in Enum.GetValues<Nationality>())
+
+                            <div class="employee-field">
+                                <label for="employee-identity-type" class="form-label">@SharedDataService.SelectViewLang("Identity Type", "نوع الهوية")</label>
+                                <InputSelect class="form-select" id="employee-identity-type" @bind-Value="employee.IdentityType">
+                                    @foreach (var type in Enum.GetValues<IdentityType>())
                                     {
-                                        <option value="@nationality">
-                                            @NationalityTranslator.GetDisplay(nationality, SharedDataService.Language)
+                                        <option value="@type">
+                                            @GetIdentityTypeDisplay(type)
                                         </option>
                                     }
                                 </InputSelect>
-                                <ValidationMessage For="() => employee.Nationality" />
+                                <ValidationMessage For="() => employee.IdentityType" />
                             </div>
-                        </div>
 
-                    }
+                            @if (!Id.HasValue)
+                            {
+                                <div class="employee-field">
+                                    <label for="employee-gender" class="form-label">@SharedDataService.SelectViewLang("Gender", "النوع")</label>
+                                    <InputSelect class="form-select" id="employee-gender" @bind-Value="employee.Gender">
+                                        @foreach (var gender in Enum.GetValues<Gender>())
+                                        {
+                                            <option value="@gender">
+                                                @GetGenderDisplay(gender)
+                                            </option>
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="() => employee.Gender" />
+                                </div>
+                            }
 
-                    <div class="mb-3 row">
-                        <label for="NationalId" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("NationalId", "رقم الهوية")</label>
-                        <div class="col-sm-10">
-                            <InputText class="form-control" id="NationalId" @bind-Value="employee.NationalId" />
-                            <ValidationMessage For="() => employee.NationalId" />
-                        </div>
-                    </div>
-            
-                    <div class="mb-3 row">
-                        <label class="col-sm-2 col-form-label">
-                            @SharedDataService.SelectViewLang("Identity Type", "نوع الهوية")
-                        </label>
-                        <div class="col-sm-10">
-                            <InputSelect class="form-control" @bind-Value="employee.IdentityType">
-                                @foreach (var type in Enum.GetValues<IdentityType>())
-                                {
-                                    <option value="@type">
-                                        @GetIdentityTypeDisplay(type)
-                                    </option>
-                                }
-                            </InputSelect>
-                            <ValidationMessage For="() => employee.IdentityType" />
-                        </div>
-                    </div>
-
-                    @if (!Id.HasValue)
-                    {
-
-                        <div class="mb-3 row">
-                            <label class="col-sm-2 col-form-label">
-                                @SharedDataService.SelectViewLang("Gender", "النوع")
-                            </label>
-                            <div class="col-sm-10">
-                                <InputSelect class="form-control" @bind-Value="employee.Gender">
-                                    @foreach (var gender in Enum.GetValues<Gender>())
+                            <div class="employee-field">
+                                <label for="employee-marital-status" class="form-label">@SharedDataService.SelectViewLang("Marital status", "الحالة الاجتماعية")</label>
+                                <InputSelect class="form-select" id="employee-marital-status" @bind-Value="employee.MaritalStatus">
+                                    @foreach (var maritalStatus in Enum.GetValues<MaritalStatus>())
                                     {
-                                        <option value="@gender">
-                                            @GetGenderDisplay(gender)
+                                        <option value="@maritalStatus">
+                                            @GetMaritalStatusDisplay(maritalStatus)
                                         </option>
                                     }
                                 </InputSelect>
-                                <ValidationMessage For="() => employee.Gender" />
+                                <ValidationMessage For="() => employee.MaritalStatus" />
                             </div>
                         </div>
-                    }
-
-
-                    <div class="mb-3 row">
-                        <label class="col-sm-2 col-form-label">
-                            @SharedDataService.SelectViewLang("Marital status", "الحالة الاجتماعية")
-                        </label>
-                        <div class="col-sm-10">
-                            <InputSelect class="form-control" @bind-Value="employee.MaritalStatus">
-                                @foreach (var maritalStatus in Enum.GetValues<MaritalStatus>())
-                                {
-                                    <option value="@maritalStatus">
-                                        @GetMaritalStatusDisplay(maritalStatus)
-                                    </option>
-                                }
-                            </InputSelect>
-                            <ValidationMessage For="() => employee.MaritalStatus" />
-                        </div>
                     </div>
-
-                    <div class="mb-3 row">
-                        <label for="Email" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Email", "الايميل")</label>
-                        <div class="col-sm-10">
-                            <InputText class="form-control" id="Email" @bind-Value="employee.Email" />
-                            <ValidationMessage For="() => employee.Email" />
-                        </div>
-                    </div>
-                    <div class="mb-3 row">
-                        <label for="Phone" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Phone", "الهاتف")</label>
-                        <div class="col-sm-10">
-                            <InputText class="form-control" id="Phone" @bind-Value="employee.Phone" />
-                            <ValidationMessage For="() => employee.Phone" />
-                        </div>
-                    </div>
-            
-                    <div class="mb-3 row">
-                        <label for="Address" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Address", "العنوان الحالي")</label>
-                        <div class="col-sm-10">
-                            <InputText class="form-control" id="Address" @bind-Value="employee.Address" />
-                            <ValidationMessage For="() => employee.Address" />
-                        </div>
-                    </div>
-            
                 </div>
-            </div>
-            <!--Personal Information-->
-            <!--Qualifications-->
-            <div class="card mb-3">
-                <div class="card-header">
-                    @SharedDataService.SelectViewLang("Scientific Qualifications", "المؤهلات العلمية")
+            </AppCard>
+
+            <AppCard Title="@(SharedDataService.SelectViewLang("Contact Details", "بيانات التواصل"))"
+                     Subtitle="@(SharedDataService.SelectViewLang("Keep employee communication details current.", "حافظ على تحديث بيانات التواصل الخاصة بالموظف."))">
+                <div class="employee-form-grid">
+                    <div class="employee-field">
+                        <label for="employee-email" class="form-label">@SharedDataService.SelectViewLang("Email", "الايميل")</label>
+                        <InputText class="form-control" id="employee-email" @bind-Value="employee.Email" />
+                        <ValidationMessage For="() => employee.Email" />
+                    </div>
+
+                    <div class="employee-field">
+                        <label for="employee-phone" class="form-label">@SharedDataService.SelectViewLang("Phone", "الهاتف")</label>
+                        <InputText class="form-control" id="employee-phone" @bind-Value="employee.Phone" />
+                        <ValidationMessage For="() => employee.Phone" />
+                    </div>
+
+                    <div class="employee-field employee-field-wide">
+                        <label for="employee-address" class="form-label">@SharedDataService.SelectViewLang("Address", "العنوان الحالي")</label>
+                        <InputText class="form-control" id="employee-address" @bind-Value="employee.Address" />
+                        <ValidationMessage For="() => employee.Address" />
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="mb-3 row">
-                        <label class="col-sm-2 col-form-label">
-                            @SharedDataService.SelectViewLang("Qualification", "الدرجة العلمية")
-                        </label>
-                        <div class="col-sm-10">
-                            <InputSelect class="form-control" @bind-Value="employee.Qualification">
-                                @foreach (var qualification in Enum.GetValues<Qualification>())
-                                {
-                                    <option value="@qualification">
-                                        @GetQualificationDisplay(qualification)
-                                    </option>
-                                }
-                            </InputSelect>
-                            <ValidationMessage For="() => employee.IdentityType" />
-                        </div>
+            </AppCard>
+
+            <AppCard Title="@(SharedDataService.SelectViewLang("Scientific Qualifications", "المؤهلات العلمية"))"
+                     Subtitle="@(SharedDataService.SelectViewLang("Academic background and specialization details.", "الخلفية العلمية وبيانات التخصص."))">
+                <div class="employee-form-grid">
+                    <div class="employee-field">
+                        <label for="employee-qualification" class="form-label">@SharedDataService.SelectViewLang("Qualification", "الدرجة العلمية")</label>
+                        <InputSelect class="form-select" id="employee-qualification" @bind-Value="employee.Qualification">
+                            @foreach (var qualification in Enum.GetValues<Qualification>())
+                            {
+                                <option value="@qualification">
+                                    @GetQualificationDisplay(qualification)
+                                </option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="() => employee.IdentityType" />
                     </div>
 
-                    <div class="mb-3 row">
-                        <label for="specialization" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Specialization", "التخصص")</label>
-                        <div class="col-sm-10">
-                            <AutoCompleteComponent TItem="SpecializationDto"
-                                                   Items="specializations"
-                                                   Value="selectedSpecialization"
-                                                   ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
-                                                   ValueChanged="OnSpecializationSelected">
-                            </AutoCompleteComponent>
-                                
-                            <ValidationMessage For="() => employee.SpecializationId" />
-                        </div>
+                    <div class="employee-field">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Specialization", "التخصص")</label>
+                        <AutoCompleteComponent TItem="SpecializationDto"
+                                               Items="specializations"
+                                               Value="selectedSpecialization"
+                                               ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
+                                               ValueChanged="OnSpecializationSelected">
+                        </AutoCompleteComponent>
+                        <ValidationMessage For="() => employee.SpecializationId" />
                     </div>
-                    <div class="mb-3 row">
-                        <label for="academicInistitution" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Academic Institution", "جهة الدراسة")</label>
-                        <div class="col-sm-10">
-                            <AutoCompleteComponent TItem="AcademicInstitutionDto"
-                                                   Items="academicInstitutions"
-                                                   Value="selectedAcademicInistitution"
-                                                   ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
-                                                   ValueChanged="OnAcademicInistitutionSelected">
-                            </AutoCompleteComponent>
-                            
-                            <ValidationMessage For="() => employee.AcademicInstituteId" />
-                        </div>
+
+                    <div class="employee-field">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Academic Institution", "جهة الدراسة")</label>
+                        <AutoCompleteComponent TItem="AcademicInstitutionDto"
+                                               Items="academicInstitutions"
+                                               Value="selectedAcademicInistitution"
+                                               ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
+                                               ValueChanged="OnAcademicInistitutionSelected">
+                        </AutoCompleteComponent>
+                        <ValidationMessage For="() => employee.AcademicInstituteId" />
                     </div>
-                    <div class="mb-3 row">
-                        <label for="branch" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Graduation Year", "سنة التخرج")</label>
-                        <div class="col-sm-10">
-                            <InputSelect class="form-control" @bind-Value="employee.GraduationYear">
-                                @foreach (var gy in graduationYears.ToList())
-                                {
-                                    <option value="@gy">
-                                        @gy
-                                    </option>
-                                }
-                            </InputSelect>
-                            <ValidationMessage For="() => employee.GraduationYear" />
-                        </div>
+
+                    <div class="employee-field">
+                        <label for="employee-graduation-year" class="form-label">@SharedDataService.SelectViewLang("Graduation Year", "سنة التخرج")</label>
+                        <InputSelect class="form-select" id="employee-graduation-year" @bind-Value="employee.GraduationYear">
+                            @foreach (var gy in graduationYears.ToList())
+                            {
+                                <option value="@gy">
+                                    @gy
+                                </option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="() => employee.GraduationYear" />
                     </div>
-                    
                 </div>
-            </div>
-            <!--Qualifications-->
-            <!--Employment Data-->
-            <div class="card mb-3">
-                <div class="card-header">
-                    @SharedDataService.SelectViewLang("Employment information", "المعلومات الوظيفية")
+            </AppCard>
+
+            <AppCard Title="@(SharedDataService.SelectViewLang("Employment & Attendance", "الوظيفة والحضور"))"
+                     Subtitle="@(SharedDataService.SelectViewLang("Employment identifiers, position assignment, and attendance rules.", "الأرقام الوظيفية والمسمى وقواعد الحضور."))">
+                <div class="employee-form-grid">
+                    <div class="employee-field">
+                        <label for="employee-number" class="form-label">@SharedDataService.SelectViewLang("Employee No", "الرقم الوظيفي")</label>
+                        <InputText class="form-control" id="employee-number" @bind-Value="employee.EmployeeNo" />
+                        <ValidationMessage For="() => employee.EmployeeNo" />
+                    </div>
+
+                    <div class="employee-field">
+                        <label for="employee-hire-date" class="form-label">@SharedDataService.SelectViewLang("HireDate", "تاريخ التعيين")</label>
+                        <InputDate class="form-control" id="employee-hire-date" @bind-Value="employee.HireDate" />
+                        <ValidationMessage For="() => employee.HireDate" />
+                    </div>
+
+                    <div class="employee-field">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Position", "المسمى الوظيفي")</label>
+                        <AutoCompleteComponent TItem="PositionDto"
+                                               Items="positions"
+                                               Value="selectedPosition"
+                                               ValueChanged="OnPositionSelected"
+                                               ItemText="(b=> SharedDataService.SelectViewLang(b.TitleEng,b.Title))">
+                        </AutoCompleteComponent>
+                        <ValidationMessage For="() => employee.PositionId" />
+                    </div>
+
+                    <div class="employee-field">
+                        <label for="employee-employment-type" class="form-label">@SharedDataService.SelectViewLang("Employment Type", "نوع الدوام")</label>
+                        <InputSelect class="form-select" id="employee-employment-type" @bind-Value="employee.EmploymentType">
+                            @foreach (var employmentType in Enum.GetValues<EmploymentType>())
+                            {
+                                <option value="@employmentType">
+                                    @GetEmploymentTypeDisplay(employmentType)
+                                </option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="() => employee.EmploymentType" />
+                    </div>
+
+                    <div class="employee-field">
+                        <label for="employee-attendance-type" class="form-label">@SharedDataService.SelectViewLang("Attendance Type", "نوع الحضور")</label>
+                        <InputSelect class="form-select" id="employee-attendance-type" @bind-Value="employee.AttendanceType">
+                            @foreach (var attendanceType in Enum.GetValues<EmployeeAttendanceType>())
+                            {
+                                <option value="@attendanceType">
+                                    @GetAttendanceTypeDisplay(attendanceType)
+                                </option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="() => employee.AttendanceType" />
+                    </div>
+
+                    <div class="employee-field">
+                        <label for="employee-allowed-radius" class="form-label">@SharedDataService.SelectViewLang("Allowed Radius (meters)", "النطاق المسموح بالمتر")</label>
+                        <InputNumber class="form-control"
+                                     id="employee-allowed-radius"
+                                     min="1"
+                                     @bind-Value="employee.AllowedRadiusMeters" />
+                        <div class="employee-help-text">
+                            @SharedDataService.SelectViewLang(
+                                "Used for fixed-location attendance. If left empty, the assigned department radius is used.",
+                                "يستخدم لحضور الموقع الثابت. عند تركه فارغا سيتم استخدام نطاق القسم.")
+                        </div>
+                        <ValidationMessage For="() => employee.AllowedRadiusMeters" />
+                    </div>
                 </div>
-                <div class="card-body">
+            </AppCard>
 
-                            @* disabled="@(Id.HasValue && Id != Guid.Empty)"  *@
-                    <div class="mb-3 row">
-                        <label for="inputEmployeeNo" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Employee No", "الرقم الوظيفي")</label>
-                        <div class="col-sm-10">
-                            <InputText class="form-control" id="inputEmployeeNo" @bind-Value="employee.EmployeeNo" />
-                            <ValidationMessage For="() => employee.EmployeeNo" />
-                        </div>
-                    </div>
-                    <div class="mb-3 row">
-                        <label for="HireDate" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("HireDate", "تاريخ التعيين")</label>
-                        <div class="col-sm-10">
-                            <InputDate class="form-control" id="HireDate" @bind-Value="employee.HireDate" />
-                            <ValidationMessage For="() => employee.HireDate" />
-                        </div>
-                    </div>
-                    @* @if (!Id.HasValue)
-                    { 
-                    }
-                    *@
-                
-                    <div class="mb-3 row">
-                        <label for="position" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Select Position", "اختر المسمى الوظيفي")</label>
-                        <div class="col-sm-10">
-                            <AutoCompleteComponent TItem="PositionDto"
-                                                   Items="positions"
-                                                   Value="selectedPosition"
-                                                   ValueChanged="OnPositionSelected"
-                                                   ItemText="(b=> SharedDataService.SelectViewLang(b.TitleEng,b.Title))">
-                                @* OnSelected="OnPositionSelected" *@
-                            </AutoCompleteComponent>
-                            <ValidationMessage For="() => employee.PositionId" />
-                        </div>
-                    </div>
-
-                    <div class="mb-3 row">
-                        <label class="col-sm-2 col-form-label">
-                            @SharedDataService.SelectViewLang("Employment Type", "نوع الدوام")
-                        </label>
-                        <div class="col-sm-10">
-                            <InputSelect class="form-control" @bind-Value="employee.EmploymentType">
-                                @foreach (var employmentType in Enum.GetValues<EmploymentType>())
-                                {
-                                    <option value="@employmentType">
-                                        @GetEmploymentTypeDisplay(employmentType)
-                                    </option>
-                                }
-                            </InputSelect>
-                            <ValidationMessage For="() => employee.EmploymentType" />
-                        </div>
-                    </div>
-
-                    <div class="mb-3 row">
-                        <label class="col-sm-2 col-form-label">
-                            @SharedDataService.SelectViewLang("Attendance Type", "نوع الحضور")
-                        </label>
-                        <div class="col-sm-10">
-                            <InputSelect class="form-control" @bind-Value="employee.AttendanceType">
-                                @foreach (var attendanceType in Enum.GetValues<EmployeeAttendanceType>())
-                                {
-                                    <option value="@attendanceType">
-                                        @GetAttendanceTypeDisplay(attendanceType)
-                                    </option>
-                                }
-                            </InputSelect>
-                            <ValidationMessage For="() => employee.AttendanceType" />
-                        </div>
-                    </div>
-
-                    <div class="mb-3 row">
-                        <label class="col-sm-2 col-form-label">
-                            @SharedDataService.SelectViewLang("Allowed Radius (meters)", "النطاق المسموح بالمتر")
-                        </label>
-                        <div class="col-sm-10">
-                            <InputNumber class="form-control"
-                                         min="1"
-                                         @bind-Value="employee.AllowedRadiusMeters" />
-                            <div class="form-text">
-                                @SharedDataService.SelectViewLang(
-                                    "Used for fixed-location attendance. If left empty, the assigned department radius is used.",
-                                    "يستخدم لحضور الموقع الثابت. عند تركه فارغا سيتم استخدام نطاق القسم.")
-                            </div>
-                            <ValidationMessage For="() => employee.AllowedRadiusMeters" />
-                        </div>
-                    </div>
-
-                </div>
+            <div class="employee-validation-summary">
+                <ValidationSummary />
             </div>
 
-            
-            <div class="card mb-3">
-                <div class="card-body">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-floppy2-fill m-1"></i>
-                        
-                        @(Id.HasValue ? SharedDataService.SelectViewLang("تعديل", "Update") : SharedDataService.SelectViewLang("حفظ", "Save"))
-                    
-                    </button>
-                    <button type="button" class="btn btn-dark" @onclick="onCancel"><i class="bi bi-stop-circle-fill"></i> @(SharedDataService.Language == "Ar" ? "إلغاء" : "Cancel")</button>
-                </div>
+            <div class="employee-form-footer">
+                <button type="button" class="btn btn-outline-secondary employee-form-action" @onclick="onCancel">
+                    <i class="bi bi-x-lg"></i>
+                    @SharedDataService.SelectViewLang("Cancel", "إلغاء")
+                </button>
+                <button type="submit" class="btn btn-primary employee-form-action">
+                    <i class="bi bi-floppy2-fill"></i>
+                    @(Id.HasValue ? SharedDataService.SelectViewLang("Update", "تعديل") : SharedDataService.SelectViewLang("Save", "حفظ"))
+                </button>
             </div>
-
-               
-
-        </section>
-
-        <!--buttons-->
+        </div>
     </EditForm>
-</section>
+</div>
+
+<style>
+    .employee-form-page {
+        max-width: 1320px;
+    }
+
+    .employee-form-stack {
+        display: grid;
+        gap: var(--erp-space-4);
+    }
+
+    .employee-form-grid {
+        display: grid;
+        gap: var(--erp-space-4);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .employee-form-grid-three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .employee-field,
+    .employee-profile-fields {
+        min-width: 0;
+    }
+
+    .employee-field-wide {
+        grid-column: 1 / -1;
+    }
+
+    .employee-field .form-label {
+        align-items: center;
+        display: flex;
+        gap: var(--erp-space-2);
+        margin-bottom: var(--erp-space-2);
+    }
+
+    .employee-profile-layout {
+        align-items: flex-start;
+        display: grid;
+        gap: var(--erp-space-5);
+        grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+    }
+
+    .employee-photo-panel {
+        align-items: center;
+        background: var(--erp-surface-muted);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
+        display: grid;
+        justify-items: center;
+        padding: var(--erp-space-5);
+        text-align: center;
+    }
+
+    .employee-avatar-upload {
+        cursor: pointer;
+        display: grid;
+        gap: var(--erp-space-3);
+        justify-items: center;
+        margin: 0;
+    }
+
+    .employee-avatar {
+        aspect-ratio: 1;
+        background: var(--erp-surface);
+        border: 4px solid var(--erp-surface);
+        border-radius: 50%;
+        box-shadow: var(--erp-shadow-sm);
+        height: 132px;
+        object-fit: cover;
+        width: 132px;
+    }
+
+    .employee-photo-button {
+        align-items: center;
+        display: inline-flex;
+        gap: var(--erp-space-2);
+    }
+
+    .employee-file-input {
+        height: 1px;
+        opacity: 0;
+        overflow: hidden;
+        position: absolute;
+        width: 1px;
+    }
+
+    .employee-help-text {
+        color: var(--erp-text-muted);
+        font-size: var(--erp-font-size-sm);
+        margin-top: var(--erp-space-2);
+    }
+
+    .employee-name-group {
+        border-top: 1px solid var(--erp-border);
+        margin-top: var(--erp-space-4);
+        padding-top: var(--erp-space-4);
+    }
+
+    .employee-group-label {
+        color: var(--erp-text);
+        font-weight: 800;
+        margin-bottom: var(--erp-space-3);
+    }
+
+    .employee-form-action {
+        align-items: center;
+        display: inline-flex;
+        gap: var(--erp-space-2);
+        min-height: 42px;
+    }
+
+    .employee-form-footer {
+        align-items: center;
+        background: color-mix(in srgb, var(--erp-surface) 96%, transparent);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
+        bottom: var(--erp-space-3);
+        box-shadow: var(--erp-shadow-sm);
+        display: flex;
+        gap: var(--erp-space-3);
+        justify-content: flex-end;
+        padding: var(--erp-space-3);
+        position: sticky;
+        z-index: 4;
+    }
+
+    .employee-validation-summary ul {
+        margin-bottom: 0;
+    }
+
+    .employee-validation-summary:not(:has(ul)) {
+        display: none;
+    }
+
+    @@media (max-width: 991.98px) {
+        .employee-profile-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .employee-photo-panel {
+            justify-items: flex-start;
+            text-align: start;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .employee-form-grid,
+        .employee-form-grid-three {
+            grid-template-columns: 1fr;
+        }
+
+        .employee-form-footer {
+            align-items: stretch;
+            flex-direction: column-reverse;
+        }
+
+        .employee-form-footer .btn {
+            justify-content: center;
+            width: 100%;
+        }
+    }
+</style>
 @code {
     [Parameter]
     public Guid? Id { get; set; }

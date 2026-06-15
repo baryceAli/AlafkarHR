@@ -1,15 +1,178 @@
-﻿@layout AuthLayout
+@layout AuthNewLayout
 @page "/register"
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Auth.Layout
+@using AlAfkarERP.Shared.Pages.Features.Auth.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
+@using SharedWithUI.Auth.Dtos
+@using System.ComponentModel.DataAnnotations
+@implements IDisposable
+
+@inject IAuthService AuthService
+@inject ApiConfig ApiConfig
+@inject ModalService ModalService
+@inject LoadingService LoadingService
+@inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-<h3>RegisterPage</h3>
+<section class="auth-page" dir="@SharedDataService.PageDirection" lang="@CurrentLangCode">
+    <header class="auth-topbar">
+        <a class="auth-brand" href="/login" aria-label="ALAFKARERP">
+            <span class="auth-brand-mark" aria-hidden="true">A</span>
+            <span>ALAFKARERP</span>
+        </a>
+
+        <button type="button" class="language-switch" @onclick="ChangeLanguage" aria-label="@Text("Change language", "تغيير اللغة")">
+            <i class="bi bi-globe2" aria-hidden="true"></i>
+            <span>@Text("العربية", "English")</span>
+        </button>
+    </header>
+
+    <main class="auth-main">
+        <div class="auth-shell">
+            <section class="auth-panel">
+                <div class="auth-panel-inner">
+                    <div class="auth-kicker">@Text("Customer access", "دخول العملاء")</div>
+
+                    <div class="auth-panel-header">
+                        <h1>@Text("Create your account", "إنشاء حسابك")</h1>
+                        <p>@Text("Register as a customer to access your workspace and follow your business activity securely.", "سجل كعميل للوصول إلى مساحة عملك ومتابعة نشاطك التجاري بأمان.")</p>
+                    </div>
+
+                    <EditForm Model="@registerModel" OnValidSubmit="HandleRegister" class="auth-form">
+                        <DataAnnotationsValidator />
+
+                        <div class="form-field">
+                            <label for="userName">@Text("Username", "اسم المستخدم")</label>
+                            <div class="input-shell">
+                                <i class="bi bi-person" aria-hidden="true"></i>
+                                <InputText id="userName" class="form-control auth-input" @bind-Value="registerModel.UserName" autocomplete="username" />
+                            </div>
+                            <ValidationMessage For="@(() => registerModel.UserName)" />
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="email">@Text("Email", "البريد الإلكتروني")</label>
+                                <div class="input-shell">
+                                    <i class="bi bi-envelope" aria-hidden="true"></i>
+                                    <InputText id="email" type="email" class="form-control auth-input" @bind-Value="registerModel.Email" autocomplete="email" />
+                                </div>
+                                <ValidationMessage For="@(() => registerModel.Email)" />
+                            </div>
+
+                            <div class="form-field">
+                                <label for="phone">@Text("Phone number", "رقم الجوال")</label>
+                                <div class="input-shell">
+                                    <i class="bi bi-telephone" aria-hidden="true"></i>
+                                    <InputText id="phone" type="tel" class="form-control auth-input" @bind-Value="registerModel.PhoneNumber" autocomplete="tel" />
+                                </div>
+                                <ValidationMessage For="@(() => registerModel.PhoneNumber)" />
+                            </div>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="password">@Text("Password", "كلمة المرور")</label>
+                            <div class="input-shell password-shell">
+                                <i class="bi bi-lock" aria-hidden="true"></i>
+                                <InputText id="password" type="@(showPassword ? "text" : "password")" class="form-control auth-input" @bind-Value="registerModel.Password" autocomplete="new-password" />
+                                <button type="button" class="password-toggle" @onclick="TogglePassword" aria-label="@Text("Toggle password visibility", "إظهار أو إخفاء كلمة المرور")">
+                                    <i class="bi @(showPassword ? "bi-eye-slash" : "bi-eye")" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <ValidationMessage For="@(() => registerModel.Password)" />
+                        </div>
+
+                        <div class="form-field">
+                            <label for="confirmPassword">@Text("Confirm password", "تأكيد كلمة المرور")</label>
+                            <div class="input-shell password-shell">
+                                <i class="bi bi-shield-lock" aria-hidden="true"></i>
+                                <InputText id="confirmPassword" type="@(showConfirmPassword ? "text" : "password")" class="form-control auth-input" @bind-Value="registerModel.ConfirmPassword" autocomplete="new-password" />
+                                <button type="button" class="password-toggle" @onclick="ToggleConfirmPassword" aria-label="@Text("Toggle password visibility", "إظهار أو إخفاء كلمة المرور")">
+                                    <i class="bi @(showConfirmPassword ? "bi-eye-slash" : "bi-eye")" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <ValidationMessage For="@(() => registerModel.ConfirmPassword)" />
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(formError))
+                        {
+                            <div class="form-alert" role="alert">
+                                <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                                <span>@formError</span>
+                            </div>
+                        }
+
+                        <button type="submit" class="auth-button" disabled="@isSubmitting" aria-busy="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                                <span>@Text("Creating account...", "جاري إنشاء الحساب...")</span>
+                            }
+                            else
+                            {
+                                <span>@Text("Create customer account", "إنشاء حساب عميل")</span>
+                                <i class="bi bi-arrow-right-short" aria-hidden="true"></i>
+                            }
+                        </button>
+
+                        <p class="auth-link-row">
+                            <span>@Text("Already have an account?", "لديك حساب بالفعل؟")</span>
+                            <a href="/login">@Text("Login", "تسجيل الدخول")</a>
+                        </p>
+                    </EditForm>
+                </div>
+            </section>
+
+            <aside class="auth-hero" aria-label="@Text("Customer portal overview", "نبذة عن بوابة العملاء")">
+                <div class="hero-content">
+                    <div class="hero-badge">
+                        <i class="bi bi-person-check" aria-hidden="true"></i>
+                        <span>@Text("Customer workspace", "مساحة عمل العملاء")</span>
+                    </div>
+
+                    <h2>@Text("Start with secure customer access", "ابدأ بدخول آمن للعملاء")</h2>
+                    <p>@Text("Your account is tied to this company workspace and protected by the same authentication flow used across ALAFKARERP.", "يرتبط حسابك بمساحة عمل هذه الشركة ويحميه نفس مسار المصادقة المستخدم في ألفكار ERP.")</p>
+                </div>
+
+                <div class="hero-features">
+                    <div class="hero-feature">
+                        <i class="bi bi-building-check" aria-hidden="true"></i>
+                        <span>@Text("Company-specific registration", "تسجيل مخصص للشركة")</span>
+                    </div>
+                    <div class="hero-feature">
+                        <i class="bi bi-envelope-check" aria-hidden="true"></i>
+                        <span>@Text("Email confirmation OTP", "رمز تأكيد عبر البريد")</span>
+                    </div>
+                    <div class="hero-feature">
+                        <i class="bi bi-shield-check" aria-hidden="true"></i>
+                        <span>@Text("Customer-only access type", "نوع دخول مخصص للعملاء")</span>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </main>
+</section>
 
 @code {
+    private readonly RegisterFormModel registerModel = new();
+    private bool isSubmitting;
+    private bool showPassword;
+    private bool showConfirmPassword;
+    private string? formError;
+    private string CurrentLangCode => SharedDataService.Language == "Ar" ? "ar" : "en";
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 
     protected override void OnInitialized()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task ChangeLanguage()
+    {
+        await SharedDataService.UpdateLanguageAsync();
     }
 
     private async Task HandleChangeAsync()
@@ -17,8 +180,110 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private void TogglePassword()
+    {
+        showPassword = !showPassword;
+    }
+
+    private void ToggleConfirmPassword()
+    {
+        showConfirmPassword = !showConfirmPassword;
+    }
+
+    private async Task HandleRegister()
+    {
+        formError = null;
+
+        if (ApiConfig.CompanyId == Guid.Empty)
+        {
+            formError = Text("Registration is not configured for this company.", "لم يتم إعداد التسجيل لهذه الشركة.");
+            return;
+        }
+
+        if (!string.Equals(registerModel.Password, registerModel.ConfirmPassword, StringComparison.Ordinal))
+        {
+            formError = Text("Passwords do not match.", "كلمتا المرور غير متطابقتين.");
+            return;
+        }
+
+        try
+        {
+            isSubmitting = true;
+            LoadingService.Show();
+
+            var register = new RegisterDto(
+                Guid.Empty,
+                registerModel.UserName.Trim(),
+                registerModel.Email.Trim(),
+                registerModel.PhoneNumber.Trim(),
+                registerModel.Password,
+                UserType.Customer,
+                ApiConfig.CompanyId,
+                null);
+
+            var result = await AuthService.RegisterAsync(register);
+
+            if (result.IsSuccess)
+            {
+                await ModalService.ShowAsync(new ModalOptions
+                {
+                    Title = Text("Account created", "تم إنشاء الحساب"),
+                    Message = Text("Your customer account was created. Please check your email for the confirmation OTP, then login.", "تم إنشاء حساب العميل. يرجى مراجعة بريدك الإلكتروني للحصول على رمز التأكيد ثم تسجيل الدخول."),
+                    OkText = Text("Go to login", "الذهاب لتسجيل الدخول"),
+                    OnOk = async () => NavigationManager.NavigateTo("/login")
+                });
+
+                return;
+            }
+
+            await ShowErrorAsync(Text("Registration failed", "تعذر إنشاء الحساب"), result.Error?.Detail ?? result.Error?.Title);
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync(Text("Registration error", "خطأ في إنشاء الحساب"), ex.Message, ex.ToString());
+        }
+        finally
+        {
+            isSubmitting = false;
+            LoadingService.Hide();
+        }
+    }
+
+    private async Task ShowErrorAsync(string title, string? message, string? details = null)
+    {
+        await ModalService.ShowAsync(new ModalOptions
+        {
+            IsError = true,
+            Title = title,
+            Message = string.IsNullOrWhiteSpace(message) ? Text("Please review the form and try again.", "يرجى مراجعة النموذج والمحاولة مرة أخرى.") : message,
+            Details = details ?? string.Empty,
+            OkText = Text("OK", "موافق"),
+            OnOk = async () => { }
+        });
+    }
+
     public void Dispose()
     {
         SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+
+    private sealed class RegisterFormModel
+    {
+        [Required(ErrorMessage = "Username is required")]
+        public string UserName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Enter a valid email address")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Phone number is required")]
+        public string PhoneNumber { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Password is required")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Confirm password is required")]
+        public string ConfirmPassword { get; set; } = string.Empty;
     }
 }

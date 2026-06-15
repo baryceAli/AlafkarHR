@@ -24,8 +24,7 @@
                 ALAFKAR</a>
         </div>
 
-        @* <button @onclick='()=>NavigationManager.NavigateTo("/login")' class="btn btn-gold-outline">Login</button> *@
-        <a href="/login" class="gold-gradient-text">Login</a>
+        <button type="button" class="landing-login-link gold-gradient-text" @onclick="OnLogin">Login</button>
     </div>
 </nav>
 
@@ -62,6 +61,6 @@
 
     public void OnLogin()
     {
-        NavigationManager.NavigateTo("/login");
+        NavigationManager.NavigateTo("/login", forceLoad: true);
     }
 }

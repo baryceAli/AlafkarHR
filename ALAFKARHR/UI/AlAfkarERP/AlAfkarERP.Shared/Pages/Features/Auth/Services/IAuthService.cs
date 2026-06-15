@@ -6,6 +6,9 @@ namespace AlAfkarERP.Shared.Pages.Features.Auth.Services;
 public interface IAuthService
 {
     Task<ApiResult<LoginResponseDto>> LoginAsync(string email, string password);
+    Task<ApiResult<Guid>> RegisterAsync(RegisterDto register);
+    Task<ApiResult<bool>> GenerateResetPasswordOtpAsync(string userIdentifier);
+    Task<ApiResult<bool>> ConfirmOtpAsync(string userIdentifier, string otp);
     Task<bool> RefreshTokenAsync();
     Task LogoutAsync();
     //Task<ApiResult<PaginatedResult<UserDto>>> GetUsersAsync(Guid companyId,int pageIndex, int pageSize);

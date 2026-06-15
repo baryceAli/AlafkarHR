@@ -9,6 +9,17 @@
     --tertiary: #A6892F;
 }
 
+.home-page,
+.navbar-custom {
+    --primary: #D4AF37;
+    --on-primary: #131313;
+    --background: #0a0a0a;
+    --surface-container-low: #1c1b1b;
+    --surface-container-lowest: #0e0e0e;
+    --on-surface-variant: #d1d1d1;
+    --tertiary: #A6892F;
+}
+
 body {
     background-color: var(--background);
     color: white;
@@ -20,6 +31,19 @@ body {
     background: linear-gradient(to bottom, #D4AF37, #A6892F);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+}
+
+.landing-login-link {
+    border: 0;
+    font: inherit;
+    font-weight: 700;
+    padding: 0;
+}
+
+.landing-login-link:hover,
+.landing-login-link:focus-visible {
+    background: linear-gradient(to bottom, #f0d77c, #D4AF37);
+    -webkit-background-clip: text;
 }
 
 .material-symbols-outlined {

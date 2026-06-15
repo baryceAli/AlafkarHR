@@ -53,6 +53,46 @@ public class AuthService : AuthBaseApiService, IAuthService
         }
         return response;
     }
+
+    public async Task<ApiResult<Guid>> RegisterAsync(RegisterDto register)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/register")
+        {
+            Content = JsonContent.Create(new
+            {
+                Register = register
+            })
+        };
+
+        return await SendAsync<Guid>(request, "id");
+    }
+
+    public async Task<ApiResult<bool>> GenerateResetPasswordOtpAsync(string userIdentifier)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/reset-password")
+        {
+            Content = JsonContent.Create(new
+            {
+                UserIdentifier = userIdentifier
+            })
+        };
+
+        return await SendAsync<bool>(request, "isSuccess");
+    }
+
+    public async Task<ApiResult<bool>> ConfirmOtpAsync(string userIdentifier, string otp)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/confirm-otp")
+        {
+            Content = JsonContent.Create(new
+            {
+                UserIdentifier = userIdentifier,
+                OTP = otp
+            })
+        };
+
+        return await SendAsync<bool>(request, "isConfirmed");
+    }
     
     public async Task<bool> RefreshTokenAsync()
     {
