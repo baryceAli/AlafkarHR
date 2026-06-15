@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
 using SharedWithUI.Auth.Dtos;
 using System.Net.Http.Json;
@@ -9,7 +9,7 @@ public class UserService : BaseApiService, IUserService
 {
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
-    public UserService(HttpClient http, ApiConfig apiConfig) : base(http)
+    public UserService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         this._apiConfig = apiConfig;
         _path = $"api/{_apiConfig.Version}/auth";

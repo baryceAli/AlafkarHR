@@ -1,118 +1,69 @@
-﻿using Auth.Helpers;
+using Auth.Helpers;
 using Organization.Contracts.Companies.Features.GetCompanyAccessStatus;
 
 namespace Auth.Users.Features.Authentication.ValidateRefreshToken;
 
-public record RefreshTokenCommand(string AccessToken,string RefreshToken) : ICommand<RefreshTokenResult>;
-public record RefreshTokenResult(string NewAccessToken,string NewRefreshToken);
-public class RefreshTokenHandler (
-    AuthDbContext dbContext, 
-    IJwtTokenGenerator jwtTokenGenerator, 
-    UserManager<ApplicationUser> userManager,
-    IConfiguration configuration,
+public record RefreshTokenCommand(string RefreshToken) : ICommand<RefreshTokenResult>;
+public record RefreshTokenResult(string AccessToken, string RefreshToken);
+
+public class RefreshTokenHandler(
+    AuthDbContext dbContext,
+    IJwtTokenGenerator jwtTokenGenerator,
     ISender sender)
     : ICommandHandler<RefreshTokenCommand, RefreshTokenResult>
 {
     public async Task<RefreshTokenResult> Handle(RefreshTokenCommand command, CancellationToken cancellationToken)
     {
-
-        //1️⃣ Validate token
-        var jwtKey = configuration["JwtOptions:SecretKey"]!;
-        var principal = GetPrincipalFromExpiredToken(command.AccessToken, jwtKey);
-        //principal.Identity.
-        var userId  =principal.FindFirst(ClaimTypes.NameIdentifier)?.Value
-          ?? principal.FindFirst("sub")?.Value;
-
-        var userIdGuid= Guid.TryParse(userId, out var parsedGuid) ? parsedGuid : (Guid?)null;
-        if (userId is null)
+        if (string.IsNullOrWhiteSpace(command.RefreshToken))
             throw new Exception("Invalid token");
 
-        var userGuid = Guid.Parse(userId);
+        var refreshTokenHash = RefreshTokenGenerator.Hash(command.RefreshToken);
 
-        var dbUser = await dbContext.Users
+        var tokenOwner = await dbContext.Users
             .Include(u => u.RefreshTokens)
-            .FirstAsync(u => u.Id == userIdGuid);
-        
-        //var user = await userManager.FindByIdAsync(userGuid.ToString());
+            .FirstOrDefaultAsync(
+                u => u.RefreshTokens.Any(rt => rt.Token == refreshTokenHash),
+                cancellationToken);
 
-        if (dbUser == null)
-            throw new Exception("User not found");
+        if (tokenOwner is null)
+            throw new Exception("Invalid token");
 
-        var accessStatus = await sender.Send(new GetCompanyAccessStatusQuery(dbUser.CompanyId), cancellationToken);
-        if (!accessStatus.CanLogin)
-            throw new Exception("Company is disabled");
+        var refreshToken = tokenOwner.RefreshTokens
+            .FirstOrDefault(x => x.Token == refreshTokenHash);
 
-        //2️⃣ Generate new JWT
-        var roles = await userManager.GetRolesAsync(dbUser);
-        //var accessToken=jwtTokenGenerator.GenerateToken(dbUser,roles);
-        var accessToken = await jwtTokenGenerator.GenerateTokenAsync(dbUser);
-        //3️⃣ Generate new refresh token
-        var refreshToken = dbUser.RefreshTokens.FirstOrDefault(x => x.Token == command.RefreshToken);
-        
-        if (refreshToken == null || refreshToken.ExpiryDate < DateTime.UtcNow)
-            throw new Exception("Token not found");
+        if (refreshToken is null)
+            throw new Exception("Invalid token");
 
-        //4️⃣ Revoke old refresh token
+        var tokenOwnerName = tokenOwner.Email ?? tokenOwner.UserName ?? tokenOwner.Id.ToString();
 
-        // ❌ Reuse detection (CRITICAL SECURITY)
         if (!refreshToken.IsActive)
         {
-            // Token was revoked → possible attack
-            dbUser.RevokeRefreshToken(command.RefreshToken, dbUser.Email);
+            foreach (var activeToken in tokenOwner.RefreshTokens.Where(x => x.IsActive))
+            {
+                activeToken.Revoke(tokenOwnerName);
+            }
 
-            await dbContext.SaveChangesAsync();
-
+            await dbContext.SaveChangesAsync(cancellationToken);
             throw new Exception("Token reuse detected");
         }
 
+        var accessStatus = await sender.Send(new GetCompanyAccessStatusQuery(tokenOwner.CompanyId), cancellationToken);
+        if (!accessStatus.CanLogin)
+            throw new Exception("Company is disabled");
 
-        // 🔁 ROTATION
-        //var newRefreshToken = dbUser.AddRefreshToken(dbUser.Id, Guid.NewGuid().ToString(), DateTime.UtcNow.AddDays(3),dbUser.Email);
+        var rawNewRefreshToken = RefreshTokenGenerator.Generate();
+        var newRefreshTokenHash = RefreshTokenGenerator.Hash(rawNewRefreshToken);
 
-        //var token = Guid.NewGuid().ToString();
-        //dbUser.RotateRefreshToken(
-        //    command.RefreshToken,
-        //    token,
-        //    DateTime.UtcNow.AddDays(3),
-        //    dbUser.Email
-        //);
+        var newRefreshToken = tokenOwner.RotateRefreshToken(
+            refreshTokenHash,
+            newRefreshTokenHash,
+            DateTime.UtcNow.AddDays(7),
+            tokenOwnerName);
 
-        
-        //await dbContext.SaveChangesAsync();
+        var accessToken = await jwtTokenGenerator.GenerateTokenAsync(tokenOwner);
 
-        return new RefreshTokenResult(accessToken, refreshToken.Token);
-    }
+        await dbContext.SaveChangesAsync(cancellationToken);
 
-
-    private ClaimsPrincipal GetPrincipalFromExpiredToken(string token, string key)
-    {
-        var tokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateAudience = true,
-            ValidateIssuer = true,
-            ValidateIssuerSigningKey = true,
-            ValidateLifetime = false, // 🔥 IGNORE EXPIRATION
-            ValidIssuer = "SimpleEShop",
-            ValidAudience = "SimpleEShopUsers",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-
-        var principal = tokenHandler.ValidateToken(
-            token,
-            tokenValidationParameters,
-            out SecurityToken securityToken);
-
-        var jwtToken = securityToken as JwtSecurityToken;
-
-        if (jwtToken == null ||
-            !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256,
-                StringComparison.InvariantCultureIgnoreCase))
-        {
-            throw new SecurityTokenException("Invalid token");
-        }
-
-        return principal;
+        return new RefreshTokenResult(accessToken, rawNewRefreshToken);
     }
 }

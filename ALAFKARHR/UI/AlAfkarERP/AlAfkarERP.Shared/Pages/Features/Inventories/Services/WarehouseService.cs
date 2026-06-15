@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
 using SharedWithUI.Inventory.Dtos;
 using System.Net.Http.Json;
@@ -9,7 +9,7 @@ public class WarehouseService : BaseApiService, IWarehouseService
 {
     private readonly ApiConfig _apiConfig;
     private readonly string path;
-    public WarehouseService(HttpClient http, ApiConfig apiConfig) : base(http)
+    public WarehouseService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         _apiConfig = apiConfig;
         path = $"api/{_apiConfig.Version}/inventory/warehouses";

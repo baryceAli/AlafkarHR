@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Dtos;
 using SharedWithUI.Organization.Dtos;
 using AlAfkarERP.Shared.Services;
 using System.Net.Http.Json;
@@ -9,7 +9,7 @@ public class AdministrationService : BaseApiService,IAdministrationService
 {
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
-    public AdministrationService(HttpClient http, ApiConfig apiConfig) : base(http)
+    public AdministrationService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         _apiConfig = apiConfig;
         //_path = $"{_apiConfig.BaseURL}/api/{_apiConfig.Version}/organization/administrations";

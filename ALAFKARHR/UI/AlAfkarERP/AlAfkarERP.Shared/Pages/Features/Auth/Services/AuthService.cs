@@ -47,7 +47,7 @@ public class AuthService : AuthBaseApiService, IAuthService
                 AccessToken = response.Data.AccessToken,
                 RefreshToken = response.Data.RefreshToken
             };
-        await _tokenService.SetTokensAsync(tokens);
+            await _tokenService.SetTokensAsync(tokens);
 
             _authStateProvider.NotifyUserAuthentication(tokens.AccessToken);
         }
@@ -99,9 +99,8 @@ public class AuthService : AuthBaseApiService, IAuthService
         var tokens = await _tokenService.GetTokensAsync();
         if (tokens == null) return false;
 
-        var response = await _http.PostAsJsonAsync($"{_path}/refresh", new
+        var response = await _http.PostAsJsonAsync($"{_path}/refresh-token", new
         {
-            accessToken = tokens.AccessToken,
             refreshToken = tokens.RefreshToken
         });
 
@@ -112,8 +111,14 @@ public class AuthService : AuthBaseApiService, IAuthService
         }
 
         var newTokens = await response.Content.ReadFromJsonAsync<AuthTokens>();
+        if (newTokens == null ||
+            string.IsNullOrWhiteSpace(newTokens.AccessToken) ||
+            string.IsNullOrWhiteSpace(newTokens.RefreshToken))
+        {
+            await LogoutAsync();
+            return false;
+        }
 
-        // 🔥 ROTATION: overwrite old refresh token
         await _tokenService.SetTokensAsync(newTokens);
 
         _authStateProvider.NotifyUserAuthentication(newTokens.AccessToken);

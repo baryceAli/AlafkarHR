@@ -1,4 +1,4 @@
-﻿
+
 using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
 using SharedWithUI.Catalog.Dtos;
@@ -11,8 +11,7 @@ public class ProductService : BaseApiService, IProductService
     //private readonly HttpClient _http;
     private readonly ApiConfig _apiConfig;
     //private readonly string _apiURL;
-    public ProductService(HttpClient http,
-        ApiConfig apiConfig) : base(http)
+    public ProductService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         //_http = http;
         _apiConfig = apiConfig;

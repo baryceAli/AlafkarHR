@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
 using SharedWithUI.Employees.Dtos;
 using System.Net.Http.Json;
@@ -9,7 +9,7 @@ public class EmployeeService :BaseApiService, IEmployeeService
 {
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
-    public EmployeeService(HttpClient http, ApiConfig apiConfig) : base(http)
+    public EmployeeService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         _apiConfig = apiConfig;
         _path = $"api/{_apiConfig.Version}/Employee/Employees";

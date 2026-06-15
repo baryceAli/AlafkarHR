@@ -64,7 +64,9 @@ public static class AuthModule
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IDataSeeder<AuthDbContext>, AuthDataSeeder>();
 
-        var key = configuration["JwtOptions:SecretKey"]!;
+        var jwtOptions = configuration.GetSection("JwtOptions").Get<JwtOptions>()
+            ?? throw new InvalidOperationException("JwtOptions section is missing.");
+        var key = jwtOptions.SecretKey;
         // ✅ THIS IS THE MISSING PART
         services.AddAuthentication(options =>
         {
@@ -75,10 +77,12 @@ public static class AuthModule
         {
             options.TokenValidationParameters = new TokenValidationParameters
             {
-                ValidateIssuer = false,
-                ValidateAudience = false,
+                ValidateIssuer = true,
+                ValidateAudience = true,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtOptions.Issuer,
+                ValidAudience = jwtOptions.Audience,
                 IssuerSigningKey = new SymmetricSecurityKey(
                     Encoding.UTF8.GetBytes(key))
 

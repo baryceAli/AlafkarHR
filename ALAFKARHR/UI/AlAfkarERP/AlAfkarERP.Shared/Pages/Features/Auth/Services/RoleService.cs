@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
 using SharedWithUI.Auth.Dtos;
 using System.ComponentModel.Design;
@@ -12,7 +12,7 @@ public class RoleService : BaseApiService, IRoleService
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
 
-    public RoleService(HttpClient http, ApiConfig apiConfig) : base(http)
+    public RoleService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         this._apiConfig = apiConfig;
         _path = $"api/{_apiConfig.Version}/auth";

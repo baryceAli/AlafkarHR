@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
 using SharedWithUI.Pricing.Dtos;
 using System.ComponentModel.Design;
@@ -11,7 +11,7 @@ public class PriceListService : BaseApiService, IPriceListService
     private readonly string _path;
     private readonly ApiConfig _apiConfig;
 
-    public PriceListService(HttpClient http, ApiConfig apiConfig) : base(http)
+    public PriceListService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         _apiConfig = apiConfig;
         _path = $"/api/{_apiConfig.Version}/pricing/priceLists";

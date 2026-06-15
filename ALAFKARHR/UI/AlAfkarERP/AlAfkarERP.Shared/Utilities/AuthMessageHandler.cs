@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Pages.Features.Auth.Services;
+using AlAfkarERP.Shared.Pages.Features.Auth.Services;
 using System.Net;
 using System.Net.Http.Headers;
 
@@ -6,6 +6,8 @@ namespace AlAfkarERP.Shared.Utilities;
 
 public class AuthMessageHandler : DelegatingHandler
 {
+    private static readonly SemaphoreSlim RefreshLock = new(1, 1);
+
     private readonly ITokenService _tokenService;
     private readonly IAuthService _authService;
 
@@ -27,46 +29,71 @@ public class AuthMessageHandler : DelegatingHandler
                 new AuthenticationHeaderValue("Bearer", tokens.AccessToken);
         }
 
+        var retryRequest = await CloneHttpRequestMessageAsync(request, cancellationToken);
         var response = await base.SendAsync(request, cancellationToken);
 
-        // 🔥 AUTO REFRESH
-        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        if (response.StatusCode != HttpStatusCode.Unauthorized)
         {
-            var refreshed = await _authService.RefreshTokenAsync();
-
-            if (!refreshed) return response;
-
-            // retry request with new token
-            var newTokens = await _tokenService.GetTokensAsync();
-
-            //request.Headers.Authorization =
-            //    new AuthenticationHeaderValue("Bearer", newTokens.AccessToken);
-            //return await base.SendAsync(request, cancellationToken);
-
-            var newRequest = new HttpRequestMessage(request.Method, request.RequestUri);
-
-            if (request.Content != null)
-            {
-                var ms = new MemoryStream();
-                await request.Content.CopyToAsync(ms);
-                ms.Position = 0;
-                newRequest.Content = new StreamContent(ms);
-
-                foreach (var h in request.Content.Headers)
-                    newRequest.Content.Headers.Add(h.Key, h.Value);
-            }
-            //foreach (var header in request.Headers)
-            //{
-            //    newRequest.Headers.TryAddWithoutValidation(header.Key, header.Value);
-            //}
-
-            newRequest.Headers.Authorization =
-                new AuthenticationHeaderValue("Bearer", newTokens.AccessToken);
-
-            return await base.SendAsync(newRequest, cancellationToken);
-
+            retryRequest.Dispose();
+            return response;
         }
 
-        return response;
+        await RefreshLock.WaitAsync(cancellationToken);
+        try
+        {
+            var refreshed = await _authService.RefreshTokenAsync();
+            if (!refreshed)
+                return response;
+        }
+        finally
+        {
+            RefreshLock.Release();
+        }
+
+        var newTokens = await _tokenService.GetTokensAsync();
+        if (newTokens == null || string.IsNullOrWhiteSpace(newTokens.AccessToken))
+            return response;
+
+        response.Dispose();
+        retryRequest.Headers.Authorization =
+            new AuthenticationHeaderValue("Bearer", newTokens.AccessToken);
+
+        return await base.SendAsync(retryRequest, cancellationToken);
+    }
+
+    private static async Task<HttpRequestMessage> CloneHttpRequestMessageAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        var clone = new HttpRequestMessage(request.Method, request.RequestUri)
+        {
+            Version = request.Version,
+            VersionPolicy = request.VersionPolicy
+        };
+
+        foreach (var header in request.Headers)
+        {
+            clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+        }
+
+        foreach (var option in request.Options)
+        {
+            clone.Options.TryAdd(option.Key, option.Value);
+        }
+
+        if (request.Content != null)
+        {
+            var ms = new MemoryStream();
+            await request.Content.CopyToAsync(ms, cancellationToken);
+            ms.Position = 0;
+            clone.Content = new StreamContent(ms);
+
+            foreach (var header in request.Content.Headers)
+            {
+                clone.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+        }
+
+        return clone;
     }
 }

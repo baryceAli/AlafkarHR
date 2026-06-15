@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Dtos;
 using SharedWithUI.Organization.Dtos;
 using AlAfkarERP.Shared.Pages.Reuable2;
 using AlAfkarERP.Shared.Services;
@@ -11,7 +11,7 @@ public class CompanyService : BaseApiService, ICompanyService
     private readonly string _path = "";
     private readonly ApiConfig _apiConfig;
 
-    public CompanyService(HttpClient http, ApiConfig apiConfig) : base(http)
+    public CompanyService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         _apiConfig = apiConfig;
         _path = $"api/{_apiConfig.Version}/organization/companies";

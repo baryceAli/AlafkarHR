@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Dtos;
 using SharedWithUI.Organization.Dtos;
 using AlAfkarERP.Shared.Pages.Reuable2;
 using AlAfkarERP.Shared.Services;
@@ -11,7 +11,7 @@ public class DepartmentService : BaseApiService, IDepartmentService
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
 
-    public DepartmentService(HttpClient http, ApiConfig apiConfig) : base(http)
+    public DepartmentService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         _apiConfig = apiConfig;
         _path = $"{apiConfig.BaseURL}/api/{apiConfig.Version}/organization/departments";

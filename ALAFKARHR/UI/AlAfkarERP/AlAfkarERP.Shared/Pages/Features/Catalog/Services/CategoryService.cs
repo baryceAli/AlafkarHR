@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
 using SharedWithUI.Catalog.Dtos;
 using System.Net.Http.Json;
@@ -9,7 +9,7 @@ public class CategoryService : BaseApiService, ICategoryService
 {
     private readonly ApiConfig _apiConfig;
 
-    public CategoryService(HttpClient http,ApiConfig apiConfig) : base(http)
+    public CategoryService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         _apiConfig = apiConfig;
     }

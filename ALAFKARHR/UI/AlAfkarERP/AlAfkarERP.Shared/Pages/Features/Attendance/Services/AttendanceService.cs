@@ -13,7 +13,7 @@ public class AttendanceService : BaseApiService, IAttendanceService
     private const long MaxAttachmentSize = 10 * 1024 * 1024;
     private readonly string path;
 
-    public AttendanceService(HttpClient http, ApiConfig apiConfig) : base(http)
+    public AttendanceService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         path = $"api/{apiConfig.Version}/attendance";
     }

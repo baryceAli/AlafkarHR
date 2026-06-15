@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
 using SharedWithUI.Customers.Dtos;
 using System.Net.Http.Json;
@@ -9,7 +9,7 @@ public class CustomerPricingProfileService : BaseApiService, ICustomerPricingPro
 {
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
-    public CustomerPricingProfileService(HttpClient http, ApiConfig apiConfig) : base(http)
+    public CustomerPricingProfileService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         this._apiConfig = apiConfig;
         _path = $"api/{_apiConfig.Version}/customers/customerPricingProfile";

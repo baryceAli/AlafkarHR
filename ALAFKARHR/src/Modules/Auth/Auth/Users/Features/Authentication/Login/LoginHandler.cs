@@ -64,26 +64,25 @@ public class LoginHandler(
 
             logger.LogInformation("Creating refresh token.");
 
+            var rawRefreshToken = RefreshTokenGenerator.Generate();
+            var refreshTokenHash = RefreshTokenGenerator.Hash(rawRefreshToken);
+
             var refreshToken = RefreshToken.Create(
                 user.Id,
-                Guid.NewGuid().ToString(),
+                refreshTokenHash,
                 DateTime.UtcNow.AddDays(7),
-                user.Email);
+                user.Email ?? user.UserName ?? user.Id.ToString());
 
             dbContext.Set<RefreshToken>().Add(refreshToken);
 
-            logger.LogInformation("Updating user.");
+            await dbContext.SaveChangesAsync(cancellationToken);
 
-            await userManager.UpdateAsync(user);
-
-            var activeToken = user.GetActiveRefreshToken(refreshToken.Token);
-
-            logger.LogInformation("Active token found: {Found}", activeToken != null);
+            logger.LogInformation("Refresh token created.");
 
             return new LoginResult(new LoginResponseDto
             {
                 AccessToken = accessToken,
-                RefreshToken = activeToken?.Token
+                RefreshToken = rawRefreshToken
             });
         }
         catch (Exception ex)

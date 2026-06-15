@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Dtos;
 //using AlAfkarERP.Shared.Pages.Reuable2;
 using AlAfkarERP.Shared.Services;
 using System.Net.Http.Json;
@@ -10,7 +10,7 @@ public class BranchService : BaseApiService, IBranchService
 {
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
-    public BranchService(HttpClient http, ApiConfig apiConfig) : base(http)
+    public BranchService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         _apiConfig = apiConfig;
         _path = $"{_apiConfig.BaseURL}/api/{_apiConfig.Version}/organization/branches";

@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
 using SharedWithUI.Catalog.Dtos;
 using System.Net.Http.Json;
@@ -10,7 +10,7 @@ public class BrandService : BaseApiService, IBrandService
 {
     private readonly ApiConfig _apiConfig;
 
-    public BrandService(HttpClient http, ApiConfig apiConfig) : base(http)
+    public BrandService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         _apiConfig = apiConfig;
     }

@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
 using SharedWithUI.Catalog.Dtos;
 using System.Net.Http.Json;
@@ -9,7 +9,7 @@ public class UnitService : BaseApiService, IUnitService
 {
     private readonly ApiConfig _apiConfig;
 
-    public UnitService(HttpClient http,ApiConfig apiConfig):base(http)
+    public UnitService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig): base(http, tokenService)
     {
         _apiConfig = apiConfig;
     }

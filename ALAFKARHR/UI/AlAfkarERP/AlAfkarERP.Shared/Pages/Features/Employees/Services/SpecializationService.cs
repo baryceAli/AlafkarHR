@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
 using SharedWithUI.Employees.Dtos;
 using System.Net.Http.Json;
@@ -10,7 +10,7 @@ public class SpecializationService : BaseApiService, ISpecializationService
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
 
-    public SpecializationService(HttpClient http,ApiConfig apiConfig) : base(http)
+    public SpecializationService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         this._apiConfig = apiConfig;
         _path = $"api/{_apiConfig.Version}/Employee/Specializations";

@@ -1,17 +1,24 @@
 ﻿namespace Auth.Users.Features.Authentication.ValidateRefreshToken;
 
-public record RefreshTokenRequest(string AccessToken,string RefreshToken);
-public record RefreshTokenResponse(string NewAccessToken,string NewRefreshToken);
+public record RefreshTokenRequest(string RefreshToken);
+public record RefreshTokenResponse(string AccessToken,string RefreshToken);
 public class RefreshTokenEndPoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/v1/auth/refresh-token", async (RefreshTokenRequest request, ISender sender) =>
         {
-            var command = request.Adapt<RefreshTokenCommand>();
-            var result = await sender.Send(command);
-            var response = result.Adapt<RefreshTokenResponse>();
-            return Results.Ok(response);
+            try
+            {
+                var command = request.Adapt<RefreshTokenCommand>();
+                var result = await sender.Send(command);
+                var response = result.Adapt<RefreshTokenResponse>();
+                return Results.Ok(response);
+            }
+            catch
+            {
+                return Results.Unauthorized();
+            }
         })
             .WithName("RefreshToken")
             .Produces<RefreshTokenResponse>(StatusCodes.Status200OK)

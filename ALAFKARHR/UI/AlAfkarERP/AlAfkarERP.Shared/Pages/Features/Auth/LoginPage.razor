@@ -204,11 +204,11 @@
                         c.Type == JwtRegisteredClaimNames.Typ &&
                         c.Value == UserType.SystemUser.ToString()))
                     {
-                        NavigationManager.NavigateTo("/Dashboard", true);
+                        NavigationManager.NavigateTo("/Dashboard");
                         return;
                     }
 
-                    NavigationManager.NavigateTo("/", true);
+                    NavigationManager.NavigateTo("/");
                     return;
                 }
             }

@@ -1,4 +1,4 @@
-﻿using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
 using SharedWithUI.Customers.Dtos;
 using System.Net.Http.Json;
@@ -10,7 +10,7 @@ public class CustomerService : BaseApiService, ICustomerService
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
 
-    public CustomerService(HttpClient http, ApiConfig apiConfig) : base(http)
+    public CustomerService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         _apiConfig = apiConfig;
         _path = $"api/{_apiConfig.Version}/customers/customer";

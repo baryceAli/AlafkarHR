@@ -9,7 +9,7 @@ public class CompanySettingService : BaseApiService, ICompanySettingService
 {
     private readonly string _path;
 
-    public CompanySettingService(HttpClient http, ApiConfig apiConfig) : base(http)
+    public CompanySettingService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
     {
         _path = $"api/{apiConfig.Version}/Settings";
     }
