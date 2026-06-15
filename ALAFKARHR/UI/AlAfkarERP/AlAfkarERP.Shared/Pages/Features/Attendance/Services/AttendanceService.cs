@@ -1,5 +1,6 @@
 using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
+using Microsoft.AspNetCore.Components.Forms;
 using SharedWithUI.Attendance.Dtos;
 using SharedWithUI.Attendance.Enums;
 using System.Globalization;
@@ -9,6 +10,7 @@ namespace AlAfkarERP.Shared.Pages.Features.Attendance.Services;
 
 public class AttendanceService : BaseApiService, IAttendanceService
 {
+    private const long MaxAttachmentSize = 10 * 1024 * 1024;
     private readonly string path;
 
     public AttendanceService(HttpClient http, ApiConfig apiConfig) : base(http)
@@ -291,6 +293,19 @@ public class AttendanceService : BaseApiService, IAttendanceService
         {
             Content = JsonContent.Create(new { Request = request })
         }, "request");
+    }
+
+    public async Task<ApiResult<string>> UploadEmergencyLeaveAttachmentAsync(IBrowserFile file)
+    {
+        using var content = new MultipartFormDataContent();
+        using var fileContent = new StreamContent(file.OpenReadStream(MaxAttachmentSize));
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+        content.Add(fileContent, "file", file.Name);
+
+        return await SendAsync<string>(new HttpRequestMessage(HttpMethod.Post, $"{path}/emergency-leaves/attachments")
+        {
+            Content = content
+        }, "attachmentPath");
     }
 
     public async Task<ApiResult<EmergencyLeaveRequestDto>> ReviewEmergencyLeaveAsync(ReviewEmergencyLeaveRequestDto review)

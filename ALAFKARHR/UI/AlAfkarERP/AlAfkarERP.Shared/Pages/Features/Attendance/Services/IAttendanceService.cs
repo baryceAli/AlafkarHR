@@ -1,4 +1,5 @@
 using AlAfkarERP.Shared.Dtos;
+using Microsoft.AspNetCore.Components.Forms;
 using SharedWithUI.Attendance.Dtos;
 using SharedWithUI.Attendance.Enums;
 
@@ -33,6 +34,7 @@ public interface IAttendanceService
     Task<ApiResult<List<AttendanceBreakPolicyDto>>> GetBreakPoliciesAsync(Guid companyId);
     Task<ApiResult<AttendanceBreakPolicyDto>> UpsertBreakPolicyAsync(UpsertAttendanceBreakPolicyDto policy);
     Task<ApiResult<PaginatedResult<EmergencyLeaveRequestDto>>> GetEmergencyLeavesAsync(Guid companyId, int pageIndex, int pageSize, AttendanceExceptionStatus? status = null, Guid? employeeId = null);
+    Task<ApiResult<string>> UploadEmergencyLeaveAttachmentAsync(IBrowserFile file);
     Task<ApiResult<EmergencyLeaveRequestDto>> CreateEmergencyLeaveAsync(CreateEmergencyLeaveRequestDto request);
     Task<ApiResult<EmergencyLeaveRequestDto>> ReviewEmergencyLeaveAsync(ReviewEmergencyLeaveRequestDto review);
     Task<ApiResult<PaginatedResult<MidDayPermissionRequestDto>>> GetMidDayPermissionsAsync(Guid companyId, int pageIndex, int pageSize, AttendanceExceptionStatus? status = null, Guid? employeeId = null);

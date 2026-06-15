@@ -241,6 +241,14 @@ public class AttendanceEndpoints : ICarterModule
             .WithSummary("Create an emergency leave request")
             .RequireAuthorization(PermissionList.AttendancePermissions.RequestEmergencyLeave);
 
+        group.MapPost("/emergency-leaves/attachments", UploadEmergencyLeaveAttachment)
+            .WithName("UploadEmergencyLeaveAttachment")
+            .Accepts<IFormFile>("multipart/form-data")
+            .Produces<UploadEmergencyLeaveAttachmentResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Upload an emergency leave attachment")
+            .RequireAuthorization(PermissionList.AttendancePermissions.RequestEmergencyLeave);
+
         group.MapPost("/emergency-leaves/review", ReviewEmergencyLeave)
             .WithName("ReviewEmergencyLeaveRequest")
             .Produces<ReviewEmergencyLeaveRequestResult>(StatusCodes.Status200OK)
@@ -484,17 +492,41 @@ public class AttendanceEndpoints : ICarterModule
         [FromQuery] AttendanceExceptionStatus? status,
         [FromQuery] Guid? employeeId,
         [AsParameters] PaginationRequest request,
+        ClaimsPrincipal user,
         ISender sender)
     {
-        var result = await sender.Send(new GetEmergencyLeaveRequestsQuery(companyId, status, employeeId, request));
+        var reviewerEmployeeId = ResolveEmployeeIdClaim(user)
+            ?? throw new UnauthorizedAccessException("The signed-in user does not have an employee_id claim.");
+
+        var result = await sender.Send(new GetEmergencyLeaveRequestsQuery(companyId, status, employeeId, reviewerEmployeeId, request));
         return TypedResults.Ok(result);
     }
 
     private static async Task<Ok<CreateEmergencyLeaveRequestResult>> CreateEmergencyLeave(
         [FromBody] CreateEmergencyLeaveRequestRequest request,
+        ClaimsPrincipal user,
         ISender sender)
     {
+        var employeeId = ResolveEmployeeIdClaim(user)
+            ?? throw new UnauthorizedAccessException("The signed-in user does not have an employee_id claim.");
+
+        var employee = await sender.Send(new GetEmployeeAttendanceProfileQuery(employeeId));
+        request.Request.EmployeeId = employee.EmployeeId;
+        request.Request.CompanyId = employee.CompanyId;
+
         var result = await sender.Send(new CreateEmergencyLeaveRequestCommand(request.Request));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<UploadEmergencyLeaveAttachmentResult>> UploadEmergencyLeaveAttachment(
+        IFormFile file,
+        ClaimsPrincipal user,
+        ISender sender)
+    {
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new UnauthorizedAccessException("User is not authenticated");
+
+        var result = await sender.Send(new UploadEmergencyLeaveAttachmentCommand(file, userId));
         return TypedResults.Ok(result);
     }
 
@@ -505,8 +537,10 @@ public class AttendanceEndpoints : ICarterModule
     {
         var reviewedBy = user.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new UnauthorizedAccessException("User is not authenticated");
+        var reviewerEmployeeId = ResolveEmployeeIdClaim(user)
+            ?? throw new UnauthorizedAccessException("The signed-in user does not have an employee_id claim.");
 
-        var result = await sender.Send(new ReviewEmergencyLeaveRequestCommand(request.Review, reviewedBy));
+        var result = await sender.Send(new ReviewEmergencyLeaveRequestCommand(request.Review, reviewedBy, reviewerEmployeeId));
         return TypedResults.Ok(result);
     }
 

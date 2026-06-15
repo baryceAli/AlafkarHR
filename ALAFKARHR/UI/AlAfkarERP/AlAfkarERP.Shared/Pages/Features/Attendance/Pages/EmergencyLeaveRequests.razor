@@ -5,6 +5,7 @@
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
 
@@ -31,20 +32,23 @@
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-3">
-                    <label class="form-label">@Text("Employee Id", "معرف الموظف")</label>
-                    <input class="form-control" @bind="employeeIdText" />
-                </div>
-                <div class="col-md-2">
                     <label class="form-label">@Text("Start", "البداية")</label>
                     <input class="form-control" type="date" @bind="createModel.StartDate" />
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label class="form-label">@Text("End", "النهاية")</label>
                     <input class="form-control" type="date" @bind="createModel.EndDate" />
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">@Text("Attachment path", "مسار المرفق")</label>
-                    <input class="form-control" @bind="createModel.AttachmentPath" />
+                <div class="col-md-4">
+                    <label class="form-label">@Text("Attachment", "مرفق")</label>
+                    <InputFile @key="attachmentInputKey"
+                               class="form-control"
+                               OnChange="OnAttachmentSelected"
+                               accept="application/pdf,image/*" />
+                    @if (!string.IsNullOrWhiteSpace(selectedAttachmentName))
+                    {
+                        <div class="form-text">@selectedAttachmentName</div>
+                    }
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button class="btn btn-primary w-100" @onclick="CreateAsync" disabled="@isBusy">@Text("Submit", "ارسال")</button>
@@ -97,12 +101,15 @@
 @code {
     private CreateEmergencyLeaveRequestDto createModel = new() { StartDate = DateTime.Today, EndDate = DateTime.Today };
     private List<EmergencyLeaveRequestDto> requests = [];
+    private const long MaxAttachmentSize = 10 * 1024 * 1024;
     private Guid companyId;
-    private string? employeeIdText;
+    private IBrowserFile? selectedAttachmentFile;
+    private string? selectedAttachmentName;
     private string? reviewComment;
     private bool isBusy;
     private string? message;
     private string messageClass = "alert-info";
+    private int attachmentInputKey;
 
     protected override async Task OnInitializedAsync()
     {
@@ -127,19 +134,33 @@
 
     private async Task CreateAsync()
     {
-        if (!Guid.TryParse(employeeIdText, out var employeeId))
+        createModel.CompanyId = companyId;
+        if (selectedAttachmentFile is not null)
         {
-            SetMessage(Text("Employee Id is required.", "معرف الموظف مطلوب."), "alert-warning");
-            return;
+            if (selectedAttachmentFile.Size > MaxAttachmentSize)
+            {
+                SetMessage(Text("Attachment size must be 10 MB or less.", "Attachment size must be 10 MB or less."), "alert-warning");
+                return;
+            }
+
+            var uploadResult = await AttendanceService.UploadEmergencyLeaveAttachmentAsync(selectedAttachmentFile);
+            if (!uploadResult.IsSuccess || string.IsNullOrWhiteSpace(uploadResult.Data))
+            {
+                SetMessage(uploadResult.Error?.Detail ?? Text("Unable to upload attachment.", "Unable to upload attachment."), "alert-danger");
+                return;
+            }
+
+            createModel.AttachmentPath = uploadResult.Data;
         }
 
-        createModel.CompanyId = companyId;
-        createModel.EmployeeId = employeeId;
         var result = await AttendanceService.CreateEmergencyLeaveAsync(createModel);
         if (result.IsSuccess)
         {
             SetMessage(Text("Emergency leave submitted.", "تم ارسال الاجازة الطارئة."), "alert-success");
             createModel = new() { CompanyId = companyId, StartDate = DateTime.Today, EndDate = DateTime.Today };
+            selectedAttachmentFile = null;
+            selectedAttachmentName = null;
+            attachmentInputKey++;
             await LoadAsync();
         }
         else
@@ -158,6 +179,13 @@
         });
         SetMessage(result.IsSuccess ? Text("Request reviewed.", "تمت مراجعة الطلب.") : result.Error?.Detail ?? Text("Unable to review request.", "تعذر مراجعة الطلب."), result.IsSuccess ? "alert-success" : "alert-danger");
         await LoadAsync();
+    }
+
+    private void OnAttachmentSelected(InputFileChangeEventArgs e)
+    {
+        selectedAttachmentFile = e.File;
+        selectedAttachmentName = $"{e.File.Name} ({e.File.Size / 1024:N0} KB)";
+        createModel.AttachmentPath = null;
     }
 
     private async Task<Guid> ResolveCompanyIdAsync()

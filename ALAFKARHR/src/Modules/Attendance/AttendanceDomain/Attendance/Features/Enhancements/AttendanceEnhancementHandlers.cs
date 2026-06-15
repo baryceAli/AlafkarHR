@@ -1,6 +1,8 @@
 using AttendanceDomain.Attendance.Models;
+using EmployeeModule.Contracts.Employees.Features.GetEmployeeAttendanceProfile;
 using FluentValidation;
 using Shared.Pagination;
+using Shared.SaveImages;
 
 namespace AttendanceDomain.Attendance.Features.Enhancements;
 
@@ -28,10 +30,18 @@ public record UpsertAttendanceBreakPolicyResult(AttendanceBreakPolicyDto Policy)
 public record CreateEmergencyLeaveRequestCommand(CreateEmergencyLeaveRequestDto Request)
     : ICommand<CreateEmergencyLeaveRequestResult>;
 public record CreateEmergencyLeaveRequestResult(EmergencyLeaveRequestDto Request);
-public record ReviewEmergencyLeaveRequestCommand(ReviewEmergencyLeaveRequestDto Review, string ReviewedBy)
+public record UploadEmergencyLeaveAttachmentCommand(IFormFile File, string UserId)
+    : ICommand<UploadEmergencyLeaveAttachmentResult>;
+public record UploadEmergencyLeaveAttachmentResult(string AttachmentPath);
+public record ReviewEmergencyLeaveRequestCommand(ReviewEmergencyLeaveRequestDto Review, string ReviewedBy, Guid ReviewerEmployeeId)
     : ICommand<ReviewEmergencyLeaveRequestResult>;
 public record ReviewEmergencyLeaveRequestResult(EmergencyLeaveRequestDto Request);
-public record GetEmergencyLeaveRequestsQuery(Guid CompanyId, AttendanceExceptionStatus? Status, Guid? EmployeeId, PaginationRequest PaginationRequest)
+public record GetEmergencyLeaveRequestsQuery(
+    Guid CompanyId,
+    AttendanceExceptionStatus? Status,
+    Guid? EmployeeId,
+    Guid ReviewerEmployeeId,
+    PaginationRequest PaginationRequest)
     : IQuery<GetEmergencyLeaveRequestsResult>;
 public record GetEmergencyLeaveRequestsResult(PaginatedResult<EmergencyLeaveRequestDto> RequestList);
 
@@ -362,7 +372,78 @@ public class CreateEmergencyLeaveRequestHandler(AttendanceDbContext dbContext)
     }
 }
 
-public class ReviewEmergencyLeaveRequestHandler(AttendanceDbContext dbContext)
+public class UploadEmergencyLeaveAttachmentHandler(IWebHostEnvironment environment)
+    : ICommandHandler<UploadEmergencyLeaveAttachmentCommand, UploadEmergencyLeaveAttachmentResult>
+{
+    private static readonly string[] AllowedExtensions =
+    [
+        ".pdf",
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".gif",
+        ".webp",
+        ".bmp",
+        ".tif",
+        ".tiff"
+    ];
+
+    private static readonly string[] AllowedContentTypes =
+    [
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+        "image/bmp",
+        "image/tiff"
+    ];
+
+    public async Task<UploadEmergencyLeaveAttachmentResult> Handle(
+        UploadEmergencyLeaveAttachmentCommand request,
+        CancellationToken cancellationToken)
+    {
+        if (request.File.Length == 0)
+        {
+            throw new BadRequestException("Attachment file is empty.");
+        }
+
+        var uploadRoot = Path.Combine(environment.WebRootPath ?? "wwwroot", "attachments", "leaves");
+        var fileNameWithoutExtension = $"{request.UserId}-{GetNextSerial(uploadRoot, request.UserId)}";
+
+        try
+        {
+            var savedUpload = await SaveImages.SaveFormFileAsync(
+                request.File,
+                fileNameWithoutExtension,
+                [uploadRoot],
+                "/attachments/leaves",
+                AllowedExtensions,
+                AllowedContentTypes,
+                cancellationToken);
+
+            return new UploadEmergencyLeaveAttachmentResult(savedUpload.PublicPath);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new BadRequestException(ex.Message);
+        }
+    }
+
+    private static int GetNextSerial(string uploadRoot, string userId)
+    {
+        if (!Directory.Exists(uploadRoot))
+        {
+            return 1;
+        }
+
+        return Directory
+            .EnumerateFiles(uploadRoot, $"{userId}-*")
+            .Count() + 1;
+    }
+}
+
+public class ReviewEmergencyLeaveRequestHandler(AttendanceDbContext dbContext, ISender sender)
     : ICommandHandler<ReviewEmergencyLeaveRequestCommand, ReviewEmergencyLeaveRequestResult>
 {
     public async Task<ReviewEmergencyLeaveRequestResult> Handle(ReviewEmergencyLeaveRequestCommand request, CancellationToken cancellationToken)
@@ -370,6 +451,8 @@ public class ReviewEmergencyLeaveRequestHandler(AttendanceDbContext dbContext)
         var leave = await dbContext.EmergencyLeaveRequests
             .FirstOrDefaultAsync(x => x.Id == request.Review.RequestId, cancellationToken)
             ?? throw new NotFoundException("EmergencyLeaveRequest", request.Review.RequestId);
+
+        await EnsureReviewerCanReviewAsync(request.ReviewerEmployeeId, leave.EmployeeId, cancellationToken);
 
         if (request.Review.IsApproved)
         {
@@ -383,9 +466,42 @@ public class ReviewEmergencyLeaveRequestHandler(AttendanceDbContext dbContext)
         await dbContext.SaveChangesAsync(cancellationToken);
         return new ReviewEmergencyLeaveRequestResult(leave.Adapt<EmergencyLeaveRequestDto>());
     }
+
+    private async Task EnsureReviewerCanReviewAsync(Guid reviewerEmployeeId, Guid employeeId, CancellationToken cancellationToken)
+    {
+        if (reviewerEmployeeId == employeeId)
+        {
+            throw new UnauthorizedAccessException("Employees cannot review their own emergency leave requests.");
+        }
+
+        var reviewer = await sender.Send(new GetEmployeeAttendanceProfileQuery(reviewerEmployeeId), cancellationToken);
+        var employee = await sender.Send(new GetEmployeeAttendanceProfileQuery(employeeId), cancellationToken);
+
+        if (!CanReviewEmergencyLeave(reviewer, employee))
+        {
+            throw new UnauthorizedAccessException("The signed-in employee cannot review this emergency leave request.");
+        }
+    }
+
+    private static bool CanReviewEmergencyLeave(
+        GetEmployeeAttendanceProfileResult reviewer,
+        GetEmployeeAttendanceProfileResult employee)
+    {
+        if (reviewer.CompanyId != employee.CompanyId)
+        {
+            return false;
+        }
+
+        if (employee.DepartmentId.HasValue && reviewer.DepartmentId == employee.DepartmentId)
+        {
+            return true;
+        }
+
+        return reviewer.AdministrationId == employee.AdministrationId;
+    }
 }
 
-public class GetEmergencyLeaveRequestsHandler(AttendanceDbContext dbContext)
+public class GetEmergencyLeaveRequestsHandler(AttendanceDbContext dbContext, ISender sender)
     : IQueryHandler<GetEmergencyLeaveRequestsQuery, GetEmergencyLeaveRequestsResult>
 {
     public async Task<GetEmergencyLeaveRequestsResult> Handle(GetEmergencyLeaveRequestsQuery request, CancellationToken cancellationToken)
@@ -403,19 +519,61 @@ public class GetEmergencyLeaveRequestsHandler(AttendanceDbContext dbContext)
             query = query.Where(x => x.EmployeeId == request.EmployeeId.Value);
         }
 
-        var total = await query.LongCountAsync(cancellationToken);
-        var rows = await query
+        var reviewer = await sender.Send(new GetEmployeeAttendanceProfileQuery(request.ReviewerEmployeeId), cancellationToken);
+        var scopedRows = new List<EmergencyLeaveRequestDto>();
+        var employeeProfiles = new Dictionary<Guid, GetEmployeeAttendanceProfileResult>();
+        var candidateRows = await query
             .OrderByDescending(x => x.StartDate)
-            .Skip(request.PaginationRequest.PageIndex * request.PaginationRequest.PageSize)
-            .Take(request.PaginationRequest.PageSize)
             .ProjectToType<EmergencyLeaveRequestDto>()
             .ToListAsync(cancellationToken);
+
+        foreach (var row in candidateRows)
+        {
+            if (row.EmployeeId == request.ReviewerEmployeeId)
+            {
+                continue;
+            }
+
+            if (!employeeProfiles.TryGetValue(row.EmployeeId, out var employee))
+            {
+                employee = await sender.Send(new GetEmployeeAttendanceProfileQuery(row.EmployeeId), cancellationToken);
+                employeeProfiles[row.EmployeeId] = employee;
+            }
+
+            if (CanReviewEmergencyLeave(reviewer, employee))
+            {
+                scopedRows.Add(row);
+            }
+        }
+
+        var total = scopedRows.Count;
+        var rows = scopedRows
+            .Skip(request.PaginationRequest.PageIndex * request.PaginationRequest.PageSize)
+            .Take(request.PaginationRequest.PageSize)
+            .ToList();
 
         return new GetEmergencyLeaveRequestsResult(new PaginatedResult<EmergencyLeaveRequestDto>(
             request.PaginationRequest.PageIndex,
             request.PaginationRequest.PageSize,
             total,
             rows));
+    }
+
+    private static bool CanReviewEmergencyLeave(
+        GetEmployeeAttendanceProfileResult reviewer,
+        GetEmployeeAttendanceProfileResult employee)
+    {
+        if (reviewer.CompanyId != employee.CompanyId)
+        {
+            return false;
+        }
+
+        if (employee.DepartmentId.HasValue && reviewer.DepartmentId == employee.DepartmentId)
+        {
+            return true;
+        }
+
+        return reviewer.AdministrationId == employee.AdministrationId;
     }
 }
 

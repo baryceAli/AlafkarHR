@@ -1,9 +1,11 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
 
 namespace Shared.SaveImages;
 
 public static class SaveImages
 {
+    public record SavedUpload(string FileName, string PhysicalPath, string PublicPath);
 
     public static string SaveBase64Image(string fileNameWithoutExtension, string[] pathSegments, string base64String)
     {
@@ -15,7 +17,7 @@ public static class SaveImages
 
         // --- Clean the input ---
         base64String = base64String.Trim();
-        
+
         // Strip "data:image/png;base64," if present
         int commaIndex = base64String.IndexOf(',');
         if (commaIndex >= 0)
@@ -43,18 +45,55 @@ public static class SaveImages
         // --- Decode ---
         byte[] imageBytes = Convert.FromBase64String(base64String);
 
-        // --- Determine save path ---
-        string folderPath = Path.Combine(pathSegments);
-        if (!Directory.Exists(folderPath))
-            Directory.CreateDirectory(folderPath);
-
-        string fileName = $"{fileNameWithoutExtension}.png";
-        string filePath = Path.Combine(folderPath, fileName);
-
-        File.WriteAllBytes(filePath, imageBytes);
-        return fileName;
+        return SaveBytes(fileNameWithoutExtension, pathSegments, ".png", imageBytes);
     }
 
+    public static async Task<SavedUpload> SaveFormFileAsync(
+        IFormFile file,
+        string fileNameWithoutExtension,
+        string[] physicalPathSegments,
+        string publicPath,
+        IReadOnlyCollection<string>? allowedExtensions = null,
+        IReadOnlyCollection<string>? allowedContentTypes = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (physicalPathSegments == null || !physicalPathSegments.Any())
+            throw new ArgumentException("No folders supplied.", nameof(physicalPathSegments));
+
+        if (file.Length == 0)
+            throw new ArgumentException("File cannot be empty.", nameof(file));
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(extension))
+            throw new ArgumentException("File must include an extension.", nameof(file));
+
+        if (allowedExtensions is not null
+            && !allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("File extension is not allowed.", nameof(file));
+        }
+
+        if (allowedContentTypes is not null
+            && !allowedContentTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("File type is not allowed.", nameof(file));
+        }
+
+        string folderPath = Path.Combine(physicalPathSegments);
+        Directory.CreateDirectory(folderPath);
+
+        var safeFileName = $"{SanitizeFileName(fileNameWithoutExtension)}{extension}";
+        var physicalPath = Path.Combine(folderPath, safeFileName);
+        await using (var stream = File.Create(physicalPath))
+        {
+            await file.CopyToAsync(stream, cancellationToken);
+        }
+
+        return new SavedUpload(
+            safeFileName,
+            physicalPath,
+            $"{publicPath.TrimEnd('/')}/{safeFileName}");
+    }
 
     public static bool IsBase64Image(string input)
     {
@@ -67,5 +106,27 @@ public static class SaveImages
         Span<byte> buffer = new Span<byte>(new byte[input.Length]);
 
         return Convert.TryFromBase64String(input, buffer, out _);
+    }
+
+    private static string SaveBytes(string fileNameWithoutExtension, string[] pathSegments, string extension, byte[] bytes)
+    {
+        string folderPath = Path.Combine(pathSegments);
+        Directory.CreateDirectory(folderPath);
+
+        string fileName = $"{SanitizeFileName(fileNameWithoutExtension)}{extension}";
+        string filePath = Path.Combine(folderPath, fileName);
+
+        File.WriteAllBytes(filePath, bytes);
+        return fileName;
+    }
+
+    private static string SanitizeFileName(string fileNameWithoutExtension)
+    {
+        var invalidChars = Path.GetInvalidFileNameChars();
+        var safeName = new string(fileNameWithoutExtension
+            .Select(ch => invalidChars.Contains(ch) ? '-' : ch)
+            .ToArray());
+
+        return string.IsNullOrWhiteSpace(safeName) ? Guid.NewGuid().ToString("N") : safeName;
     }
 }
