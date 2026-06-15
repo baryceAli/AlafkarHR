@@ -143,29 +143,34 @@
                     </select>
                 </label>
 
-                <label class="store-filter-field store-price-field">
-                    <span>@SharedDataService.SelectViewLang("Min price", "أقل سعر")</span>
-                    <input class="form-control"
-                           inputmode="decimal"
-                           min="0"
-                           type="number"
-                           value="@minPrice"
-                           @onchange="OnMinPriceChanged"
-                           placeholder="@GetPricePlaceholder(filterMetadata.MinPrice)" />
-                </label>
+                <div class="store-filter-field store-price-field store-range-field">
+                    <div class="store-range-label">
+                        <span>@SharedDataService.SelectViewLang("Price range", "نطاق السعر")</span>
+                        <strong>@GetSelectedPriceRangeText()</strong>
+                    </div>
+                    <div class="store-range-control"
+                         style="@GetPriceRangeStyle()"
+                         aria-label="@SharedDataService.SelectViewLang("Price range", "نطاق السعر")">
+                        <input class="store-range-input store-range-input-min"
+                               type="range"
+                               min="@FormatPriceValue(PriceFloor)"
+                               max="@FormatPriceValue(PriceCeiling)"
+                               step="@FormatPriceValue(PriceStep)"
+                               value="@FormatPriceValue(SelectedMinPrice)"
+                               @oninput="OnMinPriceChanged"
+                               aria-label="@SharedDataService.SelectViewLang("Minimum price", "أقل سعر")" />
+                        <input class="store-range-input store-range-input-max"
+                               type="range"
+                               min="@FormatPriceValue(PriceFloor)"
+                               max="@FormatPriceValue(PriceCeiling)"
+                               step="@FormatPriceValue(PriceStep)"
+                               value="@FormatPriceValue(SelectedMaxPrice)"
+                               @oninput="OnMaxPriceChanged"
+                               aria-label="@SharedDataService.SelectViewLang("Maximum price", "أعلى سعر")" />
+                    </div>
+                </div>
 
-                <label class="store-filter-field store-price-field">
-                    <span>@SharedDataService.SelectViewLang("Max price", "أعلى سعر")</span>
-                    <input class="form-control"
-                           inputmode="decimal"
-                           min="0"
-                           type="number"
-                           value="@maxPrice"
-                           @onchange="OnMaxPriceChanged"
-                           placeholder="@GetPricePlaceholder(filterMetadata.MaxPrice)" />
-                </label>
-
-                <label class="store-filter-field">
+                <label class="store-filter-field store-sort-field">
                     <span>@SharedDataService.SelectViewLang("Sort by", "الترتيب")</span>
                     <select class="form-select" value="@sortOption" @onchange="OnSortChanged">
                         <option value="newest_desc">@SharedDataService.SelectViewLang("Newest first", "الأحدث أولاً")</option>
@@ -206,6 +211,31 @@
 
             @if (isLoadingProducts)
             {
+                <div class="product-grid product-grid-skeleton" role="status" aria-label="@SharedDataService.SelectViewLang("Loading products", "جاري تحميل المنتجات")">
+                    @for (var index = 0; index < 6; index++)
+                    {
+                        <article class="product-card product-skeleton-card" aria-hidden="true">
+                            <div class="product-media product-skeleton-media">
+                                <span class="product-skeleton-shimmer product-skeleton-image"></span>
+                                <span class="product-skeleton-shimmer product-skeleton-badge"></span>
+                                <span class="product-skeleton-shimmer product-skeleton-pill"></span>
+                            </div>
+                            <div class="product-body">
+                                <div class="product-card-main">
+                                    <span class="product-skeleton-shimmer product-skeleton-kicker"></span>
+                                    <span class="product-skeleton-shimmer product-skeleton-title"></span>
+                                    <span class="product-skeleton-shimmer product-skeleton-line"></span>
+                                    <span class="product-skeleton-shimmer product-skeleton-line short"></span>
+                                    <span class="product-skeleton-shimmer product-skeleton-chip"></span>
+                                </div>
+                                <div class="product-action product-skeleton-action">
+                                    <span class="product-skeleton-shimmer product-skeleton-price"></span>
+                                    <span class="product-skeleton-shimmer product-skeleton-button"></span>
+                                </div>
+                            </div>
+                        </article>
+                    }
+                </div>
                 <div class="product-state">
                     <div class="spinner-border" role="status" aria-label="جاري تحميل المنتجات"></div>
                     <span>جاري تحميل المنتجات...</span>
@@ -316,9 +346,26 @@
         !string.IsNullOrWhiteSpace(selectedCategoryId) ||
         !string.IsNullOrWhiteSpace(selectedBrandId) ||
         !string.IsNullOrWhiteSpace(selectedPackageId) ||
-        !string.IsNullOrWhiteSpace(minPrice) ||
-        !string.IsNullOrWhiteSpace(maxPrice) ||
+        HasActivePriceRange ||
         sortOption != "newest_desc";
+
+    private decimal PriceFloor => filterMetadata.MinPrice.GetValueOrDefault(0m) < 0m
+        ? 0m
+        : filterMetadata.MinPrice.GetValueOrDefault(0m);
+
+    private decimal PriceCeiling => filterMetadata.MaxPrice.GetValueOrDefault(PriceFloor) < PriceFloor
+        ? PriceFloor
+        : filterMetadata.MaxPrice.GetValueOrDefault(PriceFloor);
+
+    private decimal PriceStep => PriceCeiling - PriceFloor <= 20m ? 0.5m : 1m;
+
+    private decimal SelectedMinPrice => ClampPrice(TryParseDecimal(minPrice) ?? PriceFloor);
+
+    private decimal SelectedMaxPrice => ClampPrice(TryParseDecimal(maxPrice) ?? PriceCeiling);
+
+    private bool HasActivePriceRange =>
+        SelectedMinPrice > PriceFloor ||
+        SelectedMaxPrice < PriceCeiling;
 
     protected override void OnInitialized()
     {
@@ -372,8 +419,8 @@
             CategoryId = TryParseGuid(selectedCategoryId),
             BrandId = TryParseGuid(selectedBrandId),
             PackageId = TryParseGuid(selectedPackageId),
-            MinPrice = TryParseDecimal(minPrice),
-            MaxPrice = TryParseDecimal(maxPrice),
+            MinPrice = HasActivePriceRange ? SelectedMinPrice : null,
+            MaxPrice = HasActivePriceRange ? SelectedMaxPrice : null,
             SortBy = sortBy,
             SortDescending = sortDescending
         };
@@ -440,13 +487,25 @@
 
     private async Task OnMinPriceChanged(ChangeEventArgs args)
     {
-        minPrice = args.Value?.ToString() ?? "";
+        var value = ClampPrice(TryParseDecimal(args.Value?.ToString() ?? "") ?? PriceFloor);
+        if (value > SelectedMaxPrice)
+        {
+            value = SelectedMaxPrice;
+        }
+
+        minPrice = FormatPriceValue(value);
         await ApplyFiltersAsync();
     }
 
     private async Task OnMaxPriceChanged(ChangeEventArgs args)
     {
-        maxPrice = args.Value?.ToString() ?? "";
+        var value = ClampPrice(TryParseDecimal(args.Value?.ToString() ?? "") ?? PriceCeiling);
+        if (value < SelectedMinPrice)
+        {
+            value = SelectedMinPrice;
+        }
+
+        maxPrice = FormatPriceValue(value);
         await ApplyFiltersAsync();
     }
 
@@ -530,6 +589,41 @@
 
     private string GetPricePlaceholder(decimal? price)
         => price.HasValue ? price.Value.ToString("0.##") : "";
+
+    private decimal ClampPrice(decimal value)
+    {
+        if (value < PriceFloor)
+        {
+            return PriceFloor;
+        }
+
+        if (value > PriceCeiling)
+        {
+            return PriceCeiling;
+        }
+
+        return value;
+    }
+
+    private string FormatPriceValue(decimal value)
+        => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
+    private string GetSelectedPriceRangeText()
+        => $"{FormatPriceValue(SelectedMinPrice)} - {FormatPriceValue(SelectedMaxPrice)} \uFDFC";
+
+    private string GetPriceRangeStyle()
+    {
+        var range = PriceCeiling - PriceFloor;
+        if (range <= 0m)
+        {
+            return "--range-start: 0%; --range-end: 100%;";
+        }
+
+        var start = (SelectedMinPrice - PriceFloor) / range * 100m;
+        var end = (SelectedMaxPrice - PriceFloor) / range * 100m;
+
+        return $"--range-start: {FormatPriceValue(start)}%; --range-end: {FormatPriceValue(end)}%;";
+    }
 
     private string GetProductImage(ProductSkuDto sku)
     {
