@@ -115,6 +115,8 @@ Prefer shared components in `Pages/Reuable2`:
 
 Create new shared components only when they remove real duplication or encode a repeated ERP pattern.
 
+Use the Catalog pages as the canonical admin page header pattern. For routed `AdminLayout` workflow pages (lists, dashboards, forms, reports, and operations), use `PageHeader` with `Overline`, `Icon`, `Title`, optional `Subtitle`, and optional `<Actions>`. The overline is the module or section name above the title; the icon sits beside the title using the existing `erp-page-title-icon` spacing. Move existing top-level actions into `<Actions>` while preserving their handlers, permissions, disabled states, labels, and icons. Do not force this header onto public auth pages, layout components, modal-only content, nested panels, or small helper components.
+
 ## Authentication Pages
 
 Authentication screens include login, register, forgot password, reset password, and OTP verification.
@@ -150,7 +152,7 @@ List pages should use:
 
 ```razor
 <div class="erp-page">
-    <PageHeader Title="..." Subtitle="..." Overline="...">
+    <PageHeader Title="..." Subtitle="..." Overline="..." Icon="bi-box">
         <Actions>
             <button class="btn btn-primary">...</button>
         </Actions>
@@ -175,7 +177,7 @@ Form pages should use:
 
 ```razor
 <div class="erp-page">
-    <PageHeader Title="..." Subtitle="..." />
+    <PageHeader Title="..." Subtitle="..." Overline="..." Icon="bi-pencil-square" />
     <AppCard Title="...">
         <EditForm Model="model" OnValidSubmit="SaveAsync">
             <DataAnnotationsValidator />
@@ -188,7 +190,7 @@ Form pages should use:
 
 ## Dashboards
 
-Use `PageHeader`, `StatsCard`, responsive grids, `SectionTitle`, loading/empty states, and existing dashboard APIs/services. Avoid fake metrics, decorative widgets, and unnecessary animations.
+Use `PageHeader` with overline and icon, `StatsCard`, responsive grids, `SectionTitle`, loading/empty states, and existing dashboard APIs/services. Avoid fake metrics, decorative widgets, and unnecessary animations.
 
 ## Modals
 

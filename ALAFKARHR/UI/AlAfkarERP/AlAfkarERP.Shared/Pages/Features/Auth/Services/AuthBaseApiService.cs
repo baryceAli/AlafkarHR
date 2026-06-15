@@ -23,24 +23,7 @@ public abstract class AuthBaseApiService
             // ❌ NOT success
             if (!response.IsSuccessStatusCode)
             {
-                ErrorResponseDto? error = null;
-
-                try
-                {
-                    error = DeserializeAPIResponse.Deserialize<ErrorResponseDto>(content,node);
-                    error.Detail = $"{error.Detail} + statusCode: {response.StatusCode}";
-                }
-                catch
-                {
-                    error = new ErrorResponseDto
-                    {
-                        Status = (int)response.StatusCode,
-                        Title = "Request failed",
-                        Detail = content
-                    };
-                }
-
-                return ApiResult<T>.Failure(error!);
+                return ApiResult<T>.Failure(ApiErrorFormatter.FromHttpError(response.StatusCode, content));
             }
 
             // ✅ success
@@ -50,12 +33,7 @@ public abstract class AuthBaseApiService
         }
         catch (Exception ex)
         {
-            return ApiResult<T>.Failure(new ErrorResponseDto
-            {
-                Status = 500,
-                Title = "Client Error",
-                Detail = ex.Message
-            });
+            return ApiResult<T>.Failure(ApiErrorFormatter.FromClientException(ex));
         }
     }
 }

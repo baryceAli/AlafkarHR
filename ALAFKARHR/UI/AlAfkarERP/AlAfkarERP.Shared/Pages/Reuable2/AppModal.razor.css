@@ -1,0 +1,218 @@
+.app-modal {
+    background: rgba(15, 23, 42, .42);
+    backdrop-filter: blur(8px);
+    padding: var(--erp-space-4);
+}
+
+.app-modal__dialog {
+    margin-inline: auto;
+    max-width: min(520px, calc(100vw - 2rem));
+}
+
+.app-modal__content {
+    background: var(--erp-surface);
+    border: 1px solid var(--erp-border);
+    border-radius: var(--erp-radius-lg);
+    box-shadow: var(--erp-shadow-md);
+    color: var(--erp-text);
+    overflow: hidden;
+}
+
+.app-modal__header {
+    align-items: flex-start;
+    display: grid;
+    gap: var(--erp-space-3);
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: var(--erp-space-5) var(--erp-space-5) var(--erp-space-3);
+}
+
+.app-modal__icon {
+    align-items: center;
+    background: var(--erp-primary-soft);
+    border-radius: var(--erp-radius-md);
+    color: var(--erp-primary);
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 1.25rem;
+    height: 44px;
+    justify-content: center;
+    width: 44px;
+}
+
+.app-modal__content--danger .app-modal__icon {
+    background: color-mix(in srgb, var(--erp-danger) 12%, transparent);
+    color: var(--erp-danger);
+}
+
+.app-modal__content--warning .app-modal__icon {
+    background: color-mix(in srgb, var(--erp-warning) 14%, transparent);
+    color: var(--erp-warning);
+}
+
+.app-modal__content--success .app-modal__icon {
+    background: color-mix(in srgb, var(--erp-success) 12%, transparent);
+    color: var(--erp-success);
+}
+
+.app-modal__content--info .app-modal__icon {
+    background: color-mix(in srgb, var(--erp-info) 12%, transparent);
+    color: var(--erp-info);
+}
+
+.app-modal__heading {
+    min-width: 0;
+    padding-block-start: .15rem;
+}
+
+.app-modal__title {
+    color: var(--erp-text);
+    font-size: 1.05rem;
+    font-weight: 800;
+    line-height: 1.35;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.app-modal__close {
+    align-items: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--erp-radius-md);
+    color: var(--erp-text-muted);
+    display: inline-flex;
+    height: 36px;
+    justify-content: center;
+    padding: 0;
+    transition: background var(--erp-transition-fast), border-color var(--erp-transition-fast), color var(--erp-transition-fast), box-shadow var(--erp-transition-fast);
+    width: 36px;
+}
+
+.app-modal__close:hover,
+.app-modal__close:focus-visible {
+    background: var(--erp-surface-muted);
+    border-color: var(--erp-border);
+    color: var(--erp-text);
+    outline: 0;
+}
+
+.app-modal__close:focus-visible {
+    box-shadow: 0 0 0 .2rem var(--erp-focus-ring);
+}
+
+.app-modal__body {
+    padding: 0 var(--erp-space-5) var(--erp-space-5);
+}
+
+.app-modal__message {
+    color: var(--erp-text);
+    font-size: var(--erp-font-size-md);
+    line-height: 1.65;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.app-modal__details {
+    background: var(--erp-surface-muted);
+    border: 1px solid var(--erp-border);
+    border-radius: var(--erp-radius-md);
+    color: var(--erp-text-muted);
+    font-size: var(--erp-font-size-sm);
+    line-height: 1.55;
+    margin-block-start: var(--erp-space-3);
+    max-height: 160px;
+    overflow: auto;
+    padding: var(--erp-space-3);
+    white-space: pre-wrap;
+}
+
+.app-modal__footer {
+    background: var(--erp-surface-muted);
+    border-top: 1px solid var(--erp-border);
+    display: flex;
+    gap: var(--erp-space-2);
+    justify-content: flex-end;
+    padding: var(--erp-space-4) var(--erp-space-5);
+}
+
+.app-modal__btn {
+    align-items: center;
+    border-radius: var(--erp-radius-md);
+    display: inline-flex;
+    font-weight: 800;
+    justify-content: center;
+    min-height: 42px;
+    min-width: 96px;
+    padding: .55rem var(--erp-space-4);
+    transition: background var(--erp-transition-fast), border-color var(--erp-transition-fast), color var(--erp-transition-fast), box-shadow var(--erp-transition-fast);
+}
+
+.app-modal__btn:focus-visible {
+    box-shadow: 0 0 0 .2rem var(--erp-focus-ring);
+    outline: 0;
+}
+
+.app-modal__btn--primary {
+    background: var(--erp-primary);
+    border: 1px solid var(--erp-primary);
+    color: var(--erp-primary-contrast);
+}
+
+.app-modal__btn--primary:hover,
+.app-modal__btn--primary:focus-visible {
+    background: var(--erp-primary-hover);
+    border-color: var(--erp-primary-hover);
+    color: var(--erp-primary-contrast);
+}
+
+.app-modal__btn--danger {
+    background: var(--erp-danger);
+    border-color: var(--erp-danger);
+}
+
+.app-modal__btn--danger:hover,
+.app-modal__btn--danger:focus-visible {
+    background: color-mix(in srgb, var(--erp-danger) 88%, black);
+    border-color: color-mix(in srgb, var(--erp-danger) 88%, black);
+}
+
+.app-modal__btn--secondary {
+    background: var(--erp-surface);
+    border: 1px solid var(--erp-border-strong);
+    color: var(--erp-text);
+}
+
+.app-modal__btn--secondary:hover,
+.app-modal__btn--secondary:focus-visible {
+    background: var(--erp-primary-soft);
+    border-color: rgba(var(--erp-primary-rgb), .35);
+    color: var(--erp-primary);
+}
+
+[dir="rtl"] .app-modal__footer {
+    justify-content: flex-start;
+}
+
+@media (max-width: 575.98px) {
+    .app-modal {
+        padding: var(--erp-space-3);
+    }
+
+    .app-modal__dialog {
+        max-width: 100%;
+    }
+
+    .app-modal__header,
+    .app-modal__body {
+        padding-inline: var(--erp-space-4);
+    }
+
+    .app-modal__footer {
+        align-items: stretch;
+        flex-direction: column-reverse;
+        padding: var(--erp-space-4);
+    }
+
+    .app-modal__btn {
+        width: 100%;
+    }
+}

@@ -1,6 +1,7 @@
 using AlAfkarERP.Shared.Dtos;
 using System.Net;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace AlAfkarERP.Shared.Utilities;
 
@@ -47,6 +48,20 @@ public static class ApiErrorFormatter
         return error;
     }
 
+    public static ErrorResponseDto FromClientException(Exception exception, int status)
+    {
+        var error = new ErrorResponseDto
+        {
+            Status = status,
+            Title = "Client Error",
+            Detail = exception.Message
+        };
+
+        ApplyFriendlyMessages(error);
+
+        return error;
+    }
+
     private static ErrorResponseDto? TryDeserializeProblemDetails(string content)
     {
         if (string.IsNullOrWhiteSpace(content))
@@ -73,7 +88,9 @@ public static class ApiErrorFormatter
         error.UserMessageEn = FirstNotEmpty(validationMessage, backendDetail, fallback.En);
         error.UserMessageAr = FirstNotEmpty(validationMessage, backendDetail, fallback.Ar);
         error.Detail = error.UserMessageEn;
-        error.Title = string.IsNullOrWhiteSpace(error.Title) ? fallback.Title : error.Title;
+        error.Title = FirstNotEmpty(SanitizePublicMessage(error.Title), fallback.Title);
+        error.Instance = string.Empty;
+        error.TraceId = string.Empty;
     }
 
     private static string? GetSafeBackendDetail(ErrorResponseDto error)
@@ -83,9 +100,12 @@ public static class ApiErrorFormatter
             return null;
         }
 
-        var detail = error.Detail.Trim();
+        var detail = SanitizePublicMessage(error.Detail);
 
-        if (detail.StartsWith("{") || detail.StartsWith("[") || detail.Contains("System.", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(detail) ||
+            detail.StartsWith("{") ||
+            detail.StartsWith("[") ||
+            HasInternalDetails(detail))
         {
             return null;
         }
@@ -102,7 +122,8 @@ public static class ApiErrorFormatter
 
         var messages = errors
             .SelectMany(error => error.Value)
-            .Where(message => !string.IsNullOrWhiteSpace(message))
+            .Select(SanitizePublicMessage)
+            .Where(message => !string.IsNullOrWhiteSpace(message) && !HasInternalDetails(message))
             .Distinct()
             .Take(5)
             .ToList();
@@ -124,4 +145,30 @@ public static class ApiErrorFormatter
 
     private static string FirstNotEmpty(params string?[] values)
         => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? "";
+
+    private static bool HasInternalDetails(string message)
+        => message.Contains("System.", StringComparison.OrdinalIgnoreCase) ||
+           message.Contains("AlAfkarERP.", StringComparison.OrdinalIgnoreCase) ||
+           message.Contains("SharedWithUI.", StringComparison.OrdinalIgnoreCase) ||
+           message.Contains(" at ", StringComparison.OrdinalIgnoreCase) ||
+           message.Contains("\\", StringComparison.Ordinal);
+
+    private static string? SanitizePublicMessage(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return null;
+        }
+
+        var sanitized = message.Trim();
+        sanitized = Regex.Replace(sanitized, @"\((?:https?://)?(?:localhost|127\.0\.0\.1|::1)[^)]+\)", "", RegexOptions.IgnoreCase);
+        sanitized = Regex.Replace(sanitized, @"https?://[^\s,)]+", "", RegexOptions.IgnoreCase);
+        sanitized = Regex.Replace(sanitized, @"\b(?:localhost|127\.0\.0\.1|::1):\d+\b", "", RegexOptions.IgnoreCase);
+        sanitized = Regex.Replace(sanitized, @"\b(?:[A-Za-z_]\w*\.){2,}[A-Za-z_]\w*\b", "");
+        sanitized = Regex.Replace(sanitized, @"[A-Za-z]:\\[^\s,;]+", "");
+        sanitized = Regex.Replace(sanitized, @"\+?\s*statusCode\s*:\s*[A-Za-z0-9]+", "", RegexOptions.IgnoreCase);
+        sanitized = Regex.Replace(sanitized, @"\s+", " ").Trim(' ', ',', ';', '-', '+');
+
+        return string.IsNullOrWhiteSpace(sanitized) ? null : sanitized;
+    }
 }
