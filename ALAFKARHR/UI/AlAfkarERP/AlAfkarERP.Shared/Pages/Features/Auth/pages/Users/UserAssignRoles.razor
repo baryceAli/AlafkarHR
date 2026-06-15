@@ -1,10 +1,9 @@
 @layout AdminLayout
 @page "/Auth/User/AssignRole"
-@using AlAfkarERP.Shared.Pages.Features.Auth.Layout
-@* @using AlAfkarERP.Shared.Pages.Reuable *@
+@implements IDisposable
+
 @using AlAfkarERP.Shared.Pages.Features.Auth.Services
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
-@* @using AlAfkarERP.Shared.Pages.Reuable *@
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
@@ -14,571 +13,635 @@
 @using System.Globalization
 @using System.Text
 
-
 @inject IRoleService RoleService
 @inject IUserService UserService
 @inject IEmployeeService EmployeeService
 @inject ToastService ToastService
 @inject ModalService ModalService
-
 @inject AuthenticationStateProvider AuthenticationStateProvider
-
-
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.RolesPermissions.Create}"))
+@if (AuthState is not null && !CanAccessPage)
 {
     <div class="alert alert-warning">
-        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
+        @Text("You don't have permissions to view this page", "You don't have permissions to view this page")
     </div>
+    return;
 }
 
-<!-- Branches -->
-<h3>@SharedDataService.SelectViewLang("Assign role to users", "تعيين الصلاحية لمستخدمين")</h3>
-@* Auto complete for users *@
-<div class="mb-3">
-    <label for="Users" class="form-label">@(SharedDataService.Language == "Ar" ? "اختر المستخدم" : "Select User")</label>
-    <AutoCompleteComponent TItem="EmployeeDto"
-                           Items="employees"
-                           ItemText='(e=> SharedDataService.SelectViewLang($"{e.FirstNameEng} {e.MiddleNameEng} {e.LastNameEng}",
-                                                    $"{e.FirstName} {e.MiddleName} {e.LastName}"))'
-                       Value="selectedEmployee"
-                       PlaceHolder="search users ..."
-                       ValueChanged="OnUserValueChanged" />
-</div>
+<div class="erp-page">
+    <PageHeader Title="@Text("Assign role to employees", "Assign role to employees")"
+                Subtitle="@Text("Manage employee role assignments without exposing user codes.", "Manage employee role assignments without exposing user codes.")"
+                Icon="bi-person-check">
+        <Actions>
+            <button class="btn btn-primary"
+                    @onclick="CreateNew"
+                    disabled="@(!CanCreate || isBusy)">
+                <i class="bi bi-plus-lg"></i> @Text("Create New", "Create New")
+            </button>
+        </Actions>
+    </PageHeader>
 
+    @if (editingRow is not null)
+    {
+        <AppCard CssClass="mb-3">
+            <EditForm Model="formRole" OnValidSubmit="SaveRole">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
 
+                <div class="row g-3 align-items-end">
+                    @if (isCreateMode)
+                    {
+                        <div class="col-lg-5">
+                            <label class="form-label">@Text("Employee", "Employee")</label>
+                            <AutoCompleteComponent TItem="EmployeeUserRolesRow"
+                                                   Items="AvailableEmployeesForCreate"
+                                                   ItemText="(row => row.DisplayName)"
+                                                   Value="selectedCreateRow"
+                                                   PlaceHolder="@Text("Search employees ...", "Search employees ...")"
+                                                   ValueChanged="OnCreateEmployeeChanged" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="col-lg-5">
+                            <label class="form-label">@Text("Employee", "Employee")</label>
+                            <div class="form-control">@editingRow.DisplayName</div>
+                        </div>
+                    }
 
+                    <div class="col-lg-5">
+                        <label class="form-label">@Text("Role", "Role")</label>
+                        <AutoCompleteComponent TItem="RoleDto"
+                                               Items="AvailableRolesForEdit"
+                                               ItemText="(role => role.RoleName)"
+                                               Value="selectedRole"
+                                               PlaceHolder="@Text("Search roles ...", "Search roles ...")"
+                                               ValueChanged="OnRoleValueChanged" />
+                        <ValidationMessage For="@(() => formRole.RoleName)" />
+                    </div>
 
-@* <button class="btn btn-sm btn-primary mb-2" @onclick="CreateNew">+ Add Branch</button> *@
-<button class="btn btn-primary mb-3"
-        @onclick="CreateNew"
-        disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.RolesPermissions.Create}") ? true : false)>
-    <i class="bi bi-file-earmark-plus-fill"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
-</button>
+                    <div class="col-lg-2 d-flex gap-2">
+                        <button type="submit"
+                                class="btn btn-success btn-sm"
+                                disabled="@(!CanCreate || isBusy)">
+                            <i class="bi bi-check-lg"></i> @Text("Save", "Save")
+                        </button>
+                        <button type="button"
+                                class="btn btn-secondary btn-sm"
+                                @onclick="CancelEdit"
+                                disabled="@isBusy">
+                            @Text("Cancel", "Cancel")
+                        </button>
+                    </div>
+                </div>
 
-<div class="card p-3 mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <!--
+                @if (isCreateMode && AvailableEmployeesForCreate.Count == 0)
+                {
+                    <div class="text-muted small mt-3">
+                        @Text("All identifiable employees already have roles assigned.", "All identifiable employees already have roles assigned.")
+                    </div>
+                }
+                else if (!AvailableRolesForEdit.Any())
+                {
+                    <div class="text-muted small mt-3">
+                        @Text("All available roles are already assigned to this employee.", "All available roles are already assigned to this employee.")
+                    </div>
+                }
+            </EditForm>
+        </AppCard>
+    }
 
-        Export to xls and pdf
-        <div class="d-flex gap-2">
+    <AppCard>
+        <FilterBar CssClass="mb-3">
+            <ChildContent>
+                <input class="form-control"
+                       placeholder="@Text("Search", "Search")"
+                       @bind="SearchText"
+                       @bind:event="oninput" />
 
-            <button class="btn btn-success btn-sm" @onclick="ExportToExcel">
-                <i class="bi bi-file-earmark-excel"></i> Excel
+                <select class="form-select erp-page-size-select" @onchange="OnPageSizeChanged">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                </select>
+            </ChildContent>
+
+            <Actions>
+                <TableExportActions />
+            </Actions>
+        </FilterBar>
+
+        <div class="erp-table-wrap">
+            <table class="table erp-table align-middle">
+                <thead>
+                    <tr>
+                        <th @onclick="ToggleSort" class="sortable">
+                            <i class="@SortIcon"></i>
+                            @Text("Employee", "Employee")
+                        </th>
+                        <th>@Text("Roles", "Roles")</th>
+                        <th class="text-end">@Text("Actions", "Actions")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (isBusy && userRoleRows.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-4">
+                                @Text("Loading role assignments ...", "Loading role assignments ...")
+                            </td>
+                        </tr>
+                    }
+                    else if (!ProcessedRows.Any())
+                    {
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-4">
+                                @Text("No employee role assignments found.", "No employee role assignments found.")
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in ProcessedRows)
+                        {
+                            <tr @key="row.User.Id">
+                                <td>
+                                    <div class="fw-semibold">@row.DisplayName</div>
+                                    @if (row.IsProtectedAdmin)
+                                    {
+                                        <span class="badge text-bg-secondary mt-1">
+                                            <i class="bi bi-lock"></i> @Text("Protected admin", "Protected admin")
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    @{
+                                        var visibleRoles = DisplayRoles(row).ToList();
+                                    }
+                                    @if (visibleRoles.Count == 0)
+                                    {
+                                        <span class="text-muted small">
+                                            @(row.IsProtectedAdmin ? Text("Protected admin", "Protected admin") : Text("No roles assigned", "No roles assigned"))
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var role in visibleRoles)
+                                        {
+                                            <span class="badge text-bg-light me-1">@role.RoleName</span>
+                                        }
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @if (!row.IsProtectedAdmin)
+                                    {
+                                        <button class="btn btn-outline-warning btn-sm erp-row-action"
+                                                @onclick="() => EditRow(row)"
+                                                disabled="@(!CanCreate || isBusy || !GetUnassignedRoles(row).Any())"
+                                                title="@Text("Edit", "Edit")">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+
+                                        @foreach (var role in row.AssignedRoles)
+                                        {
+                                            <button class="btn btn-outline-danger btn-sm erp-row-action"
+                                                    @onclick="() => RemoveRole(row, role)"
+                                                    disabled="@(!CanDelete || isBusy)"
+                                                    title="@Text("Unassign", "Unassign")">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">@Text("Locked", "Locked")</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-end align-items-center gap-2 mt-3">
+            <button class="btn btn-sm btn-secondary"
+                    @onclick="PrevPage"
+                    disabled="@(pageIndex == 0 || isBusy)">
+                @Text("Previous", "Previous")
             </button>
 
-            <button class="btn btn-danger btn-sm" @onclick="ExportToPdf">
-                <i class="bi bi-file-earmark-pdf"></i> PDF
+            <span class="text-muted small">
+                @Text("Page", "Page") @(pageIndex + 1) @Text("of", "of") @TotalPages
+            </span>
+
+            <button class="btn btn-sm btn-secondary"
+                    @onclick="NextPage"
+                    disabled="@(pageIndex >= TotalPages - 1 || isBusy)">
+                @Text("Next", "Next")
             </button>
-
         </div>
-        -->
-        <!-- 🔍 Search -->
-        <div>
-            <input class="form-control"
-                   placeholder="Search..."
-                   @bind="searchText" />
-        </div>
-
-        <!--
-
-        🎯 Filter
-        <div class="col-md-3">
-            <select class="form-select" @bind="filterMainBranch">
-                <option value="">All</option>
-                <option value="true">Main Branch</option>
-                <option value="false">Not Main</option>
-            </select>
-        </div>
-        -->
-        <!-- 📄 Page Size -->
-        <div>
-            @* <select class="form-select" @bind="pageSize"> *@
-            <select class="form-select" @onchange="OnPageSizeChanged">
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-            </select>
-        </div>
-
-    </div>
-            <div class="d-flex justify-content-end mb-2">
-            <TableExportActions />
-        </div>
-
-    <table class="table">
-        <thead>
-            <tr>
-                <th @onclick="() => Sort(nameof(RoleDto.RoleName))">
-                    <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
-                    @SharedDataService.SelectViewLang("Role", "الصلاحية")
-                </th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @* @foreach (var b in branches) *@
-            @foreach (var role in ProcessedRoles)
-            {
-                @if (editingRole!=null && editingRole.RoleName == role.RoleName)
-                {
-                    <tr>
-                        <td colspan="9">
-                            <EditForm Model="role" OnValidSubmit="() => SaveRole(role)">
-                                <DataAnnotationsValidator />
-                                <ValidationSummary />
-                                @* <InputHidden @bind-Value="branch.Id"/> *@
-                                <div class="row bg-info-subtle p-3">
-
-                                    
-                                    <div class="mb-3">
-                                        <label for="Roles" class="form-label">@(SharedDataService.Language == "Ar" ? "اختر صلاحية" : "Select Role")</label>
-                                        <AutoCompleteComponent TItem="RoleDto"
-                                                               Items="GetUnassignedRoles(allRoles,userAssignedRoles)"
-                                                               ItemText="(r=>r.RoleName)"
-                                                               Value="selectedRole"
-                                                               PlaceHolder="search roles ..."
-                                                               ValueChanged="OnRoleValueChanged" />
-                                        <ValidationMessage For="@(() => role.RoleName)" />
-                                    </div>
-    
-                                    <div class="col">
-                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
-                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
-                                    </div>
-                                </div>
-                            </EditForm>
-                        </td>
-                    </tr>
-                }
-                else
-                {
-                    <tr>
-                        <td>@role.RoleName</td>
-                        
-                        <td>
-                            @* <button class="btn btn-warning btn-sm"
-                                    @onclick="() => EditRole(role)"
-                                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BranchPermissions.Edit}"))>
-                                @SharedDataService.SelectViewLang("Edit", "تعديل")
-                            </button> *@
-                            <button class="btn btn-danger btn-sm"
-                                    @onclick="() => RemoveRole(role)"
-                                    disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.RolesPermissions.Delete}"))>
-                                @SharedDataService.SelectViewLang("Delete", "حذف")
-                            </button>
-                        </td>
-                    </tr>
-                }
-            }
-        </tbody>
-    </table>
-    <div class="d-flex justify-content-end align-items-center mt-3">
-
-        <button class="btn btn-sm btn-secondary"
-                @onclick="PrevPage"
-                disabled="@(pageIndex == 1)">
-            Previous
-        </button>
-
-        <span class="mx-3">Page @(pageIndex + 1) of @TotalPages @(TotalPages == 1 ? "" : "Pages")</span>
-
-        <button class="btn btn-sm btn-secondary"
-                @onclick="NextPage"
-                disabled="@(pageIndex >= TotalPages)">
-            Next
-        </button>
-
-    </div>
+    </AppCard>
 </div>
 
 @code {
-    private List<RoleDto> userAssignedRoles = new();
-    private List<RoleDto> userUnassignedRoles = new();
-    private List<RoleDto> allRoles = new();
-    private RoleDto selectedRole;
-    private List<EmployeeDto> employees = [];
-    private EmployeeDto? selectedEmployee;
-    private UserDto? selectedAuthUser;
-    private RoleDto? editingRole;
-    // private RoleDto? roleToSave;
+    private AuthenticationState? AuthState;
     private Guid companyId;
-    private bool isEdit = false;
-    private AuthenticationState AuthState;
+    private bool isBusy;
+    private bool isCreateMode;
+    private bool sortAscending = true;
+    private int pageSize = 5;
+    private int pageIndex;
+    private string searchText = string.Empty;
+
+    private string SearchText
+    {
+        get => searchText;
+        set
+        {
+            if (searchText == value)
+            {
+                return;
+            }
+
+            searchText = value;
+            pageIndex = 0;
+        }
+    }
+
+    private List<UserDto> authUsers = [];
+    private List<EmployeeDto> employees = [];
+    private List<RoleDto> allRoles = [];
+    private List<EmployeeUserRolesRow> userRoleRows = [];
+
+    private EmployeeUserRolesRow? editingRow;
+    private EmployeeUserRolesRow? selectedCreateRow;
+    private RoleDto? selectedRole;
+    private RoleDto formRole = new();
+
+    private bool CanAccessPage => CanCreate;
+    private bool CanCreate => HasPermission(PermissionList.RolesPermissions.Create);
+    private bool CanDelete => HasPermission(PermissionList.RolesPermissions.Delete);
+
+    private List<EmployeeUserRolesRow> AvailableEmployeesForCreate =>
+        userRoleRows
+            .Where(row => !row.IsProtectedAdmin && row.AssignedRoles.Count == 0)
+            .OrderBy(row => row.DisplayName)
+            .ToList();
+
+    private List<RoleDto> AvailableRolesForEdit =>
+        editingRow is null ? [] : GetUnassignedRoles(editingRow).ToList();
+
+    private IEnumerable<EmployeeUserRolesRow> FilteredRows =>
+        userRoleRows
+            .Where(row =>
+                string.IsNullOrWhiteSpace(searchText) ||
+                row.DisplayName.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                row.AssignedRoles.Any(role => role.RoleName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true))
+            .OrderBy(row => sortAscending ? row.DisplayName : string.Empty)
+            .ThenByDescending(row => sortAscending ? string.Empty : row.DisplayName);
+
+    private IEnumerable<EmployeeUserRolesRow> ProcessedRows =>
+        FilteredRows
+            .Skip(pageIndex * pageSize)
+            .Take(pageSize);
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(FilteredRows.Count() / (double)pageSize));
+    private string SortIcon => sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down";
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
     protected override async Task OnInitializedAsync()
     {
-        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
         companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
 
-        var userRes = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 10000);
-        if (userRes.IsSuccess)
+        if (!CanAccessPage)
         {
-            employees = userRes.Data?.Data?.ToList() ?? [];
+            return;
         }
-        var roleRes = await RoleService.GetRoles(companyId, 0, 10000);
-        if (roleRes.IsSuccess)
-        {
-            allRoles = roleRes.Data?.ToList() ?? [];
-        }
-        await LoadRoles();
-        // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
-        // if (branchResponse.IsSuccess)
-        // {
-        //     branches = branchResponse.Data?.ToList() ?? [];
-        // }
+
+        await LoadData();
     }
-    // Branch
-    void CreateNew()
+
+    private async Task LoadData()
     {
-        var roleToSave = new RoleDto()
+        isBusy = true;
+        try
+        {
+            var userRes = await UserService.GetUsersByCompany(companyId, 0, 10000);
+            if (userRes.IsSuccess)
+            {
+                authUsers = userRes.Data?.Data?.ToList() ?? [];
+            }
+            else
+            {
+                ShowToast(userRes.Error?.Detail ?? Text("Unable to load users", "Unable to load users"), "error");
+            }
+
+            var employeeRes = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 10000);
+            if (employeeRes.IsSuccess)
+            {
+                employees = employeeRes.Data?.Data?.ToList() ?? [];
+            }
+            else
+            {
+                ShowToast(employeeRes.Error?.Detail ?? Text("Unable to load employees", "Unable to load employees"), "error");
+            }
+
+            var roleRes = await RoleService.GetRoles(companyId, 0, 10000);
+            if (roleRes.IsSuccess)
+            {
+                allRoles = roleRes.Data?.ToList() ?? [];
+            }
+            else
+            {
+                ShowToast(roleRes.Error?.Detail ?? Text("Unable to load roles", "Unable to load roles"), "error");
+            }
+
+            await BuildUserRoleRows();
+            ClampPageIndex();
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task BuildUserRoleRows()
+    {
+        var employeeByUserName = employees
+            .Select(employee => new
+            {
+                Key = NormalizeUserNameKey(employee.Code),
+                Employee = employee
+            })
+            .Where(item => !string.IsNullOrWhiteSpace(item.Key))
+            .GroupBy(item => item.Key, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First().Employee, StringComparer.OrdinalIgnoreCase);
+
+        var rows = new List<EmployeeUserRolesRow>();
+
+        foreach (var user in authUsers)
+        {
+            var userKey = NormalizeUserNameKey(user.UserName);
+            if (string.IsNullOrWhiteSpace(userKey) || !employeeByUserName.TryGetValue(userKey, out var employee))
+            {
+                continue;
+            }
+
+            var assignedRoles = new List<RoleDto>();
+            var roleRes = await RoleService.GetRolesByUserName(user.UserName);
+            if (roleRes.IsSuccess)
+            {
+                assignedRoles = roleRes.Data?.ToList() ?? [];
+            }
+
+            rows.Add(new EmployeeUserRolesRow
+            {
+                User = user,
+                Employee = employee,
+                AssignedRoles = assignedRoles,
+                DisplayName = EmployeeName(employee),
+                IsProtectedAdmin = IsProtectedAdmin(user, assignedRoles)
+            });
+        }
+
+        userRoleRows = rows
+            .OrderBy(row => row.DisplayName)
+            .ToList();
+    }
+
+    private void CreateNew()
+    {
+        isCreateMode = true;
+        selectedCreateRow = null;
+        selectedRole = null;
+        formRole = NewFormRole();
+        editingRow = new EmployeeUserRolesRow();
+    }
+
+    private void EditRow(EmployeeUserRolesRow row)
+    {
+        isCreateMode = false;
+        selectedCreateRow = null;
+        selectedRole = null;
+        formRole = NewFormRole();
+        editingRow = row;
+    }
+
+    private void OnCreateEmployeeChanged(EmployeeUserRolesRow row)
+    {
+        selectedCreateRow = row;
+        editingRow = row;
+        selectedRole = null;
+        formRole = NewFormRole();
+    }
+
+    private void OnRoleValueChanged(RoleDto role)
+    {
+        selectedRole = role;
+        formRole.RoleName = role?.RoleName ?? string.Empty;
+        formRole.CompanyId = companyId;
+        formRole.Permissions = role?.Permissions ?? [];
+    }
+
+    private async Task SaveRole()
+    {
+        var targetRow = isCreateMode ? selectedCreateRow : editingRow;
+        if (targetRow is null || targetRow.User is null)
+        {
+            await ShowValidationModal(Text("Please select an employee to continue", "Please select an employee to continue"));
+            return;
+        }
+
+        if (selectedRole is null || string.IsNullOrWhiteSpace(selectedRole.RoleName))
+        {
+            await ShowValidationModal(Text("Please select role to continue", "Please select role to continue"));
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            var result = await RoleService.AssignRole(new UserRoleDto
+            {
+                UserName = targetRow.User.UserName,
+                RoleName = selectedRole.RoleName
+            });
+
+            if (result.IsSuccess)
+            {
+                ShowToast(Text("Role has been assigned successfully", "Role has been assigned successfully"), "success");
+                await LoadData();
+                CancelEdit();
+            }
+            else
+            {
+                ShowToast(result.Error?.Detail ?? Text("Error has occured, please try again later", "Error has occured, please try again later"), "error");
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task RemoveRole(EmployeeUserRolesRow row, RoleDto role)
+    {
+        await ModalService.ShowAsync(new ModalOptions
+        {
+            Title = Text("Confirm unassign role", "Confirm unassign role"),
+            Message = Text($"Are you sure you want to unassign this role: {role.RoleName}?", $"Are you sure you want to unassign this role: {role.RoleName}?"),
+            ShowCancel = true,
+            OkText = Text("Yes", "Yes"),
+            CancelText = Text("No", "No"),
+            OnOk = async () =>
+            {
+                isBusy = true;
+                try
+                {
+                    var result = await RoleService.UnassignRole(new UserRoleDto
+                    {
+                        UserName = row.User.UserName,
+                        RoleName = role.RoleName
+                    });
+
+                    if (result.IsSuccess)
+                    {
+                        ShowToast(Text("Role unassigned successfully", "Role unassigned successfully"), "success");
+                        await LoadData();
+                        await InvokeAsync(StateHasChanged);
+                    }
+                    else
+                    {
+                        ShowToast(result.Error?.Detail ?? Text("Fail to unassign the role", "Fail to unassign the role"), "error");
+                    }
+                }
+                finally
+                {
+                    isBusy = false;
+                }
+            }
+        });
+    }
+
+    private void CancelEdit()
+    {
+        isCreateMode = false;
+        editingRow = null;
+        selectedCreateRow = null;
+        selectedRole = null;
+        formRole = NewFormRole();
+    }
+
+    private void ToggleSort()
+    {
+        sortAscending = !sortAscending;
+    }
+
+    private void OnPageSizeChanged(ChangeEventArgs e)
+    {
+        pageSize = int.Parse(e.Value?.ToString() ?? "5");
+        pageIndex = 0;
+        ClampPageIndex();
+    }
+
+    private void NextPage()
+    {
+        if (pageIndex < TotalPages - 1)
+        {
+            pageIndex++;
+        }
+    }
+
+    private void PrevPage()
+    {
+        if (pageIndex > 0)
+        {
+            pageIndex--;
+        }
+    }
+
+    private void ClampPageIndex()
+    {
+        if (pageIndex >= TotalPages)
+        {
+            pageIndex = TotalPages - 1;
+        }
+
+        if (pageIndex < 0)
+        {
+            pageIndex = 0;
+        }
+    }
+
+    private IEnumerable<RoleDto> GetUnassignedRoles(EmployeeUserRolesRow row)
+    {
+        if (row.IsProtectedAdmin)
+        {
+            return [];
+        }
+
+        var assigned = row.AssignedRoles
+            .Select(role => role.RoleName)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return allRoles
+            .Where(role => !IsCompanyAdminRole(role.RoleName))
+            .Where(role => !assigned.Contains(role.RoleName))
+            .OrderBy(role => role.RoleName);
+    }
+
+    private IEnumerable<RoleDto> DisplayRoles(EmployeeUserRolesRow row)
+        => row.AssignedRoles
+            .Where(role => !IsCompanyAdminRole(role.RoleName));
+
+    private RoleDto NewFormRole()
+        => new()
         {
             RoleName = string.Empty,
             CompanyId = companyId,
             Permissions = []
         };
 
-        userAssignedRoles.Insert(0, roleToSave);
-        editingRole = roleToSave;
-        isEdit = false;
-    }
-
-    // void EditRole(RoleDto role)
-    // {
-    //     roleToSave = role;
-    //     editingRoleName = role.RoleName;
-
-    //     isEdit = true;
-    // }
-    async Task SaveRole(RoleDto role)
-    {
-        if (selectedRole == null || string.IsNullOrWhiteSpace(selectedRole.RoleName))
-        {
-            await ModalService.ShowAsync(new ModalOptions
-            {
-                Title = SharedDataService.SelectViewLang("Create New", "إنشاء جديد"),
-                IsError = true,
-                Message = SharedDataService.SelectViewLang("Please select role to continue", "يرجى اختيار صلاحية للاستمرار"),
-                OnOk = async () => { }
-            });
-            return;
-        }
-
-        role.CompanyId = companyId;
-        var authUser = await ResolveSelectedAuthUserAsync();
-        if (authUser is null)
-            return;
-
-        UserRoleDto userRole = new UserRoleDto
-        {
-            UserName = authUser.UserName,
-            RoleName = selectedRole.RoleName
-        };
-        var bResponse = await RoleService.AssignRole(userRole);
-        if (bResponse.IsSuccess)
-        {
-            selectedRole = new RoleDto();
-            //show success
-            ToastService.Show(new ToastMessage
-            {
-                Message = SharedDataService.SelectViewLang("Role has been assigned successfully", "تم تعيين الصلاحية  بنجاح"),
-                Type = "success"
-            });
-
-            await LoadRoles();
-            editingRole = null;
-
-        }
-        else
-        {
-            // how fail
-            ToastService.Show(new ToastMessage
-            {
-                Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
-                Type = "error"
-            });
-        }
-
-        editingRole = null;
-
-    }
-
-    async Task RemoveRole(RoleDto role)
+    private async Task ShowValidationModal(string message)
     {
         await ModalService.ShowAsync(new ModalOptions
         {
-            Title = SharedDataService.SelectViewLang("Confirm unassign roles", "تأكيد إلغاء التعيين"),
-            Message = SharedDataService.SelectViewLang($"Are you sure you want to unassign this role: {role.RoleName}?", $"هل ترغب فعلا في إلغاء تعيين الصلاحية: {role.RoleName}؟"),
-            ShowCancel = true,
-            OkText = SharedDataService.SelectViewLang("Yes", "نعم"),
-            CancelText = SharedDataService.SelectViewLang("No", "لا"),
-
-            OnOk = async () =>
-            {
-                var authUser = await ResolveSelectedAuthUserAsync();
-                if (authUser is null)
-                    return;
-
-                UserRoleDto userRole = new UserRoleDto { UserName = authUser.UserName, RoleName = role.RoleName };
-                var brResponse = await RoleService.UnassignRole(userRole);
-                if (brResponse.IsSuccess)
-                {
-
-                    ToastService.Show(new ToastMessage
-                    {
-                        Message = SharedDataService.SelectViewLang("Role unassigned successfully", "تم إلغاء تعيين الصلاحية بنجاح"),
-                        Type = "success"
-                    });
-
-                    await LoadRoles();
-                    await InvokeAsync(StateHasChanged);
-                    // var response = await BranchService.GetByCompanyIdAsync(companyId);
-                    // if (response.IsSuccess)
-                    // {
-                    //     branches = response.Data?.ToList() ?? [];
-                    //     await InvokeAsync(StateHasChanged);
-                    // }
-                }
-                else
-                {
-                    ToastService.Show(new ToastMessage
-                    {
-                        Message = SharedDataService.SelectViewLang("Fail to unassign the role", "فشلت عملية إلغاء تعيين الصلاحية"),
-                        Type = "error"
-                    });
-                }
-
-
-            }
+            Title = Text("Assign Role", "Assign Role"),
+            IsError = true,
+            Message = message,
+            OnOk = async () => { await Task.CompletedTask; }
         });
-
-
     }
-    async Task CancelEdit()
+
+    private string EmployeeName(EmployeeDto employee)
     {
+        var localizedName = Text(employee.FullNameEng, employee.FullName).Trim();
+        return string.IsNullOrWhiteSpace(localizedName) ? Text("Employee", "Employee") : localizedName;
+    }
 
-
-        //new
-        // branch
-        var item = userAssignedRoles.FirstOrDefault(x => x.RoleName == editingRole.RoleName);
-
-        if (item != null && !string.IsNullOrEmpty(item.RoleName))
+    private string NormalizeUserNameKey(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
         {
-            // existing record → keep it
-            await LoadRoles();
-            // var brRes = await RoleService.GetRolesByUserName(companyId, 0, 1000);
-            // if (brRes.IsSuccess)
-            // {
-            //     userAssignedRoles = brRes.Data?.ToList() ?? [];
-            // }
-        }
-        else
-        {
-            // new record → remove it
-            userAssignedRoles.Remove(item);
-        }
-        isEdit = false;
-        selectedRole = new RoleDto();
-        // roleToSave = null;
-        editingRole = null;
-    }
-
-    #region Table Helpers
-
-
-    // Searching
-    private string searchText = "";
-
-    // Sorting
-    private string sortColumn = nameof(RoleDto.RoleName);
-    private bool sortAscending = true;
-
-    // Pagination
-    private int pageSize = 5;
-    private int pageIndex = 0;
-    private async Task LoadRoles()
-    {
-        // var request = new PaginationRequest(pageIndex, pageSize, searchText);
-        if (selectedEmployee == null)
-            return;
-
-        var authUser = await ResolveSelectedAuthUserAsync();
-        if (authUser is null)
-        {
-            userAssignedRoles = [];
-            TotalPages = 1;
-            return;
-        }
-
-        var response = await RoleService.GetRolesByUserName(authUser.UserName);//,searchText);
-
-        if (response.IsSuccess)
-        {
-            // var result = response.Data!.Data;
-
-            // branches = result.Data.ToList();
-            userAssignedRoles = response.Data?.ToList() ?? [];
-
-            // var usr = GetUnassignedRoles(allRoles, userAssignedRoles);
-            // TotalPages = (int)response.Data!.Count;
-            TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
-        }
-    }
-    async Task OnPageSizeChanged(ChangeEventArgs e)
-    {
-        pageSize = int.Parse(e.Value!.ToString()!);
-        pageIndex = 0;
-        await LoadRoles();
-    }
-    private IEnumerable<RoleDto> ProcessedRoles =>
-    userAssignedRoles
-        // 🔍 Search
-        .Where(b =>
-            string.IsNullOrWhiteSpace(searchText) ||
-            (b.RoleName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
-        // (b.NameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-        // (b.Email?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
-        )
-
-        // 🎯 Filter
-        // .Where(b =>
-        //     filterMainBranch == null || b.IsMainBranch == filterMainBranch
-        // )
-
-        // 🔃 Sorting
-        .OrderByDynamic(sortColumn, sortAscending)
-
-        // 📄 Pagination
-        .Skip((pageIndex) * pageSize)
-        .Take(pageSize);
-
-
-
-    // Filtering example
-    private bool? filterMainBranch = null;
-    // private long totalCount = 0;
-    private int TotalPages = 1;
-    // private int TotalPages =>
-    // (int)Math.Ceiling(
-    //     totalCount/ (double)pageSize);
-
-    async Task NextPage()
-    {
-        // if (currentPage < TotalPages)
-        //     currentPage++;
-
-        if (pageIndex < TotalPages - 1)
-        {
-            pageIndex++;
-            await LoadRoles();
-        }
-    }
-
-    async Task PrevPage()
-    {
-        // if (pageIndex > 1)
-        //     pageIndex--;
-
-        if (pageIndex > 0)
-        {
-            pageIndex--;
-            await LoadRoles();
-        }
-    }
-
-    void Sort(string column)
-    {
-        if (sortColumn == column)
-            sortAscending = !sortAscending;
-        else
-        {
-            sortColumn = column;
-            sortAscending = true;
-        }
-    }
-    #endregion Table helpers
-
-    private async Task OnUserValueChanged(EmployeeDto employee)
-    {
-        selectedEmployee = employee;
-        selectedAuthUser = null;
-        await LoadRoles();
-        // var userRes = await RoleService.GetRolesByEmployeeId(user.Id, 0, 1000);
-        // if (userRes.IsSuccess)
-        // {
-        //     userAssignedRoles = userRes.Data?.ToList() ?? [];
-        // }
-    }
-    private async Task OnRoleValueChanged(RoleDto role)
-    {
-        if (role is null || editingRole is null)
-            return;
-
-        selectedRole = role;
-
-        // This fixes "Role name is required"
-        editingRole.RoleName = role.RoleName;
-        editingRole.CompanyId = companyId;
-        editingRole.Permissions = role.Permissions ?? [];
-    }
-    private List<RoleDto> GetUnassignedRoles(
-        List<RoleDto> allRoles,
-        List<RoleDto> assignedRoles)
-    {
-        var assigned = assignedRoles
-            .Select(r => r.RoleName)
-            .ToHashSet();
-      
-            userUnassignedRoles =
-         allRoles
-            .Where(r => !assigned.Contains(r.RoleName))
-            .ToList();
-
-        return userUnassignedRoles;
-    }
-
-    private async Task<UserDto?> ResolveSelectedAuthUserAsync()
-    {
-        if (selectedAuthUser is not null)
-            return selectedAuthUser;
-
-        var userNameKey = GetSelectedEmployeeUserNameKey();
-        if (string.IsNullOrWhiteSpace(userNameKey))
-        {
-            ToastService.Show(new ToastMessage
-            {
-                Message = SharedDataService.SelectViewLang("Please select a user with a valid code.", "يرجى اختيار مستخدم لديه كود صحيح"),
-                Type = "error"
-            });
-            return null;
-        }
-
-        var response = await UserService.GetByUserName(userNameKey);
-        if (response.IsSuccess && response.Data is not null)
-        {
-            selectedAuthUser = response.Data;
-            return selectedAuthUser;
-        }
-
-        ToastService.Show(new ToastMessage
-        {
-            Message = SharedDataService.SelectViewLang(
-                $"No auth user was found for employee code: {userNameKey}",
-                $"لم يتم العثور على مستخدم للنظام بالكود: {userNameKey}"),
-            Type = "error"
-        });
-
-        return null;
-    }
-
-    private string GetSelectedEmployeeUserNameKey()
-    {
-        if (selectedEmployee?.Code is null)
             return string.Empty;
+        }
 
-        var normalized = selectedEmployee.Code.Trim().Normalize(NormalizationForm.FormD);
-        var builder = new System.Text.StringBuilder(normalized.Length);
+        var normalized = value.Trim().Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(normalized.Length);
 
         foreach (var character in normalized)
         {
@@ -598,18 +661,54 @@
         return builder.ToString().Normalize(NormalizationForm.FormC);
     }
 
-    protected override void OnInitialized()
+    private bool IsProtectedAdmin(UserDto user, List<RoleDto> assignedRoles)
     {
-        SharedDataService.OnChange1 += HandleChangeAsync;
+        var normalizedUserName = NormalizeUserNameKey(user.UserName);
+        if (string.Equals(normalizedUserName, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var companyAdminRoleName = $"SystemAdmin-{companyId:N}";
+        return assignedRoles.Any(role => string.Equals(role.RoleName, companyAdminRoleName, StringComparison.OrdinalIgnoreCase));
     }
+
+    private bool IsCompanyAdminRole(string? roleName)
+    {
+        var companyAdminRoleName = $"SystemAdmin-{companyId:N}";
+        return string.Equals(roleName, companyAdminRoleName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool HasPermission(string permission)
+        => AuthState?.User.Claims.Any(c => c.Value == permission) == true;
+
+    private string Text(string en, string ar)
+        => SharedDataService.SelectViewLang(en, ar);
+
+    private void ShowToast(string message, string type)
+        => ToastService.Show(new ToastMessage { Message = message, Type = type });
 
     private async Task HandleChangeAsync()
     {
+        foreach (var row in userRoleRows)
+        {
+            row.DisplayName = EmployeeName(row.Employee);
+        }
+
         await InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
     {
         SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+
+    private class EmployeeUserRolesRow
+    {
+        public UserDto User { get; set; } = new();
+        public EmployeeDto Employee { get; set; } = new();
+        public List<RoleDto> AssignedRoles { get; set; } = [];
+        public string DisplayName { get; set; } = string.Empty;
+        public bool IsProtectedAdmin { get; set; }
     }
 }

@@ -17,6 +17,12 @@ public class AssignRoleToUserHandler(UserManager<ApplicationUser> userManager)
         if (user is null)
             throw new NotFoundException($"User not found: {userName}");
 
+        if (await IsProtectedAdmin(user))
+            throw new BadRequestException("Admin role assignments cannot be changed from this page.");
+
+        if (IsCompanyAdminRole(user, request.UserRole.RoleName))
+            throw new BadRequestException("Admin role assignments cannot be changed from this page.");
+
         var isExist = await userManager.IsInRoleAsync(user, request.UserRole.RoleName);
         if (isExist)
             throw new BadRequestException($"Role ({request.UserRole.RoleName}) is already assigned to user ({userName}).");
@@ -24,5 +30,21 @@ public class AssignRoleToUserHandler(UserManager<ApplicationUser> userManager)
         var result = await userManager.AddToRoleAsync(user, request.UserRole.RoleName);
 
         return new AssignRoleToUserResult(result.Succeeded);
+    }
+
+    private async Task<bool> IsProtectedAdmin(ApplicationUser user)
+    {
+        var normalizedUserName = UserNameKeyNormalizer.Normalize(user.UserName ?? string.Empty);
+        if (string.Equals(normalizedUserName, "admin", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var companyAdminRoleName = $"SystemAdmin-{user.CompanyId:N}";
+        return await userManager.IsInRoleAsync(user, companyAdminRoleName);
+    }
+
+    private static bool IsCompanyAdminRole(ApplicationUser user, string roleName)
+    {
+        var companyAdminRoleName = $"SystemAdmin-{user.CompanyId:N}";
+        return string.Equals(roleName, companyAdminRoleName, StringComparison.OrdinalIgnoreCase);
     }
 }

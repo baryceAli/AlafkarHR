@@ -6,6 +6,7 @@ using Shared.SaveImages;
 using SharedWithUI.Auth.Dtos;
 using SharedWithUI.General;
 using System.Security.Claims;
+using System.Transactions;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace EmployeeModule.Employees.Features.Employees.CreateEmployee;
@@ -93,13 +94,6 @@ public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             request.Employee.AcademicInstituteId.Value,
             request.Employee.GraduationYear,
             userId);
-        await dbContext.Employees.AddAsync(employee, cancellationToken);
-
-
-
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-
         RegisterDto register = new RegisterDto(
                 Guid.NewGuid(),
                 request.Employee.Code,
@@ -111,7 +105,22 @@ public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
                 employee.Id
             );
 
-        var result = await sender.Send(new RegisterUserCommand(register));
+        var transactionOptions = new TransactionOptions
+        {
+            IsolationLevel = System.Transactions.IsolationLevel.ReadCommitted
+        };
+
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            transactionOptions,
+            TransactionScopeAsyncFlowOption.Enabled);
+
+        await dbContext.Employees.AddAsync(employee, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        await sender.Send(new RegisterUserCommand(register), cancellationToken);
+
+        transaction.Complete();
 
 
         return new CreateEmployeeResult(employee.Adapt<EmployeeDto>());
