@@ -1,46 +1,109 @@
 ---
 name: erp-ui-designer
-description: Use when creating or editing Alafkar ERP Blazor UI pages, layout, shared components, dashboards, tables, forms, modals, filters, empty/loading states, or page-level styling so the interface stays themeable, RTL/LTR-aware, and credit-efficient.
+description: Use when creating or editing Alafkar ERP Blazor UI pages, layouts, authentication screens, shared components, dashboards, tables, forms, modals, filters, reports, empty/loading states, responsive styling, RTL/LTR behavior, or theme styling so the interface stays modern, premium, themeable, accessible, reusable, and credit-efficient without unwanted design regressions.
 ---
 
 # Alafkar ERP UI Designer
 
 ## Purpose
 
-Use this skill whenever Codex creates or edits ERP UI in `UI/AlAfkarERP`. Keep the UI modern, professional, clean, accessible, themeable, responsive, and suitable for Arabic/English business workflows.
+Use this skill whenever Codex creates or edits UI in `UI/AlAfkarERP`. Produce a modern ERP experience that is premium, calm, professional, trustworthy, efficient, readable, responsive, accessible, RTL/LTR-aware, and consistent with the local design system.
 
-Always preserve existing routes, DTOs, services, APIs, permissions, localization behavior, and business logic unless the user explicitly asks to change them.
+Always preserve existing routes, DTOs, services, APIs, permissions, localization behavior, authentication flow, validation contracts, and business logic unless the user explicitly asks to change them.
 
-## Credit-Saving Workflow
+Think like a senior product designer before implementing like a frontend engineer. Aim for the design quality and restraint of strong SaaS products such as Linear, Stripe, Notion, Vercel, Figma, Slack, or Microsoft Fluent 2 without copying their brand language. Clarity first, simplicity first, readability first, productivity first. Never sacrifice usability for decoration.
+
+## Workflow
 
 1. Read `.codex/skills/alafkar-erp-development-guide/SKILL.md` first.
-2. Inspect only the files needed for the current UI task: target page, related layout/shared component, relevant CSS, and one nearby pattern if needed.
-3. Before editing, summarize the current UI structure briefly.
-4. Prefer small, incremental edits over broad rewrites.
-5. Reuse existing components and CSS variables before adding new markup or page-specific CSS.
-6. Stop after the requested scope. Do not migrate unrelated pages opportunistically.
+2. Inspect only files required for the task: target page/component, related layout if relevant, scoped CSS/theme files, and one nearby pattern if needed.
+3. Before editing, briefly summarize the current UI structure, what should change, and what must stay untouched.
+4. Translate user-provided references into existing Blazor, Bootstrap icon, component, and CSS-variable patterns. Do not copy external framework code directly.
+5. Prefer small incremental edits over broad rewrites. Stop after the requested scope.
+6. After editing, build the affected project with `dotnet build <affected project>`. Run the app or browser visual checks only when the prompt explicitly requests visual verification.
+
+## Design Guardrails
+
+Avoid these failure modes:
+
+- Generic Bootstrap/AdminLTE/legacy ERP appearance.
+- External styling dependencies such as Tailwind, CDN fonts, Material Symbols, or new UI libraries unless the project already uses them or the user explicitly asks.
+- Hard-coded colors, shadows, radii, and spacing when theme tokens exist.
+- Decorative clutter, heavy gradients, excessive glow effects, oversized logos, giant typography, or too many icons.
+- Multiple competing focal points.
+- Mismatched input widths, heights, radii, padding, or icon placement.
+- Layouts that overflow, clip, overlap, or shift between mobile and desktop.
+- Designs that look good in one direction but break in RTL or LTR.
+- Marketing/branding panels that overpower the actual workflow.
+
+Use this self-check before finishing, without asking the user unless information is genuinely missing:
+
+- Is the page understandable within 3 seconds?
+- Is there one clear focal point?
+- Is the primary action visually dominant?
+- Is visual hierarchy obvious without relying on oversized typography?
+- Are form controls consistent and keyboard accessible?
+- Is whitespace doing the hierarchy work before typography size increases?
+- Does the design remain usable on mobile and desktop?
+- Do Arabic and English text, icons, and spacing work with `SharedDataService.PageDirection`?
 
 ## Theme Rules
 
 Use `UI/AlAfkarERP/AlAfkarERP.Shared/wwwroot/theme.css` as the central theme file.
 
-Use CSS variables for:
+Prefer existing variables:
 
-- colors: `--erp-primary`, `--erp-bg`, `--erp-surface`, `--erp-text`, `--erp-text-muted`, `--erp-border`
-- semantic states: `--erp-success`, `--erp-warning`, `--erp-danger`, `--erp-info`
-- spacing: `--erp-space-*`
-- radius: `--erp-radius-*`
-- shadows: `--erp-shadow-*`
-- layout: `--erp-sidebar-width`, `--erp-topbar-height`
-- focus: `--erp-focus-ring`
+- Colors: `--erp-primary`, `--erp-primary-hover`, `--erp-primary-soft`, `--erp-bg`, `--erp-bg-subtle`, `--erp-surface`, `--erp-surface-muted`, `--erp-text`, `--erp-text-muted`, `--erp-text-soft`, `--erp-border`, `--erp-border-strong`.
+- Semantic states: `--erp-success`, `--erp-warning`, `--erp-danger`, `--erp-info`.
+- Spacing: `--erp-space-*`.
+- Radius: `--erp-radius-*`.
+- Shadows: `--erp-shadow-*`, `--erp-auth-shadow`.
+- Layout/focus: `--erp-sidebar-width`, `--erp-topbar-height`, `--erp-focus-ring`.
 
-Do not hard-code new colors, shadows, radii, or spacing unless a value is temporary and unavoidable. Add a token when the value is reused.
+Do not invent duplicate token names such as `--erp-surface-elevated` when the current theme uses `--surface-elevated`. Add a new token only when a reused value deserves central control.
 
-Theme selection is handled by `ThemeSelector.razor` and `wwwroot/theme.js`, persisted in `localStorage`, and applied through `data-color-scheme` and `data-theme-mode` on the document element.
+Theme selection is handled by `ThemeSelector.razor` and `wwwroot/theme.js`, persisted in `localStorage`, and applied through `data-color-scheme` and `data-theme-mode`.
+
+## Visual Standards
+
+Prioritize visual hierarchy in this order:
+
+1. Primary action.
+2. Main content.
+3. Supporting content.
+4. Decorative content.
+
+Preferred typography ranges:
+
+- Hero title: `32px-40px`.
+- Page title: `24px-32px`.
+- Section title: `18px-24px`.
+- Body text: `14px-16px`.
+- Helper text: `12px-14px`.
+
+Avoid excessive font weights, unnecessary uppercase text, and oversized headings used to compensate for weak layout.
+
+Spacing creates hierarchy. Prefer whitespace before increasing font size, weight, borders, or decoration.
+
+Preferred spacing increments: `8px`, `12px`, `16px`, `24px`, `32px`, `48px`, represented with `--erp-space-*` when available. Avoid arbitrary one-off spacing values unless matching an existing local pattern.
+
+Cards should be calm and work-focused: clear hierarchy, moderate border, soft shadow, 8-12px radius, and enough spacing. Avoid nested cards unless the existing pattern already does so.
+
+Buttons should be visually clear without harsh effects. Primary buttons should be dominant, have clear hover/focus/disabled/loading states, and use `48px-56px` height for forms and authentication pages. Avoid overly saturated colors, harsh shadows, and excessive animations.
+
+## Reference Designs
+
+When the user provides screenshots, HTML, Tailwind, Figma-like snippets, or other design references:
+
+- Extract intent: layout, spacing, hierarchy, proportions, colors, interaction states, and responsive behavior.
+- Rebuild with existing project tools: Razor, existing shared components, Bootstrap utilities/icons, scoped CSS, and theme variables.
+- Do not import referenced external scripts, fonts, icon sets, Tailwind classes, CDN resources, or unrelated markup.
+- Preserve the current component logic and data bindings unless explicitly requested.
+- Match important details that affect usability: equal control widths, visible labels, focus states, touch targets, loading/disabled states, and RTL/LTR icon placement.
 
 ## Reusable Components
 
-Prefer the shared components in `Pages/Reuable2`:
+Prefer shared components in `Pages/Reuable2`:
 
 - `PageHeader` for title, subtitle, overline, and actions.
 - `AppCard` for grouped content.
@@ -50,11 +113,40 @@ Prefer the shared components in `Pages/Reuable2`:
 - `SectionTitle` for sections inside pages.
 - `ThemeSelector` only in layout/topbar/settings areas.
 
-Create new shared UI components only when they remove real duplication or encode a repeated ERP pattern.
+Create new shared components only when they remove real duplication or encode a repeated ERP pattern.
 
-## Page Structure
+## Authentication Pages
 
-A standard list page should use:
+Authentication screens include login, register, forgot password, reset password, and OTP verification.
+
+Rules:
+
+- The form is the primary focus. Branding and marketing content are secondary.
+- Keep form width around `420px-480px`.
+- Use generous whitespace, concise headings, one primary CTA, and clear loading/disabled states.
+- Prevent large headings from wrapping awkwardly or pushing the form below the first viewport.
+- On desktop, prefer balanced splits such as `50/50` or `55/45`; use branding larger than the form only when the form remains visually dominant.
+- On mobile, show the form first and hide or simplify branding if needed.
+- Preserve authentication flow, redirects, validation messages, password toggles, and service calls.
+
+## Forms
+
+Use:
+
+- `EditForm`, `DataAnnotationsValidator`, `ValidationMessage`.
+- Themed `.form-control`, `.form-select`, `.form-check`, or scoped equivalents.
+- Visible labels that remain stable during validation.
+- Consistent control height, radius, padding, icon position, and full-width behavior within each form group.
+- Clear focus, hover, disabled, loading, error, and empty states.
+- Save/cancel actions at the logical end.
+
+Preferred control height: `48px-56px`. Prefer `--erp-radius-md` or `--erp-radius-lg` unless matching an established local pattern.
+
+Do not change DTO fields, validation contracts, submit endpoints, or service calls during visual-only work.
+
+## Lists And Tables
+
+List pages should use:
 
 ```razor
 <div class="erp-page">
@@ -73,7 +165,13 @@ A standard list page should use:
 </div>
 ```
 
-A standard form page should use:
+Tables should have a clear search/filter area, responsive wrapper, compact readable headers, grouped row actions, loading state, empty state, error state, existing pagination, and permission checks preserved exactly.
+
+Do not replace existing loading, sorting, paging, service calls, or API shapes for UI-only work.
+
+## Standard Form Pages
+
+Form pages should use:
 
 ```razor
 <div class="erp-page">
@@ -88,75 +186,42 @@ A standard form page should use:
 </div>
 ```
 
+## Dashboards
+
+Use `PageHeader`, `StatsCard`, responsive grids, `SectionTitle`, loading/empty states, and existing dashboard APIs/services. Avoid fake metrics, decorative widgets, and unnecessary animations.
+
+## Modals
+
+Use the existing `ModalService` and `AppModal`. Keep modal headers, body spacing, footer actions, error details, and focus behavior clear. Do not introduce a second modal framework.
+
 ## RTL/LTR Rules
 
 Use `SharedDataService.SelectViewLang(en, ar)` for visible bilingual text.
 
-Respect `SharedDataService.PageDirection` from the layout. Prefer logical CSS properties:
+Respect `SharedDataService.PageDirection`. Prefer logical CSS properties:
 
-- `margin-inline-start`, `margin-inline-end`
-- `padding-inline-start`, `padding-inline-end`
-- `border-inline-start`, `border-inline-end`
-- `inset-inline-start`, `inset-inline-end`
+- `margin-inline-start`, `margin-inline-end`.
+- `padding-inline-start`, `padding-inline-end`.
+- `border-inline-start`, `border-inline-end`.
+- `inset-inline-start`, `inset-inline-end`.
 
-Avoid new left/right-specific rules. If existing rules use left/right, add RTL overrides only when needed.
+Avoid new left/right-specific rules. If existing code uses left/right, add narrow RTL/LTR overrides only where required.
 
-## Tables
-
-Tables should have:
-
-- a `FilterBar` or clear search/filter area
-- `.erp-table-wrap` around responsive tables
-- compact, readable headers
-- action buttons grouped at the row end
-- loading, empty, and error states
-- permission checks preserved exactly
-- pagination preserved if already present
-
-Do not replace existing data loading, sorting, paging, or service calls for UI-only work.
-
-## Forms
-
-Forms should use:
-
-- `AppCard` grouping
-- Bootstrap grid with `row g-3`
-- `EditForm`, `DataAnnotationsValidator`, and `ValidationMessage`
-- themed `.form-control`, `.form-select`, `.form-check`
-- save/cancel actions at the logical end
-- toast/modal behavior already used by the page
-
-Do not change DTO fields, validation contracts, or submit endpoints during visual work.
-
-## Modals
-
-Use the existing `ModalService` and `AppModal`. Keep modal headers, body spacing, footer actions, and error details clear. Do not introduce a second modal system.
-
-## Dashboards
-
-Dashboards should use:
-
-- `PageHeader`
-- `StatsCard` metrics
-- section titles for grouped areas
-- responsive Bootstrap grids
-- `EmptyState` for no data
-- existing dashboard APIs/services
-
-Avoid fake metrics or new backend calls unless requested.
+For language-dependent components, confirm the existing change-notification pattern is present: subscribe to `SharedDataService.OnChange1`, rerender with `InvokeAsync(StateHasChanged)`, and unsubscribe in `Dispose`.
 
 ## CSS Hygiene
 
-Prefer global reusable classes in `theme.css`. Keep page-local CSS small and limited to layout details specific to that page. Avoid inline styles. Avoid duplicated page-specific colors and shadows.
+Prefer global reusable classes in `theme.css` for repeated patterns and scoped CSS for page-specific layout. Avoid inline styles, duplicate colors, duplicate shadows, duplicate spacing systems, and broad selectors that leak into unrelated pages.
 
-Cards should be calm and work-focused: clear hierarchy, soft shadow, 8-12px radius, enough spacing, no marketing hero treatments for ERP screens.
+Use `box-sizing: border-box`, `min-width: 0`, responsive grid/flex constraints, and logical padding/insets to avoid clipping and unequal widths.
 
 ## Final Response For UI Tasks
 
-Summarize:
+Extend the main project guide summary with:
 
-- files changed
-- reusable components used or created
-- how to adjust theme variables later
-- manual checks performed
-- migration plan or next pages if the work is a sample migration
+- Files changed.
+- Components reused or created.
+- Design changes and UX/accessibility improvements.
+- Theme variables reused or added.
+- Validation performed, including build result and any manual responsive/RTL checks.
+- Related next UI improvements only when they follow directly from the task.

@@ -12,6 +12,7 @@
 @using Microsoft.IdentityModel.JsonWebTokens
 @using SharedWithUI.Auth.Dtos
 @using System.Security.Claims
+@implements IDisposable
 
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IAuthService AuthService
@@ -23,77 +24,115 @@
 @inject SharedDataService SharedDataService
 
 <section class="login-page" dir="@SharedDataService.PageDirection" lang="@CurrentLangCode">
-    <button type="button" class="language-switch" @onclick="ChangeLanguage" aria-label="@Text("Change language", "تغيير اللغة")">
-        <span aria-hidden="true">◎</span>
-        <span>@(SharedDataService.Language == "Ar" ? "Eng" : "عربي")</span>
-    </button>
+    <header class="login-topbar">
+        <div class="login-logo" aria-label="ALAFKARERP">ALAFKARERP</div>
 
-    <div class="login-shell">
-        <aside class="login-hero" aria-label="@Text("ALAFKARHR overview", "نبذة عن نظام الأفكار للموارد البشرية")">
-            <div class="brand-mark">AF</div>
-            <div>
-                <p class="eyebrow">ALAFKARHR</p>
-                <h1>@Text("Welcome back to your HR workspace", "مرحباً بعودتك إلى مساحة الموارد البشرية")</h1>
-                <p class="hero-copy">
-                    @Text(
-                        "Manage employees, attendance, payroll, inventory, and sales operations from one secure ERP portal.",
-                        "أدر الموظفين والحضور والرواتب والمخزون وعمليات المبيعات من بوابة ERP آمنة واحدة.")
-                </p>
-            </div>
+        <button type="button" class="language-switch" @onclick="ChangeLanguage" aria-label="@Text("Change language", "تغيير اللغة")">
+            <i class="bi bi-globe2" aria-hidden="true"></i>
+            <span>Language</span>
+        </button>
+    </header>
 
-            <div class="hero-metrics" aria-label="@Text("Platform highlights", "مميزات المنصة")">
-                <div>
-                    <strong>360</strong>
-                    <span>@Text("employee profile", "ملف الموظف")</span>
-                </div>
-                <div>
-                    <strong>24/7</strong>
-                    <span>@Text("secure access", "وصول آمن")</span>
-                </div>
-                <div>
-                    <strong>ERP</strong>
-                    <span>@Text("operations hub", "مركز العمليات")</span>
-                </div>
-            </div>
-        </aside>
+    <main class="login-main">
+        <div class="login-bg-orb login-bg-orb-primary" aria-hidden="true"></div>
+        <div class="login-bg-orb login-bg-orb-secondary" aria-hidden="true"></div>
 
-        <div class="login-panel">
-            <div class="login-panel-header">
-                <p class="eyebrow">@Text("Secure sign in", "دخول آمن")</p>
-                <h2>@Text("Login to your account", "تسجيل الدخول إلى حسابك")</h2>
-                <p>@Text("Use your workspace credentials to continue.", "استخدم بيانات حسابك للمتابعة.")</p>
-            </div>
-
-            <EditForm Model="@login" OnValidSubmit="HandleLogin" class="login-form">
-                <DataAnnotationsValidator />
-
-                <div class="form-field">
-                    <label for="userName">@Text("User name", "اسم المستخدم")</label>
-                    <InputText id="userName" class="login-input" @bind-Value="login.Email" placeholder="@Text("Enter email or user name", "أدخل البريد الإلكتروني أو اسم المستخدم")" autocomplete="username" />
-                    <ValidationMessage For="@(() => login.Email)" />
-                </div>
-
-                <div class="form-field">
-                    <div class="label-row">
-                        <label for="password">@Text("Password", "كلمة المرور")</label>
-                        <a href="/User/ForgetPassword">@Text("Forgot password?", "نسيت كلمة المرور؟")</a>
+        <div class="login-shell">
+            <div class="login-panel">
+                <div class="login-panel-inner">
+                    <div class="login-panel-header">
+                        <h1>@Text("Welcome back", "مرحباً بك مجدداً")</h1>
+                        <p>@Text("Sign in to continue to your human resources workspace and manage your team efficiently.", "سجل الدخول للمتابعة إلى مساحة الموارد البشرية لإدارة فريقك بكفاءة.")</p>
                     </div>
-                    <InputText id="password" type="password" class="login-input" @bind-Value="login.Password" placeholder="@Text("Enter password", "أدخل كلمة المرور")" autocomplete="current-password" />
-                    <ValidationMessage For="@(() => login.Password)" />
+
+                    <EditForm Model="@login" OnValidSubmit="HandleLogin" class="login-form">
+                        <DataAnnotationsValidator />
+
+                        <div class="form-field">
+                            <label for="userName">@Text("Username or email", "اسم المستخدم أو البريد الإلكتروني")</label>
+                            <div class="input-shell">
+                                <i class="bi bi-person" aria-hidden="true"></i>
+                                <InputText id="userName" class="login-input" @bind-Value="login.Email" placeholder="john.doe@example.com" autocomplete="username" />
+                            </div>
+                            <ValidationMessage For="@(() => login.Email)" />
+                        </div>
+
+                        <div class="form-field">
+                            <div class="label-row">
+                                <label for="password">@Text("Password", "كلمة المرور")</label>
+                                <a href="/User/ForgetPassword">@Text("Forgot password?", "نسيت كلمة المرور؟")</a>
+                            </div>
+                            <div class="input-shell password-shell">
+                                <i class="bi bi-lock" aria-hidden="true"></i>
+                                <InputText id="password" type="@(showPassword ? "text" : "password")" class="login-input" @bind-Value="login.Password" placeholder="••••••••" autocomplete="current-password" />
+                                <button type="button" class="password-toggle" @onclick="TogglePassword" aria-label="@Text("Toggle password visibility", "إظهار أو إخفاء كلمة المرور")">
+                                    <i class="bi @(showPassword ? "bi-eye-slash" : "bi-eye")" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <ValidationMessage For="@(() => login.Password)" />
+                        </div>
+
+                        <label class="remember-row">
+                            <InputCheckbox @bind-Value="rememberDevice" />
+                            <span>@Text("Remember me on this device", "تذكرني على هذا الجهاز")</span>
+                        </label>
+
+                        <button type="submit" class="login-button" disabled="@isSubmitting" aria-busy="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                                <span>@Text("Signing in...", "جاري تسجيل الدخول...")</span>
+                            }
+                            else
+                            {
+                                <span>@Text("Login", "تسجيل الدخول")</span>
+                                <i class="bi bi-arrow-left-short" aria-hidden="true"></i>
+                            }
+                        </button>
+
+                        <p class="register-link">
+                            <span>@Text("Don’t have an account?", "ليس لديك حساب؟")</span>
+                            <a href="/Register">@Text("Create a new account", "إنشاء حساب جديد")</a>
+                        </p>
+                    </EditForm>
+                </div>
+            </div>
+
+            <aside class="login-hero" aria-label="@Text("Human resources overview", "نبذة عن نظام إدارة الموارد البشرية")">
+                <div class="hero-accent-circle" aria-hidden="true"></div>
+                <div class="hero-accent-band" aria-hidden="true"></div>
+
+                <div class="hero-content">
+                    <h2>@Text("Human Resources Management", "إدارة الموارد البشرية")</h2>
+                    <p>
+                        @Text(
+                            "A complete system for workforce management, payroll, analytical reports, and high-precision professional procedures.",
+                            "نظام متكامل لإدارة القوى العاملة، كشوف المرتبات، والتقارير التحليلية بدقة واحترافية عالية.")
+                    </p>
                 </div>
 
-                <button type="submit" class="login-button">
-                    <span>@Text("Login", "تسجيل الدخول")</span>
-                    <span aria-hidden="true">@Text("->", "<-")</span>
-                </button>
-
-                <p class="register-link">
-                    <span>@Text("Don’t have an account?", "ليس لديك حساب؟")</span>
-                    <a href="/Register">@Text("Create one", "إنشاء حساب")</a>
-                </p>
-            </EditForm>
+                <div class="hero-features">
+                    <div class="hero-feature">
+                        <i class="bi bi-shield-lock-fill" aria-hidden="true"></i>
+                        <span>@Text("Enterprise-grade data security", "أمان عالي المستوى للبيانات")</span>
+                    </div>
+                    <div class="hero-feature">
+                        <i class="bi bi-speedometer2" aria-hidden="true"></i>
+                        <span>@Text("Fast performance and instant analytics", "أداء سريع وتحليلات فورية")</span>
+                    </div>
+                </div>
+            </aside>
         </div>
-    </div>
+    </main>
+
+    <footer class="login-footer">
+        <p>© 2024 ALAFKARERP. All rights reserved.</p>
+        <nav aria-label="@Text("Footer links", "روابط التذييل")">
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms of Service</a>
+            <a href="#">Support</a>
+        </nav>
+    </footer>
 </section>
 
 
@@ -102,6 +141,9 @@
 @code {
 
     private LoginDto login = new LoginDto();
+    private bool isSubmitting;
+    private bool rememberDevice;
+    private bool showPassword;
     private string CurrentLangCode => SharedDataService.Language == "Ar" ? "ar" : "en";
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 
@@ -122,6 +164,11 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private void TogglePassword()
+    {
+        showPassword = !showPassword;
+    }
+
     public void Dispose()
     {
         SharedDataService.OnChange1 -= HandleChangeAsync;
@@ -130,6 +177,7 @@
     {
         try
         {
+            isSubmitting = true;
             LoadingService.Show();
 
             Console.WriteLine("Submit clicked");
@@ -184,6 +232,7 @@
         }
         finally
         {
+            isSubmitting = false;
             LoadingService.Hide();
         }
     }
