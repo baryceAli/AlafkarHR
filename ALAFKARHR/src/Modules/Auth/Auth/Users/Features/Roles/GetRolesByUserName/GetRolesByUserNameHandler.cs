@@ -1,4 +1,6 @@
-﻿namespace Auth.Users.Features.Roles.GetRolesByUserName;
+using Auth.Users;
+
+namespace Auth.Users.Features.Roles.GetRolesByUserName;
 
 public record GetRolesByUserNameQuery(string UserName) : IQuery<GetRolesByUserNameResult>;
 public record GetRolesByUserNameResult(List<RoleDto> RoleList);
@@ -7,19 +9,14 @@ public class GetRolesByUserNameHandler(RoleManager<ApplicationRole> roleManager,
 {
     public async Task<GetRolesByUserNameResult> Handle(GetRolesByUserNameQuery request, CancellationToken cancellationToken)
     {
-        //find user
-        var usr = await userManager.FindByEmailAsync("baryce_1@hotmail.com");
-        var res=await userManager.SetUserNameAsync(usr, "Bashir");
-        if (res.Succeeded)
-        {
-            var intval = 0;
-        }
-        var user = await userManager.FindByNameAsync(request.UserName);
+        var userName = UserNameKeyNormalizer.Normalize(request.UserName);
+        if (string.IsNullOrWhiteSpace(userName))
+            throw new BadRequestException("User name is required.");
+
+        var user = await userManager.FindByNameAsync(userName);
         if (user is null)
-            throw new NotFoundException($"User not found: {request.UserName}");
+            throw new NotFoundException($"User not found: {userName}");
 
-
-        //find user's roles
         var roles = await userManager.GetRolesAsync(user);
 
         var roleList = new List<RoleDto>();
@@ -40,6 +37,5 @@ public class GetRolesByUserNameHandler(RoleManager<ApplicationRole> roleManager,
         }
 
         return new GetRolesByUserNameResult(roleList);
-        //return value
     }
 }

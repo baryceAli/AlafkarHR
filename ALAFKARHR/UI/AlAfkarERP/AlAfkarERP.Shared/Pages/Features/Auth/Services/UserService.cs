@@ -28,6 +28,13 @@ public class UserService : BaseApiService, IUserService
         return SendAsync<UpdateDeleteResponseDto>(request,null);
     }
 
+    public async Task<ApiResult<UserDto>> GetByUserName(string userName)
+    {
+        var encodedUserName = Uri.EscapeDataString(userName);
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/users/GetByUserName/{encodedUserName}");
+        return await SendAsync<UserDto>(request, "user");
+    }
+
     public Task<ApiResult<UserDto>> GetUserByEmployeeId(Guid employeeId)
     {
         throw new NotImplementedException();

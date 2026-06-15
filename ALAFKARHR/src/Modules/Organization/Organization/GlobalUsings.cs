@@ -14,6 +14,7 @@ global using Microsoft.AspNetCore.Routing;
 global using MediatR;
 global using Microsoft.AspNetCore.Builder;
 global using Organization.Organizations.Config;
+global using Organization.Organizations.Services;
 global using SharedWithUI.Permissions;
 global using Microsoft.AspNetCore.Mvc;
 global using Shared.Pagination;

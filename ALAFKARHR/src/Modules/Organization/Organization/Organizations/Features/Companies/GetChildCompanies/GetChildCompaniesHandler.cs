@@ -5,12 +5,12 @@ namespace Organization.Organizations.Features.Companies.GetChildCompanies;
 public record GetChildCompaniesQuery(PaginationRequest PaginationRequest) : IQuery<GetChildCompaniesResult>;
 public record GetChildCompaniesResult(PaginatedResult<CompanyDto> CompanyList);
 
-public class GetChildCompaniesHandler(OrganizationDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
+public class GetChildCompaniesHandler(OrganizationDbContext dbContext, ICompanyHierarchyContext companyHierarchyContext, ISender sender)
     : IQueryHandler<GetChildCompaniesQuery, GetChildCompaniesResult>
 {
     public async Task<GetChildCompaniesResult> Handle(GetChildCompaniesQuery request, CancellationToken cancellationToken)
     {
-        var parentCompanyId = await ResolveParentCompanyIdAsync(cancellationToken);
+        var parentCompanyId = await companyHierarchyContext.GetCurrentParentCompanyIdAsync(cancellationToken);
 
         var query = dbContext.Companies
             .AsNoTracking()
@@ -56,22 +56,5 @@ public class GetChildCompaniesHandler(OrganizationDbContext dbContext, IHttpCont
             request.PaginationRequest.PageSize,
             count,
             dtos));
-    }
-
-    private async Task<Guid> ResolveParentCompanyIdAsync(CancellationToken cancellationToken)
-    {
-        var companyIdValue = httpContextAccessor.HttpContext?.User?.FindFirst("company_id")?.Value;
-        if (!Guid.TryParse(companyIdValue, out var companyId))
-            throw new UnauthorizedAccessException("Current user is not linked to a company");
-
-        var company = await dbContext.Companies
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == companyId, cancellationToken)
-            ?? throw new UnauthorizedAccessException("Current user's company was not found");
-
-        if (company.ParentCompanyId.HasValue)
-            throw new UnauthorizedAccessException("Child companies cannot manage child companies");
-
-        return companyId;
     }
 }

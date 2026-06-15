@@ -35,6 +35,7 @@ public static class OrganizationModule
         });
 
         services.AddScoped<IDataSeeder<OrganizationDbContext>, OrganizationDataSeeder>();
+        services.AddScoped<ICompanyHierarchyContext, CompanyHierarchyContext>();
 
 
         return services;

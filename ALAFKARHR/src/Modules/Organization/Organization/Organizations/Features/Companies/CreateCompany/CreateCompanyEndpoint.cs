@@ -7,6 +7,7 @@ public class CreateCompanyEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
+        // Broad company-management endpoint. Grant this permission only to system-level administrators.
         app.MapPost($"{Utils.ROUTE_PATTERN}/{Utils.CompanyEndpoint}", async (CreateCompanyRequest request, ISender sender) =>
         {
             var result = await sender.Send(request.Adapt<CreateCompanyCommand>());

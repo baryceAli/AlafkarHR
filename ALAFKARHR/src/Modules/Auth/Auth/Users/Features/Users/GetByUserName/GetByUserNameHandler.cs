@@ -1,5 +1,5 @@
-﻿using Auth.Contracts.Features.GetByUserName;
-using Shared.Exceptions;
+using Auth.Contracts.Features.GetByUserName;
+using Auth.Users;
 
 namespace Auth.Users.Features.Users.GetByUserName;
 
@@ -7,9 +7,13 @@ public class GetByUserNameHandler(AuthDbContext dbContext) : IQueryHandler<GetBy
 {
     public async Task<GetByUserNameResult> Handle(GetByUserNameQuery request, CancellationToken cancellationToken)
     {
-        var user = await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(x => x.UserName == request.UserName, cancellationToken);
+        var userName = UserNameKeyNormalizer.Normalize(request.UserName);
+        if (string.IsNullOrWhiteSpace(userName))
+            throw new BadRequestException("User name is required.");
+
+        var user = await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(x => x.UserName == userName, cancellationToken);
         if (user is null)
-            throw new NotFoundException($"User not found: {request.UserName}");
+            throw new NotFoundException($"User not found: {userName}");
 
         return new GetByUserNameResult(user.Adapt<UserDto>());
     }

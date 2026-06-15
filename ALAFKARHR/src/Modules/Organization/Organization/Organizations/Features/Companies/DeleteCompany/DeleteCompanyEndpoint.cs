@@ -6,6 +6,7 @@ public class DeleteCompanyEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
+        // Broad company-management endpoint. Grant this permission only to system-level administrators.
         app.MapDelete($"{Utils.ROUTE_PATTERN}/{Utils.CompanyEndpoint}"+"{id}", async ([FromRoute] Guid id, ISender sender) =>
         {
             var command = new DeleteCompanyCommand(id);

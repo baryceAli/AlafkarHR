@@ -263,102 +263,6 @@
             </div>
         </EditForm>
 
-        @if (false)
-        {
-            <div class="card border-0 shadow-sm mt-4">
-                <div class="card-body">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                        <div>
-                            <h5 class="mb-1">@Text("Child Companies", "Ø§Ù„Ø´Ø±ÙƒØ§Øª Ø§Ù„ØªØ§Ø¨Ø¹Ø©")</h5>
-                            <div class="text-muted small">
-                                @Text("Root company users can create directly owned child companies.", "ÙŠÙ…ÙƒÙ† Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠ Ø§Ù„Ø´Ø±ÙƒØ© Ø§Ù„Ø£Ù… Ø¥Ù†Ø´Ø§Ø¡ Ø´Ø±ÙƒØ§Øª ØªØ§Ø¨Ø¹Ø© Ù…Ù…Ù„ÙˆÙƒØ© Ù…Ø¨Ø§Ø´Ø±Ø©.")
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="badge text-bg-light">@Text("Children", "Ø§Ù„ØªÙˆØ§Ø¨Ø¹"): @company.ChildCompaniesCount</span>
-                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="ToggleChildCompanyForm">
-                                <i class="bi bi-plus-lg"></i>
-                                @Text("Create Child Company", "Ø¥Ù†Ø´Ø§Ø¡ Ø´Ø±ÙƒØ© ØªØ§Ø¨Ø¹Ø©")
-                            </button>
-                        </div>
-                    </div>
-
-                    @if (showChildCompanyForm && childCompany is not null)
-                    {
-                        <EditForm Model="childCompany" OnValidSubmit="CreateChildCompanyAsync">
-                            <DataAnnotationsValidator />
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">@Text("Name", "Ø§Ù„Ø§Ø³Ù…")</label>
-                                    <InputText class="form-control" @bind-Value="childCompany.Name" />
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">@Text("Name (English)", "Ø§Ù„Ø§Ø³Ù… Ø¨Ø§Ù„Ø¥Ù†Ø¬Ù„ÙŠØ²ÙŠØ©")</label>
-                                    <InputText class="form-control" @bind-Value="childCompany.NameEng" />
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">@Text("Code", "Ø§Ù„ÙƒÙˆØ¯")</label>
-                                    <InputText class="form-control" @bind-Value="childCompany.Code" />
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">@Text("VAT Number", "Ø§Ù„Ø±Ù‚Ù… Ø§Ù„Ø¶Ø±ÙŠØ¨ÙŠ")</label>
-                                    <InputText class="form-control" @bind-Value="childCompany.VatNo" />
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">@Text("Currency", "Ø§Ù„Ø¹Ù…Ù„Ø©")</label>
-                                    <input class="form-control" value="@CurrencyDisplay(childCompany.CurrencyId)" disabled />
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">@Text("Email", "Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ")</label>
-                                    <InputText class="form-control" @bind-Value="childCompany.Email" />
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">@Text("Phone", "Ø§Ù„Ù‡Ø§ØªÙ")</label>
-                                    <InputText class="form-control" @bind-Value="childCompany.Phone" />
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">@Text("Time Zone", "Ø§Ù„Ù…Ù†Ø·Ù‚Ø© Ø§Ù„Ø²Ù…Ù†ÙŠØ©")</label>
-                                    <InputText class="form-control" @bind-Value="childCompany.TimeZone" />
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">@Text("Headquarters Location", "Ù…ÙˆÙ‚Ø¹ Ø§Ù„Ù…Ù‚Ø± Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ")</label>
-                                    <InputText class="form-control" @bind-Value="childCompany.HqLocation" />
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">@Text("Admin User Name", "Ø§Ø³Ù… Ù…Ø³ØªØ®Ø¯Ù… Ø§Ù„Ù…Ø¯ÙŠØ±")</label>
-                                    <InputText class="form-control" @bind-Value="childCompany.AdminUserName" />
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">@Text("Admin Email", "Ø¨Ø±ÙŠØ¯ Ø§Ù„Ù…Ø¯ÙŠØ±")</label>
-                                    <InputText class="form-control" @bind-Value="childCompany.AdminEmail" />
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">@Text("Admin Phone", "Ù‡Ø§ØªÙ Ø§Ù„Ù…Ø¯ÙŠØ±")</label>
-                                    <InputText class="form-control" @bind-Value="childCompany.AdminPhoneNumber" />
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">@Text("Temporary Password", "ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø§Ù„Ù…Ø¤Ù‚ØªØ©")</label>
-                                    <InputText type="password" class="form-control" @bind-Value="childCompany.AdminTemporaryPassword" />
-                                </div>
-                            </div>
-
-                            <div class="d-flex justify-content-end gap-2 mt-4">
-                                <button type="button" class="btn btn-outline-secondary" @onclick="ToggleChildCompanyForm" disabled="@isCreatingChild">
-                                    @Text("Cancel", "Ø¥Ù„ØºØ§Ø¡")
-                                </button>
-                                <button type="submit" class="btn btn-primary" disabled="@isCreatingChild">
-                                    @if (isCreatingChild)
-                                    {
-                                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                    }
-                                    <span>@Text("Create Child Company", "Ø¥Ù†Ø´Ø§Ø¡ Ø´Ø±ÙƒØ© ØªØ§Ø¨Ø¹Ø©")</span>
-                                </button>
-                            </div>
-                        </EditForm>
-                    }
-                </div>
-            </div>
-        }
     }
 </div>
 
@@ -511,10 +415,7 @@
     private List<CurrencyDto> currencies = [];
     private bool isLoading = true;
     private bool isSaving;
-    private bool isCreatingChild;
-    private bool showChildCompanyForm;
     private string? errorMessage;
-    private CompanyDto? childCompany;
     private CompanySettingDto? companySetting;
     private readonly string mapElementId = $"company-location-map-{Guid.NewGuid():N}";
     private DotNetObjectReference<CompanyList>? dotNetReference;
@@ -586,7 +487,6 @@
             if (result.IsSuccess)
             {
                 company = result.Data;
-                PrepareChildCompanyModel();
                 if (mapInitialized)
                 {
                     await CenterMapFromFieldsAsync();
@@ -644,74 +544,6 @@
         }
     }
 
-    private void ToggleChildCompanyForm()
-    {
-        showChildCompanyForm = !showChildCompanyForm;
-        if (showChildCompanyForm)
-        {
-            PrepareChildCompanyModel();
-        }
-    }
-
-    private void PrepareChildCompanyModel()
-    {
-        if (company is null || company.ParentCompanyId.HasValue)
-        {
-            childCompany = null;
-            showChildCompanyForm = false;
-            return;
-        }
-
-        childCompany = new CompanyDto
-        {
-            ParentCompanyId = company.Id,
-            CurrencyId = company.CurrencyId,
-            TimeZone = company.TimeZone,
-            HqLocation = company.HqLocation,
-            HqLatitude = company.HqLatitude,
-            HqLongitude = company.HqLongitude,
-            Logo = string.Empty
-        };
-    }
-
-    private async Task CreateChildCompanyAsync()
-    {
-        if (company is null || childCompany is null)
-        {
-            return;
-        }
-
-        isCreatingChild = true;
-        childCompany.ParentCompanyId = company.Id;
-
-        try
-        {
-            var result = await CompanyService.CreateAsync(childCompany);
-            if (result.IsSuccess)
-            {
-                ToastService.Show(new ToastMessage
-                {
-                    Type = "success",
-                    Message = Text("Child company and its system admin were created successfully.", "ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø´Ø±ÙƒØ© Ø§Ù„ØªØ§Ø¨Ø¹Ø© ÙˆÙ…Ø¯ÙŠØ± Ø§Ù„Ù†Ø¸Ø§Ù… Ø¨Ù†Ø¬Ø§Ø­.")
-                });
-
-                showChildCompanyForm = false;
-                await LoadCompanyAsync();
-            }
-            else
-            {
-                ToastService.Show(new ToastMessage
-                {
-                    Type = "error",
-                    Message = result.Error?.Detail ?? Text("Unable to create child company.", "ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø´Ø±ÙƒØ© Ø§Ù„ØªØ§Ø¨Ø¹Ø©.")
-                });
-            }
-        }
-        finally
-        {
-            isCreatingChild = false;
-        }
-    }
 
     private async Task OnCompanyLogoSelected(InputFileChangeEventArgs e)
     {

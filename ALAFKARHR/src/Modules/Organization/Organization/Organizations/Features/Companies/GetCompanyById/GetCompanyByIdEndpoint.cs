@@ -5,6 +5,7 @@ public class GetCompanyByIdEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
+        // Broad company-management endpoint. Grant this permission only to system-level administrators.
         app.MapGet($"{Utils.ROUTE_PATTERN}/{Utils.CompanyEndpoint}/" + "{id}", async (Guid id, ISender sender) =>
         {
             var result = await sender.Send(new GetCompanyByIdQuery(id));

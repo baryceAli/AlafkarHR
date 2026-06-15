@@ -11,6 +11,8 @@
 @using SharedWithUI.Auth.Dtos
 @using SharedWithUI.Employees.Dtos
 @using SharedWithUI.Permissions
+@using System.Globalization
+@using System.Text
 
 
 @inject IRoleService RoleService
@@ -199,6 +201,7 @@
     private RoleDto selectedRole;
     private List<EmployeeDto> employees = [];
     private EmployeeDto? selectedEmployee;
+    private UserDto? selectedAuthUser;
     private RoleDto? editingRole;
     // private RoleDto? roleToSave;
     private Guid companyId;
@@ -263,9 +266,13 @@
         }
 
         role.CompanyId = companyId;
+        var authUser = await ResolveSelectedAuthUserAsync();
+        if (authUser is null)
+            return;
+
         UserRoleDto userRole = new UserRoleDto
         {
-            UserName = selectedEmployee.Code,
+            UserName = authUser.UserName,
             RoleName = selectedRole.RoleName
         };
         var bResponse = await RoleService.AssignRole(userRole);
@@ -309,7 +316,11 @@
 
             OnOk = async () =>
             {
-                UserRoleDto userRole = new UserRoleDto { UserName = selectedEmployee.Code, RoleName = role.RoleName };
+                var authUser = await ResolveSelectedAuthUserAsync();
+                if (authUser is null)
+                    return;
+
+                UserRoleDto userRole = new UserRoleDto { UserName = authUser.UserName, RoleName = role.RoleName };
                 var brResponse = await RoleService.UnassignRole(userRole);
                 if (brResponse.IsSuccess)
                 {
@@ -391,7 +402,16 @@
         // var request = new PaginationRequest(pageIndex, pageSize, searchText);
         if (selectedEmployee == null)
             return;
-        var response = await RoleService.GetRolesByUserName(selectedEmployee.Code);//,searchText);
+
+        var authUser = await ResolveSelectedAuthUserAsync();
+        if (authUser is null)
+        {
+            userAssignedRoles = [];
+            TotalPages = 1;
+            return;
+        }
+
+        var response = await RoleService.GetRolesByUserName(authUser.UserName);//,searchText);
 
         if (response.IsSuccess)
         {
@@ -482,6 +502,7 @@
     private async Task OnUserValueChanged(EmployeeDto employee)
     {
         selectedEmployee = employee;
+        selectedAuthUser = null;
         await LoadRoles();
         // var userRes = await RoleService.GetRolesByEmployeeId(user.Id, 0, 1000);
         // if (userRes.IsSuccess)
@@ -515,6 +536,66 @@
             .ToList();
 
         return userUnassignedRoles;
+    }
+
+    private async Task<UserDto?> ResolveSelectedAuthUserAsync()
+    {
+        if (selectedAuthUser is not null)
+            return selectedAuthUser;
+
+        var userNameKey = GetSelectedEmployeeUserNameKey();
+        if (string.IsNullOrWhiteSpace(userNameKey))
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Message = SharedDataService.SelectViewLang("Please select a user with a valid code.", "يرجى اختيار مستخدم لديه كود صحيح"),
+                Type = "error"
+            });
+            return null;
+        }
+
+        var response = await UserService.GetByUserName(userNameKey);
+        if (response.IsSuccess && response.Data is not null)
+        {
+            selectedAuthUser = response.Data;
+            return selectedAuthUser;
+        }
+
+        ToastService.Show(new ToastMessage
+        {
+            Message = SharedDataService.SelectViewLang(
+                $"No auth user was found for employee code: {userNameKey}",
+                $"لم يتم العثور على مستخدم للنظام بالكود: {userNameKey}"),
+            Type = "error"
+        });
+
+        return null;
+    }
+
+    private string GetSelectedEmployeeUserNameKey()
+    {
+        if (selectedEmployee?.Code is null)
+            return string.Empty;
+
+        var normalized = selectedEmployee.Code.Trim().Normalize(NormalizationForm.FormD);
+        var builder = new System.Text.StringBuilder(normalized.Length);
+
+        foreach (var character in normalized)
+        {
+            var category = CharUnicodeInfo.GetUnicodeCategory(character);
+            if (category is UnicodeCategory.Control
+                or UnicodeCategory.Format
+                or UnicodeCategory.NonSpacingMark
+                or UnicodeCategory.SpacingCombiningMark
+                or UnicodeCategory.EnclosingMark)
+            {
+                continue;
+            }
+
+            builder.Append(character);
+        }
+
+        return builder.ToString().Normalize(NormalizationForm.FormC);
     }
 
     protected override void OnInitialized()
