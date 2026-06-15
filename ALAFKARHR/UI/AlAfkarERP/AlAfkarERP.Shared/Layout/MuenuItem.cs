@@ -81,6 +81,14 @@ public class MenuItem
                 },
                 new MenuItem
                 {
+                    TextEn = "Child Companies",
+                    TextAr = "الشركات التابعة",
+                    Icon = "bi-buildings",
+                    Url = "/Organization/ChildCompanies",
+                    PermissionPolicy = PermissionList.CompanyPermissions.ViewChild
+                },
+                new MenuItem
+                {
                     TextEn = "Branches",
                     TextAr = "الفروع",
                     Icon = "bi-diagram-2",
@@ -749,6 +757,14 @@ public class MenuItem
                     TextAr = "إعدادات النظام",
                     Icon = "bi-gear-wide-connected",
                     Url = "/GeneralSettings/SystemSettings",
+                    PermissionPolicy = PermissionList.SystemSettingsPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Currencies",
+                    TextAr = "العملات",
+                    Icon = "bi-currency-exchange",
+                    Url = "/GeneralSettings/Currencies",
                     PermissionPolicy = PermissionList.SystemSettingsPermissions.View
                 }
             }

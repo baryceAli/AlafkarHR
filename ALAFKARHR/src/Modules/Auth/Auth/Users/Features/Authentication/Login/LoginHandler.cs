@@ -1,20 +1,11 @@
-﻿using Auth.Helpers;
+using Auth.Helpers;
 using Microsoft.Extensions.Logging;
+using Organization.Contracts.Companies.Features.GetCompanyAccessStatus;
 
 namespace Auth.Users.Features.Authentication.Login;
 
-public record LoginCommand(
-    LoginDto Login
-) : ICommand<LoginResult>;
-//public record LoginCommand(
-//    //string UserName,
-//    string Email,
-//    string Password
-//) : ICommand<LoginResult>;
+public record LoginCommand(LoginDto Login) : ICommand<LoginResult>;
 
-//public record LoginResult(
-//    string AccessToken,
-//    string RefreshToken);
 public record LoginResult(LoginResponseDto Login);
 
 public class LoginHandler(
@@ -22,7 +13,8 @@ public class LoginHandler(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
     ILogger<LoginHandler> logger,
-    IJwtTokenGenerator tokenGenerator)
+    IJwtTokenGenerator tokenGenerator,
+    ISender sender)
     : ICommandHandler<LoginCommand, LoginResult>
 {
     public async Task<LoginResult> Handle(LoginCommand command, CancellationToken cancellationToken)
@@ -44,6 +36,13 @@ public class LoginHandler(
                     logger.LogWarning("User not found.");
                     throw new Exception("Invalid credentials");
                 }
+            }
+
+            var accessStatus = await sender.Send(new GetCompanyAccessStatusQuery(user.CompanyId), cancellationToken);
+            if (!accessStatus.CanLogin)
+            {
+                logger.LogWarning("Login blocked for inactive company {CompanyId}", user.CompanyId);
+                throw new Exception("Company is disabled");
             }
 
             logger.LogInformation("User found. Checking password.");

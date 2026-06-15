@@ -1,0 +1,505 @@
+@layout AdminLayout
+@page "/GeneralSettings/Currencies"
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Permissions
+@implements IDisposable
+
+@inject ICurrencyService CurrencyService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="currency-page erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Currencies", "العملات")"
+                Subtitle="@Text("Manage company currencies used by organization, payroll, pricing, and inventory workflows.", "إدارة عملات الشركة المستخدمة في التنظيم والرواتب والتسعير والمخزون.")"
+                Overline="@Text("General Settings", "الإعدادات العامة")"
+                Icon="bi-currency-exchange">
+        <Actions>
+            <button class="btn btn-outline-primary" @onclick="LoadCurrenciesAsync" disabled="@isLoading">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+            <button class="btn btn-primary" @onclick="OpenCreate" disabled="@(!CanEdit)">
+                <i class="bi bi-plus-lg"></i>
+                @Text("New Currency", "عملة جديدة")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="py-5 text-center">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="fw-semibold">@Text("Loading currencies...", "جاري تحميل العملات...")</div>
+            </div>
+        </AppCard>
+    }
+    else if (!CanView)
+    {
+        <div class="alert alert-warning d-flex align-items-center gap-2">
+            <i class="bi bi-shield-lock"></i>
+            <span>@Text("You do not have permission to view currencies.", "ليس لديك صلاحية عرض العملات.")</span>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-warning d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>@errorMessage</span>
+        </div>
+    }
+    else
+    {
+        <AppCard>
+            <div class="row g-2 align-items-end mb-3">
+                <div class="col-md-8">
+                    <label class="form-label">@Text("Search", "بحث")</label>
+                    <InputText class="form-control" @bind-Value="searchText" placeholder="@Text("Code, name, or symbol", "الكود أو الاسم أو الرمز")" />
+                </div>
+                <div class="col-md-4 d-flex gap-2">
+                    <button class="btn btn-primary flex-fill" @onclick="SearchAsync" disabled="@isLoading">
+                        <i class="bi bi-search"></i>
+                        @Text("Search", "بحث")
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="ClearSearchAsync" disabled="@isLoading">
+                        @Text("Clear", "مسح")
+                    </button>
+                </div>
+            </div>
+
+            @if (currencies.Count == 0)
+            {
+                <div class="currency-empty">
+                    <i class="bi bi-currency-exchange"></i>
+                    <div class="fw-semibold">@Text("No currencies were found.", "لم يتم العثور على عملات.")</div>
+                    <div class="text-muted">@Text("Add the first company currency to make it available in company forms.", "أضف أول عملة للشركة لتصبح متاحة في نماذج الشركات.")</div>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@Text("Currency", "العملة")</th>
+                                <th>@Text("Code", "الكود")</th>
+                                <th>@Text("Symbol", "الرمز")</th>
+                                <th>@Text("Value", "القيمة")</th>
+                                <th>@Text("Default", "افتراضية")</th>
+                                <th class="text-end">@Text("Actions", "الإجراءات")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var currency in currencies)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">@DisplayName(currency)</div>
+                                        <div class="text-muted small">@DisplaySecondaryName(currency)</div>
+                                    </td>
+                                    <td><span class="currency-code">@currency.Code</span></td>
+                                    <td>@currency.Symbol</td>
+                                    <td>@currency.Value</td>
+                                    <td>
+                                        @if (currency.IsDefault)
+                                        {
+                                            <span class="badge text-bg-success">@Text("Default", "افتراضية")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group">
+                                            <button class="btn btn-outline-primary btn-sm" title="@Text("Edit", "تعديل")" @onclick="() => OpenEdit(currency)" disabled="@(!CanEdit)">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger btn-sm" title="@Text("Delete", "حذف")" @onclick="() => OpenDelete(currency)" disabled="@(!CanEdit || currency.IsDefault)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3">
+                    <div class="text-muted small">@Text("Total", "الإجمالي"): @totalCount</div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="PreviousPageAsync" disabled="@(pageIndex == 0 || isLoading)">
+                            @Text("Previous", "السابق")
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" disabled>@(pageIndex + 1)</button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="NextPageAsync" disabled="@(!HasNextPage || isLoading)">
+                            @Text("Next", "التالي")
+                        </button>
+                    </div>
+                </div>
+            }
+        </AppCard>
+    }
+</div>
+
+@if (showForm && editCurrency is not null)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <EditForm Model="editCurrency" OnValidSubmit="SaveAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@FormTitle</h5>
+                        <button type="button" class="btn-close" @onclick="CloseForm"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Code", "الكود")</label>
+                                <InputText class="form-control" @bind-Value="editCurrency.Code" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Symbol", "الرمز")</label>
+                                <InputText class="form-control" @bind-Value="editCurrency.Symbol" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Value", "القيمة")</label>
+                                <InputNumber class="form-control" @bind-Value="editCurrency.Value" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Arabic Name", "الاسم العربي")</label>
+                                <InputText class="form-control" @bind-Value="editCurrency.Name" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("English Name", "الاسم الإنجليزي")</label>
+                                <InputText class="form-control" @bind-Value="editCurrency.NameEng" />
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <InputCheckbox class="form-check-input" @bind-Value="editCurrency.IsDefault" />
+                                    <label class="form-check-label">@Text("Set as default currency", "تعيين كعملة افتراضية")</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CloseForm" disabled="@isSaving">@Text("Cancel", "إلغاء")</button>
+                        <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            }
+                            @Text("Save", "حفظ")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@if (deleteCurrency is not null)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Text("Delete Currency", "حذف العملة")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDelete"></button>
+                </div>
+                <div class="modal-body">
+                    @Text("Are you sure you want to delete this currency?", "هل أنت متأكد من حذف هذه العملة؟")
+                    <div class="fw-semibold mt-2">@deleteCurrency.Code - @DisplayName(deleteCurrency)</div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" @onclick="CloseDelete" disabled="@isSaving">@Text("Cancel", "إلغاء")</button>
+                    <button class="btn btn-danger" @onclick="DeleteAsync" disabled="@isSaving">@Text("Delete", "حذف")</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<CurrencyDto> currencies = [];
+    private CurrencyDto? editCurrency;
+    private CurrencyDto? deleteCurrency;
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private string searchText = string.Empty;
+    private string? errorMessage;
+    private int pageIndex;
+    private const int PageSize = 10;
+    private long totalCount;
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool isCreateMode;
+    private bool showForm;
+
+    private bool CanView => authState?.User.Claims.Any(c => c.Value == PermissionList.SystemSettingsPermissions.View) == true;
+    private bool CanEdit => authState?.User.Claims.Any(c => c.Value == PermissionList.SystemSettingsPermissions.Edit) == true;
+    private bool HasNextPage => (pageIndex + 1) * PageSize < totalCount;
+    private string FormTitle => isCreateMode ? Text("New Currency", "عملة جديدة") : Text("Edit Currency", "تعديل العملة");
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleLanguageChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+        if (authState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId))
+        {
+            errorMessage = Text("The current user is not linked to a company.", "المستخدم الحالي غير مرتبط بشركة.");
+            isLoading = false;
+            return;
+        }
+
+        await LoadCurrenciesAsync();
+    }
+
+    private async Task LoadCurrenciesAsync()
+    {
+        if (!CanView)
+        {
+            isLoading = false;
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+
+        var result = await CurrencyService.GetAsync(companyId, pageIndex, PageSize, searchText);
+        if (result.IsSuccess && result.Data is not null)
+        {
+            currencies = result.Data.Data.ToList();
+            totalCount = result.Data.Count;
+        }
+        else
+        {
+            currencies = [];
+            totalCount = 0;
+            errorMessage = result.Error?.Detail ?? Text("Unable to load currencies.", "تعذر تحميل العملات.");
+        }
+
+        isLoading = false;
+    }
+
+    private async Task SearchAsync()
+    {
+        pageIndex = 0;
+        await LoadCurrenciesAsync();
+    }
+
+    private async Task ClearSearchAsync()
+    {
+        searchText = string.Empty;
+        pageIndex = 0;
+        await LoadCurrenciesAsync();
+    }
+
+    private async Task PreviousPageAsync()
+    {
+        if (pageIndex == 0)
+            return;
+
+        pageIndex--;
+        await LoadCurrenciesAsync();
+    }
+
+    private async Task NextPageAsync()
+    {
+        if (!HasNextPage)
+            return;
+
+        pageIndex++;
+        await LoadCurrenciesAsync();
+    }
+
+    private void OpenCreate()
+    {
+        isCreateMode = true;
+        editCurrency = new CurrencyDto
+        {
+            CompanyId = companyId,
+            Value = 1,
+            IsDefault = currencies.Count == 0
+        };
+        showForm = true;
+    }
+
+    private void OpenEdit(CurrencyDto currency)
+    {
+        isCreateMode = false;
+        editCurrency = Clone(currency);
+        showForm = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (editCurrency is null)
+            return;
+
+        isSaving = true;
+        editCurrency.CompanyId = companyId;
+
+        var result = isCreateMode
+            ? await CurrencyService.CreateAsync(companyId, editCurrency)
+            : await CurrencyService.UpdateAsync(companyId, editCurrency.Id, editCurrency);
+
+        if (result.IsSuccess)
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Type = "success",
+                Message = Text("Currency saved successfully.", "تم حفظ العملة بنجاح.")
+            });
+            CloseForm();
+            await LoadCurrenciesAsync();
+        }
+        else
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Type = "error",
+                Message = result.Error?.Detail ?? Text("Unable to save currency.", "تعذر حفظ العملة.")
+            });
+        }
+
+        isSaving = false;
+    }
+
+    private void OpenDelete(CurrencyDto currency)
+    {
+        deleteCurrency = currency;
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (deleteCurrency is null)
+            return;
+
+        isSaving = true;
+        var result = await CurrencyService.DeleteAsync(companyId, deleteCurrency.Id);
+        if (result.IsSuccess && result.Data?.IsSuccess == true)
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Type = "success",
+                Message = Text("Currency deleted successfully.", "تم حذف العملة بنجاح.")
+            });
+            CloseDelete();
+            await LoadCurrenciesAsync();
+        }
+        else
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Type = "error",
+                Message = result.Error?.Detail ?? Text("Unable to delete currency.", "تعذر حذف العملة.")
+            });
+        }
+
+        isSaving = false;
+    }
+
+    private void CloseForm()
+    {
+        showForm = false;
+        editCurrency = null;
+    }
+
+    private void CloseDelete()
+    {
+        deleteCurrency = null;
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private string DisplayName(CurrencyDto currency)
+        => SharedDataService.Language == "Ar"
+            ? FirstNotEmpty(currency.Name, currency.NameEng)
+            : FirstNotEmpty(currency.NameEng, currency.Name);
+
+    private string DisplaySecondaryName(CurrencyDto currency)
+        => SharedDataService.Language == "Ar"
+            ? FirstNotEmpty(currency.NameEng, currency.Name)
+            : FirstNotEmpty(currency.Name, currency.NameEng);
+
+    private static string FirstNotEmpty(string? primary, string? fallback)
+        => !string.IsNullOrWhiteSpace(primary)
+            ? primary
+            : !string.IsNullOrWhiteSpace(fallback) ? fallback : "-";
+
+    private static CurrencyDto Clone(CurrencyDto source) => new()
+    {
+        Id = source.Id,
+        Code = source.Code,
+        Name = source.Name,
+        NameEng = source.NameEng,
+        Value = source.Value,
+        Symbol = source.Symbol,
+        IsDefault = source.IsDefault,
+        CompanyId = source.CompanyId
+    };
+
+    private async Task HandleLanguageChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleLanguageChangeAsync;
+    }
+}
+
+<style>
+    .currency-page {
+        max-width: 1280px;
+    }
+
+    .currency-code {
+        background: var(--erp-surface-muted);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-sm);
+        color: var(--erp-text);
+        display: inline-flex;
+        font-weight: 700;
+        min-width: 4rem;
+        justify-content: center;
+        padding: 0.25rem 0.5rem;
+    }
+
+    .currency-empty {
+        align-items: center;
+        border: 1px dashed var(--erp-border-strong);
+        border-radius: var(--erp-radius-lg);
+        color: var(--erp-text-muted);
+        display: grid;
+        gap: 0.5rem;
+        justify-items: center;
+        min-height: 220px;
+        padding: 2rem;
+        text-align: center;
+    }
+
+    .currency-empty i {
+        color: var(--erp-primary);
+        font-size: 2rem;
+    }
+</style>

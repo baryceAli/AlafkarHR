@@ -26,7 +26,7 @@ public class GetCurrenciesEndpoint : ICarterModule
             .Produces<GetCurrenciesResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Get Currencies")
-            .WithDescription("Get Currencies");
-            //.RequireAuthorization(PermissionList.g)
+            .WithDescription("Get Currencies")
+            .RequireAuthorization(PermissionList.SystemSettingsPermissions.View);
     }
 }

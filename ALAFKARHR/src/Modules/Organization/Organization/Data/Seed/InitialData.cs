@@ -13,7 +13,7 @@ public class InitialData
                         10.2,
                         "111111111111111",
                         "Afkr",
-                        "SAR",
+                        Guid.Parse("71077eb6-cb32-49b1-bb41-72c1c7eeac5c"),
                         "info@alafkar.com",
                         "0511111111",
                         "ksa",

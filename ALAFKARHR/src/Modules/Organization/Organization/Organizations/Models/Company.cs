@@ -6,6 +6,7 @@ public class Company : Aggregate<Guid>
 {
     public Guid? ParentCompanyId { get; private set; }
     public Company? ParentCompany { get; private set; }
+    public bool IsActive { get; private set; }
     public string Name { get; private set; }
     public string NameEng { get; private set; }
     public string Logo { get; private set; }
@@ -16,7 +17,7 @@ public class Company : Aggregate<Guid>
 
 
     public string Code { get; private set; } // unique org code
-    public string Currency { get; private set; } // critical for payroll
+    public Guid CurrencyId { get; private set; } // critical for payroll
     public string TimeZone { get; private set; } // critical for attendance
 
 
@@ -67,7 +68,7 @@ public class Company : Aggregate<Guid>
         double hqLatitude,
         string vatNo,
         string code,
-        string currency,
+        Guid currencyId,
         string email,
         string phone,
         string timeZone,
@@ -81,6 +82,7 @@ public class Company : Aggregate<Guid>
         {
             Id = id,
             ParentCompanyId = parentCompanyId,
+            IsActive = true,
             Name = name,
             NameEng = nameEng,
             Logo = logo,
@@ -89,7 +91,7 @@ public class Company : Aggregate<Guid>
             HqLatitude = hqLatitude,
             VatNo = vatNo,
             Code=code,
-            Currency=currency,
+            CurrencyId = currencyId,
             Email=email,
             Phone=phone,
             TimeZone=timeZone,
@@ -106,6 +108,7 @@ public class Company : Aggregate<Guid>
         double hqLongitude,
         double hqLatitude,
         string vatNo,
+        Guid currencyId,
         string modifiedBy)
     {
         Name = name;
@@ -115,6 +118,7 @@ public class Company : Aggregate<Guid>
         HqLongitude = hqLongitude;
         HqLatitude = hqLatitude;
         VatNo = vatNo;
+        CurrencyId = currencyId;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }
@@ -124,6 +128,42 @@ public class Company : Aggregate<Guid>
             throw new Exception("A company cannot be its own parent");
 
         ParentCompanyId = parentCompanyId;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+    public void UpdateManagementInfo(
+        string name,
+        string nameEng,
+        string logo,
+        string hqLocation,
+        double hqLongitude,
+        double hqLatitude,
+        string vatNo,
+        string code,
+        Guid currencyId,
+        string email,
+        string phone,
+        string timeZone,
+        string modifiedBy)
+    {
+        Name = name;
+        NameEng = nameEng;
+        Logo = logo;
+        HqLocation = hqLocation;
+        HqLongitude = hqLongitude;
+        HqLatitude = hqLatitude;
+        VatNo = vatNo;
+        Code = code;
+        CurrencyId = currencyId;
+        Email = email;
+        Phone = phone;
+        TimeZone = timeZone;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+    public void SetActive(bool isActive, string modifiedBy)
+    {
+        IsActive = isActive;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }

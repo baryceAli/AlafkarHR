@@ -41,6 +41,18 @@ public class CompanyService : BaseApiService, ICompanyService
         return await SendAsync<PagedResult<CompanyDto>>(request, "companyList");
     }
 
+    public async Task<ApiResult<PagedResult<CompanyDto>>> GetChildCompaniesAsync(int pageIndex, int pageSize, string? searchText = null)
+    {
+        var url = $"{_path}/child-companies?PageIndex={pageIndex}&PageSize={pageSize}";
+        if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            url += $"&SearchText={Uri.EscapeDataString(searchText)}";
+        }
+
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        return await SendAsync<PagedResult<CompanyDto>>(request, "companyList");
+    }
+
     public async Task<ApiResult<CompanyDto>> GetByIdAsync(Guid Id)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/{Id}");
@@ -54,6 +66,54 @@ public class CompanyService : BaseApiService, ICompanyService
             Content = JsonContent.Create(new
             {
                 Company = company
+            })
+        };
+        return await SendAsync<UpdateDeleteResponseDto>(request, null);
+    }
+
+    public async Task<ApiResult<CompanyDto>> CreateChildAsync(CompanyDto company)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/child-companies")
+        {
+            Content = JsonContent.Create(new
+            {
+                Company = company
+            })
+        };
+        return await SendAsync<CompanyDto>(request, "createdCompany");
+    }
+
+    public async Task<ApiResult<UpdateDeleteResponseDto>> UpdateChildAsync(CompanyDto company)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/child-companies")
+        {
+            Content = JsonContent.Create(new
+            {
+                Company = company
+            })
+        };
+        return await SendAsync<UpdateDeleteResponseDto>(request, null);
+    }
+
+    public async Task<ApiResult<UpdateDeleteResponseDto>> SetChildStatusAsync(Guid id, bool isActive)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"{_path}/child-companies/{id}/status")
+        {
+            Content = JsonContent.Create(new
+            {
+                IsActive = isActive
+            })
+        };
+        return await SendAsync<UpdateDeleteResponseDto>(request, null);
+    }
+
+    public async Task<ApiResult<UpdateDeleteResponseDto>> ResetChildAdminPasswordAsync(Guid id, string temporaryPassword)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/child-companies/{id}/admin/reset-password")
+        {
+            Content = JsonContent.Create(new
+            {
+                TemporaryPassword = temporaryPassword
             })
         };
         return await SendAsync<UpdateDeleteResponseDto>(request, null);

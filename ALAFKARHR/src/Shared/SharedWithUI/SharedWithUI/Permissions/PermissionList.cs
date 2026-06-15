@@ -218,6 +218,11 @@ public static class PermissionList
         public static string Create { get; set; } = $"{GroupName}.Create";
         public static string Edit { get; set; } = $"{GroupName}.Edit";
         public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string ViewChild { get; set; } = $"{GroupName}.ViewChild";
+        public static string CreateChild { get; set; } = $"{GroupName}.CreateChild";
+        public static string EditChild { get; set; } = $"{GroupName}.EditChild";
+        public static string DisableChild { get; set; } = $"{GroupName}.DisableChild";
+        public static string ResetChildAdminPassword { get; set; } = $"{GroupName}.ResetChildAdminPassword";
 
         public static List<string> Permissions =>
             new List<string>
@@ -227,6 +232,11 @@ public static class PermissionList
                 $"{Create}",
                 $"{Edit}",
                 $"{Delete}",
+                $"{ViewChild}",
+                $"{CreateChild}",
+                $"{EditChild}",
+                $"{DisableChild}",
+                $"{ResetChildAdminPassword}",
             };
 
     }

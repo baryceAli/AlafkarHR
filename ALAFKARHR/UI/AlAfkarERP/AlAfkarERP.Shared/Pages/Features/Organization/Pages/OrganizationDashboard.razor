@@ -1,12 +1,15 @@
 @layout AdminLayout
 @page "/Organization/Dashboard"
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.GeneralSettings.Dtos
 @using SharedWithUI.Organization.Dtos
 @implements IDisposable
 
 @inject ICompanyService CompanyService
+@inject ICurrencyService CurrencyService
 @inject IBranchService BranchService
 @inject IAdministrationService AdministrationService
 @inject IDepartmentService DepartmentService
@@ -93,7 +96,7 @@
                         <div>
                             <div class="text-muted small">@Text("Company", "الشركة")</div>
                             <h4 class="mb-1">@DisplayName(company.Name, company.NameEng)</h4>
-                            <div class="text-muted">@company.Code | @company.Currency | @company.TimeZone</div>
+                            <div class="text-muted">@company.Code | @CurrencyDisplay(company.CurrencyId) | @company.TimeZone</div>
                         </div>
                         <div class="text-md-end">
                             <div>@company.Phone</div>
@@ -302,6 +305,7 @@
 
 @code {
     private CompanyDto? company;
+    private List<CurrencyDto> currencies = [];
     private List<BranchNode> branches = [];
     private bool isLoading = true;
     private string? errorMessage;
@@ -341,6 +345,12 @@
             if (companyResult.IsSuccess)
             {
                 company = companyResult.Data;
+            }
+
+            var currencyResult = await CurrencyService.GetAsync(companyId, 0, 1000);
+            if (currencyResult.IsSuccess && currencyResult.Data is not null)
+            {
+                currencies = currencyResult.Data.Data.ToList();
             }
 
             var branchResult = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
@@ -390,6 +400,22 @@
         => SharedDataService.Language == "Ar"
             ? FirstNotEmpty(name, nameEng)
             : FirstNotEmpty(nameEng, name);
+
+    private string CurrencyDisplay(Guid? currencyId)
+    {
+        var currency = currencyId.HasValue
+            ? currencies.FirstOrDefault(x => x.Id == currencyId.Value)
+            : null;
+
+        if (currency is null)
+            return "-";
+
+        var name = SharedDataService.Language == "Ar"
+            ? FirstNotEmpty(currency.Name, currency.NameEng)
+            : FirstNotEmpty(currency.NameEng, currency.Name);
+
+        return $"{currency.Code} - {name}";
+    }
 
     private static string FirstNotEmpty(string? primary, string? fallback)
         => !string.IsNullOrWhiteSpace(primary)

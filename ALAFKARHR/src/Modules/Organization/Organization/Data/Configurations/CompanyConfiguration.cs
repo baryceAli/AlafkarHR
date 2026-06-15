@@ -15,6 +15,9 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
             .HasColumnType("uniqueidentifier")
             .IsRequired(false);
 
+        builder.Property(x => x.IsActive)
+            .HasDefaultValue(true);
+
         builder.Property(x => x.Name)
             .IsRequired()
             .HasMaxLength(200);
@@ -37,6 +40,10 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
 
         builder.Property(x => x.VatNo)
             .HasMaxLength(50);
+
+        builder.Property(x => x.CurrencyId)
+            .HasColumnType("uniqueidentifier")
+            .IsRequired();
 
         // 🔗 One-to-Many (Organization -> Branches)
         builder.HasMany(x => x.Branches)

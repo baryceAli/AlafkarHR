@@ -12,6 +12,7 @@ public class CreateCompanyCommandValidator : AbstractValidator<CreateCompanyComm
         RuleFor(x => x.Company.Name).NotEmpty().WithMessage("Name is required");
         RuleFor(x => x.Company.NameEng).NotEmpty().WithMessage("NameEng is required");
         RuleFor(x => x.Company.Code).NotEmpty().WithMessage("Code is required");
+        RuleFor(x => x.Company.CurrencyId).NotEmpty().WithMessage("Currency is required");
         RuleFor(x => x.Company.HqLocation).NotEmpty().WithMessage("HqLocation is required");
         RuleFor(x => x.Company.VatNo).NotEmpty().WithMessage("VatNo is required");
         RuleFor(x => x.Company.AdminUserName).NotEmpty().WithMessage("AdminUserName is required");
@@ -71,7 +72,7 @@ public class CreateCompanyHandler(OrganizationDbContext dbContext, IHttpContextA
             request.Company.HqLatitude,
             request.Company.VatNo,
             request.Company.Code,
-            request.Company.Currency,
+            request.Company.CurrencyId!.Value,
             request.Company.Email,
             request.Company.Phone,
             request.Company.TimeZone,

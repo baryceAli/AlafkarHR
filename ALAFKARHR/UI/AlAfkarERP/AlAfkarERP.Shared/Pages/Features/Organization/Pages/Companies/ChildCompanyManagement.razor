@@ -1,0 +1,921 @@
+@layout AdminLayout
+@page "/Organization/ChildCompanies"
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Organization.Dtos
+@using SharedWithUI.Permissions
+@implements IDisposable
+
+@inject ICompanyService CompanyService
+@inject ICurrencyService CurrencyService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+@inject IJSRuntime JSRuntime
+
+<div class="child-company-page erp-page" dir="@SharedDataService.PageDirection">
+    @if (!CanView)
+    {
+        <div class="alert alert-warning d-flex align-items-center gap-2">
+            <i class="bi bi-shield-lock"></i>
+            <span>@Text("You do not have permission to view child companies.", "ليس لديك صلاحية عرض الشركات التابعة.")</span>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+            <div>
+                <h3 class="mb-1">@Text("Child Company Management", "إدارة الشركات التابعة")</h3>
+                <div class="text-muted">@Text("Create and manage companies directly owned by your parent company.", "إنشاء وإدارة الشركات التابعة المملوكة مباشرة لشركتك الأم.")</div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isLoading">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    @Text("Refresh", "تحديث")
+                </button>
+                <button class="btn btn-primary" @onclick="OpenCreate" disabled="@(!CanCreate)">
+                    <i class="bi bi-plus-lg"></i>
+                    @Text("Create Child Company", "إنشاء شركة تابعة")
+                </button>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-8">
+                        <label class="form-label">@Text("Search", "بحث")</label>
+                        <InputText class="form-control" @bind-Value="searchText" placeholder="@Text("Name, code, VAT, email, or phone", "الاسم أو الكود أو الرقم الضريبي أو البريد أو الهاتف")" />
+                    </div>
+                    <div class="col-md-4 d-flex gap-2">
+                        <button class="btn btn-primary flex-fill" @onclick="SearchAsync" disabled="@isLoading">
+                            <i class="bi bi-search"></i>
+                            @Text("Search", "بحث")
+                        </button>
+                        <button class="btn btn-outline-secondary" @onclick="ClearSearchAsync" disabled="@isLoading">
+                            @Text("Clear", "مسح")
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-5 text-center">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <div class="fw-semibold">@Text("Loading child companies...", "جاري تحميل الشركات التابعة...")</div>
+                </div>
+            </div>
+        }
+        else if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-warning d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>@errorMessage</span>
+            </div>
+        }
+        else if (companies.Count == 0)
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-5 text-center text-muted">
+                    <i class="bi bi-buildings fs-2 d-block mb-2"></i>
+                    @Text("No child companies were found.", "لم يتم العثور على شركات تابعة.")
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@Text("Company", "الشركة")</th>
+                                <th>@Text("Code / VAT", "الكود / الضريبة")</th>
+                                <th>@Text("Currency", "العملة")</th>
+                                <th>@Text("Contact", "التواصل")</th>
+                                <th>@Text("Admin", "المدير")</th>
+                                <th>@Text("Status", "الحالة")</th>
+                                <th class="text-end">@Text("Actions", "الإجراءات")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in companies)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">@DisplayName(item)</div>
+                                        <div class="text-muted small">@Empty(item.HqLocation)</div>
+                                    </td>
+                                    <td>
+                                        <div>@Empty(item.Code)</div>
+                                        <div class="text-muted small">@Empty(item.VatNo)</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold">@CurrencyDisplay(item.CurrencyId)</div>
+                                    </td>
+                                    <td>
+                                        <div><i class="bi bi-envelope"></i> @Empty(item.Email)</div>
+                                        <div class="text-muted small"><i class="bi bi-telephone"></i> @Empty(item.Phone)</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold">@Empty(item.AdminUserName)</div>
+                                        <div class="text-muted small">@Empty(item.AdminEmail)</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge rounded-pill @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">
+                                            @(item.IsActive ? Text("Active", "نشط") : Text("Disabled", "معطل"))
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group">
+                                            <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenEdit(item)" disabled="@(!CanEdit)">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary btn-sm" @onclick="() => OpenResetPassword(item)" disabled="@(!CanResetPassword)">
+                                                <i class="bi bi-key"></i>
+                                            </button>
+                                            <button class="btn btn-outline-warning btn-sm" @onclick="() => OpenStatusConfirm(item)" disabled="@(!CanDisable)">
+                                                <i class="bi @(item.IsActive ? "bi-slash-circle" : "bi-check2-circle")"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-transparent d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div class="text-muted small">@Text("Total", "الإجمالي"): @totalCount</div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="PreviousPageAsync" disabled="@(pageIndex == 0 || isLoading)">
+                            @Text("Previous", "السابق")
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" disabled>
+                            @(pageIndex + 1)
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="NextPageAsync" disabled="@(!HasNextPage || isLoading)">
+                            @Text("Next", "التالي")
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@if (showCompanyModal && selectedCompany is not null)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <EditForm Model="selectedCompany" OnValidSubmit="SaveCompanyAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@ModalTitle</h5>
+                        <button type="button" class="btn-close" @onclick="CloseCompanyModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Name", "الاسم")</label>
+                                <InputText class="form-control" @bind-Value="selectedCompany.Name" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Name (English)", "الاسم بالإنجليزية")</label>
+                                <InputText class="form-control" @bind-Value="selectedCompany.NameEng" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Code", "الكود")</label>
+                                <InputText class="form-control" @bind-Value="selectedCompany.Code" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("VAT Number", "الرقم الضريبي")</label>
+                                <InputText class="form-control" @bind-Value="selectedCompany.VatNo" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Currency", "العملة")</label>
+                                <AutoCompleteComponent TItem="CurrencyDto"
+                                                       Items="currencies"
+                                                       ItemText="CurrencyOptionText"
+                                                       Value="selectedCurrency"
+                                                       ValueChanged="OnCurrencyChanged"
+                                                       PlaceHolder="@Text("Select Currency", "اختر العملة")" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Email", "البريد الإلكتروني")</label>
+                                <InputText class="form-control" @bind-Value="selectedCompany.Email" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Phone", "الهاتف")</label>
+                                <InputText class="form-control" @bind-Value="selectedCompany.Phone" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Time Zone", "المنطقة الزمنية")</label>
+                                <InputText class="form-control" @bind-Value="selectedCompany.TimeZone" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Headquarters Location", "موقع المقر الرئيسي")</label>
+                                <InputText class="form-control" @bind-Value="selectedCompany.HqLocation" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Latitude", "خط العرض")</label>
+                                <InputNumber class="form-control" @bind-Value="selectedCompany.HqLatitude" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Longitude", "خط الطول")</label>
+                                <InputNumber class="form-control" @bind-Value="selectedCompany.HqLongitude" />
+                            </div>
+                            <div class="col-12">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                    <label class="form-label mb-0">@Text("Pick Headquarters Location", "اختر موقع المقر الرئيسي")</label>
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="@Text("Map controls", "أدوات الخريطة")">
+                                        <button type="button" class="btn btn-outline-secondary map-zoom-button" @onclick="ZoomOutMapAsync" title="@Text("Zoom out", "تصغير")">
+                                            <i class="bi bi-dash-lg"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary map-zoom-button" @onclick="ZoomInMapAsync" title="@Text("Zoom in", "تكبير")">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" @onclick="CenterMapFromFieldsAsync">
+                                            <i class="bi bi-crosshair"></i>
+                                            @Text("Center", "توسيط")
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" @onclick="UseCurrentLocationAsync">
+                                            <i class="bi bi-geo-alt"></i>
+                                            @Text("Current", "موقعي")
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="@mapElementId" class="child-company-map"></div>
+                                <div class="text-muted small mt-2">
+                                    @Text("Click or drag the map to update latitude and longitude.", "اضغط أو اسحب الخريطة لتحديث خط العرض وخط الطول.")
+                                </div>
+                            </div>
+
+                            @if (isCreateMode)
+                            {
+                                <div class="col-12">
+                                    <hr />
+                                    <h6>@Text("Child Company Admin", "مدير النظام")</h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Admin User Name", "اسم مستخدم المدير")</label>
+                                    <InputText class="form-control" @bind-Value="selectedCompany.AdminUserName" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Admin Email", "بريد المدير")</label>
+                                    <InputText class="form-control" @bind-Value="selectedCompany.AdminEmail" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Admin Phone", "هاتف المدير")</label>
+                                    <InputText class="form-control" @bind-Value="selectedCompany.AdminPhoneNumber" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Temporary Password", "كلمة المرور المؤقتة")</label>
+                                    <InputText type="password" class="form-control" @bind-Value="selectedCompany.AdminTemporaryPassword" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="col-12">
+                                    <div class="alert alert-info mb-0">
+                                        @Text("Admin username cannot be changed here. Use password reset when needed.", "لا يمكن تغيير اسم مستخدم المدير هنا. استخدم إعادة تعيين كلمة المرور عند الحاجة.")
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CloseCompanyModal" disabled="@isSaving">@Text("Cancel", "إلغاء")</button>
+                        <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            }
+                            @Text("Save", "حفظ")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showStatusConfirm && selectedCompany is not null)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Text("Confirm Status Change", "تأكيد تغيير الحالة")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseStatusConfirm"></button>
+                </div>
+                <div class="modal-body">
+                    @Text("Are you sure you want to change this child company status?", "هل أنت متأكد من تغيير حالة هذه الشركة التابعة؟")
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" @onclick="CloseStatusConfirm" disabled="@isSaving">@Text("Cancel", "إلغاء")</button>
+                    <button class="btn btn-warning" @onclick="SetStatusAsync" disabled="@isSaving">
+                        @(selectedCompany.IsActive ? Text("Disable", "تعطيل") : Text("Enable", "تفعيل"))
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showResetPassword && selectedCompany is not null)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <EditForm Model="passwordReset" OnValidSubmit="ResetPasswordAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@Text("Reset Admin Password", "إعادة تعيين كلمة مرور المدير")</h5>
+                        <button type="button" class="btn-close" @onclick="CloseResetPassword"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">@Text("Admin Username", "اسم مستخدم المدير")</label>
+                            <input class="form-control" value="@Empty(selectedCompany.AdminUserName)" disabled />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">@Text("New Temporary Password", "كلمة المرور المؤقتة الجديدة")</label>
+                            <InputText type="password" class="form-control" @bind-Value="passwordReset.TemporaryPassword" />
+                        </div>
+                        <div>
+                            <label class="form-label">@Text("Confirm Password", "تأكيد كلمة المرور")</label>
+                            <InputText type="password" class="form-control" @bind-Value="passwordReset.ConfirmTemporaryPassword" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CloseResetPassword" disabled="@isSaving">@Text("Cancel", "إلغاء")</button>
+                        <button type="submit" class="btn btn-primary" disabled="@isSaving">@Text("Reset Password", "إعادة التعيين")</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .child-company-map {
+        background: var(--erp-bg-subtle);
+        border: 1px solid var(--erp-border-strong);
+        border-radius: var(--erp-radius-lg);
+        cursor: crosshair;
+        height: 320px;
+        overflow: hidden;
+        position: relative;
+        width: 100%;
+    }
+
+    .child-company-map.is-dragging {
+        cursor: grabbing;
+    }
+
+    .location-picker-tile {
+        height: 256px;
+        position: absolute;
+        user-select: none;
+        width: 256px;
+    }
+
+    .location-picker-marker {
+        color: #dc3545;
+        font-size: 2rem;
+        left: 50%;
+        line-height: 1;
+        pointer-events: none;
+        position: absolute;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+        top: 50%;
+        transform: translate(-50%, -100%);
+        z-index: 2;
+    }
+
+    .map-zoom-button {
+        align-items: center;
+        display: inline-flex;
+        height: 31px;
+        justify-content: center;
+        width: 36px;
+    }
+
+    @@media (max-width: 576px) {
+        .child-company-map {
+            height: 260px;
+        }
+    }
+</style>
+
+@code {
+    private List<CompanyDto> companies = [];
+    private List<CurrencyDto> currencies = [];
+    private CompanyDto? selectedCompany;
+    private CurrencyDto? selectedCurrency;
+    private PasswordResetModel passwordReset = new();
+    private AuthenticationState? AuthState;
+    private Guid currentCompanyId;
+    private string? searchText;
+    private string? errorMessage;
+    private int pageIndex;
+    private const int PageSize = 10;
+    private int totalCount;
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool showCompanyModal;
+    private bool showStatusConfirm;
+    private bool showResetPassword;
+    private bool isCreateMode;
+    private readonly string mapElementId = $"child-company-location-map-{Guid.NewGuid():N}";
+    private DotNetObjectReference<ChildCompanyManagement>? dotNetReference;
+    private bool mapInitialized;
+
+    private bool CanView => HasPermission(PermissionList.CompanyPermissions.ViewChild);
+    private bool CanCreate => HasPermission(PermissionList.CompanyPermissions.CreateChild);
+    private bool CanEdit => HasPermission(PermissionList.CompanyPermissions.EditChild);
+    private bool CanDisable => HasPermission(PermissionList.CompanyPermissions.DisableChild);
+    private bool CanResetPassword => HasPermission(PermissionList.CompanyPermissions.ResetChildAdminPassword);
+    private bool HasNextPage => (pageIndex + 1) * PageSize < totalCount;
+    private string ModalTitle => isCreateMode ? Text("Create Child Company", "إنشاء شركة تابعة") : Text("Edit Child Company", "تعديل الشركة التابعة");
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleLanguageChangeAsync;
+        AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        Guid.TryParse(AuthState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out currentCompanyId);
+        await LoadCurrenciesAsync();
+        await LoadAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (showCompanyModal && selectedCompany is not null && !mapInitialized)
+        {
+            dotNetReference ??= DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync(
+                "alafkarLocationPicker.init",
+                mapElementId,
+                MapLatitude,
+                MapLongitude,
+                dotNetReference);
+            mapInitialized = true;
+        }
+    }
+
+    private async Task LoadCurrenciesAsync()
+    {
+        if (currentCompanyId == Guid.Empty)
+            return;
+
+        var result = await CurrencyService.GetAsync(currentCompanyId, 0, 1000);
+        if (result.IsSuccess && result.Data is not null)
+        {
+            currencies = result.Data.Data.ToList();
+        }
+        else
+        {
+            currencies = [];
+            ToastService.Show(new ToastMessage
+            {
+                Type = "warning",
+                Message = result.Error?.Detail ?? Text("Unable to load currencies.", "تعذر تحميل العملات.")
+            });
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        if (!CanView)
+        {
+            isLoading = false;
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var result = await CompanyService.GetChildCompaniesAsync(pageIndex, PageSize, searchText);
+            if (result.IsSuccess && result.Data is not null)
+            {
+                companies = result.Data.Items ?? [];
+                totalCount = result.Data.TotalCount;
+            }
+            else
+            {
+                companies = [];
+                totalCount = 0;
+                errorMessage = result.Error?.Detail ?? Text("Unable to load child companies.", "تعذر تحميل الشركات التابعة.");
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        pageIndex = 0;
+        await LoadAsync();
+    }
+
+    private async Task ClearSearchAsync()
+    {
+        searchText = null;
+        pageIndex = 0;
+        await LoadAsync();
+    }
+
+    private async Task PreviousPageAsync()
+    {
+        if (pageIndex == 0)
+            return;
+
+        pageIndex--;
+        await LoadAsync();
+    }
+
+    private async Task NextPageAsync()
+    {
+        if (!HasNextPage)
+            return;
+
+        pageIndex++;
+        await LoadAsync();
+    }
+
+    private void OpenCreate()
+    {
+        isCreateMode = true;
+        selectedCompany = new CompanyDto
+        {
+            IsActive = true,
+            Logo = string.Empty,
+            CurrencyId = DefaultCurrency?.Id,
+            TimeZone = "Asia/Riyadh"
+        };
+        selectedCurrency = CurrencyById(selectedCompany.CurrencyId) ?? DefaultCurrency;
+        mapInitialized = false;
+        showCompanyModal = true;
+    }
+
+    private void OpenEdit(CompanyDto company)
+    {
+        isCreateMode = false;
+        selectedCompany = Clone(company);
+        selectedCompany.AdminTemporaryPassword = null;
+        selectedCurrency = CurrencyById(selectedCompany.CurrencyId);
+        mapInitialized = false;
+        showCompanyModal = true;
+    }
+
+    private async Task SaveCompanyAsync()
+    {
+        if (selectedCompany is null)
+            return;
+
+        if (!selectedCompany.CurrencyId.HasValue)
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Type = "warning",
+                Message = Text("Please select a currency.", "يرجى اختيار العملة.")
+            });
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            var isSuccess = false;
+            string? errorDetail = null;
+
+            if (isCreateMode)
+            {
+                var result = await CompanyService.CreateChildAsync(selectedCompany);
+                isSuccess = result.IsSuccess;
+                errorDetail = result.Error?.Detail;
+            }
+            else
+            {
+                var result = await CompanyService.UpdateChildAsync(selectedCompany);
+                isSuccess = result.IsSuccess && result.Data?.IsSuccess == true;
+                errorDetail = result.Error?.Detail;
+            }
+
+            if (isSuccess)
+            {
+                ToastService.Show(new ToastMessage
+                {
+                    Type = "success",
+                    Message = isCreateMode
+                        ? Text("Child company and admin user were created successfully.", "تم إنشاء الشركة التابعة ومديرها بنجاح.")
+                        : Text("Child company information was updated successfully.", "تم تحديث بيانات الشركة التابعة بنجاح.")
+                });
+
+                CloseCompanyModal();
+                await LoadAsync();
+            }
+            else
+            {
+                ToastService.Show(new ToastMessage
+                {
+                    Type = "error",
+                    Message = errorDetail ?? Text("Unable to save child company.", "تعذر حفظ الشركة التابعة.")
+                });
+            }
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void OpenStatusConfirm(CompanyDto company)
+    {
+        selectedCompany = company;
+        showStatusConfirm = true;
+    }
+
+    private async Task SetStatusAsync()
+    {
+        if (selectedCompany is null)
+            return;
+
+        isSaving = true;
+        try
+        {
+            var result = await CompanyService.SetChildStatusAsync(selectedCompany.Id, !selectedCompany.IsActive);
+            if (result.IsSuccess && result.Data?.IsSuccess == true)
+            {
+                ToastService.Show(new ToastMessage
+                {
+                    Type = "success",
+                    Message = Text("Child company status was updated.", "تم تحديث حالة الشركة التابعة.")
+                });
+                CloseStatusConfirm();
+                await LoadAsync();
+            }
+            else
+            {
+                ToastService.Show(new ToastMessage
+                {
+                    Type = "error",
+                    Message = result.Error?.Detail ?? Text("Unable to update child company status.", "تعذر تحديث حالة الشركة التابعة.")
+                });
+            }
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void OpenResetPassword(CompanyDto company)
+    {
+        selectedCompany = company;
+        passwordReset = new PasswordResetModel();
+        showResetPassword = true;
+    }
+
+    private async Task ResetPasswordAsync()
+    {
+        if (selectedCompany is null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(passwordReset.TemporaryPassword) ||
+            passwordReset.TemporaryPassword != passwordReset.ConfirmTemporaryPassword)
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Type = "warning",
+                Message = Text("Password and confirmation must match.", "يجب أن تتطابق كلمة المرور مع التأكيد.")
+            });
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            var result = await CompanyService.ResetChildAdminPasswordAsync(selectedCompany.Id, passwordReset.TemporaryPassword);
+            if (result.IsSuccess && result.Data?.IsSuccess == true)
+            {
+                ToastService.Show(new ToastMessage
+                {
+                    Type = "success",
+                    Message = Text("Admin password was reset successfully.", "تمت إعادة تعيين كلمة مرور المدير بنجاح.")
+                });
+                CloseResetPassword();
+            }
+            else
+            {
+                ToastService.Show(new ToastMessage
+                {
+                    Type = "error",
+                    Message = result.Error?.Detail ?? Text("Unable to reset admin password.", "تعذر إعادة تعيين كلمة مرور المدير.")
+                });
+            }
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void CloseCompanyModal()
+    {
+        DisposeMap();
+        showCompanyModal = false;
+        selectedCompany = null;
+        selectedCurrency = null;
+    }
+
+    private void CloseStatusConfirm()
+    {
+        showStatusConfirm = false;
+        selectedCompany = null;
+    }
+
+    private void CloseResetPassword()
+    {
+        showResetPassword = false;
+        selectedCompany = null;
+        passwordReset = new PasswordResetModel();
+    }
+
+    private bool HasPermission(string permission)
+        => AuthState?.User.Claims.Any(c => c.Value == permission) == true;
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private string DisplayName(CompanyDto company)
+        => SharedDataService.Language == "Ar"
+            ? FirstNotEmpty(company.Name, company.NameEng)
+            : FirstNotEmpty(company.NameEng, company.Name);
+
+    private CurrencyDto? DefaultCurrency => currencies.FirstOrDefault(x => x.IsDefault) ?? currencies.FirstOrDefault();
+
+    private double MapLatitude => selectedCompany?.HqLatitude is > 0 ? selectedCompany.HqLatitude : 24.7136;
+
+    private double MapLongitude => selectedCompany?.HqLongitude is > 0 ? selectedCompany.HqLongitude : 46.6753;
+
+    private CurrencyDto? CurrencyById(Guid? currencyId)
+        => currencyId.HasValue ? currencies.FirstOrDefault(x => x.Id == currencyId.Value) : null;
+
+    private string CurrencyDisplay(Guid? currencyId)
+    {
+        var currency = CurrencyById(currencyId);
+        return currency is null ? "-" : CurrencyOptionText(currency);
+    }
+
+    private string CurrencyOptionText(CurrencyDto currency)
+    {
+        var name = SharedDataService.Language == "Ar"
+            ? FirstNotEmpty(currency.Name, currency.NameEng)
+            : FirstNotEmpty(currency.NameEng, currency.Name);
+
+        return $"{currency.Code} - {name}";
+    }
+
+    private Task OnCurrencyChanged(CurrencyDto? currency)
+    {
+        selectedCurrency = currency;
+        if (selectedCompany is not null)
+        {
+            selectedCompany.CurrencyId = currency?.Id;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task CenterMapFromFieldsAsync()
+    {
+        if (!mapInitialized)
+            return;
+
+        await JSRuntime.InvokeVoidAsync(
+            "alafkarLocationPicker.setCenter",
+            mapElementId,
+            MapLatitude,
+            MapLongitude,
+            false);
+    }
+
+    private async Task UseCurrentLocationAsync()
+    {
+        if (!mapInitialized)
+            return;
+
+        var isSupported = await JSRuntime.InvokeAsync<bool>("alafkarLocationPicker.useCurrentLocation", mapElementId);
+        if (!isSupported)
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Type = "warning",
+                Message = Text("Current location is not supported in this browser.", "الموقع الحالي غير مدعوم في هذا المتصفح.")
+            });
+        }
+    }
+
+    private async Task ZoomInMapAsync()
+    {
+        if (mapInitialized)
+        {
+            await JSRuntime.InvokeAsync<int>("alafkarLocationPicker.zoomIn", mapElementId);
+        }
+    }
+
+    private async Task ZoomOutMapAsync()
+    {
+        if (mapInitialized)
+        {
+            await JSRuntime.InvokeAsync<int>("alafkarLocationPicker.zoomOut", mapElementId);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnMapLocationSelected(double latitude, double longitude)
+    {
+        if (selectedCompany is null)
+            return;
+
+        selectedCompany.HqLatitude = Math.Round(latitude, 6);
+        selectedCompany.HqLongitude = Math.Round(longitude, 6);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static string Empty(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private static string FirstNotEmpty(string? primary, string? fallback)
+        => !string.IsNullOrWhiteSpace(primary)
+            ? primary
+            : !string.IsNullOrWhiteSpace(fallback) ? fallback : "-";
+
+    private static CompanyDto Clone(CompanyDto source) => new()
+    {
+        Id = source.Id,
+        ParentCompanyId = source.ParentCompanyId,
+        ParentCompanyName = source.ParentCompanyName,
+        ChildCompaniesCount = source.ChildCompaniesCount,
+        IsActive = source.IsActive,
+        Name = source.Name,
+        NameEng = source.NameEng,
+        Logo = source.Logo,
+        HqLocation = source.HqLocation,
+        HqLatitude = source.HqLatitude,
+        HqLongitude = source.HqLongitude,
+        VatNo = source.VatNo,
+        Code = source.Code,
+        CurrencyId = source.CurrencyId,
+        TimeZone = source.TimeZone,
+        Phone = source.Phone,
+        Email = source.Email,
+        AdminUserName = source.AdminUserName,
+        AdminEmail = source.AdminEmail,
+        AdminPhoneNumber = source.AdminPhoneNumber
+    };
+
+    private async Task HandleLanguageChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        DisposeMap();
+        dotNetReference?.Dispose();
+        SharedDataService.OnChange1 -= HandleLanguageChangeAsync;
+    }
+
+    private void DisposeMap()
+    {
+        if (mapInitialized)
+        {
+            _ = JSRuntime.InvokeVoidAsync("alafkarLocationPicker.dispose", mapElementId);
+            mapInitialized = false;
+        }
+    }
+
+    private sealed class PasswordResetModel
+    {
+        public string? TemporaryPassword { get; set; }
+        public string? ConfirmTemporaryPassword { get; set; }
+    }
+}

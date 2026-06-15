@@ -127,11 +127,11 @@ app.MapCarter();
 app
     .UseAuthModule(app.Environment)
     .UseAttendanceModule(app.Environment)
+    .UseGeneralSettingsModule(app.Environment)
     .UseOrganizationModule(app.Environment)
     .UseEmployeeModule(app.Environment)
     .UseCatalogModule(app.Environment)
     .UseInventoryModule(app.Environment)
-    .UseGeneralSettingsModule(app.Environment)
     .UseCustomerModule(app.Environment)
     .UseSalesOrderModule(app.Environment)
     .UseSupplierModule(app.Environment)

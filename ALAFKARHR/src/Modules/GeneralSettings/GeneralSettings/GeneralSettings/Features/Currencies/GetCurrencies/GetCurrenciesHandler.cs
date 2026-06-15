@@ -15,14 +15,18 @@ public class GetCurrenciesHandler(GeneralSettingsDbContext dbContext)
 {
     public async Task<GetCurrenciesResult> Handle(GetCurrenciesQuery request, CancellationToken cancellationToken)
     {
-        var query = dbContext.Currencies.AsNoTracking().AsQueryable();
+        var query = dbContext.Currencies
+            .AsNoTracking()
+            .Where(c => c.CompanyId == request.companyId && !c.IsDeleted);
 
         var searchText = request.PaginationRequest.SearchText;
         if (!string.IsNullOrWhiteSpace(searchText))
         {
-            query.Where(c => c.Name.ToLower().Equals(searchText.ToLower()) ||
-                           c.NameEng.ToLower().Equals(searchText.ToLower()) ||
-                           c.Code.ToLower().Equals(searchText.ToLower()));
+            var search = searchText.Trim().ToLower();
+            query = query.Where(c => c.Name.ToLower().Contains(search) ||
+                           c.NameEng.ToLower().Contains(search) ||
+                           c.Code.ToLower().Contains(search) ||
+                           c.Symbol.ToLower().Contains(search));
         }
 
         var count = await query.LongCountAsync(cancellationToken);

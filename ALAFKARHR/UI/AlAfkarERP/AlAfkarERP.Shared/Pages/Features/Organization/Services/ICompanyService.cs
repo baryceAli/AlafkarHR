@@ -11,4 +11,9 @@ public interface ICompanyService
     Task<ApiResult<UpdateDeleteResponseDto>> DeleteAsync(Guid Id);
     Task<ApiResult<CompanyDto>> GetByIdAsync(Guid Id);
     Task<ApiResult<PagedResult<CompanyDto>>> GetAsync(int pageIndex, int pageSize);
+    Task<ApiResult<PagedResult<CompanyDto>>> GetChildCompaniesAsync(int pageIndex, int pageSize, string? searchText = null);
+    Task<ApiResult<CompanyDto>> CreateChildAsync(CompanyDto company);
+    Task<ApiResult<UpdateDeleteResponseDto>> UpdateChildAsync(CompanyDto company);
+    Task<ApiResult<UpdateDeleteResponseDto>> SetChildStatusAsync(Guid id, bool isActive);
+    Task<ApiResult<UpdateDeleteResponseDto>> ResetChildAdminPasswordAsync(Guid id, string temporaryPassword);
 }

@@ -6,6 +6,7 @@ public class CompanyDto
     public Guid? ParentCompanyId { get; set; }
     public string? ParentCompanyName { get; set; }
     public int ChildCompaniesCount { get; set; }
+    public bool IsActive { get; set; } = true;
     public string Name { get;  set; }
     public string NameEng { get; set; }
     public string Logo { get; set; }
@@ -16,7 +17,7 @@ public class CompanyDto
 
 
     public string Code { get; set; } // unique org code
-    public string Currency { get; set; } // critical for payroll
+    public Guid? CurrencyId { get; set; } // critical for payroll
     public string TimeZone { get; set; } // critical for attendance
 
 

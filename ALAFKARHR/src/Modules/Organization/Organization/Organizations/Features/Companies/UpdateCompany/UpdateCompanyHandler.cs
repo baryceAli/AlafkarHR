@@ -60,6 +60,7 @@ public class UpdateCompanyHandler(OrganizationDbContext dbContext, IHttpContextA
             request.Company.HqLongitude,
             request.Company.HqLatitude,
             request.Company.VatNo,
+            request.Company.CurrencyId ?? company.CurrencyId,
             userId);
         company.UpdateParentCompany(request.Company.ParentCompanyId, userId);
 

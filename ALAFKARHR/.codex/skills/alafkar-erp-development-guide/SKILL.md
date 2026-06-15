@@ -39,6 +39,10 @@ Entities commonly inherit `Aggregate<Guid>` or shared DDD base types. Use privat
 
 EF uses SQL Server and per-module migrations under `Data/Migrations`. In development, modules call `UseMigration<TContext>("<Schema>")` and seed through `IDataSeeder<TContext>` where present. Shared MediatR registration adds validation and logging pipeline behaviors; do not bypass them.
 
+Never create, edit, or repair EF Core migration files manually. Always use `dotnet ef migrations add ...` to generate migrations, inspect the generated files, and only make code/model changes that cause EF to generate the correct migration. If a migration is wrong, remove/regenerate it through EF tooling instead of hand-writing migration or designer files.
+
+When running any `dotnet ef` command, always pass the API project as the startup project, e.g. `--startup-project src/Bootstraper/Api/Api.csproj`, so the Docker Compose project is not selected and does not block EF tooling.
+
 ## 5. Frontend / Blazor Patterns
 
 Shared Blazor code is in `UI/AlAfkarERP/AlAfkarERP.Shared`. Pages are feature-scoped under `Pages/Features/<Module>/Pages`, services under `Pages/Features/<Module>/Services`, reusable components under `Pages/Reuable` and `Pages/Reuable2`, and layout under `Layout`.

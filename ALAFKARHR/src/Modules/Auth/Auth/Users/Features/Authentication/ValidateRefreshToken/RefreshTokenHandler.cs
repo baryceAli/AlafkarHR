@@ -1,4 +1,5 @@
 ﻿using Auth.Helpers;
+using Organization.Contracts.Companies.Features.GetCompanyAccessStatus;
 
 namespace Auth.Users.Features.Authentication.ValidateRefreshToken;
 
@@ -8,7 +9,8 @@ public class RefreshTokenHandler (
     AuthDbContext dbContext, 
     IJwtTokenGenerator jwtTokenGenerator, 
     UserManager<ApplicationUser> userManager,
-    IConfiguration configuration)
+    IConfiguration configuration,
+    ISender sender)
     : ICommandHandler<RefreshTokenCommand, RefreshTokenResult>
 {
     public async Task<RefreshTokenResult> Handle(RefreshTokenCommand command, CancellationToken cancellationToken)
@@ -35,6 +37,11 @@ public class RefreshTokenHandler (
 
         if (dbUser == null)
             throw new Exception("User not found");
+
+        var accessStatus = await sender.Send(new GetCompanyAccessStatusQuery(dbUser.CompanyId), cancellationToken);
+        if (!accessStatus.CanLogin)
+            throw new Exception("Company is disabled");
+
         //2️⃣ Generate new JWT
         var roles = await userManager.GetRolesAsync(dbUser);
         //var accessToken=jwtTokenGenerator.GenerateToken(dbUser,roles);

@@ -111,13 +111,16 @@ window.alafkarLocationPicker = (() => {
             marker.innerHTML = '<i class="bi bi-geo-alt-fill"></i>';
             element.appendChild(marker);
 
+            const initialLat = clamp(Number(lat) || 24.7136, -85, 85);
+            const initialLon = clamp(Number(lon) || 46.6753, -180, 180);
+
             const state = {
                 element,
                 marker,
                 dotNetRef,
                 zoom: 13,
-                lat: clamp(Number(lat) || 24.7136, -85, 85),
-                lon: clamp(Number(lon) || 46.6753, -180, 180),
+                lat: initialLat,
+                lon: initialLon,
                 isDragging: false,
                 didDrag: false,
                 dragStartX: 0,

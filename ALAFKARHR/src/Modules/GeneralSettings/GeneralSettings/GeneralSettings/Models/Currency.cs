@@ -27,4 +27,30 @@ public class Currency:Aggregate<Guid>
             CreatedBy = user
         };
     }
+
+    public void Update(string code, string name, string nameEng, decimal value, string symbol, bool isDefault, string user)
+    {
+        Code = code;
+        Name = name;
+        NameEng = nameEng;
+        Value = value;
+        Symbol = symbol;
+        IsDefault = isDefault;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = user;
+    }
+
+    public void SetDefault(bool isDefault, string user)
+    {
+        IsDefault = isDefault;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = user;
+    }
+
+    public void Remove(string user)
+    {
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
+        DeletedBy = user;
+    }
 }
