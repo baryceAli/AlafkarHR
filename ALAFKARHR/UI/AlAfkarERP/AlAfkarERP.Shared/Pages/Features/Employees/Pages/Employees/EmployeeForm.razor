@@ -134,7 +134,7 @@
                         <div class="employee-form-grid">
                             <div class="employee-field">
                                 <label for="employee-code" class="form-label">@SharedDataService.SelectViewLang("Code", "الكود")</label>
-                                <InputText class="form-control" id="employee-code" @bind-Value="employee.Code" disabled="@Id.HasValue" />
+                                <InputText class="form-control" id="employee-code" @bind-Value="employee.Code" />
                                 <div class="employee-help-text">
                                     @SharedDataService.SelectViewLang("Used as the username when the employee signs in.", "يمثل اسم المستخدم ويتم استخدامه عند تسجيل الدخول.")
                                 </div>
