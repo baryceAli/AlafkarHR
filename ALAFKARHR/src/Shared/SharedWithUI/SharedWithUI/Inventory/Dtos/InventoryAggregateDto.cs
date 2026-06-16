@@ -62,6 +62,7 @@ public class CreateInventoryAggregateDto
     [Required(ErrorMessage = "ProductSku is required")]
     public Guid? ProductSkuId { get; set; }
 
+    public Guid? ProductPackageId { get; set; }
 
     [Required(ErrorMessage = "Warehouse is required")]
     public Guid? WarehouseId { get; set; }

@@ -30,22 +30,21 @@ public class ProductSKUConfiguration : IEntityTypeConfiguration<ProductSku>
             .WithMany()
             .HasForeignKey(x => x.BrandId);
 
-        builder.HasOne<ProductPackage>()
-            .WithMany()
-            .HasForeignKey(x => x.PackageId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         // 🔥 Variants relation
         builder.HasMany(s => s.Variants)
     .WithOne()
     .HasForeignKey(v => v.ProductSkuId)
     .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasMany(s => s.Packages)
+            .WithOne(x => x.ProductSku)
+            .HasForeignKey(x => x.ProductSkuId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne<ProductPackage>()
-    .WithMany()
-    .HasForeignKey(s => s.PackageId)
-    .OnDelete(DeleteBehavior.Restrict);
+            .WithMany()
+            .HasForeignKey(s => s.PackageId)
+            .OnDelete(DeleteBehavior.Restrict);
 
 
         // 🔥 Multi-tenant uniqueness

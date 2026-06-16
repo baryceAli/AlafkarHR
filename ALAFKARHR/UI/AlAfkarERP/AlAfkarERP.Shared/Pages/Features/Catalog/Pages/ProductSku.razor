@@ -121,6 +121,7 @@
                     <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
                     @SharedDataService.SelectViewLang("Brand", "العلامة التجارية")
                 </th>
+                <th>@SharedDataService.SelectViewLang("Packages", "العبوات")</th>
                 <th>@SharedDataService.SelectViewLang("Unit", "الوحدة")</th>
                 <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
             </tr>
@@ -137,7 +138,14 @@
                     {
                         selectedBrand = brands.First(b => b.Id == editingItem.BrandId);
                         selectedUnit = units.First(u => u.Id == editingItem.UnitId);
-                        selectedPackage = packages.FirstOrDefault(p => p.Id == editingItem.PackageId);
+                        if (!editingItem.Packages.Any() && editingItem.PackageId.HasValue)
+                        {
+                            var legacyPackage = packages.FirstOrDefault(p => p.Id == editingItem.PackageId.Value);
+                            if (legacyPackage is not null)
+                            {
+                                editingItem.Packages.Add(legacyPackage);
+                            }
+                        }
                     }
                     <tr>
                         <td colspan="4">
@@ -162,18 +170,27 @@
                                         </div>
                                     </div>
 
-                                    <!--Package-->
+                                    <!--Packages-->
                                     <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label">
-                                            @SharedDataService.SelectViewLang("Package", "العبوة")
+                                            @SharedDataService.SelectViewLang("Packages", "العبوات")
                                         </label>
                                         <div class="col-sm-10">
-                                            <AutoCompleteComponent TItem="ProductPackageDto"
-                                                                   Items="packages"
-                                                                   ItemText="(p=> SharedDataService.SelectViewLang(p.NameEng, p.Name))"
-                                                                   PlaceHolder="@(SharedDataService.SelectViewLang("search a package","ابحث عن عبوة"))"
-                                                                   Value="selectedPackage"
-                                                                   ValueChanged="onPackageSelected" />
+                                            <div class="d-flex flex-wrap gap-2">
+                                                @foreach (var package in packages)
+                                                {
+                                                    <label class="form-check border rounded px-3 py-2 m-0">
+                                                        <input class="form-check-input"
+                                                               type="checkbox"
+                                                               checked="@editingItem.Packages.Any(p => p.Id == package.Id)"
+                                                               @onchange="args => ToggleSkuPackage(editingItem, package, args)" />
+                                                        <span class="form-check-label ms-2">
+                                                            @SharedDataService.SelectViewLang(package.NameEng, package.Name)
+                                                            <span class="text-muted">(@package.Quantity)</span>
+                                                        </span>
+                                                    </label>
+                                                }
+                                            </div>
                                         </div>
                                     </div>
 
@@ -396,6 +413,24 @@
                     <td>@SharedDataService.SelectViewLang(sku.SkuCodeEng, sku.SkuCode)</td>
                     <td>@sku.Price</td>
                     <td>@SharedDataService.SelectViewLang(brands.FirstOrDefault(b => b.Id == sku.BrandId)?.NameEng ?? "", brands.FirstOrDefault(b => b.Id == sku.BrandId)?.Name ?? "")</td>
+                    <td>
+                        @if (sku.Packages.Any())
+                        {
+                            <div class="d-flex flex-wrap gap-1">
+                                @foreach (var package in sku.Packages)
+                                {
+                                    <span class="badge text-bg-light border">
+                                        @SharedDataService.SelectViewLang(package.NameEng, package.Name)
+                                        <span class="text-muted">x@package.Quantity</span>
+                                    </span>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
+                    </td>
                     <td>@SharedDataService.SelectViewLang(units.FirstOrDefault(b => b.Id == sku.UnitId)?.UnitNameEng ?? "", units.FirstOrDefault(b => b.Id == sku.UnitId)?.UnitName ?? "")</td>
                     <td>
                         <div class="d-flex justify-content-end gap-2">
@@ -448,7 +483,6 @@
     private List<ProductPackageDto> packages = [];
     private List<UnitDto> units = [];
     private UnitDto? selectedUnit;
-    private ProductPackageDto? selectedPackage;
     private List<VariantDto> variants = [];
     private VariantDto? selectedVariant;
     private List<VariantValueDto> variantValues = [];
@@ -543,7 +577,6 @@
         }
         selectedBrand = null;
         selectedUnit = null;
-        selectedPackage = null;
         var newItem = new ProductSkuDto
         {
             Id = Guid.NewGuid(),
@@ -596,7 +629,7 @@
         productSku.ProductId = selectedProduct.Id;
         productSku.BrandId = selectedBrand.Id;
         productSku.UnitId = selectedUnit.Id;
-        productSku.PackageId = (selectedPackage != null && selectedPackage.Id != Guid.Empty) ? selectedPackage.Id : null;
+        productSku.PackageId = productSku.Packages.FirstOrDefault()?.Id;
 
         if (productSku.Id == editingProductSkuId && !isEdit)
         {
@@ -879,9 +912,21 @@
     {
         selectedBrand = brand != null ? brand : new();
     }
-    private void onPackageSelected(ProductPackageDto package)
+    private void ToggleSkuPackage(ProductSkuDto sku, ProductPackageDto package, ChangeEventArgs args)
     {
-        selectedPackage = package != null ? package : new();
+        var isChecked = args.Value is bool value && value;
+        var existingPackage = sku.Packages.FirstOrDefault(p => p.Id == package.Id);
+
+        if (isChecked && existingPackage is null)
+        {
+            sku.Packages.Add(package);
+            return;
+        }
+
+        if (!isChecked && existingPackage is not null)
+        {
+            sku.Packages.Remove(existingPackage);
+        }
     }
 
     private void onVariantSelected(VariantDto variant)
@@ -902,7 +947,6 @@
         isEdit = false;
         selectedBrand = null;
         selectedUnit = null;
-        selectedPackage = null;
         productskuList = [];
 
         await LoadProductSKU();

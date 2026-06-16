@@ -11,7 +11,7 @@ public class ProductSku : Entity<Guid>
 
     public Guid? PackageId { get; private set; } // optional (size: 250ml, 1L)
     public Guid UnitId { get; set; }
-    public bool IsPackage => PackageId.HasValue;
+    public bool IsPackage => PackageId.HasValue || _packages.Any(p => !p.IsDeleted);
 
     public string Name { get; set; }
     public string NameEng { get; set; }
@@ -27,6 +27,9 @@ public class ProductSku : Entity<Guid>
 
     private readonly List<ProductSkuVariant> _variants = new();
     public IReadOnlyCollection<ProductSkuVariant> Variants => _variants;
+
+    private readonly List<ProductSkuPackage> _packages = new();
+    public IReadOnlyCollection<ProductSkuPackage> Packages => _packages;
 
 
 
@@ -114,6 +117,7 @@ public class ProductSku : Entity<Guid>
         string skuCodeEng,
         Guid companyId,
         List<ProductSkuVariantDto> variantDtos,
+        List<Guid> packageIds,
         string modifiedBy)
     {
         Name = name;
@@ -126,6 +130,7 @@ public class ProductSku : Entity<Guid>
         CompanyId = companyId;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
+        SetPackages(packageIds, modifiedBy);
         //176AF7D6-4C28-40AD-BBE4-314DEB3E9755
         var activeValues = _variants.Where(v => v.ProductSkuId == Id && !v.IsDeleted).ToList();
         var activeIds = activeValues.Select(v => v.Id).ToHashSet();
@@ -188,6 +193,40 @@ public class ProductSku : Entity<Guid>
             _variants.Add(ProductSkuVariant.Create(Id, variantId, variantValueId, addedBy));
         //throw new Exception("Variant and Value are already exists for this SKU");
 
+    }
+
+    public void SetPackages(IEnumerable<Guid> packageIds, string modifiedBy)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(modifiedBy);
+
+        var requestedIds = packageIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToHashSet();
+
+        foreach (var packageId in requestedIds)
+        {
+            var existingPackage = _packages.FirstOrDefault(p => p.ProductPackageId == packageId);
+            if (existingPackage is null)
+            {
+                _packages.Add(ProductSkuPackage.Create(Id, packageId, modifiedBy));
+                continue;
+            }
+
+            if (existingPackage.IsDeleted)
+            {
+                existingPackage.Restore(modifiedBy);
+            }
+        }
+
+        foreach (var existingPackage in _packages.Where(p => !p.IsDeleted && !requestedIds.Contains(p.ProductPackageId)).ToList())
+        {
+            existingPackage.Remove(modifiedBy);
+        }
+
+        PackageId = requestedIds.FirstOrDefault() == Guid.Empty
+            ? null
+            : requestedIds.First();
     }
 
     public void RemoveVariant(Guid variantId, Guid variantValueId)

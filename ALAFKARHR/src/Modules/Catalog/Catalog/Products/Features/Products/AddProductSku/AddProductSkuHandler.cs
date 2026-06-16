@@ -39,13 +39,26 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
         var brand = await dbContext.Brands.AsNoTracking().FirstOrDefaultAsync(x => x.Id == command.ProductSku.BrandId);
         if ((brand is null))
             throw new NotFoundException($"brand not found: {command.ProductSku.BrandId}");
-        
 
-        var package =command.ProductSku.PackageId.HasValue? 
-                        await dbContext.ProductPackages.AsNoTracking().FirstOrDefaultAsync(x => x.Id == command.ProductSku.PackageId)
-                        :null;
-        if(command.ProductSku.PackageId.HasValue && package == null) 
-            throw new NotFoundException($"Package not found: {command.ProductSku.PackageId}");
+        var packageIds = command.ProductSku.Packages
+            .Select(p => p.Id)
+            .Where(id => id != Guid.Empty)
+            .ToHashSet();
+
+        if (command.ProductSku.PackageId.HasValue && command.ProductSku.PackageId.Value != Guid.Empty)
+            packageIds.Add(command.ProductSku.PackageId.Value);
+
+        if (packageIds.Any())
+        {
+            var existingPackageIds = await dbContext.ProductPackages.AsNoTracking()
+                .Where(x => packageIds.Contains(x.Id))
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+
+            var missingPackageId = packageIds.Except(existingPackageIds).FirstOrDefault();
+            if (missingPackageId != Guid.Empty)
+                throw new NotFoundException($"Package not found: {missingPackageId}");
+        }
         
         
         var userId = httpContextAccessor.HttpContext?.User?
@@ -61,7 +74,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
         var SkuBaseCntx = new SkuBuildContext(
             command.ProductSku.ProductId, 
             command.ProductSku.BrandId, 
-            command.ProductSku.PackageId, 
+            packageIds.FirstOrDefault() == Guid.Empty ? null : packageIds.First(), 
             variantValueIds);
 
         //var key = ProductSkuGenerator.BuildSkuKey(SkuBaseCntx);
@@ -87,7 +100,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
             command.ProductSku.ProductId,
             command.ProductSku.BrandId,
             command.ProductSku.UnitId.Value,
-            command.ProductSku.PackageId,//.HasValue? command.ProductSku.PackageId.Value:null,
+            packageIds.FirstOrDefault() == Guid.Empty ? null : packageIds.First(),
             command.ProductSku.Name,
             command.ProductSku.NameEng,
             skuCode,
@@ -105,6 +118,8 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
 
             productSku.AddVariant(variant.VariantId, variant.VariantValueId, userId);
         }
+
+        productSku.SetPackages(packageIds, userId);
 
         dbContext.ProductSkus.Add(productSku);
 

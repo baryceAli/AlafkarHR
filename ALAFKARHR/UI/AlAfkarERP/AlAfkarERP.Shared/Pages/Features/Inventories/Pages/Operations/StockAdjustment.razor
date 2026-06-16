@@ -176,6 +176,25 @@
                                              ValueExpression="() => createInventoryAggregateDto.InitialQuantity" />
                             </div>
 
+                            @if (selectedProductSku?.Packages.Any() == true)
+                            {
+                                <div class="col-md-4">
+                                    <label class="form-label">@SharedDataService.SelectViewLang("Package", "العبوة")</label>
+                                    <select class="form-select" value="@createInventoryAggregateDto.ProductPackageId" @onchange="OnPackageChanged">
+                                        <option value="">@SharedDataService.SelectViewLang("Base quantity", "كمية أساسية")</option>
+                                        @foreach (var package in selectedProductSku.Packages)
+                                        {
+                                            <option value="@package.Id">
+                                                @SharedDataService.SelectViewLang(package.NameEng, package.Name) (@package.Quantity)
+                                            </option>
+                                        }
+                                    </select>
+                                    <div class="text-muted small mt-1">
+                                        @SharedDataService.SelectViewLang("Normalized quantity", "الكمية بعد التحويل"): @GetNormalizedQuantity(createInventoryAggregateDto.InitialQuantity)
+                                    </div>
+                                </div>
+                            }
+
                             <div class="col-md-4">
                                 <label class="form-label">@SharedDataService.SelectViewLang("Unit Cost", "سعر الوحدة")</label>
                                 <InputNumber class="form-control"
@@ -418,6 +437,7 @@
         selectedProductSku = null;
         batches = [];
         inventory=new InventoryAggregateDto();
+        createInventoryAggregateDto.ProductPackageId = null;
         if (productSku != null && productSku.Id != Guid.Empty)
         {
             // selectedProduct = productSku;
@@ -508,8 +528,28 @@
     private void RecalculateTotalCost()
     {
         createInventoryAggregateDto.TotalCost =
-            createInventoryAggregateDto.InitialQuantity * createInventoryAggregateDto.UnitCost;
+            GetNormalizedQuantity(createInventoryAggregateDto.InitialQuantity) * createInventoryAggregateDto.UnitCost;
         StateHasChanged();
+    }
+
+    private void OnPackageChanged(ChangeEventArgs args)
+    {
+        createInventoryAggregateDto.ProductPackageId = Guid.TryParse(args.Value?.ToString(), out var packageId)
+            ? packageId
+            : null;
+
+        RecalculateTotalCost();
+    }
+
+    private decimal GetNormalizedQuantity(decimal quantity)
+    {
+        if (!createInventoryAggregateDto.ProductPackageId.HasValue || selectedProductSku is null)
+        {
+            return quantity;
+        }
+
+        var selectedPackage = selectedProductSku.Packages.FirstOrDefault(p => p.Id == createInventoryAggregateDto.ProductPackageId.Value);
+        return selectedPackage is null ? quantity : quantity * selectedPackage.Quantity;
     }
     private static readonly List<MovementType> StockInMovementTypes =
     [

@@ -13,6 +13,9 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext)
         var query = dbContext.Products
             .Include(p => p.Skus)
                 .ThenInclude(s => s.Variants)
+            .Include(p => p.Skus)
+                .ThenInclude(s => s.Packages)
+                    .ThenInclude(sp => sp.ProductPackage)
             .AsQueryable();
 
         query = query.Where(p =>
@@ -54,7 +57,9 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext)
                          Id = sku.Id,
                          BrandId = sku.BrandId,
                          ProductId = sku.ProductId,
-                         PackageId = sku.PackageId,
+                         PackageId = sku.Packages.Select(p => p.ProductPackageId).FirstOrDefault(),
+                         PackageName = sku.Packages.Select(p => p.ProductPackage.Name).FirstOrDefault(),
+                         PackageNameEng = sku.Packages.Select(p => p.ProductPackage.NameEng).FirstOrDefault(),
 
                          Name= sku.Name,
                          NameEng = sku.NameEng,
@@ -78,6 +83,17 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext)
                                  ProductSkuId = v.ProductSkuId,
                                  VariantId = v.VariantId,
                                  VariantValueId = v.VariantValueId
+                             })
+                             .ToList(),
+                         Packages = sku.Packages
+                             .Where(p => !p.IsDeleted && !p.ProductPackage.IsDeleted)
+                             .Select(p => new ProductPackageDto
+                             {
+                                 Id = p.ProductPackage.Id,
+                                 Name = p.ProductPackage.Name,
+                                 NameEng = p.ProductPackage.NameEng,
+                                 Quantity = p.ProductPackage.Quantity,
+                                 CompanyId = p.ProductPackage.CompanyId
                              })
                              .ToList()
 

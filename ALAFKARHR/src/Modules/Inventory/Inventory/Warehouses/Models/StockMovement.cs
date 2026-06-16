@@ -17,6 +17,10 @@ public class StockMovement : Entity<Guid>
 
     public decimal QuantityAfter { get; private set; }
     //public decimal Quantity { get; private set; }
+    public Guid? ProductPackageId { get; private set; }
+    public decimal EnteredQuantity { get; private set; }
+    public decimal PackageMultiplier { get; private set; }
+    public decimal NormalizedQuantity { get; private set; }
     public decimal ReservedBefore { get; private set; }
     public decimal ReservedAfter { get; private set; }
     public decimal UnitCost { get; set; }
@@ -55,7 +59,11 @@ public class StockMovement : Entity<Guid>
         MovementDirection movementDirection,
         //MovementCategory movementCategory,
         string createdBy,
-        string notes = "")
+        string notes = "",
+        Guid? productPackageId = null,
+        decimal? enteredQuantity = null,
+        decimal? packageMultiplier = null,
+        decimal? normalizedQuantity = null)
     {
         ArgumentNullException.ThrowIfNull(productSkuId);
         ArgumentNullException.ThrowIfNull(warehouseId);
@@ -76,6 +84,10 @@ public class StockMovement : Entity<Guid>
             QuantityBefore = quantityBefore,
             QuantityAfter = quantityAfter,
             //Quantity = quantity,
+            ProductPackageId = productPackageId,
+            EnteredQuantity = enteredQuantity ?? Math.Abs(quantityAfter - quantityBefore),
+            PackageMultiplier = packageMultiplier ?? 1m,
+            NormalizedQuantity = normalizedQuantity ?? Math.Abs(quantityAfter - quantityBefore),
             ReservedBefore = reservedBefore,
             ReservedAfter = reservedAfter,
 

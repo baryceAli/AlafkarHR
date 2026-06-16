@@ -40,6 +40,8 @@ public class StockAdjustmentHandler(InventoryDbContext dbContext, ISender sender
         //if (sku is null)
         //    throw new NotFoundException($"SKU not found: {command.InventoryAggregate.ProductSkuId}");
 
+        var packageQuantity = await global::Inventory.Warehouses.Features.Inventories.InventoryPackageQuantityResolver
+            .ResolveAsync(sender, command.InventoryAggregate, cancellationToken);
 
         var inventory = await dbContext.Inventories.Include(i => i.Batches)
                                 .FirstOrDefaultAsync(i => i.WarehouseId == command.InventoryAggregate.WarehouseId &&
@@ -63,7 +65,7 @@ public class StockAdjustmentHandler(InventoryDbContext dbContext, ISender sender
                 command.InventoryAggregate.ProductSkuId.Value,
                 command.InventoryAggregate.WarehouseId.Value,
                 command.InventoryAggregate.InitialBatchId,
-                command.InventoryAggregate.InitialQuantity,
+                packageQuantity.NormalizedQuantity,
                 command.InventoryAggregate.CompanyId,
                 userId);
 
@@ -79,7 +81,7 @@ public class StockAdjustmentHandler(InventoryDbContext dbContext, ISender sender
                 inventory.StockIn(new BatchStock(
                 command.InventoryAggregate.InitialBatchId,
                 command.InventoryAggregate.WarehouseId.Value,
-                command.InventoryAggregate.InitialQuantity,
+                packageQuantity.NormalizedQuantity,
                 userId));
             }
             else
@@ -87,7 +89,7 @@ public class StockAdjustmentHandler(InventoryDbContext dbContext, ISender sender
                 inventory.StockOut(new BatchStock(
                 command.InventoryAggregate.InitialBatchId,
                 command.InventoryAggregate.WarehouseId.Value,
-                command.InventoryAggregate.InitialQuantity,
+                packageQuantity.NormalizedQuantity,
                 userId));
             }
             reference = inventory.Id.ToString();
@@ -115,7 +117,11 @@ public class StockAdjustmentHandler(InventoryDbContext dbContext, ISender sender
             command.InventoryAggregate.MovementType,
             command.InventoryAggregate.MovementType==MovementType.AdjustmentIncrease? MovementDirection.IN:MovementDirection.OUT,
             userId,
-            command.InventoryAggregate.Notes);
+            command.InventoryAggregate.Notes ?? string.Empty,
+            productPackageId: packageQuantity.ProductPackageId,
+            enteredQuantity: packageQuantity.EnteredQuantity,
+            packageMultiplier: packageQuantity.PackageMultiplier,
+            normalizedQuantity: packageQuantity.NormalizedQuantity);
         await dbContext.StockMovements.AddAsync(movement);
 
 

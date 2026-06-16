@@ -18,7 +18,7 @@ public class ProductSkuDto
     public Guid? PackageId { get; set; } // optional (size: 250ml, 1L)
     public string? PackageName { get; set; }
     public string? PackageNameEng { get; set; }
-    public bool IsPackage => PackageId.HasValue;
+    public bool IsPackage => PackageId.HasValue || Packages.Any();
 
     public Guid? UnitId { get; set; }
 
@@ -48,6 +48,7 @@ public class ProductSkuDto
     public DateTime? CreatedAt { get; set; }
 
     public List<ProductSkuVariantDto> Variants { get; set; } = new();
+    public List<ProductPackageDto> Packages { get; set; } = new();
     
 
     //SKU1 Milk    Almarai      Full Cream	    2

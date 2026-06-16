@@ -70,13 +70,26 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext)
             .OrderBy(brand => brand.NameEng ?? brand.Name)
             .ToListAsync(cancellationToken);
 
-        var packages = await query
-            .Where(sku => sku.PackageId.HasValue)
-            .Select(sku => new PublicStoreFilterOptionDto
+        var packages = await (
+            from sku in dbContext.ProductSkus.AsNoTracking()
+            join product in dbContext.Products.AsNoTracking()
+                on sku.ProductId equals product.Id
+            join category in dbContext.Categories.AsNoTracking()
+                on product.CategoryId equals category.Id
+            join brand in dbContext.Brands.AsNoTracking()
+                on sku.BrandId equals brand.Id
+            join skuPackage in dbContext.ProductSkuPackages.AsNoTracking()
+                on sku.Id equals skuPackage.ProductSkuId
+            where sku.ShowOnStore
+                  && !sku.IsDeleted
+                  && !product.IsDeleted
+                  && !category.IsDeleted
+                  && !brand.IsDeleted
+            select new PublicStoreFilterOptionDto
             {
-                Id = sku.PackageId!.Value,
-                Name = sku.PackageName,
-                NameEng = sku.PackageNameEng
+                Id = skuPackage.ProductPackageId,
+                Name = skuPackage.ProductPackage.Name,
+                NameEng = skuPackage.ProductPackage.NameEng
             })
             .Distinct()
             .OrderBy(package => package.NameEng ?? package.Name)
@@ -112,15 +125,11 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext)
                 on product.CategoryId equals category.Id
             join brand in dbContext.Brands.AsNoTracking()
                 on sku.BrandId equals brand.Id
-            join package in dbContext.ProductPackages.AsNoTracking()
-                on sku.PackageId equals package.Id into packageJoin
-            from package in packageJoin.DefaultIfEmpty()
             where sku.ShowOnStore
                   && !sku.IsDeleted
                   && !product.IsDeleted
                   && !category.IsDeleted
                   && !brand.IsDeleted
-                  && (package == null || !package.IsDeleted)
             select new ProductSkuDto
             {
                 Id = sku.Id,
@@ -133,9 +142,18 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext)
                 BrandId = sku.BrandId,
                 BrandName = brand.Name,
                 BrandNameEng = brand.NameEng,
-                PackageId = sku.PackageId,
-                PackageName = package == null ? null : package.Name,
-                PackageNameEng = package == null ? null : package.NameEng,
+                PackageId = dbContext.ProductSkuPackages
+                    .Where(p => p.ProductSkuId == sku.Id)
+                    .Select(p => p.ProductPackageId)
+                    .FirstOrDefault(),
+                PackageName = dbContext.ProductSkuPackages
+                    .Where(p => p.ProductSkuId == sku.Id)
+                    .Select(p => p.ProductPackage.Name)
+                    .FirstOrDefault(),
+                PackageNameEng = dbContext.ProductSkuPackages
+                    .Where(p => p.ProductSkuId == sku.Id)
+                    .Select(p => p.ProductPackage.NameEng)
+                    .FirstOrDefault(),
                 UnitId = sku.UnitId,
                 Name = sku.Name,
                 NameEng = sku.NameEng,
@@ -147,11 +165,22 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext)
                 ImageUrl = sku.ImageUrl,
                 CompanyId = sku.CompanyId,
                 ShowOnStore = sku.ShowOnStore,
-                CreatedAt = sku.CreatedAt
+                CreatedAt = sku.CreatedAt,
+                Packages = dbContext.ProductSkuPackages
+                    .Where(p => p.ProductSkuId == sku.Id)
+                    .Select(p => new ProductPackageDto
+                    {
+                        Id = p.ProductPackage.Id,
+                        Name = p.ProductPackage.Name,
+                        NameEng = p.ProductPackage.NameEng,
+                        Quantity = p.ProductPackage.Quantity,
+                        CompanyId = p.ProductPackage.CompanyId
+                    })
+                    .ToList()
             };
     }
 
-    private static IQueryable<ProductSkuDto> ApplyFilters(
+    private IQueryable<ProductSkuDto> ApplyFilters(
         IQueryable<ProductSkuDto> query,
         PublicStoreProductSkuRequest request)
     {
@@ -170,7 +199,11 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext)
                 (sku.CategoryName != null && sku.CategoryName.Contains(searchTerm)) ||
                 (sku.CategoryNameEng != null && sku.CategoryNameEng.Contains(searchTerm)) ||
                 (sku.PackageName != null && sku.PackageName.Contains(searchTerm)) ||
-                (sku.PackageNameEng != null && sku.PackageNameEng.Contains(searchTerm)));
+                (sku.PackageNameEng != null && sku.PackageNameEng.Contains(searchTerm)) ||
+                dbContext.ProductSkuPackages.Any(package =>
+                    package.ProductSkuId == sku.Id &&
+                    (package.ProductPackage.Name.Contains(searchTerm) ||
+                     package.ProductPackage.NameEng.Contains(searchTerm))));
         }
 
         if (request.CategoryId.HasValue && request.CategoryId.Value != Guid.Empty)
@@ -185,7 +218,9 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext)
 
         if (request.PackageId.HasValue && request.PackageId.Value != Guid.Empty)
         {
-            query = query.Where(sku => sku.PackageId == request.PackageId.Value);
+            query = query.Where(sku => dbContext.ProductSkuPackages.Any(package =>
+                package.ProductSkuId == sku.Id &&
+                package.ProductPackageId == request.PackageId.Value));
         }
 
         if (request.MinPrice.HasValue)

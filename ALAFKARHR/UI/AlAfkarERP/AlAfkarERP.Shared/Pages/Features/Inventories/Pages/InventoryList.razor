@@ -161,6 +161,25 @@
                                                                    ValueChanged="onBatchChanged" />
                                         </div>
 
+                                        @if (selectedProductSku?.Packages.Any() == true)
+                                        {
+                                            <div class="col-md-6">
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Package", "العبوة")</label>
+                                                <select class="form-select" value="@selectedProductPackageId" @onchange="OnPackageChanged">
+                                                    <option value="">@SharedDataService.SelectViewLang("Base quantity", "كمية أساسية")</option>
+                                                    @foreach (var package in selectedProductSku.Packages)
+                                                    {
+                                                        <option value="@package.Id">
+                                                            @SharedDataService.SelectViewLang(package.NameEng, package.Name) (@package.Quantity)
+                                                        </option>
+                                                    }
+                                                </select>
+                                                <div class="text-muted small mt-1">
+                                                    @SharedDataService.SelectViewLang("Normalized quantity", "الكمية بعد التحويل"): @GetNormalizedQuantity(editingItem.TotalQuantity)
+                                                </div>
+                                            </div>
+                                        }
+
                                         <div class="col-md-4">
                                             <label class="form-label">@SharedDataService.SelectViewLang("Quantity", "الكمية")</label>
                                             <InputNumber class="form-control" @bind-Value="editingItem.TotalQuantity" />
@@ -264,6 +283,7 @@
     // private List<InventoryAggregateDto> inventories = [];
     private List<ProductSkuDto> productSkus = [];
     private ProductSkuDto? selectedProductSku;
+    private Guid? selectedProductPackageId;
     private Guid? editingInventoryId;
     private Guid companyId;
     private bool isEdit = false;
@@ -402,6 +422,7 @@
                 CompanyId = companyId,
                 ProductId = selectedProduct.Id,
                 ProductSkuId = selectedProductSku.Id,
+                ProductPackageId = selectedProductPackageId,
 
             };
             var bResponse = await InventoryService.StockInAsync(createInventory);
@@ -662,6 +683,7 @@
     private void onProductSkuChanged(ProductSkuDto productSku)
     {
         selectedProductSku = null;
+        selectedProductPackageId = null;
         batches = [];
         if (productSku != null && productSku.Id != Guid.Empty)
         {
@@ -670,6 +692,24 @@
             batches = new List<BatchDto>(allBatches.Where(b => b.ProductSkuId == productSku.Id));
         }
 
+    }
+
+    private void OnPackageChanged(ChangeEventArgs args)
+    {
+        selectedProductPackageId = Guid.TryParse(args.Value?.ToString(), out var packageId)
+            ? packageId
+            : null;
+    }
+
+    private decimal GetNormalizedQuantity(decimal quantity)
+    {
+        if (!selectedProductPackageId.HasValue || selectedProductSku is null)
+        {
+            return quantity;
+        }
+
+        var selectedPackage = selectedProductSku.Packages.FirstOrDefault(p => p.Id == selectedProductPackageId.Value);
+        return selectedPackage is null ? quantity : quantity * selectedPackage.Quantity;
     }
     private void onWarehouseChanged(WarehouseDto warehouse)
     {

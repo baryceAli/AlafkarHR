@@ -18,6 +18,10 @@ public record StockMovementDto
 
     public decimal QuantityAfter { get; set; }
     //public decimal Quantity { get; set; }
+    public Guid? ProductPackageId { get; set; }
+    public decimal EnteredQuantity { get; set; }
+    public decimal PackageMultiplier { get; set; }
+    public decimal NormalizedQuantity { get; set; }
     public decimal ReservedBefore { get; set; }
     public decimal ReservedAfter { get; set; }
     public decimal UnitCost { get; set; }

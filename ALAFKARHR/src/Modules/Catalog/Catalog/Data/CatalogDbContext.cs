@@ -17,6 +17,7 @@ public class CatalogDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductSku> ProductSkus => Set<ProductSku>();
     public DbSet<ProductSkuVariant> ProductSkuVariants => Set<ProductSkuVariant>();
+    public DbSet<ProductSkuPackage> ProductSkuPackages => Set<ProductSkuPackage>();
 
     public DbSet<ProductPackage> ProductPackages => Set<ProductPackage>();
 

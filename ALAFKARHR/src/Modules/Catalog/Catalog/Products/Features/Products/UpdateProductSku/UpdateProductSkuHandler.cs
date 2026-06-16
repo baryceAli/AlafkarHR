@@ -21,9 +21,17 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
 {
     public async Task<UpdateProductSkuResult> Handle(UpdateProductSkuCommand command, CancellationToken cancellationToken)
     {
-        var productSku = await dbContext.ProductSkus.Include(sku=> sku.Variants).FirstOrDefaultAsync(sku=>sku.Id==command.ProductSku.Id);
+        var productSku = await dbContext.ProductSkus
+            .Include(sku=> sku.Variants)
+            .Include(sku => sku.Packages)
+            .FirstOrDefaultAsync(sku=>sku.Id==command.ProductSku.Id, cancellationToken);
         if (productSku is null)
-            throw new Exception($"ProductSku not found: {productSku.Id}");
+            throw new Exception($"ProductSku not found: {command.ProductSku.Id}");
+
+        await dbContext.ProductSkuPackages
+            .IgnoreQueryFilters()
+            .Where(package => package.ProductSkuId == productSku.Id)
+            .LoadAsync(cancellationToken);
 
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
         var user = httpContextAccessor.HttpContext?.User;
@@ -60,11 +68,25 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
             throw new NotFoundException($"brand not found: {command.ProductSku.BrandId}");
 
 
-        var package = command.ProductSku.PackageId.HasValue ?
-                        await dbContext.ProductPackages.AsNoTracking().FirstOrDefaultAsync(x => x.Id == command.ProductSku.PackageId)
-                        : null;
-        if (command.ProductSku.PackageId.HasValue && package == null)
-            throw new NotFoundException($"Package not found: {command.ProductSku.PackageId}");
+        var packageIds = command.ProductSku.Packages
+            .Select(p => p.Id)
+            .Where(id => id != Guid.Empty)
+            .ToHashSet();
+
+        if (command.ProductSku.PackageId.HasValue && command.ProductSku.PackageId.Value != Guid.Empty)
+            packageIds.Add(command.ProductSku.PackageId.Value);
+
+        if (packageIds.Any())
+        {
+            var existingPackageIds = await dbContext.ProductPackages.AsNoTracking()
+                .Where(x => packageIds.Contains(x.Id))
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+
+            var missingPackageId = packageIds.Except(existingPackageIds).FirstOrDefault();
+            if (missingPackageId != Guid.Empty)
+                throw new NotFoundException($"Package not found: {missingPackageId}");
+        }
 
         List<(Guid variantId, Guid variantValueId)> variantValueIds = new List<(Guid, Guid)>();
         foreach (var v in command.ProductSku.Variants)
@@ -74,7 +96,7 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
         var SkuBaseCntx = new SkuBuildContext(
             command.ProductSku.ProductId,
             command.ProductSku.BrandId,
-            command.ProductSku.PackageId,
+            packageIds.FirstOrDefault() == Guid.Empty ? null : packageIds.First(),
             variantValueIds);
 
 
@@ -101,6 +123,7 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
             skuCodeEng,
             command.ProductSku.CompanyId,
             command.ProductSku.Variants,
+            packageIds.ToList(),
             userId);
         await dbContext.SaveChangesAsync();
 

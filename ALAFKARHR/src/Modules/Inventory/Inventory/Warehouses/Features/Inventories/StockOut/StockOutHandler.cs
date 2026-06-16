@@ -31,14 +31,8 @@ public class StockOutHandler(InventoryDbContext dbContext, ISender sender, IHttp
         //if (warehouse is null)
         //    throw new NotFoundException($"Warehouse not found: {command.InventoryAggregate.WarehouseId}");
 
-        //var prodRes = await sender.Send(new GetProductByIdQuery(command.InventoryAggregate.ProductId.Value));
-        //if (prodRes.Product is null)
-        //    throw new NotFoundException($"Product not found: {command.InventoryAggregate.ProductId}");
-
-        //var sku=prodRes.Product.Skus.FirstOrDefault(s=>s.Id==command.InventoryAggregate.ProductSkuId);
-        //if (sku is null)
-        //    throw new NotFoundException($"SKU not found: {command.InventoryAggregate.ProductSkuId}");
-
+        var packageQuantity = await global::Inventory.Warehouses.Features.Inventories.InventoryPackageQuantityResolver
+            .ResolveAsync(sender, command.InventoryAggregate, cancellationToken);
 
         var inventory = await dbContext.Inventories.Include(i=>i.Batches)
                                 .FirstOrDefaultAsync(i => i.WarehouseId == command.InventoryAggregate.WarehouseId &&
@@ -62,7 +56,7 @@ public class StockOutHandler(InventoryDbContext dbContext, ISender sender, IHttp
                 command.InventoryAggregate.ProductSkuId.Value,
                 command.InventoryAggregate.WarehouseId.Value,
                 command.InventoryAggregate.InitialBatchId,
-                command.InventoryAggregate.InitialQuantity,
+                packageQuantity.NormalizedQuantity,
                 command.InventoryAggregate.CompanyId,
                 userId);
 
@@ -77,7 +71,7 @@ public class StockOutHandler(InventoryDbContext dbContext, ISender sender, IHttp
             inventory.StockOut(new BatchStock(
                 command.InventoryAggregate.InitialBatchId,
                 command.InventoryAggregate.WarehouseId.Value,
-                command.InventoryAggregate.InitialQuantity,
+                packageQuantity.NormalizedQuantity,
                 userId));
             reference=inventory.Id.ToString();
         }
@@ -104,7 +98,11 @@ public class StockOutHandler(InventoryDbContext dbContext, ISender sender, IHttp
             command.InventoryAggregate.MovementType,
             MovementDirection.OUT,
             userId,
-            command.InventoryAggregate.Notes);
+            command.InventoryAggregate.Notes ?? string.Empty,
+            productPackageId: packageQuantity.ProductPackageId,
+            enteredQuantity: packageQuantity.EnteredQuantity,
+            packageMultiplier: packageQuantity.PackageMultiplier,
+            normalizedQuantity: packageQuantity.NormalizedQuantity);
  
         await dbContext.StockMovements.AddAsync(movement);
 

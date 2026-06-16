@@ -38,6 +38,8 @@ public class StockReleaseHandler(InventoryDbContext dbContext, ISender sender, I
         //if (sku is null)
         //    throw new NotFoundException($"SKU not found: {command.InventoryAggregate.ProductSkuId}");
 
+        var packageQuantity = await global::Inventory.Warehouses.Features.Inventories.InventoryPackageQuantityResolver
+            .ResolveAsync(sender, command.InventoryAggregate, cancellationToken);
 
         var inventory = await dbContext.Inventories.Include(i=>i.Batches)
                                 .FirstOrDefaultAsync(i => i.WarehouseId == command.InventoryAggregate.WarehouseId &&
@@ -61,7 +63,7 @@ public class StockReleaseHandler(InventoryDbContext dbContext, ISender sender, I
                 command.InventoryAggregate.ProductSkuId.Value,
                 command.InventoryAggregate.WarehouseId.Value,
                 command.InventoryAggregate.InitialBatchId,
-                command.InventoryAggregate.InitialQuantity,
+                packageQuantity.NormalizedQuantity,
                 command.InventoryAggregate.CompanyId,
                 userId);
 
@@ -75,7 +77,7 @@ public class StockReleaseHandler(InventoryDbContext dbContext, ISender sender, I
             
             inventory.Release(
                 command.InventoryAggregate.InitialBatchId,
-                command.InventoryAggregate.InitialQuantity,
+                packageQuantity.NormalizedQuantity,
                 userId);
             reference=inventory.Id.ToString();
         }
@@ -102,7 +104,11 @@ public class StockReleaseHandler(InventoryDbContext dbContext, ISender sender, I
             command.InventoryAggregate.MovementType,
             MovementDirection.Release,
             userId,
-            command.InventoryAggregate.Notes);
+            command.InventoryAggregate.Notes ?? string.Empty,
+            productPackageId: packageQuantity.ProductPackageId,
+            enteredQuantity: packageQuantity.EnteredQuantity,
+            packageMultiplier: packageQuantity.PackageMultiplier,
+            normalizedQuantity: packageQuantity.NormalizedQuantity);
  
         await dbContext.StockMovements.AddAsync(movement);
 

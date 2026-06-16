@@ -106,6 +106,22 @@
                                                    ValueChanged="onProductSkuChanged" />
                         </div>
 
+                        @if (selectedProductSku?.Packages.Any() == true)
+                        {
+                            <div class="col-md-6">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Package", "العبوة")</label>
+                                <select class="form-select" value="@inventoryDto.ProductPackageId" @onchange="OnPackageChanged">
+                                    <option value="">@SharedDataService.SelectViewLang("No package", "بدون عبوة")</option>
+                                    @foreach (var package in selectedProductSku.Packages)
+                                    {
+                                        <option value="@package.Id">
+                                            @SharedDataService.SelectViewLang(package.NameEng, package.Name) (@package.Quantity)
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                        }
+
                         <div class="col-md-6">
                             <label class="form-label">@SharedDataService.SelectViewLang("Batch", "الدفعة")</label>
                             <AutoCompleteComponent TItem="BatchDto"
@@ -308,6 +324,7 @@
             // selectedProduct = productSku;
             selectedProductSku = productSku;
             inventoryDto.ProductSkuId = productSku.Id;
+            inventoryDto.ProductPackageId = null;
             inventoryDto.UnitCost = productSku.Price;
             batches = new List<BatchDto>
             (allBatches.Where(b => b.ProductSkuId == productSku.Id));
@@ -383,6 +400,14 @@
         RecalculateTotalCost();
     }
 
+    private void OnPackageChanged(ChangeEventArgs args)
+    {
+        inventoryDto.ProductPackageId = Guid.TryParse(args.Value?.ToString(), out var packageId)
+            ? packageId
+            : null;
+        RecalculateTotalCost();
+    }
+
     private void OnUnitCostChanged(decimal value)
     {
         inventoryDto.UnitCost = value;
@@ -392,8 +417,17 @@
     private void RecalculateTotalCost()
     {
         inventoryDto.TotalCost =
-            inventoryDto.InitialQuantity * inventoryDto.UnitCost;
+            GetNormalizedQuantity(inventoryDto.InitialQuantity) * inventoryDto.UnitCost;
         StateHasChanged();
+    }
+
+    private decimal GetNormalizedQuantity(decimal quantity)
+    {
+        if (!inventoryDto.ProductPackageId.HasValue || selectedProductSku is null)
+            return quantity;
+
+        var selectedPackage = selectedProductSku.Packages.FirstOrDefault(p => p.Id == inventoryDto.ProductPackageId.Value);
+        return selectedPackage is null ? quantity : quantity * selectedPackage.Quantity;
     }
     private static readonly List<MovementType> StockInMovementTypes =
     [
