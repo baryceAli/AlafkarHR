@@ -45,7 +45,7 @@ public class Supplier : Aggregate<Guid>
         };
     }
 
-    public void Update(string name, string? commercialName, string supplierCode, Guid? supplierGroupId, SupplierStatus status, SupplierType type, SupplierPaymentTermType paymentTerm, string? taxNumber, decimal creditLimit, decimal openingBalance, string? notes, List<SupplierAddress> addresses, List<SupplierContact> contacts, string modifiedBy)
+    public void Update(string name, string? commercialName, string supplierCode, Guid? supplierGroupId, SupplierStatus status, SupplierType type, SupplierPaymentTermType paymentTerm, string? taxNumber, decimal creditLimit, decimal openingBalance, string? notes, List<SupplierAddressDto> addresses, List<SupplierContactDto> contacts, string modifiedBy)
     {
         Name = name;
         CommercialName = commercialName;
@@ -82,7 +82,7 @@ public class Supplier : Aggregate<Guid>
         DeletedBy = deletedBy;
     }
 
-    private void SyncAddresses(List<SupplierAddress> addresses, string modifiedBy)
+    private void SyncAddresses(List<SupplierAddressDto> addresses, string modifiedBy)
     {
         var activeAddresses = _addresses.Where(a => !a.IsDeleted).ToList();
         var addressIds = activeAddresses.Select(a => a.Id).ToHashSet();
@@ -109,7 +109,7 @@ public class Supplier : Aggregate<Guid>
         }
     }
 
-    private void SyncContacts(List<SupplierContact> contacts, string modifiedBy)
+    private void SyncContacts(List<SupplierContactDto> contacts, string modifiedBy)
     {
         var activeContacts = _contacts.Where(c => !c.IsDeleted).ToList();
         var contactIds = activeContacts.Select(c => c.Id).ToHashSet();

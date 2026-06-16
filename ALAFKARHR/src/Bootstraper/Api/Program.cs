@@ -9,6 +9,7 @@ using Inventory;
 using Organization;
 using Payroll;
 using Pricing;
+using Procurement;
 using SalesOrder;
 using Shared.Exceptions.Handler;
 using Shared.Extentions;
@@ -41,6 +42,7 @@ var customerAssembly = typeof(CustomerModule).Assembly;
 var salesOrderAssembly=typeof(SalesOrderModule).Assembly;
 var supplierAssembly =typeof(SupplierModule).Assembly;
 var pricingAssembly = typeof(PricingModule).Assembly;
+var procurementAssembly = typeof(ProcurementModule).Assembly;
 var payrollAssembly = typeof(PayrollModule).Assembly;
 var taskManagementAssembly = typeof(TaskManagementModule).Assembly;
 
@@ -56,6 +58,7 @@ builder.Services.AddCarterWithAssemblies(
                         salesOrderAssembly,
                         supplierAssembly,
                         pricingAssembly,
+                        procurementAssembly,
                         payrollAssembly,
                         taskManagementAssembly
                         );
@@ -75,6 +78,7 @@ builder.Services.AddMediatRWithAssemblies(
                         salesOrderAssembly,
                         supplierAssembly,
                         pricingAssembly,
+                        procurementAssembly,
                         payrollAssembly,
                         taskManagementAssembly
                         );
@@ -98,6 +102,7 @@ builder.Services
         .AddSalesOrderModule(builder.Configuration)
         .AddSupplierModule(builder.Configuration)
         .AddPricingModule(builder.Configuration)
+        .AddProcurementModule(builder.Configuration)
         .AddPayrollModule(builder.Configuration)
         .AddTaskManagementModule(builder.Configuration);
 #endregion
@@ -136,6 +141,7 @@ app
     .UseSalesOrderModule(app.Environment)
     .UseSupplierModule(app.Environment)
     .UsePricingModule(app.Environment)
+    .UseProcurementModule(app.Environment)
     .UsePayrollModule(app.Environment)
     .UseTaskManagementModule(app.Environment);
 
