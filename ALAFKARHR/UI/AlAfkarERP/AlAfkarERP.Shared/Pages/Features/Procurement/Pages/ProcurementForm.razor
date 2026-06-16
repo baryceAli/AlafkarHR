@@ -1,0 +1,1710 @@
+﻿@layout AdminLayout
+@page "/Procurement/{KindRoute}/Form"
+@page "/Procurement/{KindRoute}/Form/{Id:guid}"
+
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Services
+@using AlAfkarERP.Shared.Pages.Features.Suppliers.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Procurement.Dtos
+@using SharedWithUI.Procurement.Enums
+@using SharedWithUI.Suppliers.Dtos
+
+@implements IDisposable
+@inject IProcurementService ProcurementService
+@inject ISupplierService SupplierService
+@inject IProductService ProductService
+@inject IWarehouseService WarehouseService
+@inject IBatchService BatchService
+@inject ICurrencyService CurrencyService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang(Meta.En, Meta.Ar)"
+                Subtitle="@SharedDataService.SelectViewLang("Capture document header and selectable procurement lines.", "إدخال رأس المستند وبنود المشتريات القابلة للاختيار.")"
+                Overline="@SharedDataService.SelectViewLang("Procurement", "المشتريات")"
+                Icon="@Meta.Icon">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="Cancel">
+                <i class="bi bi-arrow-return-left"></i>
+                @SharedDataService.SelectViewLang("Back", "رجوع")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="fw-semibold">@SharedDataService.SelectViewLang("Loading procurement document...", "جاري تحميل مستند المشتريات...")</div>
+            </div>
+        </AppCard>
+    }
+    else
+    {
+        <EditForm Model="document" OnValidSubmit="SaveAsync">
+            <DataAnnotationsValidator />
+
+            <AppCard Title="@SharedDataService.SelectViewLang("Document", "المستند")" CssClass="mb-3">
+                <div class="row g-3">
+                    @if (IsGoodsReceipt)
+                    {
+                        <div class="col-md-6">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Related Purchase Order", "Related Purchase Order")</label>
+                            <AutoCompleteComponent TItem="ProcurementDocumentDto"
+                                                   Items="receivablePurchaseOrders"
+                                                   ItemText="PurchaseOrderText"
+                                                   Value="selectedSourcePurchaseOrder"
+                                                   ValueChanged="OnSourcePurchaseOrderChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select sent purchase order...", "Select sent purchase order...")" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Warehouse", "Warehouse")</label>
+                            <AutoCompleteComponent TItem="WarehouseDto"
+                                                   Items="warehouses"
+                                                   ItemText="WarehouseText"
+                                                   Value="selectedWarehouse"
+                                                   ValueChanged="OnWarehouseChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse...", "Select warehouse...")" />
+                        </div>
+                    }
+                    @if (!HideDocumentNumberField)
+                    {
+                        <div class="col-md-3">
+                            <label class="form-label">@DocumentNumberLabel</label>
+                            <InputText class="form-control"
+                                       @bind-Value="document.Number"
+                                       readonly="@IsSystemNumberedDocument" />
+                            <ValidationMessage For="() => document.Number" />
+                        </div>
+                    }
+                    <div class="col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Date", "التاريخ")</label>
+                        <InputDate class="form-control" @bind-Value="document.DocumentDate" />
+                    </div>
+                    @if (!IsPurchaseRequest)
+                    {
+                        <div class="col-md-3">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Supplier", "المورد")</label>
+                            <div class="d-flex gap-2">
+                                <div class="flex-grow-1">
+                                    <AutoCompleteComponent TItem="SupplierDto"
+                                                           Items="suppliers"
+                                                           ItemText="SupplierText"
+                                                           Value="selectedSupplier"
+                                                           ValueChanged="OnSupplierChanged"
+                                                           PlaceHolder="@SharedDataService.SelectViewLang("Select supplier...", "اختر المورد...")" />
+                                </div>
+                                <button type="button" class="btn btn-outline-primary" title="@SharedDataService.SelectViewLang("Create supplier", "إنشاء مورد")" @onclick="CreateSupplier">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                    @if (NeedsStockContext && !IsGoodsReceipt)
+                    {
+                        <div class="col-md-3">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Warehouse", "المستودع")</label>
+                            <AutoCompleteComponent TItem="WarehouseDto"
+                                                   Items="warehouses"
+                                                   ItemText="WarehouseText"
+                                                   Value="selectedWarehouse"
+                                                   ValueChanged="OnWarehouseChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse...", "اختر المستودع...")" />
+                        </div>
+                    }
+                    @if (NeedsCurrency)
+                    {
+                        <div class="col-md-3">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Currency", "العملة")</label>
+                            <AutoCompleteComponent TItem="CurrencyDto"
+                                                   Items="currencies"
+                                                   ItemText="CurrencyText"
+                                                   Value="selectedCurrency"
+                                                   ValueChanged="OnCurrencyChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select currency...", "اختر العملة...")" />
+                        </div>
+                    }
+                    @if (IsRequestForQuotation)
+                    {
+                        <div class="col-md-3">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Related Purchase Request", "طلب الشراء المرتبط")</label>
+                            <AutoCompleteComponent TItem="ProcurementDocumentDto"
+                                                   Items="approvedPurchaseRequests"
+                                                   ItemText="PurchaseRequestText"
+                                                   Value="selectedSourcePurchaseRequest"
+                                                   ValueChanged="OnSourcePurchaseRequestChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select approved purchase request...", "اختر طلب شراء معتمد...")" />
+                        </div>
+                    }
+                    else if (IsSupplierQuotation)
+                    {
+                        <div class="col-md-3">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Related RFQ", "RFQ")</label>
+                            <AutoCompleteComponent TItem="ProcurementDocumentDto"
+                                                   Items="sentRfqs"
+                                                   ItemText="RfqText"
+                                                   Value="selectedSourceRfq"
+                                                   ValueChanged="OnSourceRfqChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select sent RFQ...", "Select sent RFQ...")" />
+                        </div>
+                    }
+                    else if (IsPurchaseOrder)
+                    {
+                        <div class="col-md-3">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Related Supplier Quotation", "Related Supplier Quotation")</label>
+                            <AutoCompleteComponent TItem="ProcurementDocumentDto"
+                                                   Items="acceptedSupplierQuotations"
+                                                   ItemText="SupplierQuotationText"
+                                                   Value="selectedSourceSupplierQuotation"
+                                                   ValueChanged="OnSourceSupplierQuotationChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select accepted supplier quotation...", "Select accepted supplier quotation...")" />
+                        </div>
+                    }
+                    else if (IsSupplierInvoice)
+                    {
+                        <div class="col-md-3">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Invoice Source", "مصدر الفاتورة")</label>
+                            <select class="form-select" value="@invoiceSourceMode" @onchange="OnInvoiceSourceModeChanged">
+                                <option value="@InvoiceSourceMode.PurchaseOrder">@SharedDataService.SelectViewLang("Purchase Order", "أمر الشراء")</option>
+                                <option value="@InvoiceSourceMode.GoodsReceipt">@SharedDataService.SelectViewLang("Goods Receipt", "استلام البضاعة")</option>
+                                <option value="@InvoiceSourceMode.Standalone">@SharedDataService.SelectViewLang("Standalone", "مستقلة")</option>
+                            </select>
+                        </div>
+                        @if (invoiceSourceMode == InvoiceSourceMode.PurchaseOrder)
+                        {
+                            <div class="col-md-3">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Related Purchase Order", "أمر الشراء المرتبط")</label>
+                                <AutoCompleteComponent TItem="ProcurementDocumentDto"
+                                                       Items="invoiceablePurchaseOrders"
+                                                       ItemText="PurchaseOrderText"
+                                                       Value="selectedInvoicePurchaseOrder"
+                                                       ValueChanged="OnInvoicePurchaseOrderChanged"
+                                                       PlaceHolder="@SharedDataService.SelectViewLang("Select received purchase order...", "اختر أمر شراء مستلم...")" />
+                            </div>
+                        }
+                        else if (invoiceSourceMode == InvoiceSourceMode.GoodsReceipt)
+                        {
+                            <div class="col-md-3">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Related Goods Receipt", "استلام البضاعة المرتبط")</label>
+                                <AutoCompleteComponent TItem="ProcurementDocumentDto"
+                                                       Items="invoiceableGoodsReceipts"
+                                                       ItemText="GoodsReceiptText"
+                                                       Value="selectedInvoiceGoodsReceipt"
+                                                       ValueChanged="OnInvoiceGoodsReceiptChanged"
+                                                       PlaceHolder="@SharedDataService.SelectViewLang("Select posted goods receipt...", "اختر استلام بضاعة مرحل...")" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col-md-3">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Related Document", "المستند المرتبط")</label>
+                                <input class="form-control" value="@SharedDataService.SelectViewLang("Standalone invoice", "فاتورة مستقلة")" readonly />
+                            </div>
+                        }
+                    }
+                    else if (!IsPurchaseRequest)
+                    {
+                        <div class="col-md-3">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Source Number", "رقم المصدر")</label>
+                            <InputText class="form-control" @bind-Value="document.SourceDocumentNumber" />
+                        </div>
+                    }
+                    <div class="col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Notes", "ملاحظات")</label>
+                        <InputText class="form-control" @bind-Value="document.Notes" />
+                    </div>
+                </div>
+            </AppCard>
+
+            <AppCard Title="@SharedDataService.SelectViewLang("Lines", "البنود")">
+                <div class="d-flex justify-content-end mb-3">
+                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddLine">
+                        <i class="bi bi-plus-lg"></i>
+                        @SharedDataService.SelectViewLang("Add line", "إضافة بند")
+                    </button>
+                </div>
+
+                @if (document.Lines.Count == 0)
+                {
+                    <div class="text-muted small">@SharedDataService.SelectViewLang("No lines added.", "لا توجد بنود.")</div>
+                }
+                @foreach (var line in document.Lines)
+                {
+                    <div class="procurement-line-card" @key="line">
+                        <div class="procurement-line-header">
+                            <div class="procurement-line-title">
+                                <span class="procurement-line-number">@SharedDataService.SelectViewLang("Line", "بند") @LineDisplayNumber(line)</span>
+                                @if (line.IsSourceLine)
+                                {
+                                    <span class="procurement-line-badge">@SharedDataService.SelectViewLang("From source", "من مصدر")</span>
+                                }
+                            </div>
+                            <div class="procurement-line-summary" title="@LineSummary(line)">
+                                @LineSummary(line)
+                            </div>
+                            <button type="button"
+                                    class="btn btn-outline-danger btn-sm procurement-line-remove"
+                                    title="@SharedDataService.SelectViewLang("Remove line", "حذف البند")"
+                                    @onclick="() => RemoveLine(line)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+
+                        <div class="procurement-line-section">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-lg-6">
+                                    <label class="form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
+                                    @if (line.IsSourceLine)
+                                    {
+                                        <div class="procurement-readonly-field" title="@ProductDisplay(line)">@ProductDisplay(line)</div>
+                                    }
+                                    else
+                                    {
+                                        <AutoCompleteComponent TItem="ProductDto"
+                                                               Items="products"
+                                                               ItemText="ProductText"
+                                                               Value="line.SelectedProduct"
+                                                               ValueChanged="product => OnProductChanged(line, product)"
+                                                               PlaceHolder="@SharedDataService.SelectViewLang("Select product...", "اختر المنتج...")" />
+                                    }
+                                </div>
+                                <div class="col-lg-6">
+                                    <label class="form-label">@SharedDataService.SelectViewLang("SKU", "SKU")</label>
+                                    @if (line.IsSourceLine)
+                                    {
+                                        <div class="procurement-readonly-field" title="@SkuDisplay(line)">@SkuDisplay(line)</div>
+                                    }
+                                    else
+                                    {
+                                        <AutoCompleteComponent TItem="ProductSkuDto"
+                                                               Items="SkuOptions(line)"
+                                                               ItemText="SkuText"
+                                                               Value="line.SelectedSku"
+                                                               ValueChanged="sku => OnSkuChanged(line, sku)"
+                                                               PlaceHolder="@SharedDataService.SelectViewLang("Select SKU...", "اختر SKU...")" />
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="procurement-line-section">
+                            <div class="row g-3 align-items-end">
+                                @if (ShowPackageInputs(line))
+                                {
+                                    <div class="col-lg-4 col-md-6">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Package", "العبوة")</label>
+                                        <AutoCompleteComponent TItem="ProductPackageDto"
+                                                               Items="PackageOptions(line)"
+                                                               ItemText="PackageText"
+                                                               Value="line.SelectedPackage"
+                                                               ValueChanged="package => OnPackageChanged(line, package)"
+                                                               PlaceHolder="@SharedDataService.SelectViewLang("Select package...", "اختر العبوة...")" />
+                                    </div>
+                                    <div class="col-lg-2 col-md-3">
+                                        <label class="form-label">@PackageQuantityLabel</label>
+                                        <InputNumber class="form-control"
+                                                     Value="line.PackageQuantity"
+                                                     ValueChanged="(decimal value) => OnPackageQuantityChanged(line, value)"
+                                                     ValueExpression="() => line.PackageQuantity" />
+                                    </div>
+                                    <div class="col-lg-2 col-md-3">
+                                        <label class="form-label">@TotalSkuQuantityLabel</label>
+                                        <InputNumber class="form-control" @bind-Value="line.Quantity" disabled />
+                                    </div>
+                                }
+                                @if (!IsPackageQuantityControlled(line))
+                                {
+                                    <div class="col-lg-2 col-md-4">
+                                        <label class="form-label">@QuantityLabel</label>
+                                        <InputNumber class="form-control" @bind-Value="line.Quantity" />
+                                    </div>
+                                }
+                                <div class="col-lg-2 col-md-4">
+                                    <label class="form-label">@UnitCostLabel</label>
+                                    <InputNumber class="form-control" @bind-Value="line.UnitCost" />
+                                </div>
+                                <div class="col-lg-2 col-md-4">
+                                    <label class="form-label">@SharedDataService.SelectViewLang("Tax %", "الضريبة %")</label>
+                                    <InputNumber class="form-control" @bind-Value="line.TaxRate" />
+                                </div>
+                                @if (IsGoodsReceipt && line.HasReceiptProgressInfo)
+                                {
+                                    <div class="col-12">
+                                        <div class="procurement-receipt-progress">
+                                            <span class="fw-semibold">@SharedDataService.SelectViewLang("PO Receiving Progress", "تقدم استلام أمر الشراء")</span>
+                                            <span>@ReceiptProgressText(line)</span>
+                                        </div>
+                                    </div>
+                                    @if (IsOverRemaining(line))
+                                    {
+                                        <div class="col-12">
+                                            <div class="alert alert-warning py-2 mb-0">
+                                                @SharedDataService.SelectViewLang("Receipt quantity is greater than the remaining purchase order quantity.", "كمية الاستلام أكبر من الكمية المتبقية في أمر الشراء.")
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </div>
+
+                        @if (NeedsStockContext)
+                        {
+                            <div class="procurement-line-section">
+                                <div class="row g-3 align-items-end">
+                                    <div class="col-lg-6">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Batch", "الدفعة")</label>
+                                        <AutoCompleteComponent TItem="BatchDto"
+                                                               @key="line.BatchSelectorKey"
+                                                               Items="BatchOptions(line)"
+                                                               ItemText="BatchText"
+                                                               Value="line.SelectedBatch"
+                                                               ValueChanged="batch => OnBatchChanged(line, batch)"
+                                                               PlaceHolder="@SharedDataService.SelectViewLang("Select batch...", "اختر الدفعة...")" />
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="procurement-line-section">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Line Notes", "ملاحظات البند")</label>
+                            <InputText class="form-control" @bind-Value="line.Notes" />
+                        </div>
+                    </div>
+                }
+            </AppCard>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">@SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>
+                <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                    <i class="bi bi-check2"></i>
+                    @SharedDataService.SelectViewLang("Save", "حفظ")
+                </button>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@if (isBatchModalOpen)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" dir="@SharedDataService.PageDirection">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <EditForm Model="newBatch" OnValidSubmit="SaveNewBatchAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@SharedDataService.SelectViewLang("New Batch", "New Batch")</h5>
+                        <button type="button" class="btn-close" aria-label="Close" @onclick="CloseBatchModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Product", "Product")</label>
+                                <div class="form-control bg-light text-muted">@ProductDisplay(batchModalLine)</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@SharedDataService.SelectViewLang("SKU", "SKU")</label>
+                                <div class="form-control bg-light text-muted">@SkuDisplay(batchModalLine)</div>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Batch Number", "Batch Number")</label>
+                                <InputText class="form-control" @bind-Value="newBatch.BatchNumber" />
+                                <ValidationMessage For="() => newBatch.BatchNumber" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Manufacturing Date", "Manufacturing Date")</label>
+                                <InputDate class="form-control" @bind-Value="newBatch.ManufacturingDate" />
+                                <ValidationMessage For="() => newBatch.ManufacturingDate" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Expiry Date", "Expiry Date")</label>
+                                <InputDate class="form-control" @bind-Value="newBatch.ExpiryDate" />
+                                <ValidationMessage For="() => newBatch.ExpiryDate" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CloseBatchModal">
+                            @SharedDataService.SelectViewLang("Cancel", "Cancel")
+                        </button>
+                        <button type="submit" class="btn btn-primary" disabled="@isSavingBatch">
+                            <i class="bi bi-check2"></i>
+                            @SharedDataService.SelectViewLang("Save", "Save")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+<style>
+    .procurement-line-card {
+        background: var(--erp-surface);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
+        margin-bottom: var(--erp-space-3);
+        padding: var(--erp-space-3);
+    }
+
+    .procurement-line-header {
+        align-items: center;
+        border-bottom: 1px solid var(--erp-border);
+        display: grid;
+        gap: var(--erp-space-3);
+        grid-template-columns: minmax(150px, auto) minmax(0, 1fr) auto;
+        margin-bottom: var(--erp-space-3);
+        padding-bottom: var(--erp-space-3);
+    }
+
+    .procurement-line-title {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--erp-space-2);
+        min-width: 0;
+    }
+
+    .procurement-line-number {
+        color: var(--erp-text);
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .procurement-line-badge {
+        background: var(--erp-primary-soft);
+        border: 1px solid var(--erp-border);
+        border-radius: 999px;
+        color: var(--erp-primary);
+        font-size: .75rem;
+        font-weight: 700;
+        padding: .2rem .55rem;
+        white-space: nowrap;
+    }
+
+    .procurement-line-summary,
+    .procurement-readonly-field {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .procurement-line-summary {
+        color: var(--erp-text-muted);
+        font-size: .9rem;
+    }
+
+    .procurement-line-remove {
+        align-items: center;
+        aspect-ratio: 1;
+        display: inline-flex;
+        justify-content: center;
+        width: 2.35rem;
+    }
+
+    .procurement-readonly-field {
+        background: var(--erp-surface-muted);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        color: var(--erp-text);
+        min-height: 38px;
+        padding: .45rem .75rem;
+    }
+
+    .procurement-line-section + .procurement-line-section {
+        margin-top: var(--erp-space-3);
+    }
+
+    .procurement-receipt-progress {
+        align-items: center;
+        background: var(--erp-bg-subtle);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        color: var(--erp-text-muted);
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--erp-space-2);
+        padding: .6rem .75rem;
+    }
+
+    @@media (max-width: 767.98px) {
+        .procurement-line-header {
+            grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .procurement-line-summary {
+            grid-column: 1 / -1;
+            order: 3;
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public string? KindRoute { get; set; }
+    [Parameter] public Guid? Id { get; set; }
+
+    private static readonly Guid CreateBatchOptionId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
+    private ProcurementDocumentKind kind;
+    private (string En, string Ar, string Icon, string Permission) Meta;
+    private EditableProcurementDocument document = new();
+    private readonly List<SupplierDto> suppliers = [];
+    private readonly List<ProductDto> products = [];
+    private readonly List<ProductSkuDto> allSkus = [];
+    private readonly List<WarehouseDto> warehouses = [];
+    private readonly List<BatchDto> batches = [];
+    private readonly List<CurrencyDto> currencies = [];
+    private readonly List<ProcurementDocumentDto> approvedPurchaseRequests = [];
+    private readonly List<ProcurementDocumentDto> sentRfqs = [];
+    private readonly List<ProcurementDocumentDto> acceptedSupplierQuotations = [];
+    private readonly List<ProcurementDocumentDto> receivablePurchaseOrders = [];
+    private readonly List<ProcurementDocumentDto> invoiceablePurchaseOrders = [];
+    private readonly List<ProcurementDocumentDto> invoiceableGoodsReceipts = [];
+    private readonly List<ProcurementDocumentDto> postedGoodsReceipts = [];
+    private readonly List<ProcurementDocumentDto> supplierInvoices = [];
+    private SupplierDto? selectedSupplier;
+    private WarehouseDto? selectedWarehouse;
+    private CurrencyDto? selectedCurrency;
+    private ProcurementDocumentDto? selectedSourcePurchaseRequest;
+    private ProcurementDocumentDto? selectedSourceRfq;
+    private ProcurementDocumentDto? selectedSourceSupplierQuotation;
+    private ProcurementDocumentDto? selectedSourcePurchaseOrder;
+    private ProcurementDocumentDto? selectedInvoicePurchaseOrder;
+    private ProcurementDocumentDto? selectedInvoiceGoodsReceipt;
+    private InvoiceSourceMode invoiceSourceMode = InvoiceSourceMode.PurchaseOrder;
+    private Guid companyId;
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool isBatchModalOpen;
+    private bool isSavingBatch;
+    private EditableProcurementLine? batchModalLine;
+    private CreateBatchDto newBatch = NewBatchModel();
+
+    private bool IsRequestForQuotation => kind == ProcurementDocumentKind.RequestForQuotation;
+    private bool IsPurchaseRequest => kind == ProcurementDocumentKind.PurchaseRequest;
+    private bool IsSupplierQuotation => kind == ProcurementDocumentKind.SupplierQuotation;
+    private bool IsPurchaseOrder => kind == ProcurementDocumentKind.PurchaseOrder;
+    private bool IsGoodsReceipt => kind == ProcurementDocumentKind.GoodsReceipt;
+    private bool IsSupplierInvoice => kind == ProcurementDocumentKind.SupplierInvoice;
+    private bool IsSystemNumberedDocument => IsPurchaseRequest || IsRequestForQuotation || IsSupplierQuotation || IsPurchaseOrder || IsGoodsReceipt || IsSupplierInvoice;
+    private bool HideDocumentNumberField => IsSystemNumberedDocument && !Id.HasValue;
+    private bool NeedsStockContext => kind is ProcurementDocumentKind.GoodsReceipt or ProcurementDocumentKind.PurchaseReturn;
+    private bool NeedsCurrency => kind is ProcurementDocumentKind.SupplierQuotation or ProcurementDocumentKind.PurchaseOrder or ProcurementDocumentKind.GoodsReceipt or ProcurementDocumentKind.PurchaseReturn or ProcurementDocumentKind.SupplierInvoice;
+    private string QuantityLabel => kind switch
+    {
+        ProcurementDocumentKind.GoodsReceipt => SharedDataService.SelectViewLang("Received Quantity", "Received Quantity"),
+        ProcurementDocumentKind.SupplierInvoice => SharedDataService.SelectViewLang("Invoice Quantity", "Invoice Quantity"),
+        _ => SharedDataService.SelectViewLang("Qty", "Qty")
+    };
+    private string PackageQuantityLabel => kind switch
+    {
+        ProcurementDocumentKind.GoodsReceipt => SharedDataService.SelectViewLang("Received Package Qty", "Received Package Qty"),
+        ProcurementDocumentKind.SupplierInvoice => SharedDataService.SelectViewLang("Invoice Package Qty", "Invoice Package Qty"),
+        _ => SharedDataService.SelectViewLang("Package Qty", "Package Qty")
+    };
+    private string TotalSkuQuantityLabel => kind switch
+    {
+        ProcurementDocumentKind.GoodsReceipt => SharedDataService.SelectViewLang("Total Received SKU Qty", "Total Received SKU Qty"),
+        ProcurementDocumentKind.SupplierInvoice => SharedDataService.SelectViewLang("Total Invoice SKU Qty", "Total Invoice SKU Qty"),
+        _ => SharedDataService.SelectViewLang("Total SKU Qty", "Total SKU Qty")
+    };
+    private string UnitCostLabel => kind switch
+    {
+        ProcurementDocumentKind.SupplierQuotation => SharedDataService.SelectViewLang("Quoted Unit Cost", "Quoted Unit Cost"),
+        ProcurementDocumentKind.PurchaseOrder => SharedDataService.SelectViewLang("Purchase Unit Cost", "Purchase Unit Cost"),
+        ProcurementDocumentKind.GoodsReceipt => SharedDataService.SelectViewLang("Received Unit Cost", "Received Unit Cost"),
+        ProcurementDocumentKind.SupplierInvoice => SharedDataService.SelectViewLang("Invoice Unit Cost", "Invoice Unit Cost"),
+        _ => SharedDataService.SelectViewLang("Cost", "التكلفة")
+    };
+    private string DocumentNumberLabel => kind switch
+    {
+        ProcurementDocumentKind.PurchaseRequest => SharedDataService.SelectViewLang("Purchase Request Number", "رقم طلب الشراء"),
+        ProcurementDocumentKind.PurchaseOrder => SharedDataService.SelectViewLang("Purchase Order Number", "Purchase Order Number"),
+        ProcurementDocumentKind.GoodsReceipt => SharedDataService.SelectViewLang("Goods Receipt Number", "Goods Receipt Number"),
+        ProcurementDocumentKind.SupplierInvoice => SharedDataService.SelectViewLang("Supplier Invoice Number", "Supplier Invoice Number"),
+        _ => SharedDataService.SelectViewLang("Number", "الرقم")
+    };
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        kind = ProcurementUiText.ParseKind(KindRoute);
+        Meta = ProcurementUiText.Meta(kind);
+        document.Kind = kind;
+        document.DocumentDate = DateTime.UtcNow;
+        if (HideDocumentNumberField)
+            document.Number = "AUTO";
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var companyClaim = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+        Guid.TryParse(companyClaim, out companyId);
+        document.CompanyId = companyId;
+
+        await LoadLookupsAsync();
+
+        if (Id.HasValue)
+        {
+            var response = await ProcurementService.GetByIdAsync(kind, Id.Value);
+            if (response.IsSuccess && response.Data is not null)
+            {
+                LoadDocument(response.Data);
+                if (!ProcurementUiText.CanEditDocument(kind, document.Status))
+                {
+                    ToastService.ShowWarning(ProcurementUiText.LockedEditReason(kind, document.Status, SharedDataService));
+                    NavigationManager.NavigateTo($"/Procurement/{ProcurementUiText.Route(kind)}/Detail/{Id.Value}");
+                    return;
+                }
+            }
+            else
+                ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Could not load document.", "تعذر تحميل المستند."));
+        }
+        else if (document.Lines.Count == 0)
+        {
+            AddLine();
+        }
+
+        ApplySelectionsFromDocument();
+        isLoading = false;
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        suppliers.Clear();
+        products.Clear();
+        allSkus.Clear();
+        warehouses.Clear();
+        batches.Clear();
+        currencies.Clear();
+        approvedPurchaseRequests.Clear();
+        sentRfqs.Clear();
+        acceptedSupplierQuotations.Clear();
+        receivablePurchaseOrders.Clear();
+        invoiceablePurchaseOrders.Clear();
+        invoiceableGoodsReceipts.Clear();
+        postedGoodsReceipts.Clear();
+        supplierInvoices.Clear();
+
+        if (companyId == Guid.Empty)
+            return;
+
+        var supplierResponse = await SupplierService.GetByCompanyAsync(companyId, 0, 200);
+        if (supplierResponse.IsSuccess)
+            suppliers.AddRange(supplierResponse.Data?.Data ?? []);
+
+        var productResponse = await ProductService.GetByCompanyAsync(companyId, 0, 200);
+        if (productResponse.IsSuccess)
+        {
+            products.AddRange(productResponse.Data?.Data ?? []);
+            allSkus.AddRange(products.SelectMany(x => x.Skus ?? []));
+        }
+
+        var warehouseResponse = await WarehouseService.GetAsync(companyId, 0, 10000);
+        if (warehouseResponse.IsSuccess)
+            warehouses.AddRange(warehouseResponse.Data?.Data ?? []);
+
+        var batchResponse = await BatchService.GetAsync(companyId, 0, 10000);
+        if (batchResponse.IsSuccess)
+            batches.AddRange(batchResponse.Data?.Data ?? []);
+
+        var currencyResponse = await CurrencyService.GetAsync(companyId, 0, 200);
+        if (currencyResponse.IsSuccess)
+            currencies.AddRange(currencyResponse.Data?.Data ?? []);
+
+        if (IsGoodsReceipt || IsSupplierInvoice)
+        {
+            var goodsReceiptResponse = await ProcurementService.GetAsync(ProcurementDocumentKind.GoodsReceipt, companyId, 1, 200, null);
+            if (goodsReceiptResponse.IsSuccess)
+            {
+                postedGoodsReceipts.AddRange((goodsReceiptResponse.Data?.Data ?? [])
+                    .Where(IsPostedGoodsReceipt));
+            }
+        }
+
+        if (IsSupplierInvoice)
+        {
+            var supplierInvoiceResponse = await ProcurementService.GetAsync(ProcurementDocumentKind.SupplierInvoice, companyId, 1, 200, null);
+            if (supplierInvoiceResponse.IsSuccess)
+            {
+                supplierInvoices.AddRange((supplierInvoiceResponse.Data?.Data ?? [])
+                    .Where(invoice => !string.Equals(invoice.Status, SupplierInvoiceStatus.Cancelled.ToString(), StringComparison.OrdinalIgnoreCase)));
+            }
+
+            invoiceableGoodsReceipts.AddRange(postedGoodsReceipts.Where(IsInvoiceableGoodsReceipt));
+        }
+
+        if (IsRequestForQuotation)
+        {
+            var purchaseRequestResponse = await ProcurementService.GetAsync(ProcurementDocumentKind.PurchaseRequest, companyId, 1, 200, null);
+            if (purchaseRequestResponse.IsSuccess)
+            {
+                approvedPurchaseRequests.AddRange((purchaseRequestResponse.Data?.Data ?? [])
+                    .Where(IsApprovedPurchaseRequest));
+            }
+        }
+
+        if (IsSupplierQuotation)
+        {
+            var rfqResponse = await ProcurementService.GetAsync(ProcurementDocumentKind.RequestForQuotation, companyId, 1, 200, null);
+            if (rfqResponse.IsSuccess)
+            {
+                sentRfqs.AddRange((rfqResponse.Data?.Data ?? [])
+                    .Where(IsSentRfq));
+            }
+        }
+
+        if (IsPurchaseOrder)
+        {
+            var supplierQuotationResponse = await ProcurementService.GetAsync(ProcurementDocumentKind.SupplierQuotation, companyId, 1, 200, null);
+            if (supplierQuotationResponse.IsSuccess)
+            {
+                acceptedSupplierQuotations.AddRange((supplierQuotationResponse.Data?.Data ?? [])
+                    .Where(IsAcceptedSupplierQuotation));
+            }
+        }
+
+        if (IsGoodsReceipt)
+        {
+            var purchaseOrderResponse = await ProcurementService.GetAsync(ProcurementDocumentKind.PurchaseOrder, companyId, 1, 200, null);
+            if (purchaseOrderResponse.IsSuccess)
+            {
+                receivablePurchaseOrders.AddRange((purchaseOrderResponse.Data?.Data ?? [])
+                    .Where(IsReceivablePurchaseOrder));
+            }
+        }
+
+        if (IsSupplierInvoice)
+        {
+            var purchaseOrderResponse = await ProcurementService.GetAsync(ProcurementDocumentKind.PurchaseOrder, companyId, 1, 200, null);
+            if (purchaseOrderResponse.IsSuccess)
+            {
+                invoiceablePurchaseOrders.AddRange((purchaseOrderResponse.Data?.Data ?? [])
+                    .Where(IsInvoiceablePurchaseOrder));
+            }
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        isSaving = true;
+        var dto = ToDto();
+        bool success;
+        string? errorMessage = null;
+
+        if (Id.HasValue)
+        {
+            var response = await ProcurementService.UpdateAsync(dto);
+            success = response.IsSuccess;
+            errorMessage = response.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        else
+        {
+            var response = await ProcurementService.CreateAsync(dto);
+            success = response.IsSuccess;
+            errorMessage = response.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+
+        if (success)
+        {
+            ToastService.ShowSuccess(SharedDataService.SelectViewLang("Document saved.", "تم حفظ المستند."));
+            NavigationManager.NavigateTo($"/Procurement/{ProcurementUiText.Route(kind)}");
+        }
+        else
+        {
+            ToastService.ShowError(errorMessage ?? SharedDataService.SelectViewLang("Could not save document.", "تعذر حفظ المستند."));
+        }
+
+        isSaving = false;
+    }
+
+    private ProcurementDocumentDto ToDto()
+    {
+        if (IsPurchaseRequest)
+        {
+            selectedSupplier = null;
+            document.SupplierId = null;
+            document.SupplierName = null;
+        }
+        else
+        {
+            document.SupplierId = selectedSupplier?.Id;
+            document.SupplierName = selectedSupplier?.Name ?? document.SupplierName;
+        }
+        document.WarehouseId = selectedWarehouse?.Id;
+        document.CurrencyId = selectedCurrency?.Id;
+        document.CompanyId = companyId;
+
+        var lineNumber = 1;
+        foreach (var line in document.Lines)
+        {
+            line.LineNumber = lineNumber++;
+            line.ProductId = line.SelectedProduct?.Id ?? line.ProductId;
+            line.ProductSkuId = line.SelectedSku?.Id ?? line.ProductSkuId;
+            line.ProductPackageId = line.SelectedPackage?.Id ?? line.ProductPackageId;
+            if (line.SelectedPackage is not null)
+                ApplyPackageQuantity(line);
+            line.ProductName = line.SelectedProduct?.Name ?? line.ProductName;
+            line.ProductNameEng = line.SelectedProduct?.NameEng ?? line.ProductNameEng;
+            line.SkuCode = SkuNameSnapshot(line.SelectedSku, line.SkuCode);
+            line.BatchId = line.SelectedBatch?.Id ?? line.BatchId;
+            line.WarehouseId = selectedWarehouse?.Id ?? line.WarehouseId;
+        }
+
+        return new ProcurementDocumentDto
+        {
+            Id = document.Id,
+            Kind = document.Kind,
+            Number = document.Number,
+            Status = document.Status,
+            DocumentDate = document.DocumentDate,
+            CompanyId = document.CompanyId,
+            BranchId = document.BranchId,
+            DepartmentId = document.DepartmentId,
+            SupplierId = document.SupplierId,
+            SupplierName = document.SupplierName,
+            WarehouseId = document.WarehouseId,
+            CurrencyId = document.CurrencyId,
+            SourceDocumentId = document.SourceDocumentId,
+            SourceDocumentNumber = document.SourceDocumentNumber,
+            Notes = document.Notes,
+            Lines = document.Lines.Select(line => new ProcurementDocumentLineDto
+            {
+                Id = line.Id,
+                LineNumber = line.LineNumber,
+                ProductId = line.ProductId,
+                ProductSkuId = line.ProductSkuId,
+                ProductPackageId = line.ProductPackageId,
+                ProductName = line.ProductName,
+                ProductNameEng = line.ProductNameEng,
+                SkuCode = line.SkuCode,
+                UnitOfMeasureId = line.UnitOfMeasureId,
+                WarehouseId = line.WarehouseId,
+                BatchId = line.BatchId,
+                Quantity = line.Quantity,
+                UnitCost = line.UnitCost,
+                DiscountRate = line.DiscountRate,
+                TaxRate = line.TaxRate,
+                Notes = line.Notes
+            }).ToList()
+        };
+    }
+
+    private void LoadDocument(ProcurementDocumentDto dto)
+    {
+        document = new EditableProcurementDocument(dto);
+        document.CompanyId = companyId == Guid.Empty ? dto.CompanyId : companyId;
+        foreach (var line in document.Lines)
+            line.IsSourceLine = dto.SourceDocumentId.HasValue;
+    }
+
+    private void ApplySelectionsFromDocument()
+    {
+        selectedSupplier = suppliers.FirstOrDefault(x => x.Id == document.SupplierId);
+        selectedWarehouse = warehouses.FirstOrDefault(x => x.Id == document.WarehouseId);
+        selectedCurrency = currencies.FirstOrDefault(x => x.Id == document.CurrencyId) ?? currencies.FirstOrDefault(x => x.IsDefault);
+        selectedSourcePurchaseRequest = approvedPurchaseRequests.FirstOrDefault(x => x.Id == document.SourceDocumentId)
+            ?? approvedPurchaseRequests.FirstOrDefault(x => string.Equals(x.Number, document.SourceDocumentNumber, StringComparison.OrdinalIgnoreCase));
+        selectedSourceRfq = sentRfqs.FirstOrDefault(x => x.Id == document.SourceDocumentId)
+            ?? sentRfqs.FirstOrDefault(x => string.Equals(x.Number, document.SourceDocumentNumber, StringComparison.OrdinalIgnoreCase));
+        selectedSourceSupplierQuotation = acceptedSupplierQuotations.FirstOrDefault(x => x.Id == document.SourceDocumentId)
+            ?? acceptedSupplierQuotations.FirstOrDefault(x => string.Equals(x.Number, document.SourceDocumentNumber, StringComparison.OrdinalIgnoreCase));
+        selectedSourcePurchaseOrder = receivablePurchaseOrders.FirstOrDefault(x => x.Id == document.SourceDocumentId)
+            ?? receivablePurchaseOrders.FirstOrDefault(x => string.Equals(x.Number, document.SourceDocumentNumber, StringComparison.OrdinalIgnoreCase));
+        selectedInvoicePurchaseOrder = invoiceablePurchaseOrders.FirstOrDefault(x => x.Id == document.SourceDocumentId)
+            ?? invoiceablePurchaseOrders.FirstOrDefault(x => string.Equals(x.Number, document.SourceDocumentNumber, StringComparison.OrdinalIgnoreCase));
+        selectedInvoiceGoodsReceipt = invoiceableGoodsReceipts.FirstOrDefault(x => x.Id == document.SourceDocumentId)
+            ?? invoiceableGoodsReceipts.FirstOrDefault(x => string.Equals(x.Number, document.SourceDocumentNumber, StringComparison.OrdinalIgnoreCase));
+
+        if (IsSupplierInvoice)
+        {
+            if (selectedInvoiceGoodsReceipt is not null)
+                invoiceSourceMode = InvoiceSourceMode.GoodsReceipt;
+            else if (selectedInvoicePurchaseOrder is not null)
+                invoiceSourceMode = InvoiceSourceMode.PurchaseOrder;
+            else if (document.SourceDocumentId.HasValue || !string.IsNullOrWhiteSpace(document.SourceDocumentNumber))
+                invoiceSourceMode = LooksLikeGoodsReceiptNumber(document.SourceDocumentNumber) ? InvoiceSourceMode.GoodsReceipt : InvoiceSourceMode.PurchaseOrder;
+            else
+                invoiceSourceMode = InvoiceSourceMode.PurchaseOrder;
+        }
+
+        if (selectedCurrency is not null && document.CurrencyId is null)
+            document.CurrencyId = selectedCurrency.Id;
+
+        ApplyLineLookupSelections();
+    }
+
+    private void ApplyLineLookupSelections()
+    {
+        foreach (var line in document.Lines)
+        {
+            line.SelectedProduct = products.FirstOrDefault(x => x.Id == line.ProductId);
+            line.SelectedSku = allSkus.FirstOrDefault(x => x.Id == line.ProductSkuId);
+            line.SelectedPackage = PackageOptions(line).FirstOrDefault(x => x.Id == line.ProductPackageId);
+            if (line.SelectedPackage is not null && line.SelectedPackage.Quantity > 0)
+                line.PackageQuantity = line.Quantity / line.SelectedPackage.Quantity;
+            line.SelectedBatch = batches.FirstOrDefault(x => x.Id == line.BatchId);
+        }
+    }
+
+    private Task OnSupplierChanged(SupplierDto? supplier)
+    {
+        selectedSupplier = supplier;
+        document.SupplierId = supplier?.Id;
+        document.SupplierName = supplier?.Name;
+        return Task.CompletedTask;
+    }
+
+    private Task OnSourcePurchaseRequestChanged(ProcurementDocumentDto? purchaseRequest)
+    {
+        selectedSourcePurchaseRequest = purchaseRequest;
+
+        if (purchaseRequest is null)
+        {
+            document.SourceDocumentId = null;
+            document.SourceDocumentNumber = null;
+            return Task.CompletedTask;
+        }
+
+        document.SourceDocumentId = purchaseRequest.Id;
+        document.SourceDocumentNumber = purchaseRequest.Number;
+        document.Lines = purchaseRequest.Lines.Select(line => new EditableProcurementLine(line)
+        {
+            Id = Guid.Empty,
+            SelectedProduct = products.FirstOrDefault(product => product.Id == line.ProductId),
+            SelectedSku = allSkus.FirstOrDefault(sku => sku.Id == line.ProductSkuId),
+            SelectedBatch = null,
+            BatchId = null,
+            IsSourceLine = true
+        }).ToList();
+        ApplyLineLookupSelections();
+
+        if (document.Lines.Count == 0)
+            AddLine();
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnSourceRfqChanged(ProcurementDocumentDto? rfq)
+    {
+        selectedSourceRfq = rfq;
+
+        if (rfq is null)
+        {
+            document.SourceDocumentId = null;
+            document.SourceDocumentNumber = null;
+            return Task.CompletedTask;
+        }
+
+        document.SourceDocumentId = rfq.Id;
+        document.SourceDocumentNumber = rfq.Number;
+        document.Lines = rfq.Lines.Select(line => new EditableProcurementLine(line)
+        {
+            Id = Guid.Empty,
+            SelectedProduct = products.FirstOrDefault(product => product.Id == line.ProductId),
+            SelectedSku = allSkus.FirstOrDefault(sku => sku.Id == line.ProductSkuId),
+            SelectedBatch = null,
+            BatchId = null,
+            IsSourceLine = true
+        }).ToList();
+        ApplyLineLookupSelections();
+
+        if (document.Lines.Count == 0)
+            AddLine();
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnSourceSupplierQuotationChanged(ProcurementDocumentDto? supplierQuotation)
+    {
+        selectedSourceSupplierQuotation = supplierQuotation;
+
+        if (supplierQuotation is null)
+        {
+            document.SourceDocumentId = null;
+            document.SourceDocumentNumber = null;
+            return Task.CompletedTask;
+        }
+
+        document.SourceDocumentId = supplierQuotation.Id;
+        document.SourceDocumentNumber = supplierQuotation.Number;
+        document.SupplierId = supplierQuotation.SupplierId;
+        document.SupplierName = supplierQuotation.SupplierName;
+        selectedSupplier = suppliers.FirstOrDefault(x => x.Id == supplierQuotation.SupplierId);
+        document.CurrencyId = supplierQuotation.CurrencyId;
+        selectedCurrency = currencies.FirstOrDefault(x => x.Id == supplierQuotation.CurrencyId) ?? selectedCurrency;
+        document.Lines = supplierQuotation.Lines.Select(line => new EditableProcurementLine(line)
+        {
+            Id = Guid.Empty,
+            SelectedProduct = products.FirstOrDefault(product => product.Id == line.ProductId),
+            SelectedSku = allSkus.FirstOrDefault(sku => sku.Id == line.ProductSkuId),
+            SelectedBatch = null,
+            BatchId = null,
+            IsSourceLine = true
+        }).ToList();
+        ApplyLineLookupSelections();
+
+        if (document.Lines.Count == 0)
+            AddLine();
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnSourcePurchaseOrderChanged(ProcurementDocumentDto? purchaseOrder)
+    {
+        selectedSourcePurchaseOrder = purchaseOrder;
+
+        if (purchaseOrder is null)
+        {
+            document.SourceDocumentId = null;
+            document.SourceDocumentNumber = null;
+            return Task.CompletedTask;
+        }
+
+        document.SourceDocumentId = purchaseOrder.Id;
+        document.SourceDocumentNumber = purchaseOrder.Number;
+        document.SupplierId = purchaseOrder.SupplierId;
+        document.SupplierName = purchaseOrder.SupplierName;
+        selectedSupplier = suppliers.FirstOrDefault(x => x.Id == purchaseOrder.SupplierId);
+        document.CurrencyId = purchaseOrder.CurrencyId;
+        selectedCurrency = currencies.FirstOrDefault(x => x.Id == purchaseOrder.CurrencyId) ?? selectedCurrency;
+        document.Lines = purchaseOrder.Lines
+            .Select(line => CreateReceiptLineFromPurchaseOrder(purchaseOrder.Id, line))
+            .Where(line => line.Quantity > 0)
+            .ToList();
+        ApplyLineLookupSelections();
+
+        if (document.Lines.Count == 0)
+            AddLine();
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnInvoicePurchaseOrderChanged(ProcurementDocumentDto? purchaseOrder)
+    {
+        selectedInvoicePurchaseOrder = purchaseOrder;
+        selectedInvoiceGoodsReceipt = null;
+
+        if (purchaseOrder is null)
+        {
+            document.SourceDocumentId = null;
+            document.SourceDocumentNumber = null;
+            return Task.CompletedTask;
+        }
+
+        document.SourceDocumentId = purchaseOrder.Id;
+        document.SourceDocumentNumber = purchaseOrder.Number;
+        document.SupplierId = purchaseOrder.SupplierId;
+        document.SupplierName = purchaseOrder.SupplierName;
+        selectedSupplier = suppliers.FirstOrDefault(x => x.Id == purchaseOrder.SupplierId);
+        document.CurrencyId = purchaseOrder.CurrencyId;
+        selectedCurrency = currencies.FirstOrDefault(x => x.Id == purchaseOrder.CurrencyId) ?? selectedCurrency;
+        document.Lines = purchaseOrder.Lines
+            .Select(line => CreateInvoiceLineFromPurchaseOrder(purchaseOrder.Id, line))
+            .Where(line => line.Quantity > 0)
+            .ToList();
+        ApplyLineLookupSelections();
+
+        if (document.Lines.Count == 0)
+            AddLine();
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnInvoiceGoodsReceiptChanged(ProcurementDocumentDto? goodsReceipt)
+    {
+        selectedInvoiceGoodsReceipt = goodsReceipt;
+        selectedInvoicePurchaseOrder = null;
+
+        if (goodsReceipt is null)
+        {
+            document.SourceDocumentId = null;
+            document.SourceDocumentNumber = null;
+            return Task.CompletedTask;
+        }
+
+        document.SourceDocumentId = goodsReceipt.Id;
+        document.SourceDocumentNumber = goodsReceipt.Number;
+        document.SupplierId = goodsReceipt.SupplierId;
+        document.SupplierName = goodsReceipt.SupplierName;
+        selectedSupplier = suppliers.FirstOrDefault(x => x.Id == goodsReceipt.SupplierId);
+        document.CurrencyId = goodsReceipt.CurrencyId;
+        selectedCurrency = currencies.FirstOrDefault(x => x.Id == goodsReceipt.CurrencyId) ?? selectedCurrency;
+        document.Lines = goodsReceipt.Lines
+            .Select(line => CreateInvoiceLineFromGoodsReceipt(goodsReceipt, line))
+            .Where(line => line.Quantity > 0)
+            .ToList();
+        ApplyLineLookupSelections();
+
+        if (document.Lines.Count == 0)
+            AddLine();
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnInvoiceSourceModeChanged(ChangeEventArgs args)
+    {
+        if (Enum.TryParse<InvoiceSourceMode>(args.Value?.ToString(), out var selectedMode))
+            invoiceSourceMode = selectedMode;
+
+        selectedInvoicePurchaseOrder = null;
+        selectedInvoiceGoodsReceipt = null;
+        document.SourceDocumentId = null;
+        document.SourceDocumentNumber = null;
+        document.Lines.Clear();
+
+        if (invoiceSourceMode == InvoiceSourceMode.Standalone)
+            AddLine();
+
+        return Task.CompletedTask;
+    }
+
+    private EditableProcurementLine CreateReceiptLineFromPurchaseOrder(Guid purchaseOrderId, ProcurementDocumentLineDto line)
+    {
+        var previouslyReceived = ReceivedQuantityForPurchaseOrderLine(purchaseOrderId, line);
+        var remaining = Math.Max(line.Quantity - previouslyReceived, 0);
+        return CreatePurchaseOrderBasedLine(line, remaining, previouslyReceived);
+    }
+
+    private EditableProcurementLine CreateInvoiceLineFromPurchaseOrder(Guid purchaseOrderId, ProcurementDocumentLineDto line)
+    {
+        var received = ReceivedQuantityForPurchaseOrderLine(purchaseOrderId, line);
+        var alreadyInvoiced = InvoicedQuantityForSku(InvoiceSourceIdsForPurchaseOrder(purchaseOrderId), line.ProductSkuId);
+        var invoiceable = Math.Max(received - alreadyInvoiced, 0);
+        return CreateInvoiceBasedLine(line, invoiceable, received, alreadyInvoiced);
+    }
+
+    private EditableProcurementLine CreateInvoiceLineFromGoodsReceipt(ProcurementDocumentDto goodsReceipt, ProcurementDocumentLineDto line)
+    {
+        var received = line.Quantity;
+        var alreadyInvoiced = InvoicedQuantityForSku(InvoiceSourceIdsForGoodsReceipt(goodsReceipt), line.ProductSkuId);
+        var invoiceable = Math.Max(received - alreadyInvoiced, 0);
+        return CreateInvoiceBasedLine(line, invoiceable, received, alreadyInvoiced);
+    }
+
+    private EditableProcurementLine CreatePurchaseOrderBasedLine(ProcurementDocumentLineDto line, decimal quantity, decimal previouslyReceived)
+    {
+        var editableLine = new EditableProcurementLine(line)
+        {
+            Id = Guid.Empty,
+            Quantity = quantity,
+            OrderedQuantity = line.Quantity,
+            PreviouslyReceivedQuantity = previouslyReceived,
+            RemainingQuantity = Math.Max(line.Quantity - previouslyReceived, 0),
+            HasReceiptProgressInfo = true,
+            SelectedProduct = products.FirstOrDefault(product => product.Id == line.ProductId),
+            SelectedSku = allSkus.FirstOrDefault(sku => sku.Id == line.ProductSkuId),
+            SelectedBatch = null,
+            BatchId = null,
+            WarehouseId = selectedWarehouse?.Id,
+            IsSourceLine = true
+        };
+
+        return editableLine;
+    }
+
+    private EditableProcurementLine CreateInvoiceBasedLine(ProcurementDocumentLineDto line, decimal quantity, decimal receivedQuantity, decimal alreadyInvoicedQuantity)
+    {
+        var editableLine = new EditableProcurementLine(line)
+        {
+            Id = Guid.Empty,
+            Quantity = quantity,
+            OrderedQuantity = receivedQuantity,
+            PreviouslyReceivedQuantity = alreadyInvoicedQuantity,
+            RemainingQuantity = Math.Max(receivedQuantity - alreadyInvoicedQuantity, 0),
+            HasReceiptProgressInfo = true,
+            SelectedProduct = products.FirstOrDefault(product => product.Id == line.ProductId),
+            SelectedSku = allSkus.FirstOrDefault(sku => sku.Id == line.ProductSkuId),
+            SelectedBatch = null,
+            BatchId = null,
+            WarehouseId = selectedWarehouse?.Id,
+            IsSourceLine = true
+        };
+
+        return editableLine;
+    }
+
+    private Task OnWarehouseChanged(WarehouseDto? warehouse)
+    {
+        selectedWarehouse = warehouse;
+        document.WarehouseId = warehouse?.Id;
+        foreach (var line in document.Lines)
+            line.WarehouseId = warehouse?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnCurrencyChanged(CurrencyDto? currency)
+    {
+        selectedCurrency = currency;
+        document.CurrencyId = currency?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnProductChanged(EditableProcurementLine line, ProductDto? product)
+    {
+        line.SelectedProduct = product;
+        line.ProductId = product?.Id ?? Guid.Empty;
+        line.ProductName = product?.Name ?? string.Empty;
+        line.ProductNameEng = product?.NameEng ?? string.Empty;
+        line.SelectedSku = null;
+        line.ProductSkuId = Guid.Empty;
+        line.SelectedPackage = null;
+        line.ProductPackageId = null;
+        line.PackageQuantity = 0;
+        line.SkuCode = string.Empty;
+        line.SelectedBatch = null;
+        line.BatchId = null;
+        return Task.CompletedTask;
+    }
+
+    private Task OnSkuChanged(EditableProcurementLine line, ProductSkuDto? sku)
+    {
+        line.SelectedSku = sku;
+        line.ProductSkuId = sku?.Id ?? Guid.Empty;
+        line.SelectedPackage = null;
+        line.ProductPackageId = null;
+        line.PackageQuantity = 0;
+        line.SkuCode = SkuNameSnapshot(sku);
+        if (sku is not null && line.SelectedProduct is null)
+        {
+            line.SelectedProduct = products.FirstOrDefault(x => x.Id == sku.ProductId);
+            line.ProductId = sku.ProductId;
+            line.ProductName = line.SelectedProduct?.Name ?? sku.ProductName ?? string.Empty;
+            line.ProductNameEng = line.SelectedProduct?.NameEng ?? sku.ProductNameEng ?? string.Empty;
+        }
+        line.SelectedBatch = null;
+        line.BatchId = null;
+        return Task.CompletedTask;
+    }
+
+    private Task OnPackageChanged(EditableProcurementLine line, ProductPackageDto? package)
+    {
+        line.SelectedPackage = package;
+        line.ProductPackageId = package?.Id;
+
+        if (package is null)
+        {
+            line.PackageQuantity = 0;
+            return Task.CompletedTask;
+        }
+
+        if (line.PackageQuantity <= 0 && line.Quantity > 0 && package.Quantity > 0)
+            line.PackageQuantity = line.Quantity / package.Quantity;
+        else if (line.PackageQuantity <= 0)
+            line.PackageQuantity = 1;
+
+        ApplyPackageQuantity(line);
+        return Task.CompletedTask;
+    }
+
+    private Task OnPackageQuantityChanged(EditableProcurementLine line, decimal quantity)
+    {
+        line.PackageQuantity = quantity < 0 ? 0 : quantity;
+        ApplyPackageQuantity(line);
+        return Task.CompletedTask;
+    }
+
+    private Task OnBatchChanged(EditableProcurementLine line, BatchDto? batch)
+    {
+        if (IsCreateBatchOption(batch))
+        {
+            line.SelectedBatch = null;
+            line.BatchId = null;
+            line.BatchSelectorKey++;
+            OpenBatchModal(line);
+            return Task.CompletedTask;
+        }
+
+        line.SelectedBatch = batch;
+        line.BatchId = batch?.Id;
+        return Task.CompletedTask;
+    }
+
+    private List<ProductSkuDto> SkuOptions(EditableProcurementLine line)
+    {
+        if (line.SelectedProduct is not null)
+            return line.SelectedProduct.Skus ?? [];
+
+        if (line.ProductId != Guid.Empty)
+            return allSkus.Where(x => x.ProductId == line.ProductId).ToList();
+
+        return allSkus;
+    }
+
+    private List<ProductPackageDto> PackageOptions(EditableProcurementLine line) => line.SelectedSku?.Packages ?? [];
+    private bool ShowPackageInputs(EditableProcurementLine line) => PackageOptions(line).Count > 0;
+    private bool IsPackageQuantityControlled(EditableProcurementLine line) => ShowPackageInputs(line) && line.SelectedPackage is not null;
+
+    private List<BatchDto> BatchOptions(EditableProcurementLine line)
+    {
+        List<BatchDto> options;
+
+        if (line.ProductSkuId != Guid.Empty)
+            options = batches.Where(x => x.ProductSkuId == line.ProductSkuId).ToList();
+        else if (line.ProductId != Guid.Empty)
+            options = batches.Where(x => x.ProductId == line.ProductId).ToList();
+        else
+            options = batches.ToList();
+
+        if (CanCreateBatch(line))
+            options.Insert(0, CreateBatchOption());
+
+        return options;
+    }
+
+    private string SupplierText(SupplierDto supplier) => string.IsNullOrWhiteSpace(supplier.SupplierCode) ? supplier.Name : $"{supplier.Name} ({supplier.SupplierCode})";
+    private string ProductText(ProductDto product) => SharedDataService.SelectViewLang(product.NameEng, product.Name);
+    private string SkuText(ProductSkuDto sku) => SkuNameSnapshot(sku);
+    private string ProductDisplay(EditableProcurementLine? line)
+    {
+        if (line is null)
+            return "-";
+
+        var selectedName = line.SelectedProduct is null
+            ? null
+            : SharedDataService.SelectViewLang(line.SelectedProduct.NameEng, line.SelectedProduct.Name);
+
+        return FirstNonEmpty(selectedName, line.ProductName, line.ProductNameEng, "-");
+    }
+
+    private string SkuDisplay(EditableProcurementLine? line)
+    {
+        if (line is null)
+            return "-";
+
+        return FirstNonEmpty(SkuNameSnapshot(line.SelectedSku, line.SkuCode), line.SkuCode, "-");
+    }
+
+    private int LineDisplayNumber(EditableProcurementLine line)
+    {
+        var index = document.Lines.IndexOf(line);
+        return index < 0 ? 1 : index + 1;
+    }
+
+    private string LineSummary(EditableProcurementLine line)
+    {
+        var product = ProductDisplay(line);
+        var sku = SkuDisplay(line);
+        if (product == "-" && sku == "-")
+            return SharedDataService.SelectViewLang("No product selected", "لم يتم اختيار منتج");
+
+        if (sku == "-")
+            return product;
+
+        if (product == "-")
+            return sku;
+
+        return $"{product} / {sku}";
+    }
+
+    private string SkuNameSnapshot(ProductSkuDto? sku, string? fallback = null)
+    {
+        if (sku is null)
+            return fallback ?? string.Empty;
+
+        var localizedName = SharedDataService.SelectViewLang(sku.NameEng ?? string.Empty, sku.Name ?? string.Empty);
+        return FirstNonEmpty(localizedName, sku.Name, sku.NameEng, fallback);
+    }
+
+    private static string FirstNonEmpty(params string?[] values) =>
+        values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+    private string PackageText(ProductPackageDto package) => $"{SharedDataService.SelectViewLang(package.NameEng, package.Name)} ({package.Quantity:N2})";
+    private string WarehouseText(WarehouseDto warehouse) => SharedDataService.SelectViewLang(warehouse.NameEng, warehouse.Name);
+    private string BatchText(BatchDto batch)
+    {
+        if (IsCreateBatchOption(batch))
+            return SharedDataService.SelectViewLang("+ Create new batch", "+ إنشاء دفعة جديدة");
+
+        return $"{batch.BatchNumber} - {SharedDataService.SelectViewLang(batch.SkuNameEng ?? batch.ProductNameEng ?? string.Empty, batch.SkuName ?? batch.ProductName ?? string.Empty)}";
+    }
+    private string CurrencyText(CurrencyDto currency) => $"{currency.Code} - {currency.Name}";
+    private string PurchaseRequestText(ProcurementDocumentDto purchaseRequest) => $"{purchaseRequest.Number} - {purchaseRequest.DocumentDate:yyyy-MM-dd}";
+    private string RfqText(ProcurementDocumentDto rfq) => $"{rfq.Number} - {rfq.DocumentDate:yyyy-MM-dd}";
+    private string SupplierQuotationText(ProcurementDocumentDto supplierQuotation) => $"{supplierQuotation.Number} - {supplierQuotation.SupplierName ?? SharedDataService.SelectViewLang("No supplier", "No supplier")} - {supplierQuotation.DocumentDate:yyyy-MM-dd}";
+    private string PurchaseOrderText(ProcurementDocumentDto purchaseOrder) => $"{purchaseOrder.Number} - {purchaseOrder.SupplierName ?? SharedDataService.SelectViewLang("No supplier", "No supplier")} - {purchaseOrder.DocumentDate:yyyy-MM-dd}";
+    private string GoodsReceiptText(ProcurementDocumentDto goodsReceipt) => $"{goodsReceipt.Number} - {goodsReceipt.SupplierName ?? SharedDataService.SelectViewLang("No supplier", "No supplier")} - {goodsReceipt.DocumentDate:yyyy-MM-dd}";
+    private string ReceiptProgressText(EditableProcurementLine line) =>
+        IsSupplierInvoice
+            ? SharedDataService.SelectViewLang(
+                $"Received {line.OrderedQuantity:N2}, already invoiced {line.PreviouslyReceivedQuantity:N2}, invoiceable {line.RemainingQuantity:N2}",
+                $"Received {line.OrderedQuantity:N2}, already invoiced {line.PreviouslyReceivedQuantity:N2}, invoiceable {line.RemainingQuantity:N2}")
+            : SharedDataService.SelectViewLang(
+                $"Ordered {line.OrderedQuantity:N2}, received {line.PreviouslyReceivedQuantity:N2}, remaining {line.RemainingQuantity:N2}",
+                $"Ordered {line.OrderedQuantity:N2}, received {line.PreviouslyReceivedQuantity:N2}, remaining {line.RemainingQuantity:N2}");
+
+    private bool IsOverRemaining(EditableProcurementLine line) =>
+        line.HasReceiptProgressInfo && line.RemainingQuantity > 0 && line.Quantity > line.RemainingQuantity;
+
+    private decimal ReceivedQuantityForPurchaseOrderLine(Guid purchaseOrderId, ProcurementDocumentLineDto purchaseOrderLine) =>
+        postedGoodsReceipts
+            .Where(receipt => receipt.SourceDocumentId == purchaseOrderId)
+            .SelectMany(receipt => receipt.Lines)
+            .Where(line => line.ProductSkuId == purchaseOrderLine.ProductSkuId)
+            .Sum(line => line.Quantity);
+
+    private HashSet<Guid> InvoiceSourceIdsForPurchaseOrder(Guid purchaseOrderId)
+    {
+        var sourceIds = new HashSet<Guid> { purchaseOrderId };
+        foreach (var receiptId in postedGoodsReceipts
+            .Where(receipt => receipt.SourceDocumentId == purchaseOrderId)
+            .Select(receipt => receipt.Id))
+        {
+            sourceIds.Add(receiptId);
+        }
+
+        return sourceIds;
+    }
+
+    private static HashSet<Guid> InvoiceSourceIdsForGoodsReceipt(ProcurementDocumentDto goodsReceipt)
+    {
+        var sourceIds = new HashSet<Guid> { goodsReceipt.Id };
+        if (goodsReceipt.SourceDocumentId.HasValue)
+            sourceIds.Add(goodsReceipt.SourceDocumentId.Value);
+
+        return sourceIds;
+    }
+
+    private decimal InvoicedQuantityForSku(HashSet<Guid> sourceIds, Guid productSkuId) =>
+        supplierInvoices
+            .Where(invoice => invoice.Id != document.Id
+                && invoice.SourceDocumentId.HasValue
+                && sourceIds.Contains(invoice.SourceDocumentId.Value)
+                && !string.Equals(invoice.Status, SupplierInvoiceStatus.Cancelled.ToString(), StringComparison.OrdinalIgnoreCase))
+            .SelectMany(invoice => invoice.Lines)
+            .Where(line => line.ProductSkuId == productSkuId)
+            .Sum(line => line.Quantity);
+
+    private static bool IsApprovedPurchaseRequest(ProcurementDocumentDto purchaseRequest) =>
+        string.Equals(purchaseRequest.Status, PurchaseRequestStatus.Approved.ToString(), StringComparison.OrdinalIgnoreCase);
+    private static bool IsSentRfq(ProcurementDocumentDto rfq) =>
+        string.Equals(rfq.Status, RequestForQuotationStatus.Sent.ToString(), StringComparison.OrdinalIgnoreCase);
+    private static bool IsAcceptedSupplierQuotation(ProcurementDocumentDto supplierQuotation) =>
+        string.Equals(supplierQuotation.Status, SupplierQuotationStatus.Accepted.ToString(), StringComparison.OrdinalIgnoreCase);
+    private static bool IsReceivablePurchaseOrder(ProcurementDocumentDto purchaseOrder) =>
+        string.Equals(purchaseOrder.Status, PurchaseOrderStatus.Sent.ToString(), StringComparison.OrdinalIgnoreCase)
+        || string.Equals(purchaseOrder.Status, PurchaseOrderStatus.PartiallyReceived.ToString(), StringComparison.OrdinalIgnoreCase);
+    private bool IsInvoiceablePurchaseOrder(ProcurementDocumentDto purchaseOrder) =>
+        (string.Equals(purchaseOrder.Status, PurchaseOrderStatus.PartiallyReceived.ToString(), StringComparison.OrdinalIgnoreCase)
+            || string.Equals(purchaseOrder.Status, PurchaseOrderStatus.Received.ToString(), StringComparison.OrdinalIgnoreCase)
+            || string.Equals(purchaseOrder.Status, PurchaseOrderStatus.Closed.ToString(), StringComparison.OrdinalIgnoreCase))
+        && purchaseOrder.Lines.Any(line => InvoiceableQuantityForPurchaseOrderLine(purchaseOrder.Id, line) > 0);
+    private static bool IsPostedGoodsReceipt(ProcurementDocumentDto goodsReceipt) =>
+        string.Equals(goodsReceipt.Status, PostedDocumentStatus.Posted.ToString(), StringComparison.OrdinalIgnoreCase);
+    private bool IsInvoiceableGoodsReceipt(ProcurementDocumentDto goodsReceipt) =>
+        IsPostedGoodsReceipt(goodsReceipt)
+        && goodsReceipt.Lines.Any(line => InvoiceableQuantityForGoodsReceiptLine(goodsReceipt, line) > 0);
+
+    private decimal InvoiceableQuantityForPurchaseOrderLine(Guid purchaseOrderId, ProcurementDocumentLineDto line)
+    {
+        var received = ReceivedQuantityForPurchaseOrderLine(purchaseOrderId, line);
+        var alreadyInvoiced = InvoicedQuantityForSku(InvoiceSourceIdsForPurchaseOrder(purchaseOrderId), line.ProductSkuId);
+        return Math.Max(received - alreadyInvoiced, 0);
+    }
+
+    private decimal InvoiceableQuantityForGoodsReceiptLine(ProcurementDocumentDto goodsReceipt, ProcurementDocumentLineDto line)
+    {
+        var alreadyInvoiced = InvoicedQuantityForSku(InvoiceSourceIdsForGoodsReceipt(goodsReceipt), line.ProductSkuId);
+        return Math.Max(line.Quantity - alreadyInvoiced, 0);
+    }
+
+    private static bool LooksLikeGoodsReceiptNumber(string? number) =>
+        !string.IsNullOrWhiteSpace(number)
+        && number.StartsWith("GR-", StringComparison.OrdinalIgnoreCase);
+
+    private bool CanCreateBatch(EditableProcurementLine line) =>
+        NeedsStockContext && line.ProductId != Guid.Empty && line.ProductSkuId != Guid.Empty;
+
+    private BatchDto CreateBatchOption() =>
+        new()
+        {
+            Id = CreateBatchOptionId,
+            BatchNumber = SharedDataService.SelectViewLang("+ Create new batch", "+ إنشاء دفعة جديدة")
+        };
+
+    private static bool IsCreateBatchOption(BatchDto? batch) =>
+        batch?.Id == CreateBatchOptionId;
+
+    private void OpenBatchModal(EditableProcurementLine line)
+    {
+        if (!CanCreateBatch(line))
+            return;
+
+        batchModalLine = line;
+        newBatch = NewBatchModel();
+        newBatch.CompanyId = companyId;
+        newBatch.ProductId = line.ProductId;
+        newBatch.ProductSkuId = line.ProductSkuId;
+        isBatchModalOpen = true;
+    }
+
+    private void CloseBatchModal()
+    {
+        isBatchModalOpen = false;
+        isSavingBatch = false;
+        batchModalLine = null;
+        newBatch = NewBatchModel();
+    }
+
+    private async Task SaveNewBatchAsync()
+    {
+        if (batchModalLine is null || !CanCreateBatch(batchModalLine))
+            return;
+
+        isSavingBatch = true;
+        newBatch.CompanyId = companyId;
+        newBatch.ProductId = batchModalLine.ProductId;
+        newBatch.ProductSkuId = batchModalLine.ProductSkuId;
+
+        var response = await BatchService.CreateAsync(newBatch);
+        if (!response.IsSuccess || response.Data is null)
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language)
+                ?? SharedDataService.SelectViewLang("Could not create batch.", "Could not create batch."));
+            isSavingBatch = false;
+            return;
+        }
+
+        var createdBatch = await ResolveCreatedBatchAsync(response.Data.Id, batchModalLine, newBatch);
+        batches.RemoveAll(x => x.Id == createdBatch.Id);
+        batches.Add(createdBatch);
+        await OnBatchChanged(batchModalLine, createdBatch);
+
+        ToastService.ShowSuccess(SharedDataService.SelectViewLang("Batch created.", "Batch created."));
+        CloseBatchModal();
+    }
+
+    private async Task<BatchDto> ResolveCreatedBatchAsync(Guid batchId, EditableProcurementLine line, CreateBatchDto created)
+    {
+        var response = await BatchService.GetByIdAsync(batchId);
+        if (response.IsSuccess && response.Data is not null)
+            return response.Data;
+
+        return new BatchDto
+        {
+            Id = batchId,
+            ProductId = created.ProductId,
+            ProductSkuId = created.ProductSkuId,
+            ProductName = line.ProductName,
+            ProductNameEng = line.ProductNameEng,
+            SkuName = line.SelectedSku?.Name ?? line.SkuCode,
+            SkuNameEng = line.SelectedSku?.NameEng ?? line.SkuCode,
+            BatchNumber = created.BatchNumber,
+            ManufacturingDate = created.ManufacturingDate,
+            ExpiryDate = created.ExpiryDate,
+            CompanyId = created.CompanyId
+        };
+    }
+
+    private static CreateBatchDto NewBatchModel() =>
+        new()
+        {
+            ManufacturingDate = DateTime.Today,
+            ExpiryDate = DateTime.Today.AddDays(1)
+        };
+
+    private void CreateSupplier() => NavigationManager.NavigateTo("/Suppliers/Supplier/Form");
+    private void AddLine() => document.Lines.Add(new EditableProcurementLine());
+    private void RemoveLine(EditableProcurementLine line) => document.Lines.Remove(line);
+    private static void ApplyPackageQuantity(EditableProcurementLine line)
+    {
+        if (line.SelectedPackage is null)
+            return;
+
+        line.ProductPackageId = line.SelectedPackage.Id;
+        line.Quantity = line.PackageQuantity * line.SelectedPackage.Quantity;
+    }
+
+    private enum InvoiceSourceMode
+    {
+        PurchaseOrder,
+        GoodsReceipt,
+        Standalone
+    }
+
+    private void Cancel() => NavigationManager.NavigateTo($"/Procurement/{ProcurementUiText.Route(kind)}");
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+
+    private class EditableProcurementDocument : ProcurementDocumentDto
+    {
+        public new List<EditableProcurementLine> Lines { get; set; } = [];
+
+        public EditableProcurementDocument()
+        {
+        }
+
+        public EditableProcurementDocument(ProcurementDocumentDto dto)
+        {
+            Id = dto.Id;
+            Kind = dto.Kind;
+            Number = dto.Number;
+            Status = dto.Status;
+            DocumentDate = dto.DocumentDate;
+            CompanyId = dto.CompanyId;
+            BranchId = dto.BranchId;
+            DepartmentId = dto.DepartmentId;
+            SupplierId = dto.SupplierId;
+            SupplierName = dto.SupplierName;
+            WarehouseId = dto.WarehouseId;
+            CurrencyId = dto.CurrencyId;
+            SourceDocumentId = dto.SourceDocumentId;
+            SourceDocumentNumber = dto.SourceDocumentNumber;
+            Notes = dto.Notes;
+            Lines = dto.Lines.Select(x => new EditableProcurementLine(x)).ToList();
+        }
+    }
+
+    private class EditableProcurementLine : ProcurementDocumentLineDto
+    {
+        public ProductDto? SelectedProduct { get; set; }
+        public ProductSkuDto? SelectedSku { get; set; }
+        public ProductPackageDto? SelectedPackage { get; set; }
+        public decimal PackageQuantity { get; set; }
+        public BatchDto? SelectedBatch { get; set; }
+        public decimal OrderedQuantity { get; set; }
+        public decimal PreviouslyReceivedQuantity { get; set; }
+        public decimal RemainingQuantity { get; set; }
+        public bool HasReceiptProgressInfo { get; set; }
+        public bool IsSourceLine { get; set; }
+        public int BatchSelectorKey { get; set; }
+
+        public EditableProcurementLine()
+        {
+        }
+
+        public EditableProcurementLine(ProcurementDocumentLineDto dto)
+        {
+            Id = dto.Id;
+            LineNumber = dto.LineNumber;
+            ProductId = dto.ProductId;
+            ProductSkuId = dto.ProductSkuId;
+            ProductPackageId = dto.ProductPackageId;
+            ProductName = dto.ProductName;
+            ProductNameEng = dto.ProductNameEng;
+            SkuCode = dto.SkuCode;
+            UnitOfMeasureId = dto.UnitOfMeasureId;
+            WarehouseId = dto.WarehouseId;
+            BatchId = dto.BatchId;
+            Quantity = dto.Quantity;
+            UnitCost = dto.UnitCost;
+            DiscountRate = dto.DiscountRate;
+            TaxRate = dto.TaxRate;
+            Notes = dto.Notes;
+        }
+    }
+}

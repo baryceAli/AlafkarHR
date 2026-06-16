@@ -12,11 +12,18 @@
     {
         <button type="button"
                 class="sidebar-link sidebar-parent @(IsParentActive ? "is-parent-active" : "") @(Item.IsOpen ? "is-open" : "")"
-                @onclick="Toggle"
+                title="@FullPathLabel"
+                @onclick="ToggleAsync"
                 aria-expanded="@ShouldShowChildren">
             <span class="sidebar-link-main">
                 <i class="bi @Item.Icon sidebar-link-icon"></i>
-                <span class="sidebar-link-text">@Label</span>
+                <span class="sidebar-link-copy">
+                    <span class="sidebar-link-text">@Label</span>
+                    @if (IsFiltering && !IsCollapsed && !string.IsNullOrWhiteSpace(ParentPathLabel))
+                    {
+                        <span class="sidebar-link-context">@ParentPathLabel</span>
+                    }
+                </span>
             </span>
             <span class="sidebar-link-trailing">
                 @if (!string.IsNullOrWhiteSpace(Item.BadgeText))
@@ -38,7 +45,11 @@
                                  RootItems="@RootItems"
                                  AuthState="@AuthState"
                                  SearchText="@SearchText"
-                                 IsFiltering="@IsFiltering" />
+                                 IsFiltering="@IsFiltering"
+                                 IsCollapsed="@IsCollapsed"
+                                 ParentPath="@CurrentPath"
+                                 OnLeafSelected="OnLeafSelected"
+                                 OnOpenStateChanged="OnOpenStateChanged" />
                 }
             </ul>
         }
@@ -49,10 +60,17 @@
                  class="@LeafClass"
                  Match="NavLinkMatch.All"
                  ActiveClass=""
-                 @onclick="HandleLeafClick">
+                 title="@FullPathLabel"
+                 @onclick="HandleLeafClickAsync">
             <span class="sidebar-link-main">
                 <i class="bi @Item.Icon sidebar-link-icon"></i>
-                <span class="sidebar-link-text">@Label</span>
+                <span class="sidebar-link-copy">
+                    <span class="sidebar-link-text">@Label</span>
+                    @if (IsFiltering && !IsCollapsed && !string.IsNullOrWhiteSpace(ParentPathLabel))
+                    {
+                        <span class="sidebar-link-context">@ParentPathLabel</span>
+                    }
+                </span>
             </span>
             @if (!string.IsNullOrWhiteSpace(Item.BadgeText))
             {
@@ -70,23 +88,23 @@
     [Parameter] public AuthenticationState? AuthState { get; set; }
     [Parameter] public string SearchText { get; set; } = "";
     [Parameter] public bool IsFiltering { get; set; }
+    [Parameter] public bool IsCollapsed { get; set; }
+    [Parameter] public IReadOnlyList<MenuItem> ParentPath { get; set; } = Array.Empty<MenuItem>();
+    [Parameter] public EventCallback OnLeafSelected { get; set; }
+    [Parameter] public EventCallback OnOpenStateChanged { get; set; }
 
     private string Label => SharedDataService.SelectViewLang(Item.TextEn, Item.TextAr);
+    private IReadOnlyList<MenuItem> CurrentPath => ParentPath.Concat(new[] { Item }).ToList();
+    private string ParentPathLabel => FormatPath(ParentPath);
+    private string FullPathLabel => FormatPath(CurrentPath);
     private string BadgeTitle => SharedDataService.SelectViewLang(
         Item.BadgeTitleEn ?? Item.BadgeText ?? "",
         Item.BadgeTitleAr ?? Item.BadgeText ?? "");
     private string LeafClass => IsActive ? "sidebar-link sidebar-leaf is-active" : "sidebar-link sidebar-leaf";
     private bool HasVisibleChildren => VisibleChildren.Any();
-    private bool ShouldShowChildren => HasVisibleChildren && (Item.IsOpen || IsFiltering);
+    private bool ShouldShowChildren => HasVisibleChildren && !IsCollapsed && (Item.IsOpen || IsFiltering);
     private bool IsParentActive => HasVisibleChildren && (IsUrlActive(Item.Url) || Item.Children.Any(IsMatch));
-
-    private bool IsActive
-    {
-        get
-        {
-            return IsUrlActive(Item.Url);
-        }
-    }
+    private bool IsActive => IsUrlActive(Item.Url);
 
     private List<MenuItem> VisibleChildren
     {
@@ -115,8 +133,8 @@
     protected override void OnInitialized()
     {
         AutoExpand(Item);
-        SharedDataService.OnChange1 += HandleChangeAsync;
         NavigationManager.LocationChanged += HandleLocationChanged;
+        SharedDataService.OnChange1 += HandleChangeAsync;
     }
 
     private bool IsAuthorized(MenuItem item)
@@ -182,7 +200,7 @@
         return builder.ToString().Normalize(NormalizationForm.FormC);
     }
 
-    private void Toggle()
+    private async Task ToggleAsync()
     {
         if (!HasVisibleChildren)
         {
@@ -194,16 +212,24 @@
             return;
         }
 
+        if (Item.IsOpen && IsParentActive)
+        {
+            return;
+        }
+
         CloseUnrelatedOpenNodes(Item);
         CloseSiblingNodes(Item);
 
         Item.IsOpen = !Item.IsOpen;
+        await OnOpenStateChanged.InvokeAsync();
     }
 
-    private void HandleLeafClick()
+    private async Task HandleLeafClickAsync()
     {
         CloseUnrelatedOpenNodes(Item);
         CloseSiblingNodes(Item);
+        await OnOpenStateChanged.InvokeAsync();
+        await OnLeafSelected.InvokeAsync();
     }
 
     private void CloseUnrelatedOpenNodes(MenuItem clickedItem)
@@ -302,8 +328,8 @@
             return false;
         }
 
-        var currentPath = CurrentPath();
-        var targetPath = NormalizePath(url);
+        var currentPath = CurrentPathFromUri();
+        var targetPath = NavigationMenuResolver.NormalizePath(url);
 
         if (currentPath == targetPath)
         {
@@ -314,31 +340,16 @@
                currentPath.StartsWith($"{targetPath}/", StringComparison.OrdinalIgnoreCase);
     }
 
-    private string CurrentPath()
+    private string CurrentPathFromUri()
     {
         var relativePath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         var pathOnly = relativePath.Split('?', '#')[0];
 
-        return NormalizePath($"/{pathOnly}");
+        return NavigationMenuResolver.NormalizePath($"/{pathOnly}");
     }
 
-    private static string NormalizePath(string url)
-    {
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            return "/";
-        }
-
-        var path = url.Split('?', '#')[0].Trim();
-
-        if (Uri.TryCreate(path, UriKind.Absolute, out var absoluteUri))
-        {
-            path = absoluteUri.AbsolutePath;
-        }
-
-        path = "/" + path.Trim('/').ToLowerInvariant();
-        return path == "/" ? "/" : path.TrimEnd('/');
-    }
+    private string FormatPath(IEnumerable<MenuItem> items)
+        => string.Join(" / ", items.Select(item => SharedDataService.SelectViewLang(item.TextEn, item.TextAr)));
 
     private async Task HandleChangeAsync()
     {
@@ -347,6 +358,11 @@
 
     private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
     {
+        foreach (var item in NavigationMenuResolver.GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri))
+        {
+            item.IsOpen = true;
+        }
+
         _ = InvokeAsync(StateHasChanged);
     }
 
@@ -356,127 +372,3 @@
         NavigationManager.LocationChanged -= HandleLocationChanged;
     }
 }
-
-<style>
-    .sidebar-node {
-        margin: .08rem 0;
-    }
-
-    .sidebar-node.parent-active {
-        padding-block: .08rem;
-    }
-
-    .sidebar-link {
-        width: 100%;
-        min-height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: .65rem;
-        border: 0;
-        border-radius: var(--erp-radius-md);
-        padding: .58rem .65rem;
-        color: var(--erp-sidebar-text);
-        background: transparent;
-        text-decoration: none;
-        text-align: start;
-        transition: background-color .15s ease, color .15s ease;
-    }
-
-    .sidebar-link:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, .08);
-    }
-
-    .sidebar-link.is-active {
-        color: #fff;
-        background: var(--erp-primary);
-        box-shadow: inset 3px 0 0 rgba(255, 255, 255, .62);
-    }
-
-    [dir="rtl"] .sidebar-link.is-active {
-        box-shadow: inset -3px 0 0 rgba(255, 255, 255, .62);
-    }
-
-    .sidebar-link.is-parent-active,
-    .sidebar-link.is-open {
-        color: #fff;
-        background: rgba(var(--erp-primary-rgb), .18);
-    }
-
-    .sidebar-link-main {
-        display: flex;
-        align-items: center;
-        gap: .65rem;
-        min-width: 0;
-    }
-
-    .sidebar-link-icon {
-        width: 1.1rem;
-        text-align: center;
-        color: var(--erp-sidebar-text);
-        flex: 0 0 auto;
-    }
-
-    .sidebar-link.is-active .sidebar-link-icon,
-    .sidebar-link.is-parent-active .sidebar-link-icon,
-    .sidebar-link:hover .sidebar-link-icon {
-        color: #fff;
-    }
-
-    .sidebar-link-text {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-size: .92rem;
-        line-height: 1.2;
-    }
-
-    .sidebar-link-trailing {
-        display: inline-flex;
-        align-items: center;
-        gap: .45rem;
-        flex: 0 0 auto;
-    }
-
-    .sidebar-chevron {
-        color: rgba(255, 255, 255, .5);
-        font-size: .78rem;
-    }
-
-    .sidebar-submenu {
-        position: relative;
-        margin: .16rem 0 .28rem;
-        padding-inline-start: .8rem;
-        gap: .12rem;
-    }
-
-    .sidebar-submenu::before {
-        content: "";
-        position: absolute;
-        inset-block: .25rem;
-        inset-inline-start: .2rem;
-        width: 1px;
-        background: rgba(255, 255, 255, .12);
-    }
-
-    .sidebar-submenu .sidebar-link {
-        min-height: 36px;
-        padding: .5rem .6rem;
-        color: rgba(255, 255, 255, .68);
-    }
-
-    .sidebar-submenu .sidebar-link-text {
-        font-size: .86rem;
-    }
-
-    .sidebar-submenu .sidebar-submenu {
-        padding-inline-start: .7rem;
-        margin-block: .12rem;
-    }
-
-    .sidebar-link .badge {
-        font-size: .68rem;
-        line-height: 1;
-    }
-</style>

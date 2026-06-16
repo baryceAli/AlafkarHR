@@ -36,7 +36,11 @@ public class CustomerPricingProfileService : BaseApiService, ICustomerPricingPro
 
     public async Task<ApiResult<PaginatedResult<CustomerPricingProfileDto>>> GetByCompanyAsync(Guid companyId, int pageIndex, int pageSize, string searchText = "")
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/company/{companyId}?pageIndex={pageIndex}&pageSize={pageSize}&searchText={searchText}");
+        var requestUri = $"{_path}/company/{companyId}?PageIndex={pageIndex}&PageSize={pageSize}";
+        if (!string.IsNullOrWhiteSpace(searchText))
+            requestUri += $"&SearchText={Uri.EscapeDataString(searchText)}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
         return await SendAsync<PaginatedResult<CustomerPricingProfileDto>>(request,"customerPricingProfileList");
     }
 

@@ -1,0 +1,245 @@
+@layout AdminLayout
+@page "/Suppliers/SupplierGroup/List"
+
+@using AlAfkarERP.Shared.Pages.Features.Suppliers.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.Suppliers.Dtos
+@using SharedWithUI.Suppliers.Enums
+
+@implements IDisposable
+@inject ISupplierGroupService SupplierGroupService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Supplier Groups", "مجموعات الموردين")"
+                Subtitle="@SharedDataService.SelectViewLang("Organize suppliers and default payment terms for procurement.", "تنظيم الموردين وشروط الدفع الافتراضية للمشتريات.")"
+                Overline="@SharedDataService.SelectViewLang("Suppliers", "الموردون")"
+                Icon="bi-collection">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="LoadAsync">
+                <i class="bi bi-arrow-repeat"></i>
+                @SharedDataService.SelectViewLang("Refresh", "تحديث")
+            </button>
+            <button class="btn btn-primary" @onclick="CreateNew" disabled="@(!CanCreate)">
+                <i class="bi bi-plus-lg"></i>
+                @SharedDataService.SelectViewLang("New Group", "مجموعة جديدة")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page.", "ليس لديك الصلاحية لعرض هذه الصفحة.")</div>
+    }
+    else
+    {
+        @if (editingGroup is not null)
+        {
+            <AppCard Title="@EditTitle" CssClass="mb-3">
+                <EditForm Model="editingGroup" OnValidSubmit="SaveAsync">
+                    <DataAnnotationsValidator />
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
+                            <InputText class="form-control" @bind-Value="editingGroup.Name" />
+                            <ValidationMessage For="() => editingGroup.Name" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Description", "الوصف")</label>
+                            <InputText class="form-control" @bind-Value="editingGroup.Description" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Default Payment", "الدفع الافتراضي")</label>
+                            <InputSelect class="form-select" @bind-Value="editingGroup.DefaultPaymentTerm">
+                                @foreach (var term in Enum.GetValues<SupplierPaymentTermType>())
+                                {
+                                    <option value="@term">@term</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-md-2 d-flex gap-2 justify-content-end">
+                            <button type="button" class="btn btn-outline-secondary" @onclick="CancelEdit">@SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check2"></i>
+                                @SharedDataService.SelectViewLang("Save", "حفظ")
+                            </button>
+                        </div>
+                    </div>
+                </EditForm>
+            </AppCard>
+        }
+
+        <AppCard Title="@SharedDataService.SelectViewLang("Groups", "المجموعات")">
+            @if (isLoading)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <div class="fw-semibold">@SharedDataService.SelectViewLang("Loading groups...", "جاري تحميل المجموعات...")</div>
+                </div>
+            }
+            else
+            {
+                <div class="erp-table-wrap">
+                    <table class="table erp-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>@SharedDataService.SelectViewLang("Name", "الاسم")</th>
+                                <th>@SharedDataService.SelectViewLang("Description", "الوصف")</th>
+                                <th>@SharedDataService.SelectViewLang("Default Payment", "الدفع الافتراضي")</th>
+                                <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (groups.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">@SharedDataService.SelectViewLang("No supplier groups found.", "لا توجد مجموعات موردين.")</td>
+                                </tr>
+                            }
+                            @foreach (var group in groups)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@group.Name</td>
+                                    <td>@group.Description</td>
+                                    <td>@group.DefaultPaymentTerm</td>
+                                    <td>
+                                        <div class="d-flex justify-content-end gap-2">
+                                            <button class="btn btn-outline-warning btn-sm erp-row-action" @onclick="() => Edit(group)" disabled="@(!CanEdit)">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger btn-sm erp-row-action" @onclick="() => DeleteAsync(group.Id)" disabled="@(!CanDelete)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </AppCard>
+    }
+</div>
+
+@code {
+    private readonly List<SupplierGroupDto> groups = [];
+    private SupplierGroupDto? editingGroup;
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private bool isLoading = true;
+    private bool isEdit;
+
+    private string EditTitle => isEdit
+        ? SharedDataService.SelectViewLang("Edit Supplier Group", "تعديل مجموعة المورد")
+        : SharedDataService.SelectViewLang("New Supplier Group", "مجموعة مورد جديدة");
+
+    private bool CanView => HasPermission(PermissionList.SupplierGroupPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.SupplierGroupPermissions.Create);
+    private bool CanEdit => HasPermission(PermissionList.SupplierGroupPermissions.Edit);
+    private bool CanDelete => HasPermission(PermissionList.SupplierGroupPermissions.Delete);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var claim = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+        Guid.TryParse(claim, out companyId);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        groups.Clear();
+        if (companyId != Guid.Empty && CanView)
+        {
+            var response = await SupplierGroupService.GetByCompanyAsync(companyId);
+            if (response.IsSuccess)
+                groups.AddRange(response.Data ?? []);
+            else
+                ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Could not load supplier groups.", "تعذر تحميل مجموعات الموردين."));
+        }
+        isLoading = false;
+    }
+
+    private void CreateNew()
+    {
+        isEdit = false;
+        editingGroup = new SupplierGroupDto
+        {
+            CompanyId = companyId,
+            DefaultPaymentTerm = SupplierPaymentTermType.Net30
+        };
+    }
+
+    private void Edit(SupplierGroupDto group)
+    {
+        isEdit = true;
+        editingGroup = new SupplierGroupDto
+        {
+            Id = group.Id,
+            Name = group.Name,
+            Description = group.Description,
+            DefaultExpenseAccountId = group.DefaultExpenseAccountId,
+            DefaultPaymentTerm = group.DefaultPaymentTerm,
+            CompanyId = group.CompanyId
+        };
+    }
+
+    private async Task SaveAsync()
+    {
+        if (editingGroup is null)
+            return;
+
+        editingGroup.CompanyId = companyId;
+        bool success;
+        string? errorMessage = null;
+        if (isEdit)
+        {
+            var response = await SupplierGroupService.UpdateAsync(editingGroup);
+            success = response.IsSuccess;
+            errorMessage = response.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        else
+        {
+            var response = await SupplierGroupService.CreateAsync(editingGroup);
+            success = response.IsSuccess;
+            errorMessage = response.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+
+        if (success)
+        {
+            ToastService.ShowSuccess(SharedDataService.SelectViewLang("Supplier group saved.", "تم حفظ مجموعة المورد."));
+            editingGroup = null;
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(errorMessage ?? SharedDataService.SelectViewLang("Could not save supplier group.", "تعذر حفظ مجموعة المورد."));
+        }
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        var response = await SupplierGroupService.DeleteAsync(id);
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(SharedDataService.SelectViewLang("Supplier group deleted.", "تم حذف مجموعة المورد."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Could not delete supplier group.", "تعذر حذف مجموعة المورد."));
+        }
+    }
+
+    private void CancelEdit() => editingGroup = null;
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

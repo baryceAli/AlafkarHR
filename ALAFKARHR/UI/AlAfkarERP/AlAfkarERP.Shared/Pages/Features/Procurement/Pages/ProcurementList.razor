@@ -1,0 +1,246 @@
+@layout AdminLayout
+@page "/Procurement/{KindRoute}"
+
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Procurement.Dtos
+@using SharedWithUI.Procurement.Enums
+
+@implements IDisposable
+@inject IProcurementService ProcurementService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang(Meta.En, Meta.Ar)"
+                Subtitle="@SharedDataService.SelectViewLang("Search and manage procurement documents.", "البحث وإدارة مستندات المشتريات.")"
+                Overline="@SharedDataService.SelectViewLang("Procurement", "المشتريات")"
+                Icon="@Meta.Icon">
+        <Actions>
+            <button class="btn btn-primary" @onclick="CreateNew" disabled="@(!CanCreate)">
+                <i class="bi bi-plus-lg"></i>
+                @SharedDataService.SelectViewLang("Create", "إضافة")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page.", "ليس لديك الصلاحية لعرض هذه الصفحة.")</div>
+    }
+    else
+    {
+        <AppCard Title="@SharedDataService.SelectViewLang(Meta.En, Meta.Ar)">
+            <FilterBar CssClass="mb-3">
+                <ChildContent>
+                    <div class="input-group" style="max-width: 340px;">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input class="form-control"
+                               placeholder="@SharedDataService.SelectViewLang("Search number or supplier", "ابحث بالرقم أو المورد")"
+                               @bind="searchText"
+                               @bind:event="oninput"
+                               @onkeydown="HandleSearchKey" />
+                    </div>
+                    <select class="form-select" style="max-width: 220px;" @bind="statusFilter">
+                        <option value="">@SharedDataService.SelectViewLang("All statuses", "كل الحالات")</option>
+                        @foreach (var status in StatusOptions)
+                        {
+                            <option value="@status">@status</option>
+                        }
+                    </select>
+                </ChildContent>
+                <Actions>
+                    <button class="btn btn-outline-secondary" @onclick="LoadAsync">
+                        <i class="bi bi-arrow-repeat"></i>
+                        @SharedDataService.SelectViewLang("Refresh", "تحديث")
+                    </button>
+                </Actions>
+            </FilterBar>
+
+            <div class="erp-table-wrap">
+                <table class="table erp-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>@SharedDataService.SelectViewLang("Number", "الرقم")</th>
+                            <th>@SharedDataService.SelectViewLang("Date", "التاريخ")</th>
+                            <th>@SharedDataService.SelectViewLang("Supplier", "المورد")</th>
+                            <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
+                            <th>@SharedDataService.SelectViewLang("Total", "الإجمالي")</th>
+                            <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (FilteredDocuments.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">@SharedDataService.SelectViewLang("No documents found.", "لا توجد مستندات.")</td>
+                            </tr>
+                        }
+                        @foreach (var document in FilteredDocuments)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@document.Number</div>
+                                    @if (!string.IsNullOrWhiteSpace(document.SourceDocumentNumber))
+                                    {
+                                        <div class="text-muted small">@DisplaySourceReferenceText(document)</div>
+                                    }
+                                </td>
+                                <td>@document.DocumentDate.ToShortDateString()</td>
+                                <td>@(string.IsNullOrWhiteSpace(document.SupplierName) ? "-" : document.SupplierName)</td>
+                                <td><span class="badge text-bg-light">@document.Status</span></td>
+                                <td>@document.TotalAmount.ToString("N2")</td>
+                                <td>
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <button class="btn btn-outline-primary btn-sm erp-row-action" title="@SharedDataService.SelectViewLang("View", "عرض")" @onclick="() => Open(document.Id)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning btn-sm erp-row-action" title="@EditTitle(document)" @onclick="() => Edit(document.Id)" disabled="@(!CanEditDocument(document))">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm erp-row-action" title="@DeleteTitle(document)" @onclick="() => DeleteAsync(document.Id)" disabled="@(!CanDeleteDocument(document))">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </AppCard>
+    }
+</div>
+
+@code {
+    [Parameter] public string? KindRoute { get; set; }
+
+    private ProcurementDocumentKind kind;
+    private (string En, string Ar, string Icon, string Permission) Meta;
+    private List<ProcurementDocumentDto> documents = [];
+    private string? searchText;
+    private string? statusFilter;
+    private Guid? companyId;
+    private AuthenticationState? authState;
+
+    private bool CanView => HasPermission(Meta.Permission);
+    private bool CanCreate => HasPermission(ProcurementUiText.CreatePermission(kind));
+    private bool CanEdit => HasPermission(ProcurementUiText.EditPermission(kind));
+    private bool CanDelete => HasPermission(ProcurementUiText.DeletePermission(kind));
+    private List<ProcurementDocumentDto> FilteredDocuments => string.IsNullOrWhiteSpace(statusFilter)
+        ? documents
+        : documents.Where(x => string.Equals(x.Status, statusFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+    private List<string> StatusOptions => documents.Select(x => x.Status).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x => x).ToList();
+    private string DisplaySourceReferenceText(ProcurementDocumentDto document) =>
+        kind switch
+        {
+            ProcurementDocumentKind.RequestForQuotation => SharedDataService.SelectViewLang($"Purchase Request: {document.SourceDocumentNumber}", $"Purchase Request: {document.SourceDocumentNumber}"),
+            ProcurementDocumentKind.SupplierQuotation => SharedDataService.SelectViewLang($"RFQ: {document.SourceDocumentNumber}", $"RFQ: {document.SourceDocumentNumber}"),
+            ProcurementDocumentKind.PurchaseOrder => SharedDataService.SelectViewLang($"Supplier Quotation: {document.SourceDocumentNumber}", $"Supplier Quotation: {document.SourceDocumentNumber}"),
+            ProcurementDocumentKind.GoodsReceipt => SharedDataService.SelectViewLang($"Purchase Order: {document.SourceDocumentNumber}", $"Purchase Order: {document.SourceDocumentNumber}"),
+            ProcurementDocumentKind.SupplierInvoice => SupplierInvoiceSourceText(document),
+            _ => document.SourceDocumentNumber ?? string.Empty
+        };
+    private string SourceReferenceText(ProcurementDocumentDto document) =>
+        kind == ProcurementDocumentKind.RequestForQuotation
+            ? SharedDataService.SelectViewLang($"Purchase Request: {document.SourceDocumentNumber}", $"طلب الشراء: {document.SourceDocumentNumber}")
+            : document.SourceDocumentNumber ?? string.Empty;
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        kind = ProcurementUiText.ParseKind(KindRoute);
+        Meta = ProcurementUiText.Meta(kind);
+        statusFilter = null;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var claim = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+        if (Guid.TryParse(claim, out var parsedCompanyId))
+            companyId = parsedCompanyId;
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var response = await ProcurementService.GetAsync(kind, companyId, 1, 50, searchText);
+        if (response.IsSuccess)
+            documents = response.Data?.Data?.ToList() ?? [];
+        else
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Could not load documents.", "تعذر تحميل المستندات."));
+    }
+
+    private async Task HandleSearchKey(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+            await LoadAsync();
+    }
+
+    private void CreateNew() => NavigationManager.NavigateTo($"/Procurement/{ProcurementUiText.Route(kind)}/Form");
+
+    private void Edit(Guid id)
+    {
+        var document = documents.FirstOrDefault(x => x.Id == id);
+        if (document is not null && CanEditDocument(document))
+            NavigationManager.NavigateTo($"/Procurement/{ProcurementUiText.Route(kind)}/Form/{id}");
+    }
+
+    private void Open(Guid id) => NavigationManager.NavigateTo($"/Procurement/{ProcurementUiText.Route(kind)}/Detail/{id}");
+
+    private async Task DeleteAsync(Guid id)
+    {
+        var document = documents.FirstOrDefault(x => x.Id == id);
+        if (document is null || !CanDeleteDocument(document))
+            return;
+
+        var response = await ProcurementService.DeleteAsync(kind, id);
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(SharedDataService.SelectViewLang("Document deleted.", "تم حذف المستند."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Could not delete document.", "تعذر حذف المستند."));
+        }
+    }
+
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string SupplierInvoiceSourceText(ProcurementDocumentDto document)
+    {
+        var label = LooksLikeGoodsReceiptNumber(document.SourceDocumentNumber)
+            ? SharedDataService.SelectViewLang("Goods Receipt", "Goods Receipt")
+            : SharedDataService.SelectViewLang("Purchase Order", "Purchase Order");
+
+        return $"{label}: {document.SourceDocumentNumber}";
+    }
+
+    private static bool LooksLikeGoodsReceiptNumber(string? number) =>
+        !string.IsNullOrWhiteSpace(number)
+        && number.StartsWith("GR-", StringComparison.OrdinalIgnoreCase);
+
+    private bool CanEditDocument(ProcurementDocumentDto document) =>
+        CanEdit && ProcurementUiText.CanEditDocument(kind, document.Status);
+
+    private bool CanDeleteDocument(ProcurementDocumentDto document) =>
+        CanDelete && ProcurementUiText.CanDeleteDocument(kind, document.Status);
+
+    private string EditTitle(ProcurementDocumentDto document) =>
+        CanEdit
+            ? ProcurementUiText.LockedEditReason(kind, document.Status, SharedDataService)
+            : SharedDataService.SelectViewLang("You do not have edit permission.", "ليست لديك صلاحية التعديل.");
+
+    private string DeleteTitle(ProcurementDocumentDto document) =>
+        CanDelete
+            ? ProcurementUiText.LockedDeleteReason(kind, document.Status, SharedDataService)
+            : SharedDataService.SelectViewLang("You do not have delete permission.", "ليست لديك صلاحية الحذف.");
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

@@ -1,5 +1,6 @@
 @layout AdminLayout
 @page "/Customers/Customer/Dashboard"
+@implements IDisposable
 @using AlAfkarERP.Shared.Pages.Features.Customers.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
@@ -8,6 +9,7 @@
 @using SharedWithUI.Permissions
 
 @inject ICustomerService CustomerService
+@inject ICustomerGroupService CustomerGroupService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
@@ -61,7 +63,7 @@ else
             <div class="branch-stat border-success">
                 <div class="branch-stat-icon text-success"><i class="bi bi-check2-circle"></i></div>
                 <div>
-                    <div class="text-muted small">@SharedDataService.SelectViewLang("Recent Active", "النشطون حديثا")</div>
+                    <div class="text-muted small">@SharedDataService.SelectViewLang("Active Customers", "العملاء النشطون")</div>
                     <div class="branch-stat-value">@activeCustomers</div>
                 </div>
             </div>
@@ -70,7 +72,7 @@ else
             <div class="branch-stat border-info">
                 <div class="branch-stat-icon text-info"><i class="bi bi-receipt-cutoff"></i></div>
                 <div>
-                    <div class="text-muted small">@SharedDataService.SelectViewLang("Recent Tax Exempt", "المعفون حديثا من الضريبة")</div>
+                    <div class="text-muted small">@SharedDataService.SelectViewLang("Tax Exempt Customers", "العملاء المعفون من الضريبة")</div>
                     <div class="branch-stat-value">@taxExemptCustomers</div>
                 </div>
             </div>
@@ -79,7 +81,7 @@ else
             <div class="branch-stat border-warning">
                 <div class="branch-stat-icon text-warning"><i class="bi bi-pause-circle"></i></div>
                 <div>
-                    <div class="text-muted small">@SharedDataService.SelectViewLang("Recent Blocked/Suspended", "محظور/معلق حديثا")</div>
+                    <div class="text-muted small">@SharedDataService.SelectViewLang("Blocked/Suspended", "محظور/معلق")</div>
                     <div class="branch-stat-value">@blockedOrSuspendedCustomers</div>
                 </div>
             </div>
@@ -123,7 +125,7 @@ else
                             <tr>
                                 <td>@customer.Name</td>
                                 <td>@customer.CommercialName</td>
-                                <td>@customer.CustomerGroupId</td>
+                                <td>@GetCustomerGroupName(customer.CustomerGroupId)</td>
                                 <td>@customer.Status</td>
                                 <td>@customer.CreditLimit.ToString("N2")</td>
                             </tr>
@@ -140,14 +142,14 @@ else
 <style>
     .branches-page { max-width: 1400px; }
     .branches-header { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
-    .branch-stat { align-items: center; background: #fff; border-left: 4px solid; border-radius: 8px; box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.08); display: flex; gap: 0.875rem; min-height: 88px; padding: 1rem; }
-    .branch-stat-icon { align-items: center; background: #f8f9fa; border-radius: 8px; display: inline-flex; font-size: 1.35rem; height: 44px; justify-content: center; width: 44px; }
-    .branch-stat-value { color: #212529; font-size: 1.35rem; font-weight: 700; line-height: 1.15; }
-    .branch-table-wrap { border: 1px solid #e9ecef; border-radius: 8px; }
-    .branch-table thead th { background: #f8f9fa; color: #495057; font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
-    .branch-table tbody tr:hover { background: #fbfcfe; }
-    .branch-empty { align-items: center; color: #6c757d; display: grid; justify-items: center; padding: 2rem; text-align: center; }
-    .branch-empty i { color: #adb5bd; font-size: 2rem; margin-bottom: 0.5rem; }
+    .branch-stat { align-items: center; background: var(--erp-surface); border-left: 4px solid; border-radius: 8px; box-shadow: var(--erp-shadow-sm); display: flex; gap: 0.875rem; min-height: 88px; padding: 1rem; }
+    .branch-stat-icon { align-items: center; background: var(--erp-surface-muted); border-radius: 8px; display: inline-flex; font-size: 1.35rem; height: 44px; justify-content: center; width: 44px; }
+    .branch-stat-value { color: var(--erp-text); font-size: 1.35rem; font-weight: 700; line-height: 1.15; }
+    .branch-table-wrap { border: 1px solid var(--erp-border); border-radius: 8px; }
+    .branch-table thead th { background: var(--erp-surface-muted); color: var(--erp-text-muted); font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
+    .branch-table tbody tr:hover { background: var(--erp-primary-soft); }
+    .branch-empty { align-items: center; color: var(--erp-text-muted); display: grid; justify-items: center; padding: 2rem; text-align: center; }
+    .branch-empty i { color: var(--erp-text-soft); font-size: 2rem; margin-bottom: 0.5rem; }
     [dir="rtl"] .branch-stat { border-left: 0; border-right: 4px solid; }
 </style>
 
@@ -155,6 +157,8 @@ else
     private bool isLoading = true;
     private AuthenticationState? AuthState;
     private List<CustomerDto> recentCustomers = new();
+    private List<CustomerDto> allCustomers = new();
+    private List<CustomerGroupDto> customerGroups = new();
     private long totalCustomers;
     private int activeCustomers;
     private int taxExemptCustomers;
@@ -187,19 +191,40 @@ else
         var companyClaim = AuthState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
         if (Guid.TryParse(companyClaim, out var companyId))
         {
+            var groupsResponse = await CustomerGroupService.GetByCompanyAsync(companyId, 0, 10000);
+            if (groupsResponse.IsSuccess && groupsResponse.Data is not null)
+            {
+                customerGroups = groupsResponse.Data.Data.ToList();
+            }
+
+            var allResponse = await CustomerService.GetByCompany(companyId, 0, 10000);
+            if (allResponse.IsSuccess && allResponse.Data is not null)
+            {
+                allCustomers = allResponse.Data.Data.ToList();
+                totalCustomers = allResponse.Data.Count;
+                activeCustomers = allCustomers.Count(c => c.Status == CustomerStatus.Active);
+                taxExemptCustomers = allCustomers.Count(c => c.IsTaxExempt);
+                blockedOrSuspendedCustomers = allCustomers.Count(c =>
+                    c.Status is CustomerStatus.Blocked or CustomerStatus.Suspended);
+            }
+
             var response = await CustomerService.GetByCompany(companyId, 0, 5);
             if (response.IsSuccess && response.Data is not null)
             {
                 recentCustomers = response.Data.Data.ToList();
-                totalCustomers = response.Data.Count;
-                activeCustomers = recentCustomers.Count(c => c.Status == CustomerStatus.Active);
-                taxExemptCustomers = recentCustomers.Count(c => c.IsTaxExempt);
-                blockedOrSuspendedCustomers = recentCustomers.Count(c =>
-                    c.Status is CustomerStatus.Blocked or CustomerStatus.Suspended);
             }
         }
 
         isLoading = false;
+    }
+
+    private string GetCustomerGroupName(Guid? customerGroupId)
+    {
+        if (!customerGroupId.HasValue)
+            return "";
+
+        var group = customerGroups.FirstOrDefault(g => g.Id == customerGroupId.Value);
+        return group is null ? "" : SharedDataService.SelectViewLang(group.NameEng, group.Name);
     }
 
     private async Task HandleChangeAsync()
@@ -212,3 +237,4 @@ else
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }
+

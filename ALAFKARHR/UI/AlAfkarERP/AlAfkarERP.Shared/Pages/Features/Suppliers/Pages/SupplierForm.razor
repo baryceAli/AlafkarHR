@@ -1,0 +1,426 @@
+@layout AdminLayout
+@page "/Suppliers/Supplier/Form"
+@page "/Suppliers/Supplier/Form/{Id:guid}"
+
+@using AlAfkarERP.Shared.Pages.Features.Suppliers.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.Suppliers.Dtos
+@using SharedWithUI.Suppliers.Enums
+
+@implements IDisposable
+@inject ISupplierService SupplierService
+@inject ISupplierGroupService SupplierGroupService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@PageTitle"
+                Subtitle="@SharedDataService.SelectViewLang("Maintain supplier identity, terms, addresses, and contacts.", "إدارة بيانات المورد وشروطه وعناوينه وجهات الاتصال.")"
+                Overline="@SharedDataService.SelectViewLang("Suppliers", "الموردون")"
+                Icon="bi-truck" />
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="fw-semibold">@SharedDataService.SelectViewLang("Loading supplier...", "جاري تحميل المورد...")</div>
+            </div>
+        </AppCard>
+    }
+    else if (!CanSave)
+    {
+        <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to save suppliers.", "ليس لديك الصلاحية لحفظ الموردين.")</div>
+    }
+    else
+    {
+        <EditForm Model="supplier" OnValidSubmit="SaveAsync">
+            <DataAnnotationsValidator />
+
+            <AppCard Title="@SharedDataService.SelectViewLang("Supplier Details", "تفاصيل المورد")" CssClass="mb-3">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
+                        <InputText class="form-control" @bind-Value="supplier.Name" />
+                        <ValidationMessage For="() => supplier.Name" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Commercial Name", "الاسم التجاري")</label>
+                        <InputText class="form-control" @bind-Value="supplier.CommercialName" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Supplier Code", "كود المورد")</label>
+                        <InputText class="form-control" @bind-Value="supplier.SupplierCode" placeholder="@SharedDataService.SelectViewLang("Auto-generated if blank", "يولد تلقائيا عند تركه فارغا")" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Supplier Group", "مجموعة المورد")</label>
+                        <AutoCompleteComponent TItem="SupplierGroupDto"
+                                               Items="supplierGroups"
+                                               ItemText="GroupText"
+                                               Value="selectedGroup"
+                                               ValueChanged="OnGroupChanged"
+                                               PlaceHolder="@SharedDataService.SelectViewLang("Select supplier group...", "اختر مجموعة المورد...")" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Status", "الحالة")</label>
+                        <InputSelect class="form-select" @bind-Value="supplier.Status">
+                            @foreach (var status in Enum.GetValues<SupplierStatus>())
+                            {
+                                <option value="@status">@status</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Type", "النوع")</label>
+                        <InputSelect class="form-select" @bind-Value="supplier.Type">
+                            @foreach (var type in Enum.GetValues<SupplierType>())
+                            {
+                                <option value="@type">@type</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Payment Term", "شروط الدفع")</label>
+                        <InputSelect class="form-select" @bind-Value="supplier.PaymentTerm">
+                            @foreach (var term in Enum.GetValues<SupplierPaymentTermType>())
+                            {
+                                <option value="@term">@term</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Tax Number", "الرقم الضريبي")</label>
+                        <InputText class="form-control" @bind-Value="supplier.TaxNumber" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Credit Limit", "حد الائتمان")</label>
+                        <InputNumber class="form-control" @bind-Value="supplier.CreditLimit" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Opening Balance", "الرصيد الافتتاحي")</label>
+                        <InputNumber class="form-control" @bind-Value="supplier.OpeningBalance" />
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Notes", "ملاحظات")</label>
+                        <InputTextArea class="form-control" rows="2" @bind-Value="supplier.Notes" />
+                    </div>
+                </div>
+            </AppCard>
+
+            <AppCard Title="@SharedDataService.SelectViewLang("Contacts", "جهات الاتصال")" CssClass="mb-3">
+                <div class="d-flex justify-content-end mb-3">
+                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddContact">
+                        <i class="bi bi-plus-lg"></i>
+                        @SharedDataService.SelectViewLang("Add Contact", "إضافة جهة اتصال")
+                    </button>
+                </div>
+                @if (supplier.Contacts.Count == 0)
+                {
+                    <div class="text-muted small">@SharedDataService.SelectViewLang("No contacts added.", "لا توجد جهات اتصال.")</div>
+                }
+                @foreach (var contact in supplier.Contacts)
+                {
+                    <div class="border rounded p-3 mb-2" @key="contact">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Full Name", "الاسم الكامل")</label>
+                                <InputText class="form-control" @bind-Value="contact.FullName" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Job Title", "المسمى الوظيفي")</label>
+                                <InputText class="form-control" @bind-Value="contact.JobTitle" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Email", "البريد الإلكتروني")</label>
+                                <InputText class="form-control" @bind-Value="contact.Email" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Phone", "الهاتف")</label>
+                                <InputText class="form-control" @bind-Value="contact.PhoneNumber" />
+                            </div>
+                            <div class="col-md-1">
+                                <div class="form-check">
+                                    <InputCheckbox class="form-check-input" @bind-Value="contact.IsPrimaryContact" />
+                                    <label class="form-check-label">@SharedDataService.SelectViewLang("Primary", "رئيسي")</label>
+                                </div>
+                            </div>
+                            <div class="col-md-1 text-end">
+                                <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => RemoveContact(contact)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </AppCard>
+
+            <AppCard Title="@SharedDataService.SelectViewLang("Addresses", "العناوين")">
+                <Actions>
+                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddAddress">
+                        <i class="bi bi-plus-lg"></i>
+                        @SharedDataService.SelectViewLang("Add Address", "إضافة عنوان")
+                    </button>
+                </Actions>
+                <ChildContent>
+                @if (supplier.Addresses.Count == 0)
+                {
+                    <EmptyState Title="@SharedDataService.SelectViewLang("No addresses added", "لا توجد عناوين")"
+                                Message="@SharedDataService.SelectViewLang("Add the supplier's billing or office address when it is available.", "أضف عنوان الفوترة أو المكتب الخاص بالمورد عند توفره.")"
+                                Icon="bi-geo-alt">
+                        <Actions>
+                            <button type="button" class="btn btn-primary btn-sm" @onclick="AddAddress">
+                                <i class="bi bi-plus-lg"></i>
+                                @SharedDataService.SelectViewLang("Add Address", "إضافة عنوان")
+                            </button>
+                        </Actions>
+                    </EmptyState>
+                }
+                @foreach (var entry in supplier.Addresses.Select((address, index) => new { Address = address, Index = index }))
+                {
+                    var address = entry.Address;
+                    <div class="border rounded p-3 mb-3" @key="address">
+                        <div class="d-flex flex-wrap justify-content-between gap-3 mb-3">
+                            <div class="min-width-0">
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <h3 class="h6 mb-0">@GetAddressHeading(entry.Index)</h3>
+                                    @if (address.IsDefaultBilling)
+                                    {
+                                        <span class="badge text-bg-success">@SharedDataService.SelectViewLang("Default Billing", "الفوترة الافتراضية")</span>
+                                    }
+                                </div>
+                                <div class="text-muted small mt-1">@GetAddressSummary(address)</div>
+                            </div>
+                            <button type="button" class="btn btn-outline-danger btn-sm align-self-start" @onclick="() => RemoveAddress(address)">
+                                <i class="bi bi-trash"></i>
+                                @SharedDataService.SelectViewLang("Delete", "حذف")
+                            </button>
+                        </div>
+
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-8 col-lg-9">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Title", "العنوان")</label>
+                                <InputText class="form-control"
+                                           @bind-Value="address.Title"
+                                           placeholder="@SharedDataService.SelectViewLang("Main office", "المكتب الرئيسي")" />
+                            </div>
+                            <div class="col-md-4 col-lg-3">
+                                <div class="form-check mb-2">
+                                    <InputCheckbox class="form-check-input"
+                                                   Value="address.IsDefaultBilling"
+                                                   ValueChanged="(bool value) => SetDefaultBilling(address, value)"
+                                                   ValueExpression="() => address.IsDefaultBilling" />
+                                    <label class="form-check-label">@SharedDataService.SelectViewLang("Default Billing", "الفوترة الافتراضية")</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Address Line 1", "العنوان 1")</label>
+                                <InputText class="form-control"
+                                           @bind-Value="address.AddressLine1"
+                                           placeholder="@SharedDataService.SelectViewLang("Building, street, district", "المبنى، الشارع، الحي")" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Address Line 2", "العنوان 2")</label>
+                                <InputText class="form-control"
+                                           @bind-Value="address.AddressLine2"
+                                           placeholder="@SharedDataService.SelectViewLang("Floor, unit, landmark", "الدور، الوحدة، علامة مميزة")" />
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label">@SharedDataService.SelectViewLang("City", "المدينة")</label>
+                                <InputText class="form-control"
+                                           @bind-Value="address.City"
+                                           placeholder="@SharedDataService.SelectViewLang("Riyadh", "الرياض")" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">@SharedDataService.SelectViewLang("State / Region", "المنطقة")</label>
+                                <InputText class="form-control"
+                                           @bind-Value="address.State"
+                                           placeholder="@SharedDataService.SelectViewLang("Riyadh Province", "منطقة الرياض")" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Country", "الدولة")</label>
+                                <InputText class="form-control"
+                                           @bind-Value="address.Country"
+                                           placeholder="@SharedDataService.SelectViewLang("Saudi Arabia", "المملكة العربية السعودية")" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Postal Code", "الرمز البريدي")</label>
+                                <InputText class="form-control"
+                                           @bind-Value="address.PostalCode"
+                                           placeholder="@SharedDataService.SelectViewLang("12345", "12345")" />
+                            </div>
+
+                            <div class="col-12">
+                                <div class="text-muted small fw-semibold">@SharedDataService.SelectViewLang("Coordinates", "الإحداثيات")</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Latitude", "خط العرض")</label>
+                                <InputNumber class="form-control"
+                                             @bind-Value="address.Latitude"
+                                             placeholder="@SharedDataService.SelectViewLang("24.7136", "24.7136")" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Longitude", "خط الطول")</label>
+                                <InputNumber class="form-control"
+                                             @bind-Value="address.Longitude"
+                                             placeholder="@SharedDataService.SelectViewLang("46.6753", "46.6753")" />
+                            </div>
+                        </div>
+                    </div>
+                }
+                </ChildContent>
+            </AppCard>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">@SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>
+                <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                    <i class="bi bi-check2"></i>
+                    @SharedDataService.SelectViewLang("Save Supplier", "حفظ المورد")
+                </button>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+
+    private SupplierDto supplier = NewSupplier();
+    private readonly List<SupplierGroupDto> supplierGroups = [];
+    private SupplierGroupDto? selectedGroup;
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private bool isLoading = true;
+    private bool isSaving;
+
+    private string PageTitle => Id.HasValue
+        ? SharedDataService.SelectViewLang("Edit Supplier", "تعديل المورد")
+        : SharedDataService.SelectViewLang("New Supplier", "مورد جديد");
+
+    private bool CanSave => Id.HasValue ? HasPermission(PermissionList.SupplierPermissions.Edit) : HasPermission(PermissionList.SupplierPermissions.Create);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var claim = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+        Guid.TryParse(claim, out companyId);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        supplier.CompanyId = companyId;
+
+        if (companyId != Guid.Empty)
+        {
+            var groupsResponse = await SupplierGroupService.GetByCompanyAsync(companyId);
+            if (groupsResponse.IsSuccess)
+                supplierGroups.AddRange(groupsResponse.Data ?? []);
+        }
+
+        if (Id.HasValue)
+        {
+            var response = await SupplierService.GetByIdAsync(Id.Value);
+            if (response.IsSuccess && response.Data is not null)
+                supplier = response.Data;
+            else
+                ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Could not load supplier.", "تعذر تحميل المورد."));
+        }
+
+        supplier.CompanyId ??= companyId;
+        selectedGroup = supplierGroups.FirstOrDefault(x => x.Id == supplier.SupplierGroupId);
+        isLoading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        isSaving = true;
+        supplier.CompanyId = companyId;
+        bool success;
+        string? errorMessage = null;
+        if (Id.HasValue)
+        {
+            var response = await SupplierService.UpdateAsync(supplier);
+            success = response.IsSuccess;
+            errorMessage = response.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        else
+        {
+            var response = await SupplierService.CreateAsync(supplier);
+            success = response.IsSuccess;
+            errorMessage = response.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+
+        if (success)
+        {
+            ToastService.ShowSuccess(SharedDataService.SelectViewLang("Supplier saved.", "تم حفظ المورد."));
+            NavigationManager.NavigateTo("/Suppliers/Supplier/List");
+        }
+        else
+        {
+            ToastService.ShowError(errorMessage ?? SharedDataService.SelectViewLang("Could not save supplier.", "تعذر حفظ المورد."));
+        }
+
+        isSaving = false;
+    }
+
+    private string GroupText(SupplierGroupDto group) => group.Name;
+
+    private Task OnGroupChanged(SupplierGroupDto? group)
+    {
+        selectedGroup = group;
+        supplier.SupplierGroupId = group?.Id;
+        if (group is not null)
+            supplier.PaymentTerm = group.DefaultPaymentTerm;
+        return Task.CompletedTask;
+    }
+
+    private void AddContact() => supplier.Contacts.Add(new SupplierContactDto());
+    private void RemoveContact(SupplierContactDto contact) => supplier.Contacts.Remove(contact);
+    private void AddAddress() => supplier.Addresses.Add(new SupplierAddressDto { Title = SharedDataService.SelectViewLang("Main", "رئيسي") });
+    private void RemoveAddress(SupplierAddressDto address) => supplier.Addresses.Remove(address);
+    private string GetAddressHeading(int index) => SharedDataService.SelectViewLang($"Address {index + 1}", $"العنوان {index + 1}");
+
+    private string GetAddressSummary(SupplierAddressDto address)
+    {
+        var parts = new[] { address.Title, address.City, address.Country }
+            .Where(part => !string.IsNullOrWhiteSpace(part));
+
+        var summary = string.Join(" • ", parts);
+        return string.IsNullOrWhiteSpace(summary)
+            ? SharedDataService.SelectViewLang("New supplier address", "عنوان مورد جديد")
+            : summary;
+    }
+
+    private void SetDefaultBilling(SupplierAddressDto selectedAddress, bool isDefault)
+    {
+        selectedAddress.IsDefaultBilling = isDefault;
+
+        if (!isDefault)
+            return;
+
+        foreach (var address in supplier.Addresses.Where(address => !ReferenceEquals(address, selectedAddress)))
+        {
+            address.IsDefaultBilling = false;
+        }
+    }
+
+    private void Cancel() => NavigationManager.NavigateTo("/Suppliers/Supplier/List");
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+
+    private static SupplierDto NewSupplier() => new()
+    {
+        Status = SupplierStatus.Active,
+        Type = SupplierType.Local,
+        PaymentTerm = SupplierPaymentTermType.Net30
+    };
+}

@@ -1,5 +1,6 @@
 @layout AdminLayout
 @page "/Customers/CustomerPricingProfile/List"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
 @using AlAfkarERP.Shared.Pages.Features.Customers.Services
@@ -108,7 +109,8 @@
                     <input class="form-control"
                            placeholder="@SharedDataService.SelectViewLang("Search by customer or price list...", "بحث بالعميل او قائمة التسعير...")"
                            @bind="searchText"
-                           @bind:event="oninput" />
+                           @bind:event="oninput"
+                           @bind:after="OnSearchChanged" />
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <label class="text-muted small mb-0">@SharedDataService.SelectViewLang("Rows", "الصفوف")</label>
@@ -198,6 +200,10 @@
                                                         <label class="form-label">@SharedDataService.SelectViewLang("Effective to", "يسري حتى")</label>
                                                         <InputDate class="form-control" @bind-Value="editingItem.EffectiveTo" />
                                                         <ValidationMessage For="() => editingItem.EffectiveTo" />
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">@SharedDataService.SelectViewLang("Discount (%)", "الخصم (%)")</label>
+                                                        <InputNumber class="form-control" @bind-Value="editingItem.DiscountPercentage" />
                                                     </div>
                                                     <div class="col-md-4 d-flex align-items-end">
                                                         <div class="form-check branch-check">
@@ -299,26 +305,26 @@
 <style>
     .branches-page { max-width: 1400px; }
     .branches-header { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
-    .branch-stat { align-items: center; background: #fff; border-left: 4px solid; border-radius: 8px; box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.08); display: flex; gap: 0.875rem; min-height: 88px; padding: 1rem; }
-    .branch-stat-icon { align-items: center; background: #f8f9fa; border-radius: 8px; display: inline-flex; font-size: 1.35rem; height: 44px; justify-content: center; width: 44px; }
-    .branch-stat-value { color: #212529; font-size: 1.35rem; font-weight: 700; line-height: 1.15; }
+    .branch-stat { align-items: center; background: var(--erp-surface); border-left: 4px solid; border-radius: 8px; box-shadow: var(--erp-shadow-sm); display: flex; gap: 0.875rem; min-height: 88px; padding: 1rem; }
+    .branch-stat-icon { align-items: center; background: var(--erp-surface-muted); border-radius: 8px; display: inline-flex; font-size: 1.35rem; height: 44px; justify-content: center; width: 44px; }
+    .branch-stat-value { color: var(--erp-text); font-size: 1.35rem; font-weight: 700; line-height: 1.15; }
     .branch-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
     .branch-search { max-width: 420px; position: relative; width: min(100%, 420px); }
-    .branch-search i { color: #6c757d; left: 0.875rem; position: absolute; top: 50%; transform: translateY(-50%); }
+    .branch-search i { color: var(--erp-text-muted); left: 0.875rem; position: absolute; top: 50%; transform: translateY(-50%); }
     .branch-search .form-control { padding-left: 2.5rem; }
     .branch-page-size { min-width: 82px; }
-    .branch-table-wrap { border: 1px solid #e9ecef; border-radius: 8px; }
-    .branch-table thead th { background: #f8f9fa; color: #495057; font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
-    .branch-table tbody tr:hover { background: #fbfcfe; }
+    .branch-table-wrap { border: 1px solid var(--erp-border); border-radius: 8px; }
+    .branch-table thead th { background: var(--erp-surface-muted); color: var(--erp-text-muted); font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
+    .branch-table tbody tr:hover { background: var(--erp-primary-soft); }
     .branch-table .sortable { cursor: pointer; user-select: none; }
-    .branch-table .sortable i { color: #6c757d; font-size: 0.75rem; margin-inline-start: 0.35rem; }
+    .branch-table .sortable i { color: var(--erp-text-muted); font-size: 0.75rem; margin-inline-start: 0.35rem; }
     .branch-action { align-items: center; display: inline-flex; height: 32px; justify-content: center; width: 36px; }
     .branch-edit-row > td { background: #f8fbff; padding: 1rem; }
-    .branch-edit-panel { background: #fff; border: 1px solid #dbeafe; border-radius: 8px; padding: 1rem; }
-    .branch-check { align-items: center; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; display: inline-flex; gap: 0.5rem; padding: 0.75rem 1rem; }
+    .branch-edit-panel { background: var(--erp-surface); border: 1px solid var(--erp-border); border-radius: 8px; padding: 1rem; }
+    .branch-check { align-items: center; background: var(--erp-surface-muted); border: 1px solid var(--erp-border); border-radius: 8px; display: inline-flex; gap: 0.5rem; padding: 0.75rem 1rem; }
     .branch-check .form-check-input { margin: 0; }
-    .branch-empty { align-items: center; color: #6c757d; display: grid; justify-items: center; padding: 2rem; text-align: center; }
-    .branch-empty i { color: #adb5bd; font-size: 2rem; margin-bottom: 0.5rem; }
+    .branch-empty { align-items: center; color: var(--erp-text-muted); display: grid; justify-items: center; padding: 2rem; text-align: center; }
+    .branch-empty i { color: var(--erp-text-soft); font-size: 2rem; margin-bottom: 0.5rem; }
     .branch-pagination { align-items: center; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; margin-top: 1rem; }
     [dir="rtl"] .branch-stat { border-left: 0; border-right: 4px solid; }
     [dir="rtl"] .branch-search i { left: auto; right: 0.875rem; }
@@ -382,7 +388,7 @@
             Id = Guid.NewGuid(),
             CompanyId = companyId,
             EffectiveFrom = DateTime.UtcNow,
-            EffectiveTo = DateTime.UtcNow,
+            EffectiveTo = null,
             AllowAdditionalDiscounts = false,
 
 
@@ -428,6 +434,15 @@
             customerPricingProfile.CustomerId = selectedCustomer.Id;
             customerPricingProfile.PriceListId = selectedPriceList.Id;
             customerPricingProfile.CompanyId = companyId;
+            if (customerPricingProfile.EffectiveTo.HasValue && customerPricingProfile.EffectiveTo.Value.Date < customerPricingProfile.EffectiveFrom.Date)
+            {
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("Effective to must be after effective from", "يجب ان يكون تاريخ النهاية بعد تاريخ البداية"),
+                    Type = "warning"
+                });
+                return;
+            }
 
             var bResponse = await CustomerPricingProfileService.CreateAsync(customerPricingProfile);
             if (bResponse.IsSuccess)
@@ -453,6 +468,18 @@
         else
         {
             //Edit
+            if(selectedPriceList != null)
+                customerPricingProfile.PriceListId = selectedPriceList.Id;
+
+            if (customerPricingProfile.EffectiveTo.HasValue && customerPricingProfile.EffectiveTo.Value.Date < customerPricingProfile.EffectiveFrom.Date)
+            {
+                ToastService.Show(new ToastMessage
+                {
+                    Message = SharedDataService.SelectViewLang("Effective to must be after effective from", "يجب ان يكون تاريخ النهاية بعد تاريخ البداية"),
+                    Type = "warning"
+                });
+                return;
+            }
 
             var bresponse = await CustomerPricingProfileService.UpdateAsync(customerPricingProfile);
             if (bresponse.IsSuccess)
@@ -567,7 +594,7 @@
     {
         // var request = new PaginationRequest(pageIndex, pageSize, searchText);
 
-        var response = await CustomerPricingProfileService.GetByCompanyAsync(companyId, pageIndex, pageSize);//,searchText);
+        var response = await CustomerPricingProfileService.GetByCompanyAsync(companyId, pageIndex, pageSize, searchText);
         if (response.IsSuccess)
         {
             // var result = response.Data!.Data;
@@ -581,6 +608,12 @@
     async Task OnPageSizeChanged(ChangeEventArgs e)
     {
         pageSize = int.Parse(e.Value!.ToString()!);
+        pageIndex = 0;
+        await LoadCustomerPricingProfile();
+    }
+
+    private async Task OnSearchChanged()
+    {
         pageIndex = 0;
         await LoadCustomerPricingProfile();
     }
@@ -719,3 +752,4 @@
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }
+

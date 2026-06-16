@@ -1,0 +1,165 @@
+@layout AdminLayout
+@page "/Suppliers/Supplier/View/{Id:guid}"
+
+@using AlAfkarERP.Shared.Pages.Features.Suppliers.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.Suppliers.Dtos
+@using SharedWithUI.Suppliers.Enums
+
+@implements IDisposable
+@inject ISupplierService SupplierService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@supplier.Name"
+                Subtitle="@SharedDataService.SelectViewLang("Supplier master data and procurement contact details.", "بيانات المورد وجهات الاتصال الخاصة بالمشتريات.")"
+                Overline="@SharedDataService.SelectViewLang("Suppliers", "الموردون")"
+                Icon="bi-truck">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="Back">
+                <i class="bi bi-arrow-return-left"></i>
+                @SharedDataService.SelectViewLang("Back", "رجوع")
+            </button>
+            <button class="btn btn-primary" @onclick="Edit" disabled="@(!CanEdit)">
+                <i class="bi bi-pencil-square"></i>
+                @SharedDataService.SelectViewLang("Edit", "تعديل")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="fw-semibold">@SharedDataService.SelectViewLang("Loading supplier...", "جاري تحميل المورد...")</div>
+            </div>
+        </AppCard>
+    }
+    else if (!CanView)
+    {
+        <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page.", "ليس لديك الصلاحية لعرض هذه الصفحة.")</div>
+    }
+    else
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <StatsCard Title="@SharedDataService.SelectViewLang("Status", "الحالة")" Value="@supplier.Status.ToString()" Icon="bi-check2-circle" />
+            </div>
+            <div class="col-md-3">
+                <StatsCard Title="@SharedDataService.SelectViewLang("Type", "النوع")" Value="@supplier.Type.ToString()" Icon="bi-tags" />
+            </div>
+            <div class="col-md-3">
+                <StatsCard Title="@SharedDataService.SelectViewLang("Payment Term", "شروط الدفع")" Value="@supplier.PaymentTerm.ToString()" Icon="bi-calendar2-check" />
+            </div>
+            <div class="col-md-3">
+                <StatsCard Title="@SharedDataService.SelectViewLang("Credit Limit", "حد الائتمان")" Value="@supplier.CreditLimit.ToString("N2")" Icon="bi-cash-stack" />
+            </div>
+        </div>
+
+        <AppCard Title="@SharedDataService.SelectViewLang("Profile", "الملف")" CssClass="mb-3">
+            <div class="row g-3">
+                <div class="col-md-3"><strong>@SharedDataService.SelectViewLang("Code", "الكود"):</strong> @(supplier.SupplierCode ?? "-")</div>
+                <div class="col-md-3"><strong>@SharedDataService.SelectViewLang("Commercial Name", "الاسم التجاري"):</strong> @(supplier.CommercialName ?? "-")</div>
+                <div class="col-md-3"><strong>@SharedDataService.SelectViewLang("Tax Number", "الرقم الضريبي"):</strong> @(supplier.TaxNumber ?? "-")</div>
+                <div class="col-md-3"><strong>@SharedDataService.SelectViewLang("Opening Balance", "الرصيد الافتتاحي"):</strong> @supplier.OpeningBalance.ToString("N2")</div>
+                <div class="col-md-12"><strong>@SharedDataService.SelectViewLang("Notes", "ملاحظات"):</strong> @(supplier.Notes ?? "-")</div>
+            </div>
+        </AppCard>
+
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <AppCard Title="@SharedDataService.SelectViewLang("Contacts", "جهات الاتصال")">
+                    @if (supplier.Contacts.Count == 0)
+                    {
+                        <div class="text-muted small">@SharedDataService.SelectViewLang("No contacts added.", "لا توجد جهات اتصال.")</div>
+                    }
+                    @foreach (var contact in supplier.Contacts)
+                    {
+                        <div class="border rounded p-3 mb-2">
+                            <div class="d-flex justify-content-between gap-3">
+                                <div>
+                                    <div class="fw-semibold">@contact.FullName</div>
+                                    <div class="text-muted small">@contact.JobTitle</div>
+                                    <div class="small">@contact.Email</div>
+                                    <div class="small">@contact.PhoneNumber</div>
+                                </div>
+                                @if (contact.IsPrimaryContact)
+                                {
+                                    <span class="badge text-bg-primary align-self-start">@SharedDataService.SelectViewLang("Primary", "رئيسي")</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </AppCard>
+            </div>
+            <div class="col-lg-6">
+                <AppCard Title="@SharedDataService.SelectViewLang("Addresses", "العناوين")">
+                    @if (supplier.Addresses.Count == 0)
+                    {
+                        <div class="text-muted small">@SharedDataService.SelectViewLang("No addresses added.", "لا توجد عناوين.")</div>
+                    }
+                    @foreach (var address in supplier.Addresses)
+                    {
+                        <div class="border rounded p-3 mb-2">
+                            <div class="d-flex justify-content-between gap-3">
+                                <div>
+                                    <div class="fw-semibold">@address.Title</div>
+                                    <div class="small">@address.AddressLine1 @address.AddressLine2</div>
+                                    <div class="text-muted small">@address.City, @address.State, @address.Country @address.PostalCode</div>
+                                </div>
+                                @if (address.IsDefaultBilling)
+                                {
+                                    <span class="badge text-bg-primary align-self-start">@SharedDataService.SelectViewLang("Billing", "فوترة")</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private SupplierDto supplier = new();
+    private AuthenticationState? authState;
+    private bool isLoading = true;
+
+    private bool CanView => HasPermission(PermissionList.SupplierPermissions.View);
+    private bool CanEdit => HasPermission(PermissionList.SupplierPermissions.Edit);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        if (CanView)
+        {
+            var response = await SupplierService.GetByIdAsync(Id);
+            if (response.IsSuccess && response.Data is not null)
+                supplier = response.Data;
+            else
+                ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Could not load supplier.", "تعذر تحميل المورد."));
+        }
+        isLoading = false;
+    }
+
+    private void Back() => NavigationManager.NavigateTo("/Suppliers/Supplier/List");
+    private void Edit() => NavigationManager.NavigateTo($"/Suppliers/Supplier/Form/{Id}");
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

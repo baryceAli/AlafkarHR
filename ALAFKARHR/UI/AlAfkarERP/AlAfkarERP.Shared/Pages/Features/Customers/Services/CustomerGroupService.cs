@@ -39,7 +39,8 @@ public class CustomerGroupService : BaseApiService, ICustomerGroupService
     {
         var requestUri = $"{_path}/company/{companyId}?PageIndex={pageIndex}&PageSize={pageSize}";
         
-        if(!string.IsNullOrEmpty(searchText) ) requestUri += "&SearchText=" + searchText ;
+        if (!string.IsNullOrWhiteSpace(searchText))
+            requestUri += $"&SearchText={Uri.EscapeDataString(searchText)}";
         
         var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
         return SendAsync<PaginatedResult<CustomerGroupDto>>(request, "customerGroupList");

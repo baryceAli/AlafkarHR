@@ -1,0 +1,287 @@
+@layout AdminLayout
+@page "/Procurement/{KindRoute}/Detail/{Id:guid}"
+
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Procurement.Dtos
+@using SharedWithUI.Procurement.Enums
+
+@implements IDisposable
+@inject IProcurementService ProcurementService
+@inject IProductService ProductService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+@inject IJSRuntime JSRuntime
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@document.Number"
+                Subtitle="@SharedDataService.SelectViewLang(Meta.En, Meta.Ar)"
+                Overline="@SharedDataService.SelectViewLang("Procurement", "المشتريات")"
+                Icon="@Meta.Icon">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="Back">
+                <i class="bi bi-arrow-return-left"></i>
+                @SharedDataService.SelectViewLang("Back", "رجوع")
+            </button>
+            @foreach (var action in AvailableActions)
+            {
+                <button class="btn btn-outline-primary" @onclick="() => RunAction(action.Key)">
+                    @ActionLabel(action.Key)
+                </button>
+            }
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="fw-semibold">@SharedDataService.SelectViewLang("Loading document...", "جاري تحميل المستند...")</div>
+            </div>
+        </AppCard>
+    }
+    else if (!CanView)
+    {
+        <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page.", "ليس لديك الصلاحية لعرض هذه الصفحة.")</div>
+    }
+    else
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <StatsCard Title="@SharedDataService.SelectViewLang("Status", "الحالة")" Value="@document.Status" Icon="bi-check2-circle" />
+            </div>
+            <div class="col-md-3">
+                <StatsCard Title="@SharedDataService.SelectViewLang("Date", "التاريخ")" Value="@document.DocumentDate.ToShortDateString()" Icon="bi-calendar2" />
+            </div>
+            <div class="col-md-3">
+                <StatsCard Title="@SharedDataService.SelectViewLang("Supplier", "المورد")" Value="@(document.SupplierName ?? "-")" Icon="bi-truck" />
+            </div>
+            <div class="col-md-3">
+                <StatsCard Title="@SharedDataService.SelectViewLang("Total", "الإجمالي")" Value="@document.TotalAmount.ToString("N2")" Icon="bi-cash-stack" />
+            </div>
+        </div>
+
+        <AppCard Title="@SharedDataService.SelectViewLang("Document Details", "تفاصيل المستند")">
+            <div class="row g-3 mb-3">
+                <div class="col-md-4"><strong>@SharedDataService.SelectViewLang("Number", "الرقم"):</strong> @document.Number</div>
+                <div class="col-md-4"><strong>@DisplaySourceReferenceLabel:</strong> @(document.SourceDocumentNumber ?? "-")</div>
+                <div class="col-md-4"><strong>@SharedDataService.SelectViewLang("Notes", "ملاحظات"):</strong> @(document.Notes ?? "-")</div>
+            </div>
+            <div class="erp-table-wrap">
+                <table class="table erp-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>@SharedDataService.SelectViewLang("Product", "المنتج")</th>
+                            <th>@SharedDataService.SelectViewLang("SKU", "وحدة المنتج")</th>
+                            <th>@SharedDataService.SelectViewLang("Quantity", "الكمية")</th>
+                            <th>@SharedDataService.SelectViewLang("Cost", "التكلفة")</th>
+                            <th>@SharedDataService.SelectViewLang("Tax", "الضريبة")</th>
+                            <th>@SharedDataService.SelectViewLang("Total", "الإجمالي")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (document.Lines.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">@SharedDataService.SelectViewLang("No lines found.", "لا توجد بنود.")</td>
+                            </tr>
+                        }
+                        @foreach (var line in document.Lines)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@line.ProductName</div>
+                                    <div class="text-muted small">@line.ProductNameEng</div>
+                                </td>
+                                <td>@SkuDisplay(line)</td>
+                                <td>@line.Quantity.ToString("N2")</td>
+                                <td>@line.UnitCost.ToString("N2")</td>
+                                <td>@line.TaxAmount.ToString("N2")</td>
+                                <td>@line.TotalAmount.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </AppCard>
+    }
+</div>
+
+@code {
+    [Parameter] public string? KindRoute { get; set; }
+    [Parameter] public Guid Id { get; set; }
+
+    private ProcurementDocumentKind kind;
+    private (string En, string Ar, string Icon, string Permission) Meta;
+    private ProcurementDocumentDto document = new();
+    private AuthenticationState? authState;
+    private readonly Dictionary<Guid, ProductSkuDto> skuLookups = [];
+    private bool isLoading = true;
+
+    private bool CanView => HasPermission(Meta.Permission);
+    private string DisplaySourceReferenceLabel => kind switch
+    {
+        ProcurementDocumentKind.RequestForQuotation => SharedDataService.SelectViewLang("Purchase Request", "Purchase Request"),
+        ProcurementDocumentKind.SupplierQuotation => SharedDataService.SelectViewLang("RFQ", "RFQ"),
+        ProcurementDocumentKind.PurchaseOrder => SharedDataService.SelectViewLang("Supplier Quotation", "Supplier Quotation"),
+        ProcurementDocumentKind.GoodsReceipt => SharedDataService.SelectViewLang("Purchase Order", "Purchase Order"),
+        ProcurementDocumentKind.SupplierInvoice => SupplierInvoiceSourceLabel(),
+        _ => SharedDataService.SelectViewLang("Source", "Source")
+    };
+    private string SourceReferenceLabel => kind == ProcurementDocumentKind.RequestForQuotation
+        ? SharedDataService.SelectViewLang("Purchase Request", "طلب الشراء")
+        : SharedDataService.SelectViewLang("Source", "المصدر");
+    private List<ActionItem> AvailableActions => ValidActions()
+        .Where(action => HasPermission(ProcurementUiText.WorkflowPermission(kind, action.Key)))
+        .ToList();
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        kind = ProcurementUiText.ParseKind(KindRoute);
+        Meta = ProcurementUiText.Meta(kind);
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var response = await ProcurementService.GetByIdAsync(kind, Id);
+        if (response.IsSuccess && response.Data is not null)
+        {
+            document = response.Data;
+            await LoadSkuLookupsAsync();
+        }
+        else
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Could not load document.", "تعذر تحميل المستند."));
+        isLoading = false;
+    }
+
+    private async Task LoadSkuLookupsAsync()
+    {
+        skuLookups.Clear();
+        var skuIds = document.Lines
+            .Select(line => line.ProductSkuId)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        foreach (var skuId in skuIds)
+        {
+            var response = await ProductService.GetProductSkuByIdAsync(skuId);
+            if (response.IsSuccess && response.Data is not null)
+                skuLookups[skuId] = response.Data;
+        }
+    }
+
+    private async Task RunAction(string action)
+    {
+        if (IsPurchaseOrderCloseAction(action) && !await ConfirmPurchaseOrderCloseAsync())
+            return;
+
+        var response = await ProcurementService.WorkflowAsync(kind, Id, action);
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(SharedDataService.SelectViewLang("Action completed.", "تم تنفيذ الإجراء."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Could not complete action.", "تعذر تنفيذ الإجراء."));
+        }
+    }
+
+    private List<ActionItem> ValidActions()
+    {
+        var status = document.Status ?? string.Empty;
+        return kind switch
+        {
+            ProcurementDocumentKind.PurchaseRequest when Is(status, "Draft") => [new("submit")],
+            ProcurementDocumentKind.PurchaseRequest when Is(status, "Submitted") => [new("approve"), new("reject"), new("cancel")],
+            ProcurementDocumentKind.RequestForQuotation when Is(status, "Draft") => [new("send"), new("cancel")],
+            ProcurementDocumentKind.RequestForQuotation when Is(status, "Sent") => [new("close"), new("cancel")],
+            ProcurementDocumentKind.SupplierQuotation when Is(status, "Received") => [new("accept"), new("reject")],
+            ProcurementDocumentKind.PurchaseOrder when Is(status, "Draft") => [new("approve"), new("cancel")],
+            ProcurementDocumentKind.PurchaseOrder when Is(status, "Approved") => [new("send"), new("cancel")],
+            ProcurementDocumentKind.PurchaseOrder when Is(status, "Sent") || Is(status, "PartiallyReceived") => [new("close"), new("cancel")],
+            ProcurementDocumentKind.GoodsReceipt when Is(status, "Draft") => [new("post"), new("cancel")],
+            ProcurementDocumentKind.PurchaseReturn when Is(status, "Draft") => [new("post"), new("cancel")],
+            ProcurementDocumentKind.SupplierInvoice when Is(status, "Draft") => [new("match"), new("cancel")],
+            ProcurementDocumentKind.SupplierInvoice when Is(status, "Matched") => [new("post"), new("cancel")],
+            _ => []
+        };
+    }
+
+    private string ActionLabel(string action) =>
+        action switch
+        {
+            "submit" => SharedDataService.SelectViewLang("Submit", "إرسال"),
+            "approve" => SharedDataService.SelectViewLang("Approve", "اعتماد"),
+            "reject" => SharedDataService.SelectViewLang("Reject", "رفض"),
+            "cancel" => SharedDataService.SelectViewLang("Cancel", "إلغاء"),
+            "send" => SharedDataService.SelectViewLang("Send", "إرسال"),
+            "close" when kind == ProcurementDocumentKind.PurchaseOrder && Is(document.Status ?? string.Empty, "PartiallyReceived") => SharedDataService.SelectViewLang("Close Remaining", "إغلاق المتبقي"),
+            "close" => SharedDataService.SelectViewLang("Close", "إغلاق"),
+            "accept" => SharedDataService.SelectViewLang("Accept", "قبول"),
+            "post" when kind == ProcurementDocumentKind.GoodsReceipt => SharedDataService.SelectViewLang("Post Receipt", "ترحيل الاستلام"),
+            "post" => SharedDataService.SelectViewLang("Post", "ترحيل"),
+            "match" => SharedDataService.SelectViewLang("Match", "مطابقة"),
+            _ => action
+        };
+
+    private void Back() => NavigationManager.NavigateTo($"/Procurement/{ProcurementUiText.Route(kind)}");
+    private string SupplierInvoiceSourceLabel() =>
+        LooksLikeGoodsReceiptNumber(document.SourceDocumentNumber)
+            ? SharedDataService.SelectViewLang("Goods Receipt", "Goods Receipt")
+            : SharedDataService.SelectViewLang("Purchase Order", "Purchase Order");
+
+    private static bool LooksLikeGoodsReceiptNumber(string? number) =>
+        !string.IsNullOrWhiteSpace(number)
+        && number.StartsWith("GR-", StringComparison.OrdinalIgnoreCase);
+
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private bool IsPurchaseOrderCloseAction(string action) =>
+        kind == ProcurementDocumentKind.PurchaseOrder &&
+        string.Equals(action, "close", StringComparison.OrdinalIgnoreCase);
+
+    private async Task<bool> ConfirmPurchaseOrderCloseAsync()
+    {
+        var message = SharedDataService.SelectViewLang(
+            "Closing this purchase order will stop receiving remaining quantities. Only posted goods receipts will be invoiceable.",
+            "سيؤدي إغلاق أمر الشراء إلى إيقاف استلام الكميات المتبقية. ستكون إشعارات الاستلام المرحلة فقط قابلة للفوترة.");
+
+        return await JSRuntime.InvokeAsync<bool>("confirm", message);
+    }
+
+    private string SkuDisplay(ProcurementDocumentLineDto line)
+    {
+        if (skuLookups.TryGetValue(line.ProductSkuId, out var sku))
+        {
+            var localizedName = SharedDataService.SelectViewLang(sku.NameEng ?? string.Empty, sku.Name ?? string.Empty);
+            return FirstNonEmpty(localizedName, sku.Name, sku.NameEng, line.SkuCode, "-");
+        }
+
+        return FirstNonEmpty(line.SkuCode, "-");
+    }
+
+    private static string FirstNonEmpty(params string?[] values) =>
+        values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+
+    private static bool Is(string status, string expected) => string.Equals(status, expected, StringComparison.OrdinalIgnoreCase);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+
+    private readonly record struct ActionItem(string Key);
+}

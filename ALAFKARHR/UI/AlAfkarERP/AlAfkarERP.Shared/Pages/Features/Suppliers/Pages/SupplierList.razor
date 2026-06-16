@@ -1,0 +1,213 @@
+@layout AdminLayout
+@page "/Suppliers/Supplier/List"
+
+@using AlAfkarERP.Shared.Pages.Features.Suppliers.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.Suppliers.Dtos
+@using SharedWithUI.Suppliers.Enums
+
+@implements IDisposable
+@inject ISupplierService SupplierService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Supplier Management", "إدارة الموردين")"
+                Subtitle="@SharedDataService.SelectViewLang("Create, review, and maintain supplier master data for procurement.", "إنشاء ومراجعة وإدارة بيانات الموردين للمشتريات.")"
+                Overline="@SharedDataService.SelectViewLang("Suppliers", "الموردون")"
+                Icon="bi-truck">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="LoadAsync">
+                <i class="bi bi-arrow-repeat"></i>
+                @SharedDataService.SelectViewLang("Refresh", "تحديث")
+            </button>
+            <button class="btn btn-primary" @onclick="CreateNew" disabled="@(!CanCreate)">
+                <i class="bi bi-plus-lg"></i>
+                @SharedDataService.SelectViewLang("New Supplier", "مورد جديد")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="fw-semibold">@SharedDataService.SelectViewLang("Loading suppliers...", "جاري تحميل الموردين...")</div>
+            </div>
+        </AppCard>
+    }
+    else if (!CanView)
+    {
+        <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page.", "ليس لديك الصلاحية لعرض هذه الصفحة.")</div>
+    }
+    else
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <StatsCard Title="@SharedDataService.SelectViewLang("Visible Suppliers", "الموردون المعروضون")" Value="@suppliers.Count.ToString()" Icon="bi-truck" />
+            </div>
+            <div class="col-md-3">
+                <StatsCard Title="@SharedDataService.SelectViewLang("Active", "نشط")" Value="@suppliers.Count(x => x.Status == SupplierStatus.Active).ToString()" Icon="bi-check2-circle" />
+            </div>
+            <div class="col-md-3">
+                <StatsCard Title="@SharedDataService.SelectViewLang("Contacts", "جهات الاتصال")" Value="@suppliers.Sum(x => x.Contacts?.Count ?? 0).ToString()" Icon="bi-person-lines-fill" />
+            </div>
+            <div class="col-md-3">
+                <StatsCard Title="@SharedDataService.SelectViewLang("Addresses", "العناوين")" Value="@suppliers.Sum(x => x.Addresses?.Count ?? 0).ToString()" Icon="bi-geo-alt" />
+            </div>
+        </div>
+
+        <AppCard Title="@SharedDataService.SelectViewLang("Suppliers", "الموردون")">
+            <FilterBar CssClass="mb-3">
+                <ChildContent>
+                    <div class="input-group" style="max-width: 360px;">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input class="form-control"
+                               placeholder="@SharedDataService.SelectViewLang("Search name, code, tax number", "بحث بالاسم أو الكود أو الرقم الضريبي")"
+                               @bind="searchText"
+                               @bind:event="oninput"
+                               @onkeydown="HandleSearchKey" />
+                    </div>
+                </ChildContent>
+                <Actions>
+                    <button class="btn btn-outline-primary" @onclick="LoadAsync">
+                        <i class="bi bi-search"></i>
+                        @SharedDataService.SelectViewLang("Search", "بحث")
+                    </button>
+                </Actions>
+            </FilterBar>
+
+            <div class="erp-table-wrap">
+                <table class="table erp-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>@SharedDataService.SelectViewLang("Supplier", "المورد")</th>
+                            <th>@SharedDataService.SelectViewLang("Code", "الكود")</th>
+                            <th>@SharedDataService.SelectViewLang("Type", "النوع")</th>
+                            <th>@SharedDataService.SelectViewLang("Payment", "الدفع")</th>
+                            <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
+                            <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (suppliers.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">@SharedDataService.SelectViewLang("No suppliers found.", "لا توجد موردون.")</td>
+                            </tr>
+                        }
+                        @foreach (var supplier in suppliers)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@supplier.Name</div>
+                                    <div class="text-muted small">@supplier.CommercialName</div>
+                                </td>
+                                <td>@(string.IsNullOrWhiteSpace(supplier.SupplierCode) ? "-" : supplier.SupplierCode)</td>
+                                <td>@supplier.Type</td>
+                                <td>@supplier.PaymentTerm</td>
+                                <td><span class="@StatusBadge(supplier.Status)">@supplier.Status</span></td>
+                                <td>
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <button class="btn btn-outline-primary btn-sm erp-row-action" title="@SharedDataService.SelectViewLang("View", "عرض")" @onclick="() => View(supplier.Id)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning btn-sm erp-row-action" title="@SharedDataService.SelectViewLang("Edit", "تعديل")" @onclick="() => Edit(supplier.Id)" disabled="@(!CanEdit)">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm erp-row-action" title="@SharedDataService.SelectViewLang("Delete", "حذف")" @onclick="() => DeleteAsync(supplier.Id)" disabled="@(!CanDelete)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </AppCard>
+    }
+</div>
+
+@code {
+    private readonly List<SupplierDto> suppliers = [];
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private string? searchText;
+    private bool isLoading = true;
+
+    private bool CanView => HasPermission(PermissionList.SupplierPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.SupplierPermissions.Create);
+    private bool CanEdit => HasPermission(PermissionList.SupplierPermissions.Edit);
+    private bool CanDelete => HasPermission(PermissionList.SupplierPermissions.Delete);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var claim = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+        Guid.TryParse(claim, out companyId);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        suppliers.Clear();
+
+        if (companyId != Guid.Empty && CanView)
+        {
+            var response = await SupplierService.GetByCompanyAsync(companyId, 0, 100, searchText ?? string.Empty);
+            if (response.IsSuccess)
+                suppliers.AddRange(response.Data?.Data ?? []);
+            else
+                ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Could not load suppliers.", "تعذر تحميل الموردين."));
+        }
+
+        isLoading = false;
+    }
+
+    private async Task HandleSearchKey(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+            await LoadAsync();
+    }
+
+    private void CreateNew() => NavigationManager.NavigateTo("/Suppliers/Supplier/Form");
+    private void View(Guid id) => NavigationManager.NavigateTo($"/Suppliers/Supplier/View/{id}");
+    private void Edit(Guid id) => NavigationManager.NavigateTo($"/Suppliers/Supplier/Form/{id}");
+
+    private async Task DeleteAsync(Guid id)
+    {
+        var response = await SupplierService.DeleteAsync(id);
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(SharedDataService.SelectViewLang("Supplier deleted.", "تم حذف المورد."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Could not delete supplier.", "تعذر حذف المورد."));
+        }
+    }
+
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+
+    private static string StatusBadge(SupplierStatus status) =>
+        status switch
+        {
+            SupplierStatus.Active => "badge text-bg-success",
+            SupplierStatus.Suspended => "badge text-bg-warning",
+            SupplierStatus.Blocked => "badge text-bg-danger",
+            SupplierStatus.Archived => "badge text-bg-secondary",
+            _ => "badge text-bg-light"
+        };
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

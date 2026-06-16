@@ -1,0 +1,86 @@
+@layout AdminLayout
+@page "/Procurement/Dashboard"
+
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Services
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Pages
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.Procurement.Dtos
+@using SharedWithUI.Procurement.Enums
+
+@implements IDisposable
+@inject IProcurementService ProcurementService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Procurement", "المشتريات")"
+                Subtitle="@SharedDataService.SelectViewLang("Track requests, quotations, purchase orders, receipts, returns, and supplier invoices.", "متابعة طلبات الشراء وعروض الأسعار وأوامر الشراء والاستلام والمرتجعات وفواتير الموردين.")"
+                Overline="@SharedDataService.SelectViewLang("Operations", "العمليات")"
+                Icon="bi-cart-check" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var card in Cards)
+            {
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <button type="button" class="erp-card w-100 text-start border-0" @onclick="() => Navigate(card.Kind)">
+                        <div class="erp-card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="text-muted small">@SharedDataService.SelectViewLang(card.TitleEn, card.TitleAr)</div>
+                                    <div class="fs-3 fw-semibold">@card.Count</div>
+                                </div>
+                                <i class="bi @card.Icon fs-2 text-primary"></i>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private ProcurementDashboardDto dashboard = new();
+    private Guid? companyId;
+    private AuthenticationState? authState;
+    private bool CanView => authState?.User.Claims.Any(c => c.Value == PermissionList.PurchaseOrderPermissions.Select || c.Value == PermissionList.PurchaseRequestPermissions.Select) == true;
+
+    private IEnumerable<(ProcurementDocumentKind Kind, string TitleEn, string TitleAr, string Icon, int Count)> Cards =>
+    [
+        (ProcurementDocumentKind.PurchaseRequest, "Purchase Requests", "طلبات الشراء", "bi-card-checklist", dashboard.PurchaseRequests),
+        (ProcurementDocumentKind.RequestForQuotation, "RFQs", "طلبات عروض الأسعار", "bi-envelope-paper", dashboard.RequestsForQuotation),
+        (ProcurementDocumentKind.SupplierQuotation, "Supplier Quotations", "عروض أسعار الموردين", "bi-file-earmark-text", dashboard.SupplierQuotations),
+        (ProcurementDocumentKind.PurchaseOrder, "Purchase Orders", "أوامر الشراء", "bi-bag-check", dashboard.PurchaseOrders),
+        (ProcurementDocumentKind.GoodsReceipt, "Goods Receipts", "استلام البضائع", "bi-box-arrow-in-down", dashboard.GoodsReceipts),
+        (ProcurementDocumentKind.PurchaseReturn, "Purchase Returns", "مرتجعات الشراء", "bi-arrow-return-left", dashboard.PurchaseReturns),
+        (ProcurementDocumentKind.SupplierInvoice, "Supplier Invoices", "فواتير الموردين", "bi-receipt", dashboard.SupplierInvoices)
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var claim = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+        if (Guid.TryParse(claim, out var parsedCompanyId))
+            companyId = parsedCompanyId;
+
+        var response = await ProcurementService.GetDashboardAsync(companyId);
+        if (response.IsSuccess && response.Data is not null)
+            dashboard = response.Data;
+    }
+
+    private void Navigate(ProcurementDocumentKind kind) =>
+        NavigationManager.NavigateTo($"/Procurement/{ProcurementUiText.Route(kind)}");
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

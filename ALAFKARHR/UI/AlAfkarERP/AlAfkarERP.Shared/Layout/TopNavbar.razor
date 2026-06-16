@@ -1,173 +1,154 @@
-﻿@using AlAfkarERP.Shared.Utilities
+@using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
 @using System.Security.Claims
-@using Microsoft.IdentityModel.JsonWebTokens
-@using SharedWithUI.Auth.Dtos
-
-
 @inject SharedDataService SharedDataService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
+@implements IDisposable
 
-<!---->
 <nav class="navbar navbar-expand-lg erp-topbar px-3">
+    <div class="d-flex align-items-center min-w-0 topbar-context">
+        @if (OnToggleSidebar.HasDelegate)
+        {
+            <button class="btn erp-icon-btn me-2 d-lg-none"
+                    title="@SharedDataService.SelectViewLang("Open navigation", "\u0641\u062a\u062d \u0627\u0644\u0642\u0627\u0626\u0645\u0629")"
+                    @onclick="() => OnToggleSidebar.InvokeAsync()">
+                <i class="bi bi-list"></i>
+            </button>
+        }
 
-    <!-- Left -->
-    <div class="d-flex align-items-center">
-        @* <button class="btn btn-light me-2">
-            <i class="bi bi-list"></i>
-        </button> *@
-        <button class="btn erp-icon-btn me-2 d-lg-none" @onclick="() => OnToggleSidebar.InvokeAsync()">
-            <i class="bi bi-list"></i>
-        </button>
-        <span class="erp-topbar-title">@SharedDataService.SelectViewLang("Dashboard", "لوحة التحكم")</span>
+        @if (OnToggleSidebarCollapsed.HasDelegate)
+        {
+            <button class="btn erp-icon-btn me-2 d-none d-lg-inline-flex"
+                    title="@SharedDataService.SelectViewLang(IsSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar", IsSidebarCollapsed ? "\u062a\u0648\u0633\u064a\u0639 \u0627\u0644\u0642\u0627\u0626\u0645\u0629" : "\u0637\u064a \u0627\u0644\u0642\u0627\u0626\u0645\u0629")"
+                    @onclick="() => OnToggleSidebarCollapsed.InvokeAsync()">
+                <i class="bi @(IsSidebarCollapsed ? "bi-layout-sidebar-inset" : "bi-layout-sidebar-inset-reverse")"></i>
+            </button>
+        }
+
+        <div class="min-w-0">
+            <span class="erp-topbar-title">@CurrentTitle</span>
+            @if (ActivePath.Count > 1)
+            {
+                <ol class="topbar-breadcrumb" aria-label="Breadcrumb">
+                    @foreach (var item in ActivePath)
+                    {
+                        <li>@SharedDataService.SelectViewLang(item.TextEn, item.TextAr)</li>
+                    }
+                </ol>
+            }
+        </div>
     </div>
 
-    <!-- Right -->
-    <div class="ms-auto d-flex align-items-center">
-
-        <!--Language-->
+    <div class="ms-auto d-flex align-items-center topbar-actions">
         <ThemeSelector />
 
-        <button @onclick="async () => { await SharedDataService.UpdateLanguageAsync(); }" class="btn erp-icon-btn ms-2">
-            @(SharedDataService.Language == "Ar" ? "Eng" : "ع") <i class="bi bi-globe"></i>
+        <button @onclick="async () => { await SharedDataService.UpdateLanguageAsync(); }"
+                class="btn erp-icon-btn ms-2"
+                title="@SharedDataService.SelectViewLang("Change language", "\u062a\u063a\u064a\u064a\u0631 \u0627\u0644\u0644\u063a\u0629")">
+            <span>@(SharedDataService.Language == "Ar" ? "Eng" : "\u0639")</span>
+            <i class="bi bi-globe"></i>
         </button>
 
-        <!-- Search
-
-        <input class="form-control form-control-sm me-3"
-               style="width: 200px;"
-               placeholder="Search..." />
-        -->
-        <!-- Notifications -->
-        <button class="btn erp-icon-btn ms-2">
+        <button class="btn erp-icon-btn ms-2"
+                title="@SharedDataService.SelectViewLang("Notifications", "\u0627\u0644\u0625\u0634\u0639\u0627\u0631\u0627\u062a")">
             <i class="bi bi-bell"></i>
         </button>
 
-        <!-- User -->
         <div class="dropdown">
-            <button class="btn erp-icon-btn dropdown-toggle ms-2" data-bs-toggle="dropdown">
-                Admin
+            <button class="btn erp-icon-btn dropdown-toggle ms-2 topbar-user-button" data-bs-toggle="dropdown">
+                <span class="topbar-user-avatar">@UserInitials</span>
+                <span class="topbar-user-name">@UserDisplayName</span>
             </button>
 
             <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item">Profile</a></li>
-                <li><a @onclick='async()=>{await ((CustomAuthStateProvider)AuthenticationStateProvider).NotifyUserLogout(); NavigationManager.NavigateTo("/",true);}' class="dropdown-item">Logout</a></li>
+                <li><span class="dropdown-header">@UserDisplayName</span></li>
+                <li><a class="dropdown-item">@SharedDataService.SelectViewLang("Profile", "\u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062e\u0635\u064a")</a></li>
+                <li>
+                    <a @onclick="LogoutAsync" class="dropdown-item">
+                        @SharedDataService.SelectViewLang("Logout", "\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c")
+                    </a>
+                </li>
             </ul>
         </div>
-
     </div>
-
 </nav>
-
-
-
-
-
-@if (1 == 3)
-{
-    
-    <nav class="navbar navbar-expand-lg bg-body-tertiary">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">Alafkar</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                @if (1 == 10)
-                {
-                
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                        <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="#">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">Link</a>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Dropdown
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#">Action</a></li>
-                                <li><a class="dropdown-item" href="#">Another action</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#">Something else here</a></li>
-                            </ul>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link disabled" aria-disabled="true">Disabled</a>
-                        </li>
-                    </ul>
-                }
-
-                <button class="btn btn-light me-2" @onclick="async () => await SharedDataService.UpdateLanguageAsync()">
-                    @* <i class="bi bi-bell"></i>  *@
-                    @(SharedDataService.Language == "Ar" ? "Eng" : "Ar")
-                </button>
-                    
-                <form class="d-flex">
-                    @if (AuthState != null && AuthState.User.Identity.IsAuthenticated)
-                    {
-            
-                        <button class="btn btn-light me-2">
-                            <i class="bi bi-bell"></i>
-                        </button>
-                        <div class="dropdown">
-                            <button class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown">
-                                @(AuthState.User?.Claims?.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value ?? "")
-                            </button>
-
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item">Profile</a></li>
-                                <li><a class="dropdown-item">Logout</a></li>
-                                @if (AuthState!.User!.Claims.Any(c => c.Type == JwtRegisteredClaimNames.Typ && c.Value == UserType.SystemUser.ToString()))
-                                {
-                                    <li><a href="/AdminDashboard" class="dropdown-item">@SharedDataService.SelectViewLang("Dashboard", "لوحة التحكم")</a></li>
-                                    @* NavigationManager.NavigateTo("/AdminDashboard"); *@
-                                    @* return; *@
-                                }
-                            </ul>
-                        </div>
-                    }
-                    else
-                    {
-                        <button type="button" class="btn btn-light me-2" @onclick="OnLogin">
-                            <i class="bi bi-key"></i> Login
-                        </button>
-    
-                    }
-
-                    @* <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" />
-                <button class="btn btn-outline-success" type="submit">Search</button> *@
-                </form>
-            </div>
-        </div>
-    </nav>
-
-}
-
 
 @code {
     [Parameter] public EventCallback OnToggleSidebar { get; set; }
-    private AuthenticationState AuthState;
+    [Parameter] public EventCallback OnToggleSidebarCollapsed { get; set; }
+    [Parameter] public bool IsSidebarCollapsed { get; set; }
+
+    private AuthenticationState? authState;
+    private IReadOnlyList<MenuItem> ActivePath { get; set; } = Array.Empty<MenuItem>();
+
+    private string CurrentTitle
+        => ActivePath.LastOrDefault() is { } activeItem
+            ? SharedDataService.SelectViewLang(activeItem.TextEn, activeItem.TextAr)
+            : SharedDataService.SelectViewLang("Dashboard", "\u0644\u0648\u062d\u0629 \u0627\u0644\u062a\u062d\u0643\u0645");
+
+    private string UserDisplayName
+    {
+        get
+        {
+            var user = authState?.User;
+            return FirstClaimValue(user, ClaimTypes.Name, "name", "unique_name", "email", "sub")
+                   ?? SharedDataService.SelectViewLang("Administrator", "\u0645\u062f\u064a\u0631 \u0627\u0644\u0646\u0638\u0627\u0645");
+        }
+    }
+
+    private string UserInitials
+    {
+        get
+        {
+            var name = UserDisplayName.Trim();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return "A";
+            }
+
+            var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length > 1)
+            {
+                return $"{parts[0][0]}{parts[1][0]}".ToUpperInvariant();
+            }
+
+            return name[..Math.Min(2, name.Length)].ToUpperInvariant();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        UpdateActivePath();
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        NavigationManager.LocationChanged += HandleLocationChanged;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-            // if (!AuthState.User.Identity.IsAuthenticated)
-            // {
-            //     NavigationManager.NavigateTo("login");
-            // }
-            // NavigationManager.NavigateTo("/login");
+            authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
             await InvokeAsync(StateHasChanged);
         }
     }
-    protected override void OnInitialized()
+
+    private async Task LogoutAsync()
     {
-        SharedDataService.OnChange1 += HandleChangeAsync;
+        await ((CustomAuthStateProvider)AuthenticationStateProvider).NotifyUserLogout();
+        NavigationManager.NavigateTo("/", true);
+    }
+
+    private void UpdateActivePath()
+    {
+        ActivePath = NavigationMenuResolver.GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri);
+    }
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        UpdateActivePath();
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private async Task HandleChangeAsync()
@@ -175,13 +156,14 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private static string? FirstClaimValue(ClaimsPrincipal? user, params string[] claimTypes)
+        => claimTypes
+            .Select(type => user?.Claims.FirstOrDefault(c => c.Type == type)?.Value)
+            .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+
     public void Dispose()
     {
         SharedDataService.OnChange1 -= HandleChangeAsync;
-    }
-
-    public void OnLogin()
-    {
-        NavigationManager.NavigateTo("/login");
+        NavigationManager.LocationChanged -= HandleLocationChanged;
     }
 }

@@ -9,30 +9,40 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ITaskManagementService TaskManagementService
+@inject IJSRuntime JSRuntime
 @implements IDisposable
 
-<aside class="sidebar app-sidebar text-white d-flex flex-column @(IsOpen ? "open" : "")" aria-label="Main navigation">
+<aside class="sidebar app-sidebar text-white d-flex flex-column @(IsOpen ? "open" : "") @(IsCollapsed ? "is-collapsed" : "")" aria-label="Main navigation">
     <div class="sidebar-brand">
         <div class="brand-mark">
             <i class="bi bi-grid-1x2-fill"></i>
         </div>
-        <div class="min-w-0">
+        <div class="min-w-0 sidebar-brand-copy">
             <div class="brand-title">ALAFKAR ERP</div>
-            <div class="brand-subtitle">@SharedDataService.SelectViewLang("ERP Workspace", "مساحة العمل")</div>
+            <div class="brand-subtitle">@SharedDataService.SelectViewLang("ERP Workspace", "\u0645\u0633\u0627\u062d\u0629 \u0627\u0644\u0639\u0645\u0644")</div>
         </div>
+        @if (OnToggleCollapsed.HasDelegate)
+        {
+            <button type="button"
+                    class="btn sidebar-collapse-btn d-none d-lg-inline-flex"
+                    title="@SharedDataService.SelectViewLang(IsCollapsed ? "Expand sidebar" : "Collapse sidebar", IsCollapsed ? "\u062a\u0648\u0633\u064a\u0639 \u0627\u0644\u0642\u0627\u0626\u0645\u0629" : "\u0637\u064a \u0627\u0644\u0642\u0627\u0626\u0645\u0629")"
+                    @onclick="() => OnToggleCollapsed.InvokeAsync()">
+                <i class="bi @(IsCollapsed ? "bi-layout-sidebar-inset" : "bi-layout-sidebar-inset-reverse")"></i>
+            </button>
+        }
     </div>
 
-    <div class="sidebar-search">
+    <div class="sidebar-search" title="@SharedDataService.SelectViewLang("Search menu", "\u0628\u062d\u062b \u0641\u064a \u0627\u0644\u0642\u0627\u0626\u0645\u0629")">
         <i class="bi bi-search"></i>
         <input class="form-control"
-               placeholder="@SharedDataService.SelectViewLang("Search menu", "بحث في القائمة")"
+               placeholder="@SharedDataService.SelectViewLang("Search menu", "\u0628\u062d\u062b \u0641\u064a \u0627\u0644\u0642\u0627\u0626\u0645\u0629")"
                @bind="searchText"
                @bind:event="oninput" />
         @if (!string.IsNullOrWhiteSpace(searchText))
         {
             <button type="button"
                     class="btn btn-sm search-clear"
-                    title="@SharedDataService.SelectViewLang("Clear", "مسح")"
+                    title="@SharedDataService.SelectViewLang("Clear", "\u0645\u0633\u062d")"
                     @onclick="ClearSearch">
                 <i class="bi bi-x-lg"></i>
             </button>
@@ -44,27 +54,39 @@
         {
             <div class="sidebar-empty">
                 <div class="spinner-border spinner-border-sm" role="status"></div>
-                <span>@SharedDataService.SelectViewLang("Loading menu...", "جاري تحميل القائمة...")</span>
+                <span>@SharedDataService.SelectViewLang("Loading menu...", "\u062c\u0627\u0631\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0642\u0627\u0626\u0645\u0629...")</span>
             </div>
         }
         else if (!VisibleRootItems.Any())
         {
             <div class="sidebar-empty">
                 <i class="bi bi-search"></i>
-                <span>@SharedDataService.SelectViewLang("No matching menu items", "لا توجد عناصر مطابقة")</span>
+                <span>@SharedDataService.SelectViewLang("No permitted menu item matches your search", "\u0644\u0627 \u064a\u0648\u062c\u062f \u0639\u0646\u0635\u0631 \u0645\u0633\u0645\u0648\u062d \u064a\u0637\u0627\u0628\u0642 \u0627\u0644\u0628\u062d\u062b")</span>
             </div>
         }
         else
         {
             <ul class="nav flex-column sidebar-menu">
-                @foreach (var item in VisibleRootItems)
+                @for (var index = 0; index < VisibleRootItems.Count; index++)
                 {
+                    var item = VisibleRootItems[index];
+                    var sectionLabel = GetSectionLabel(item, index);
+
+                    if (!string.IsNullOrWhiteSpace(sectionLabel))
+                    {
+                        <li class="sidebar-section-label">@sectionLabel</li>
+                    }
+
                     <SidebarItem Item="item"
                                  Siblings="@VisibleRootItems"
                                  RootItems="@MenuItem.Menu"
                                  AuthState="@authState"
                                  SearchText="@searchText"
-                                 IsFiltering="@IsFiltering" />
+                                 IsFiltering="@IsFiltering"
+                                 IsCollapsed="@IsCollapsed"
+                                 ParentPath="@EmptyMenuPath"
+                                 OnLeafSelected="HandleLeafSelected"
+                                 OnOpenStateChanged="PersistOpenStateAsync" />
                 }
             </ul>
         }
@@ -73,14 +95,14 @@
     <div class="sidebar-footer">
         <div class="user-chip">
             <div class="user-avatar">@UserInitials</div>
-            <div class="min-w-0">
+            <div class="min-w-0 sidebar-user-copy">
                 <div class="user-name">@UserDisplayName</div>
-                <div class="user-meta">@SharedDataService.SelectViewLang("Signed in", "مسجل الدخول")</div>
+                <div class="user-meta">@SharedDataService.SelectViewLang("Signed in", "\u0645\u0633\u062c\u0644 \u0627\u0644\u062f\u062e\u0648\u0644")</div>
             </div>
         </div>
         <button type="button"
                 class="btn logout-btn"
-                title="@SharedDataService.SelectViewLang("Logout", "تسجيل الخروج")"
+                title="@SharedDataService.SelectViewLang("Logout", "\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c")"
                 @onclick="LogoutAsync">
             <i class="bi bi-box-arrow-right"></i>
         </button>
@@ -89,11 +111,16 @@
 
 @code {
     [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public bool IsCollapsed { get; set; }
+    [Parameter] public EventCallback OnLeafSelected { get; set; }
+    [Parameter] public EventCallback OnToggleCollapsed { get; set; }
 
     private AuthenticationState? authState;
     private string searchText = "";
+    private const string SidebarOpenStateStorageKey = "alafkar.sidebar.openKeys";
 
     private bool IsFiltering => !string.IsNullOrWhiteSpace(searchText);
+    private static readonly IReadOnlyList<MenuItem> EmptyMenuPath = Array.Empty<MenuItem>();
 
     private List<MenuItem> VisibleRootItems => MenuItem.Menu
         .Where(item => IsAuthorized(item) && MatchesSearch(item))
@@ -104,6 +131,14 @@
         SharedDataService.OnChange1 += HandleChangeAsync;
         authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
         await LoadTaskBadgeAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadOpenStateAsync();
+        }
     }
 
     private bool IsAuthorized(MenuItem item)
@@ -174,6 +209,58 @@
         searchText = "";
     }
 
+    private async Task HandleLeafSelected()
+    {
+        await OnLeafSelected.InvokeAsync();
+    }
+
+    private async Task LoadOpenStateAsync()
+    {
+        try
+        {
+            var value = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", SidebarOpenStateStorageKey);
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                var keys = value.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                foreach (var item in NavigationMenuResolver.Flatten(MenuItem.Menu))
+                {
+                    if (keys.Contains(NavigationMenuResolver.GetStorageKey(item)))
+                    {
+                        item.IsOpen = true;
+                    }
+                }
+            }
+
+            foreach (var item in NavigationMenuResolver.GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri))
+            {
+                item.IsOpen = true;
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    private async Task PersistOpenStateAsync()
+    {
+        try
+        {
+            var keys = NavigationMenuResolver.Flatten(MenuItem.Menu)
+                .Where(item => item.IsOpen)
+                .Select(NavigationMenuResolver.GetStorageKey);
+
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", SidebarOpenStateStorageKey, string.Join("|", keys));
+        }
+        catch (JSException)
+        {
+        }
+    }
+
     private async Task LogoutAsync()
     {
         await ((CustomAuthStateProvider)AuthenticationStateProvider).NotifyUserLogout();
@@ -203,7 +290,7 @@
                 dashboard.OverdueTasks,
                 "text-bg-danger",
                 $"{dashboard.OverdueTasks} overdue task(s)",
-                $"{dashboard.OverdueTasks} مهمة متأخرة");
+                $"{dashboard.OverdueTasks} \u0645\u0647\u0645\u0629 \u0645\u062a\u0623\u062e\u0631\u0629");
         }
         else if (dashboard.TasksDueToday > 0)
         {
@@ -211,7 +298,7 @@
                 dashboard.TasksDueToday,
                 "text-bg-warning",
                 $"{dashboard.TasksDueToday} task(s) due today",
-                $"{dashboard.TasksDueToday} مهمة مستحقة اليوم");
+                $"{dashboard.TasksDueToday} \u0645\u0647\u0645\u0629 \u0645\u0633\u062a\u062d\u0642\u0629 \u0627\u0644\u064a\u0648\u0645");
         }
         else if (dashboard.OpenTasks > 0)
         {
@@ -219,7 +306,7 @@
                 dashboard.OpenTasks,
                 "text-bg-primary",
                 $"{dashboard.OpenTasks} open task(s)",
-                $"{dashboard.OpenTasks} مهمة مفتوحة");
+                $"{dashboard.OpenTasks} \u0645\u0647\u0645\u0629 \u0645\u0641\u062a\u0648\u062d\u0629");
         }
     }
 
@@ -262,7 +349,7 @@
         {
             var user = authState?.User;
             return FirstClaimValue(user, ClaimTypes.Name, "name", "unique_name", "email", "sub")
-                   ?? SharedDataService.SelectViewLang("Administrator", "مدير النظام");
+                   ?? SharedDataService.SelectViewLang("Administrator", "\u0645\u062f\u064a\u0631 \u0627\u0644\u0646\u0638\u0627\u0645");
         }
     }
 
@@ -286,6 +373,25 @@
         }
     }
 
+    private string? GetSectionLabel(MenuItem item, int index)
+    {
+        if (IsFiltering || IsCollapsed)
+        {
+            return null;
+        }
+
+        return item.TextEn switch
+        {
+            "Home" when index == 0 => SharedDataService.SelectViewLang("Start", "\u0627\u0644\u0628\u062f\u0627\u064a\u0629"),
+            "Organizational Structure" => SharedDataService.SelectViewLang("Company", "\u0627\u0644\u0634\u0631\u0643\u0629"),
+            "People" => SharedDataService.SelectViewLang("Workforce", "\u0627\u0644\u0642\u0648\u0649 \u0627\u0644\u0639\u0627\u0645\u0644\u0629"),
+            "Operations" => SharedDataService.SelectViewLang("Operations", "\u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a"),
+            "Task Management" => SharedDataService.SelectViewLang("Productivity", "\u0627\u0644\u0625\u0646\u062a\u0627\u062c\u064a\u0629"),
+            "Security Management" => SharedDataService.SelectViewLang("Administration", "\u0627\u0644\u0625\u062f\u0627\u0631\u0629"),
+            _ => null
+        };
+    }
+
     private static string? FirstClaimValue(ClaimsPrincipal? user, params string[] claimTypes)
         => claimTypes
             .Select(type => user?.Claims.FirstOrDefault(c => c.Type == type)?.Value)
@@ -301,192 +407,3 @@
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }
-
-<style>
-    .app-sidebar {
-        width: 280px;
-        min-width: 280px;
-        height: 100vh;
-        background: var(--erp-sidebar-bg);
-        border-inline-end: 1px solid var(--erp-sidebar-border);
-        padding: 1rem .75rem;
-        overflow: hidden;
-    }
-
-    .sidebar-brand {
-        display: flex;
-        align-items: center;
-        gap: .75rem;
-        padding: .35rem .45rem .9rem;
-        border-bottom: 1px solid var(--erp-sidebar-border);
-        margin-bottom: .75rem;
-    }
-
-    .brand-mark {
-        width: 40px;
-        height: 40px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: var(--erp-radius-md);
-        background: var(--erp-primary);
-        color: #fff;
-        flex: 0 0 auto;
-    }
-
-    .brand-title {
-        font-weight: 700;
-        line-height: 1.1;
-    }
-
-    .brand-subtitle,
-    .user-meta {
-        color: var(--erp-sidebar-muted);
-        font-size: .76rem;
-        line-height: 1.2;
-    }
-
-    .sidebar-search {
-        position: relative;
-        margin-bottom: .75rem;
-    }
-
-    .sidebar-search > .bi {
-        position: absolute;
-        inset-inline-start: .75rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--erp-sidebar-muted);
-        pointer-events: none;
-    }
-
-    .sidebar-search .form-control {
-        height: 38px;
-        border-radius: var(--erp-radius-md);
-        border: 1px solid var(--erp-sidebar-border);
-        background: var(--erp-sidebar-bg-soft);
-        color: #fff;
-        padding-inline-start: 2.25rem;
-        padding-inline-end: 2rem;
-        font-size: .9rem;
-    }
-
-    .sidebar-search .form-control::placeholder {
-        color: var(--erp-sidebar-muted);
-    }
-
-    .search-clear {
-        position: absolute;
-        inset-inline-end: .25rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--erp-sidebar-text);
-        border: 0;
-    }
-
-    .sidebar-nav {
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow-y: auto;
-        padding-inline-end: .2rem;
-    }
-
-    .sidebar-nav::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .sidebar-nav::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, .18);
-        border-radius: 999px;
-    }
-
-    .sidebar-menu {
-        gap: .18rem;
-    }
-
-    .sidebar-empty {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: .5rem;
-        min-height: 120px;
-        color: var(--erp-sidebar-muted);
-        font-size: .9rem;
-        text-align: center;
-    }
-
-    .sidebar-footer {
-        display: flex;
-        align-items: center;
-        gap: .5rem;
-        border-top: 1px solid var(--erp-sidebar-border);
-        padding-top: .75rem;
-        margin-top: .75rem;
-    }
-
-    .user-chip {
-        display: flex;
-        align-items: center;
-        gap: .6rem;
-        min-width: 0;
-        flex: 1 1 auto;
-    }
-
-    .user-avatar {
-        width: 34px;
-        height: 34px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: var(--erp-radius-md);
-        background: var(--erp-sidebar-bg-soft);
-        font-weight: 700;
-        font-size: .78rem;
-        flex: 0 0 auto;
-    }
-
-    .user-name {
-        font-size: .9rem;
-        font-weight: 600;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .logout-btn {
-        width: 34px;
-        height: 34px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: var(--erp-radius-md);
-        color: var(--erp-sidebar-text);
-        background: var(--erp-sidebar-bg-soft);
-        flex: 0 0 auto;
-    }
-
-    .logout-btn:hover,
-    .search-clear:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, .14);
-    }
-
-    @@media (max-width: 991.98px) {
-        .app-sidebar {
-            position: fixed;
-            z-index: 1040;
-            inset-block: 0;
-            inset-inline-start: 0;
-            transform: translateX(-100%);
-            transition: transform .2s ease;
-        }
-
-        [dir="rtl"] .app-sidebar {
-            transform: translateX(100%);
-        }
-
-        .app-sidebar.open {
-            transform: translateX(0);
-        }
-    }
-</style>

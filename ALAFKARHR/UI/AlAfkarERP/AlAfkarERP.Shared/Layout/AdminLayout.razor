@@ -2,27 +2,34 @@
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits LayoutComponentBase
+@implements IDisposable
 
 @inject SharedDataService SharedDataService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 @* @Body *@
 @* <div class="d-flex vh-100"> *@
-<div class="erp-shell d-flex vh-100 overflow-hidden">
+<div class="erp-shell d-flex vh-100 overflow-hidden @(isSidebarCollapsed ? "sidebar-collapsed" : "")">
 
     @if (isSidebarOpen)
     {
         <div class="sidebar-backdrop" @onclick="ToggleSidebar"></div>
     }
     <!-- Sidebar -->
-    <Sidebar IsOpen="isSidebarOpen" />
+    <Sidebar IsOpen="isSidebarOpen"
+             IsCollapsed="isSidebarCollapsed"
+             OnLeafSelected="CloseSidebar"
+             OnToggleCollapsed="ToggleSidebarCollapsedAsync" />
 
     <!-- Main Area -->
     @* <div class="flex-grow-1 d-flex flex-column"> *@
     <div class="flex-grow-1 d-flex flex-column min-vw-0">
         <!-- Top Navbar -->
-        <TopNavbar OnToggleSidebar="ToggleSidebar" />
+        <TopNavbar OnToggleSidebar="ToggleSidebar"
+                   OnToggleSidebarCollapsed="ToggleSidebarCollapsedAsync"
+                   IsSidebarCollapsed="isSidebarCollapsed" />
         
         <!-- Page Content -->
         @* <main class="flex-grow-1 p-3 overflow-auto bg-light" dir="@SharedDataService.PageDirection"> *@
@@ -47,13 +54,26 @@
 </div>
 
 @code {
-    private AuthenticationState AuthState;
+    private AuthenticationState? AuthState;
 
     private bool isSidebarOpen = false;
+    private bool isSidebarCollapsed = false;
+    private const string SidebarCollapsedStorageKey = "alafkar.sidebar.collapsed";
 
     void ToggleSidebar()
     {
         isSidebarOpen = !isSidebarOpen;
+    }
+
+    private void CloseSidebar()
+    {
+        isSidebarOpen = false;
+    }
+
+    private async Task ToggleSidebarCollapsedAsync()
+    {
+        isSidebarCollapsed = !isSidebarCollapsed;
+        await PersistSidebarCollapsedAsync();
     }
 
     protected override async Task OnInitializedAsync()
@@ -64,8 +84,9 @@
     {
         if (firstRender)
         {
+            await LoadSidebarCollapsedAsync();
             AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-            if (!AuthState.User.Identity.IsAuthenticated)
+            if (AuthState.User.Identity?.IsAuthenticated != true)
             {
                 NavigationManager.NavigateTo("login", true);
             }
@@ -80,6 +101,33 @@
     private async Task HandleChangeAsync()
     {
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadSidebarCollapsedAsync()
+    {
+        try
+        {
+            var value = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", SidebarCollapsedStorageKey);
+            isSidebarCollapsed = string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    private async Task PersistSidebarCollapsedAsync()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", SidebarCollapsedStorageKey, isSidebarCollapsed ? "true" : "false");
+        }
+        catch (JSException)
+        {
+        }
     }
 
     public void Dispose()

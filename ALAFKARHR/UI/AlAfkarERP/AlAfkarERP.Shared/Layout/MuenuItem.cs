@@ -625,6 +625,108 @@ public class MenuItem
                         }
                     }
                 },
+                new MenuItem
+                {
+                    TextEn = "Supplier Management",
+                    TextAr = "إدارة الموردين",
+                    Icon = "bi-truck",
+                    Url = "/Suppliers/Supplier/List",
+                    PermissionPolicy = PermissionList.SupplierPermissions.Select,
+                    Children = new()
+                    {
+                        new MenuItem
+                        {
+                            TextEn = "Suppliers",
+                            TextAr = "الموردون",
+                            Icon = "bi-truck",
+                            Url = "/Suppliers/Supplier/List",
+                            PermissionPolicy = PermissionList.SupplierPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Supplier Groups",
+                            TextAr = "مجموعات الموردين",
+                            Icon = "bi-collection",
+                            Url = "/Suppliers/SupplierGroup/List",
+                            PermissionPolicy = PermissionList.SupplierGroupPermissions.View,
+                        }
+                    }
+                },
+                new MenuItem
+                {
+                    TextEn = "Procurement",
+                    TextAr = "المشتريات",
+                    Icon = "bi-cart-check",
+                    Url = "/Procurement/Dashboard",
+                    PermissionPolicy = PermissionList.PurchaseOrderPermissions.Select,
+                    Children = new()
+                    {
+                        new MenuItem
+                        {
+                            TextEn = "Dashboard",
+                            TextAr = "لوحة المشتريات",
+                            Icon = "bi-speedometer2",
+                            Url = "/Procurement/Dashboard",
+                            PermissionPolicy = PermissionList.PurchaseOrderPermissions.Select,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Purchase Requests",
+                            TextAr = "طلبات الشراء",
+                            Icon = "bi-card-checklist",
+                            Url = "/Procurement/purchase-requests",
+                            PermissionPolicy = PermissionList.PurchaseRequestPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "RFQs",
+                            TextAr = "طلبات عروض الأسعار",
+                            Icon = "bi-envelope-paper",
+                            Url = "/Procurement/requests-for-quotation",
+                            PermissionPolicy = PermissionList.RequestForQuotationPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Supplier Quotations",
+                            TextAr = "عروض أسعار الموردين",
+                            Icon = "bi-file-earmark-text",
+                            Url = "/Procurement/supplier-quotations",
+                            PermissionPolicy = PermissionList.SupplierQuotationPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Purchase Orders",
+                            TextAr = "أوامر الشراء",
+                            Icon = "bi-bag-check",
+                            Url = "/Procurement/purchase-orders",
+                            PermissionPolicy = PermissionList.PurchaseOrderPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Goods Receipts",
+                            TextAr = "استلام البضائع",
+                            Icon = "bi-box-arrow-in-down",
+                            Url = "/Procurement/goods-receipts",
+                            PermissionPolicy = PermissionList.GoodsReceiptPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Purchase Returns",
+                            TextAr = "مرتجعات الشراء",
+                            Icon = "bi-arrow-return-left",
+                            Url = "/Procurement/purchase-returns",
+                            PermissionPolicy = PermissionList.PurchaseReturnPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Supplier Invoices",
+                            TextAr = "فواتير الموردين",
+                            Icon = "bi-receipt",
+                            Url = "/Procurement/supplier-invoices",
+                            PermissionPolicy = PermissionList.SupplierInvoicePermissions.View,
+                        }
+                    }
+                },
                 //new MenuItem
                 //{
                 //    TextEn = "Transfers",
