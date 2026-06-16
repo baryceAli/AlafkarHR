@@ -174,17 +174,26 @@
                                                         </option>
                                                     }
                                                 </select>
-                                                <div class="text-muted small mt-1">
-                                                    @SharedDataService.SelectViewLang("Normalized quantity", "الكمية بعد التحويل"): @GetNormalizedQuantity(editingItem.TotalQuantity)
-                                                </div>
                                             </div>
                                         }
 
                                         <div class="col-md-4">
-                                            <label class="form-label">@SharedDataService.SelectViewLang("Quantity", "الكمية")</label>
+                                            <label class="form-label">
+                                                @(selectedProductPackageId.HasValue
+                                                    ? SharedDataService.SelectViewLang("Package Quantity", "كمية العبوة")
+                                                    : SharedDataService.SelectViewLang("SKU Quantity", "كمية المنتج المخزني"))
+                                            </label>
                                             <InputNumber class="form-control" @bind-Value="editingItem.TotalQuantity" />
                                             <ValidationMessage For="() => editingItem.TotalQuantity" />
                                         </div>
+
+                                        @if (selectedProductPackageId.HasValue)
+                                        {
+                                            <div class="col-md-4">
+                                                <label class="form-label">@SharedDataService.SelectViewLang("SKU Quantity", "كمية المنتج المخزني")</label>
+                                                <input class="form-control" value="@GetNormalizedQuantity(editingItem.TotalQuantity)" disabled />
+                                            </div>
+                                        }
 
                                         <div class="col-12 d-flex justify-content-end gap-2">
                                             <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelEdit">@SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>

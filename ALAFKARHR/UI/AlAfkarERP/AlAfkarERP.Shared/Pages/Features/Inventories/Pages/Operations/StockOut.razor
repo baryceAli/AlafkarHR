@@ -184,13 +184,25 @@
 
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label">@SharedDataService.SelectViewLang("Quantity", "الكمية")</label>
+                                <label class="form-label">
+                                    @(createInventoryAggregateDto.ProductPackageId.HasValue
+                                        ? SharedDataService.SelectViewLang("Package Quantity", "كمية العبوة")
+                                        : SharedDataService.SelectViewLang("SKU Quantity", "كمية المنتج المخزني"))
+                                </label>
                                 <InputNumber class="form-control"
                                              Value="createInventoryAggregateDto.InitialQuantity"
                                              TValue="decimal"
                                              ValueChanged="OnQuantityChanged"
                                              ValueExpression="() => createInventoryAggregateDto.InitialQuantity" />
                             </div>
+
+                            @if (createInventoryAggregateDto.ProductPackageId.HasValue)
+                            {
+                                <div class="col-md-4">
+                                    <label class="form-label">@SharedDataService.SelectViewLang("SKU Quantity", "كمية المنتج المخزني")</label>
+                                    <input class="form-control" value="@GetNormalizedQuantity(createInventoryAggregateDto.InitialQuantity)" disabled />
+                                </div>
+                            }
 
                             <div class="col-md-4">
                                 <label class="form-label">@SharedDataService.SelectViewLang("Unit Cost", "سعر الوحدة")</label>
