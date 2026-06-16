@@ -171,6 +171,7 @@ public class Employee : Aggregate<Guid>
     }
 
     public void Update(
+        string employeeNo,
         string firstName,
         string firstNameEng,
         string middleName,
@@ -193,6 +194,7 @@ public class Employee : Aggregate<Guid>
         string modifiedBy)
     {
 
+        EmployeeNo = employeeNo;
         FirstName = firstName;
         FirstNameEng = firstNameEng;
         MiddleName = middleName;
@@ -232,6 +234,14 @@ public class Employee : Aggregate<Guid>
     public void ChangePosition(Guid positionId, string modifiedBy)
     {
         PositionId = positionId;
+        ModifiedBy = modifiedBy;
+        ModifiedAt = DateTime.UtcNow;
+    }
+    public void ChangeCode(string code, string modifiedBy)
+    {
+        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentNullException(nameof(code), "Code is required");
+
+        Code = code.Trim();
         ModifiedBy = modifiedBy;
         ModifiedAt = DateTime.UtcNow;
     }
