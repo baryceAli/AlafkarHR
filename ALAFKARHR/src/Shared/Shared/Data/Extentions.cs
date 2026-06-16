@@ -10,7 +10,6 @@ public static class Extentions
     public static IApplicationBuilder UseMigration<TContext>(this IApplicationBuilder app, string schema)
         where TContext : DbContext
     {
-        bool isFirstModule = true;
         var maxRetries = 10;
         var delay = TimeSpan.FromSeconds(2);
 
@@ -21,14 +20,13 @@ public static class Extentions
                 using var scope = app.ApplicationServices.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<TContext>();
 
-                if (!isFirstModule)
+                var pendingMigrations = context.Database.GetPendingMigrationsAsync().GetAwaiter().GetResult();
+                if (pendingMigrations.Any())
                 {
+                    Console.WriteLine($"Applying pending migrations for {typeof(TContext).Name} ({schema})");
                     context.Database.MigrateAsync().GetAwaiter().GetResult();
                 }
 
-                isFirstModule = false;
-                //context.Database.Migrate();
-                // ✅ Only runs AFTER migration succeeds
                 var seeders = scope.ServiceProvider.GetServices<IDataSeeder<TContext>>();
                 foreach (var seeder in seeders)
                 {

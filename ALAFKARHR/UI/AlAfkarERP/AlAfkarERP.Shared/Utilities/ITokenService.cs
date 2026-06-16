@@ -6,6 +6,6 @@ namespace AlAfkarERP.Shared.Utilities;
 public interface ITokenService
 {
     Task<AuthTokens?> GetTokensAsync();
-    Task SetTokensAsync(AuthTokens tokens);
+    Task SetTokensAsync(AuthTokens tokens, bool? rememberDevice = null);
     Task ClearTokensAsync();
 }

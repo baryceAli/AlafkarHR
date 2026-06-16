@@ -191,7 +191,7 @@
             Console.WriteLine("Submit clicked");
             Console.WriteLine($"Email/UserName: {login.Email}");
 
-            var result = await AuthService.LoginAsync(login.Email, login.Password);
+            var result = await AuthService.LoginAsync(login.Email, login.Password, rememberDevice);
 
             if (result.IsSuccess)
             {

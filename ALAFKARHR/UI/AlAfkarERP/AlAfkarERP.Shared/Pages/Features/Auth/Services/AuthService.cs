@@ -27,7 +27,7 @@ public class AuthService : AuthBaseApiService, IAuthService
         _authStateProvider = (CustomAuthStateProvider)authStateProvider;
 
     }
-    public async Task<ApiResult<LoginResponseDto>> LoginAsync(string email, string password)
+    public async Task<ApiResult<LoginResponseDto>> LoginAsync(string email, string password, bool rememberDevice)
     {
         //var 
         var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/login")
@@ -47,7 +47,7 @@ public class AuthService : AuthBaseApiService, IAuthService
                 AccessToken = response.Data.AccessToken,
                 RefreshToken = response.Data.RefreshToken
             };
-            await _tokenService.SetTokensAsync(tokens);
+            await _tokenService.SetTokensAsync(tokens, rememberDevice);
 
             _authStateProvider.NotifyUserAuthentication(tokens.AccessToken);
         }
