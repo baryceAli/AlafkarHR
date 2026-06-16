@@ -167,19 +167,6 @@
                         </div>
 
                         <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label">
-                                    @(createInventoryAggregateDto.ProductPackageId.HasValue
-                                        ? SharedDataService.SelectViewLang("Package Quantity", "كمية العبوة")
-                                        : SharedDataService.SelectViewLang("SKU Quantity", "كمية المنتج المخزني"))
-                                </label>
-                                <InputNumber class="form-control"
-                                             Value="createInventoryAggregateDto.InitialQuantity"
-                                             TValue="decimal"
-                                             ValueChanged="OnQuantityChanged"
-                                             ValueExpression="() => createInventoryAggregateDto.InitialQuantity" />
-                            </div>
-
                             @if (selectedProductSku?.Packages.Any() == true)
                             {
                                 <div class="col-md-4">
@@ -195,6 +182,19 @@
                                     </select>
                                 </div>
                             }
+
+                            <div class="col-md-4">
+                                <label class="form-label">
+                                    @(createInventoryAggregateDto.ProductPackageId.HasValue
+                                        ? SharedDataService.SelectViewLang("Package Quantity", "كمية العبوة")
+                                        : SharedDataService.SelectViewLang("SKU Quantity", "كمية المنتج المخزني"))
+                                </label>
+                                <InputNumber class="form-control"
+                                             Value="createInventoryAggregateDto.InitialQuantity"
+                                             TValue="decimal"
+                                             ValueChanged="OnQuantityChanged"
+                                             ValueExpression="() => createInventoryAggregateDto.InitialQuantity" />
+                            </div>
 
                             @if (createInventoryAggregateDto.ProductPackageId.HasValue)
                             {

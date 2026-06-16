@@ -108,7 +108,7 @@
 
                         @if (selectedProductSku?.Packages.Any() == true)
                         {
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label">@SharedDataService.SelectViewLang("Package", "العبوة")</label>
                                 <select class="form-select" value="@inventoryDto.ProductPackageId" @onchange="OnPackageChanged">
                                     <option value="">@SharedDataService.SelectViewLang("No package", "بدون عبوة")</option>
@@ -120,6 +120,24 @@
                                     }
                                 </select>
                             </div>
+
+                            @if (inventoryDto.ProductPackageId.HasValue)
+                            {
+                                <div class="col-md-4">
+                                    <label class="form-label">@SharedDataService.SelectViewLang("Package Quantity", "كمية العبوة")</label>
+                                    <InputNumber class="form-control"
+                                                 Value="inventoryDto.InitialQuantity"
+                                                 TValue="decimal"
+                                                 ValueChanged="OnQuantityChanged"
+                                                 ValueExpression="() => inventoryDto.InitialQuantity" />
+                                    <ValidationMessage For="() => inventoryDto.InitialQuantity" />
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label">@SharedDataService.SelectViewLang("SKU Quantity", "كمية المنتج المخزني")</label>
+                                    <input class="form-control" value="@GetNormalizedQuantity(inventoryDto.InitialQuantity)" disabled />
+                                </div>
+                            }
                         }
 
                         <div class="col-md-6">
@@ -145,25 +163,16 @@
                             <ValidationMessage For="() => inventoryDto.MovementType" />
                         </div>
 
-                        <div class="col-md-4">
-                            <label class="form-label">
-                                @(inventoryDto.ProductPackageId.HasValue
-                                    ? SharedDataService.SelectViewLang("Package Quantity", "كمية العبوة")
-                                    : SharedDataService.SelectViewLang("SKU Quantity", "كمية المنتج المخزني"))
-                            </label>
-                            <InputNumber class="form-control"
-                                         Value="inventoryDto.InitialQuantity"
-                                         TValue="decimal"
-                                         ValueChanged="OnQuantityChanged"
-                                         ValueExpression="() => inventoryDto.InitialQuantity" />
-                            <ValidationMessage For="() => inventoryDto.InitialQuantity" />
-                        </div>
-
-                        @if (inventoryDto.ProductPackageId.HasValue)
+                        @if (!inventoryDto.ProductPackageId.HasValue)
                         {
                             <div class="col-md-4">
                                 <label class="form-label">@SharedDataService.SelectViewLang("SKU Quantity", "كمية المنتج المخزني")</label>
-                                <input class="form-control" value="@GetNormalizedQuantity(inventoryDto.InitialQuantity)" disabled />
+                                <InputNumber class="form-control"
+                                             Value="inventoryDto.InitialQuantity"
+                                             TValue="decimal"
+                                             ValueChanged="OnQuantityChanged"
+                                             ValueExpression="() => inventoryDto.InitialQuantity" />
+                                <ValidationMessage For="() => inventoryDto.InitialQuantity" />
                             </div>
                         }
 

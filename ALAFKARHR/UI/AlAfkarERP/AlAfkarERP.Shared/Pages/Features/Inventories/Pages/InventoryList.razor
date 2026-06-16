@@ -163,7 +163,7 @@
 
                                         @if (selectedProductSku?.Packages.Any() == true)
                                         {
-                                            <div class="col-md-6">
+                                            <div class="col-md-4">
                                                 <label class="form-label">@SharedDataService.SelectViewLang("Package", "العبوة")</label>
                                                 <select class="form-select" value="@selectedProductPackageId" @onchange="OnPackageChanged">
                                                     <option value="">@SharedDataService.SelectViewLang("Base quantity", "كمية أساسية")</option>

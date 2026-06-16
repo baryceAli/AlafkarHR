@@ -97,22 +97,6 @@
                                                ValueChanged="onProductSkuChanged" />
                     </div>
 
-                    @if (selectedProductSku?.Packages.Any() == true)
-                    {
-                        <div class="col-md-6">
-                            <label class="form-label">@SharedDataService.SelectViewLang("Package", "العبوة")</label>
-                            <select class="form-select" value="@createInventoryAggregateDto.ProductPackageId" @onchange="OnPackageChanged">
-                                <option value="">@SharedDataService.SelectViewLang("No package", "بدون عبوة")</option>
-                                @foreach (var package in selectedProductSku.Packages)
-                                {
-                                    <option value="@package.Id">
-                                        @SharedDataService.SelectViewLang(package.NameEng, package.Name) (@package.Quantity)
-                                    </option>
-                                }
-                            </select>
-                        </div>
-                    }
-
                     <div class="col-md-6">
                         <label class="form-label">@SharedDataService.SelectViewLang("Batch", "الدفعة")</label>
                         <AutoCompleteComponent TItem="BatchDto"
@@ -183,6 +167,22 @@
                         </div>
 
                         <div class="row g-3">
+                            @if (selectedProductSku?.Packages.Any() == true)
+                            {
+                                <div class="col-md-4">
+                                    <label class="form-label">@SharedDataService.SelectViewLang("Package", "العبوة")</label>
+                                    <select class="form-select" value="@createInventoryAggregateDto.ProductPackageId" @onchange="OnPackageChanged">
+                                        <option value="">@SharedDataService.SelectViewLang("No package", "بدون عبوة")</option>
+                                        @foreach (var package in selectedProductSku.Packages)
+                                        {
+                                            <option value="@package.Id">
+                                                @SharedDataService.SelectViewLang(package.NameEng, package.Name) (@package.Quantity)
+                                            </option>
+                                        }
+                                    </select>
+                                </div>
+                            }
+
                             <div class="col-md-4">
                                 <label class="form-label">
                                     @(createInventoryAggregateDto.ProductPackageId.HasValue
