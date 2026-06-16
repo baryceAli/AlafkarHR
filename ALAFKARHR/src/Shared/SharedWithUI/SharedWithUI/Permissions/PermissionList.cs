@@ -35,6 +35,13 @@ public static class PermissionList
             .. SupplierGroupPermissions.Permissions,
             .. SupplierPermissions.Permissions,
             .. SalesOrderPermissions.Permissions,
+            .. PurchaseRequestPermissions.Permissions,
+            .. RequestForQuotationPermissions.Permissions,
+            .. SupplierQuotationPermissions.Permissions,
+            .. PurchaseOrderPermissions.Permissions,
+            .. GoodsReceiptPermissions.Permissions,
+            .. PurchaseReturnPermissions.Permissions,
+            .. SupplierInvoicePermissions.Permissions,
             .. PricingPermissions.Permissions,
             .. PayrollContractPermissions.Permissions,
             .. SalaryRunPermissions.Permissions,
@@ -637,6 +644,105 @@ public static class PermissionList
                 $"{Edit}",
                 $"{Delete}",
             };
+    }
+
+    public static class PurchaseRequestPermissions
+    {
+        public static string GroupName { get; set; } = "Procurement.PurchaseRequest";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Submit { get; set; } = $"{GroupName}.Submit";
+        public static string Approve { get; set; } = $"{GroupName}.Approve";
+        public static string Reject { get; set; } = $"{GroupName}.Reject";
+        public static string Cancel { get; set; } = $"{GroupName}.Cancel";
+        public static string Close { get; set; } = $"{GroupName}.Close";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Submit, Approve, Reject, Cancel, Close];
+    }
+
+    public static class RequestForQuotationPermissions
+    {
+        public static string GroupName { get; set; } = "Procurement.RequestForQuotation";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Submit { get; set; } = $"{GroupName}.Submit";
+        public static string Cancel { get; set; } = $"{GroupName}.Cancel";
+        public static string Close { get; set; } = $"{GroupName}.Close";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Submit, Cancel, Close];
+    }
+
+    public static class SupplierQuotationPermissions
+    {
+        public static string GroupName { get; set; } = "Procurement.SupplierQuotation";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Approve { get; set; } = $"{GroupName}.Approve";
+        public static string Reject { get; set; } = $"{GroupName}.Reject";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Approve, Reject];
+    }
+
+    public static class PurchaseOrderPermissions
+    {
+        public static string GroupName { get; set; } = "Procurement.PurchaseOrder";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Submit { get; set; } = $"{GroupName}.Submit";
+        public static string Approve { get; set; } = $"{GroupName}.Approve";
+        public static string Cancel { get; set; } = $"{GroupName}.Cancel";
+        public static string Receive { get; set; } = $"{GroupName}.Receive";
+        public static string Close { get; set; } = $"{GroupName}.Close";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Submit, Approve, Cancel, Receive, Close];
+    }
+
+    public static class GoodsReceiptPermissions
+    {
+        public static string GroupName { get; set; } = "Procurement.GoodsReceipt";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Receive { get; set; } = $"{GroupName}.Receive";
+        public static string Cancel { get; set; } = $"{GroupName}.Cancel";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Receive, Cancel];
+    }
+
+    public static class PurchaseReturnPermissions
+    {
+        public static string GroupName { get; set; } = "Procurement.PurchaseReturn";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Receive { get; set; } = $"{GroupName}.Receive";
+        public static string Cancel { get; set; } = $"{GroupName}.Cancel";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Receive, Cancel];
+    }
+
+    public static class SupplierInvoicePermissions
+    {
+        public static string GroupName { get; set; } = "Procurement.SupplierInvoice";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Approve { get; set; } = $"{GroupName}.Approve";
+        public static string Cancel { get; set; } = $"{GroupName}.Cancel";
+        public static string Close { get; set; } = $"{GroupName}.Close";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Approve, Cancel, Close];
     }
 
     public static class PayrollContractPermissions
