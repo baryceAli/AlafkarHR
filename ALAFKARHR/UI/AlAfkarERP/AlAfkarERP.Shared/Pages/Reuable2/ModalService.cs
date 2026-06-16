@@ -7,6 +7,8 @@ public class ModalService
 
     public async Task ShowAsync(ModalOptions options)
     {
+        options.SanitizeForDisplay();
+
         if (OnShow != null)
             await OnShow.Invoke(options);
     }
@@ -34,6 +36,22 @@ public class ModalOptions
 
     public Func<Task>? OnOk { get; set; }
     public Func<Task>? OnCancel { get; set; }
+
+    public void SanitizeForDisplay()
+    {
+        Title = SanitizeField(Title, "Notice");
+        Message = SanitizeField(Message, "The request could not be completed. Please try again.");
+        Details = SanitizeField(Details, "");
+    }
+
+    private static string SanitizeField(string? value, string fallback)
+    {
+        var sanitized = global::AlAfkarERP.Shared.Utilities.ApiErrorFormatter.SanitizePublicMessage(value);
+
+        return string.IsNullOrWhiteSpace(sanitized) || global::AlAfkarERP.Shared.Utilities.ApiErrorFormatter.HasInternalDetails(sanitized)
+            ? fallback
+            : sanitized;
+    }
 }
 
 public enum ModalVariant

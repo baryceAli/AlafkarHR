@@ -63,6 +63,7 @@ public class GetProductByIdHandler(CatalogDbContext dbContext)
                             UnitId=sku.UnitId,
                             //Variants=sku.Variants,
                             Price = sku.Price,
+                            ProductionType = sku.ProductionType,
                             ShowOnStore = sku.ShowOnStore,
                             // ✅ ADD THIS
                             Variants = sku.Variants

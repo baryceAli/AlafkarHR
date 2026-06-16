@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
+using SharedWithUI.Catalog.Enums;
+
 namespace SharedWithUI.Catalog.Dtos;
 
 public class ProductSkuDto
@@ -40,6 +42,8 @@ public class ProductSkuDto
 
     [Range(0.1,10000000,ErrorMessage ="Price must be greator than 0")]
     public decimal Price { get; set; }
+
+    public SkuProductionType ProductionType { get; set; } = SkuProductionType.PurchasedRawMaterial;
 
 
     public string ImageUrl { get; set; }

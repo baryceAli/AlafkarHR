@@ -73,6 +73,7 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext)
                          UnitId = sku.UnitId,
 
                          Price = sku.Price,
+                         ProductionType = sku.ProductionType,
                          ShowOnStore = sku.ShowOnStore,
 
                          Variants = sku.Variants

@@ -111,6 +111,9 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
         var skuCode = ProductSkuGenerator.GenerateSkuCode(SkuBaseCntx, variantNames, valueNames, prd.Name, brand.Name);
         var skuCodeEng = ProductSkuGenerator.GenerateSkuCode(SkuBaseCntx, variantNamesEng, valueNamesEng, prd.NameEng, brand.NameEng);
 
+        var productionType = command.ProductSku.ProductionType == default
+            ? SkuProductionType.PurchasedRawMaterial
+            : command.ProductSku.ProductionType;
 
         productSku.Update(
             command.ProductSku.Price, 
@@ -121,6 +124,7 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
             command.ProductSku.NameEng,
             skuCode,
             skuCodeEng,
+            productionType,
             command.ProductSku.CompanyId,
             command.ProductSku.Variants,
             packageIds.ToList(),

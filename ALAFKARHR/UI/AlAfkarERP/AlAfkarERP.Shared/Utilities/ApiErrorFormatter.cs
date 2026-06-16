@@ -62,6 +62,15 @@ public static class ApiErrorFormatter
         return error;
     }
 
+    public static string GetDisplayMessage(ErrorResponseDto? error, string language, string fallback)
+    {
+        var message = SanitizePublicMessage(error?.GetDisplayMessage(language));
+
+        return string.IsNullOrWhiteSpace(message) || HasInternalDetails(message)
+            ? fallback
+            : message;
+    }
+
     private static ErrorResponseDto? TryDeserializeProblemDetails(string content)
     {
         if (string.IsNullOrWhiteSpace(content))
@@ -146,14 +155,15 @@ public static class ApiErrorFormatter
     private static string FirstNotEmpty(params string?[] values)
         => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? "";
 
-    private static bool HasInternalDetails(string message)
+    public static bool HasInternalDetails(string message)
         => message.Contains("System.", StringComparison.OrdinalIgnoreCase) ||
            message.Contains("AlAfkarERP.", StringComparison.OrdinalIgnoreCase) ||
            message.Contains("SharedWithUI.", StringComparison.OrdinalIgnoreCase) ||
+           message.Contains("Microsoft.", StringComparison.OrdinalIgnoreCase) ||
            message.Contains(" at ", StringComparison.OrdinalIgnoreCase) ||
            message.Contains("\\", StringComparison.Ordinal);
 
-    private static string? SanitizePublicMessage(string? message)
+    public static string? SanitizePublicMessage(string? message)
     {
         if (string.IsNullOrWhiteSpace(message))
         {

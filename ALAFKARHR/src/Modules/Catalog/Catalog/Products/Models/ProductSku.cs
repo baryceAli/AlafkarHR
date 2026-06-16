@@ -21,6 +21,7 @@ public class ProductSku : Entity<Guid>
     public string? Barcode { get; private set; } = default!;
 
     public decimal Price { get; private set; }
+    public SkuProductionType ProductionType { get; private set; } = SkuProductionType.PurchasedRawMaterial;
     public string ImageUrl { get; set; }
     public Guid CompanyId { get; set; }
     public bool ShowOnStore { get; private set; }
@@ -47,6 +48,7 @@ public class ProductSku : Entity<Guid>
    string? barcode,
    string imageUrl,
         decimal price,
+        SkuProductionType productionType,
         bool showOnStore,
         Guid companyId
         )
@@ -60,6 +62,7 @@ public class ProductSku : Entity<Guid>
         ImageUrl = imageUrl;
         //_options = options.ToList();
         Price = price;
+        ProductionType = NormalizeProductionType(productionType);
         ShowOnStore = showOnStore;
         CompanyId = companyId;
     }
@@ -78,6 +81,7 @@ public class ProductSku : Entity<Guid>
     string? barcode,
     string imageUrl,
     decimal price,
+    SkuProductionType productionType,
     bool showOnStore,
     Guid companyId,
     string createdBy)
@@ -100,6 +104,7 @@ public class ProductSku : Entity<Guid>
             ImageUrl = imageUrl,
             Barcode = barcode,
             Price = price,
+            ProductionType = NormalizeProductionType(productionType),
             ShowOnStore = showOnStore,
             CompanyId = companyId,
             CreatedBy = createdBy,
@@ -115,6 +120,7 @@ public class ProductSku : Entity<Guid>
         string nameEng,
         string skuCode, 
         string skuCodeEng,
+        SkuProductionType productionType,
         Guid companyId,
         List<ProductSkuVariantDto> variantDtos,
         List<Guid> packageIds,
@@ -125,6 +131,7 @@ public class ProductSku : Entity<Guid>
         SkuCode=skuCode;
         SkuCodeEng=skuCodeEng;
         Price = price;
+        ProductionType = NormalizeProductionType(productionType);
         ImageUrl = imageUrl;
         ShowOnStore = showOnStore;
         CompanyId = companyId;
@@ -237,6 +244,13 @@ public class ProductSku : Entity<Guid>
         
         _variants.Remove(existing);
         
+    }
+
+    private static SkuProductionType NormalizeProductionType(SkuProductionType productionType)
+    {
+        return productionType == default
+            ? SkuProductionType.PurchasedRawMaterial
+            : productionType;
     }
     //public void AddProductPackage(Guid id, Guid productId, string packageName, string packageNameEng, double quantityPerPackage, decimal packagePrice, bool showOnStore, string createdBy)
     //{

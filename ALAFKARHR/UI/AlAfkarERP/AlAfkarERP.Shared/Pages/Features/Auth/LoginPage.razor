@@ -44,7 +44,7 @@
 
                     <div class="login-panel-header">
                         <h1>@Text("Welcome back", "مرحباً بك مجدداً")</h1>
-                        <p>@Text("Sign in to continue managing your people, payroll, attendance, and approvals from one workspace.", "سجل الدخول لمتابعة إدارة الموظفين والرواتب والحضور والموافقات من مساحة عمل واحدة.")</p>
+                        <p>@Text("Sign in to manage business operations, people, inventory, customers, sales, tasks, and reporting from one workspace.", "سجل الدخول لإدارة عمليات الأعمال والأفراد والمخزون والعملاء والمبيعات والمهام والتقارير من مساحة عمل واحدة.")</p>
                     </div>
 
                     <EditForm Model="@login" OnValidSubmit="HandleLogin" class="login-form">
@@ -100,29 +100,29 @@
                 </div>
             </div>
 
-            <aside class="login-hero" aria-label="@Text("Human resources overview", "نبذة عن نظام إدارة الموارد البشرية")">
+            <aside class="login-hero" aria-label="@Text("ERP workspace overview", "نبذة عن مساحة عمل ERP")">
                 <div class="hero-content">
                     <div class="hero-badge">
                         <i class="bi bi-shield-check" aria-hidden="true"></i>
                         <span>@Text("Trusted business workspace", "مساحة عمل موثوقة")</span>
                     </div>
 
-                    <h2>@Text("Human Resources Management", "إدارة الموارد البشرية")</h2>
+                    <h2>@Text("Enterprise Resource Planning", "تخطيط موارد المؤسسة")</h2>
                     <p>
                         @Text(
-                            "A focused workspace for workforce records, payroll, attendance, approvals, and operational reporting.",
-                            "مساحة عمل مركزة لسجلات القوى العاملة والرواتب والحضور والموافقات والتقارير التشغيلية.")
+                            "A connected workspace for operations, people, inventory, customers, sales, tasks, and reporting.",
+                            "مساحة عمل مترابطة للعمليات والأفراد والمخزون والعملاء والمبيعات والمهام والتقارير.")
                     </p>
                 </div>
 
                 <div class="hero-features">
                     <div class="hero-feature">
                         <i class="bi bi-lock" aria-hidden="true"></i>
-                        <span>@Text("Protected company and employee data", "حماية بيانات الشركة والموظفين")</span>
+                        <span>@Text("Protected company and operational data", "حماية بيانات الشركة والعمليات")</span>
                     </div>
                     <div class="hero-feature">
                         <i class="bi bi-diagram-3" aria-hidden="true"></i>
-                        <span>@Text("Connected HR workflows", "سير عمل مترابط للموارد البشرية")</span>
+                        <span>@Text("Connected business workflows", "سير عمل مترابط للأعمال")</span>
                     </div>
                     <div class="hero-feature">
                         <i class="bi bi-bar-chart-line" aria-hidden="true"></i>
@@ -190,7 +190,6 @@
 
             Console.WriteLine("Submit clicked");
             Console.WriteLine($"Email/UserName: {login.Email}");
-            Console.WriteLine($"Password: {login.Password}");
 
             var result = await AuthService.LoginAsync(login.Email, login.Password);
 
@@ -213,12 +212,15 @@
                 }
             }
 
+            var fallbackMessage = Text("Credentials are incorrect.", "بيانات الدخول غير صحيحة.");
+            var displayMessage = ApiErrorFormatter.GetDisplayMessage(result.Error, SharedDataService.Language, fallbackMessage);
+
             await ModalService.ShowAsync(new ModalOptions
             {
                 IsError = true,
                 Title = Text("Login", "تسجيل دخول"),
-                Message = Text("Credentials are incorrect.", "بيانات الدخول غير صحيحة."),
-                Details = $"{result.Error?.ToString()}, {result.Error?.Detail}",
+                Message = displayMessage,
+                Details = result.Error?.Detail ?? string.Empty,
                 OkText = Text("OK", "موافق"),
                 OnOk = async () => { }
             });
@@ -232,8 +234,7 @@
             {
                 IsError = true,
                 Title = Text("Login error", "خطأ تسجيل الدخول"),
-                Message = ex.Message,
-                Details = ex.ToString(),
+                Message = Text("Unable to complete login. Please try again.", "تعذر إكمال تسجيل الدخول. يرجى المحاولة مرة أخرى."),
                 OkText = Text("OK", "موافق"),
                 OnOk = async () => { }
             });

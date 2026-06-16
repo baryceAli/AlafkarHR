@@ -162,6 +162,7 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext)
                 SkuKey = sku.SkuKey,
                 Barcode = sku.Barcode ?? string.Empty,
                 Price = sku.Price,
+                ProductionType = sku.ProductionType,
                 ImageUrl = sku.ImageUrl,
                 CompanyId = sku.CompanyId,
                 ShowOnStore = sku.ShowOnStore,

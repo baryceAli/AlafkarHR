@@ -236,11 +236,17 @@
                 return;
             }
 
-            await ShowErrorAsync(Text("Registration failed", "تعذر إنشاء الحساب"), result.Error?.Detail ?? result.Error?.Title);
+            var fallbackMessage = Text("Please review the form and try again.", "يرجى مراجعة النموذج والمحاولة مرة أخرى.");
+            await ShowErrorAsync(
+                Text("Registration failed", "تعذر إنشاء الحساب"),
+                ApiErrorFormatter.GetDisplayMessage(result.Error, SharedDataService.Language, fallbackMessage));
         }
         catch (Exception ex)
         {
-            await ShowErrorAsync(Text("Registration error", "خطأ في إنشاء الحساب"), ex.Message, ex.ToString());
+            Console.WriteLine(ex.ToString());
+            await ShowErrorAsync(
+                Text("Registration error", "خطأ في إنشاء الحساب"),
+                Text("Unable to complete registration. Please try again.", "تعذر إكمال التسجيل. يرجى المحاولة مرة أخرى."));
         }
         finally
         {

@@ -94,6 +94,9 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
         var img = SaveImages.SaveBase64Image($"{skuId}", PATH_SEGEMNT, command.ProductSku.ImageUrl);
 
         
+        var productionType = command.ProductSku.ProductionType == default
+            ? SkuProductionType.PurchasedRawMaterial
+            : command.ProductSku.ProductionType;
 
         var productSku = ProductSku.Create(
             Guid.NewGuid(),
@@ -109,6 +112,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
             command.ProductSku.Barcode,
             img,
             command.ProductSku.Price,
+            productionType,
             command.ProductSku.ShowOnStore,
             command.ProductSku.CompanyId,
             userId);

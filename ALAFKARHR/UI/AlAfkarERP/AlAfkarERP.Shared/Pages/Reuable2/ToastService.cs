@@ -6,6 +6,7 @@ public class ToastService
 
     public void Show(ToastMessage message)
     {
+        message.SanitizeForDisplay();
         OnShow?.Invoke(message);
     }
 
@@ -23,4 +24,26 @@ public class ToastMessage
 {
     public string Message { get; set; } = "";
     public string Type { get; set; } = "success"; // success, error, warning
+
+    public void SanitizeForDisplay()
+    {
+        var sanitized = global::AlAfkarERP.Shared.Utilities.ApiErrorFormatter.SanitizePublicMessage(Message);
+        Type = Type.ToLowerInvariant() switch
+        {
+            "error" => "error",
+            "warning" => "warning",
+            _ => "success"
+        };
+
+        var fallback = Type switch
+        {
+            "error" => "The request could not be completed. Please try again.",
+            "warning" => "Please review the request and try again.",
+            _ => "Done."
+        };
+
+        Message = string.IsNullOrWhiteSpace(sanitized) || global::AlAfkarERP.Shared.Utilities.ApiErrorFormatter.HasInternalDetails(sanitized)
+            ? fallback
+            : sanitized;
+    }
 }

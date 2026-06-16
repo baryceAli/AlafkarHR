@@ -13,6 +13,7 @@ global using Shared.DDD;
 global using System.Text.Json.Serialization;
 global using Shared.Pagination;
 global using SharedWithUI.Catalog.Dtos;
+global using SharedWithUI.Catalog.Enums;
 global using Carter;
 global using Mapster;
 //global using MediatR;
