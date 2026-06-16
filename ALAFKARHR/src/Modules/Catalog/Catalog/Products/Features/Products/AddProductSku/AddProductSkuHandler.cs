@@ -59,6 +59,41 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
             if (missingPackageId != Guid.Empty)
                 throw new NotFoundException($"Package not found: {missingPackageId}");
         }
+
+        var productionType = command.ProductSku.ProductionType == default
+            ? SkuProductionType.PurchasedRawMaterial
+            : command.ProductSku.ProductionType;
+
+        var componentDtos = productionType == SkuProductionType.CompositeBundle
+            ? command.ProductSku.Components
+            : [];
+
+        var componentSkuIds = componentDtos
+            .Select(component => component.ComponentProductSkuId)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (productionType == SkuProductionType.CompositeBundle)
+        {
+            if (!componentSkuIds.Any())
+                throw new Exception("Composite bundle must have at least one component SKU.");
+
+            if (componentDtos.Any(component => component.Quantity <= 0))
+                throw new Exception("Bundle component quantity must be greater than zero.");
+
+            if (componentSkuIds.Any())
+            {
+                var existingComponentSkuIds = await dbContext.ProductSkus.AsNoTracking()
+                    .Where(sku => sku.CompanyId == command.ProductSku.CompanyId && componentSkuIds.Contains(sku.Id))
+                    .Select(sku => sku.Id)
+                    .ToListAsync(cancellationToken);
+
+                var missingComponentSkuId = componentSkuIds.Except(existingComponentSkuIds).FirstOrDefault();
+                if (missingComponentSkuId != Guid.Empty)
+                    throw new NotFoundException($"Component SKU not found: {missingComponentSkuId}");
+            }
+        }
         
         
         var userId = httpContextAccessor.HttpContext?.User?
@@ -93,13 +128,8 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
         string[] PATH_SEGEMNT = ["wwwroot", "Images", "Products"];
         var img = SaveImages.SaveBase64Image($"{skuId}", PATH_SEGEMNT, command.ProductSku.ImageUrl);
 
-        
-        var productionType = command.ProductSku.ProductionType == default
-            ? SkuProductionType.PurchasedRawMaterial
-            : command.ProductSku.ProductionType;
-
         var productSku = ProductSku.Create(
-            Guid.NewGuid(),
+            skuId,
             command.ProductSku.ProductId,
             command.ProductSku.BrandId,
             command.ProductSku.UnitId.Value,
@@ -124,6 +154,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
         }
 
         productSku.SetPackages(packageIds, userId);
+        productSku.SetComponents(componentDtos, userId);
 
         dbContext.ProductSkus.Add(productSku);
 

@@ -9,6 +9,8 @@ public class GetProductSkuByIdHandler (CatalogDbContext dbContext): IQueryHandle
         var productSku = await dbContext.ProductSkus
             .Include(s => s.Packages)
             .ThenInclude(p => p.ProductPackage)
+            .Include(s => s.Components)
+            .ThenInclude(c => c.ComponentProductSku)
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
         if(productSku is null)
@@ -29,6 +31,20 @@ public class GetProductSkuByIdHandler (CatalogDbContext dbContext): IQueryHandle
         productSkuDto.PackageId = productSkuDto.Packages.Select(p => p.Id).FirstOrDefault();
         productSkuDto.PackageName = productSkuDto.Packages.Select(p => p.Name).FirstOrDefault();
         productSkuDto.PackageNameEng = productSkuDto.Packages.Select(p => p.NameEng).FirstOrDefault();
+        productSkuDto.Components = productSku.Components
+            .Where(c => !c.IsDeleted && !c.ComponentProductSku.IsDeleted)
+            .Select(c => new ProductSkuComponentDto
+            {
+                Id = c.Id,
+                ParentProductSkuId = c.ParentProductSkuId,
+                ComponentProductSkuId = c.ComponentProductSkuId,
+                ComponentSkuName = c.ComponentProductSku.Name,
+                ComponentSkuNameEng = c.ComponentProductSku.NameEng,
+                ComponentSkuCode = c.ComponentProductSku.SkuCode,
+                ComponentSkuCodeEng = c.ComponentProductSku.SkuCodeEng,
+                Quantity = c.Quantity
+            })
+            .ToList();
 
         return new GetProductSkuByIdResult(productSkuDto);
     }

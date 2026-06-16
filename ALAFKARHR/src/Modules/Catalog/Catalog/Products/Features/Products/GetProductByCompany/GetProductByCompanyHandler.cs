@@ -16,6 +16,9 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext)
             .Include(p => p.Skus)
                 .ThenInclude(s => s.Packages)
                     .ThenInclude(sp => sp.ProductPackage)
+            .Include(p => p.Skus)
+                .ThenInclude(s => s.Components)
+                    .ThenInclude(c => c.ComponentProductSku)
             .AsQueryable();
 
         query = query.Where(p =>
@@ -95,6 +98,20 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext)
                                  NameEng = p.ProductPackage.NameEng,
                                  Quantity = p.ProductPackage.Quantity,
                                  CompanyId = p.ProductPackage.CompanyId
+                             })
+                             .ToList(),
+                         Components = sku.Components
+                             .Where(c => !c.IsDeleted && !c.ComponentProductSku.IsDeleted)
+                             .Select(c => new ProductSkuComponentDto
+                             {
+                                 Id = c.Id,
+                                 ParentProductSkuId = c.ParentProductSkuId,
+                                 ComponentProductSkuId = c.ComponentProductSkuId,
+                                 ComponentSkuName = c.ComponentProductSku.Name,
+                                 ComponentSkuNameEng = c.ComponentProductSku.NameEng,
+                                 ComponentSkuCode = c.ComponentProductSku.SkuCode,
+                                 ComponentSkuCodeEng = c.ComponentProductSku.SkuCodeEng,
+                                 Quantity = c.Quantity
                              })
                              .ToList()
 

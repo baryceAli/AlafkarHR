@@ -17,6 +17,9 @@ public class GetProductByIdHandler(CatalogDbContext dbContext)
             .Include(x => x.Skus)
             .ThenInclude(s => s.Packages)
             .ThenInclude(sp => sp.ProductPackage)
+            .Include(x => x.Skus)
+            .ThenInclude(s => s.Components)
+            .ThenInclude(c => c.ComponentProductSku)
             //.Include(x => x.Packages)
 
             join c in dbContext.Categories on p.CategoryId equals c.Id
@@ -85,6 +88,20 @@ public class GetProductByIdHandler(CatalogDbContext dbContext)
                                     NameEng = p.ProductPackage.NameEng,
                                     Quantity = p.ProductPackage.Quantity,
                                     CompanyId = p.ProductPackage.CompanyId
+                                })
+                                .ToList(),
+                            Components = sku.Components
+                                .Where(c => !c.IsDeleted && !c.ComponentProductSku.IsDeleted)
+                                .Select(c => new ProductSkuComponentDto
+                                {
+                                    Id = c.Id,
+                                    ParentProductSkuId = c.ParentProductSkuId,
+                                    ComponentProductSkuId = c.ComponentProductSkuId,
+                                    ComponentSkuName = c.ComponentProductSku.Name,
+                                    ComponentSkuNameEng = c.ComponentProductSku.NameEng,
+                                    ComponentSkuCode = c.ComponentProductSku.SkuCode,
+                                    ComponentSkuCodeEng = c.ComponentProductSku.SkuCodeEng,
+                                    Quantity = c.Quantity
                                 })
                                 .ToList()
 

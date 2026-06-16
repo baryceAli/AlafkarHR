@@ -46,6 +46,11 @@ public class ProductSKUConfiguration : IEntityTypeConfiguration<ProductSku>
             .HasForeignKey(x => x.ProductSkuId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasMany(s => s.Components)
+            .WithOne(x => x.ParentProductSku)
+            .HasForeignKey(x => x.ParentProductSkuId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.HasOne<ProductPackage>()
             .WithMany()
             .HasForeignKey(s => s.PackageId)

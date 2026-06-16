@@ -259,6 +259,74 @@
                                             </InputSelect>
                                         </div>
                                     </div>
+
+                                    @if (editingItem.ProductionType == SkuProductionType.CompositeBundle)
+                                    {
+                                        <div class="mb-3 row">
+                                            <label class="col-sm-2 col-form-label">
+                                                @SharedDataService.SelectViewLang("Bundle Components", "مكونات الحزمة")
+                                            </label>
+                                            <div class="col-sm-10">
+                                                <div class="card bg-transparent sku-bundle-editor">
+                                                    <div class="card-body">
+                                                        @if (editingItem.Components.Any())
+                                                        {
+                                                            <div class="d-flex flex-column gap-3 mb-3">
+                                                                @foreach (var component in editingItem.Components)
+                                                                {
+                                                                    <div class="sku-bundle-component-row">
+                                                                        <div class="sku-bundle-component-picker">
+                                                                            <label class="form-label small text-muted mb-1">
+                                                                                @SharedDataService.SelectViewLang("Component SKU", "المنتج المخزني المكون")
+                                                                            </label>
+                                                                            <AutoCompleteComponent TItem="ProductSkuDto"
+                                                                                                   Items="GetAvailableComponentSkus(editingItem, component)"
+                                                                                                   Value="GetComponentSku(component)"
+                                                                                                   PlaceHolder="@SharedDataService.SelectViewLang("Search a component SKU", "ابحث عن مكون")"
+                                                                                                   ItemText="(sku => GetSkuDisplayName(sku))"
+                                                                                                   ValueChanged="sku => OnBundleComponentSelected(component, sku)" />
+                                                                        </div>
+
+                                                                        <div class="sku-bundle-component-quantity">
+                                                                            <label class="form-label small text-muted mb-1">
+                                                                                @SharedDataService.SelectViewLang("Quantity", "الكمية")
+                                                                            </label>
+                                                                            <InputNumber class="form-control"
+                                                                                         min="0.0001"
+                                                                                         @bind-Value="component.Quantity" />
+                                                                            <ValidationMessage For="() => component.Quantity" />
+                                                                        </div>
+
+                                                                        <div class="sku-bundle-component-action">
+                                                                            <button type="button"
+                                                                                    class="btn btn-outline-danger btn-sm erp-row-action"
+                                                                                    @onclick="() => RemoveBundleComponent(editingItem, component)"
+                                                                                    title="@SharedDataService.SelectViewLang("Remove component", "حذف المكون")">
+                                                                                <i class="bi bi-trash"></i>
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                }
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="text-muted mb-3">
+                                                                @SharedDataService.SelectViewLang("No bundle components have been added yet.", "لم تتم إضافة مكونات للحزمة بعد.")
+                                                            </div>
+                                                        }
+
+                                                        <button type="button"
+                                                                class="btn btn-outline-primary btn-sm"
+                                                                @onclick="() => AddBundleComponent(editingItem)">
+                                                            <i class="bi bi-plus"></i>
+                                                            @SharedDataService.SelectViewLang("Add Component", "إضافة مكون")
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
                                     
                                     <div class="mb-3 row">
                                         <label for="DateOfBirth" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Photo", "الصورة")</label>
@@ -498,6 +566,7 @@
     private List<ProductPackageDto> packages = [];
     private List<UnitDto> units = [];
     private UnitDto? selectedUnit;
+    private List<ProductSkuDto> allProductSkus = [];
     private List<VariantDto> variants = [];
     private VariantDto? selectedVariant;
     private List<VariantValueDto> variantValues = [];
@@ -545,6 +614,7 @@
             variants = variantRes.Data?.Data?.ToList() ?? [];
         }
 
+        await LoadCompanyProductsAsync();
         await LoadProductSKU();
         // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
         // if (branchResponse.IsSuccess)
@@ -569,11 +639,7 @@
         {
 
 
-            var prodRes = await ProductService.GetByCompanyAsync(companyId, 0, 10000);
-            if (prodRes.IsSuccess)
-            {
-                products = prodRes.Data?.Data?.ToList() ?? [];
-            }
+            await LoadCompanyProductsAsync();
 
         }
     }
@@ -598,7 +664,8 @@
             ProductId = selectedProduct.Id,
             CompanyId = companyId,
             ProductionType = SkuProductionType.PurchasedRawMaterial,
-            Variants = []
+            Variants = [],
+            Components = []
         };
 
         productskuList.Add(newItem);
@@ -646,6 +713,11 @@
         productSku.BrandId = selectedBrand.Id;
         productSku.UnitId = selectedUnit.Id;
         productSku.PackageId = productSku.Packages.FirstOrDefault()?.Id;
+
+        if (!await ValidateBundleComponentsAsync(productSku))
+        {
+            return;
+        }
 
         if (productSku.Id == editingProductSkuId && !isEdit)
         {
@@ -807,6 +879,7 @@
 
             var product = response.Data ?? new();
             productskuList = product.Skus;
+            MergeProductSkusIntoCache(productskuList);
             // TotalPages = (int)response.Data!.Count;
             // TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
         }
@@ -945,6 +1018,151 @@
         }
     }
 
+    private async Task LoadCompanyProductsAsync()
+    {
+        var prodRes = await ProductService.GetByCompanyAsync(companyId, 0, 10000);
+        if (prodRes.IsSuccess)
+        {
+            products = prodRes.Data?.Data?.ToList() ?? [];
+            allProductSkus = products
+                .SelectMany(product => product.Skus)
+                .ToList();
+        }
+    }
+
+    private void MergeProductSkusIntoCache(IEnumerable<ProductSkuDto> skus)
+    {
+        foreach (var sku in skus)
+        {
+            var index = allProductSkus.FindIndex(existingSku => existingSku.Id == sku.Id);
+            if (index >= 0)
+            {
+                allProductSkus[index] = sku;
+                continue;
+            }
+
+            allProductSkus.Add(sku);
+        }
+    }
+
+    private List<ProductSkuDto> GetAvailableComponentSkus(ProductSkuDto bundleSku, ProductSkuComponentDto component)
+    {
+        var selectedComponentIds = bundleSku.Components
+            .Where(c => c != component)
+            .Select(c => c.ComponentProductSkuId)
+            .ToHashSet();
+
+        return allProductSkus
+            .Where(sku => sku.Id != bundleSku.Id)
+            .Where(sku => !selectedComponentIds.Contains(sku.Id))
+            .ToList();
+    }
+
+    private ProductSkuDto? GetComponentSku(ProductSkuComponentDto component)
+    {
+        if (component.ComponentProductSkuId == Guid.Empty)
+        {
+            return null;
+        }
+
+        return allProductSkus.FirstOrDefault(sku => sku.Id == component.ComponentProductSkuId);
+    }
+
+    private string GetSkuDisplayName(ProductSkuDto sku)
+    {
+        var name = SharedDataService.SelectViewLang(sku.NameEng, sku.Name);
+        var code = SharedDataService.SelectViewLang(sku.SkuCodeEng, sku.SkuCode);
+
+        return string.IsNullOrWhiteSpace(code)
+            ? name
+            : $"{name} - {code}";
+    }
+
+    private void AddBundleComponent(ProductSkuDto sku)
+    {
+        sku.Components.Add(new ProductSkuComponentDto
+        {
+            Id = Guid.Empty,
+            ParentProductSkuId = isEdit ? sku.Id : Guid.Empty,
+            Quantity = 1
+        });
+    }
+
+    private void RemoveBundleComponent(ProductSkuDto sku, ProductSkuComponentDto component)
+    {
+        sku.Components.Remove(component);
+    }
+
+    private void OnBundleComponentSelected(ProductSkuComponentDto component, ProductSkuDto? sku)
+    {
+        component.ComponentProductSkuId = sku?.Id ?? Guid.Empty;
+        component.ComponentSkuName = sku?.Name;
+        component.ComponentSkuNameEng = sku?.NameEng;
+        component.ComponentSkuCode = sku?.SkuCode;
+        component.ComponentSkuCodeEng = sku?.SkuCodeEng;
+    }
+
+    private async Task<bool> ValidateBundleComponentsAsync(ProductSkuDto sku)
+    {
+        if (sku.ProductionType != SkuProductionType.CompositeBundle)
+        {
+            sku.Components.Clear();
+            return true;
+        }
+
+        if (!sku.Components.Any())
+        {
+            await ShowBundleValidationMessageAsync(
+                SharedDataService.SelectViewLang("Please add at least one bundle component", "الرجاء إضافة مكون واحد على الأقل للحزمة"));
+            return false;
+        }
+
+        if (sku.Components.Any(component => component.ComponentProductSkuId == Guid.Empty))
+        {
+            await ShowBundleValidationMessageAsync(
+                SharedDataService.SelectViewLang("Please select a SKU for each bundle component", "الرجاء اختيار منتج مخزني لكل مكون"));
+            return false;
+        }
+
+        if (sku.Components.Any(component => component.Quantity <= 0))
+        {
+            await ShowBundleValidationMessageAsync(
+                SharedDataService.SelectViewLang("Bundle component quantity must be greater than zero", "يجب أن تكون كمية مكون الحزمة أكبر من صفر"));
+            return false;
+        }
+
+        if (isEdit && sku.Components.Any(component => component.ComponentProductSkuId == sku.Id))
+        {
+            await ShowBundleValidationMessageAsync(
+                SharedDataService.SelectViewLang("A bundle SKU cannot contain itself", "لا يمكن أن تحتوي الحزمة على نفسها"));
+            return false;
+        }
+
+        var hasDuplicates = sku.Components
+            .GroupBy(component => component.ComponentProductSkuId)
+            .Any(group => group.Count() > 1);
+
+        if (hasDuplicates)
+        {
+            await ShowBundleValidationMessageAsync(
+                SharedDataService.SelectViewLang("Each component SKU can be added only once", "يمكن إضافة كل منتج مخزني كمكون مرة واحدة فقط"));
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task ShowBundleValidationMessageAsync(string message)
+    {
+        await ModalService.ShowAsync(new ModalOptions
+        {
+            Title = SharedDataService.SelectViewLang("Bundle Components", "مكونات الحزمة"),
+            Message = message,
+            IsError = true,
+            OnOk = async () => { }
+        });
+    }
+
     private void onVariantSelected(VariantDto variant)
     {
         selectedVariant = variant != null ? variant : new();
@@ -1033,3 +1251,45 @@
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }
+
+<style>
+    .sku-bundle-editor,
+    .sku-bundle-editor .card-body,
+    .sku-bundle-component-row,
+    .sku-bundle-component-picker {
+        overflow: visible;
+    }
+
+    .sku-bundle-component-row {
+        display: grid;
+        grid-template-columns: minmax(260px, 1fr) minmax(140px, 180px) auto;
+        gap: .75rem;
+        align-items: end;
+        padding: .75rem;
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        background: var(--erp-surface);
+    }
+
+    .sku-bundle-component-picker,
+    .sku-bundle-component-quantity {
+        min-width: 0;
+    }
+
+    .sku-bundle-component-action {
+        display: flex;
+        justify-content: flex-end;
+        padding-bottom: .125rem;
+    }
+
+    @@media (max-width: 767.98px) {
+        .sku-bundle-component-row {
+            grid-template-columns: 1fr;
+        }
+
+        .sku-bundle-component-action {
+            justify-content: flex-start;
+            padding-bottom: 0;
+        }
+    }
+</style>

@@ -53,12 +53,27 @@ public class ProductSkuDto
 
     public List<ProductSkuVariantDto> Variants { get; set; } = new();
     public List<ProductPackageDto> Packages { get; set; } = new();
+    public List<ProductSkuComponentDto> Components { get; set; } = new();
     
 
     //SKU1 Milk    Almarai      Full Cream	    2
     //SKU2 Milk    Almarai      No Cream	    3
     //SKU3 Milk    Alsafi       Full Cream	    1.5
 
+}
+
+public class ProductSkuComponentDto
+{
+    public Guid Id { get; set; }
+    public Guid ParentProductSkuId { get; set; }
+    public Guid ComponentProductSkuId { get; set; }
+    public string? ComponentSkuName { get; set; }
+    public string? ComponentSkuNameEng { get; set; }
+    public string? ComponentSkuCode { get; set; }
+    public string? ComponentSkuCodeEng { get; set; }
+
+    [Range(0.0001, 10000000, ErrorMessage = "Quantity must be greator than 0")]
+    public decimal Quantity { get; set; } = 1;
 }
 
 public class PublicStoreProductSkuRequest

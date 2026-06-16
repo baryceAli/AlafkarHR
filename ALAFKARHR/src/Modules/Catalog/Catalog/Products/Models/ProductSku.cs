@@ -32,6 +32,9 @@ public class ProductSku : Entity<Guid>
     private readonly List<ProductSkuPackage> _packages = new();
     public IReadOnlyCollection<ProductSkuPackage> Packages => _packages;
 
+    private readonly List<ProductSkuComponent> _components = new();
+    public IReadOnlyCollection<ProductSkuComponent> Components => _components;
+
 
 
     //SKU1 Milk    Almarai      Full Cream	    2
@@ -124,6 +127,7 @@ public class ProductSku : Entity<Guid>
         Guid companyId,
         List<ProductSkuVariantDto> variantDtos,
         List<Guid> packageIds,
+        List<ProductSkuComponentDto> componentDtos,
         string modifiedBy)
     {
         Name = name;
@@ -138,6 +142,11 @@ public class ProductSku : Entity<Guid>
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
         SetPackages(packageIds, modifiedBy);
+        SetComponents(
+            ProductionType == SkuProductionType.CompositeBundle
+                ? componentDtos
+                : [],
+            modifiedBy);
         //176AF7D6-4C28-40AD-BBE4-314DEB3E9755
         var activeValues = _variants.Where(v => v.ProductSkuId == Id && !v.IsDeleted).ToList();
         var activeIds = activeValues.Select(v => v.Id).ToHashSet();
@@ -234,6 +243,54 @@ public class ProductSku : Entity<Guid>
         PackageId = requestedIds.FirstOrDefault() == Guid.Empty
             ? null
             : requestedIds.First();
+    }
+
+    public void SetComponents(IEnumerable<ProductSkuComponentDto> componentDtos, string modifiedBy)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(modifiedBy);
+
+        var requestedComponents = componentDtos
+            .Where(component => component.ComponentProductSkuId != Guid.Empty)
+            .GroupBy(component => component.ComponentProductSkuId)
+            .Select(group => new
+            {
+                ComponentProductSkuId = group.Key,
+                Quantity = group.Sum(component => component.Quantity)
+            })
+            .ToList();
+
+        foreach (var component in requestedComponents)
+        {
+            if (component.ComponentProductSkuId == Id)
+                throw new Exception("A bundle SKU cannot contain itself.");
+
+            if (component.Quantity <= 0)
+                throw new Exception("Bundle component quantity must be greater than zero.");
+
+            var existingComponent = _components.FirstOrDefault(x => x.ComponentProductSkuId == component.ComponentProductSkuId);
+            if (existingComponent is null)
+            {
+                _components.Add(ProductSkuComponent.Create(Id, component.ComponentProductSkuId, component.Quantity, modifiedBy));
+                continue;
+            }
+
+            if (existingComponent.IsDeleted)
+            {
+                existingComponent.Restore(component.Quantity, modifiedBy);
+                continue;
+            }
+
+            existingComponent.Update(component.Quantity, modifiedBy);
+        }
+
+        var requestedIds = requestedComponents
+            .Select(component => component.ComponentProductSkuId)
+            .ToHashSet();
+
+        foreach (var existingComponent in _components.Where(x => !x.IsDeleted && !requestedIds.Contains(x.ComponentProductSkuId)).ToList())
+        {
+            existingComponent.Remove(modifiedBy);
+        }
     }
 
     public void RemoveVariant(Guid variantId, Guid variantValueId)

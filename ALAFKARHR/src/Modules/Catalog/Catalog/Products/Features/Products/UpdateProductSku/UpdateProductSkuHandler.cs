@@ -24,6 +24,7 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
         var productSku = await dbContext.ProductSkus
             .Include(sku=> sku.Variants)
             .Include(sku => sku.Packages)
+            .Include(sku => sku.Components)
             .FirstOrDefaultAsync(sku=>sku.Id==command.ProductSku.Id, cancellationToken);
         if (productSku is null)
             throw new Exception($"ProductSku not found: {command.ProductSku.Id}");
@@ -31,6 +32,11 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
         await dbContext.ProductSkuPackages
             .IgnoreQueryFilters()
             .Where(package => package.ProductSkuId == productSku.Id)
+            .LoadAsync(cancellationToken);
+
+        await dbContext.ProductSkuComponents
+            .IgnoreQueryFilters()
+            .Where(component => component.ParentProductSkuId == productSku.Id)
             .LoadAsync(cancellationToken);
 
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
@@ -115,6 +121,40 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
             ? SkuProductionType.PurchasedRawMaterial
             : command.ProductSku.ProductionType;
 
+        var componentDtos = productionType == SkuProductionType.CompositeBundle
+            ? command.ProductSku.Components
+            : [];
+
+        var componentSkuIds = componentDtos
+            .Select(component => component.ComponentProductSkuId)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (productionType == SkuProductionType.CompositeBundle)
+        {
+            if (!componentSkuIds.Any())
+                throw new Exception("Composite bundle must have at least one component SKU.");
+
+            if (componentSkuIds.Contains(productSku.Id))
+                throw new Exception("A bundle SKU cannot contain itself.");
+
+            if (componentDtos.Any(component => component.Quantity <= 0))
+                throw new Exception("Bundle component quantity must be greater than zero.");
+
+            if (componentSkuIds.Any())
+            {
+                var existingComponentSkuIds = await dbContext.ProductSkus.AsNoTracking()
+                    .Where(sku => sku.CompanyId == command.ProductSku.CompanyId && componentSkuIds.Contains(sku.Id))
+                    .Select(sku => sku.Id)
+                    .ToListAsync(cancellationToken);
+
+                var missingComponentSkuId = componentSkuIds.Except(existingComponentSkuIds).FirstOrDefault();
+                if (missingComponentSkuId != Guid.Empty)
+                    throw new NotFoundException($"Component SKU not found: {missingComponentSkuId}");
+            }
+        }
+
         productSku.Update(
             command.ProductSku.Price, 
             command.ProductSku.ShowOnStore,
@@ -128,6 +168,7 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
             command.ProductSku.CompanyId,
             command.ProductSku.Variants,
             packageIds.ToList(),
+            componentDtos,
             userId);
         await dbContext.SaveChangesAsync();
 
