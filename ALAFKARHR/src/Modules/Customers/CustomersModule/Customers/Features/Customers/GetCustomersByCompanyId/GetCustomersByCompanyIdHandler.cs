@@ -15,7 +15,12 @@ public class GetCustomersByCompanyIdHandler(CustomerDbContext dbContext)
         var searchText = request.PaginationRequest.SearchText;
         if (!string.IsNullOrWhiteSpace(searchText))
         {
-            query = query.Where(c => c.Name.ToLower().Contains(searchText.ToLower()));
+            query = query.Where(c =>
+                c.Name.Contains(searchText) ||
+                (c.CustomerCode != null && c.CustomerCode.Contains(searchText)) ||
+                (c.CommercialName != null && c.CommercialName.Contains(searchText)) ||
+                (c.VatNumber != null && c.VatNumber.Contains(searchText)) ||
+                (c.CommercialRegistrationNumber != null && c.CommercialRegistrationNumber.Contains(searchText)));
         }
 
         var count = await query.LongCountAsync(cancellationToken);

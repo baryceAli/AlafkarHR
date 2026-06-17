@@ -19,7 +19,7 @@ public class Address:Entity<Guid>
 
     public string PostalCode { get; private set; }
 
-    //public bool IsDefaultBilling { get; private set; }
+    public bool IsDefaultBilling { get; private set; }
 
     public bool IsDefaultShipping { get; private set; }
     protected Address(){}
@@ -33,8 +33,7 @@ public class Address:Entity<Guid>
         string state, 
         string country, 
         string postalCode,
-        
-        //bool isDefaultBilling, 
+        bool isDefaultBilling, 
         bool isDefaultShipping)
     {
         Id = Guid.Empty;
@@ -47,7 +46,7 @@ public class Address:Entity<Guid>
         State = state;
         Country = country;
         PostalCode = postalCode;
-        //IsDefaultBilling = isDefaultBilling;
+        IsDefaultBilling = isDefaultBilling;
         IsDefaultShipping = isDefaultShipping;
     }
     internal static Address Create(
@@ -60,6 +59,7 @@ public class Address:Entity<Guid>
         string state,
         string country,
         string postalCode,
+        bool isDefaultBilling,
         bool isDefaultShipping,
         string createdBy)
     {
@@ -75,6 +75,7 @@ public class Address:Entity<Guid>
             State = state,
             Country = country,
             PostalCode = postalCode,
+            IsDefaultBilling = isDefaultBilling,
             IsDefaultShipping = isDefaultShipping,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
@@ -91,8 +92,7 @@ public class Address:Entity<Guid>
         string state,
         string country,
         string postalCode,
-
-        //bool isDefaultBilling, 
+        bool isDefaultBilling, 
         bool isDefaultShipping)
     {
         Title = title;
@@ -104,7 +104,7 @@ public class Address:Entity<Guid>
         State = state;
         Country = country;
         PostalCode = postalCode;
-        //IsDefaultBilling = isDefaultBilling;
+        IsDefaultBilling = isDefaultBilling;
         IsDefaultShipping = isDefaultShipping;
     }
 

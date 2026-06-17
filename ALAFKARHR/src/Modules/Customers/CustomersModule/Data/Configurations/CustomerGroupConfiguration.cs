@@ -22,7 +22,14 @@ public class CustomerGroupConfiguration : IEntityTypeConfiguration<CustomerGroup
             .IsRequired()
             .HasMaxLength(150);
 
-        builder.HasIndex(x => x.Name)
+        builder.Property(x => x.NameEng)
+            .IsRequired()
+            .HasMaxLength(150);
+
+        builder.HasIndex(x => new { x.CompanyId, x.Name })
+            .IsUnique();
+
+        builder.HasIndex(x => new { x.CompanyId, x.NameEng })
             .IsUnique();
 
         builder.Property(x => x.Description)

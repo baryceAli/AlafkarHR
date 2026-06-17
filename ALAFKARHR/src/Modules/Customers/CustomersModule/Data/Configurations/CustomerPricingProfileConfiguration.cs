@@ -52,6 +52,7 @@ public class CustomerPricingProfileConfiguration
 
         builder.HasIndex(x => new
         {
+            x.CompanyId,
             x.CustomerId,
             x.PriceListId,
             x.EffectiveFrom

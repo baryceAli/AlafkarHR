@@ -11,7 +11,7 @@ Use this skill whenever Codex creates or edits UI in `UI/AlAfkarERP`. Produce a 
 
 Always preserve existing routes, DTOs, services, APIs, permissions, localization behavior, authentication flow, validation contracts, and business logic unless the user explicitly asks to change them.
 
-Think like a senior product designer before implementing like a frontend engineer. Aim for the design quality and restraint of strong SaaS products such as Linear, Stripe, Notion, Vercel, Figma, Slack, or Microsoft Fluent 2 without copying their brand language. Clarity first, simplicity first, readability first, productivity first. Never sacrifice usability for decoration.
+Think like a senior product designer before implementing like a frontend engineer. Treat strong SaaS products such as Linear, Stripe, Notion, Vercel, Figma, Slack, or Microsoft Fluent 2 as quality inspiration only; the source of truth is the local ERP design system, Razor/component patterns, Bootstrap icons, and theme variables. Clarity first, simplicity first, readability first, productivity first. Never sacrifice usability for decoration.
 
 ## Workflow
 
@@ -43,6 +43,12 @@ Use this self-check before finishing, without asking the user unless information
 - Is the primary action visually dominant?
 - Is visual hierarchy obvious without relying on oversized typography?
 - Are form controls consistent and keyboard accessible?
+- Is the tab order logical, and are focus states visible through `--erp-focus-ring` or the existing focus pattern?
+- Do icon-only buttons, ambiguous icons, and grouped actions have accessible names or visible labels?
+- Are loading and disabled states clear without removing keyboard or screen-reader context?
+- Are validation messages adjacent to their fields and still visible after submit failures?
+- Do tables remain usable in their responsive wrapper without clipped actions or unreadable columns?
+- Do text and control colors keep accessible contrast in light, dark, and selected color schemes?
 - Is whitespace doing the hierarchy work before typography size increases?
 - Does the design remain usable on mobile and desktop?
 - Do Arabic and English text, icons, and spacing work with `SharedDataService.PageDirection`?
@@ -152,9 +158,15 @@ List pages should use:
 
 ```razor
 <div class="erp-page">
-    <PageHeader Title="..." Subtitle="..." Overline="..." Icon="bi-box">
+    <PageHeader
+        Title='@SharedDataService.SelectViewLang("Items", "العناصر")'
+        Subtitle='@SharedDataService.SelectViewLang("Manage active records.", "إدارة السجلات النشطة.")'
+        Overline='@SharedDataService.SelectViewLang("Catalog", "الكتالوج")'
+        Icon="bi-box">
         <Actions>
-            <button class="btn btn-primary">...</button>
+            <button class="btn btn-primary">
+                @SharedDataService.SelectViewLang("Create", "إضافة")
+            </button>
         </Actions>
     </PageHeader>
 
@@ -177,8 +189,12 @@ Form pages should use:
 
 ```razor
 <div class="erp-page">
-    <PageHeader Title="..." Subtitle="..." Overline="..." Icon="bi-pencil-square" />
-    <AppCard Title="...">
+    <PageHeader
+        Title='@SharedDataService.SelectViewLang("Edit Item", "تعديل العنصر")'
+        Subtitle='@SharedDataService.SelectViewLang("Update the required details.", "تحديث البيانات المطلوبة.")'
+        Overline='@SharedDataService.SelectViewLang("Catalog", "الكتالوج")'
+        Icon="bi-pencil-square" />
+    <AppCard Title='@SharedDataService.SelectViewLang("Details", "البيانات")'>
         <EditForm Model="model" OnValidSubmit="SaveAsync">
             <DataAnnotationsValidator />
             <div class="row g-3">...</div>
@@ -209,7 +225,30 @@ Respect `SharedDataService.PageDirection`. Prefer logical CSS properties:
 
 Avoid new left/right-specific rules. If existing code uses left/right, add narrow RTL/LTR overrides only where required.
 
-For language-dependent components, confirm the existing change-notification pattern is present: subscribe to `SharedDataService.OnChange1`, rerender with `InvokeAsync(StateHasChanged)`, and unsubscribe in `Dispose`.
+Any Blazor page or component that renders language-dependent text or direction from `SharedDataService` must respond to the language button toggle. Add this pattern when missing:
+
+```razor
+@implements IDisposable
+
+@code {
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
+```
+
+When editing existing localized pages, check whether this pattern already exists before finishing. If the page already implements `IDisposable`, merge the unsubscribe into the existing `Dispose` method instead of creating a duplicate.
 
 ## CSS Hygiene
 
@@ -225,5 +264,6 @@ Extend the main project guide summary with:
 - Components reused or created.
 - Design changes and UX/accessibility improvements.
 - Theme variables reused or added.
-- Validation performed, including build result and any manual responsive/RTL checks.
+- Validation performed, including the `dotnet build <affected project>` result.
+- Manual responsive, RTL, browser, or visual checks only when the prompt explicitly requested them and they were actually performed; otherwise state that they were not run.
 - Related next UI improvements only when they follow directly from the task.

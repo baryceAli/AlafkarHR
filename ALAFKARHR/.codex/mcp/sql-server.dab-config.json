@@ -1,0 +1,62 @@
+{
+  "data-source": {
+    "database-type": "mssql",
+    "connection-string": "@env('ALAFKARHR_MSSQL_CONNECTION_STRING')"
+  },
+  "runtime": {
+    "rest": {
+      "enabled": false
+    },
+    "graphql": {
+      "enabled": false
+    },
+    "mcp": {
+      "enabled": true,
+      "path": "/mcp",
+      "dml-tools": {
+        "describe-entities": true,
+        "create-record": false,
+        "read-records": true,
+        "update-record": false,
+        "delete-record": false,
+        "execute-entity": false,
+        "aggregate-records": {
+          "enabled": true,
+          "query-timeout": 30
+        }
+      }
+    }
+  },
+  "autoentities": {
+    "all_readable_sql_objects": {
+      "patterns": {
+        "include": [
+          "%.%"
+        ],
+        "name": "{schema}_{object}"
+      },
+      "template": {
+        "rest": {
+          "enabled": false
+        },
+        "graphql": {
+          "enabled": false
+        },
+        "mcp": {
+          "dml-tools": true
+        }
+      },
+      "permissions": [
+        {
+          "role": "anonymous",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "entities": {}
+}

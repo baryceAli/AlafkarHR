@@ -20,8 +20,17 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .IsRequired()
             .HasMaxLength(200);
 
+        builder.Property(x => x.CustomerCode)
+            .HasMaxLength(50);
+
         builder.Property(x => x.CommercialName)
             .HasMaxLength(200);
+
+        builder.Property(x => x.VatNumber)
+            .HasMaxLength(50);
+
+        builder.Property(x => x.CommercialRegistrationNumber)
+            .HasMaxLength(50);
 
         builder.Property(x => x.Status)
             .HasConversion<int>()
@@ -38,6 +47,22 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(x => x.CreditLimit)
             .HasPrecision(18, 2);
 
+        builder.Property(x => x.PaymentTerm)
+            .HasConversion<int>()
+            .HasDefaultValue(PaymentTermType.Cash)
+            .IsRequired();
+
+        builder.Property(x => x.CreditStatus)
+            .HasConversion<int>()
+            .HasDefaultValue(CreditStatus.Good)
+            .IsRequired();
+
+        builder.Property(x => x.CreditHoldReason)
+            .HasMaxLength(500);
+
+        builder.Property(x => x.AvailableCredit)
+            .HasPrecision(18, 2);
+
         builder.Property(x => x.Notes)
             .HasMaxLength(2000);
 
@@ -45,6 +70,10 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .IsRequired();
 
         builder.Property(x=> x.CompanyId) .IsRequired();
+
+        builder.HasIndex(x => new { x.CompanyId, x.CustomerCode })
+            .IsUnique()
+            .HasFilter("[CustomerCode] IS NOT NULL");
 
         // Audit Fields
         builder.Property(x => x.CreatedBy)
@@ -107,6 +136,9 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
                 .HasPrecision(18, 10);
 
             address.Property(x => x.IsDefaultShipping)
+                .IsRequired();
+
+            address.Property(x => x.IsDefaultBilling)
                 .IsRequired();
 
             // Audit

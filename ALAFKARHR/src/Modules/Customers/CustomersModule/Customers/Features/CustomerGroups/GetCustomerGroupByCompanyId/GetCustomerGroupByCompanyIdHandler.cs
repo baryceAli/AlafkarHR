@@ -18,7 +18,7 @@ public class GetCustomerGroupByCompanyIdHandler(CustomerDbContext dbContext)
         string searchText = request.PaginationRequest.SearchText;
         if (!string.IsNullOrWhiteSpace(searchText))
         {
-            query=query.Where(c=> c.Name.ToLower().Contains(searchText.ToLower()));
+            query=query.Where(c=> c.Name.Contains(searchText) || c.NameEng.Contains(searchText));
         }
 
         var count = await query.LongCountAsync(cancellationToken);

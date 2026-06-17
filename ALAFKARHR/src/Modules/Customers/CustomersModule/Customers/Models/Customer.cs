@@ -4,11 +4,15 @@ namespace CustomersModule.Customers.Models;
 
 public class Customer : Aggregate<Guid>
 {
-    //public string CustomerCode { get; private set; }
+    public string? CustomerCode { get; private set; }
 
     public string Name { get; private set; }
 
     public string? CommercialName { get; private set; }
+
+    public string? VatNumber { get; private set; }
+
+    public string? CommercialRegistrationNumber { get; private set; }
 
     public Guid? CustomerGroupId { get; private set; }
 
@@ -18,7 +22,13 @@ public class Customer : Aggregate<Guid>
 
     public decimal CreditLimit { get; private set; }
 
-    //public PaymentTermType PaymentTerm { get; private set; }
+    public PaymentTermType PaymentTerm { get; private set; }
+
+    public CreditStatus CreditStatus { get; private set; }
+
+    public string? CreditHoldReason { get; private set; }
+
+    public decimal AvailableCredit { get; private set; }
 
     public string? Notes { get; private set; }
 
@@ -35,12 +45,18 @@ public class Customer : Aggregate<Guid>
     public static Customer Create(
         Guid id,
         string name,
+        string? customerCode,
         string? commercialName,
+        string? vatNumber,
+        string? commercialRegistrationNumber,
         CustomerStatus status,
         //CustomerType type,
         decimal creditLimit,
-        //PaymentTermType paymentTerm,
-        string notes,
+        PaymentTermType paymentTerm,
+        CreditStatus creditStatus,
+        string? creditHoldReason,
+        decimal availableCredit,
+        string? notes,
         bool isTaxExempt,
         Guid companyId,
         Guid? customerGroupId,
@@ -50,11 +66,17 @@ public class Customer : Aggregate<Guid>
         {
             Id =id,
             Name = name,
+            CustomerCode = customerCode,
             CommercialName = commercialName,
+            VatNumber = vatNumber,
+            CommercialRegistrationNumber = commercialRegistrationNumber,
             Status = status,
             //Type = type,
             CreditLimit = creditLimit,
-            //PaymentTerm = paymentTerm,
+            PaymentTerm = paymentTerm,
+            CreditStatus = creditStatus,
+            CreditHoldReason = creditHoldReason,
+            AvailableCredit = availableCredit,
             Notes = notes,
             IsTaxExempt = isTaxExempt,
             CompanyId = companyId,
@@ -66,24 +88,36 @@ public class Customer : Aggregate<Guid>
     }
     public void Update(
         string name,
+        string? customerCode,
         string? commercialName,
+        string? vatNumber,
+        string? commercialRegistrationNumber,
         CustomerStatus status,
         Guid? customerGroupId,
         decimal creditLimit,
-        //PaymentTermType paymentTerm,
-        string notes,
+        PaymentTermType paymentTerm,
+        CreditStatus creditStatus,
+        string? creditHoldReason,
+        decimal availableCredit,
+        string? notes,
         bool isTaxExempt,
         List<AddressDto> addresses,
         List<ContactDto> contacts,
         string modifiedBy)
     {
         Name=name;
+        CustomerCode=customerCode;
         CommercialName=commercialName;
+        VatNumber=vatNumber;
+        CommercialRegistrationNumber=commercialRegistrationNumber;
         Status=status;
         //Type=type;
         CustomerGroupId=customerGroupId;
         CreditLimit=creditLimit;
-        //PaymentTerm=paymentTerm;
+        PaymentTerm=paymentTerm;
+        CreditStatus=creditStatus;
+        CreditHoldReason=creditHoldReason;
+        AvailableCredit=availableCredit;
         Notes=notes;
         IsTaxExempt=isTaxExempt;
         ModifiedBy=modifiedBy;
@@ -107,6 +141,7 @@ public class Customer : Aggregate<Guid>
                     a.State,
                     a.Country,
                     a.PostalCode,
+                    a.IsDefaultBilling,
                     a.IsDefaultShipping,
                     modifiedBy);
                 continue;
@@ -118,7 +153,7 @@ public class Customer : Aggregate<Guid>
 
 
             var existingValue = activeAddresses.First(ev => ev.Id == a.Id);
-            existingValue.Update(a.Title, a.AddressLine1, a.AddressLine2, a.Longitude, a.Latitude, a.City, a.State, a.Country, a.PostalCode, a.IsDefaultShipping);
+            existingValue.Update(a.Title, a.AddressLine1, a.AddressLine2, a.Longitude, a.Latitude, a.City, a.State, a.Country, a.PostalCode, a.IsDefaultBilling, a.IsDefaultShipping);
         }
 
         // Remove
@@ -177,10 +212,10 @@ public class Customer : Aggregate<Guid>
     }
 
     public void AddAddress(string title, string addressLine1, string? addressLine2,double longitude, double latitude,
-        string city, string state, string country,string postalCode,bool isDefaultShipping,string user)
+        string city, string state, string country,string postalCode,bool isDefaultBilling,bool isDefaultShipping,string user)
     {
         
-         _addresses.Add(Address.Create(title,addressLine1,addressLine2,longitude,latitude,city,state,country,postalCode,isDefaultShipping,user));
+         _addresses.Add(Address.Create(title,addressLine1,addressLine2,longitude,latitude,city,state,country,postalCode,isDefaultBilling,isDefaultShipping,user));
     }
     public void AddContact(string fullName, string? jobTitle, string? email, string? phoneNumber, bool isPrimaryContact, string modifiedBy)
     {
