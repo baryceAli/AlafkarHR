@@ -103,8 +103,8 @@
     private string LeafClass => IsActive ? "sidebar-link sidebar-leaf is-active" : "sidebar-link sidebar-leaf";
     private bool HasVisibleChildren => VisibleChildren.Any();
     private bool ShouldShowChildren => HasVisibleChildren && !IsCollapsed && (Item.IsOpen || IsFiltering);
-    private bool IsParentActive => HasVisibleChildren && (IsUrlActive(Item.Url) || Item.Children.Any(IsMatch));
-    private bool IsActive => IsUrlActive(Item.Url);
+    private bool IsParentActive => HasVisibleChildren && (IsUrlWithinActivePath(Item.Url) || Item.Children.Any(IsMatch));
+    private bool IsActive => IsUrlExactActive(Item.Url);
 
     private List<MenuItem> VisibleChildren
     {
@@ -313,7 +313,7 @@
 
     private bool IsMatch(MenuItem item)
     {
-        if (IsUrlActive(item.Url))
+        if (IsUrlWithinActivePath(item.Url))
         {
             return true;
         }
@@ -321,23 +321,24 @@
         return item.Children.Any(IsMatch);
     }
 
-    private bool IsUrlActive(string? url)
+    private bool IsUrlExactActive(string? url)
     {
         if (string.IsNullOrWhiteSpace(url))
         {
             return false;
         }
 
-        var currentPath = CurrentPathFromUri();
-        var targetPath = NavigationMenuResolver.NormalizePath(url);
+        return NavigationMenuResolver.IsExactPathMatch(CurrentPathFromUri(), url);
+    }
 
-        if (currentPath == targetPath)
+    private bool IsUrlWithinActivePath(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
         {
-            return true;
+            return false;
         }
 
-        return targetPath != "/" &&
-               currentPath.StartsWith($"{targetPath}/", StringComparison.OrdinalIgnoreCase);
+        return NavigationMenuResolver.IsPathWithinUrl(CurrentPathFromUri(), url);
     }
 
     private string CurrentPathFromUri()

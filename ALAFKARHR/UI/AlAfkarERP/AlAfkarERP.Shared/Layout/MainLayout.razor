@@ -11,28 +11,25 @@
 
 @* @Body *@
 @* <div class="d-flex vh-100"> *@
-<div class="erp-shell d-flex vh-100 overflow-hidden @(isSidebarCollapsed ? "sidebar-collapsed" : "")">
-    
-    @if (isSidebarOpen)
-    {
-        <div class="sidebar-backdrop" @onclick="ToggleSidebar"></div>
-    }
-    <!-- Sidebar -->
-    <Sidebar IsOpen="isSidebarOpen"
-             IsCollapsed="isSidebarCollapsed"
-             OnLeafSelected="CloseSidebar"
-             OnToggleCollapsed="ToggleSidebarCollapsedAsync" />
+<div class="erp-shell mobile-first-shell d-flex vh-100 overflow-hidden">
+    <DesktopWorkspaceNav ActiveWorkspace="@activeWorkspace"
+                         ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
+                         AuthState="@AuthState"
+                         OnOpenCommand="OpenCommandPalette" />
 
     <!-- Main Area -->
     <div class="flex-grow-1 d-flex flex-column min-vw-0">
 
         <!-- Top Navbar -->
-        <TopNavbar OnToggleSidebar="ToggleSidebar"
-                   OnToggleSidebarCollapsed="ToggleSidebarCollapsedAsync"
-                   IsSidebarCollapsed="isSidebarCollapsed" />
+        <TopNavbar OnOpenCommand="OpenCommandPalette"
+                   OnOpenMore="OpenMoreHub"
+                   ActiveWorkspace="@activeWorkspace"
+                   ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
+                   IsMoreOpen="@isMoreHubOpen"
+                   ShellAuthState="@AuthState" />
         
         <!-- Page Content -->
-        <main class="erp-main flex-grow-1 overflow-auto w-100" dir="@SharedDataService.PageDirection">
+        <main class="erp-main flex-grow-1 overflow-auto min-w-0" dir="@SharedDataService.PageDirection">
             @Body
         </main>
 
@@ -44,6 +41,25 @@
 
     </div>
 
+    <MobileActionBar IsMoreOpen="@isMoreHubOpen"
+                     OnOpenCommand="OpenCommandPalette"
+                     OnOpenWorkspace="OpenWorkspaceHub"
+                     OnOpenRecent="OpenRecentHub"
+                     OnOpenFavorites="OpenFavoritesHub"
+                     OnOpenMore="OpenMoreHub" />
+
+    <MoreHub IsOpen="@isMoreHubOpen"
+             IsOpenChanged="SetMoreHubOpen"
+             InitialView="@moreHubInitialView"
+             ActiveWorkspace="@activeWorkspace"
+             AuthState="@AuthState"
+             OnNavigate="OnNavigationItemSelectedAsync" />
+
+    <CommandPalette IsOpen="@isCommandPaletteOpen"
+                    IsOpenChanged="SetCommandPaletteOpen"
+                    AuthState="@AuthState"
+                    OnNavigate="OnNavigationItemSelectedAsync" />
+
 </div>
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
@@ -54,25 +70,10 @@
 @code{
     private AuthenticationState? AuthState;
 
-    private bool isSidebarOpen = false;
-    private bool isSidebarCollapsed = false;
-    private const string SidebarCollapsedStorageKey = "alafkar.sidebar.collapsed";
-
-    void ToggleSidebar()
-    {
-        isSidebarOpen = !isSidebarOpen;
-    }
-
-    private void CloseSidebar()
-    {
-        isSidebarOpen = false;
-    }
-
-    private async Task ToggleSidebarCollapsedAsync()
-    {
-        isSidebarCollapsed = !isSidebarCollapsed;
-        await PersistSidebarCollapsedAsync();
-    }
+    private string activeWorkspace = NavigationMenuResolver.WorkspaceHome;
+    private string moreHubInitialView = MoreHub.ViewDirectory;
+    private bool isMoreHubOpen;
+    private bool isCommandPaletteOpen;
 
     protected override async Task OnInitializedAsync()
     {
@@ -82,18 +83,20 @@
     {
         if (firstRender)
         {
-            await LoadSidebarCollapsedAsync();
             AuthState = await((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
             if (AuthState.User.Identity?.IsAuthenticated != true)
             {
                 NavigationManager.NavigateTo("login",true);
             }
+            activeWorkspace = await LoadActiveWorkspaceAsync();
+            await InvokeAsync(StateHasChanged);
             // NavigationManager.NavigateTo("/login");
         }
     }
     protected override void OnInitialized()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
+        NavigationManager.LocationChanged += HandleLocationChanged;
     }
 
     private async Task HandleChangeAsync()
@@ -101,13 +104,20 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task LoadSidebarCollapsedAsync()
+    private async Task<string> LoadActiveWorkspaceAsync()
     {
+        var routeWorkspace = NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri);
+        if (routeWorkspace != NavigationMenuResolver.WorkspaceHome)
+        {
+            return routeWorkspace;
+        }
+
         try
         {
-            var value = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", SidebarCollapsedStorageKey);
-            isSidebarCollapsed = string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
-            await InvokeAsync(StateHasChanged);
+            var stored = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.ActiveWorkspaceStorageKey);
+            return !string.IsNullOrWhiteSpace(stored)
+                ? stored
+                : routeWorkspace;
         }
         catch (InvalidOperationException)
         {
@@ -115,21 +125,77 @@
         catch (JSException)
         {
         }
+
+        return routeWorkspace;
     }
 
-    private async Task PersistSidebarCollapsedAsync()
+    private async Task SetActiveWorkspaceAsync(string workspaceKey)
     {
+        activeWorkspace = workspaceKey;
         try
         {
-            await JSRuntime.InvokeVoidAsync("localStorage.setItem", SidebarCollapsedStorageKey, isSidebarCollapsed ? "true" : "false");
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", NavigationShellState.ActiveWorkspaceStorageKey, workspaceKey);
         }
         catch (JSException)
         {
         }
     }
 
+    private void OpenMoreHub()
+    {
+        moreHubInitialView = MoreHub.ViewDirectory;
+        isMoreHubOpen = true;
+    }
+
+    private void OpenWorkspaceHub()
+    {
+        moreHubInitialView = MoreHub.ViewWorkspace;
+        isMoreHubOpen = true;
+    }
+
+    private void OpenRecentHub()
+    {
+        moreHubInitialView = MoreHub.ViewRecent;
+        isMoreHubOpen = true;
+    }
+
+    private void OpenFavoritesHub()
+    {
+        moreHubInitialView = MoreHub.ViewFavorites;
+        isMoreHubOpen = true;
+    }
+
+    private void OpenCommandPalette()
+    {
+        isCommandPaletteOpen = true;
+    }
+
+    private Task SetMoreHubOpen(bool value)
+    {
+        isMoreHubOpen = value;
+        return Task.CompletedTask;
+    }
+
+    private Task SetCommandPaletteOpen(bool value)
+    {
+        isCommandPaletteOpen = value;
+        return Task.CompletedTask;
+    }
+
+    private async Task OnNavigationItemSelectedAsync(MenuItem item)
+    {
+        await SetActiveWorkspaceAsync(NavigationMenuResolver.GetWorkspaceKey(item));
+    }
+
+    private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
+    {
+        activeWorkspace = NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri);
+        _ = InvokeAsync(StateHasChanged);
+    }
+
     public void Dispose()
     {
         SharedDataService.OnChange1 -= HandleChangeAsync;
+        NavigationManager.LocationChanged -= HandleLocationChanged;
     }
 }

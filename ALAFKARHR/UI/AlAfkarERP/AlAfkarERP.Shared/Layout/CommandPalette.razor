@@ -1,0 +1,161 @@
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Globalization
+@using System.Security.Claims
+@using System.Text
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+@if (IsOpen)
+{
+    <div class="command-palette-backdrop" @onclick="CloseAsync"></div>
+    <section class="command-palette" role="dialog" aria-modal="true" aria-label="Command search">
+        <div class="command-palette-search">
+            <i class="bi bi-search"></i>
+            <input class="form-control"
+                   autofocus
+                   placeholder="@SharedDataService.SelectViewLang("Search pages, actions, stock, purchases...", "\u0627\u0628\u062d\u062b \u0639\u0646 \u0635\u0641\u062d\u0627\u062a \u0648\u0639\u0645\u0644\u064a\u0627\u062a \u0648\u0645\u062e\u0632\u0648\u0646 \u0648\u0645\u0634\u062a\u0631\u064a\u0627\u062a...")"
+                   @bind="searchText"
+                   @bind:event="oninput" />
+            <button type="button" class="btn erp-icon-btn" @onclick="CloseAsync">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <div class="command-palette-results">
+            @if (!Results.Any())
+            {
+                <div class="command-empty">
+                    <i class="bi bi-search"></i>
+                    <span>@SharedDataService.SelectViewLang("No authorized page matches your search.", "\u0644\u0627 \u062a\u0648\u062c\u062f \u0635\u0641\u062d\u0629 \u0645\u0635\u0631\u062d\u0629 \u062a\u0637\u0627\u0628\u0642 \u0627\u0644\u0628\u062d\u062b.")</span>
+                </div>
+            }
+            else
+            {
+                @foreach (var item in Results)
+                {
+                    <button type="button" class="command-result" @onclick="() => NavigateAsync(item)">
+                        <span class="command-result-icon"><i class="bi @item.Icon"></i></span>
+                        <span class="command-result-copy">
+                            <strong>@Label(item)</strong>
+                            <small>@PathLabel(item)</small>
+                        </span>
+                        <i class="bi bi-arrow-return-left command-result-enter"></i>
+                    </button>
+                }
+            }
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter] public AuthenticationState? AuthState { get; set; }
+    [Parameter] public EventCallback<MenuItem> OnNavigate { get; set; }
+
+    private string searchText = "";
+
+    private IEnumerable<MenuItem> Results => NavigationMenuResolver.GetAuthorizedNavigableItems(AuthState?.User)
+        .Where(MatchesSearch)
+        .Take(ResultLimit);
+
+    private int ResultLimit => string.IsNullOrWhiteSpace(searchText) ? 12 : 30;
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private bool IsAuthorized(MenuItem item)
+    {
+        var user = AuthState?.User;
+        if (user is null)
+        {
+            return false;
+        }
+
+        return NavigationMenuResolver.HasOwnPermission(item, user);
+    }
+
+    private bool MatchesSearch(MenuItem item)
+    {
+        var term = Normalize(searchText);
+        if (string.IsNullOrWhiteSpace(term))
+        {
+            return true;
+        }
+
+        var path = NavigationMenuResolver.GetMenuPath(item);
+        var haystack = string.Join(" ", item.TextEn, item.TextAr, item.Url, item.KeywordsEn, item.KeywordsAr, string.Join(" ", path.Select(p => $"{p.TextEn} {p.TextAr}")));
+        return Normalize(haystack).Contains(term);
+    }
+
+    private async Task NavigateAsync(MenuItem item)
+    {
+        await SaveRecentAsync(item);
+        await OnNavigate.InvokeAsync(item);
+        await CloseAsync();
+
+        if (!string.IsNullOrWhiteSpace(item.Url))
+        {
+            NavigationManager.NavigateTo(item.Url);
+        }
+    }
+
+    private async Task SaveRecentAsync(MenuItem item)
+    {
+        var key = NavigationMenuResolver.GetStorageKey(item);
+        var existing = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.RecentStorageKey);
+        var next = NavigationShellState.AddRecent(NavigationShellState.ParseKeys(existing), key);
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", NavigationShellState.RecentStorageKey, NavigationShellState.SerializeKeys(next));
+    }
+
+    private string Label(MenuItem item) => SharedDataService.SelectViewLang(item.TextEn, item.TextAr);
+
+    private string PathLabel(MenuItem item)
+    {
+        var path = NavigationMenuResolver.GetMenuPath(item);
+        return path.Count > 0
+            ? string.Join(" / ", path.Select(Label))
+            : item.Url ?? "";
+    }
+
+    private async Task CloseAsync()
+    {
+        searchText = "";
+        await IsOpenChanged.InvokeAsync(false);
+    }
+
+    private static string Normalize(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "";
+        }
+
+        var normalized = value.Trim().Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(normalized.Length);
+        foreach (var character in normalized)
+        {
+            var category = CharUnicodeInfo.GetUnicodeCategory(character);
+            if (category is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or UnicodeCategory.EnclosingMark || character == '\u0640')
+            {
+                continue;
+            }
+
+            builder.Append(char.ToLowerInvariant(character));
+        }
+
+        return builder.ToString().Normalize(NormalizationForm.FormC);
+    }
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

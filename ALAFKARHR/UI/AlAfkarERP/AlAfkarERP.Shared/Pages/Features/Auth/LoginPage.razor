@@ -6,6 +6,7 @@
 @using AlAfkarERP.Shared.Pages.Features.Auth.Layout
 @using AlAfkarERP.Shared.Dtos.Auth
 @using AlAfkarERP.Shared.Pages.Features.Auth.Services
+@using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
@@ -16,6 +17,7 @@
 
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IAuthService AuthService
+@inject ITaskManagementService TaskManagementService
 
 @inject ModalService ModalService
 @inject LoadingService LoadingService
@@ -177,6 +179,17 @@
         showPassword = !showPassword;
     }
 
+    private async Task RunTaskDailyCheckSilentlyAsync()
+    {
+        try
+        {
+            await TaskManagementService.RunMyDailyCheckAsync();
+        }
+        catch
+        {
+        }
+    }
+
     public void Dispose()
     {
         SharedDataService.OnChange1 -= HandleChangeAsync;
@@ -199,6 +212,8 @@
 
                 if (authState.User.Identity?.IsAuthenticated == true)
                 {
+                    await RunTaskDailyCheckSilentlyAsync();
+
                     if (authState.User.Claims.Any(c =>
                         c.Type == JwtRegisteredClaimNames.Typ &&
                         c.Value == UserType.SystemUser.ToString()))

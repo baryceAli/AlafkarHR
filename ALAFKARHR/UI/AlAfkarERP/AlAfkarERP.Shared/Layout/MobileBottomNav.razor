@@ -1,0 +1,39 @@
+@using AlAfkarERP.Shared.Utilities
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+
+<nav class="mobile-bottom-nav" aria-label="Primary mobile navigation">
+    @foreach (var workspace in NavigationMenuResolver.MobileWorkspaces)
+    {
+        var isActive = ActiveWorkspace == workspace.Key || workspace.Key == NavigationMenuResolver.WorkspaceMore && IsMoreOpen;
+        <button type="button"
+                class="mobile-bottom-nav-item @(isActive ? "is-active" : "")"
+                @onclick="() => SelectWorkspace(workspace)">
+            <i class="bi @workspace.Icon"></i>
+            <span>@SharedDataService.SelectViewLang(workspace.TextEn, workspace.TextAr)</span>
+        </button>
+    }
+</nav>
+
+@code {
+    [Parameter] public string ActiveWorkspace { get; set; } = NavigationMenuResolver.WorkspaceHome;
+    [Parameter] public bool IsMoreOpen { get; set; }
+    [Parameter] public EventCallback<string> ActiveWorkspaceChanged { get; set; }
+    [Parameter] public EventCallback OnOpenMore { get; set; }
+
+    private async Task SelectWorkspace(NavigationWorkspace workspace)
+    {
+        if (workspace.Key == NavigationMenuResolver.WorkspaceMore)
+        {
+            await OnOpenMore.InvokeAsync();
+            return;
+        }
+
+        await ActiveWorkspaceChanged.InvokeAsync(workspace.Key);
+
+        if (!string.IsNullOrWhiteSpace(workspace.Url))
+        {
+            NavigationManager.NavigateTo(workspace.Url);
+        }
+    }
+}

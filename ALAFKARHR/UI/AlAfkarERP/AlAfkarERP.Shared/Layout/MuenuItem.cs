@@ -13,6 +13,11 @@ public class MenuItem
     public string? BadgeCssClass { get; set; }
     public string? BadgeTitleEn { get; set; }
     public string? BadgeTitleAr { get; set; }
+    public string? WorkspaceKey { get; set; }
+    public int? MobilePriority { get; set; }
+    public string? KeywordsEn { get; set; }
+    public string? KeywordsAr { get; set; }
+    public bool IsFavoriteCandidate { get; set; } = true;
 
     public List<MenuItem> Children { get; set; } = new();
 
@@ -59,7 +64,6 @@ public class MenuItem
             TextEn = "Organizational Structure",
             TextAr = "الهيكل التنظيمي",
             Icon = "bi-diagram-3",
-            Url = "/Organization/Dashboard",
             PermissionPolicy = $"{PermissionList.CompanyPermissions.Select}",
             Children = new()
             {
@@ -127,10 +131,17 @@ public class MenuItem
                     TextEn = "Human Resource",
                     TextAr = "الموارد البشرية",
                     Icon = "bi-person-workspace",
-                    Url = "/Employee/Dashboard",
                     PermissionPolicy = PermissionList.EmployeePermissions.Select,
                     Children = new()
                     {
+                        new MenuItem
+                        {
+                            TextEn = "Dashboard",
+                            TextAr = "لوحة الموارد البشرية",
+                            Icon = "bi-speedometer2",
+                            Url = "/Employee/Dashboard",
+                            PermissionPolicy = PermissionList.EmployeePermissions.Select
+                        },
                         new MenuItem
                         {
                             TextEn = "Employees",
@@ -170,7 +181,6 @@ public class MenuItem
                     TextEn = "Attendance",
                     TextAr = "الحضور والانصراف",
                     Icon = "bi-calendar-check",
-                    Url = "/Attendance/Dashboard",
                     PermissionPolicy = PermissionList.AttendancePermissions.Select,
                     Children = new()
                     {
@@ -259,10 +269,17 @@ public class MenuItem
                             TextEn = "Reports",
                             TextAr = "التقارير",
                             Icon = "bi-file-earmark-bar-graph",
-                            Url = "/Attendance/Reports",
                             PermissionPolicy = PermissionList.AttendancePermissions.ViewReports,
                             Children = new()
                             {
+                                new MenuItem
+                                {
+                                    TextEn = "Reports Overview",
+                                    TextAr = "نظرة عامة على التقارير",
+                                    Icon = "bi-file-earmark-bar-graph",
+                                    Url = "/Attendance/Reports",
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                },
                                 new MenuItem
                                 {
                                     TextEn = "Daily Attendance Report",
@@ -336,7 +353,6 @@ public class MenuItem
                     TextEn = "Leave Management",
                     TextAr = "إدارة الإجازات",
                     Icon = "bi-calendar-heart",
-                    Url = "/LeavesManagement/EmergencyLeaves",
                     PermissionPolicy = PermissionList.AttendancePermissions.RequestEmergencyLeave,
                     Children = new()
                     {
@@ -379,7 +395,6 @@ public class MenuItem
                     TextEn = "Payroll",
                     TextAr = "الرواتب",
                     Icon = "bi-cash-stack",
-                    Url = "/Payroll/SalaryRuns",
                     PermissionPolicy = PermissionList.SalaryRunPermissions.Select,
                     Children = new()
                     {
@@ -414,6 +429,14 @@ public class MenuItem
                             Icon = "bi-sliders",
                             Url = "/Payroll/Components",
                             PermissionPolicy = PermissionList.PayrollContractPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Loans & Deductions",
+                            TextAr = "السلف والخصومات",
+                            Icon = "bi-wallet2",
+                            Url = "/Payroll/Loans",
+                            PermissionPolicy = PermissionList.PayrollLoanPermissions.View
                         }
                     }
                 },
@@ -422,10 +445,17 @@ public class MenuItem
                     TextEn = "Customers Management",
                     TextAr = "إدارة العملاء",
                     Icon = "bi-person-vcard-fill",
-                    Url = "/Customers/Customer/Dashboard",
                     PermissionPolicy = PermissionList.CustomerPermissions.Select,
                     Children = new()
                     {
+                        new MenuItem
+                        {
+                            TextEn = "Dashboard",
+                            TextAr = "لوحة العملاء",
+                            Icon = "bi-speedometer2",
+                            Url = "/Customers/Customer/Dashboard",
+                            PermissionPolicy = PermissionList.CustomerPermissions.Select
+                        },
                         new MenuItem
                         {
                             TextEn = "Customers List",
@@ -468,10 +498,17 @@ public class MenuItem
                     TextEn = "Products Management",
                     TextAr = "إدارة المنتجات",
                     Icon = "bi-tags-fill",
-                    Url = "/Warehouse/Product/Dashboard",
                     PermissionPolicy = PermissionList.ProductPermissions.Select,
                     Children = new()
                     {
+                        new MenuItem
+                        {
+                            TextEn = "Dashboard",
+                            TextAr = "لوحة المنتجات",
+                            Icon = "bi-speedometer2",
+                            Url = "/Warehouse/Product/Dashboard",
+                            PermissionPolicy = PermissionList.ProductPermissions.Select
+                        },
                         new MenuItem
                         {
                             TextEn = "Pricing List",
@@ -543,10 +580,17 @@ public class MenuItem
                     TextEn = "Inventory Management",
                     TextAr = "إدارة المخزون",
                     Icon = "bi-boxes",
-                    Url = "/Inventory/Dashboard",
                     PermissionPolicy = PermissionList.InventoryPermissions.Select,
                     Children = new()
                     {
+                        new MenuItem
+                        {
+                            TextEn = "Dashboard",
+                            TextAr = "لوحة المخزون",
+                            Icon = "bi-speedometer2",
+                            Url = "/Inventory/Dashboard",
+                            PermissionPolicy = PermissionList.InventoryPermissions.Select
+                        },
                         new MenuItem
                         {
                             TextEn = "Warehouses",
@@ -576,7 +620,6 @@ public class MenuItem
                             TextEn = "Stock Operations",
                             TextAr = "عمليات المخزون",
                             Icon = "bi-arrow-left-right",
-                            Url = "/Inventory/Dashboard",
                             PermissionPolicy = PermissionList.InventoryPermissions.View,
 
                             Children = new()
@@ -630,7 +673,6 @@ public class MenuItem
                     TextEn = "Supplier Management",
                     TextAr = "إدارة الموردين",
                     Icon = "bi-truck",
-                    Url = "/Suppliers/Supplier/List",
                     PermissionPolicy = PermissionList.SupplierPermissions.Select,
                     Children = new()
                     {
@@ -657,7 +699,6 @@ public class MenuItem
                     TextEn = "Procurement",
                     TextAr = "المشتريات",
                     Icon = "bi-cart-check",
-                    Url = "/Procurement/Dashboard",
                     PermissionPolicy = PermissionList.PurchaseOrderPermissions.Select,
                     Children = new()
                     {
@@ -780,7 +821,6 @@ public class MenuItem
             TextEn = "Task Management",
             TextAr = "إدارة المهام",
             Icon = "bi-kanban-fill",
-            Url = "/TaskManagement/Dashboard",
             PermissionPolicy = PermissionList.TaskManagementPermissions.Select,
             Children = new()
             {
@@ -798,6 +838,14 @@ public class MenuItem
                     TextAr = "مهامي",
                     Icon = "bi-person-check",
                     Url = "/TaskManagement/MyTasks",
+                    PermissionPolicy = PermissionList.TaskManagementPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Notifications",
+                    TextAr = "التنبيهات",
+                    Icon = "bi-bell",
+                    Url = "/TaskManagement/Notifications",
                     PermissionPolicy = PermissionList.TaskManagementPermissions.View,
                 },
                 new MenuItem
@@ -833,10 +881,17 @@ public class MenuItem
             TextEn = "Security Management",
             TextAr = "إدارة الأمان",
             Icon = "bi-shield-lock-fill",
-            Url = "/Auth/Dashboard",
             PermissionPolicy = PermissionList.UsersPermissions.Select,
             Children = new()
             {
+                new MenuItem
+                {
+                    TextEn = "Dashboard",
+                    TextAr = "لوحة الأمان",
+                    Icon = "bi-speedometer2",
+                    Url = "/Auth/Dashboard",
+                    PermissionPolicy = PermissionList.UsersPermissions.Select
+                },
                 new MenuItem
                 {
                     TextEn = "Roles Management",

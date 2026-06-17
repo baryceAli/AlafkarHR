@@ -4,10 +4,13 @@
 @using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
 @using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Catalog.Dtos
+@using System.Security.Claims
 @inject IProductService ProductService
 @inject ApiConfig ApiConfig
 @inject SharedDataService SharedDataService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>ALAFKAR</PageTitle>
 
@@ -336,6 +339,7 @@
     private int pageIndex;
     private const int PageSize = 6;
     private long totalProductCount;
+    private Guid? authenticatedCustomerId;
 
     private int TotalPages => totalProductCount <= 0
         ? 1
@@ -374,8 +378,26 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await ResolveAuthenticatedCustomerAsync();
         await LoadFilterMetadataAsync();
         await LoadProductSkusAsync();
+    }
+
+    private async Task ResolveAuthenticatedCustomerAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated != true)
+            return;
+
+        var customerClaim = user.FindFirst("customer_id")
+            ?? user.FindFirst("CustomerId")
+            ?? user.FindFirst("customerId");
+
+        if (Guid.TryParse(customerClaim?.Value, out var customerId))
+        {
+            authenticatedCustomerId = customerId;
+        }
     }
 
     private async Task LoadFilterMetadataAsync()
@@ -415,6 +437,7 @@
         {
             PageIndex = pageIndex,
             PageSize = PageSize,
+            CustomerId = authenticatedCustomerId,
             SearchTerm = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim(),
             CategoryId = TryParseGuid(selectedCategoryId),
             BrandId = TryParseGuid(selectedBrandId),

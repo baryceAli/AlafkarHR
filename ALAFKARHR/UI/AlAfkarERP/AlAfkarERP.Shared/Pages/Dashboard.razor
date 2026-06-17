@@ -1,15 +1,419 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Dashboard"
-@using AlAfkarERP.Shared.Utilities
-@inject SharedDataService SharedDataService
+@implements IDisposable
 
-<h3>AdminDashboard</h3>
+@using AlAfkarERP.Shared.Utilities
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Attendance.Enums
+@using SharedWithUI.Permissions
+@using SharedWithUI.TaskManagement.Dtos
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IAttendanceService AttendanceService
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ITaskManagementService TaskService
+
+<section class="dashboard-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Dashboard", "لوحة التحكم")"
+                Subtitle="@Text("Start from your most important ERP areas and daily work.", "ابدأ من أهم مناطق النظام وأعمالك اليومية.")"
+                Overline="@Text("Workspace", "مساحة العمل")"
+                Icon="bi-speedometer2">
+        <Actions>
+            @if (HasPermission(PermissionList.TaskManagementPermissions.View))
+            {
+                <button class="btn btn-primary" @onclick='() => NavigationManager.NavigateTo("/TaskManagement/MyTasks")'>
+                    <i class="bi bi-list-check"></i>
+                    @Text("My Tasks", "مهامي")
+                </button>
+            }
+        </Actions>
+    </PageHeader>
+
+    @if (!isReady)
+    {
+        <div class="erp-loading">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2">@Text("Loading dashboard...", "جاري تحميل لوحة التحكم...")</div>
+        </div>
+    }
+    else
+    {
+        var visibleStatusCards = StatusCards.Where(CanView).ToList();
+        var visibleSections = VisibleShortcutSections.ToList();
+
+        <div class="dashboard-status-grid">
+            @foreach (var card in visibleStatusCards)
+            {
+                <a class="dashboard-status-card dashboard-card-link" href="@card.Url">
+                    <span class="dashboard-status-icon dashboard-tone-@card.Tone">
+                        <i class="bi @card.Icon"></i>
+                    </span>
+                    <span class="dashboard-status-content">
+                        <span class="dashboard-status-title">@Text(card.TitleEn, card.TitleAr)</span>
+                        <span class="dashboard-status-text">@Text(card.DescriptionEn, card.DescriptionAr)</span>
+                        @if (BadgesFor(card).Any())
+                        {
+                            <span class="dashboard-badge-row">
+                                @foreach (var badge in BadgesFor(card))
+                                {
+                                    <span class="dashboard-live-badge dashboard-badge-@badge.Tone">
+                                        @badge.DisplayText
+                                    </span>
+                                }
+                            </span>
+                        }
+                    </span>
+                    <i class="bi bi-arrow-right-short dashboard-link-arrow"></i>
+                </a>
+            }
+        </div>
+
+        <div class="row g-3 align-items-stretch">
+            <div class="col-xl-8">
+                <AppCard Title="@Text("Quick Access", "وصول سريع")"
+                         Subtitle="@Text("Open the areas you use most, based on your current permissions.", "افتح المناطق الأكثر استخداما حسب صلاحياتك الحالية.")"
+                         CssClass="h-100">
+                    @if (!visibleSections.Any())
+                    {
+                        <EmptyState Title="@Text("No shortcuts available", "لا توجد اختصارات متاحة")"
+                                    Message="@Text("Your account does not currently have module shortcuts assigned.", "لا يحتوي حسابك حاليا على اختصارات وحدات مخصصة.")"
+                                    Icon="bi-grid" />
+                    }
+                    else
+                    {
+                        <div class="dashboard-shortcut-sections">
+                            @foreach (var (section, links) in visibleSections)
+                            {
+                                <section class="dashboard-shortcut-section" aria-labelledby="@section.Key">
+                                    <div class="dashboard-section-heading">
+                                        <span class="dashboard-section-icon">
+                                            <i class="bi @section.Icon"></i>
+                                        </span>
+                                        <div>
+                                            <h3 id="@section.Key">@Text(section.TitleEn, section.TitleAr)</h3>
+                                            <p>@Text(section.DescriptionEn, section.DescriptionAr)</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="dashboard-shortcut-grid">
+                                        @foreach (var link in links)
+                                        {
+                                            <a class="dashboard-shortcut dashboard-card-link" href="@link.Url">
+                                                <span class="dashboard-shortcut-icon">
+                                                    <i class="bi @link.Icon"></i>
+                                                </span>
+                                                <span class="dashboard-shortcut-content">
+                                                    <span class="dashboard-shortcut-title">@Text(link.TitleEn, link.TitleAr)</span>
+                                                    <span class="dashboard-shortcut-text">@Text(link.DescriptionEn, link.DescriptionAr)</span>
+                                                </span>
+                                            </a>
+                                        }
+                                    </div>
+                                </section>
+                            }
+                        </div>
+                    }
+                </AppCard>
+            </div>
+
+            <div class="col-xl-4">
+                <AppCard Title="@Text("Today", "اليوم")"
+                         Subtitle="@Text("Start with the work that usually needs attention first.", "ابدأ بالأعمال التي تحتاج انتباها عادة.")"
+                         CssClass="h-100">
+                    <div class="dashboard-priority-list">
+                        @foreach (var item in VisiblePriorityLinks)
+                        {
+                            <a class="dashboard-priority-item dashboard-card-link" href="@item.Url">
+                                <span class="dashboard-priority-icon">
+                                    <i class="bi @item.Icon"></i>
+                                </span>
+                                <span>
+                                    <span class="dashboard-priority-title">@Text(item.TitleEn, item.TitleAr)</span>
+                                    <span class="dashboard-priority-text">@Text(item.DescriptionEn, item.DescriptionAr)</span>
+                                </span>
+                            </a>
+                        }
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+    }
+</section>
 
 @code {
+    private AuthenticationState? authState;
+    private TaskDashboardDto? taskDashboard;
+    private AttendanceCheckInPreviewDto? attendancePreview;
+    private int pendingApprovalCount;
+    private bool taskBadgeLoaded;
+    private bool attendanceBadgeLoaded;
+    private bool approvalBadgeLoaded;
+    private bool isReady;
+
+    private IReadOnlyList<DashboardLink> StatusCards => new[]
+    {
+        new DashboardLink(
+            "My Tasks",
+            "مهامي",
+            "Open your assigned work and follow up on progress.",
+            "افتح أعمالك المسندة وتابع التقدم.",
+            "bi-list-check",
+            "/TaskManagement/MyTasks",
+            PermissionList.TaskManagementPermissions.View,
+            "primary"),
+        new DashboardLink(
+            "Attendance",
+            "الحضور",
+            "Review your attendance actions and daily sessions.",
+            "راجع إجراءات الحضور والجلسات اليومية.",
+            "bi-person-check",
+            "/Attendance/MyAttendance",
+            PermissionList.AttendancePermissions.Create,
+            "success"),
+        new DashboardLink(
+            "Approvals",
+            "الاعتمادات",
+            "Check permission requests waiting for review.",
+            "راجع طلبات الإذن بانتظار الاعتماد.",
+            "bi-patch-check",
+            "/Attendance/ApprovePermissionRequests",
+            PermissionList.AttendancePermissions.ApproveMidDayPermission,
+            "warning"),
+        new DashboardLink(
+            "Reports",
+            "التقارير",
+            "Open attendance reports and operational summaries.",
+            "افتح تقارير الحضور والملخصات التشغيلية.",
+            "bi-file-earmark-bar-graph",
+            "/Attendance/Reports",
+            PermissionList.AttendancePermissions.ViewReports,
+            "info")
+    };
+
+    private IReadOnlyList<DashboardSection> ShortcutSections => new[]
+    {
+        new DashboardSection(
+            "people-hr",
+            "People & HR",
+            "الأفراد والموارد البشرية",
+            "Employee, attendance, leave, and payroll workspaces.",
+            "مساحات عمل الموظفين والحضور والإجازات والرواتب.",
+            "bi-people",
+            new[]
+            {
+                new DashboardLink("Employees", "الموظفون", "Manage employee records.", "إدارة سجلات الموظفين.", "bi-person-badge", "/Employee/Employee/List", PermissionList.EmployeePermissions.View),
+                new DashboardLink("Attendance", "الحضور", "Track attendance sessions and shifts.", "متابعة جلسات الحضور والورديات.", "bi-calendar-check", "/Attendance/Dashboard", PermissionList.AttendancePermissions.View),
+                new DashboardLink("Leave Management", "إدارة الإجازات", "Request and approve leave items.", "طلب واعتماد الإجازات.", "bi-calendar-heart", "/LeavesManagement/EmergencyLeaves", PermissionList.AttendancePermissions.RequestEmergencyLeave),
+                new DashboardLink("Payroll", "الرواتب", "Generate salaries and review contracts.", "توليد الرواتب ومراجعة العقود.", "bi-cash-stack", "/Payroll/SalaryRuns", PermissionList.SalaryRunPermissions.View)
+            }),
+        new DashboardSection(
+            "operations",
+            "Operations",
+            "العمليات",
+            "Sales, stock, purchasing, and supplier workflows.",
+            "مبيعات ومخزون ومشتريات وموردون.",
+            "bi-boxes",
+            new[]
+            {
+                new DashboardLink("POS", "نقطة البيع", "Open the sales point of service.", "افتح نقطة البيع.", "bi-receipt-cutoff", "/SalesOrder/POS", PermissionList.InventoryPermissions.View),
+                new DashboardLink("Inventory", "المخزون", "Review stock balances and operations.", "راجع أرصدة المخزون والعمليات.", "bi-boxes", "/Inventory/Dashboard", PermissionList.InventoryPermissions.Select),
+                new DashboardLink("Procurement", "المشتريات", "Manage purchase documents.", "إدارة مستندات الشراء.", "bi-cart-check", "/Procurement/Dashboard", PermissionList.PurchaseOrderPermissions.Select),
+                new DashboardLink("Suppliers", "الموردون", "Open supplier profiles and groups.", "افتح ملفات الموردين والمجموعات.", "bi-truck", "/Suppliers/Supplier/List", PermissionList.SupplierPermissions.View)
+            }),
+        new DashboardSection(
+            "administration",
+            "Administration",
+            "الإدارة",
+            "Organization, security, roles, and system settings.",
+            "الهيكل التنظيمي والأمان والصلاحيات وإعدادات النظام.",
+            "bi-shield-lock",
+            new[]
+            {
+                new DashboardLink("Organization", "الهيكل التنظيمي", "Manage companies, branches, and departments.", "إدارة الشركات والفروع والأقسام.", "bi-diagram-3", "/Organization/Dashboard", PermissionList.CompanyPermissions.Select),
+                new DashboardLink("Security", "الأمان", "Manage users and roles.", "إدارة المستخدمين والصلاحيات.", "bi-shield-check", "/Auth/Dashboard", PermissionList.UsersPermissions.Select),
+                new DashboardLink("System Settings", "إعدادات النظام", "Configure core ERP settings.", "ضبط إعدادات النظام الأساسية.", "bi-gear-wide-connected", "/GeneralSettings/SystemSettings", PermissionList.SystemSettingsPermissions.View),
+                new DashboardLink("Currencies", "العملات", "Review currency setup.", "مراجعة إعداد العملات.", "bi-currency-exchange", "/GeneralSettings/Currencies", PermissionList.SystemSettingsPermissions.View)
+            })
+    };
+
+    private IEnumerable<(DashboardSection Section, List<DashboardLink> Links)> VisibleShortcutSections =>
+        ShortcutSections
+            .Select(section => (Section: section, Links: section.Links.Where(CanView).ToList()))
+            .Where(section => section.Links.Any());
+
+    private IEnumerable<DashboardLink> VisiblePriorityLinks =>
+        StatusCards.Where(CanView).Take(4);
+
     protected override void OnInitialized()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
     }
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        await LoadBadgeDataAsync();
+        isReady = true;
+    }
+
+    private async Task LoadBadgeDataAsync()
+    {
+        var tasks = new List<Task>();
+
+        if (HasPermission(PermissionList.TaskManagementPermissions.View))
+        {
+            tasks.Add(LoadTaskBadgeAsync());
+        }
+
+        if (HasPermission(PermissionList.AttendancePermissions.Create))
+        {
+            tasks.Add(LoadAttendanceBadgeAsync());
+        }
+
+        if (HasPermission(PermissionList.AttendancePermissions.ApproveMidDayPermission))
+        {
+            tasks.Add(LoadApprovalBadgeAsync());
+        }
+
+        await Task.WhenAll(tasks);
+    }
+
+    private async Task LoadTaskBadgeAsync()
+    {
+        try
+        {
+            var response = await TaskService.GetDashboardAsync("mine");
+            if (response.IsSuccess)
+            {
+                taskDashboard = response.Data;
+            }
+        }
+        catch
+        {
+            taskDashboard = null;
+        }
+        finally
+        {
+            taskBadgeLoaded = true;
+        }
+    }
+
+    private async Task LoadAttendanceBadgeAsync()
+    {
+        try
+        {
+            var response = await AttendanceService.GetMyCheckInPreviewAsync(workDateUtc: DateTime.UtcNow);
+            if (response.IsSuccess)
+            {
+                attendancePreview = response.Data;
+            }
+        }
+        catch
+        {
+            attendancePreview = null;
+        }
+        finally
+        {
+            attendanceBadgeLoaded = true;
+        }
+    }
+
+    private async Task LoadApprovalBadgeAsync()
+    {
+        try
+        {
+            var companyId = ResolveCompanyId();
+            if (companyId == Guid.Empty)
+            {
+                return;
+            }
+
+            var response = await AttendanceService.GetMidDayPermissionsAsync(companyId, 0, 50, AttendanceExceptionStatus.Pending);
+            if (response.IsSuccess)
+            {
+                pendingApprovalCount = (int)(response.Data?.Count ?? response.Data?.Data.Count() ?? 0);
+            }
+        }
+        catch
+        {
+            pendingApprovalCount = 0;
+        }
+        finally
+        {
+            approvalBadgeLoaded = true;
+        }
+    }
+
+    private bool CanView(DashboardLink link) => HasPermission(link.Permission);
+
+    private bool HasPermission(string permission) =>
+        authState?.User.Claims.Any(claim => claim.Value == permission) == true;
+
+    private Guid ResolveCompanyId() =>
+        Guid.TryParse(authState?.User.Claims.FirstOrDefault(claim => claim.Type == "company_id")?.Value, out var companyId)
+            ? companyId
+            : Guid.Empty;
+
+    private IEnumerable<DashboardBadge> BadgesFor(DashboardLink card)
+    {
+        if (card.Url == "/TaskManagement/MyTasks")
+        {
+            yield return new DashboardBadge(
+                Text("Pending", "معلق"),
+                taskBadgeLoaded ? (taskDashboard?.OpenTasks.ToString() ?? "--") : "--",
+                "warning");
+            yield return new DashboardBadge(
+                Text("Overdue", "متأخر"),
+                taskBadgeLoaded ? (taskDashboard?.OverdueTasks.ToString() ?? "--") : "--",
+                "danger");
+            yield break;
+        }
+
+        if (card.Url == "/Attendance/MyAttendance")
+        {
+            yield return AttendanceBadge();
+            yield break;
+        }
+
+        if (card.Url == "/Attendance/ApprovePermissionRequests")
+        {
+            yield return new DashboardBadge(
+                Text("Pending", "معلق"),
+                approvalBadgeLoaded ? pendingApprovalCount.ToString() : "--",
+                pendingApprovalCount > 0 ? "warning" : "success");
+        }
+    }
+
+    private DashboardBadge AttendanceBadge()
+    {
+        if (!attendanceBadgeLoaded || attendancePreview is null)
+        {
+            return new DashboardBadge(Text("Status", "الحالة"), "--", "muted");
+        }
+
+        if (attendancePreview.ActiveSession is not null)
+        {
+            return new DashboardBadge(Text("Checked in", "تم الحضور"), null, "success");
+        }
+
+        if (attendancePreview.IsAttendanceCompleted)
+        {
+            return new DashboardBadge(Text("Completed", "مكتمل"), null, "success");
+        }
+
+        if (attendancePreview.CanCheckIn)
+        {
+            return new DashboardBadge(Text("Not checked in", "لم يتم الحضور"), null, "warning");
+        }
+
+        return new DashboardBadge(Text("Unavailable", "غير متاح"), null, "muted");
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 
     private async Task HandleChangeAsync()
     {
@@ -20,4 +424,275 @@
     {
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
+
+    private sealed record DashboardSection(
+        string Key,
+        string TitleEn,
+        string TitleAr,
+        string DescriptionEn,
+        string DescriptionAr,
+        string Icon,
+        IReadOnlyList<DashboardLink> Links);
+
+    private sealed record DashboardLink(
+        string TitleEn,
+        string TitleAr,
+        string DescriptionEn,
+        string DescriptionAr,
+        string Icon,
+        string Url,
+        string Permission,
+        string Tone = "primary");
+
+    private sealed record DashboardBadge(string Label, string? Value, string Tone)
+    {
+        public string DisplayText => string.IsNullOrWhiteSpace(Value) ? Label : $"{Label}: {Value}";
+    }
 }
+
+<style>
+    .dashboard-page {
+        min-width: 0;
+    }
+
+    .dashboard-status-grid {
+        display: grid;
+        gap: var(--erp-space-3);
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-bottom: var(--erp-space-4);
+    }
+
+    .dashboard-card-link {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .dashboard-status-card,
+    .dashboard-shortcut,
+    .dashboard-priority-item {
+        background: var(--erp-surface);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
+        box-shadow: var(--erp-shadow-sm);
+        min-width: 0;
+        transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+    }
+
+    .dashboard-status-card:hover,
+    .dashboard-shortcut:hover,
+    .dashboard-priority-item:hover {
+        border-color: var(--erp-border-strong);
+        box-shadow: var(--erp-shadow-md);
+        transform: translateY(-1px);
+    }
+
+    .dashboard-status-card:focus-visible,
+    .dashboard-shortcut:focus-visible,
+    .dashboard-priority-item:focus-visible {
+        outline: 0;
+        box-shadow: var(--erp-focus-ring), var(--erp-shadow-md);
+    }
+
+    .dashboard-status-card {
+        align-items: center;
+        display: flex;
+        gap: var(--erp-space-3);
+        min-height: 112px;
+        padding: var(--erp-space-4);
+    }
+
+    .dashboard-status-icon,
+    .dashboard-section-icon,
+    .dashboard-shortcut-icon,
+    .dashboard-priority-icon {
+        align-items: center;
+        border-radius: var(--erp-radius-md);
+        display: inline-flex;
+        flex: 0 0 auto;
+        justify-content: center;
+    }
+
+    .dashboard-status-icon {
+        background: var(--erp-primary-soft);
+        color: var(--erp-primary);
+        font-size: 1.25rem;
+        height: 44px;
+        width: 44px;
+    }
+
+    .dashboard-tone-success {
+        color: var(--erp-success);
+    }
+
+    .dashboard-tone-warning {
+        color: var(--erp-warning);
+    }
+
+    .dashboard-tone-info {
+        color: var(--erp-info);
+    }
+
+    .dashboard-status-content,
+    .dashboard-shortcut-content,
+    .dashboard-priority-item > span:last-child {
+        display: grid;
+        gap: .25rem;
+        min-width: 0;
+    }
+
+    .dashboard-status-title,
+    .dashboard-shortcut-title,
+    .dashboard-priority-title {
+        color: var(--erp-text);
+        font-weight: 700;
+        overflow-wrap: anywhere;
+    }
+
+    .dashboard-status-text,
+    .dashboard-shortcut-text,
+    .dashboard-priority-text,
+    .dashboard-section-heading p {
+        color: var(--erp-text-muted);
+        font-size: .875rem;
+        line-height: 1.45;
+        margin: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .dashboard-badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .4rem;
+        margin-top: .2rem;
+    }
+
+    .dashboard-live-badge {
+        align-items: center;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: .75rem;
+        font-weight: 700;
+        line-height: 1;
+        min-height: 24px;
+        padding: .3rem .55rem;
+        white-space: nowrap;
+    }
+
+    .dashboard-badge-warning {
+        background: color-mix(in srgb, var(--erp-warning) 14%, transparent);
+        border-color: color-mix(in srgb, var(--erp-warning) 28%, transparent);
+        color: var(--erp-warning);
+    }
+
+    .dashboard-badge-danger {
+        background: color-mix(in srgb, var(--erp-danger) 14%, transparent);
+        border-color: color-mix(in srgb, var(--erp-danger) 28%, transparent);
+        color: var(--erp-danger);
+    }
+
+    .dashboard-badge-success {
+        background: color-mix(in srgb, var(--erp-success) 14%, transparent);
+        border-color: color-mix(in srgb, var(--erp-success) 28%, transparent);
+        color: var(--erp-success);
+    }
+
+    .dashboard-badge-muted {
+        background: var(--erp-surface-muted);
+        border-color: var(--erp-border);
+        color: var(--erp-text-muted);
+    }
+
+    .dashboard-link-arrow {
+        color: var(--erp-text-muted);
+        font-size: 1.35rem;
+        margin-inline-start: auto;
+    }
+
+    [dir="rtl"] .dashboard-link-arrow {
+        transform: rotate(180deg);
+    }
+
+    .dashboard-shortcut-sections {
+        display: grid;
+        gap: var(--erp-space-5);
+    }
+
+    .dashboard-shortcut-section {
+        display: grid;
+        gap: var(--erp-space-3);
+    }
+
+    .dashboard-section-heading {
+        align-items: flex-start;
+        display: flex;
+        gap: var(--erp-space-3);
+    }
+
+    .dashboard-section-heading h3 {
+        color: var(--erp-text);
+        font-size: 1.05rem;
+        font-weight: 700;
+        line-height: 1.3;
+        margin: 0 0 .25rem;
+    }
+
+    .dashboard-section-icon {
+        background: var(--erp-surface-muted);
+        color: var(--erp-primary);
+        height: 36px;
+        width: 36px;
+    }
+
+    .dashboard-shortcut-grid {
+        display: grid;
+        gap: var(--erp-space-3);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dashboard-shortcut {
+        align-items: flex-start;
+        display: flex;
+        gap: var(--erp-space-3);
+        min-height: 104px;
+        padding: var(--erp-space-3);
+    }
+
+    .dashboard-shortcut-icon,
+    .dashboard-priority-icon {
+        background: var(--erp-primary-soft);
+        color: var(--erp-primary);
+        height: 38px;
+        width: 38px;
+    }
+
+    .dashboard-priority-list {
+        display: grid;
+        gap: var(--erp-space-3);
+    }
+
+    .dashboard-priority-item {
+        align-items: flex-start;
+        display: flex;
+        gap: var(--erp-space-3);
+        padding: var(--erp-space-3);
+    }
+
+    @@media (max-width: 1199.98px) {
+        .dashboard-status-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .dashboard-status-grid,
+        .dashboard-shortcut-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .dashboard-status-card,
+        .dashboard-shortcut {
+            min-height: auto;
+        }
+    }
+</style>

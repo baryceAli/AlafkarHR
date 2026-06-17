@@ -1,0 +1,34 @@
+@using AlAfkarERP.Shared.Utilities
+@inject SharedDataService SharedDataService
+
+<nav class="mobile-action-bar" aria-label="Mobile quick actions">
+    <button type="button" class="mobile-action-bar-item" @onclick="OnOpenCommand">
+        <i class="bi bi-search"></i>
+        <span>@SharedDataService.SelectViewLang("Search", "\u0628\u062d\u062b")</span>
+    </button>
+    <button type="button" class="mobile-action-bar-item" @onclick="OnOpenWorkspace">
+        <i class="bi bi-compass"></i>
+        <span>@SharedDataService.SelectViewLang("Workspace", "\u0645\u0633\u0627\u062d\u0629")</span>
+    </button>
+    <button type="button" class="mobile-action-bar-item" @onclick="OnOpenRecent">
+        <i class="bi bi-clock-history"></i>
+        <span>@SharedDataService.SelectViewLang("Recent", "\u0627\u0644\u0623\u062e\u064a\u0631\u0629")</span>
+    </button>
+    <button type="button" class="mobile-action-bar-item" @onclick="OnOpenFavorites">
+        <i class="bi bi-star"></i>
+        <span>@SharedDataService.SelectViewLang("Favorites", "\u0627\u0644\u0645\u0641\u0636\u0644\u0629")</span>
+    </button>
+    <button type="button" class="mobile-action-bar-item @(IsMoreOpen ? "is-active" : "")" @onclick="OnOpenMore">
+        <i class="bi bi-grid-3x3-gap"></i>
+        <span>@SharedDataService.SelectViewLang("More", "\u0627\u0644\u0645\u0632\u064a\u062f")</span>
+    </button>
+</nav>
+
+@code {
+    [Parameter] public bool IsMoreOpen { get; set; }
+    [Parameter] public EventCallback OnOpenCommand { get; set; }
+    [Parameter] public EventCallback OnOpenWorkspace { get; set; }
+    [Parameter] public EventCallback OnOpenRecent { get; set; }
+    [Parameter] public EventCallback OnOpenFavorites { get; set; }
+    [Parameter] public EventCallback OnOpenMore { get; set; }
+}

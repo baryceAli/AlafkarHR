@@ -1,0 +1,424 @@
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<aside class="desktop-workspace-shell">
+    <nav class="desktop-rail" aria-label="Primary workspaces">
+        @foreach (var workspace in AuthorizedWorkspaces.Where(item => item.Key != NavigationMenuResolver.WorkspaceMore))
+        {
+            <button type="button"
+                    class="desktop-rail-item @(ActiveWorkspace == workspace.Key ? "is-active" : "")"
+                    title="@SharedDataService.SelectViewLang(workspace.TextEn, workspace.TextAr)"
+                    aria-label="@SharedDataService.SelectViewLang(workspace.TextEn, workspace.TextAr)"
+                    aria-current="@(ActiveWorkspace == workspace.Key ? "page" : null)"
+                    @onclick="() => SelectWorkspaceAsync(workspace)">
+                <i class="bi @workspace.Icon"></i>
+                <span>@SharedDataService.SelectViewLang(workspace.TextEn, workspace.TextAr)</span>
+            </button>
+        }
+        @{
+            var moreWorkspace = AuthorizedWorkspaces.FirstOrDefault(item => item.Key == NavigationMenuResolver.WorkspaceMore);
+        }
+        @if (moreWorkspace is not null)
+        {
+            <button type="button"
+                    class="desktop-rail-item @(ActiveWorkspace == NavigationMenuResolver.WorkspaceMore ? "is-active" : "")"
+                    title="@SharedDataService.SelectViewLang("More / All", "\u0627\u0644\u0645\u0632\u064a\u062f / \u0627\u0644\u0643\u0644")"
+                    aria-label="@SharedDataService.SelectViewLang("More / All", "\u0627\u0644\u0645\u0632\u064a\u062f / \u0627\u0644\u0643\u0644")"
+                    aria-current="@(ActiveWorkspace == NavigationMenuResolver.WorkspaceMore ? "page" : null)"
+                    @onclick="() => SelectWorkspaceAsync(moreWorkspace)">
+                <i class="bi @moreWorkspace.Icon"></i>
+                <span>@SharedDataService.SelectViewLang("More", "\u0627\u0644\u0645\u0632\u064a\u062f")</span>
+            </button>
+        }
+        <button type="button"
+                class="desktop-rail-item"
+                title="@SharedDataService.SelectViewLang("Search", "\u0628\u062d\u062b")"
+                aria-label="@SharedDataService.SelectViewLang("Search navigation", "\u0628\u062d\u062b \u0641\u064a \u0627\u0644\u062a\u0646\u0642\u0644")"
+                @onclick="OnOpenCommand">
+            <i class="bi bi-search"></i>
+            <span>@SharedDataService.SelectViewLang("Search", "\u0628\u062d\u062b")</span>
+        </button>
+    </nav>
+
+    <section class="desktop-workspace-panel">
+        <div class="desktop-workspace-header">
+            <div>
+                <span>@SharedDataService.SelectViewLang("Workspace", "\u0645\u0633\u0627\u062d\u0629 \u0627\u0644\u0639\u0645\u0644")</span>
+                <strong>@WorkspaceLabel</strong>
+            </div>
+        </div>
+
+        @if (FavoriteItems.Any())
+        {
+            <div class="desktop-nav-section">
+                <h3>@SharedDataService.SelectViewLang("Favorites", "\u0627\u0644\u0645\u0641\u0636\u0644\u0629")</h3>
+                @foreach (var item in FavoriteItems)
+                {
+                    <button type="button" class="desktop-nav-link" @onclick="() => NavigateAsync(item)">
+                        <i class="bi @item.Icon"></i>
+                        <span>
+                            <strong>@Label(item)</strong>
+                            <small>@PathLabel(item)</small>
+                        </span>
+                    </button>
+                }
+            </div>
+        }
+
+        @if (RecentItems.Any())
+        {
+            <div class="desktop-nav-section">
+                <h3>@SharedDataService.SelectViewLang("Recent", "\u0627\u0644\u0623\u062e\u064a\u0631\u0629")</h3>
+                @foreach (var item in RecentItems)
+                {
+                    <button type="button" class="desktop-nav-link" @onclick="() => NavigateAsync(item)">
+                        <i class="bi @item.Icon"></i>
+                        <span>
+                            <strong>@Label(item)</strong>
+                            <small>@PathLabel(item)</small>
+                        </span>
+                    </button>
+                }
+            </div>
+        }
+
+        @if (ActiveWorkspace == NavigationMenuResolver.WorkspaceMore)
+        {
+            <div class="desktop-hub-section-list">
+                @foreach (var workspace in NavigationMenuResolver.HubWorkspaces)
+                {
+                    var sections = NavigationMenuResolver.GetAuthorizedHubSections(AuthState?.User, workspace.Key);
+                    if (!sections.Any())
+                    {
+                        continue;
+                    }
+
+                    <section class="desktop-hub-workspace">
+                        <h3><i class="bi @workspace.Icon"></i> @HubLabel(workspace)</h3>
+                        @foreach (var section in sections)
+                        {
+                            <div class="desktop-hub-module">
+                                <strong>@HubSectionLabel(section)</strong>
+                                @foreach (var row in section.Rows)
+                                {
+                                    <button type="button"
+                                            class="@DesktopRowClass(row)"
+                                            disabled="@(!CanNavigate(row.Item))"
+                                            @onclick="() => NavigateAsync(row.Item)">
+                                        <i class="bi @row.Item.Icon"></i>
+                                        <span>
+                                            <strong>@Label(row.Item)</strong>
+                                            <small>@PathLabel(row.Item)</small>
+                                        </span>
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </section>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="desktop-nav-section">
+                <h3>@SharedDataService.SelectViewLang("Pages", "\u0627\u0644\u0635\u0641\u062d\u0627\u062a")</h3>
+                @foreach (var row in VisibleWorkspaceRows)
+                {
+                    var hasChildren = HasAccordionChildren(row);
+                    var isExpanded = IsExpanded(row);
+                    <button type="button"
+                            class="@DesktopRowClass(row)"
+                            disabled="@(!CanNavigate(row.Item) && !hasChildren)"
+                            aria-expanded="@(hasChildren ? isExpanded : null)"
+                            @onclick="() => HandleWorkspaceRowClickAsync(row)">
+                        <i class="bi @row.Item.Icon"></i>
+                        <span>
+                            <strong>@Label(row.Item)</strong>
+                            <small>@PathLabel(row)</small>
+                        </span>
+                        @if (hasChildren)
+                        {
+                            <i class="bi @(isExpanded ? "bi-chevron-down" : "bi-chevron-right") desktop-nav-chevron"></i>
+                        }
+                    </button>
+                }
+            </div>
+        }
+    </section>
+</aside>
+
+@code {
+    [Parameter] public string ActiveWorkspace { get; set; } = NavigationMenuResolver.WorkspaceHome;
+    [Parameter] public EventCallback<string> ActiveWorkspaceChanged { get; set; }
+    [Parameter] public AuthenticationState? AuthState { get; set; }
+    [Parameter] public EventCallback OnOpenCommand { get; set; }
+
+    private IReadOnlyList<string> favoriteKeys = [];
+    private IReadOnlyList<string> recentKeys = [];
+    private readonly HashSet<string> expandedWorkspaceRowKeys = new(StringComparer.OrdinalIgnoreCase);
+
+    private IReadOnlyList<NavigationWorkspace> AuthorizedWorkspaces => NavigationMenuResolver.GetAuthorizedWorkspaces(AuthState?.User);
+    private IEnumerable<MenuItem> AuthorizedItems => NavigationMenuResolver.GetAuthorizedNavigableItems(AuthState?.User);
+    private IEnumerable<NavigationMenuRow> WorkspaceRows => NavigationMenuResolver.GetAuthorizedWorkspaceRows(AuthState?.User, ActiveWorkspace);
+    private IEnumerable<NavigationMenuRow> VisibleWorkspaceRows => WorkspaceRows.Where(IsVisibleWorkspaceRow);
+    private IEnumerable<MenuItem> FavoriteItems => ResolveKeys(favoriteKeys).Where(MatchesActiveWorkspace).Take(5);
+    private IEnumerable<MenuItem> RecentItems => ResolveKeys(recentKeys).Where(MatchesActiveWorkspace).Take(NavigationShellState.MaxRecentItems);
+
+    private string WorkspaceLabel
+        => ActiveWorkspace == NavigationMenuResolver.WorkspaceMore
+            ? SharedDataService.SelectViewLang("More / All", "\u0627\u0644\u0645\u0632\u064a\u062f / \u0627\u0644\u0643\u0644")
+            : SharedDataService.SelectViewLang(
+                NavigationMenuResolver.MobileWorkspaces.FirstOrDefault(item => item.Key == ActiveWorkspace)?.TextEn ?? "More",
+                NavigationMenuResolver.MobileWorkspaces.FirstOrDefault(item => item.Key == ActiveWorkspace)?.TextAr ?? "\u0627\u0644\u0645\u0632\u064a\u062f");
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        NavigationManager.LocationChanged += HandleLocationChanged;
+        await LoadStateAsync();
+        ExpandActivePath();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadStateAsync();
+        ExpandActivePath();
+    }
+
+    private async Task SelectWorkspaceAsync(NavigationWorkspace workspace)
+    {
+        await ActiveWorkspaceChanged.InvokeAsync(workspace.Key);
+        var url = NavigationMenuResolver.GetWorkspaceDefaultUrl(workspace.Key, AuthState?.User);
+        if (!string.IsNullOrWhiteSpace(url))
+        {
+            NavigationManager.NavigateTo(url);
+        }
+    }
+
+    private bool IsAuthorized(MenuItem item)
+        => NavigationMenuResolver.HasOwnPermission(item, AuthState?.User);
+
+    private bool MatchesActiveWorkspace(MenuItem item)
+        => ActiveWorkspace == NavigationMenuResolver.WorkspaceMore
+           || NavigationMenuResolver.GetWorkspaceKey(item) == ActiveWorkspace;
+
+    private bool CanNavigate(MenuItem item)
+        => !string.IsNullOrWhiteSpace(item.Url) && IsAuthorized(item);
+
+    private async Task NavigateAsync(MenuItem item)
+    {
+        if (!CanNavigate(item))
+        {
+            return;
+        }
+
+        await SaveRecentAsync(item);
+        NavigationManager.NavigateTo(item.Url!);
+    }
+
+    private async Task HandleWorkspaceRowClickAsync(NavigationMenuRow row)
+    {
+        if (HasAccordionChildren(row))
+        {
+            ToggleAccordionRow(row);
+            return;
+        }
+
+        await NavigateAsync(row.Item);
+    }
+
+    private bool IsActive(MenuItem item)
+        => NavigationMenuResolver.NormalizePath(NavigationManager.ToBaseRelativePath(NavigationManager.Uri)) == NavigationMenuResolver.NormalizePath(item.Url);
+
+    private bool IsParentRow(NavigationMenuRow row)
+        => NavigationMenuResolver.HasAuthorizedChildren(row.Item, AuthState?.User);
+
+    private bool HasAccordionChildren(NavigationMenuRow row)
+        => WorkspaceRows.Any(candidate => IsDirectChildRow(row, candidate));
+
+    private bool IsVisibleWorkspaceRow(NavigationMenuRow row)
+    {
+        if (row.Depth == 0)
+        {
+            return true;
+        }
+
+        return row.Path.Take(row.Path.Count - 1)
+            .All(item => expandedWorkspaceRowKeys.Contains(NavigationMenuResolver.GetStorageKey(item)));
+    }
+
+    private bool IsExpanded(NavigationMenuRow row)
+        => expandedWorkspaceRowKeys.Contains(NavigationMenuResolver.GetStorageKey(row.Item));
+
+    private void ToggleAccordionRow(NavigationMenuRow row)
+    {
+        var rowKey = NavigationMenuResolver.GetStorageKey(row.Item);
+        var wasExpanded = expandedWorkspaceRowKeys.Contains(rowKey);
+
+        CloseSiblingAccordionRows(row);
+
+        if (wasExpanded)
+        {
+            CloseAccordionRowAndDescendants(row.Item);
+            ExpandActivePath();
+            return;
+        }
+
+        expandedWorkspaceRowKeys.Add(rowKey);
+        ExpandActivePath();
+    }
+
+    private void CloseSiblingAccordionRows(NavigationMenuRow row)
+    {
+        foreach (var sibling in WorkspaceRows.Where(candidate => IsSiblingRow(row, candidate)))
+        {
+            CloseAccordionRowAndDescendants(sibling.Item);
+        }
+    }
+
+    private void CloseAccordionRowAndDescendants(MenuItem item)
+    {
+        expandedWorkspaceRowKeys.Remove(NavigationMenuResolver.GetStorageKey(item));
+
+        foreach (var child in item.Children)
+        {
+            CloseAccordionRowAndDescendants(child);
+        }
+    }
+
+    private static bool IsDirectChildRow(NavigationMenuRow parent, NavigationMenuRow candidate)
+        => candidate.Depth == parent.Depth + 1
+           && candidate.Path.Count > parent.Path.Count
+           && candidate.Path.Take(parent.Path.Count).SequenceEqual(parent.Path);
+
+    private static bool IsSiblingRow(NavigationMenuRow row, NavigationMenuRow candidate)
+        => candidate.Depth == row.Depth
+           && !ReferenceEquals(candidate.Item, row.Item)
+           && candidate.Path.Take(candidate.Path.Count - 1).SequenceEqual(row.Path.Take(row.Path.Count - 1));
+
+    private void ExpandActivePath()
+    {
+        var activePath = NavigationMenuResolver.GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri);
+        foreach (var item in activePath.Take(Math.Max(0, activePath.Count - 1)))
+        {
+            expandedWorkspaceRowKeys.Add(NavigationMenuResolver.GetStorageKey(item));
+        }
+    }
+
+    private bool IsAncestorActive(NavigationMenuRow row)
+    {
+        if (IsActive(row.Item))
+        {
+            return false;
+        }
+
+        var rowKey = NavigationMenuResolver.GetStorageKey(row.Item);
+        return NavigationMenuResolver
+            .GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri)
+            .Any(item => string.Equals(NavigationMenuResolver.GetStorageKey(item), rowKey, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private string DesktopRowClass(NavigationMenuRow row)
+    {
+        var classes = new List<string>
+        {
+            "desktop-nav-link",
+            $"depth-{Math.Min(row.Depth, 4)}"
+        };
+
+        if (IsParentRow(row))
+        {
+            classes.Add("is-parent");
+        }
+
+        if (HasAccordionChildren(row) && IsExpanded(row))
+        {
+            classes.Add("is-expanded");
+        }
+
+        if (!CanNavigate(row.Item) && !HasAccordionChildren(row))
+        {
+            classes.Add("is-disabled");
+        }
+
+        if (IsActive(row.Item))
+        {
+            classes.Add("is-active");
+        }
+        else if (IsAncestorActive(row))
+        {
+            classes.Add("is-ancestor-active");
+        }
+
+        return string.Join(" ", classes);
+    }
+
+    private IEnumerable<MenuItem> ResolveKeys(IEnumerable<string> keys)
+    {
+        var items = AuthorizedItems.ToList();
+        foreach (var key in keys)
+        {
+            var item = items.FirstOrDefault(candidate => NavigationMenuResolver.GetStorageKey(candidate) == key);
+            if (item is not null)
+            {
+                yield return item;
+            }
+        }
+    }
+
+    private async Task SaveRecentAsync(MenuItem item)
+    {
+        recentKeys = NavigationShellState.AddRecent(recentKeys, NavigationMenuResolver.GetStorageKey(item));
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", NavigationShellState.RecentStorageKey, NavigationShellState.SerializeKeys(recentKeys));
+    }
+
+    private async Task LoadStateAsync()
+    {
+        try
+        {
+            favoriteKeys = NavigationShellState.ParseKeys(await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.FavoriteStorageKey));
+            recentKeys = NavigationShellState.ParseKeys(await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.RecentStorageKey));
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    private string Label(MenuItem item) => SharedDataService.SelectViewLang(item.TextEn, item.TextAr);
+    private string HubLabel(NavigationHubWorkspace item) => SharedDataService.SelectViewLang(item.TextEn, item.TextAr);
+    private string HubSectionLabel(NavigationHubSection item) => SharedDataService.SelectViewLang(item.TextEn, item.TextAr);
+    private string PathLabel(MenuItem item)
+    {
+        var path = NavigationMenuResolver.GetMenuPath(item);
+        return path.Count > 1
+            ? string.Join(" / ", path.Select(Label))
+            : item.Url ?? "";
+    }
+
+    private string PathLabel(NavigationMenuRow row)
+        => row.Path.Count > 1
+            ? string.Join(" / ", row.Path.Select(Label))
+            : row.Item.Url ?? "";
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        ExpandActivePath();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+        NavigationManager.LocationChanged -= HandleLocationChanged;
+    }
+}

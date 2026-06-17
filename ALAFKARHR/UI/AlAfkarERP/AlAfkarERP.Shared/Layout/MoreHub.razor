@@ -1,0 +1,416 @@
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+@if (IsOpen)
+{
+    <div class="more-hub-backdrop" @onclick="CloseAsync"></div>
+    <section class="more-hub" role="dialog" aria-modal="true" aria-label="@DialogLabel">
+        <header class="more-hub-header">
+            <div>
+                <div class="more-hub-kicker">@HeaderKicker</div>
+                <h2>@HeaderTitle</h2>
+            </div>
+            <button type="button"
+                    class="btn erp-icon-btn"
+                    aria-label="@SharedDataService.SelectViewLang("Close navigation", "\u0625\u063a\u0644\u0627\u0642 \u0627\u0644\u062a\u0646\u0642\u0644")"
+                    @onclick="CloseAsync">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </header>
+
+        <div class="more-hub-body">
+            @if (ShouldShowQuickGrid)
+            {
+                <div class="more-hub-quick-grid">
+                    @if (ShouldShowFavorites && FavoriteItems.Any())
+                    {
+                        <section class="nav-quick-section">
+                            <h3>@SharedDataService.SelectViewLang("Favorites", "\u0627\u0644\u0645\u0641\u0636\u0644\u0629")</h3>
+                            <div class="nav-chip-grid">
+                                @foreach (var item in FavoriteItems)
+                                {
+                                    <button type="button" class="nav-chip" @onclick="() => NavigateAsync(item)">
+                                        <i class="bi @item.Icon"></i>
+                                        <span>@Label(item)</span>
+                                    </button>
+                                }
+                            </div>
+                        </section>
+                    }
+
+                    @if (ShouldShowRecent && RecentItems.Any())
+                    {
+                        <section class="nav-quick-section">
+                            <h3>@SharedDataService.SelectViewLang("Recent", "\u0627\u0644\u0623\u062e\u064a\u0631\u0629")</h3>
+                            <div class="nav-chip-grid">
+                                @foreach (var item in RecentItems)
+                                {
+                                    <button type="button" class="nav-chip" @onclick="() => NavigateAsync(item)">
+                                        <i class="bi @item.Icon"></i>
+                                        <span>@Label(item)</span>
+                                    </button>
+                                }
+                            </div>
+                        </section>
+                    }
+                </div>
+            }
+
+            <div class="more-hub-controls">
+                <div class="more-hub-search">
+                    <i class="bi bi-search"></i>
+                    <input class="form-control"
+                           placeholder="@SharedDataService.SelectViewLang("Search this menu", "\u0627\u0628\u062d\u062b \u0641\u064a \u0647\u0630\u0647 \u0627\u0644\u0642\u0627\u0626\u0645\u0629")"
+                           @bind="hubSearchText"
+                           @bind:event="oninput" />
+                    @if (!string.IsNullOrWhiteSpace(hubSearchText))
+                    {
+                        <button type="button"
+                                class="btn erp-icon-btn"
+                                title="@SharedDataService.SelectViewLang("Clear", "\u0645\u0633\u062d")"
+                                @onclick="ClearSearch">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    }
+                </div>
+
+                <div class="more-hub-tabs" role="tablist" aria-label="More menu workspaces">
+                    @foreach (var workspace in NavigationMenuResolver.HubWorkspaces)
+                    {
+                        <button type="button"
+                                class="more-hub-tab @(activeHubWorkspace == workspace.Key ? "is-active" : "")"
+                                aria-selected="@(activeHubWorkspace == workspace.Key)"
+                                @onclick="() => SelectHubWorkspace(workspace.Key)">
+                            <i class="bi @workspace.Icon"></i>
+                            <span>@Label(workspace)</span>
+                        </button>
+                    }
+                </div>
+            </div>
+
+            @if (!VisibleSections.Any())
+            {
+                <div class="more-hub-empty">
+                    <i class="bi bi-grid-3x3-gap"></i>
+                    <strong>@SharedDataService.SelectViewLang("No authorized pages here.", "\u0644\u0627 \u062a\u0648\u062c\u062f \u0635\u0641\u062d\u0627\u062a \u0645\u0635\u0631\u062d\u0629 \u0647\u0646\u0627.")</strong>
+                    <span>@SharedDataService.SelectViewLang("Try another workspace or search term.", "\u062c\u0631\u0628 \u0645\u0633\u0627\u062d\u0629 \u0623\u062e\u0631\u0649 \u0623\u0648 \u0643\u0644\u0645\u0629 \u0628\u062d\u062b \u0645\u062e\u062a\u0644\u0641\u0629.")</span>
+                </div>
+            }
+            else
+            {
+                <div class="more-hub-module-grid">
+                    @foreach (var section in VisibleSections)
+                    {
+                        <section class="more-module-card">
+                            <header class="more-module-header">
+                                <span class="more-module-icon"><i class="bi @section.Icon"></i></span>
+                                <span>
+                                    <strong>@Label(section)</strong>
+                                    <small>@SharedDataService.SelectViewLang($"{FilteredRows(section).Count()} pages", $"{FilteredRows(section).Count()} \u0635\u0641\u062d\u0627\u062a")</small>
+                                </span>
+                            </header>
+                            <div class="more-link-list">
+                                @foreach (var row in DisplayRows(section))
+                                {
+                                    <div class="more-link-row">
+                                        <button type="button"
+                                                class="@HubRowClass(row)"
+                                                disabled="@(!CanNavigate(row.Item))"
+                                                @onclick="() => NavigateAsync(row.Item)">
+                                            <i class="bi @row.Item.Icon"></i>
+                                            <span>
+                                                <strong>@Label(row.Item)</strong>
+                                                <small>@PathLabel(row)</small>
+                                            </span>
+                                        </button>
+                                        @if (CanFavorite(row.Item))
+                                        {
+                                            <button type="button"
+                                                    class="btn favorite-toggle @(IsFavorite(row.Item) ? "is-active" : "")"
+                                                    title="@FavoriteTitle(row.Item)"
+                                                    aria-label="@FavoriteTitle(row.Item)"
+                                                    @onclick="() => ToggleFavoriteAsync(row.Item)">
+                                                <i class="bi @(IsFavorite(row.Item) ? "bi-star-fill" : "bi-star")"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            @if (ShouldShowExpand(section))
+                            {
+                                <button type="button" class="more-module-toggle" @onclick="() => ToggleSection(section.Key)">
+                                    <span>@(IsExpanded(section.Key)
+                                        ? SharedDataService.SelectViewLang("Show less", "\u0639\u0631\u0636 \u0623\u0642\u0644")
+                                        : SharedDataService.SelectViewLang("Show all", "\u0639\u0631\u0636 \u0627\u0644\u0643\u0644"))</span>
+                                    <i class="bi @(IsExpanded(section.Key) ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                                </button>
+                            }
+                        </section>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter] public string InitialView { get; set; } = ViewDirectory;
+    [Parameter] public string ActiveWorkspace { get; set; } = NavigationMenuResolver.WorkspaceHome;
+    [Parameter] public AuthenticationState? AuthState { get; set; }
+    [Parameter] public EventCallback<MenuItem> OnNavigate { get; set; }
+
+    public const string ViewDirectory = "directory";
+    public const string ViewWorkspace = "workspace";
+    public const string ViewRecent = "recent";
+    public const string ViewFavorites = "favorites";
+
+    private IReadOnlyList<string> favoriteKeys = [];
+    private IReadOnlyList<string> recentKeys = [];
+    private readonly HashSet<string> expandedSectionKeys = new(StringComparer.OrdinalIgnoreCase);
+    private string activeHubWorkspace = "";
+    private string appliedInitialView = "";
+    private string hubSearchText = "";
+    private const int CollapsedRowCount = 5;
+
+    private IEnumerable<MenuItem> AuthorizedItems => NavigationMenuResolver.GetAuthorizedNavigableItems(AuthState?.User);
+    private IEnumerable<MenuItem> FavoriteItems => ResolveKeys(favoriteKeys);
+    private IEnumerable<MenuItem> RecentItems => ResolveKeys(recentKeys);
+    private IReadOnlyList<NavigationHubSection> HubSections => NavigationMenuResolver.GetAuthorizedHubSections(AuthState?.User, activeHubWorkspace);
+    private IEnumerable<NavigationHubSection> VisibleSections => HubSections.Where(section => FilteredRows(section).Any());
+    private bool IsRecentView => string.Equals(InitialView, ViewRecent, StringComparison.OrdinalIgnoreCase);
+    private bool IsFavoritesView => string.Equals(InitialView, ViewFavorites, StringComparison.OrdinalIgnoreCase);
+    private bool IsWorkspaceView => string.Equals(InitialView, ViewWorkspace, StringComparison.OrdinalIgnoreCase);
+    private bool ShouldShowFavorites => !IsRecentView;
+    private bool ShouldShowRecent => !IsFavoritesView;
+    private bool ShouldShowQuickGrid => ShouldShowFavorites && FavoriteItems.Any() || ShouldShowRecent && RecentItems.Any();
+    private string DialogLabel => SharedDataService.SelectViewLang("Navigation hub", "\u0645\u0631\u0643\u0632 \u0627\u0644\u062a\u0646\u0642\u0644");
+    private string HeaderKicker
+        => IsWorkspaceView
+            ? SharedDataService.SelectViewLang("Current workspace", "\u0645\u0633\u0627\u062d\u0629 \u0627\u0644\u0639\u0645\u0644 \u0627\u0644\u062d\u0627\u0644\u064a\u0629")
+            : IsRecentView
+                ? SharedDataService.SelectViewLang("Quick access", "\u0648\u0635\u0648\u0644 \u0633\u0631\u064a\u0639")
+                : IsFavoritesView
+                    ? SharedDataService.SelectViewLang("Pinned pages", "\u0627\u0644\u0635\u0641\u062d\u0627\u062a \u0627\u0644\u0645\u062b\u0628\u062a\u0629")
+                    : SharedDataService.SelectViewLang("Module directory", "\u062f\u0644\u064a\u0644 \u0627\u0644\u0648\u062d\u062f\u0627\u062a");
+    private string HeaderTitle
+        => IsWorkspaceView
+            ? SharedDataService.SelectViewLang("Workspace", "\u0645\u0633\u0627\u062d\u0629 \u0627\u0644\u0639\u0645\u0644")
+            : IsRecentView
+                ? SharedDataService.SelectViewLang("Recent", "\u0627\u0644\u0623\u062e\u064a\u0631\u0629")
+                : IsFavoritesView
+                    ? SharedDataService.SelectViewLang("Favorites", "\u0627\u0644\u0645\u0641\u0636\u0644\u0629")
+                    : SharedDataService.SelectViewLang("More", "\u0627\u0644\u0645\u0632\u064a\u062f");
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadStateAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsOpen)
+        {
+            await LoadStateAsync();
+            if (string.IsNullOrWhiteSpace(activeHubWorkspace) || !string.Equals(appliedInitialView, InitialView, StringComparison.OrdinalIgnoreCase))
+            {
+                activeHubWorkspace = ResolveInitialHubWorkspace();
+                appliedInitialView = InitialView;
+            }
+        }
+    }
+
+    private bool IsAuthorized(MenuItem item)
+        => NavigationMenuResolver.HasOwnPermission(item, AuthState?.User);
+
+    private async Task NavigateAsync(MenuItem item)
+    {
+        if (!CanNavigate(item))
+        {
+            return;
+        }
+
+        await SaveRecentAsync(item);
+        await OnNavigate.InvokeAsync(item);
+        await CloseAsync();
+        NavigationManager.NavigateTo(item.Url!);
+    }
+
+    private IEnumerable<MenuItem> ResolveKeys(IEnumerable<string> keys)
+    {
+        var items = AuthorizedItems.ToList();
+        foreach (var key in keys)
+        {
+            var item = items.FirstOrDefault(candidate => NavigationMenuResolver.GetStorageKey(candidate) == key);
+            if (item is not null)
+            {
+                yield return item;
+            }
+        }
+    }
+
+    private async Task ToggleFavoriteAsync(MenuItem item)
+    {
+        var key = NavigationMenuResolver.GetStorageKey(item);
+        favoriteKeys = IsFavorite(item)
+            ? favoriteKeys.Where(existing => !string.Equals(existing, key, StringComparison.OrdinalIgnoreCase)).ToList()
+            : favoriteKeys.Concat([key]).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", NavigationShellState.FavoriteStorageKey, NavigationShellState.SerializeKeys(favoriteKeys));
+    }
+
+    private bool IsFavorite(MenuItem item)
+        => favoriteKeys.Any(key => string.Equals(key, NavigationMenuResolver.GetStorageKey(item), StringComparison.OrdinalIgnoreCase));
+
+    private async Task SaveRecentAsync(MenuItem item)
+    {
+        recentKeys = NavigationShellState.AddRecent(recentKeys, NavigationMenuResolver.GetStorageKey(item));
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", NavigationShellState.RecentStorageKey, NavigationShellState.SerializeKeys(recentKeys));
+    }
+
+    private async Task LoadStateAsync()
+    {
+        try
+        {
+            favoriteKeys = NavigationShellState.ParseKeys(await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.FavoriteStorageKey));
+            recentKeys = NavigationShellState.ParseKeys(await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.RecentStorageKey));
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    private async Task CloseAsync() => await IsOpenChanged.InvokeAsync(false);
+    private string Label(MenuItem item) => SharedDataService.SelectViewLang(item.TextEn, item.TextAr);
+    private string Label(NavigationHubWorkspace item) => SharedDataService.SelectViewLang(item.TextEn, item.TextAr);
+    private string Label(NavigationHubSection item) => SharedDataService.SelectViewLang(item.TextEn, item.TextAr);
+    private bool CanNavigate(MenuItem item) => !string.IsNullOrWhiteSpace(item.Url) && IsAuthorized(item);
+    private bool CanFavorite(MenuItem item) => item.IsFavoriteCandidate && CanNavigate(item);
+    private bool IsActive(MenuItem item)
+        => NavigationMenuResolver.NormalizePath(NavigationManager.ToBaseRelativePath(NavigationManager.Uri)) == NavigationMenuResolver.NormalizePath(item.Url);
+    private bool IsParentRow(NavigationMenuRow row)
+        => NavigationMenuResolver.HasAuthorizedChildren(row.Item, AuthState?.User);
+    private bool IsAncestorActive(NavigationMenuRow row)
+    {
+        if (IsActive(row.Item))
+        {
+            return false;
+        }
+
+        var rowKey = NavigationMenuResolver.GetStorageKey(row.Item);
+        return NavigationMenuResolver
+            .GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri)
+            .Any(item => string.Equals(NavigationMenuResolver.GetStorageKey(item), rowKey, StringComparison.OrdinalIgnoreCase));
+    }
+    private string PathLabel(NavigationMenuRow row)
+        => row.Path.Count > 1
+            ? string.Join(" / ", row.Path.Select(Label))
+            : row.Item.Url ?? "";
+    private string FavoriteTitle(MenuItem item)
+        => IsFavorite(item)
+            ? SharedDataService.SelectViewLang($"Remove {Label(item)} from favorites", $"\u0625\u0632\u0627\u0644\u0629 {Label(item)} \u0645\u0646 \u0627\u0644\u0645\u0641\u0636\u0644\u0629")
+            : SharedDataService.SelectViewLang($"Add {Label(item)} to favorites", $"\u0625\u0636\u0627\u0641\u0629 {Label(item)} \u0625\u0644\u0649 \u0627\u0644\u0645\u0641\u0636\u0644\u0629");
+    private string ResolveInitialHubWorkspace()
+    {
+        if (IsWorkspaceView)
+        {
+            return ActiveWorkspace switch
+            {
+                NavigationMenuResolver.WorkspacePeople => NavigationMenuResolver.HubPeople,
+                NavigationMenuResolver.WorkspaceOperations => NavigationMenuResolver.HubOperations,
+                NavigationMenuResolver.WorkspaceFinancePayroll => NavigationMenuResolver.HubPeople,
+                NavigationMenuResolver.WorkspaceInventory => NavigationMenuResolver.HubOperations,
+                _ => NavigationMenuResolver.ResolveHubWorkspaceKey(NavigationManager.Uri, NavigationManager.BaseUri)
+            };
+        }
+
+        return NavigationMenuResolver.ResolveHubWorkspaceKey(NavigationManager.Uri, NavigationManager.BaseUri);
+    }
+    private void SelectHubWorkspace(string workspaceKey)
+    {
+        activeHubWorkspace = workspaceKey;
+        hubSearchText = "";
+    }
+
+    private void ClearSearch() => hubSearchText = "";
+    private bool IsExpanded(string sectionKey) => expandedSectionKeys.Contains(sectionKey);
+    private void ToggleSection(string sectionKey)
+    {
+        if (!expandedSectionKeys.Add(sectionKey))
+        {
+            expandedSectionKeys.Remove(sectionKey);
+        }
+    }
+
+    private IEnumerable<NavigationMenuRow> FilteredRows(NavigationHubSection section)
+        => section.Rows.Where(MatchesSearch);
+
+    private IEnumerable<NavigationMenuRow> DisplayRows(NavigationHubSection section)
+    {
+        var rows = FilteredRows(section).ToList();
+        return !string.IsNullOrWhiteSpace(hubSearchText) || IsExpanded(section.Key)
+            ? rows
+            : rows.Take(CollapsedRowCount);
+    }
+
+    private bool ShouldShowExpand(NavigationHubSection section)
+        => string.IsNullOrWhiteSpace(hubSearchText) && FilteredRows(section).Count() > CollapsedRowCount;
+
+    private bool MatchesSearch(NavigationMenuRow row)
+    {
+        if (string.IsNullOrWhiteSpace(hubSearchText))
+        {
+            return true;
+        }
+
+        var term = hubSearchText.Trim();
+        var haystack = string.Join(" ", row.Item.TextEn, row.Item.TextAr, row.Item.Url, row.Item.KeywordsEn, row.Item.KeywordsAr, string.Join(" ", row.Path.Select(item => $"{item.TextEn} {item.TextAr}")));
+        return haystack.Contains(term, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string DepthClass(int depth) => $"hub-row-depth-{Math.Min(depth, 4)}";
+    private string HubRowClass(NavigationMenuRow row)
+    {
+        var classes = new List<string>
+        {
+            "more-link",
+            DepthClass(row.Depth)
+        };
+
+        if (!CanNavigate(row.Item))
+        {
+            classes.Add("is-disabled");
+        }
+
+        if (IsParentRow(row))
+        {
+            classes.Add("is-parent");
+        }
+
+        if (IsActive(row.Item))
+        {
+            classes.Add("is-active");
+        }
+        else if (IsAncestorActive(row))
+        {
+            classes.Add("is-ancestor-active");
+        }
+
+        return string.Join(" ", classes);
+    }
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
