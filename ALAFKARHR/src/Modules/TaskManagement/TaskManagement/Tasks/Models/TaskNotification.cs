@@ -27,4 +27,14 @@ public class TaskNotification : Entity<Guid>
             CreatedBy = createdBy
         };
     }
+
+    public void MarkRead(string userCode)
+    {
+        if (!string.Equals(UserCode, userCode, StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("Notification is not visible to the current user.");
+
+        IsRead = true;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userCode;
+    }
 }

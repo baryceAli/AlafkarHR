@@ -5,7 +5,11 @@ public class TaskNumberGenerator(TaskManagementDbContext dbContext) : ITaskNumbe
     public async Task<string> GenerateAsync(CancellationToken cancellationToken)
     {
         var today = DateTime.UtcNow.ToString("yyyyMMdd");
-        var count = await dbContext.TaskItems.CountAsync(x => x.CreatedAt.Value.Date == DateTime.UtcNow.Date, cancellationToken);
+        var todayDate = DateTime.UtcNow.Date;
+        var persistedCount = await dbContext.TaskItems.CountAsync(x => x.CreatedAt.HasValue && x.CreatedAt.Value.Date == todayDate, cancellationToken);
+        var pendingCount = dbContext.ChangeTracker.Entries<TaskItem>()
+            .Count(x => x.State == EntityState.Added && x.Entity.CreatedAt.HasValue && x.Entity.CreatedAt.Value.Date == todayDate);
+        var count = persistedCount + pendingCount;
         return $"TASK-{today}-{count + 1:0000}";
     }
 }

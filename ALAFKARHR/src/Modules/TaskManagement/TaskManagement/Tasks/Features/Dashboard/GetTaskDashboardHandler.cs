@@ -69,6 +69,10 @@ public class GetTaskDashboardHandler(TaskManagementDbContext dbContext, IHttpCon
         if (completed.Count == 0)
             return 0;
 
-        return Math.Round((decimal)completed.Average(x => ((x.CompletedDate ?? x.ModifiedAt ?? x.CreatedAt.Value) - x.CreatedAt.Value).TotalHours), 2);
+        return Math.Round((decimal)completed.Average(x =>
+        {
+            var createdAt = x.CreatedAt ?? x.CompletedDate ?? x.ModifiedAt ?? DateTime.UtcNow;
+            return ((x.CompletedDate ?? x.ModifiedAt ?? createdAt) - createdAt).TotalHours;
+        }), 2);
     }
 }

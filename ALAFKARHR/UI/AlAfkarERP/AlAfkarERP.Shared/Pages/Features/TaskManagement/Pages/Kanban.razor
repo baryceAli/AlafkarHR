@@ -1,18 +1,28 @@
 @layout AdminLayout
 @page "/TaskManagement/Kanban"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
 @using SharedWithUI.TaskManagement.Dtos
 @using SharedWithUI.TaskManagement.Enums
 @using TaskWorkflowStatus = SharedWithUI.TaskManagement.Enums.TaskStatus
 @using AlAfkarERP.Shared.Utilities
 
 @inject ITaskManagementService TaskService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 @inject IJSRuntime JS
 
 <section class="task-page" dir="@SharedDataService.PageDirection">
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        return;
+    }
+
     <h5 class="text-black mb-3 px-2">@Text("Kanban Board", "لوحة كانبان")</h5>
 
     <div class="kanban-wrapper" @onkeydown="HandleKeyDown" tabindex="0">
@@ -30,7 +40,7 @@
                         </div>
                         @foreach (var task in tasks.Where(x => x.Status == status))
                         {
-                            <div class="border rounded p-2 mb-2 bg-white" draggable="true" @ondragstart="() => draggedTask = task" style="cursor: grab;">
+                            <div class="border rounded p-2 mb-2 bg-white" draggable="@(CanEdit || CanClose)" @ondragstart="() => StartDrag(task)" style="cursor: grab;">
                                 <div class="fw-semibold">@task.Title</div>
                                 <small class="text-muted" dir="ltr">@task.TaskNumber</small>
                                 <div class="d-flex justify-content-between mt-2">
@@ -50,17 +60,33 @@
     private List<TaskItemDto> tasks = [];
     private TaskItemDto? draggedTask;
     private ElementReference containerRef;
+    private bool CanView;
+    private bool CanEdit;
+    private bool CanClose;
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        CanView = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.View);
+        CanEdit = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Edit);
+        CanClose = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Close);
+        if (!CanView)
+            return;
+
         var response = await TaskService.GetAsync(0, 200);
         if (response.IsSuccess)
             tasks = response.Data?.Data.ToList() ?? [];
     }
 
+    private void StartDrag(TaskItemDto task)
+    {
+        if (CanEdit || CanClose)
+            draggedTask = task;
+    }
+
     private async Task DropOnStatus(TaskWorkflowStatus status)
     {
-        if (draggedTask is null || draggedTask.Status == status)
+        if (!CanChangeToStatus(status) || draggedTask is null || draggedTask.Status == status)
             return;
 
         var response = await TaskService.ChangeStatusAsync(draggedTask.Id, status);
@@ -98,6 +124,13 @@
     }
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private bool CanChangeToStatus(TaskWorkflowStatus status)
+    {
+        return status is TaskWorkflowStatus.Completed or TaskWorkflowStatus.Cancelled
+            ? CanClose
+            : CanEdit;
+    }
 
     private string StatusText(TaskWorkflowStatus status) => status switch
     {

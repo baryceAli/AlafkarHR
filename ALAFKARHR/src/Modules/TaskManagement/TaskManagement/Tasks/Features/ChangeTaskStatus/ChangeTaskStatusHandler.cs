@@ -13,6 +13,8 @@ public class ChangeTaskStatusHandler(TaskManagementDbContext dbContext, IHttpCon
         var userId = TaskFeatureHelpers.GetCurrentUserId(httpContextAccessor);
         var task = await dbContext.TaskItems.FirstOrDefaultAsync(x => x.Id == command.TaskWorkflowStatus.Id && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException($"Task not found: {command.TaskWorkflowStatus.Id}");
+        TaskFeatureHelpers.EnsureCanMutateTask(task, httpContextAccessor, userId);
+        EnsureCanChangeToStatus(command.TaskWorkflowStatus.Status);
 
         var oldStatus = task.Status.ToString();
         task.ChangeStatus(command.TaskWorkflowStatus.Status, userId);
@@ -29,5 +31,15 @@ public class ChangeTaskStatusHandler(TaskManagementDbContext dbContext, IHttpCon
         }
 
         return new ChangeTaskStatusResult(true);
+    }
+
+    private void EnsureCanChangeToStatus(TaskWorkflowStatus status)
+    {
+        var requiredPermission = status is TaskWorkflowStatus.Completed or TaskWorkflowStatus.Cancelled
+            ? PermissionList.TaskManagementPermissions.Close
+            : PermissionList.TaskManagementPermissions.Edit;
+
+        if (!TaskFeatureHelpers.HasPermission(httpContextAccessor, requiredPermission))
+            throw new UnauthorizedAccessException("You do not have permission to change this task status.");
     }
 }

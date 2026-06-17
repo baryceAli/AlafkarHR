@@ -23,6 +23,7 @@ public class UpdateTaskProgressHandler(TaskManagementDbContext dbContext, IHttpC
         // Query without including history first to avoid concurrency issues with collections
         var task = await dbContext.TaskItems.FirstOrDefaultAsync(x => x.Id == command.Progress.Id && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException($"Task not found: {command.Progress.Id}");
+        TaskFeatureHelpers.EnsureCanMutateTask(task, httpContextAccessor, userId);
 
         var oldProgress = task.ProgressPercentage.ToString("0.##");
         task.UpdateProgress(command.Progress.ProgressPercentage, userId);

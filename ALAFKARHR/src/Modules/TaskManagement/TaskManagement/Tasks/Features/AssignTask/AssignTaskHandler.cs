@@ -28,6 +28,7 @@ public class AssignTaskHandler(TaskManagementDbContext dbContext, IHttpContextAc
 
         var task = await dbContext.TaskItems.FirstOrDefaultAsync(x => x.Id == command.Id && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException($"Task not found: {command.Id}");
+        TaskFeatureHelpers.EnsureCanMutateTask(task, httpContextAccessor, userId);
 
         var oldAssignedTo = task.AssignedToUser;
         task.Assign(command.Assignment.AssignedToUser, userId, command.Assignment.DepartmentId, command.Assignment.StartDate, command.Assignment.DueDate);

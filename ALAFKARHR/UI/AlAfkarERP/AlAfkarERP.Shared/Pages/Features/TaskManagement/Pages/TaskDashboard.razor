@@ -1,8 +1,11 @@
 @layout AdminLayout
 @page "/TaskManagement/Dashboard"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
 @using SharedWithUI.TaskManagement.Dtos
 @using SharedWithUI.TaskManagement.Enums
 @using AlAfkarERP.Shared.Utilities
@@ -10,14 +13,30 @@
 
 @inject ITaskManagementService TaskService
 @inject IDepartmentService DepartmentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 @inject NavigationManager NavigationManager
 
 <section class="task-page" dir="@SharedDataService.PageDirection">
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        return;
+    }
+
     <PageHeader Title="@Text("Task Management Dashboard", "لوحة إدارة المهام")"
                 Subtitle="@Text("Track workload, completion, overdue risk, and drill into the tasks behind each card.", "تابع عبء العمل والإنجاز والمهام المتأخرة وافتح المهام المرتبطة بكل بطاقة.")"
                 Overline="@Text("Task Management", "إدارة المهام")"
-                Icon="bi-kanban" />
+                Icon="bi-kanban">
+        <Actions>
+            @if (CanManageAll)
+            {
+                <button class="btn btn-outline-secondary" @onclick="ProcessWorkflowJobsAsync" disabled="@isProcessingJobs">
+                    <i class="bi bi-arrow-repeat"></i> @Text("Run workflow jobs", "تشغيل مهام سير العمل")
+                </button>
+            }
+        </Actions>
+    </PageHeader>
 
     @if (dashboard is null)
     {
@@ -28,6 +47,11 @@
     }
     else
     {
+        @if (!string.IsNullOrWhiteSpace(workflowJobResult))
+        {
+            <div class="alert alert-info">@workflowJobResult</div>
+        }
+
         <div class="row g-3 mb-3">
             <KpiCard Title="@Text("Total Tasks", "إجمالي المهام")" Value="@dashboard.TotalTasks.ToString()" Icon="bi-list-task" Tone="primary" IsActive="@(selectedFilter == TaskDashboardFilter.Total)" OnClick="@(() => SelectFilterAsync(TaskDashboardFilter.Total))" />
             <KpiCard Title="@Text("Open Tasks", "المهام المفتوحة")" Value="@dashboard.OpenTasks.ToString()" Icon="bi-hourglass-split" Tone="warning" IsActive="@(selectedFilter == TaskDashboardFilter.Open)" OnClick="@(() => SelectFilterAsync(TaskDashboardFilter.Open))" />
@@ -134,6 +158,10 @@
     private List<TaskItemDto> relatedTasks = [];
     private TaskDashboardFilter selectedFilter = TaskDashboardFilter.Total;
     private bool isLoadingTasks;
+    private bool isProcessingJobs;
+    private bool CanView;
+    private bool CanManageAll;
+    private string workflowJobResult = string.Empty;
     private const int RelatedTaskPageSize = 50;
 
     private string SelectedFilterTitle => selectedFilter switch
@@ -146,15 +174,46 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var response = await TaskService.GetDashboardAsync("all");
-        if (response.IsSuccess)
-            dashboard = response.Data;
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        CanView = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.View);
+        CanManageAll = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.ManageAllTasks);
+        if (!CanView)
+            return;
+
+        await LoadDashboardAsync();
 
         var departmentResponse = await DepartmentService.GetAsync(0, 10000);
         if (departmentResponse.IsSuccess)
             departments = departmentResponse.Data?.Data?.ToList() ?? [];
 
         await LoadRelatedTasksAsync();
+    }
+
+    private async Task ProcessWorkflowJobsAsync()
+    {
+        if (!CanManageAll)
+            return;
+
+        isProcessingJobs = true;
+        var recurringResponse = await TaskService.GenerateRecurringTasksAsync();
+        var remindersResponse = await TaskService.ProcessRemindersAsync();
+        var overdueResponse = await TaskService.MarkOverdueTasksAsync();
+
+        workflowJobResult = Text(
+            $"Workflow jobs completed. Generated: {recurringResponse.Data?.GeneratedCount ?? 0}, reminders: {remindersResponse.Data?.NotificationCount ?? 0}, overdue: {overdueResponse.Data?.UpdatedCount ?? 0}.",
+            $"اكتملت مهام سير العمل. تم الإنشاء: {recurringResponse.Data?.GeneratedCount ?? 0}، التذكيرات: {remindersResponse.Data?.NotificationCount ?? 0}، المتأخرة: {overdueResponse.Data?.UpdatedCount ?? 0}.");
+
+        await LoadDashboardAsync();
+        await LoadRelatedTasksAsync();
+        isProcessingJobs = false;
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        var scope = CanManageAll ? "all" : "mine";
+        var response = await TaskService.GetDashboardAsync(scope);
+        if (response.IsSuccess)
+            dashboard = response.Data;
     }
 
     private async Task SelectFilterAsync(TaskDashboardFilter filter)

@@ -1,90 +1,216 @@
 @layout AdminLayout
 @page "/TaskManagement/MyTasks"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using SharedWithUI.TaskManagement.Dtos
 @using SharedWithUI.TaskManagement.Enums
 @using TaskWorkflowStatus = SharedWithUI.TaskManagement.Enums.TaskStatus
 @using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
 
 @inject ITaskManagementService TaskService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-<section class="task-page" dir="@SharedDataService.PageDirection">
-    <h5 class="text-black">@Text("My Tasks", "مهامي")</h5>
+@if (!CanView)
+{
+    <div class="alert alert-warning" dir="@SharedDataService.PageDirection">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+    return;
+}
 
-    <div class="card p-3">
-        <div class="row g-2 mb-3">
-            <div class="col-md-10"><input class="form-control" placeholder="@Text("Search...", "بحث...")" @bind="searchText" /></div>
-            <div class="col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadTasks"><i class="bi bi-search"></i></button></div>
-        </div>
-        <div class="list-group">
-            @if (!tasks.Any())
-            {
-                <div class="text-muted py-3">@Text("No tasks assigned to you.", "لا توجد مهام مسندة إليك.")</div>
-            }
-            @foreach (var task in tasks)
-            {
-                var attentionBadge = GetAttentionBadge(task);
-                <button class="list-group-item list-group-item-action task-item @(attentionBadge is not null ? $"task-item-{attentionBadge.CssSuffix}" : "")"
-                        @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/View/{task.Id}")'>
-                    <div class="d-flex justify-content-between gap-2">
-                        <strong class="task-title">@task.Title</strong>
-                        <span class="d-inline-flex align-items-center gap-2 flex-wrap justify-content-end">
-                            @if (attentionBadge is not null)
-                            {
-                                <span class="badge rounded-pill @attentionBadge.CssClass" title="@attentionBadge.Title">
-                                    @attentionBadge.Text
+<section class="erp-page task-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("My Tasks", "مهامي")"
+                Subtitle="@Text("Track assigned work, due dates, and task notifications.", "متابعة المهام المسندة والتنبيهات وتواريخ الاستحقاق.")"
+                Overline="@Text("Task Management", "إدارة المهام")"
+                Icon="bi-check2-square">
+        <Actions>
+            <button class="btn btn-outline-primary" @onclick="LoadPage">
+                <i class="bi bi-arrow-repeat"></i> @Text("Refresh", "تحديث")
+            </button>
+            <button class="btn btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo("/TaskManagement/Notifications")'>
+                <i class="bi bi-bell"></i> @Text("All notifications", "كل التنبيهات")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <AppCard Title="@Text("Assigned Tasks", "المهام المسندة")">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-10"><input class="form-control" placeholder="@Text("Search...", "بحث...")" @bind="searchText" @bind:event="oninput" /></div>
+                    <div class="col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadTasks"><i class="bi bi-search"></i></button></div>
+                </div>
+                <div class="list-group">
+                    @if (isLoadingTasks)
+                    {
+                        <div class="text-muted py-3">@Text("Loading tasks...", "جاري تحميل المهام...")</div>
+                    }
+                    else if (!tasks.Any())
+                    {
+                        <EmptyState Title="@Text("No assigned tasks", "لا توجد مهام مسندة")"
+                                    Message="@Text("No tasks are currently assigned to you.", "لا توجد مهام مسندة إليك حاليا.")"
+                                    Icon="bi-inboxes" />
+                    }
+                    @foreach (var task in tasks)
+                    {
+                        var attentionBadge = GetAttentionBadge(task);
+                        <button class="list-group-item list-group-item-action task-item @(attentionBadge is not null ? $"task-item-{attentionBadge.CssSuffix}" : "")"
+                                @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/View/{task.Id}")'>
+                            <div class="d-flex justify-content-between gap-2">
+                                <strong class="task-title">@task.Title</strong>
+                                <span class="d-inline-flex align-items-center gap-2 flex-wrap justify-content-end">
+                                    @if (attentionBadge is not null)
+                                    {
+                                        <span class="badge rounded-pill @attentionBadge.CssClass" title="@attentionBadge.Title">
+                                            @attentionBadge.Text
+                                        </span>
+                                    }
+                                    <span class="badge rounded-pill text-bg-light border">@StatusText(task.Status)</span>
                                 </span>
-                            }
-                            <span class="badge rounded-pill text-bg-light border">@StatusText(task.Status)</span>
-                        </span>
+                            </div>
+                            <small>@task.TaskNumber - @Text("Due", "الاستحقاق") @task.DueDate.ToShortDateString()</small>
+                        </button>
+                    }
+                </div>
+            </AppCard>
+        </div>
+        <div class="col-lg-4">
+            <AppCard Title="@Text("Notifications", "التنبيهات")"
+                     Subtitle="@Text($"{unreadCount} unread", $"{unreadCount} غير مقروءة")">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input" @bind-Value="unreadOnly" />
+                        <label class="form-check-label">@Text("Unread only", "غير المقروءة فقط")</label>
                     </div>
-                    <small>@task.TaskNumber - @Text("Due", "الاستحقاق") @task.DueDate.ToShortDateString()</small>
-                </button>
-            }
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="MarkAllNotificationsRead" disabled="@(unreadCount == 0)">
+                        @Text("Mark all read", "تعليم الكل كمقروء")
+                    </button>
+                </div>
+
+                @if (isLoadingNotifications)
+                {
+                    <div class="text-muted py-3">@Text("Loading notifications...", "جاري تحميل التنبيهات...")</div>
+                }
+                else if (!notifications.Any())
+                {
+                    <div class="text-muted py-3">@Text("No notifications.", "لا توجد تنبيهات.")</div>
+                }
+                else
+                {
+                    @foreach (var notification in notifications)
+                    {
+                        <div class="task-notification @(notification.IsRead ? "is-read" : "")">
+                            <button class="btn btn-link p-0 text-start" @onclick="() => OpenNotification(notification)">
+                                @notification.Message
+                            </button>
+                            <div class="d-flex justify-content-between gap-2">
+                                <small class="text-muted">@notification.CreatedDate.ToLocalTime()</small>
+                                @if (!notification.IsRead)
+                                {
+                                    <button class="btn btn-sm btn-link p-0" @onclick="() => MarkNotificationRead(notification.Id)">@Text("Mark read", "مقروء")</button>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </AppCard>
         </div>
     </div>
 </section>
 
 @code {
     private List<TaskItemDto> tasks = [];
+    private List<TaskNotificationDto> notifications = [];
     private string searchText = string.Empty;
+    private bool unreadOnly;
+    private bool isLoadingTasks;
+    private bool isLoadingNotifications;
+    private bool CanView;
+    private int unreadCount;
 
-    protected override async Task OnInitializedAsync() => await LoadTasks();
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        CanView = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.View);
+        if (!CanView)
+            return;
+
+        await LoadPage();
+    }
+
+    private async Task LoadPage()
+    {
+        await Task.WhenAll(LoadTasks(), LoadNotifications());
+    }
 
     private async Task LoadTasks()
     {
+        isLoadingTasks = true;
         var response = await TaskService.GetMyTasksAsync(0, 50, searchText);
         if (response.IsSuccess)
             tasks = response.Data?.Data.ToList() ?? [];
+        isLoadingTasks = false;
+    }
+
+    private async Task LoadNotifications()
+    {
+        isLoadingNotifications = true;
+        var countResponse = await TaskService.GetUnreadNotificationCountAsync();
+        if (countResponse.IsSuccess)
+            unreadCount = countResponse.Data?.Count ?? 0;
+
+        var response = await TaskService.GetNotificationsAsync(0, 10, unreadOnly);
+        if (response.IsSuccess)
+            notifications = response.Data?.Data.ToList() ?? [];
+        isLoadingNotifications = false;
+    }
+
+    private async Task MarkNotificationRead(Guid id)
+    {
+        var response = await TaskService.MarkNotificationReadAsync(id);
+        if (response.IsSuccess)
+            await LoadNotifications();
+    }
+
+    private async Task MarkAllNotificationsRead()
+    {
+        var response = await TaskService.MarkAllNotificationsReadAsync();
+        if (response.IsSuccess)
+            await LoadNotifications();
+    }
+
+    private async Task OpenNotification(TaskNotificationDto notification)
+    {
+        if (!notification.IsRead)
+            await TaskService.MarkNotificationReadAsync(notification.Id);
+
+        NavigationManager.NavigateTo($"/TaskManagement/View/{notification.TaskId}");
     }
 
     private TaskAttentionBadge? GetAttentionBadge(TaskItemDto task)
     {
         if (IsCompletedOrCancelled(task))
-        {
             return null;
-        }
 
         var dueDate = task.DueDate.Date;
         var today = DateTime.Today;
 
         if (task.Status == TaskWorkflowStatus.Overdue || dueDate < today)
-        {
             return new TaskAttentionBadge(Text("Overdue", "متأخرة"), "text-bg-danger", "danger", Text("This task is overdue", "هذه المهمة متأخرة"));
-        }
 
         if (dueDate == today)
-        {
             return new TaskAttentionBadge(Text("Due today", "مستحقة اليوم"), "text-bg-warning", "warning", Text("This task is due today", "هذه المهمة مستحقة اليوم"));
-        }
 
         if (IsOpen(task))
-        {
             return new TaskAttentionBadge(Text("Open", "مفتوحة"), "text-bg-primary", "primary", Text("This task is open", "هذه المهمة مفتوحة"));
-        }
 
         return null;
     }
@@ -113,11 +239,6 @@
     };
 
     private sealed record TaskAttentionBadge(string Text, string CssClass, string CssSuffix, string Title);
-
-    protected override void OnInitialized()
-    {
-        SharedDataService.OnChange1 += HandleChangeAsync;
-    }
 
     private async Task HandleChangeAsync()
     {
@@ -153,5 +274,20 @@
     .task-title {
         min-width: 0;
         overflow-wrap: anywhere;
+    }
+
+    .task-notification {
+        border-block-start: 1px solid var(--erp-border);
+        display: grid;
+        gap: 6px;
+        padding-block: var(--erp-space-3);
+    }
+
+    .task-notification:first-child {
+        border-block-start: 0;
+    }
+
+    .task-notification.is-read {
+        opacity: .7;
     }
 </style>

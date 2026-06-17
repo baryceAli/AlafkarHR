@@ -54,12 +54,18 @@ public class GetEmployeeProductivityReportHandler(TaskManagementDbContext dbCont
                     AssignedTasks = g.Count(),
                     CompletedTasks = completed.Count,
                     CompletionRate = g.Any() ? Math.Round(completed.Count * 100m / g.Count(), 2) : 0,
-                    AverageCompletionHours = completed.Count == 0 ? 0 : Math.Round((decimal)completed.Average(x => ((x.CompletedDate ?? x.ModifiedAt ?? x.CreatedAt.Value) - x.CreatedAt.Value).TotalHours), 2)
+                    AverageCompletionHours = completed.Count == 0 ? 0 : Math.Round((decimal)completed.Average(CalculateCompletionHours), 2)
                 };
             })
             .ToList();
 
         return new GetEmployeeProductivityReportResult(report);
+    }
+
+    private static double CalculateCompletionHours(TaskItem task)
+    {
+        var createdAt = task.CreatedAt ?? task.CompletedDate ?? task.ModifiedAt ?? DateTime.UtcNow;
+        return ((task.CompletedDate ?? task.ModifiedAt ?? createdAt) - createdAt).TotalHours;
     }
 }
 

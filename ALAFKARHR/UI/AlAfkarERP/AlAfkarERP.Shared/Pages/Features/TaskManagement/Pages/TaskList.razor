@@ -1,6 +1,8 @@
 @layout AdminLayout
 @page "/TaskManagement/List"
+@implements IDisposable
 
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
@@ -10,6 +12,7 @@
 @using TaskWorkflowStatus = SharedWithUI.TaskManagement.Enums.TaskStatus
 
 @inject ITaskManagementService TaskService
+@inject IDepartmentService DepartmentService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
@@ -30,8 +33,26 @@
 
     <div class="card p-3 mb-3">
         <div class="row g-2 mb-3">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <input class="form-control" placeholder="@Text("Search...", "بحث...")" @bind="searchText" @bind:event="oninput" />
+            </div>
+            <div class="col-md-3">
+                <input class="form-control" placeholder="@Text("Task number", "رقم المهمة")" @bind="taskNumber" />
+            </div>
+            <div class="col-md-3">
+                <input class="form-control" placeholder="@Text("Title", "العنوان")" @bind="title" />
+            </div>
+            <div class="col-md-3">
+                <input class="form-control" placeholder="@Text("Assigned user", "الموظف المسند")" @bind="assignedToUser" />
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" @bind="selectedDepartmentId">
+                    <option value="">@Text("All departments", "كل الأقسام")</option>
+                    @foreach (var department in departments)
+                    {
+                        <option value="@department.Id">@Text(department.NameEng, department.Name)</option>
+                    }
+                </select>
             </div>
             <div class="col-md-3">
                 <select class="form-select" @bind="selectedStatus">
@@ -51,15 +72,23 @@
                     }
                 </select>
             </div>
+            <div class="col-md-3">
+                <InputDate class="form-control" @bind-Value="fromDate" />
+            </div>
+            <div class="col-md-3">
+                <InputDate class="form-control" @bind-Value="toDate" />
+            </div>
             <div class="col-md-2">
-                <button class="btn btn-outline-primary w-100" @onclick="LoadTasks"><i class="bi bi-search"></i></button>
+                <button class="btn btn-outline-primary w-100" @onclick="SearchTasks"><i class="bi bi-search"></i></button>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters"><i class="bi bi-x-circle"></i></button>
             </div>
         </div>
 
-                <div class="d-flex justify-content-end mb-2">
+        <div class="d-flex justify-content-end mb-2">
             <TableExportActions />
         </div>
-
 
         <table class="table align-middle">
             <thead>
@@ -96,6 +125,7 @@
                         <td class="text-end">
                             <button class="btn btn-sm btn-outline-secondary erp-row-action" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/View/{task.Id}")' title="@Text("View", "عرض")"><i class="bi bi-eye"></i></button>
                             <button class="btn btn-sm btn-outline-warning erp-row-action" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/Edit/{task.Id}")' disabled="@(!CanEdit)" title="@Text("Edit", "تعديل")"><i class="bi bi-pencil-square"></i></button>
+                            <button class="btn btn-sm btn-outline-danger erp-row-action" @onclick='() => ArchiveTask(task.Id)' disabled="@(!CanDelete)" title="@Text("Archive", "أرشفة")"><i class="bi bi-archive"></i></button>
                         </td>
                     </tr>
                 }
@@ -112,20 +142,28 @@
 
 @code {
     private List<TaskItemDto> tasks = [];
+    private List<DepartmentDto> departments = [];
     private string searchText = string.Empty;
+    private string taskNumber = string.Empty;
+    private string title = string.Empty;
+    private string assignedToUser = string.Empty;
+    private string selectedDepartmentId = string.Empty;
     private string selectedStatus = string.Empty;
     private string selectedPriority = string.Empty;
+    private DateTime? fromDate;
+    private DateTime? toDate;
     private int pageIndex;
     private int pageSize = 10;
     private int TotalPages = 1;
     private bool CanView;
     private bool CanCreate;
     private bool CanEdit;
+    private bool CanDelete;
 
     protected override async Task OnInitializedAsync()
     {
         var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-        if (!authState.User.Identity?.IsAuthenticated == true)
+        if (authState.User.Identity?.IsAuthenticated != true)
         {
             NavigationManager.NavigateTo("/login", true);
             return;
@@ -134,6 +172,12 @@
         CanView = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.View);
         CanCreate = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Create);
         CanEdit = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Edit);
+        CanDelete = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Delete);
+
+        var departmentResponse = await DepartmentService.GetAsync(0, 10000);
+        if (departmentResponse.IsSuccess)
+            departments = departmentResponse.Data?.Data?.ToList() ?? [];
+
         await LoadTasks();
     }
 
@@ -141,14 +185,45 @@
     {
         Enum.TryParse<TaskWorkflowStatus>(selectedStatus, out var status);
         Enum.TryParse<TaskPriority>(selectedPriority, out var priority);
+        Guid.TryParse(selectedDepartmentId, out var departmentId);
+        Guid? departmentFilter = string.IsNullOrWhiteSpace(selectedDepartmentId) ? null : departmentId;
+
         var response = await TaskService.GetAsync(pageIndex, pageSize, searchText,
+            taskNumber: taskNumber,
+            title: title,
+            assignedToUser: assignedToUser,
+            departmentId: departmentFilter,
             status: string.IsNullOrWhiteSpace(selectedStatus) ? null : status,
-            priority: string.IsNullOrWhiteSpace(selectedPriority) ? null : priority);
+            priority: string.IsNullOrWhiteSpace(selectedPriority) ? null : priority,
+            fromDate: fromDate,
+            toDate: toDate);
+
         if (response.IsSuccess)
         {
             tasks = response.Data?.Data.ToList() ?? [];
             TotalPages = Math.Max(1, (int)Math.Ceiling((response.Data?.Count ?? 0) / (double)pageSize));
         }
+    }
+
+    private async Task SearchTasks()
+    {
+        pageIndex = 0;
+        await LoadTasks();
+    }
+
+    private async Task ClearFilters()
+    {
+        searchText = string.Empty;
+        taskNumber = string.Empty;
+        title = string.Empty;
+        assignedToUser = string.Empty;
+        selectedDepartmentId = string.Empty;
+        selectedStatus = string.Empty;
+        selectedPriority = string.Empty;
+        fromDate = null;
+        toDate = null;
+        pageIndex = 0;
+        await LoadTasks();
     }
 
     private async Task NextPage()
@@ -167,6 +242,13 @@
             pageIndex--;
             await LoadTasks();
         }
+    }
+
+    private async Task ArchiveTask(Guid id)
+    {
+        var response = await TaskService.ArchiveAsync(id);
+        if (response.IsSuccess)
+            await LoadTasks();
     }
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);

@@ -23,6 +23,69 @@ namespace TaskManagement.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("TaskManagement.Tasks.Models.TaskActionItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByUserName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ExpectedCompletionAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("TaskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpectedCompletionAt");
+
+                    b.HasIndex("TaskId");
+
+                    b.HasIndex("CreatedByUserId", "TaskId");
+
+                    b.ToTable("TaskActions", "TaskManagement");
+                });
+
             modelBuilder.Entity("TaskManagement.Tasks.Models.TaskAttachment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -130,6 +193,73 @@ namespace TaskManagement.Data.Migrations
                     b.HasIndex("TaskId");
 
                     b.ToTable("TaskComments", "TaskManagement");
+                });
+
+            modelBuilder.Entity("TaskManagement.Tasks.Models.TaskDailyCheckRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CheckDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastAttemptAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("NextRetryAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NextRetryAt");
+
+                    b.HasIndex("UserId", "CheckDate")
+                        .IsUnique();
+
+                    b.ToTable("TaskDailyCheckRuns", "TaskManagement");
                 });
 
             modelBuilder.Entity("TaskManagement.Tasks.Models.TaskHistory", b =>
@@ -242,6 +372,12 @@ namespace TaskManagement.Data.Migrations
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("NextOccurrenceDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ParentTaskId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Priority")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -251,7 +387,38 @@ namespace TaskManagement.Data.Migrations
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
 
+                    b.Property<DateTime?>("RecurrenceEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RecurrenceEndType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasDefaultValue("Never");
+
+                    b.Property<string>("RecurrenceFrequency")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasDefaultValue("None");
+
+                    b.Property<int>("RecurrenceInterval")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<int?>("RecurrenceMaxOccurrences")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RecurrenceOccurrencesCreated")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("ReminderDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ReminderNotificationSentAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("StartDate")
@@ -273,6 +440,10 @@ namespace TaskManagement.Data.Migrations
                         .HasColumnType("nvarchar(250)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("NextOccurrenceDate");
+
+                    b.HasIndex("ParentTaskId");
 
                     b.HasIndex("TaskNumber")
                         .IsUnique();
@@ -337,6 +508,15 @@ namespace TaskManagement.Data.Migrations
                     b.ToTable("TaskNotifications", "TaskManagement");
                 });
 
+            modelBuilder.Entity("TaskManagement.Tasks.Models.TaskActionItem", b =>
+                {
+                    b.HasOne("TaskManagement.Tasks.Models.TaskItem", null)
+                        .WithMany("Actions")
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TaskManagement.Tasks.Models.TaskAttachment", b =>
                 {
                     b.HasOne("TaskManagement.Tasks.Models.TaskItem", null)
@@ -366,6 +546,8 @@ namespace TaskManagement.Data.Migrations
 
             modelBuilder.Entity("TaskManagement.Tasks.Models.TaskItem", b =>
                 {
+                    b.Navigation("Actions");
+
                     b.Navigation("Attachments");
 
                     b.Navigation("Comments");

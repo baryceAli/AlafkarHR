@@ -15,11 +15,28 @@ public class UploadTaskAttachmentHandler(
     {
         if (command.File.Length == 0)
             throw new BadRequestException("Attachment file is empty.");
+        if (command.File.Length > 10 * 1024 * 1024)
+            throw new BadRequestException("Attachment file size cannot exceed 10 MB.");
+
+        var allowedContentTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "application/pdf",
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "text/plain",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        };
+
+        if (!allowedContentTypes.Contains(command.File.ContentType))
+            throw new BadRequestException("Attachment file type is not allowed.");
 
         var userId = TaskFeatureHelpers.GetCurrentUserId(httpContextAccessor);
         var task = await dbContext.TaskItems.Include(x => x.Attachments).Include(x => x.History)
             .FirstOrDefaultAsync(x => x.Id == command.TaskId && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException($"Task not found: {command.TaskId}");
+        TaskFeatureHelpers.EnsureCanMutateTask(task, httpContextAccessor, userId);
 
         var uploadRoot = Path.Combine(environment.WebRootPath ?? "wwwroot", "Images", "TaskManagement", command.TaskId.ToString());
         Directory.CreateDirectory(uploadRoot);

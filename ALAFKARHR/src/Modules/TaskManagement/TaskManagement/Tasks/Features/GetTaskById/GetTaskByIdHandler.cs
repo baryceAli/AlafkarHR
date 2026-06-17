@@ -13,6 +13,7 @@ public class GetTaskByIdHandler(TaskManagementDbContext dbContext, IHttpContextA
             .Include(x => x.Comments)
             .Include(x => x.Attachments)
             .Include(x => x.History)
+            .Include(x => x.Actions.Where(action => !action.IsDeleted))
             .AsNoTracking()
             .Where(x => !x.IsDeleted && x.Id == request.Id);
 
@@ -21,6 +22,15 @@ public class GetTaskByIdHandler(TaskManagementDbContext dbContext, IHttpContextA
         var task = await query.FirstOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException($"Task not found: {request.Id}");
 
-        return new GetTaskByIdResult(task.Adapt<TaskItemDto>());
+        var dto = task.Adapt<TaskItemDto>();
+        dto.CanAddAction = TaskFeatureHelpers.CanMutateTask(task, httpContextAccessor, currentUserId);
+        dto.Actions = task.Actions
+            .OrderBy(x => x.IsCompleted)
+            .ThenBy(x => x.ExpectedCompletionAt ?? DateTime.MaxValue)
+            .ThenBy(x => x.CreatedAt)
+            .Select(x => TaskFeatureHelpers.MapAction(x, httpContextAccessor, currentUserId))
+            .ToList();
+
+        return new GetTaskByIdResult(dto);
     }
 }

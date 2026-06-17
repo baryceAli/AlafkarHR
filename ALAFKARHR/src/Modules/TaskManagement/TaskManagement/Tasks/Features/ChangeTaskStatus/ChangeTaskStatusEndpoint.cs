@@ -14,6 +14,6 @@ public class ChangeTaskStatusEndpoint : ICarterModule
         })
         .WithName("ChangeTaskStatus")
         .Produces<ChangeTaskStatusResult>(StatusCodes.Status200OK)
-        .RequireAuthorization(PermissionList.TaskManagementPermissions.Edit);
+        .RequireAuthorization(PermissionList.TaskManagementPermissions.View);
     }
 }

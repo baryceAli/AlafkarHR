@@ -1,5 +1,6 @@
 @layout AdminLayout
 @page "/TaskManagement/Create"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
@@ -8,6 +9,7 @@
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Permissions
 @using SharedWithUI.TaskManagement.Dtos
 @using SharedWithUI.TaskManagement.Enums
 
@@ -19,132 +21,329 @@
 @inject NavigationManager NavigationManager
 @inject ToastService ToastService
 
-<div class="task-page" dir="@SharedDataService.PageDirection">
-    <h5 class="text-black">@Text("Create Task", "إنشاء مهمة")</h5>
+<section class="erp-page task-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Create Task", "إنشاء مهمة")"
+                Subtitle="@Text("Assign work, set due dates, reminders, and recurrence rules.", "إسناد العمل وتحديد الاستحقاق والتذكير وقواعد التكرار.")"
+                Overline="@Text("Task Management", "إدارة المهام")"
+                Icon="bi-plus-square" />
 
-    <div class="card p-3">
-        <EditForm Model="task" OnValidSubmit="Save">
-            <DataAnnotationsValidator />
-            <div class="row g-3">
-                <div class="col-md-8">
-                    <label class="form-label">@Text("Title", "العنوان")</label>
-                    <InputText class="form-control" @bind-Value="task.Title" />
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">@Text("Priority", "الأولوية")</label>
-                    <InputSelect class="form-select" @bind-Value="task.Priority">
-                        @foreach (var priority in Enum.GetValues<TaskPriority>())
+    @if (!CanCreate)
+    {
+        <div class="alert alert-warning">@Text("You do not have permission to create tasks.", "لا تملك صلاحية إنشاء المهام.")</div>
+    }
+    else
+    {
+        <AppCard Title="@Text("Task Details", "تفاصيل المهمة")">
+            <EditForm Model="task" OnValidSubmit="Save">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">@Text("Title", "العنوان")</label>
+                        <InputText class="form-control" @bind-Value="task.Title" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">@Text("Priority", "الأولوية")</label>
+                        <InputSelect class="form-select" @bind-Value="task.Priority">
+                            @foreach (var priority in Enum.GetValues<TaskPriority>())
+                            {
+                                <option value="@priority">@PriorityText(priority)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">@Text("Description", "الوصف")</label>
+                        <InputTextArea class="form-control" rows="4" @bind-Value="task.Description" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">@Text("Assigned Employee", "الموظف المسند إليه")</label>
+                        <AutoCompleteComponent TItem="EmployeeDto"
+                                               Items="employees"
+                                               ItemText="@(e => Text(e.FullNameEng, e.FullName))"
+                                               Value="selectedEmployee"
+                                               ValueChanged="OnEmployeeSelected" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">@Text("Department", "القسم")</label>
+                        <AutoCompleteComponent TItem="DepartmentDto"
+                                               Items="departments"
+                                               ItemText="@(d => Text(d.NameEng, d.Name))"
+                                               Value="selectedDepartment"
+                                               ValueChanged="OnDepartmentSelected" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">@Text("Start Date", "تاريخ البداية")</label>
+                        <InputDate class="form-control" @bind-Value="task.StartDate" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">@Text("Due Date", "تاريخ الاستحقاق")</label>
+                        <InputDate class="form-control" @bind-Value="task.DueDate" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">@Text("Reminder Date", "تاريخ التذكير")</label>
+                        <InputDate class="form-control" @bind-Value="task.ReminderDate" />
+                    </div>
+
+                    <div class="col-12">
+                        <div class="form-check">
+                            <InputCheckbox class="form-check-input" @bind-Value="task.IsRecurring" />
+                            <label class="form-check-label">@Text("Recurring task", "مهمة متكررة")</label>
+                        </div>
+                    </div>
+
+                    @if (task.IsRecurring)
+                    {
+                        <div class="col-md-3">
+                            <label class="form-label">@Text("Frequency", "التكرار")</label>
+                            <InputSelect class="form-select" @bind-Value="task.RecurrenceFrequency">
+                                <option value="@TaskRecurrenceFrequency.Daily">@Text("Daily", "يومي")</option>
+                                <option value="@TaskRecurrenceFrequency.Weekly">@Text("Weekly", "أسبوعي")</option>
+                                <option value="@TaskRecurrenceFrequency.Monthly">@Text("Monthly", "شهري")</option>
+                            </InputSelect>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">@Text("Every", "كل")</label>
+                            <InputNumber class="form-control" @bind-Value="task.RecurrenceInterval" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">@Text("Ends", "ينتهي")</label>
+                            <InputSelect class="form-select" @bind-Value="task.RecurrenceEndType">
+                                <option value="@TaskRecurrenceEndType.Never">@Text("Never", "لا ينتهي")</option>
+                                <option value="@TaskRecurrenceEndType.OnDate">@Text("On date", "في تاريخ")</option>
+                                <option value="@TaskRecurrenceEndType.AfterOccurrences">@Text("After occurrences", "بعد عدد مرات")</option>
+                            </InputSelect>
+                        </div>
+                        @if (task.RecurrenceEndType == TaskRecurrenceEndType.OnDate)
                         {
-                            <option value="@priority">@PriorityText(priority)</option>
+                            <div class="col-md-3">
+                                <label class="form-label">@Text("End Date", "تاريخ الانتهاء")</label>
+                                <InputDate class="form-control" @bind-Value="task.RecurrenceEndDate" />
+                            </div>
                         }
-                    </InputSelect>
-                </div>
-                <div class="col-12">
-                    <label class="form-label">@Text("Description", "الوصف")</label>
-                    <InputTextArea class="form-control" rows="4" @bind-Value="task.Description" />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">@Text("Assigned Employee", "الموظف المسند إليه")</label>
-                    <AutoCompleteComponent TItem="EmployeeDto"
-                                           Items="employees"
-                                           ItemText="@(e => Text(e.FullNameEng, e.FullName))"
-                                           Value="selectedEmployee"
-                                           ValueChanged="onEmployeeSelected" />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">@Text("Department", "القسم")</label>
-                    <AutoCompleteComponent TItem="DepartmentDto"
-                                           Items="departments"
-                                           ItemText="@(d => Text(d.NameEng, d.Name))"
-                                           Value="selectedDepartment"
-                                           ValueChanged="onDepartmentSelected" />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">@Text("Start Date", "تاريخ البداية")</label>
-                    <InputDate class="form-control" @bind-Value="task.StartDate" />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">@Text("Due Date", "تاريخ الاستحقاق")</label>
-                    <InputDate class="form-control" @bind-Value="task.DueDate" />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">@Text("Reminder Date", "تاريخ التذكير")</label>
-                    <InputDate class="form-control" @bind-Value="task.ReminderDate" />
-                </div>
-                <div class="col-md-6 d-flex align-items-end">
-                    <div class="form-check">
-                        <InputCheckbox class="form-check-input" @bind-Value="task.IsRecurring" />
-                        <label class="form-check-label">@Text("Recurring", "متكررة")</label>
+                        @if (task.RecurrenceEndType == TaskRecurrenceEndType.AfterOccurrences)
+                        {
+                            <div class="col-md-3">
+                                <label class="form-label">@Text("Occurrences", "عدد المرات")</label>
+                                <InputNumber class="form-control" @bind-Value="task.RecurrenceMaxOccurrences" />
+                            </div>
+                        }
+                    }
+
+                    <div class="col-12">
+                        <div class="task-initial-actions">
+                            <div class="task-initial-actions-header">
+                                <div>
+                                    <h6>@Text("Initial Actions", "Initial Actions")</h6>
+                                    <p>@Text("Add optional checklist actions before assigning the task.", "Add optional checklist actions before assigning the task.")</p>
+                                </div>
+                                <button class="btn btn-outline-primary btn-sm" type="button" @onclick="AddInitialAction">
+                                    <i class="bi bi-plus-lg"></i> @Text("Add Action", "Add Action")
+                                </button>
+                            </div>
+
+                            @if (!task.Actions.Any())
+                            {
+                                <div class="task-initial-actions-empty">
+                                    <i class="bi bi-check2-square"></i>
+                                    <span>@Text("No initial actions added.", "No initial actions added.")</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="task-initial-actions-list">
+                                    @for (var index = 0; index < task.Actions.Count; index++)
+                                    {
+                                        var action = task.Actions[index];
+                                        var actionIndex = index;
+                                        <div class="task-initial-action-row">
+                                            <div>
+                                                <label class="form-label">@Text("Action", "Action")</label>
+                                                <InputText class="form-control" @bind-Value="action.Title" />
+                                            </div>
+                                            <div>
+                                                <label class="form-label">@Text("Expected completion", "Expected completion")</label>
+                                                <input type="datetime-local" class="form-control" value="@FormatDateTimeLocal(action.ExpectedCompletionAt)" @onchange="args => OnInitialActionExpectedChanged(actionIndex, args)" />
+                                            </div>
+                                            <div class="task-initial-action-remove">
+                                                <button class="btn btn-outline-danger" type="button" @onclick="() => RemoveInitialAction(actionIndex)" title="@Text("Remove", "Remove")">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="col-12 d-flex justify-content-end gap-2 mt-2">
+                        <button class="btn btn-secondary" type="button" @onclick='() => NavigationManager.NavigateTo("/TaskManagement/List")'>@Text("Cancel", "إلغاء")</button>
+                        <button class="btn btn-primary" type="submit" disabled="@isSaving"><i class="bi bi-save"></i> @Text("Save", "حفظ")</button>
                     </div>
                 </div>
-                <div class="col-12 d-flex gap-2">
-                    <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @Text("Save", "حفظ")</button>
-                    <button class="btn btn-secondary" type="button" @onclick='() => NavigationManager.NavigateTo("/TaskManagement/List")'>@Text("Cancel", "إلغاء")</button>
-                </div>
-            </div>
-        </EditForm>
-    </div>
-</div>
+            </EditForm>
+        </AppCard>
+    }
+</section>
 
 @code {
-    private CreateTaskItemDto task = new() { DueDate = DateTime.UtcNow.Date };
+    private CreateTaskItemDto task = new()
+    {
+        DueDate = DateTime.UtcNow.Date,
+        RecurrenceFrequency = TaskRecurrenceFrequency.Daily,
+        RecurrenceInterval = 1
+    };
+
     private string assignedUserText = string.Empty;
     private string departmentText = string.Empty;
-
     private Guid companyId;
-    private List<EmployeeDto> employees = new();
+    private List<EmployeeDto> employees = [];
     private EmployeeDto? selectedEmployee;
-
-    private List<DepartmentDto> departments = new();
+    private List<DepartmentDto> departments = [];
     private DepartmentDto? selectedDepartment;
-    AuthenticationState AuthState;
+    private bool CanCreate;
+    private bool isSaving;
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-        if (!AuthState.User.Identity.IsAuthenticated)
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated != true)
         {
             NavigationManager.NavigateTo("/login", true);
+            return;
         }
 
-        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+        CanCreate = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Create);
+        if (!CanCreate)
+            return;
 
-        var empRes = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 10000);
-        if (empRes.IsSuccess)
-            employees = empRes.Data?.Data?.ToList() ?? new List<EmployeeDto>();
+        var companyClaim = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+        if (Guid.TryParse(companyClaim, out companyId))
+        {
+            var empRes = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 10000);
+            if (empRes.IsSuccess)
+                employees = empRes.Data?.Data?.ToList() ?? [];
+        }
 
         var deptRes = await DepartmentService.GetAsync(0, 10000);
         if (deptRes.IsSuccess)
-            departments = deptRes.Data?.Data?.ToList() ?? new List<DepartmentDto>();
+            departments = deptRes.Data?.Data?.ToList() ?? [];
     }
 
     private async Task Save()
     {
-        if (string.IsNullOrEmpty(assignedUserText) || !Guid.TryParse(departmentText, out var departmentId))
+        if (string.IsNullOrWhiteSpace(assignedUserText) || !Guid.TryParse(departmentText, out var departmentId))
         {
             ToastService.Show(new ToastMessage { Message = Text("Assigned user and department must be valid.", "يجب اختيار موظف وقسم صحيحين."), Type = "error" });
             return;
         }
 
+        NormalizeRecurrence();
+        if (!ValidateInitialActions())
+            return;
+
         task.AssignedToUser = assignedUserText;
         task.DepartmentId = departmentId;
+        isSaving = true;
         var response = await TaskService.CreateAsync(task);
+        isSaving = false;
+
         if (response.IsSuccess)
             NavigationManager.NavigateTo("/TaskManagement/List");
         else
             ToastService.Show(new ToastMessage { Message = response.Error?.Detail ?? Text("Unable to create task.", "تعذر إنشاء المهمة."), Type = "error" });
     }
 
-    private void onEmployeeSelected(EmployeeDto employee)
+    private void NormalizeRecurrence()
+    {
+        if (!task.IsRecurring)
+        {
+            task.RecurrenceFrequency = TaskRecurrenceFrequency.None;
+            task.RecurrenceInterval = 1;
+            task.RecurrenceEndType = TaskRecurrenceEndType.Never;
+            task.RecurrenceEndDate = null;
+            task.RecurrenceMaxOccurrences = null;
+            return;
+        }
+
+        if (task.RecurrenceFrequency == TaskRecurrenceFrequency.None)
+            task.RecurrenceFrequency = TaskRecurrenceFrequency.Daily;
+        if (task.RecurrenceInterval < 1)
+            task.RecurrenceInterval = 1;
+    }
+
+    private void OnEmployeeSelected(EmployeeDto employee)
     {
         selectedEmployee = employee;
         assignedUserText = employee.Code.ToString();
     }
 
-    private void onDepartmentSelected(DepartmentDto department)
+    private void OnDepartmentSelected(DepartmentDto department)
     {
         selectedDepartment = department;
         departmentText = department.Id.ToString();
+    }
+
+    private void AddInitialAction()
+    {
+        task.Actions.Add(new CreateTaskActionDto());
+    }
+
+    private void RemoveInitialAction(int index)
+    {
+        if (index < 0 || index >= task.Actions.Count)
+            return;
+
+        task.Actions.RemoveAt(index);
+    }
+
+    private void OnInitialActionExpectedChanged(int index, ChangeEventArgs args)
+    {
+        if (index < 0 || index >= task.Actions.Count)
+            return;
+
+        task.Actions[index].ExpectedCompletionAt = ParseDateTimeLocal(args.Value?.ToString() ?? string.Empty);
+    }
+
+    private bool ValidateInitialActions()
+    {
+        if (task.Actions.Any(action => string.IsNullOrWhiteSpace(action.Title)))
+        {
+            ToastService.Show(new ToastMessage { Message = Text("Action title is required.", "Action title is required."), Type = "error" });
+            return false;
+        }
+
+        if (task.Actions.Any(action => action.ExpectedCompletionAt.HasValue && task.StartDate.HasValue && action.ExpectedCompletionAt.Value.Date < task.StartDate.Value.Date))
+        {
+            ToastService.Show(new ToastMessage { Message = Text("Action expected completion cannot be before task start date.", "Action expected completion cannot be before task start date."), Type = "error" });
+            return false;
+        }
+
+        if (task.Actions.Any(action => action.ExpectedCompletionAt.HasValue && action.ExpectedCompletionAt.Value.Date > task.DueDate.Date))
+        {
+            ToastService.Show(new ToastMessage { Message = Text("Action expected completion cannot be after task due date.", "Action expected completion cannot be after task due date."), Type = "error" });
+            return false;
+        }
+
+        return true;
+    }
+
+    private static DateTime? ParseDateTimeLocal(string value)
+    {
+        return DateTime.TryParse(value, out var parsed)
+            ? parsed.ToUniversalTime()
+            : null;
+    }
+
+    private static string FormatDateTimeLocal(DateTime? value)
+    {
+        return value.HasValue
+            ? value.Value.ToLocalTime().ToString("yyyy-MM-ddTHH:mm")
+            : string.Empty;
     }
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
@@ -159,11 +358,6 @@
         _ => priority.ToString()
     };
 
-    protected override void OnInitialized()
-    {
-        SharedDataService.OnChange1 += HandleChangeAsync;
-    }
-
     private async Task HandleChangeAsync()
     {
         await InvokeAsync(StateHasChanged);
@@ -174,3 +368,74 @@
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }
+
+<style>
+    .task-initial-actions {
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        display: grid;
+        gap: var(--erp-space-3);
+        padding: var(--erp-space-3);
+    }
+
+    .task-initial-actions-header {
+        align-items: flex-start;
+        display: flex;
+        gap: var(--erp-space-3);
+        justify-content: space-between;
+    }
+
+    .task-initial-actions-header h6 {
+        color: var(--erp-text);
+        font-size: 16px;
+        margin: 0;
+    }
+
+    .task-initial-actions-header p {
+        color: var(--erp-text-muted);
+        margin: 4px 0 0;
+    }
+
+    .task-initial-actions-empty {
+        align-items: center;
+        background: var(--erp-surface-muted);
+        border: 1px dashed var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        color: var(--erp-text-muted);
+        display: flex;
+        gap: var(--erp-space-2);
+        padding: var(--erp-space-3);
+    }
+
+    .task-initial-actions-list {
+        display: grid;
+        gap: var(--erp-space-2);
+    }
+
+    .task-initial-action-row {
+        align-items: end;
+        display: grid;
+        gap: var(--erp-space-3);
+        grid-template-columns: minmax(0, 1fr) minmax(190px, 260px) auto;
+    }
+
+    .task-initial-action-remove .btn {
+        min-height: 38px;
+    }
+
+    @@media (max-width: 768px) {
+        .task-initial-actions-header,
+        .task-initial-action-row {
+            grid-template-columns: 1fr;
+        }
+
+        .task-initial-actions-header {
+            display: grid;
+        }
+
+        .task-initial-actions-header .btn,
+        .task-initial-action-remove .btn {
+            width: 100%;
+        }
+    }
+</style>

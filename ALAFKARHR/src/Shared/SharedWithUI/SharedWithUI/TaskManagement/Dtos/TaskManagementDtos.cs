@@ -21,11 +21,21 @@ public class TaskItemDto
     public Guid AssignedByUserId { get; set; }
     public Guid DepartmentId { get; set; }
     public bool IsRecurring { get; set; }
+    public TaskRecurrenceFrequency RecurrenceFrequency { get; set; } = TaskRecurrenceFrequency.None;
+    public int RecurrenceInterval { get; set; } = 1;
+    public TaskRecurrenceEndType RecurrenceEndType { get; set; } = TaskRecurrenceEndType.Never;
+    public DateTime? RecurrenceEndDate { get; set; }
+    public int? RecurrenceMaxOccurrences { get; set; }
+    public int RecurrenceOccurrencesCreated { get; set; }
+    public DateTime? NextOccurrenceDate { get; set; }
+    public Guid? ParentTaskId { get; set; }
     public DateTime? ReminderDate { get; set; }
     public bool IsArchived { get; set; }
+    public bool CanAddAction { get; set; }
     public List<TaskCommentDto> Comments { get; set; } = [];
     public List<TaskAttachmentDto> Attachments { get; set; } = [];
     public List<TaskHistoryDto> History { get; set; } = [];
+    public List<TaskActionDto> Actions { get; set; } = [];
 }
 
 public class CreateTaskItemDto
@@ -38,7 +48,13 @@ public class CreateTaskItemDto
     public string AssignedToUser { get; set; }
     public Guid DepartmentId { get; set; }
     public bool IsRecurring { get; set; }
+    public TaskRecurrenceFrequency RecurrenceFrequency { get; set; } = TaskRecurrenceFrequency.None;
+    public int RecurrenceInterval { get; set; } = 1;
+    public TaskRecurrenceEndType RecurrenceEndType { get; set; } = TaskRecurrenceEndType.Never;
+    public DateTime? RecurrenceEndDate { get; set; }
+    public int? RecurrenceMaxOccurrences { get; set; }
     public DateTime? ReminderDate { get; set; }
+    public List<CreateTaskActionDto> Actions { get; set; } = [];
 }
 
 public class UpdateTaskItemDto
@@ -51,6 +67,11 @@ public class UpdateTaskItemDto
     public DateTime DueDate { get; set; } = DateTime.UtcNow.Date;
     public Guid DepartmentId { get; set; }
     public bool IsRecurring { get; set; }
+    public TaskRecurrenceFrequency RecurrenceFrequency { get; set; } = TaskRecurrenceFrequency.None;
+    public int RecurrenceInterval { get; set; } = 1;
+    public TaskRecurrenceEndType RecurrenceEndType { get; set; } = TaskRecurrenceEndType.Never;
+    public DateTime? RecurrenceEndDate { get; set; }
+    public int? RecurrenceMaxOccurrences { get; set; }
     public DateTime? ReminderDate { get; set; }
 }
 
@@ -72,6 +93,43 @@ public class UpdateTaskProgressDto
 {
     public Guid Id { get; set; }
     public decimal ProgressPercentage { get; set; }
+}
+
+public class TaskActionDto
+{
+    public Guid Id { get; set; }
+    public Guid TaskId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public DateTime? ExpectedCompletionAt { get; set; }
+    public bool IsCompleted { get; set; }
+    public DateTime? CompletedAt { get; set; }
+    public Guid CreatedByUserId { get; set; }
+    public string CreatedByUserName { get; set; } = string.Empty;
+    public DateTime CreatedDate { get; set; }
+    public TaskActionStatus Status { get; set; } = TaskActionStatus.Open;
+    public bool CanEdit { get; set; }
+}
+
+public class CreateTaskActionDto
+{
+    public Guid TaskId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public DateTime? ExpectedCompletionAt { get; set; }
+}
+
+public class UpdateTaskActionDto
+{
+    public Guid TaskId { get; set; }
+    public Guid Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public DateTime? ExpectedCompletionAt { get; set; }
+}
+
+public class ToggleTaskActionCompletionDto
+{
+    public Guid TaskId { get; set; }
+    public Guid Id { get; set; }
+    public bool IsCompleted { get; set; }
 }
 
 public class TaskCommentDto
@@ -110,6 +168,46 @@ public class TaskHistoryDto
     public string? OldValue { get; set; }
     public string? NewValue { get; set; }
     public DateTime ActionDate { get; set; }
+}
+
+public class TaskNotificationDto
+{
+    public Guid Id { get; set; }
+    public Guid TaskId { get; set; }
+    public string UserCode { get; set; } = string.Empty;
+    public string NotificationType { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public bool IsRead { get; set; }
+    public DateTime CreatedDate { get; set; }
+}
+
+public class TaskNotificationUnreadCountDto
+{
+    public int Count { get; set; }
+}
+
+public class GenerateRecurringTasksResultDto
+{
+    public int GeneratedCount { get; set; }
+}
+
+public class ProcessTaskRemindersResultDto
+{
+    public int NotificationCount { get; set; }
+}
+
+public class MarkOverdueTasksResultDto
+{
+    public int UpdatedCount { get; set; }
+}
+
+public class RunMyTaskDailyCheckResultDto
+{
+    public bool IsSuccess { get; set; }
+    public bool WasSkipped { get; set; }
+    public int GeneratedCount { get; set; }
+    public int ReminderCount { get; set; }
+    public int OverdueCount { get; set; }
 }
 
 public class TaskFilterDto

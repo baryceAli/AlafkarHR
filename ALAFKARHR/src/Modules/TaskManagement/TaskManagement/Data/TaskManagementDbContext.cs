@@ -10,6 +10,8 @@ public class TaskManagementDbContext(DbContextOptions<TaskManagementDbContext> o
     public DbSet<TaskAttachment> TaskAttachments => Set<TaskAttachment>();
     public DbSet<TaskHistory> TaskHistories => Set<TaskHistory>();
     public DbSet<TaskNotification> TaskNotifications => Set<TaskNotification>();
+    public DbSet<TaskActionItem> TaskActions => Set<TaskActionItem>();
+    public DbSet<TaskDailyCheckRun> TaskDailyCheckRuns => Set<TaskDailyCheckRun>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

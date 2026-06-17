@@ -23,6 +23,7 @@ public class AddTaskCommentHandler(TaskManagementDbContext dbContext, IHttpConte
         var task = await dbContext.TaskItems.Include(x => x.Comments).Include(x => x.History)
             .FirstOrDefaultAsync(x => x.Id == command.Comment.TaskId && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException($"Task not found: {command.Comment.TaskId}");
+        TaskFeatureHelpers.EnsureCanMutateTask(task, httpContextAccessor, userId);
 
         var comment = TaskComment.Create(task.Id, userId, command.Comment.Comment);
         task.AddComment(comment);

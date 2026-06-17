@@ -1,131 +1,404 @@
 @layout AdminLayout
 @page "/TaskManagement/View/{Id:guid}"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using SharedWithUI.Permissions
 @using SharedWithUI.TaskManagement.Dtos
 @using SharedWithUI.TaskManagement.Enums
 @using TaskWorkflowStatus = SharedWithUI.TaskManagement.Enums.TaskStatus
 
 @inject ITaskManagementService TaskService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ToastService ToastService
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-<div class="task-page" dir="@SharedDataService.PageDirection">
-    @if (task is null)
+<section class="erp-page task-page" dir="@SharedDataService.PageDirection">
+    @if (!CanView)
     {
-        <p>@Text("Loading...", "جاري التحميل...")</p>
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+    }
+    else if (isLoading)
+    {
+        <div class="erp-loading">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2">@Text("Loading task...", "جاري تحميل المهمة...")</div>
+        </div>
+    }
+    else if (task is null)
+    {
+        <div class="alert alert-warning">@Text("Task was not found or you do not have access.", "لم يتم العثور على المهمة أو لا تملك صلاحية الوصول.")</div>
     }
     else
     {
-        <div class="d-flex justify-content-between align-items-start mb-3">
-            <div>
-                <h5 class="text-black">@task.Title</h5>
-                <div class="text-muted" dir="ltr">@task.TaskNumber</div>
-            </div>
-            <div class="d-flex gap-2">
-                <select class="form-select form-select-sm" @bind="selectedStatus">
-                    @foreach (var status in Enum.GetValues<TaskWorkflowStatus>())
-                    {
-                        <option value="@status">@StatusText(status)</option>
-                    }
-                </select>
-                <button class="btn btn-sm btn-primary" @onclick="ChangeStatus" title="@Text("Change status", "تغيير الحالة")"><i class="bi bi-arrow-repeat"></i></button>
-            </div>
-        </div>
+        <PageHeader Title="@task.Title"
+                    Subtitle="@task.Description"
+                    Overline="@Text("Task Management", "إدارة المهام")"
+                    Icon="bi-list-task">
+            <Actions>
+                <button class="btn btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo("/TaskManagement/List")'>
+                    <i class="bi bi-arrow-return-left"></i> @Text("Back", "رجوع")
+                </button>
+                @if (CanDelete)
+                {
+                    <button class="btn btn-outline-danger" @onclick="ArchiveTask">
+                        <i class="bi bi-archive"></i> @Text("Archive", "أرشفة")
+                    </button>
+                }
+            </Actions>
+        </PageHeader>
 
         <div class="row g-3">
             <div class="col-lg-8">
-                <div class="card p-3 mb-3">
-                    <p>@task.Description</p>
-                    <div class="row">
-                        <div class="col-md-3"><strong>@Text("Priority", "الأولوية")</strong><div>@PriorityText(task.Priority)</div></div>
-                        <div class="col-md-3"><strong>@Text("Status", "الحالة")</strong><div>@StatusText(task.Status)</div></div>
-                        <div class="col-md-3"><strong>@Text("Due", "تاريخ الاستحقاق")</strong><div>@task.DueDate.ToShortDateString()</div></div>
-                        <div class="col-md-3"><strong>@Text("Progress", "التقدم")</strong><div>@task.ProgressPercentage%</div></div>
+                <AppCard Title="@Text("Task Details", "تفاصيل المهمة")" CssClass="mb-3">
+                    <div class="task-meta-grid">
+                        <div><span>@Text("Number", "الرقم")</span><strong dir="ltr">@task.TaskNumber</strong></div>
+                        <div><span>@Text("Priority", "الأولوية")</span><strong>@PriorityText(task.Priority)</strong></div>
+                        <div><span>@Text("Status", "الحالة")</span><strong>@StatusText(task.Status)</strong></div>
+                        <div><span>@Text("Due", "الاستحقاق")</span><strong>@task.DueDate.ToShortDateString()</strong></div>
+                        <div><span>@Text("Progress", "التقدم")</span><strong dir="ltr">@task.ProgressPercentage%</strong></div>
+                        <div><span>@Text("Assigned To", "مسندة إلى")</span><strong>@task.AssignedToUser</strong></div>
                     </div>
-                    <div class="mt-3">
-                        <label class="form-label">@Text("Progress", "التقدم")</label>
-                        <div class="d-flex gap-2">
-                            <InputNumber class="form-control" @bind-Value="progress" />
-                            <button class="btn btn-outline-primary" @onclick="UpdateProgress">@Text("Update", "تحديث")</button>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="card p-3">
-                    <h6>@Text("Comments", "التعليقات")</h6>
-                    <div class="mb-3">
-                        <textarea class="form-control" rows="3" @bind="commentText"></textarea>
-                        <button class="btn btn-sm btn-primary mt-2" @onclick="AddComment"><i class="bi bi-chat-left-text"></i> @Text("Add Comment", "إضافة تعليق")</button>
+                    @if (task.IsRecurring)
+                    {
+                        <div class="alert alert-info mt-3 mb-0">
+                            <i class="bi bi-arrow-repeat"></i>
+                            @Text($"Repeats {task.RecurrenceFrequency} every {task.RecurrenceInterval}. Next: {task.NextOccurrenceDate?.ToShortDateString() ?? "-"}",
+                                  $"تتكرر {RecurrenceFrequencyText(task.RecurrenceFrequency)} كل {task.RecurrenceInterval}. التالي: {task.NextOccurrenceDate?.ToShortDateString() ?? "-"}")
+                        </div>
+                    }
+                </AppCard>
+
+                <AppCard Title="@Text("Workflow", "سير العمل")" CssClass="mb-3">
+                    <div class="row g-3">
+                        @if (CanEdit || CanClose)
+                        {
+                            <div class="col-md-7">
+                                <label class="form-label">@Text("Status", "الحالة")</label>
+                                <select class="form-select" @bind="selectedStatus">
+                                    @foreach (var status in Enum.GetValues<TaskWorkflowStatus>())
+                                    {
+                                        if (CanChangeToStatus(status))
+                                        {
+                                            <option value="@status">@StatusText(status)</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-5 d-flex align-items-end">
+                                <button class="btn btn-primary w-100" @onclick="ChangeStatus">
+                                    <i class="bi bi-arrow-repeat"></i> @Text("Change status", "تغيير الحالة")
+                                </button>
+                            </div>
+                        }
+
+                        @if (CanComment)
+                        {
+                            <div class="col-md-7">
+                                <label class="form-label">@Text("Progress", "التقدم")</label>
+                                <InputNumber class="form-control" @bind-Value="progress" />
+                            </div>
+                            <div class="col-md-5 d-flex align-items-end">
+                                <button class="btn btn-outline-primary w-100" @onclick="UpdateProgress">
+                                    <i class="bi bi-percent"></i> @Text("Update progress", "تحديث التقدم")
+                                </button>
+                            </div>
+                        }
                     </div>
+                </AppCard>
+
+                <AppCard Title="@Text("Actions", "الإجراءات")" CssClass="mb-3">
+                    @if (task.CanAddAction)
+                    {
+                        <div class="task-action-form">
+                            <div>
+                                <label class="form-label">@Text("Action", "الإجراء")</label>
+                                <InputText class="form-control" @bind-Value="newAction.Title" placeholder="@Text("Add a checklist action", "أضف إجراء للقائمة")" />
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("Expected completion", "الإنجاز المتوقع")</label>
+                                <input type="datetime-local" class="form-control" value="@newActionExpectedText" @onchange="OnNewActionExpectedChanged" />
+                            </div>
+                            <div class="task-action-form-submit">
+                                <button class="btn btn-primary w-100" @onclick="AddAction" disabled="@isSavingAction">
+                                    <i class="bi bi-plus-lg"></i> @Text("Add", "إضافة")
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!task.Actions.Any())
+                    {
+                        <EmptyState Title="@Text("No actions", "لا توجد إجراءات")"
+                                    Message="@Text("Break this task into smaller checklist actions.", "قسم هذه المهمة إلى إجراءات أصغر.")"
+                                    Icon="bi-check2-square" />
+                    }
+                    else
+                    {
+                        <div class="task-action-list">
+                            @foreach (var action in task.Actions.OrderBy(x => x.IsCompleted).ThenBy(x => x.ExpectedCompletionAt ?? DateTime.MaxValue))
+                            {
+                                var isEditing = editingActionId == action.Id;
+                                <div class="task-action-row @(action.IsCompleted ? "is-completed" : null)">
+                                    <div class="form-check task-action-check">
+                                        <input class="form-check-input" type="checkbox" checked="@action.IsCompleted" disabled="@(!action.CanEdit)" @onchange="args => ToggleAction(action, args)" />
+                                    </div>
+                                    <div class="task-action-main">
+                                        @if (isEditing)
+                                        {
+                                            <div class="task-action-edit">
+                                                <InputText class="form-control" @bind-Value="editActionTitle" />
+                                                <input type="datetime-local" class="form-control" value="@editActionExpectedText" @onchange="OnEditActionExpectedChanged" />
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="task-action-title">@action.Title</div>
+                                            <div class="task-action-meta">
+                                                @if (action.ExpectedCompletionAt.HasValue)
+                                                {
+                                                    <span><i class="bi bi-clock"></i> @action.ExpectedCompletionAt.Value.ToLocalTime()</span>
+                                                }
+                                                <span class="badge rounded-pill @ActionStatusBadgeClass(action.Status)">@ActionStatusText(action.Status)</span>
+                                            </div>
+                                        }
+                                    </div>
+                                    @if (action.CanEdit)
+                                    {
+                                        <div class="task-action-buttons">
+                                            @if (isEditing)
+                                            {
+                                                <button class="btn btn-sm btn-primary" @onclick="() => SaveAction(action)" disabled="@isSavingAction">
+                                                    <i class="bi bi-check-lg"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary" @onclick="CancelEditAction" disabled="@isSavingAction">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => StartEditAction(action)" title="@Text("Edit", "تعديل")">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAction(action)" title="@Text("Delete", "حذف")">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </AppCard>
+
+                <AppCard Title="@Text("Comments", "التعليقات")">
+                    @if (CanComment)
+                    {
+                        <div class="mb-3">
+                            <textarea class="form-control" rows="3" @bind="commentText"></textarea>
+                            <button class="btn btn-sm btn-primary mt-2" @onclick="AddComment">
+                                <i class="bi bi-chat-left-text"></i> @Text("Add Comment", "إضافة تعليق")
+                            </button>
+                        </div>
+                    }
+
                     @if (!task.Comments.Any())
                     {
-                        <div class="text-muted">@Text("No comments yet.", "لا توجد تعليقات بعد.")</div>
+                        <EmptyState Title="@Text("No comments", "لا توجد تعليقات")"
+                                    Message="@Text("No one has commented on this task yet.", "لم تتم إضافة تعليقات على هذه المهمة بعد.")"
+                                    Icon="bi-chat-left" />
                     }
-                    @foreach (var comment in task.Comments.OrderByDescending(x => x.CreatedDate))
+                    else
                     {
-                        <div class="border-top py-2">
-                            <div>@comment.Comment</div>
-                            <small class="text-muted">@comment.CreatedDate.ToLocalTime()</small>
-                        </div>
+                        @foreach (var comment in task.Comments.OrderByDescending(x => x.CreatedDate))
+                        {
+                            <div class="task-timeline-row">
+                                <div>@comment.Comment</div>
+                                <small class="text-muted">@comment.CreatedDate.ToLocalTime()</small>
+                            </div>
+                        }
                     }
-                </div>
+                </AppCard>
             </div>
+
             <div class="col-lg-4">
-                <div class="card p-3">
-                    <h6>@Text("History", "السجل")</h6>
+                @if (CanAssign)
+                {
+                    <AppCard Title="@Text("Reassign", "إعادة الإسناد")" CssClass="mb-3">
+                        <div class="mb-2">
+                            <label class="form-label">@Text("Assigned user code", "رمز الموظف المسند إليه")</label>
+                            <input class="form-control" @bind="assignment.AssignedToUser" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">@Text("Department Id", "معرف القسم")</label>
+                            <input class="form-control" @bind="assignmentDepartmentText" dir="ltr" />
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label">@Text("Start", "البداية")</label>
+                                <InputDate class="form-control" @bind-Value="assignment.StartDate" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">@Text("Due", "الاستحقاق")</label>
+                                <InputDate class="form-control" @bind-Value="assignment.DueDate" />
+                            </div>
+                        </div>
+                        <button class="btn btn-outline-primary w-100 mt-3" @onclick="AssignTask">
+                            <i class="bi bi-person-check"></i> @Text("Save assignment", "حفظ الإسناد")
+                        </button>
+                    </AppCard>
+                }
+
+                <AppCard Title="@Text("Attachments", "المرفقات")" CssClass="mb-3">
+                    @if (CanComment)
+                    {
+                        <InputFile OnChange="OnAttachmentSelected" />
+                        <button class="btn btn-sm btn-outline-primary mt-2" disabled="@(selectedAttachment is null || isUploadingAttachment)" @onclick="UploadAttachment">
+                            <i class="bi bi-paperclip"></i> @Text("Upload", "رفع")
+                        </button>
+                    }
+
+                    @if (!task.Attachments.Any())
+                    {
+                        <div class="text-muted mt-2">@Text("No attachments yet.", "لا توجد مرفقات بعد.")</div>
+                    }
+                    else
+                    {
+                        @foreach (var attachment in task.Attachments.OrderByDescending(x => x.UploadedDate))
+                        {
+                            <div class="task-timeline-row">
+                                <a href="@attachment.FilePath" target="_blank" rel="noopener">@attachment.FileName</a>
+                                <small class="text-muted" dir="ltr">@FormatFileSize(attachment.FileSize) - @attachment.UploadedDate.ToLocalTime()</small>
+                            </div>
+                        }
+                    }
+                </AppCard>
+
+                <AppCard Title="@Text("History", "السجل")">
                     @if (!task.History.Any())
                     {
                         <div class="text-muted">@Text("No history yet.", "لا يوجد سجل بعد.")</div>
                     }
-                    @foreach (var history in task.History.OrderByDescending(x => x.ActionDate))
+                    else
                     {
-                        <div class="border-bottom py-2">
-                            <strong>@history.Action</strong>
-                            <div class="small text-muted">@history.ActionDate.ToLocalTime()</div>
-                        </div>
+                        @foreach (var history in task.History.OrderByDescending(x => x.ActionDate))
+                        {
+                            <div class="task-timeline-row">
+                                <strong>@history.Action</strong>
+                                <small class="text-muted">@history.ActionDate.ToLocalTime()</small>
+                            </div>
+                        }
                     }
-                </div>
+                </AppCard>
             </div>
         </div>
     }
-</div>
+</section>
 
 @code {
     [Parameter] public Guid Id { get; set; }
+
     private TaskItemDto? task;
     private TaskWorkflowStatus selectedStatus;
     private decimal progress;
     private string commentText = string.Empty;
+    private CreateTaskActionDto newAction = new();
+    private string newActionExpectedText = string.Empty;
+    private Guid? editingActionId;
+    private string editActionTitle = string.Empty;
+    private string editActionExpectedText = string.Empty;
+    private AssignTaskDto assignment = new();
+    private string assignmentDepartmentText = string.Empty;
+    private IBrowserFile? selectedAttachment;
+    private bool isLoading = true;
+    private bool isSavingAction;
+    private bool isUploadingAttachment;
+    private bool CanView;
+    private bool CanEdit;
+    private bool CanClose;
+    private bool CanComment;
+    private bool CanAssign;
+    private bool CanDelete;
 
-    protected override async Task OnInitializedAsync() => await LoadTask();
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPermissions();
+        await LoadTask();
+    }
+
+    private async Task LoadPermissions()
+    {
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        CanView = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.View);
+        CanEdit = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Edit);
+        CanClose = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Close);
+        CanComment = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Comment);
+        CanAssign = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Assign);
+        CanDelete = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Delete);
+    }
 
     private async Task LoadTask()
     {
+        if (!CanView)
+        {
+            isLoading = false;
+            return;
+        }
+
+        isLoading = true;
         var response = await TaskService.GetByIdAsync(Id);
         if (response.IsSuccess && response.Data is not null)
         {
             task = response.Data;
             selectedStatus = task.Status;
             progress = task.ProgressPercentage;
+            assignment = new AssignTaskDto
+            {
+                AssignedToUser = task.AssignedToUser,
+                DepartmentId = task.DepartmentId,
+                StartDate = task.StartDate,
+                DueDate = task.DueDate
+            };
+            assignmentDepartmentText = task.DepartmentId.ToString();
+            if (!CanChangeToStatus(selectedStatus))
+            {
+                selectedStatus = CanClose ? TaskWorkflowStatus.Completed : task.Status;
+            }
         }
+        else
+        {
+            task = null;
+            ToastService.Show(new ToastMessage { Message = response.Error?.Detail ?? Text("Unable to load task.", "تعذر تحميل المهمة."), Type = "error" });
+        }
+
+        isLoading = false;
     }
 
     private async Task ChangeStatus()
     {
+        if (!CanChangeToStatus(selectedStatus))
+            return;
+
         var response = await TaskService.ChangeStatusAsync(Id, selectedStatus);
-        if (response.IsSuccess)
-            await LoadTask();
+        await HandleMutationResponse(response.IsSuccess, response.Error?.Detail, Text("Unable to change status.", "تعذر تغيير الحالة."));
     }
 
     private async Task UpdateProgress()
     {
         var response = await TaskService.UpdateProgressAsync(Id, progress);
-        if (response.IsSuccess)
-            await LoadTask();
+        await HandleMutationResponse(response.IsSuccess, response.Error?.Detail, Text("Unable to update progress.", "تعذر تحديث التقدم."));
     }
 
     private async Task AddComment()
@@ -135,17 +408,168 @@
 
         var response = await TaskService.AddCommentAsync(Id, commentText);
         if (response.IsSuccess)
-        {
             commentText = string.Empty;
-            await LoadTask();
-        }
-        else
+
+        await HandleMutationResponse(response.IsSuccess, response.Error?.Detail, Text("Unable to add comment.", "تعذر إضافة التعليق."));
+    }
+
+    private async Task AddAction()
+    {
+        if (task is null || !task.CanAddAction)
+            return;
+
+        if (string.IsNullOrWhiteSpace(newAction.Title))
+            return;
+
+        newAction.ExpectedCompletionAt = ParseDateTimeLocal(newActionExpectedText);
+        isSavingAction = true;
+        var response = await TaskService.CreateActionAsync(Id, newAction);
+        isSavingAction = false;
+
+        if (response.IsSuccess)
         {
-            ToastService.Show(new ToastMessage { Message = response.Error?.Detail ?? Text("Unable to add comment.", "تعذر إضافة التعليق."), Type = "error" });
+            newAction = new CreateTaskActionDto();
+            newActionExpectedText = string.Empty;
         }
+
+        await HandleMutationResponse(response.IsSuccess, response.Error?.Detail, Text("Unable to add action.", "تعذر إضافة الإجراء."));
+    }
+
+    private void StartEditAction(TaskActionDto action)
+    {
+        editingActionId = action.Id;
+        editActionTitle = action.Title;
+        editActionExpectedText = FormatDateTimeLocal(action.ExpectedCompletionAt);
+    }
+
+    private void CancelEditAction()
+    {
+        editingActionId = null;
+        editActionTitle = string.Empty;
+        editActionExpectedText = string.Empty;
+    }
+
+    private void OnNewActionExpectedChanged(ChangeEventArgs args)
+    {
+        newActionExpectedText = args.Value?.ToString() ?? string.Empty;
+    }
+
+    private void OnEditActionExpectedChanged(ChangeEventArgs args)
+    {
+        editActionExpectedText = args.Value?.ToString() ?? string.Empty;
+    }
+
+    private async Task SaveAction(TaskActionDto action)
+    {
+        if (!action.CanEdit)
+            return;
+
+        if (string.IsNullOrWhiteSpace(editActionTitle))
+            return;
+
+        isSavingAction = true;
+        var response = await TaskService.UpdateActionAsync(Id, action.Id, new UpdateTaskActionDto
+        {
+            Title = editActionTitle,
+            ExpectedCompletionAt = ParseDateTimeLocal(editActionExpectedText)
+        });
+        isSavingAction = false;
+
+        if (response.IsSuccess)
+            CancelEditAction();
+
+        await HandleMutationResponse(response.IsSuccess, response.Error?.Detail, Text("Unable to update action.", "تعذر تحديث الإجراء."));
+    }
+
+    private async Task ToggleAction(TaskActionDto action, ChangeEventArgs args)
+    {
+        if (!action.CanEdit)
+            return;
+
+        var isCompleted = args.Value switch
+        {
+            bool value => value,
+            string value => bool.TryParse(value, out var parsed) && parsed,
+            _ => false
+        };
+        var response = await TaskService.ToggleActionCompletionAsync(Id, action.Id, isCompleted);
+        await HandleMutationResponse(response.IsSuccess, response.Error?.Detail, Text("Unable to update action completion.", "تعذر تحديث إنجاز الإجراء."));
+    }
+
+    private async Task DeleteAction(TaskActionDto action)
+    {
+        if (!action.CanEdit)
+            return;
+
+        var response = await TaskService.DeleteActionAsync(Id, action.Id);
+        await HandleMutationResponse(response.IsSuccess, response.Error?.Detail, Text("Unable to delete action.", "تعذر حذف الإجراء."));
+    }
+
+    private async Task AssignTask()
+    {
+        if (!Guid.TryParse(assignmentDepartmentText, out var departmentId))
+        {
+            ToastService.Show(new ToastMessage { Message = Text("Department must be a valid id.", "يجب أن يكون معرف القسم صحيحا."), Type = "error" });
+            return;
+        }
+
+        assignment.DepartmentId = departmentId;
+        var response = await TaskService.AssignAsync(Id, assignment);
+        await HandleMutationResponse(response.IsSuccess, response.Error?.Detail, Text("Unable to save assignment.", "تعذر حفظ الإسناد."));
+    }
+
+    private async Task ArchiveTask()
+    {
+        var response = await TaskService.ArchiveAsync(Id);
+        if (response.IsSuccess)
+        {
+            NavigationManager.NavigateTo("/TaskManagement/List");
+            return;
+        }
+
+        ToastService.Show(new ToastMessage { Message = response.Error?.Detail ?? Text("Unable to archive task.", "تعذر أرشفة المهمة."), Type = "error" });
+    }
+
+    private void OnAttachmentSelected(InputFileChangeEventArgs e)
+    {
+        selectedAttachment = e.File;
+    }
+
+    private async Task UploadAttachment()
+    {
+        if (selectedAttachment is null)
+            return;
+
+        isUploadingAttachment = true;
+        await using var stream = selectedAttachment.OpenReadStream(10 * 1024 * 1024);
+        var response = await TaskService.UploadAttachmentAsync(Id, stream, selectedAttachment.Name, selectedAttachment.ContentType);
+        selectedAttachment = null;
+        isUploadingAttachment = false;
+        await HandleMutationResponse(response.IsSuccess, response.Error?.Detail, Text("Unable to upload attachment.", "تعذر رفع المرفق."));
+    }
+
+    private async Task HandleMutationResponse(bool isSuccess, string? error, string fallback)
+    {
+        if (isSuccess)
+        {
+            await LoadTask();
+            return;
+        }
+
+        ToastService.Show(new ToastMessage { Message = error ?? fallback, Type = "error" });
     }
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private bool CanChangeToStatus(TaskWorkflowStatus status)
+    {
+        return IsTerminalStatus(status) ? CanClose : CanEdit;
+    }
+
+    private static bool IsTerminalStatus(TaskWorkflowStatus status)
+    {
+        return status is TaskWorkflowStatus.Completed or TaskWorkflowStatus.Cancelled;
+    }
 
     private string StatusText(TaskWorkflowStatus status) => status switch
     {
@@ -169,9 +593,49 @@
         _ => priority.ToString()
     };
 
-    protected override void OnInitialized()
+    private string RecurrenceFrequencyText(TaskRecurrenceFrequency frequency) => frequency switch
     {
-        SharedDataService.OnChange1 += HandleChangeAsync;
+        TaskRecurrenceFrequency.Daily => Text("Daily", "يوميا"),
+        TaskRecurrenceFrequency.Weekly => Text("Weekly", "أسبوعيا"),
+        TaskRecurrenceFrequency.Monthly => Text("Monthly", "شهريا"),
+        _ => Text("None", "بدون")
+    };
+
+    private string ActionStatusText(TaskActionStatus status) => status switch
+    {
+        TaskActionStatus.Completed => Text("Completed", "مكتمل"),
+        TaskActionStatus.Overdue => Text("Overdue", "متأخر"),
+        _ => Text("Open", "مفتوح")
+    };
+
+    private static string ActionStatusBadgeClass(TaskActionStatus status) => status switch
+    {
+        TaskActionStatus.Completed => "text-bg-success",
+        TaskActionStatus.Overdue => "text-bg-danger",
+        _ => "text-bg-light"
+    };
+
+    private static DateTime? ParseDateTimeLocal(string value)
+    {
+        return DateTime.TryParse(value, out var parsed)
+            ? parsed.ToUniversalTime()
+            : null;
+    }
+
+    private static string FormatDateTimeLocal(DateTime? value)
+    {
+        return value.HasValue
+            ? value.Value.ToLocalTime().ToString("yyyy-MM-ddTHH:mm")
+            : string.Empty;
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024)
+            return $"{bytes} B";
+        if (bytes < 1024 * 1024)
+            return $"{bytes / 1024m:0.#} KB";
+        return $"{bytes / 1024m / 1024m:0.#} MB";
     }
 
     private async Task HandleChangeAsync()
@@ -184,3 +648,108 @@
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }
+
+<style>
+    .task-meta-grid {
+        display: grid;
+        gap: var(--erp-space-3);
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    .task-meta-grid div {
+        background: var(--erp-surface-muted);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        display: grid;
+        gap: 4px;
+        padding: var(--erp-space-3);
+    }
+
+    .task-meta-grid span {
+        color: var(--erp-text-muted);
+        font-size: 12px;
+    }
+
+    .task-timeline-row {
+        border-block-start: 1px solid var(--erp-border);
+        display: grid;
+        gap: 4px;
+        padding-block: var(--erp-space-3);
+    }
+
+    .task-timeline-row:first-child {
+        border-block-start: 0;
+    }
+
+    .task-action-form {
+        align-items: end;
+        display: grid;
+        gap: var(--erp-space-3);
+        grid-template-columns: minmax(0, 1fr) minmax(190px, 260px) minmax(110px, 140px);
+        margin-bottom: var(--erp-space-3);
+    }
+
+    .task-action-list {
+        display: grid;
+        gap: var(--erp-space-2);
+    }
+
+    .task-action-row {
+        align-items: flex-start;
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        display: grid;
+        gap: var(--erp-space-3);
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        padding: var(--erp-space-3);
+    }
+
+    .task-action-check {
+        margin: 0;
+        padding: 0;
+    }
+
+    .task-action-title {
+        color: var(--erp-text);
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
+    .task-action-row.is-completed .task-action-title {
+        color: var(--erp-text-muted);
+        text-decoration: line-through;
+    }
+
+    .task-action-meta {
+        align-items: center;
+        color: var(--erp-text-muted);
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--erp-space-2);
+        margin-top: 4px;
+        font-size: 13px;
+    }
+
+    .task-action-buttons {
+        display: flex;
+        gap: var(--erp-space-2);
+    }
+
+    .task-action-edit {
+        display: grid;
+        gap: var(--erp-space-2);
+        grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
+    }
+
+    @@media (max-width: 768px) {
+        .task-action-form,
+        .task-action-row,
+        .task-action-edit {
+            grid-template-columns: 1fr;
+        }
+
+        .task-action-buttons {
+            justify-content: flex-end;
+        }
+    }
+</style>

@@ -5,6 +5,8 @@ namespace TaskManagement.Tasks.Features;
 
 internal static class TaskFeatureHelpers
 {
+    public const string SystemUserName = "System";
+
     public static Guid GetCurrentUserId(IHttpContextAccessor httpContextAccessor)
     {
         var value = httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -25,6 +27,23 @@ internal static class TaskFeatureHelpers
     public static bool HasPermission(IHttpContextAccessor httpContextAccessor, string permission)
     {
         return httpContextAccessor.HttpContext?.User.Claims.Any(c => c.Value == permission) == true;
+    }
+
+    public static bool CanMutateTask(TaskItem task, IHttpContextAccessor httpContextAccessor, Guid currentUserId)
+    {
+        var currentUserName = GetCurrentUserName(httpContextAccessor);
+
+        return HasPermission(httpContextAccessor, PermissionList.TaskManagementPermissions.ManageAllTasks)
+            || string.Equals(task.AssignedToUser, currentUserId.ToString(), StringComparison.OrdinalIgnoreCase)
+            || string.Equals(task.AssignedToUser, currentUserName, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(task.CreatedBy, currentUserId.ToString(), StringComparison.OrdinalIgnoreCase)
+            || task.AssignedByUserId == currentUserId;
+    }
+
+    public static void EnsureCanMutateTask(TaskItem task, IHttpContextAccessor httpContextAccessor, Guid currentUserId)
+    {
+        if (!CanMutateTask(task, httpContextAccessor, currentUserId))
+            throw new UnauthorizedAccessException("You are not allowed to update this task.");
     }
 
     public static IQueryable<TaskItem> ApplyVisibility(IQueryable<TaskItem> query, IHttpContextAccessor httpContextAccessor, Guid currentUserId, Guid? departmentId = null)
@@ -59,9 +78,9 @@ internal static class TaskFeatureHelpers
         if (filter.Status.HasValue)
             query = query.Where(x => x.Status == filter.Status.Value);
         if (filter.FromDate.HasValue)
-            query = query.Where(x => x.CreatedAt.Value.Date >= filter.FromDate.Value.Date);
+            query = query.Where(x => x.CreatedAt.HasValue && x.CreatedAt.Value.Date >= filter.FromDate.Value.Date);
         if (filter.ToDate.HasValue)
-            query = query.Where(x => x.CreatedAt.Value.Date <= filter.ToDate.Value.Date);
+            query = query.Where(x => x.CreatedAt.HasValue && x.CreatedAt.Value.Date <= filter.ToDate.Value.Date);
 
         return query;
     }
@@ -69,7 +88,70 @@ internal static class TaskFeatureHelpers
     public static void AddHistoryAndNotification(TaskManagementDbContext dbContext, TaskItem task, Guid userId, string action, string? oldValue, string? newValue, string notifyUser)
     {
         task.AddHistory(TaskHistory.Create(task.Id, userId, action, oldValue, newValue));
-        dbContext.TaskNotifications.Add(TaskNotification.Create(task.Id, notifyUser, action, $"{action}: {task.TaskNumber} - {task.Title}", userId.ToString()));
+        AddNotification(dbContext, task, notifyUser, action, $"{action}: {task.TaskNumber} - {task.Title}", userId.ToString());
+    }
+
+    public static void AddNotification(TaskManagementDbContext dbContext, TaskItem task, string notifyUser, string notificationType, string message, string createdBy)
+    {
+        if (string.IsNullOrWhiteSpace(notifyUser))
+            return;
+
+        dbContext.TaskNotifications.Add(TaskNotification.Create(task.Id, notifyUser, notificationType, message, createdBy));
+    }
+
+    public static bool CanMutateAction(TaskActionItem action, IHttpContextAccessor httpContextAccessor, Guid currentUserId)
+    {
+        return HasPermission(httpContextAccessor, PermissionList.TaskManagementPermissions.ManageAllTasks)
+            || action.CreatedByUserId == currentUserId;
+    }
+
+    public static void EnsureCanMutateAction(TaskActionItem action, IHttpContextAccessor httpContextAccessor, Guid currentUserId)
+    {
+        if (!CanMutateAction(action, httpContextAccessor, currentUserId))
+            throw new UnauthorizedAccessException("You are not allowed to update this task action.");
+    }
+
+    public static TaskActionDto MapAction(TaskActionItem action, IHttpContextAccessor httpContextAccessor, Guid currentUserId)
+    {
+        return new TaskActionDto
+        {
+            Id = action.Id,
+            TaskId = action.TaskId,
+            Title = action.Title,
+            ExpectedCompletionAt = action.ExpectedCompletionAt,
+            IsCompleted = action.IsCompleted,
+            CompletedAt = action.CompletedAt,
+            CreatedByUserId = action.CreatedByUserId,
+            CreatedByUserName = action.CreatedByUserName,
+            CreatedDate = action.CreatedAt ?? DateTime.UtcNow,
+            Status = GetActionStatus(action),
+            CanEdit = CanMutateAction(action, httpContextAccessor, currentUserId)
+        };
+    }
+
+    public static TaskActionStatus GetActionStatus(TaskActionItem action)
+    {
+        if (action.IsCompleted)
+            return TaskActionStatus.Completed;
+
+        return action.ExpectedCompletionAt.HasValue && action.ExpectedCompletionAt.Value < DateTime.UtcNow
+            ? TaskActionStatus.Overdue
+            : TaskActionStatus.Open;
+    }
+
+    public static DateTime? ShiftActionExpectedDate(TaskItem template, TaskActionItem action, DateTime nextDueDate)
+    {
+        if (!action.ExpectedCompletionAt.HasValue)
+            return null;
+
+        var offset = template.DueDate - action.ExpectedCompletionAt.Value;
+        return nextDueDate.Subtract(offset);
+    }
+
+    public static bool IsTaskAssignedToUser(TaskItem task, Guid userId, string userName)
+    {
+        return string.Equals(task.AssignedToUser, userId.ToString(), StringComparison.OrdinalIgnoreCase)
+            || string.Equals(task.AssignedToUser, userName, StringComparison.OrdinalIgnoreCase);
     }
 
     public static async Task EnsureAssignedUserExistsAsync(ISender sender, string userCode, CancellationToken cancellationToken)

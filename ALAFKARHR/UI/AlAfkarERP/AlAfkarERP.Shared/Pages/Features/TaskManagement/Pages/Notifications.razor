@@ -1,0 +1,201 @@
+@layout AdminLayout
+@page "/TaskManagement/Notifications"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.TaskManagement.Dtos
+
+@inject ITaskManagementService TaskService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (!CanView)
+{
+    <div class="alert alert-warning" dir="@SharedDataService.PageDirection">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+    return;
+}
+
+<section class="erp-page task-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Task Notifications", "تنبيهات المهام")"
+                Subtitle="@Text("Review task reminders, assignments, and workflow updates.", "مراجعة تذكيرات المهام والإسناد وتحديثات سير العمل.")"
+                Overline="@Text("Task Management", "إدارة المهام")"
+                Icon="bi-bell">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="MarkAllNotificationsRead" disabled="@(unreadCount == 0)">
+                <i class="bi bi-check2-all"></i> @Text("Mark all read", "تعليم الكل كمقروء")
+            </button>
+            <button class="btn btn-outline-primary" @onclick="LoadNotifications">
+                <i class="bi bi-arrow-repeat"></i> @Text("Refresh", "تحديث")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    <div class="card p-3 mb-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="form-check">
+                <InputCheckbox class="form-check-input" @bind-Value="unreadOnly" />
+                <label class="form-check-label">@Text("Unread only", "غير المقروءة فقط")</label>
+            </div>
+            <span class="badge rounded-pill text-bg-light border">@Text($"{unreadCount} unread", $"{unreadCount} غير مقروءة")</span>
+            <button class="btn btn-primary" @onclick="ApplyFilters">
+                <i class="bi bi-filter"></i> @Text("Apply", "تطبيق")
+            </button>
+        </div>
+    </div>
+
+    <div class="card p-3">
+        @if (isLoading)
+        {
+            <div class="text-muted py-3">@Text("Loading notifications...", "جاري تحميل التنبيهات...")</div>
+        }
+        else if (!notifications.Any())
+        {
+            <EmptyState Title="@Text("No notifications", "لا توجد تنبيهات")"
+                        Message="@Text("There are no task notifications to show.", "لا توجد تنبيهات مهام للعرض.")"
+                        Icon="bi-bell" />
+        }
+        else
+        {
+            <div class="list-group list-group-flush">
+                @foreach (var notification in notifications)
+                {
+                    <div class="list-group-item px-0 task-notification-row @(notification.IsRead ? "is-read" : "")">
+                        <div class="d-flex justify-content-between gap-3">
+                            <button class="btn btn-link p-0 text-start" @onclick="() => OpenNotification(notification)">
+                                @notification.Message
+                            </button>
+                            <span class="badge rounded-pill @(notification.IsRead ? "text-bg-light" : "text-bg-primary")">
+                                @(notification.IsRead ? Text("Read", "مقروء") : Text("Unread", "غير مقروء"))
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between gap-2 mt-2">
+                            <small class="text-muted">@notification.NotificationType - @notification.CreatedDate.ToLocalTime()</small>
+                            @if (!notification.IsRead)
+                            {
+                                <button class="btn btn-sm btn-link p-0" @onclick="() => MarkNotificationRead(notification.Id)">@Text("Mark read", "مقروء")</button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="d-flex justify-content-end align-items-center gap-2 mt-3">
+            <button class="btn btn-sm btn-secondary" @onclick="PrevPage" disabled="@(pageIndex == 0)">@Text("Previous", "السابق")</button>
+            <span>@Text("Page", "صفحة") @(pageIndex + 1) @Text("of", "من") @TotalPages</span>
+            <button class="btn btn-sm btn-secondary" @onclick="NextPage" disabled="@(pageIndex >= TotalPages - 1)">@Text("Next", "التالي")</button>
+        </div>
+    </div>
+</section>
+
+@code {
+    private List<TaskNotificationDto> notifications = [];
+    private bool CanView;
+    private bool unreadOnly;
+    private bool isLoading;
+    private int unreadCount;
+    private int pageIndex;
+    private int pageSize = 10;
+    private int TotalPages = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        CanView = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.View);
+        if (!CanView)
+            return;
+
+        await LoadNotifications();
+    }
+
+    private async Task LoadNotifications()
+    {
+        isLoading = true;
+
+        var countResponse = await TaskService.GetUnreadNotificationCountAsync();
+        if (countResponse.IsSuccess)
+            unreadCount = countResponse.Data?.Count ?? 0;
+
+        var response = await TaskService.GetNotificationsAsync(pageIndex, pageSize, unreadOnly);
+        if (response.IsSuccess)
+        {
+            notifications = response.Data?.Data.ToList() ?? [];
+            TotalPages = Math.Max(1, (int)Math.Ceiling((response.Data?.Count ?? 0) / (double)pageSize));
+        }
+
+        isLoading = false;
+    }
+
+    private async Task ApplyFilters()
+    {
+        pageIndex = 0;
+        await LoadNotifications();
+    }
+
+    private async Task MarkNotificationRead(Guid id)
+    {
+        var response = await TaskService.MarkNotificationReadAsync(id);
+        if (response.IsSuccess)
+            await LoadNotifications();
+    }
+
+    private async Task MarkAllNotificationsRead()
+    {
+        var response = await TaskService.MarkAllNotificationsReadAsync();
+        if (response.IsSuccess)
+            await LoadNotifications();
+    }
+
+    private async Task OpenNotification(TaskNotificationDto notification)
+    {
+        if (!notification.IsRead)
+            await TaskService.MarkNotificationReadAsync(notification.Id);
+
+        NavigationManager.NavigateTo($"/TaskManagement/View/{notification.TaskId}");
+    }
+
+    private async Task NextPage()
+    {
+        if (pageIndex < TotalPages - 1)
+        {
+            pageIndex++;
+            await LoadNotifications();
+        }
+    }
+
+    private async Task PrevPage()
+    {
+        if (pageIndex > 0)
+        {
+            pageIndex--;
+            await LoadNotifications();
+        }
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
+
+<style>
+    .task-notification-row.is-read {
+        opacity: .72;
+    }
+</style>

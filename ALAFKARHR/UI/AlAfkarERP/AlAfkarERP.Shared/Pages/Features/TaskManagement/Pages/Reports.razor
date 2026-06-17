@@ -1,20 +1,81 @@
 @layout AdminLayout
 @page "/TaskManagement/Reports"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
-@using SharedWithUI.TaskManagement.Dtos
 @using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.TaskManagement.Dtos
+@using SharedWithUI.TaskManagement.Enums
+@using TaskWorkflowStatus = SharedWithUI.TaskManagement.Enums.TaskStatus
 
 @inject ITaskManagementService TaskService
 @inject IDepartmentService DepartmentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
+
+@if (!CanViewReports)
+{
+    <div class="alert alert-warning" dir="@SharedDataService.PageDirection">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+    return;
+}
 
 <section class="task-page" dir="@SharedDataService.PageDirection">
     <h5 class="text-black">@Text("Task Reports", "تقارير المهام")</h5>
 
     <div class="card p-3 mb-3">
-        <button class="btn btn-primary" @onclick="LoadReports"><i class="bi bi-arrow-repeat"></i> @Text("Refresh", "تحديث")</button>
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">@Text("Department", "القسم")</label>
+                <select class="form-select" @bind="selectedDepartmentId">
+                    <option value="">@Text("All departments", "كل الأقسام")</option>
+                    @foreach (var department in departments)
+                    {
+                        <option value="@department.Id">@Text(department.NameEng, department.Name)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">@Text("User code", "رمز المستخدم")</label>
+                <input class="form-control" @bind="userId" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">@Text("Status", "الحالة")</label>
+                <select class="form-select" @bind="selectedStatus">
+                    <option value="">@Text("All statuses", "كل الحالات")</option>
+                    @foreach (var status in Enum.GetValues<TaskWorkflowStatus>())
+                    {
+                        <option value="@status">@StatusText(status)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">@Text("Priority", "الأولوية")</label>
+                <select class="form-select" @bind="selectedPriority">
+                    <option value="">@Text("All priorities", "كل الأولويات")</option>
+                    @foreach (var priority in Enum.GetValues<TaskPriority>())
+                    {
+                        <option value="@priority">@PriorityText(priority)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">@Text("From", "من")</label>
+                <InputDate class="form-control" @bind-Value="fromDate" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">@Text("To", "إلى")</label>
+                <InputDate class="form-control" @bind-Value="toDate" />
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100" @onclick="LoadReports"><i class="bi bi-arrow-repeat"></i> @Text("Refresh", "تحديث")</button>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters"><i class="bi bi-x-circle"></i></button>
+            </div>
+        </div>
     </div>
 
     @if (summary is not null)
@@ -68,26 +129,61 @@
     private List<EmployeeProductivityReportDto> employeeReport = [];
     private List<DepartmentPerformanceDto> departmentReport = [];
     private List<DepartmentDto> departments = [];
+    private string selectedDepartmentId = string.Empty;
+    private string userId = string.Empty;
+    private string selectedStatus = string.Empty;
+    private string selectedPriority = string.Empty;
+    private DateTime? fromDate;
+    private DateTime? toDate;
+    private bool CanViewReports;
 
-    protected override async Task OnInitializedAsync() => await LoadReports();
-
-    private async Task LoadReports()
+    protected override async Task OnInitializedAsync()
     {
-        var summaryResponse = await TaskService.GetSummaryReportAsync();
-        if (summaryResponse.IsSuccess)
-            summary = summaryResponse.Data;
-
-        var employeeResponse = await TaskService.GetEmployeeProductivityReportAsync();
-        if (employeeResponse.IsSuccess)
-            employeeReport = employeeResponse.Data ?? [];
-
-        var departmentResponse = await TaskService.GetDepartmentPerformanceReportAsync();
-        if (departmentResponse.IsSuccess)
-            departmentReport = departmentResponse.Data ?? [];
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        CanViewReports = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.ViewReports);
+        if (!CanViewReports)
+            return;
 
         var departmentsResponse = await DepartmentService.GetAsync(0, 10000);
         if (departmentsResponse.IsSuccess)
             departments = departmentsResponse.Data?.Data?.ToList() ?? [];
+
+        await LoadReports();
+    }
+
+    private async Task LoadReports()
+    {
+        Enum.TryParse<TaskWorkflowStatus>(selectedStatus, out var status);
+        Enum.TryParse<TaskPriority>(selectedPriority, out var priority);
+        Guid.TryParse(selectedDepartmentId, out var departmentId);
+
+        Guid? departmentFilter = string.IsNullOrWhiteSpace(selectedDepartmentId) ? null : departmentId;
+        TaskWorkflowStatus? statusFilter = string.IsNullOrWhiteSpace(selectedStatus) ? null : status;
+        TaskPriority? priorityFilter = string.IsNullOrWhiteSpace(selectedPriority) ? null : priority;
+        string? userFilter = string.IsNullOrWhiteSpace(userId) ? null : userId;
+
+        var summaryResponse = await TaskService.GetSummaryReportAsync(departmentFilter, userFilter, statusFilter, priorityFilter, fromDate, toDate);
+        if (summaryResponse.IsSuccess)
+            summary = summaryResponse.Data;
+
+        var employeeResponse = await TaskService.GetEmployeeProductivityReportAsync(departmentFilter, userFilter, fromDate, toDate);
+        if (employeeResponse.IsSuccess)
+            employeeReport = employeeResponse.Data ?? [];
+
+        var departmentResponse = await TaskService.GetDepartmentPerformanceReportAsync(departmentFilter, fromDate, toDate);
+        if (departmentResponse.IsSuccess)
+            departmentReport = departmentResponse.Data ?? [];
+    }
+
+    private async Task ClearFilters()
+    {
+        selectedDepartmentId = string.Empty;
+        userId = string.Empty;
+        selectedStatus = string.Empty;
+        selectedPriority = string.Empty;
+        fromDate = null;
+        toDate = null;
+        await LoadReports();
     }
 
     private string DepartmentName(Guid departmentId)
@@ -97,6 +193,28 @@
     }
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private string StatusText(TaskWorkflowStatus status) => status switch
+    {
+        TaskWorkflowStatus.Draft => Text("Draft", "مسودة"),
+        TaskWorkflowStatus.Assigned => Text("Assigned", "مسندة"),
+        TaskWorkflowStatus.InProgress => Text("In Progress", "قيد التنفيذ"),
+        TaskWorkflowStatus.OnHold => Text("On Hold", "معلقة"),
+        TaskWorkflowStatus.Completed => Text("Completed", "مكتملة"),
+        TaskWorkflowStatus.Cancelled => Text("Cancelled", "ملغاة"),
+        TaskWorkflowStatus.Overdue => Text("Overdue", "متأخرة"),
+        _ => status.ToString()
+    };
+
+    private string PriorityText(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Low => Text("Low", "منخفضة"),
+        TaskPriority.Normal => Text("Normal", "عادية"),
+        TaskPriority.High => Text("High", "عالية"),
+        TaskPriority.Urgent => Text("Urgent", "عاجلة"),
+        TaskPriority.Critical => Text("Critical", "حرجة"),
+        _ => priority.ToString()
+    };
 
     protected override void OnInitialized()
     {

@@ -13,6 +13,7 @@ public class ArchiveTaskHandler(TaskManagementDbContext dbContext, IHttpContextA
         var userId = TaskFeatureHelpers.GetCurrentUserId(httpContextAccessor);
         var task = await dbContext.TaskItems.Include(x => x.History).FirstOrDefaultAsync(x => x.Id == command.Id && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException($"Task not found: {command.Id}");
+        TaskFeatureHelpers.EnsureCanMutateTask(task, httpContextAccessor, userId);
 
         task.Archive(userId);
         TaskFeatureHelpers.AddHistoryAndNotification(dbContext, task, userId, "TaskArchived", null, "Archived", task.AssignedToUser);
