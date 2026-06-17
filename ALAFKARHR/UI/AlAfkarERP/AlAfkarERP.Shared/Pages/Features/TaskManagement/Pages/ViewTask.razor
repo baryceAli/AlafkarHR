@@ -17,6 +17,7 @@
 @inject ToastService ToastService
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
+@inject ModalService ModalService
 
 <section class="erp-page task-page" dir="@SharedDataService.PageDirection">
     @if (!CanView)
@@ -142,12 +143,12 @@
                     else
                     {
                         <div class="task-action-list">
-                            @foreach (var action in task.Actions.OrderBy(x => x.IsCompleted).ThenBy(x => x.ExpectedCompletionAt ?? DateTime.MaxValue))
+                            @foreach (var action in task.Actions.OrderBy(x => x.IsCompleted).ThenBy(x => x.ExpectedCompletionAt ?? DateTime.MaxValue).ThenBy(x => x.CreatedDate).ThenBy(x => x.Id))
                             {
                                 var isEditing = editingActionId == action.Id;
-                                <div class="task-action-row @(action.IsCompleted ? "is-completed" : null)">
+                                <div class="task-action-row @(action.IsCompleted ? "is-completed" : null)" @key="action.Id">
                                     <div class="form-check task-action-check">
-                                        <input class="form-check-input" type="checkbox" checked="@action.IsCompleted" disabled="@(!action.CanEdit)" @onchange="args => ToggleAction(action, args)" />
+                                        <input class="form-check-input" type="checkbox" checked="@action.IsCompleted" disabled="@(!action.CanEdit || togglingActionId == action.Id)" aria-label="@Text($"Mark {action.Title} as completed", $"تحديد {action.Title} كمكتمل")" @onclick="() => RequestToggleAction(action)" @onclick:preventDefault="true" />
                                     </div>
                                     <div class="task-action-main">
                                         @if (isEditing)
@@ -314,6 +315,7 @@
     private Guid? editingActionId;
     private string editActionTitle = string.Empty;
     private string editActionExpectedText = string.Empty;
+    private Guid? togglingActionId;
     private AssignTaskDto assignment = new();
     private string assignmentDepartmentText = string.Empty;
     private IBrowserFile? selectedAttachment;
@@ -481,19 +483,47 @@
         await HandleMutationResponse(response.IsSuccess, response.Error?.Detail, Text("Unable to update action.", "تعذر تحديث الإجراء."));
     }
 
-    private async Task ToggleAction(TaskActionDto action, ChangeEventArgs args)
+    private async Task RequestToggleAction(TaskActionDto action)
     {
-        if (!action.CanEdit)
+        if (!action.CanEdit || togglingActionId == action.Id)
             return;
 
-        var isCompleted = args.Value switch
+        if (!action.IsCompleted)
         {
-            bool value => value,
-            string value => bool.TryParse(value, out var parsed) && parsed,
-            _ => false
-        };
-        var response = await TaskService.ToggleActionCompletionAsync(Id, action.Id, isCompleted);
-        await HandleMutationResponse(response.IsSuccess, response.Error?.Detail, Text("Unable to update action completion.", "تعذر تحديث إنجاز الإجراء."));
+            await ToggleActionCompletion(action, true);
+            return;
+        }
+
+        await ModalService.ShowAsync(new ModalOptions
+        {
+            Title = Text("Undo action completion?", "التراجع عن إكمال الإجراء؟"),
+            Message = Text(
+                $"This will mark \"{action.Title}\" as not completed. Continue?",
+                $"سيتم تحديد \"{action.Title}\" كغير مكتمل. هل تريد المتابعة؟"),
+            ShowCancel = true,
+            Variant = ModalVariant.Warning,
+            IconCssClass = "bi bi-arrow-counterclockwise",
+            OkText = Text("Undo completion", "التراجع عن الإكمال"),
+            CancelText = Text("Keep completed", "إبقاؤه مكتملا"),
+            OnOk = async () => await ToggleActionCompletion(action, false)
+        });
+    }
+
+    private async Task ToggleActionCompletion(TaskActionDto action, bool isCompleted)
+    {
+        togglingActionId = action.Id;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var response = await TaskService.ToggleActionCompletionAsync(Id, action.Id, isCompleted);
+            await HandleMutationResponse(response.IsSuccess, response.Error?.Detail, Text("Unable to update action completion.", "تعذر تحديث إنجاز الإجراء."));
+        }
+        finally
+        {
+            togglingActionId = null;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task DeleteAction(TaskActionDto action)
@@ -707,6 +737,35 @@
     .task-action-check {
         margin: 0;
         padding: 0;
+    }
+
+    .task-action-check .form-check-input {
+        accent-color: var(--erp-primary);
+        background-color: var(--erp-primary-soft);
+        border: 2px solid rgba(var(--erp-primary-rgb), .72);
+        box-shadow: 0 0 0 3px rgba(var(--erp-primary-rgb), .08);
+        cursor: pointer;
+        height: 1.25rem;
+        margin: 0;
+        width: 1.25rem;
+    }
+
+    .task-action-check .form-check-input:checked {
+        background-color: var(--erp-primary);
+        border-color: var(--erp-primary);
+    }
+
+    .task-action-check .form-check-input:focus {
+        border-color: var(--erp-primary);
+        box-shadow: 0 0 0 4px var(--erp-focus-ring);
+    }
+
+    .task-action-check .form-check-input:disabled {
+        background-color: var(--erp-surface-muted);
+        border-color: var(--erp-border-strong);
+        box-shadow: none;
+        cursor: not-allowed;
+        opacity: .65;
     }
 
     .task-action-title {
