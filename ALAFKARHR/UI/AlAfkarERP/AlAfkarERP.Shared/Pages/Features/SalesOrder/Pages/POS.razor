@@ -424,7 +424,7 @@
         LoadingService.Show();
         var brandTask = BrandService.GetByCompanyIdAsync(companyId, 0, 100);
         var categoryTask = CategoryService.GetByCompanyIdAsync(companyId, 0, 100);
-        var productTask = ProductService.GetByCompanyAsync(companyId, 0, 100);
+        var productTask = ProductService.GetPricedByCompanyAsync(companyId, null, 0, 100);
         var variantTask = VariantService.GetByCompanyAsync(companyId, 0, 100);
 
         var unitTask = UnitService.GetByCompanyAsync(companyId, 0, 1000);

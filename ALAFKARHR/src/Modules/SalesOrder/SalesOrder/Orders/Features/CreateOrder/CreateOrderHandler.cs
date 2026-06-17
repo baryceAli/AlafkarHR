@@ -23,6 +23,10 @@ public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
 
         if (request.SalesOrder.Lines.Any())
         {
+            var orderSubtotal = request.SalesOrder.Lines.Sum(line => line.Quantity * line.UnitPrice);
+            if (orderSubtotal <= 0m)
+                orderSubtotal = request.SalesOrder.Subtotal;
+
             foreach(var line in request.SalesOrder.Lines)
             {
                 var resolvedPrice = await sender.Send(
@@ -34,7 +38,9 @@ public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
                         request.SalesOrder.CompanyId,
                         request.SalesOrder.PriceListId,
                         line.TaxRate,
-                        order.OrderDate),
+                        order.OrderDate,
+                        request.SalesOrder.CouponCode,
+                        orderSubtotal),
                     cancellationToken);
 
                 if (!request.SalesOrder.PriceListId.HasValue && resolvedPrice.Price.PriceListId.HasValue)

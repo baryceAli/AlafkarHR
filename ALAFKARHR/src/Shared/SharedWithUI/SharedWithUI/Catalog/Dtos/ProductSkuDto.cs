@@ -42,6 +42,13 @@ public class ProductSkuDto
 
     [Range(0.1,10000000,ErrorMessage ="Price must be greator than 0")]
     public decimal Price { get; set; }
+    public decimal BasePrice { get; set; }
+    public Guid? PriceListId { get; set; }
+    public decimal DiscountRate { get; set; }
+    public decimal TaxRate { get; set; }
+    public string? PriceSource { get; set; }
+    public decimal? PromotionUnitPrice { get; set; }
+    public decimal FinalUnitAmount { get; set; }
 
     public SkuProductionType ProductionType { get; set; } = SkuProductionType.PurchasedRawMaterial;
 
@@ -80,6 +87,7 @@ public class PublicStoreProductSkuRequest
 {
     public int PageIndex { get; set; }
     public int PageSize { get; set; } = 12;
+    public Guid? CustomerId { get; set; }
     public string? SearchTerm { get; set; }
     public Guid? CategoryId { get; set; }
     public Guid? BrandId { get; set; }

@@ -11,6 +11,8 @@ public record ResolvePriceQuery(
     Guid CompanyId,
     Guid? RequestedPriceListId,
     decimal RequestedTaxRate,
-    DateTime PriceDate) : IQuery<ResolvePriceResult>;
+    DateTime PriceDate,
+    string? CouponCode = null,
+    decimal? OrderSubtotal = null) : IQuery<ResolvePriceResult>;
 
 public record ResolvePriceResult(ResolvedPriceDto Price);

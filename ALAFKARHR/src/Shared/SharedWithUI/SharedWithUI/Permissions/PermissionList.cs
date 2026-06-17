@@ -34,6 +34,9 @@ public static class PermissionList
             .. CustomerPermissions.Permissions,
             .. SupplierGroupPermissions.Permissions,
             .. SupplierPermissions.Permissions,
+            .. CartPermissions.Permissions,
+            .. OrderIntakePermissions.Permissions,
+            .. PaymentPermissions.Permissions,
             .. SalesOrderPermissions.Permissions,
             .. PurchaseRequestPermissions.Permissions,
             .. RequestForQuotationPermissions.Permissions,
@@ -44,6 +47,7 @@ public static class PermissionList
             .. SupplierInvoicePermissions.Permissions,
             .. PricingPermissions.Permissions,
             .. PayrollContractPermissions.Permissions,
+            .. PayrollLoanPermissions.Permissions,
             .. SalaryRunPermissions.Permissions,
             .. AttendancePermissions.Permissions,
             .. TaskManagementPermissions.Permissions,
@@ -613,6 +617,13 @@ public static class PermissionList
         public static string Create { get; set; } = $"{GroupName}.Create";
         public static string Edit { get; set; } = $"{GroupName}.Edit";
         public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Confirm { get; set; } = $"{GroupName}.Confirm";
+        public static string Deliver { get; set; } = $"{GroupName}.Deliver";
+        public static string Invoice { get; set; } = $"{GroupName}.Invoice";
+        public static string Complete { get; set; } = $"{GroupName}.Complete";
+        public static string Cancel { get; set; } = $"{GroupName}.Cancel";
+        public static string Return { get; set; } = $"{GroupName}.Return";
+        public static string ViewReports { get; set; } = $"{GroupName}.ViewReports";
 
         public static List<string> Permissions =>
             new List<string>
@@ -622,6 +633,81 @@ public static class PermissionList
                 $"{Create}",
                 $"{Edit}",
                 $"{Delete}",
+                $"{Confirm}",
+                $"{Deliver}",
+                $"{Invoice}",
+                $"{Complete}",
+                $"{Cancel}",
+                $"{Return}",
+                $"{ViewReports}",
+            };
+    }
+
+    public static class CartPermissions
+    {
+        public static string GroupName { get; set; } = "Cart.Cart";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Checkout { get; set; } = $"{GroupName}.Checkout";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+                $"{Checkout}",
+            };
+    }
+
+    public static class OrderIntakePermissions
+    {
+        public static string GroupName { get; set; } = "Orders.Intake";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Accept { get; set; } = $"{GroupName}.Accept";
+        public static string Reject { get; set; } = $"{GroupName}.Reject";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+                $"{Accept}",
+                $"{Reject}",
+            };
+    }
+
+    public static class PaymentPermissions
+    {
+        public static string GroupName { get; set; } = "Payments.Payment";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Approve { get; set; } = $"{GroupName}.Approve";
+        public static string Reject { get; set; } = $"{GroupName}.Reject";
+        public static string Refund { get; set; } = $"{GroupName}.Refund";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Approve}",
+                $"{Reject}",
+                $"{Refund}",
             };
     }
 
@@ -786,6 +872,29 @@ public static class PermissionList
                 $"{Edit}",
                 $"{Approve}",
                 $"{AdminOverride}",
+            };
+    }
+
+    public static class PayrollLoanPermissions
+    {
+
+        public static string GroupName { get; set; } = "Payroll.Loan";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Approve { get; set; } = $"{GroupName}.Approve";
+        public static string Cancel { get; set; } = $"{GroupName}.Cancel";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Approve}",
+                $"{Cancel}",
             };
     }
 

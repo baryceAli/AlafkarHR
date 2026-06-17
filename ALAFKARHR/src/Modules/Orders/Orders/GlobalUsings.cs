@@ -1,0 +1,16 @@
+global using Carter;
+global using Mapster;
+global using MediatR;
+global using Microsoft.AspNetCore.Builder;
+global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.AspNetCore.Routing;
+global using Microsoft.EntityFrameworkCore;
+global using Orders.Data;
+global using Shared.Contracts.CQRS;
+global using Shared.Exceptions;
+global using Shared.Pagination;
+global using SharedWithUI.Orders.Dtos;
+global using SharedWithUI.Orders.Enums;
+global using SharedWithUI.Permissions;
+global using System.Security.Claims;

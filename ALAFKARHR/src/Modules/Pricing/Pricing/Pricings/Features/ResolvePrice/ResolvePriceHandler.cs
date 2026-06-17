@@ -16,7 +16,9 @@ public class ResolvePriceHandler(IPriceResolver priceResolver)
                 request.CompanyId,
                 request.RequestedPriceListId,
                 request.RequestedTaxRate,
-                request.PriceDate),
+                request.PriceDate,
+                request.CouponCode,
+                request.OrderSubtotal),
             cancellationToken);
 
         return new ResolvePriceResult(price);

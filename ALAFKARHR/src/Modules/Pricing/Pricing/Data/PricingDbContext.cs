@@ -11,6 +11,11 @@ public class PricingDbContext : DbContext
 
     public DbSet<PriceList> PriceLists => Set<PriceList>();
     public DbSet<PriceListItem> PriceListItems => Set<PriceListItem>();
+    public DbSet<CustomerSalesContract> CustomerSalesContracts => Set<CustomerSalesContract>();
+    public DbSet<CustomerSalesContractItem> CustomerSalesContractItems => Set<CustomerSalesContractItem>();
+    public DbSet<PromotionPrice> PromotionPrices => Set<PromotionPrice>();
+    public DbSet<PromotionPriceItem> PromotionPriceItems => Set<PromotionPriceItem>();
+    public DbSet<DiscountCoupon> DiscountCoupons => Set<DiscountCoupon>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

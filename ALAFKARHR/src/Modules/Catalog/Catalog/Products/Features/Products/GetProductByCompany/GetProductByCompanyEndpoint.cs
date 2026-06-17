@@ -21,5 +21,23 @@ public class GetProductByCompanyEndpoint : ICarterModule
             .WithDescription("GetProductByCompany")
             .RequireAuthorization(PermissionList.ProductPermissions.View);
 
+        app.MapGet("/api/v1/catalog/products/company/{companyId}/priced",
+            async (
+                [FromRoute] Guid companyId,
+                [FromQuery] Guid? customerId,
+                [FromQuery] Guid? priceListId,
+                [AsParameters] PaginationRequest request,
+                [FromServices] ISender sender) =>
+        {
+            var result = await sender.Send(new GetPricedProductByCompanyQuery(companyId, customerId, priceListId, request));
+            return Results.Ok(result.Adapt<GetProductByCompanyResponse>());
+        })
+            .WithName("GetPricedProductByCompany")
+            .Produces<GetProductByCompanyResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Get priced products by company")
+            .WithDescription("Returns product SKUs with customer-aware prices when a customer is supplied.")
+            .RequireAuthorization(PermissionList.ProductPermissions.View);
+
     }
 }

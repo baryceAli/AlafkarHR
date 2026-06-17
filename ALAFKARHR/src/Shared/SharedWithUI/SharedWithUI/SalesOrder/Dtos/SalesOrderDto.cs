@@ -10,6 +10,7 @@ public class SalesOrderDto
     public Guid CustomerId { get; set; }
 
     public Guid? PriceListId { get; set; }
+    public string? CouponCode { get; set; }
 
     public SalesOrderStatus Status { get; set; }
 

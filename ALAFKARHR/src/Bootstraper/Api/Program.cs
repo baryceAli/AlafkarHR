@@ -1,5 +1,6 @@
 using AttendanceDomain;
 using Auth;
+using Cart;
 using Carter;
 using Catalog;
 using CustomersModule;
@@ -7,9 +8,12 @@ using EmployeeModule;
 using GeneralSettings;
 using Inventory;
 using Organization;
+using Orders;
 using Payroll;
+using Payments;
 using Pricing;
 using Procurement;
+using Sales;
 using SalesOrder;
 using Shared.Exceptions.Handler;
 using Shared.Extentions;
@@ -33,7 +37,9 @@ builder.Services.AddDataProtection();
 
 var authAssembly = typeof(AuthModule).Assembly;
 var attendanceAssembly = typeof(AttendanceDomainModule).Assembly;
+var cartAssembly = typeof(CartModule).Assembly;
 var organizationAssembly = typeof(OrganizationModule).Assembly;
+var ordersAssembly = typeof(OrdersModule).Assembly;
 var employeeAssembly = typeof(EmployeesModule).Assembly;
 var catalogAssembly = typeof(CatalogModule).Assembly;
 var inventoryAssembly = typeof(InventoryModule).Assembly;
@@ -41,15 +47,19 @@ var generalSettingsAssembly = typeof(GeneralSettingsModule).Assembly;
 var customerAssembly = typeof(CustomerModule).Assembly;
 var salesOrderAssembly=typeof(SalesOrderModule).Assembly;
 var supplierAssembly =typeof(SupplierModule).Assembly;
+var paymentsAssembly = typeof(PaymentsModule).Assembly;
 var pricingAssembly = typeof(PricingModule).Assembly;
 var procurementAssembly = typeof(ProcurementModule).Assembly;
+var salesAssembly = typeof(SalesModule).Assembly;
 var payrollAssembly = typeof(PayrollModule).Assembly;
 var taskManagementAssembly = typeof(TaskManagementModule).Assembly;
 
 builder.Services.AddCarterWithAssemblies(
                         authAssembly,
                         attendanceAssembly,
+                        cartAssembly,
                         organizationAssembly,
+                        ordersAssembly,
                         employeeAssembly,
                         catalogAssembly,
                         inventoryAssembly,
@@ -57,8 +67,10 @@ builder.Services.AddCarterWithAssemblies(
                         customerAssembly,
                         salesOrderAssembly,
                         supplierAssembly,
+                        paymentsAssembly,
                         pricingAssembly,
                         procurementAssembly,
+                        salesAssembly,
                         payrollAssembly,
                         taskManagementAssembly
                         );
@@ -69,7 +81,9 @@ builder.Services.AddCarterWithAssemblies(
 builder.Services.AddMediatRWithAssemblies(
                         authAssembly,
                         attendanceAssembly,
+                        cartAssembly,
                         organizationAssembly,
+                        ordersAssembly,
                         employeeAssembly,
                         catalogAssembly,
                         inventoryAssembly,
@@ -77,8 +91,10 @@ builder.Services.AddMediatRWithAssemblies(
                         customerAssembly,
                         salesOrderAssembly,
                         supplierAssembly,
+                        paymentsAssembly,
                         pricingAssembly,
                         procurementAssembly,
+                        salesAssembly,
                         payrollAssembly,
                         taskManagementAssembly
                         );
@@ -93,14 +109,18 @@ builder.Services.AddMediatRWithAssemblies(
 builder.Services
         .AddAuthModule(builder.Configuration)
         .AddAttendanceModule(builder.Configuration)
+        .AddCartModule(builder.Configuration)
         .AddOrganizationModule(builder.Configuration)
+        .AddOrdersModule(builder.Configuration)
         .AddEmployeeModule(builder.Configuration)
         .AddCatalogModule(builder.Configuration)
         .AddInventoryModule(builder.Configuration)
         .AddGeneralSettingsModule(builder.Configuration)
         .AddCustomerModule(builder.Configuration)
         .AddSalesOrderModule(builder.Configuration)
+        .AddSalesModule(builder.Configuration)
         .AddSupplierModule(builder.Configuration)
+        .AddPaymentsModule(builder.Configuration)
         .AddPricingModule(builder.Configuration)
         .AddProcurementModule(builder.Configuration)
         .AddPayrollModule(builder.Configuration)
@@ -132,14 +152,18 @@ app.MapCarter();
 app
     .UseAuthModule(app.Environment)
     .UseAttendanceModule(app.Environment)
+    .UseCartModule(app.Environment)
     .UseGeneralSettingsModule(app.Environment)
     .UseOrganizationModule(app.Environment)
+    .UseOrdersModule(app.Environment)
     .UseEmployeeModule(app.Environment)
     .UseCatalogModule(app.Environment)
     .UseInventoryModule(app.Environment)
     .UseCustomerModule(app.Environment)
     .UseSalesOrderModule(app.Environment)
+    .UseSalesModule(app.Environment)
     .UseSupplierModule(app.Environment)
+    .UsePaymentsModule(app.Environment)
     .UsePricingModule(app.Environment)
     .UseProcurementModule(app.Environment)
     .UsePayrollModule(app.Environment)

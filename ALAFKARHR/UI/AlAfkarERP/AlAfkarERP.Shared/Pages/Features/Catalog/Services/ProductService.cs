@@ -162,6 +162,31 @@ public class ProductService : BaseApiService, IProductService
         return await SendAsync<PaginatedResult<ProductDto>>(request, "productList");
     }
 
+    public async Task<ApiResult<PaginatedResult<ProductDto>>> GetPricedByCompanyAsync(Guid companyId, Guid? customerId, int PageIndex, int PageSize, Guid? priceListId = null)
+    {
+        var query = new List<string>
+        {
+            $"PageIndex={PageIndex}",
+            $"PageSize={PageSize}"
+        };
+
+        if (customerId.HasValue && customerId.Value != Guid.Empty)
+        {
+            query.Add($"customerId={customerId.Value}");
+        }
+
+        if (priceListId.HasValue && priceListId.Value != Guid.Empty)
+        {
+            query.Add($"priceListId={priceListId.Value}");
+        }
+
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"api/{_apiConfig.Version}/catalog/products/company/{companyId}/priced?{string.Join("&", query)}");
+
+        return await SendAsync<PaginatedResult<ProductDto>>(request, "productList");
+    }
+
     private string BuildPublicStoreProductSkuUrl(PublicStoreProductSkuRequest request)
     {
         var query = new List<string>
@@ -200,6 +225,11 @@ public class ProductService : BaseApiService, IProductService
         if (request.MaxPrice.HasValue)
         {
             query.Add($"MaxPrice={request.MaxPrice.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (request.CustomerId.HasValue && request.CustomerId.Value != Guid.Empty)
+        {
+            query.Add($"CustomerId={request.CustomerId.Value}");
         }
 
         return $"api/{_apiConfig.Version}/catalog/public/products/skus?{string.Join("&", query)}";

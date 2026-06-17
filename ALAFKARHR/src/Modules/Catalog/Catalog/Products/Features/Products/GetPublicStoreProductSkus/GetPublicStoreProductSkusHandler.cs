@@ -1,3 +1,6 @@
+using MediatR;
+using Pricing.Contracts.Pricings.Features.ResolvePrices;
+
 namespace Catalog.Products.Features.Products.GetPublicStoreProductSkus;
 
 public record GetPublicStoreProductSkusQuery(PublicStoreProductSkuRequest Request)
@@ -10,7 +13,7 @@ public record GetPublicStoreProductSkuFiltersQuery()
 
 public record GetPublicStoreProductSkuFiltersResult(PublicStoreProductSkuFilterMetadataDto Metadata);
 
-public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext)
+public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISender sender)
     : IQueryHandler<GetPublicStoreProductSkusQuery, GetPublicStoreProductSkusResult>,
       IQueryHandler<GetPublicStoreProductSkuFiltersQuery, GetPublicStoreProductSkuFiltersResult>
 {
@@ -23,21 +26,29 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext)
             ? 12
             : Math.Min(request.Request.PageSize, 50);
 
-        var query = ApplyFilters(GetVisibleStoreSkuQuery(), request.Request);
-        query = ApplySorting(query, request.Request);
+        var productSkus = await ApplyNonPriceFilters(GetVisibleStoreSkuQuery(), request.Request)
+            .ToListAsync(cancellationToken);
 
-        var count = await query.LongCountAsync(cancellationToken);
-        var productSkus = await query
+        if (request.Request.CustomerId.HasValue)
+        {
+            await ApplyResolvedPricesAsync(productSkus, request.Request.CustomerId.Value, cancellationToken);
+        }
+
+        productSkus = ApplyPriceFilters(productSkus, request.Request);
+        productSkus = ApplySorting(productSkus, request.Request).ToList();
+
+        var count = productSkus.LongCount();
+        var page = productSkus
             .Skip(pageIndex * pageSize)
             .Take(pageSize)
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         return new GetPublicStoreProductSkusResult(
             new PaginatedResult<ProductSkuDto>(
                 pageIndex,
                 pageSize,
                 count,
-                productSkus));
+                page));
     }
 
     public async Task<GetPublicStoreProductSkuFiltersResult> Handle(
@@ -162,6 +173,9 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext)
                 SkuKey = sku.SkuKey,
                 Barcode = sku.Barcode ?? string.Empty,
                 Price = sku.Price,
+                BasePrice = sku.Price,
+                PriceSource = "Catalog",
+                FinalUnitAmount = sku.Price,
                 ProductionType = sku.ProductionType,
                 ImageUrl = sku.ImageUrl,
                 CompanyId = sku.CompanyId,
@@ -181,7 +195,7 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext)
             };
     }
 
-    private IQueryable<ProductSkuDto> ApplyFilters(
+    private IQueryable<ProductSkuDto> ApplyNonPriceFilters(
         IQueryable<ProductSkuDto> query,
         PublicStoreProductSkuRequest request)
     {
@@ -208,14 +222,10 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext)
         }
 
         if (request.CategoryId.HasValue && request.CategoryId.Value != Guid.Empty)
-        {
             query = query.Where(sku => sku.CategoryId == request.CategoryId.Value);
-        }
 
         if (request.BrandId.HasValue && request.BrandId.Value != Guid.Empty)
-        {
             query = query.Where(sku => sku.BrandId == request.BrandId.Value);
-        }
 
         if (request.PackageId.HasValue && request.PackageId.Value != Guid.Empty)
         {
@@ -224,37 +234,78 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext)
                 package.ProductPackageId == request.PackageId.Value));
         }
 
-        if (request.MinPrice.HasValue)
-        {
-            query = query.Where(sku => sku.Price >= request.MinPrice.Value);
-        }
-
-        if (request.MaxPrice.HasValue)
-        {
-            query = query.Where(sku => sku.Price <= request.MaxPrice.Value);
-        }
-
         return query;
     }
 
-    private static IQueryable<ProductSkuDto> ApplySorting(
-        IQueryable<ProductSkuDto> query,
+    private static List<ProductSkuDto> ApplyPriceFilters(
+        List<ProductSkuDto> productSkus,
+        PublicStoreProductSkuRequest request)
+    {
+        if (request.MinPrice.HasValue)
+            productSkus = productSkus.Where(sku => sku.Price >= request.MinPrice.Value).ToList();
+
+        if (request.MaxPrice.HasValue)
+            productSkus = productSkus.Where(sku => sku.Price <= request.MaxPrice.Value).ToList();
+
+        return productSkus;
+    }
+
+    private static IEnumerable<ProductSkuDto> ApplySorting(
+        IEnumerable<ProductSkuDto> productSkus,
         PublicStoreProductSkuRequest request)
     {
         return (request.SortBy ?? "newest").Trim().ToLowerInvariant() switch
         {
             "name" => request.SortDescending
-                ? query.OrderByDescending(sku => sku.NameEng).ThenByDescending(sku => sku.Name)
-                : query.OrderBy(sku => sku.NameEng).ThenBy(sku => sku.Name),
+                ? productSkus.OrderByDescending(sku => sku.NameEng).ThenByDescending(sku => sku.Name)
+                : productSkus.OrderBy(sku => sku.NameEng).ThenBy(sku => sku.Name),
             "price" => request.SortDescending
-                ? query.OrderByDescending(sku => sku.Price)
-                : query.OrderBy(sku => sku.Price),
+                ? productSkus.OrderByDescending(sku => sku.Price)
+                : productSkus.OrderBy(sku => sku.Price),
             "brand" => request.SortDescending
-                ? query.OrderByDescending(sku => sku.BrandNameEng).ThenByDescending(sku => sku.BrandName)
-                : query.OrderBy(sku => sku.BrandNameEng).ThenBy(sku => sku.BrandName),
+                ? productSkus.OrderByDescending(sku => sku.BrandNameEng).ThenByDescending(sku => sku.BrandName)
+                : productSkus.OrderBy(sku => sku.BrandNameEng).ThenBy(sku => sku.BrandName),
             _ => request.SortDescending
-                ? query.OrderByDescending(sku => sku.CreatedAt)
-                : query.OrderBy(sku => sku.CreatedAt)
+                ? productSkus.OrderByDescending(sku => sku.CreatedAt)
+                : productSkus.OrderBy(sku => sku.CreatedAt)
         };
+    }
+
+    private async Task ApplyResolvedPricesAsync(
+        List<ProductSkuDto> productSkus,
+        Guid customerId,
+        CancellationToken cancellationToken)
+    {
+        foreach (var companyGroup in productSkus.GroupBy(sku => sku.CompanyId))
+        {
+            var skus = companyGroup.ToList();
+            var prices = await sender.Send(
+                new ResolvePricesQuery(
+                    customerId,
+                    companyGroup.Key,
+                    null,
+                    DateTime.UtcNow,
+                    skus.Select(sku => new ResolvePriceLineDto(
+                        sku.Id,
+                        sku.UnitId,
+                        1m,
+                        sku.TaxRate)).ToList()),
+                cancellationToken);
+
+            var priceBySku = prices.Prices.ToDictionary(price => price.ProductSkuId);
+            foreach (var sku in skus)
+            {
+                if (!priceBySku.TryGetValue(sku.Id, out var price))
+                    continue;
+
+                sku.Price = price.FinalUnitAmount > 0m ? price.FinalUnitAmount : price.UnitPrice;
+                sku.PriceListId = price.PriceListId;
+                sku.DiscountRate = price.DiscountRate;
+                sku.TaxRate = price.TaxRate;
+                sku.PriceSource = price.PriceSource;
+                sku.PromotionUnitPrice = price.PromotionUnitPrice;
+                sku.FinalUnitAmount = price.FinalUnitAmount;
+            }
+        }
     }
 }

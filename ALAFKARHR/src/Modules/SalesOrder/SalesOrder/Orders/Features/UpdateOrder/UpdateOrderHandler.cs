@@ -18,6 +18,10 @@ public class UpdateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
                     .Value ??
                     throw new UnauthorizedAccessException("User is not authenticated");
 
+        var orderSubtotal = request.SalesOrder.Lines.Sum(line => line.Quantity * line.UnitPrice);
+        if (orderSubtotal <= 0m)
+            orderSubtotal = request.SalesOrder.Subtotal;
+
         foreach (var line in request.SalesOrder.Lines)
         {
             var resolvedPrice = await sender.Send(
@@ -29,7 +33,9 @@ public class UpdateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
                     order.CompanyId,
                     request.SalesOrder.PriceListId,
                     line.TaxRate,
-                    order.OrderDate),
+                    order.OrderDate,
+                    request.SalesOrder.CouponCode,
+                    orderSubtotal),
                 cancellationToken);
 
             line.UnitPrice = resolvedPrice.Price.UnitPrice;

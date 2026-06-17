@@ -8,7 +8,9 @@ public record ResolvePriceRequest(
     Guid CompanyId,
     Guid? RequestedPriceListId,
     decimal RequestedTaxRate,
-    DateTime PriceDate);
+    DateTime PriceDate,
+    string? CouponCode = null,
+    decimal? OrderSubtotal = null);
 
 public interface IPriceResolver
 {
