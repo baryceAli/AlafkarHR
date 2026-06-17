@@ -1,0 +1,998 @@
+@layout AdminLayout
+@page "/Employee/Employee/360/{Id:guid}"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.Payroll.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Attendance.Enums
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Payroll.Dtos
+@using SharedWithUI.Permissions
+
+@inject IEmployeeService EmployeeService
+@inject IAttendanceService AttendanceService
+@inject IPayrollService PayrollService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ApiConfig ApiConfig
+
+@if (!CanViewEmployees)
+{
+    <div class="alert alert-warning">
+        <span>@Text("You don't have permissions to view this page", "ليس لديك الصلاحيات لعرض هذه الصفحة")</span>
+    </div>
+    return;
+}
+
+<div class="erp-page employee-360-page" dir="@SharedDataService.PageDirection">
+    <PageHeader
+        Title="@Text("Employee 360 View", "عرض الموظف 360")"
+        Subtitle="@Text("A complete HR snapshot with available status, profile, attendance, leave, payroll, and future placeholders.", "لقطة شاملة للموظف تشمل الحالة والملف والحضور والإجازات والرواتب والأقسام القادمة.")"
+        Overline="@Text("People", "الأفراد")"
+        Icon="bi-person-vcard">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="BackToList">
+                <i class="bi bi-arrow-return-left"></i>
+                @Text("Back", "رجوع")
+            </button>
+            @if (employee is not null)
+            {
+                <a class="btn btn-outline-primary" href="/Employee/Employee/view/@employee.Id">
+                    <i class="bi bi-eye"></i>
+                    @Text("Public View", "العرض العام")
+                </a>
+                <a class="btn btn-primary" href="/Employee/Employee/Form/@employee.Id">
+                    <i class="bi bi-pencil-square"></i>
+                    @Text("Edit", "تعديل")
+                </a>
+            }
+        </Actions>
+    </PageHeader>
+
+    @if (isLoadingEmployee)
+    {
+        <AppCard>
+            <div class="employee-360-loading">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">@Text("Loading", "جاري التحميل")</span>
+                </div>
+                <div class="fw-semibold">@Text("Loading employee profile...", "جاري تحميل ملف الموظف...")</div>
+            </div>
+        </AppCard>
+    }
+    else if (employee is null)
+    {
+        <AppCard>
+            <EmptyState
+                Icon="bi-person-x"
+                Title="@Text("Employee not found", "لم يتم العثور على الموظف")"
+                Message="@Text("The selected employee record could not be loaded.", "تعذر تحميل سجل الموظف المحدد.")" />
+        </AppCard>
+    }
+    else
+    {
+        <section class="employee-360-hero">
+            <div class="employee-360-identity">
+                <img class="employee-360-photo" src="@EmployeePhotoUrl" alt="@DisplayName" />
+                <div class="min-w-0">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <h2 class="employee-360-name">@DisplayName</h2>
+                        <span class="badge rounded-pill @ActiveBadgeClass">@EmploymentStatusText</span>
+                    </div>
+                    <div class="employee-360-meta">
+                        <span><i class="bi bi-hash"></i>@EmptyValue(employee.EmployeeNo)</span>
+                        <span><i class="bi bi-upc-scan"></i>@EmptyValue(employee.Code)</span>
+                        <span><i class="bi bi-briefcase"></i>@EmptyValue(employee.PositionName)</span>
+                        <span><i class="bi bi-building"></i>@EmptyValue(employee.DepartmentName ?? employee.AdministrationName ?? employee.BranchName)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="employee-360-hero-facts">
+                @InfoPill("bi-calendar-check", Text("Hire Date", "تاريخ التعيين"), FormatDate(employee.HireDate))
+                @InfoPill("bi-envelope", Text("Email", "البريد"), EmptyValue(employee.Email))
+                @InfoPill("bi-telephone", Text("Phone", "الهاتف"), EmptyValue(employee.Phone))
+            </div>
+        </section>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-6 col-xl-3">
+                <StatsCard Title="@Text("Employment", "التوظيف")" Value="@EmploymentStatusText" Subtitle="@EmployeeTenureText" Icon="bi-person-check" Tone="success" />
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <StatsCard Title="@Text("Attendance Type", "نوع الحضور")" Value="@EnumText(employee.AttendanceType)" Subtitle="@AllowedRadiusText" Icon="bi-geo-alt" Tone="info" />
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <StatsCard Title="@Text("Leave Balance", "رصيد الإجازات")" Value="@LeaveBalanceValue" Subtitle="@Text("Current year", "السنة الحالية")" Icon="bi-calendar2-week" Tone="warning" />
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <StatsCard Title="@Text("Payroll", "الرواتب")" Value="@PayrollStatusValue" Subtitle="@PayrollSubtitle" Icon="bi-cash-stack" Tone="primary" />
+            </div>
+        </div>
+
+        <AppCard CssClass="mb-4" BodyClass="p-0">
+            <div class="employee-360-tabs" role="tablist">
+                @TabButton("overview", Text("Overview", "نظرة عامة"), "bi-grid")
+                @TabButton("profile", Text("Profile", "الملف الشخصي"), "bi-person-lines-fill")
+                @TabButton("job", Text("Job", "الوظيفة"), "bi-diagram-3")
+                @TabButton("attendance", Text("Attendance", "الحضور"), "bi-clock-history")
+                @TabButton("leave", Text("Leave", "الإجازات"), "bi-calendar-heart")
+                @TabButton("payroll", Text("Payroll", "الرواتب"), "bi-wallet2")
+                @TabButton("future", Text("More", "المزيد"), "bi-stars")
+            </div>
+        </AppCard>
+
+        @if (activeTab == "overview")
+        {
+            <div class="row g-4">
+                <div class="col-xl-7">
+                    @ProfileSummaryCard()
+                </div>
+                <div class="col-xl-5">
+                    @StatusSummaryCard()
+                </div>
+                <div class="col-xl-6">
+                    @AttendanceSummaryCard()
+                </div>
+                <div class="col-xl-6">
+                    @LeaveSummaryCard()
+                </div>
+            </div>
+        }
+        else if (activeTab == "profile")
+        {
+            @ProfileSummaryCard()
+        }
+        else if (activeTab == "job")
+        {
+            @JobSummaryCard()
+        }
+        else if (activeTab == "attendance")
+        {
+            @AttendanceDetailsCard()
+        }
+        else if (activeTab == "leave")
+        {
+            @LeaveDetailsCard()
+        }
+        else if (activeTab == "payroll")
+        {
+            @PayrollCard()
+        }
+        else
+        {
+            @FuturePlaceholders()
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private EmployeeDto? employee;
+    private AttendanceDashboardDto? attendanceDashboard;
+    private List<AttendanceSessionDto> recentSessions = [];
+    private List<LateCheckInRequestDto> lateRequests = [];
+    private List<EmergencyLeaveRequestDto> emergencyLeaves = [];
+    private List<MidDayPermissionRequestDto> midDayPermissions = [];
+    private List<EmployeeLeaveBalanceDto> leaveBalances = [];
+    private List<ShiftAssignmentDto> shiftAssignments = [];
+    private List<EmployeeContractDto> employeeContracts = [];
+    private ContractDto? assignedContract;
+    private SalaryRunDto? currentSalaryRun;
+
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private bool isLoadingEmployee = true;
+    private bool isLoadingAttendance;
+    private bool isLoadingLeave;
+    private bool isLoadingPayroll;
+    private string activeTab = "overview";
+
+    private bool CanViewEmployees => HasPermission(PermissionList.EmployeePermissions.View);
+    private bool CanViewAttendance => HasPermission(PermissionList.AttendancePermissions.View) || HasPermission(PermissionList.AttendancePermissions.ViewReports);
+    private bool CanViewLeave => HasPermission(PermissionList.AttendancePermissions.ViewLeaveBalances) || HasPermission(PermissionList.AttendancePermissions.ViewLeaveReports);
+    private bool CanViewPayroll => HasPermission(PermissionList.PayrollContractPermissions.View) || HasPermission(PermissionList.SalaryRunPermissions.View);
+
+    private string DisplayName => employee is null
+        ? ""
+        : SharedDataService.Language == "Ar" ? employee.FullName : employee.FullNameEng;
+
+    private string EmployeePhotoUrl
+    {
+        get
+        {
+            if (employee is null || string.IsNullOrWhiteSpace(employee.PhotoUrl))
+            {
+                return "_content/AlAfkarERP.Shared/images/empPlaceholder.png";
+            }
+
+            if (employee.PhotoUrl.StartsWith("data:", StringComparison.OrdinalIgnoreCase) ||
+                employee.PhotoUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                return employee.PhotoUrl;
+            }
+
+            return $"{ApiConfig.BaseURL}/Images/Employees/{employee.PhotoUrl}";
+        }
+    }
+
+    private string EmploymentStatusText => employee?.IsActive == true
+        ? Text("Active", "نشط")
+        : Text("Inactive", "غير نشط");
+
+    private string ActiveBadgeClass => employee?.IsActive == true ? "text-bg-success" : "text-bg-secondary";
+
+    private string EmployeeTenureText
+    {
+        get
+        {
+            if (employee is null)
+            {
+                return "-";
+            }
+
+            var endDate = employee.EndDate?.Date ?? DateTime.Today;
+            var days = Math.Max(0, (endDate - employee.HireDate.Date).Days);
+            var years = Math.Round(days / 365.25m, 1);
+            return Text($"{years} years of service", $"{years} سنة خدمة");
+        }
+    }
+
+    private string AllowedRadiusText => employee?.AllowedRadiusMeters is > 0
+        ? Text($"{employee.AllowedRadiusMeters} meters allowed", $"النطاق المسموح {employee.AllowedRadiusMeters} متر")
+        : Text("No radius configured", "لم يتم تحديد النطاق");
+
+    private string LeaveBalanceValue
+    {
+        get
+        {
+            var balance = leaveBalances.FirstOrDefault(x => x.Year == DateTime.Today.Year) ?? leaveBalances.FirstOrDefault();
+            return balance is null ? Text("No data", "لا توجد بيانات") : $"{balance.RemainingDays:0.##}";
+        }
+    }
+
+    private string PayrollStatusValue
+    {
+        get
+        {
+            if (!CanViewPayroll)
+            {
+                return Text("Restricted", "مقيد");
+            }
+
+            return currentSalaryRun?.Status ?? (assignedContract is not null ? Text("Contracted", "مرتبط بعقد") : Text("No data", "لا توجد بيانات"));
+        }
+    }
+
+    private string PayrollSubtitle => !CanViewPayroll
+        ? Text("Requires payroll permission", "يتطلب صلاحية الرواتب")
+        : Text("Current month", "الشهر الحالي");
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (TryGetClaimGuid("company_id", out var claimCompanyId))
+        {
+            companyId = claimCompanyId;
+        }
+
+        await LoadEmployeeAsync();
+
+        if (employee is not null)
+        {
+            companyId = employee.CompanyId ?? companyId;
+            await Task.WhenAll(
+                LoadAttendanceAsync(),
+                LoadLeaveAsync(),
+                LoadPayrollAsync());
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task LoadEmployeeAsync()
+    {
+        isLoadingEmployee = true;
+        var result = await EmployeeService.GetByIdAsync(Id);
+        employee = result.IsSuccess ? result.Data : null;
+        isLoadingEmployee = false;
+    }
+
+    private async Task LoadAttendanceAsync()
+    {
+        if (!CanViewAttendance)
+        {
+            return;
+        }
+
+        isLoadingAttendance = true;
+        try
+        {
+            var dashboardTask = AttendanceService.GetDashboardAsync(Id);
+            var sessionsTask = AttendanceService.GetSessionsAsync(0, 5, Id, DateTime.UtcNow.AddDays(-30), DateTime.UtcNow);
+            var lateTask = AttendanceService.GetLateCheckInRequestsAsync(0, 5, null, Id);
+            var shiftTask = companyId == Guid.Empty
+                ? Task.FromResult<ApiResult<PaginatedResult<ShiftAssignmentDto>>>(new ApiResult<PaginatedResult<ShiftAssignmentDto>>())
+                : AttendanceService.GetShiftAssignmentsAsync(0, 200, companyId, null);
+
+            await Task.WhenAll(dashboardTask, sessionsTask, lateTask, shiftTask);
+
+            attendanceDashboard = dashboardTask.Result.IsSuccess ? dashboardTask.Result.Data : null;
+            recentSessions = sessionsTask.Result.IsSuccess ? sessionsTask.Result.Data?.Data?.ToList() ?? [] : [];
+            lateRequests = lateTask.Result.IsSuccess ? lateTask.Result.Data?.Data?.ToList() ?? [] : [];
+            shiftAssignments = shiftTask.Result.IsSuccess
+                ? shiftTask.Result.Data?.Data?.Where(x => x.EmployeeId == Id || x.DepartmentId == employee?.DepartmentId || x.AdministrationId == employee?.AdministrationId).ToList() ?? []
+                : [];
+        }
+        catch
+        {
+            attendanceDashboard = null;
+            recentSessions = [];
+            lateRequests = [];
+            shiftAssignments = [];
+        }
+        finally
+        {
+            isLoadingAttendance = false;
+        }
+    }
+
+    private async Task LoadLeaveAsync()
+    {
+        if (!CanViewLeave || companyId == Guid.Empty)
+        {
+            return;
+        }
+
+        isLoadingLeave = true;
+        try
+        {
+            var balancesTask = AttendanceService.GetLeaveBalancesAsync(companyId, DateTime.Today.Year, Id);
+            var emergencyTask = AttendanceService.GetEmergencyLeavesAsync(companyId, 0, 5, null, Id);
+            var permissionsTask = AttendanceService.GetMidDayPermissionsAsync(companyId, 0, 5, null, Id);
+
+            await Task.WhenAll(balancesTask, emergencyTask, permissionsTask);
+
+            leaveBalances = balancesTask.Result.IsSuccess ? balancesTask.Result.Data ?? [] : [];
+            emergencyLeaves = emergencyTask.Result.IsSuccess ? emergencyTask.Result.Data?.Data?.ToList() ?? [] : [];
+            midDayPermissions = permissionsTask.Result.IsSuccess ? permissionsTask.Result.Data?.Data?.ToList() ?? [] : [];
+        }
+        catch
+        {
+            leaveBalances = [];
+            emergencyLeaves = [];
+            midDayPermissions = [];
+        }
+        finally
+        {
+            isLoadingLeave = false;
+        }
+    }
+
+    private async Task LoadPayrollAsync()
+    {
+        if (!CanViewPayroll || companyId == Guid.Empty)
+        {
+            return;
+        }
+
+        isLoadingPayroll = true;
+        try
+        {
+            var contractsTask = PayrollService.GetEmployeeContractsByCompanyAsync(companyId, 0, 500);
+            var salaryRunsTask = PayrollService.GetSalaryRunsByPeriodAsync(companyId, DateTime.Today.Month, DateTime.Today.Year);
+
+            await Task.WhenAll(contractsTask, salaryRunsTask);
+
+            employeeContracts = contractsTask.Result.IsSuccess
+                ? contractsTask.Result.Data?.Data?.Where(x => x.EmployeeId == Id).OrderByDescending(x => x.EffectiveFrom).ToList() ?? []
+                : [];
+
+            var activeEmployeeContract = employeeContracts.FirstOrDefault(x => x.IsActive) ?? employeeContracts.FirstOrDefault();
+            if (activeEmployeeContract is not null)
+            {
+                var contractResult = await PayrollService.GetContractByIdAsync(activeEmployeeContract.ContractId);
+                assignedContract = contractResult.IsSuccess ? contractResult.Data : null;
+            }
+
+            currentSalaryRun = salaryRunsTask.Result.IsSuccess
+                ? salaryRunsTask.Result.Data?.Where(x => x.EmployeeId == Id).OrderByDescending(x => x.SalaryYear).ThenByDescending(x => x.SalaryMonth).FirstOrDefault()
+                : null;
+        }
+        catch
+        {
+            employeeContracts = [];
+            assignedContract = null;
+            currentSalaryRun = null;
+        }
+        finally
+        {
+            isLoadingPayroll = false;
+        }
+    }
+
+    private RenderFragment TabButton(string tabId, string label, string icon) => @<button type="button"
+        class="employee-360-tab @(activeTab == tabId ? "active" : "")"
+        role="tab"
+        aria-selected="@(activeTab == tabId)"
+        @onclick="() => activeTab = tabId">
+        <i class="bi @icon"></i>
+        <span>@label</span>
+    </button>;
+
+    private RenderFragment InfoPill(string icon, string label, string value) => @<div class="employee-360-pill">
+        <i class="bi @icon"></i>
+        <div>
+            <div class="employee-360-pill-label">@label</div>
+            <div class="employee-360-pill-value">@value</div>
+        </div>
+    </div>;
+
+    private RenderFragment ProfileSummaryCard() => @<AppCard Title="@Text("Profile Information", "بيانات الملف الشخصي")" Subtitle="@Text("Identity, contact, and qualification details.", "بيانات الهوية والتواصل والمؤهلات.")">
+        <div class="employee-360-details-grid">
+            @DetailItem(Text("Full Name", "الاسم الكامل"), DisplayName, "bi-person")
+            @DetailItem(Text("Email", "البريد الإلكتروني"), EmptyValue(employee?.Email), "bi-envelope")
+            @DetailItem(Text("Phone", "الهاتف"), EmptyValue(employee?.Phone), "bi-telephone")
+            @DetailItem(Text("National ID", "رقم الهوية"), EmptyValue(employee?.NationalId), "bi-card-text")
+            @DetailItem(Text("Nationality", "الجنسية"), EmptyValue(employee?.Nationality), "bi-globe2")
+            @DetailItem(Text("Date of Birth", "تاريخ الميلاد"), FormatDate(employee?.DateOfBirth), "bi-calendar")
+            @DetailItem(Text("Gender", "الجنس"), EnumText(employee?.Gender), "bi-gender-ambiguous")
+            @DetailItem(Text("Marital Status", "الحالة الاجتماعية"), EnumText(employee?.MaritalStatus), "bi-heart")
+            @DetailItem(Text("Address", "العنوان"), EmptyValue(employee?.Address), "bi-geo")
+            @DetailItem(Text("Qualification", "المؤهل"), EnumText(employee?.Qualification), "bi-mortarboard")
+            @DetailItem(Text("Specialization", "التخصص"), ShortId(employee?.SpecializationId), "bi-journal-bookmark")
+            @DetailItem(Text("Academic Institute", "المؤسسة التعليمية"), ShortId(employee?.AcademicInstituteId), "bi-bank")
+            @DetailItem(Text("Graduation Year", "سنة التخرج"), employee?.GraduationYear > 0 ? employee.GraduationYear.ToString() : "-", "bi-calendar2-check")
+        </div>
+    </AppCard>;
+
+    private RenderFragment JobSummaryCard() => @<AppCard Title="@Text("Job Information", "بيانات الوظيفة")" Subtitle="@Text("Organization, employment, and lifecycle status.", "الهيكل التنظيمي وحالة التوظيف.")">
+        <div class="employee-360-details-grid">
+            @DetailItem(Text("Company", "الشركة"), EmptyValue(employee?.CompanyName), "bi-building")
+            @DetailItem(Text("Branch", "الفرع"), EmptyValue(employee?.BranchName), "bi-signpost")
+            @DetailItem(Text("Administration", "الإدارة"), EmptyValue(employee?.AdministrationName), "bi-diagram-2")
+            @DetailItem(Text("Department", "القسم"), EmptyValue(employee?.DepartmentName), "bi-diagram-3")
+            @DetailItem(Text("Position", "المسمى الوظيفي"), EmptyValue(employee?.PositionName), "bi-briefcase")
+            @DetailItem(Text("Employment Type", "نوع التوظيف"), EnumText(employee?.EmploymentType), "bi-person-workspace")
+            @DetailItem(Text("Employee No", "الرقم الوظيفي"), EmptyValue(employee?.EmployeeNo), "bi-hash")
+            @DetailItem(Text("Code", "الكود"), EmptyValue(employee?.Code), "bi-upc-scan")
+            @DetailItem(Text("Hire Date", "تاريخ التعيين"), FormatDate(employee?.HireDate), "bi-calendar-check")
+            @DetailItem(Text("End Date", "تاريخ الانتهاء"), FormatDate(employee?.EndDate), "bi-calendar-x")
+            @DetailItem(Text("Status", "الحالة"), EmploymentStatusText, "bi-activity")
+        </div>
+        @if (employee?.IsActive == false)
+        {
+            <div class="alert alert-secondary mt-3 mb-0">
+                <i class="bi bi-info-circle me-1"></i>
+                @Text("Termination details are not exposed by the current employee DTO.", "تفاصيل سبب الإنهاء غير متاحة حاليا في بيانات الموظف الحالية.")
+            </div>
+        }
+    </AppCard>;
+
+    private RenderFragment StatusSummaryCard() => @<AppCard Title="@Text("Status Snapshot", "ملخص الحالة")">
+        <div class="employee-360-status-list">
+            @StatusRow(Text("Employment", "التوظيف"), EmploymentStatusText, employee?.IsActive == true ? "success" : "secondary")
+            @StatusRow(Text("Attendance type", "نوع الحضور"), EnumText(employee?.AttendanceType), "info")
+            @StatusRow(Text("Allowed radius", "النطاق المسموح"), employee?.AllowedRadiusMeters is > 0 ? $"{employee.AllowedRadiusMeters} m" : "-", "secondary")
+            @StatusRow(Text("Current month attendance", "حضور الشهر الحالي"), attendanceDashboard is null ? Text("No data", "لا توجد بيانات") : $"{attendanceDashboard.CompletedToday} {Text("completed today", "مكتملة اليوم")}", "primary")
+            @StatusRow(Text("Pending late requests", "طلبات التأخير المعلقة"), attendanceDashboard?.PendingLateCheckInRequests.ToString() ?? "-", "warning")
+            @StatusRow(Text("Payroll", "الرواتب"), PayrollStatusValue, CanViewPayroll ? "success" : "secondary")
+        </div>
+    </AppCard>;
+
+    private RenderFragment AttendanceSummaryCard() => @<AppCard Title="@Text("Attendance Summary", "ملخص الحضور")" Subtitle="@Text("Employee-filtered attendance data when permission allows.", "بيانات الحضور الخاصة بالموظف عند توفر الصلاحية.")">
+        @if (!CanViewAttendance)
+        {
+            @RestrictedState(Text("Attendance is restricted", "الحضور مقيد"), Text("You need attendance view permissions to see this section.", "تحتاج إلى صلاحية عرض الحضور لرؤية هذا القسم."))
+        }
+        else if (isLoadingAttendance)
+        {
+            @InlineLoader()
+        }
+        else
+        {
+            <div class="employee-360-mini-stats">
+                @MiniStat(Text("Active", "نشط"), attendanceDashboard?.ActiveSessions.ToString() ?? "0")
+                @MiniStat(Text("On Break", "استراحة"), attendanceDashboard?.OnBreakSessions.ToString() ?? "0")
+                @MiniStat(Text("Completed Today", "مكتمل اليوم"), attendanceDashboard?.CompletedToday.ToString() ?? "0")
+                @MiniStat(Text("Late Requests", "طلبات التأخير"), attendanceDashboard?.PendingLateCheckInRequests.ToString() ?? "0")
+            </div>
+        }
+    </AppCard>;
+
+    private RenderFragment AttendanceDetailsCard() => @<div class="row g-4">
+        <div class="col-xl-5">
+            @AttendanceSummaryCard()
+        </div>
+        <div class="col-xl-7">
+            <AppCard Title="@Text("Recent Sessions", "جلسات الحضور الأخيرة")">
+                @if (!CanViewAttendance)
+                {
+                    @RestrictedState(Text("Attendance is restricted", "الحضور مقيد"), Text("You need attendance view permissions to see this section.", "تحتاج إلى صلاحية عرض الحضور لرؤية هذا القسم."))
+                }
+                else if (recentSessions.Any())
+                {
+                    <div class="employee-360-table-wrap">
+                        <table class="table erp-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>@Text("Shift Start", "بداية الدوام")</th>
+                                    <th>@Text("Check In", "الدخول")</th>
+                                    <th>@Text("Check Out", "الخروج")</th>
+                                    <th>@Text("Hours", "الساعات")</th>
+                                    <th>@Text("Status", "الحالة")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var session in recentSessions)
+                                {
+                                    <tr>
+                                        <td>@FormatDateTime(session.ShiftStart)</td>
+                                        <td>@FormatDateTime(session.ActualStartTime)</td>
+                                        <td>@FormatDateTime(session.ActualEndTime)</td>
+                                        <td>@session.TotalHours.ToString("0.##")</td>
+                                        <td><span class="badge rounded-pill text-bg-light">@EnumText(session.Status)</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <EmptyState Icon="bi-clock-history" Title="@Text("No recent sessions", "لا توجد جلسات حديثة")" Message="@Text("Attendance sessions will appear here once available.", "ستظهر جلسات الحضور هنا عند توفرها.")" />
+                }
+            </AppCard>
+        </div>
+        <div class="col-xl-6">
+            <AppCard Title="@Text("Late Check-In Requests", "طلبات التأخير")">
+                @RequestList(lateRequests.Select(x => new RequestRow(FormatDateTime(x.RequestedCheckInTimeUtc), EnumText(x.Status), x.Reason)).ToList(), "bi-alarm")
+            </AppCard>
+        </div>
+        <div class="col-xl-6">
+            <AppCard Title="@Text("Shift Assignments", "تعيينات الدوام")">
+                @if (shiftAssignments.Any())
+                {
+                    <div class="employee-360-list">
+                        @foreach (var shift in shiftAssignments.Take(5))
+                        {
+                            <div class="employee-360-list-item">
+                                <i class="bi bi-calendar-range"></i>
+                                <div>
+                                    <div class="fw-semibold">@EnumText(shift.Scope)</div>
+                                    <div class="text-muted small">@FormatDate(shift.EffectiveFrom) - @FormatDate(shift.EffectiveTo)</div>
+                                </div>
+                                <span class="badge rounded-pill @(shift.IsActive ? "text-bg-success" : "text-bg-secondary")">@BoolText(shift.IsActive)</span>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <EmptyState Icon="bi-calendar-range" Title="@Text("No shift assignment", "لا يوجد تعيين دوام")" Message="@Text("Direct or scoped shift assignments will appear here.", "ستظهر تعيينات الدوام المباشرة أو حسب النطاق هنا.")" />
+                }
+            </AppCard>
+        </div>
+    </div>;
+
+    private RenderFragment LeaveSummaryCard() => @<AppCard Title="@Text("Leave Summary", "ملخص الإجازات")" Subtitle="@Text("Balances and recent requests.", "الأرصدة والطلبات الحديثة.")">
+        @if (!CanViewLeave)
+        {
+            @RestrictedState(Text("Leave data is restricted", "بيانات الإجازات مقيدة"), Text("You need leave balance/report permissions to see this section.", "تحتاج إلى صلاحيات أرصدة أو تقارير الإجازات لرؤية هذا القسم."))
+        }
+        else if (isLoadingLeave)
+        {
+            @InlineLoader()
+        }
+        else
+        {
+            var balance = leaveBalances.FirstOrDefault(x => x.Year == DateTime.Today.Year) ?? leaveBalances.FirstOrDefault();
+            if (balance is not null)
+            {
+                <div class="employee-360-mini-stats">
+                    @MiniStat(Text("Available", "المتاح"), balance.AvailableDays.ToString("0.##"))
+                    @MiniStat(Text("Taken", "المستخدم"), balance.TakenDays.ToString("0.##"))
+                    @MiniStat(Text("Remaining", "المتبقي"), balance.RemainingDays.ToString("0.##"))
+                    @MiniStat(Text("Carry Forward", "المرحل"), balance.CarriedForwardDays.ToString("0.##"))
+                </div>
+            }
+            else
+            {
+                <EmptyState Icon="bi-calendar2-week" Title="@Text("No leave balance", "لا يوجد رصيد إجازات")" Message="@Text("Leave balance data will appear when configured.", "ستظهر بيانات رصيد الإجازات عند إعدادها.")" />
+            }
+        }
+    </AppCard>;
+
+    private RenderFragment LeaveDetailsCard() => @<div class="row g-4">
+        <div class="col-xl-5">
+            @LeaveSummaryCard()
+        </div>
+        <div class="col-xl-7">
+            <AppCard Title="@Text("Emergency Leave Requests", "طلبات الإجازة الطارئة")">
+                @RequestList(emergencyLeaves.Select(x => new RequestRow($"{FormatDate(x.StartDate)} - {FormatDate(x.EndDate)}", EnumText(x.Status), x.Reason)).ToList(), "bi-calendar-heart")
+            </AppCard>
+        </div>
+        <div class="col-12">
+            <AppCard Title="@Text("Mid-Day Permissions", "أذونات منتصف اليوم")">
+                @RequestList(midDayPermissions.Select(x => new RequestRow(FormatDate(x.Date), EnumText(x.Status), x.Reason)).ToList(), "bi-door-open")
+            </AppCard>
+        </div>
+    </div>;
+
+    private RenderFragment PayrollCard() => @<AppCard Title="@Text("Payroll Snapshot", "ملخص الرواتب")" Subtitle="@Text("Sensitive payroll information appears only with payroll permissions.", "تظهر بيانات الرواتب الحساسة فقط عند توفر الصلاحيات.")">
+        @if (!CanViewPayroll)
+        {
+            @RestrictedState(Text("Payroll is restricted", "الرواتب مقيدة"), Text("You need payroll contract or salary run permissions to see this section.", "تحتاج إلى صلاحيات عقود الرواتب أو مسيرات الرواتب لرؤية هذا القسم."))
+        }
+        else if (isLoadingPayroll)
+        {
+            @InlineLoader()
+        }
+        else
+        {
+            <div class="employee-360-details-grid">
+                @DetailItem(Text("Assigned Contract", "العقد المعين"), assignedContract is null ? Text("No contract", "لا يوجد عقد") : SharedDataService.SelectViewLang(assignedContract.NameEng, assignedContract.Name), "bi-file-earmark-text")
+                @DetailItem(Text("Contract Effective", "بداية العقد"), FormatDate(employeeContracts.FirstOrDefault()?.EffectiveFrom), "bi-calendar-check")
+                @DetailItem(Text("Salary Month", "شهر الراتب"), currentSalaryRun is null ? "-" : $"{currentSalaryRun.SalaryMonth}/{currentSalaryRun.SalaryYear}", "bi-calendar-month")
+                @DetailItem(Text("Status", "الحالة"), currentSalaryRun?.Status ?? "-", "bi-activity")
+                @DetailItem(Text("Total Allowances", "إجمالي البدلات"), currentSalaryRun is null ? "-" : FormatMoney(currentSalaryRun.TotalAllowances), "bi-plus-circle")
+                @DetailItem(Text("Total Deductions", "إجمالي الاستقطاعات"), currentSalaryRun is null ? "-" : FormatMoney(currentSalaryRun.TotalDeductions), "bi-dash-circle")
+                @DetailItem(Text("Net Salary", "صافي الراتب"), currentSalaryRun is null ? "-" : FormatMoney(currentSalaryRun.NetSalary), "bi-cash")
+            </div>
+        }
+    </AppCard>;
+
+    private RenderFragment FuturePlaceholders() => @<div class="employee-360-placeholder-grid">
+        @PlaceholderCard("bi-graph-up-arrow", Text("Performance", "الأداء"), Text("Performance reviews, goals, competency scores, and development notes will appear here when connected.", "ستظهر هنا تقييمات الأداء والأهداف ودرجات الكفاءات وملاحظات التطوير عند الربط."))
+        @PlaceholderCard("bi-check2-square", Text("Tasks", "المهام"), Text("Assigned work, open tasks, closed tasks, and productivity indicators will appear here.", "ستظهر هنا الأعمال المسندة والمهام المفتوحة والمغلقة ومؤشرات الإنتاجية."))
+        @PlaceholderCard("bi-folder2-open", Text("Documents", "المستندات"), Text("Contracts, certificates, IDs, and HR attachments will appear here when document storage is available.", "ستظهر هنا العقود والشهادات والهويات ومرفقات الموارد البشرية عند توفر التخزين."))
+        @PlaceholderCard("bi-laptop", Text("Assets", "العهد والأصول"), Text("Issued devices, cards, vehicles, and custody records will appear here.", "ستظهر هنا الأجهزة والبطاقات والمركبات وسجلات العهد."))
+        @PlaceholderCard("bi-mortarboard", Text("Training", "التدريب"), Text("Courses, certifications, skill matrix, and learning history will appear here.", "ستظهر هنا الدورات والشهادات ومصفوفة المهارات وسجل التعلم."))
+        @PlaceholderCard("bi-shield-exclamation", Text("Disciplinary Records", "الإجراءات التأديبية"), Text("Warnings, investigations, and HR decisions will appear here when the module exists.", "ستظهر هنا الإنذارات والتحقيقات وقرارات الموارد البشرية عند توفر الوحدة."))
+        @PlaceholderCard("bi-clock-history", Text("Activity Timeline", "سجل النشاط"), Text("Hiring, transfers, position changes, leave approvals, payroll approvals, and audit events will appear here.", "ستظهر هنا أحداث التعيين والنقل وتغيير المسمى واعتمادات الإجازات والرواتب والتدقيق."))
+    </div>;
+
+    private RenderFragment DetailItem(string label, string value, string icon) => @<div class="employee-360-detail">
+        <i class="bi @icon"></i>
+        <div class="min-w-0">
+            <div class="employee-360-detail-label">@label</div>
+            <div class="employee-360-detail-value">@value</div>
+        </div>
+    </div>;
+
+    private RenderFragment StatusRow(string label, string value, string tone) => @<div class="employee-360-status-row">
+        <span>@label</span>
+        <span class="badge rounded-pill text-bg-@tone">@value</span>
+    </div>;
+
+    private RenderFragment MiniStat(string label, string value) => @<div class="employee-360-mini-stat">
+        <div class="employee-360-mini-value">@value</div>
+        <div class="employee-360-mini-label">@label</div>
+    </div>;
+
+    private RenderFragment RequestList(List<RequestRow> rows, string icon) => @<div>
+        @if (!CanViewLeave && (icon == "bi-calendar-heart" || icon == "bi-door-open"))
+        {
+            @RestrictedState(Text("Leave data is restricted", "بيانات الإجازات مقيدة"), Text("You need leave permissions to see this list.", "تحتاج إلى صلاحيات الإجازات لرؤية هذه القائمة."))
+        }
+        else if (!CanViewAttendance && icon == "bi-alarm")
+        {
+            @RestrictedState(Text("Attendance is restricted", "الحضور مقيد"), Text("You need attendance permissions to see this list.", "تحتاج إلى صلاحيات الحضور لرؤية هذه القائمة."))
+        }
+        else if (rows.Any())
+        {
+            <div class="employee-360-list">
+                @foreach (var row in rows.Take(5))
+                {
+                    <div class="employee-360-list-item">
+                        <i class="bi @icon"></i>
+                        <div class="min-w-0">
+                            <div class="fw-semibold">@row.Title</div>
+                            <div class="text-muted small text-truncate">@row.Description</div>
+                        </div>
+                        <span class="badge rounded-pill text-bg-light">@row.Status</span>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <EmptyState Icon="@icon" Title="@Text("No records", "لا توجد سجلات")" Message="@Text("Records will appear here when available.", "ستظهر السجلات هنا عند توفرها.")" />
+        }
+    </div>;
+
+    private RenderFragment PlaceholderCard(string icon, string title, string message) => @<AppCard CssClass="employee-360-placeholder-card">
+        <EmptyState Icon="@icon" Title="@($"{title} - {Text("Coming soon", "غير متاح حاليا")}")" Message="@message" />
+    </AppCard>;
+
+    private RenderFragment RestrictedState(string title, string message) => @<EmptyState Icon="bi-lock" Title="@title" Message="@message" />;
+
+    private RenderFragment InlineLoader() => @<div class="employee-360-inline-loader">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span>@Text("Loading section...", "جاري تحميل القسم...")</span>
+    </div>;
+
+    private bool HasPermission(string permission) =>
+        authState?.User.Claims.Any(c => c.Value == permission) ?? false;
+
+    private bool TryGetClaimGuid(string claimType, out Guid value)
+    {
+        value = Guid.Empty;
+        var raw = authState?.User.Claims.FirstOrDefault(c => c.Type == claimType)?.Value;
+        return Guid.TryParse(raw, out value);
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private string EnumText<T>(T? value) where T : struct, Enum => value?.ToString() ?? "-";
+    private string EnumText(object? value) => value?.ToString() ?? "-";
+    private string BoolText(bool value) => value ? Text("Active", "نشط") : Text("Inactive", "غير نشط");
+    private string FormatDate(DateTime? date) => date.HasValue ? date.Value.ToString("yyyy/MM/dd") : "-";
+    private string FormatDateTime(DateTime? date) => date.HasValue ? date.Value.ToString("yyyy/MM/dd HH:mm") : "-";
+    private string FormatMoney(decimal amount) => amount.ToString("N2");
+    private string ShortId(Guid? id) => id.HasValue && id.Value != Guid.Empty ? id.Value.ToString()[..8] : "-";
+
+    private void BackToList() => NavigationManager.NavigateTo("/Employee/Employee/List");
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+
+    private sealed record RequestRow(string Title, string Status, string Description);
+}
+
+<style>
+    .employee-360-page {
+        max-width: 1440px;
+    }
+
+    .employee-360-loading,
+    .employee-360-inline-loader {
+        align-items: center;
+        color: var(--erp-text-muted);
+        display: flex;
+        gap: var(--erp-space-3);
+        justify-content: center;
+        min-height: 180px;
+    }
+
+    .employee-360-inline-loader {
+        min-height: 120px;
+    }
+
+    .employee-360-hero {
+        align-items: center;
+        background: var(--erp-surface);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
+        box-shadow: var(--erp-shadow-sm);
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--erp-space-4);
+        justify-content: space-between;
+        margin-bottom: var(--erp-space-4);
+        padding: var(--erp-space-4);
+    }
+
+    .employee-360-identity {
+        align-items: center;
+        display: flex;
+        gap: var(--erp-space-4);
+        min-width: 0;
+    }
+
+    .employee-360-photo {
+        background: var(--erp-surface-muted);
+        border: 1px solid var(--erp-border);
+        border-radius: 12px;
+        height: 96px;
+        object-fit: cover;
+        width: 96px;
+    }
+
+    .employee-360-name {
+        color: var(--erp-text);
+        font-size: 1.6rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin: 0;
+    }
+
+    .employee-360-meta,
+    .employee-360-hero-facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--erp-space-3);
+    }
+
+    .employee-360-meta span {
+        align-items: center;
+        color: var(--erp-text-muted);
+        display: inline-flex;
+        gap: 0.4rem;
+        min-width: 0;
+    }
+
+    .employee-360-pill {
+        align-items: center;
+        background: var(--erp-bg-subtle);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        display: flex;
+        gap: var(--erp-space-2);
+        min-width: 180px;
+        padding: var(--erp-space-3);
+    }
+
+    .employee-360-pill i {
+        color: var(--erp-primary);
+        font-size: 1.15rem;
+    }
+
+    .employee-360-pill-label,
+    .employee-360-detail-label,
+    .employee-360-mini-label {
+        color: var(--erp-text-muted);
+        font-size: 0.78rem;
+    }
+
+    .employee-360-pill-value,
+    .employee-360-detail-value {
+        color: var(--erp-text);
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
+    .employee-360-tabs {
+        display: flex;
+        gap: var(--erp-space-2);
+        overflow-x: auto;
+        padding: var(--erp-space-2);
+    }
+
+    .employee-360-tab {
+        align-items: center;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: var(--erp-radius-md);
+        color: var(--erp-text-muted);
+        display: inline-flex;
+        flex: 0 0 auto;
+        gap: 0.45rem;
+        min-height: 40px;
+        padding: 0.45rem 0.75rem;
+    }
+
+    .employee-360-tab.active,
+    .employee-360-tab:hover,
+    .employee-360-tab:focus-visible {
+        background: var(--erp-primary-soft);
+        border-color: var(--erp-border);
+        color: var(--erp-primary);
+        outline: none;
+    }
+
+    .employee-360-details-grid {
+        display: grid;
+        gap: var(--erp-space-3);
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .employee-360-detail {
+        align-items: flex-start;
+        background: var(--erp-bg-subtle);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        display: flex;
+        gap: var(--erp-space-2);
+        min-width: 0;
+        padding: var(--erp-space-3);
+    }
+
+    .employee-360-detail i {
+        color: var(--erp-primary);
+        margin-top: 0.15rem;
+    }
+
+    .employee-360-status-list,
+    .employee-360-list {
+        display: grid;
+        gap: var(--erp-space-2);
+    }
+
+    .employee-360-status-row,
+    .employee-360-list-item {
+        align-items: center;
+        border-bottom: 1px solid var(--erp-border);
+        display: flex;
+        gap: var(--erp-space-3);
+        justify-content: space-between;
+        padding: 0.7rem 0;
+    }
+
+    .employee-360-status-row:last-child,
+    .employee-360-list-item:last-child {
+        border-bottom: 0;
+    }
+
+    .employee-360-list-item i {
+        color: var(--erp-primary);
+        font-size: 1.1rem;
+    }
+
+    .employee-360-mini-stats {
+        display: grid;
+        gap: var(--erp-space-3);
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+
+    .employee-360-mini-stat {
+        background: var(--erp-bg-subtle);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        padding: var(--erp-space-3);
+        text-align: center;
+    }
+
+    .employee-360-mini-value {
+        color: var(--erp-text);
+        font-size: 1.35rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .employee-360-table-wrap {
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        overflow-x: auto;
+    }
+
+    .employee-360-placeholder-grid {
+        display: grid;
+        gap: var(--erp-space-4);
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .employee-360-placeholder-card .erp-empty-state {
+        min-height: 180px;
+    }
+
+    .min-w-0 {
+        min-width: 0;
+    }
+
+    @@media (max-width: 767.98px) {
+        .employee-360-identity {
+            align-items: flex-start;
+        }
+
+        .employee-360-photo {
+            height: 72px;
+            width: 72px;
+        }
+
+        .employee-360-name {
+            font-size: 1.25rem;
+        }
+
+        .employee-360-pill {
+            width: 100%;
+        }
+    }
+</style>

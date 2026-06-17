@@ -1,5 +1,5 @@
-@layout AdminLayout
-@page "/Employee/Employee/view/{Id:guid?}"
+@layout ViewEmpLayout
+@page "/Employee/Employee/view/{Id:guid}"
 @implements IDisposable
 @using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
@@ -117,20 +117,17 @@
 
 @code {
     [Parameter]
-    public Guid? Id { get; set; }
+    public Guid Id { get; set; }
 
     private PublicEmployeeViewDto? employee;
     private bool isLoading = false;
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
-        if (Id.HasValue)
+        var empRes = await EmployeeService.GetPublicViewAsync(Id);
+        if (empRes.IsSuccess)
         {
-            var empRes = await EmployeeService.GetPublicViewAsync(Id.Value);
-            if (empRes.IsSuccess)
-            {
-                employee = empRes.Data ?? null;
-            }
+            employee = empRes.Data ?? null;
         }
         isLoading = false;
     }
