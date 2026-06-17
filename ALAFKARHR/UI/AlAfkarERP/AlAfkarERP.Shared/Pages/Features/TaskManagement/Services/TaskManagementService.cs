@@ -11,7 +11,7 @@ public class TaskManagementService : BaseApiService, ITaskManagementService
 {
     private readonly string path;
 
-    public TaskManagementService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public TaskManagementService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         path = $"api/{apiConfig.Version}/taskmanagement";
     }

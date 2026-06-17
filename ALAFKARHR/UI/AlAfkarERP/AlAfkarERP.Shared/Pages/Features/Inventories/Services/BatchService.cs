@@ -10,7 +10,7 @@ public class BatchService : BaseApiService, IBatchService
     private readonly ApiConfig _apiConfig;
     private string _path;
 
-    public BatchService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public BatchService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         this._apiConfig = apiConfig;
         _path = $"api/{_apiConfig.Version}/inventory/batches";

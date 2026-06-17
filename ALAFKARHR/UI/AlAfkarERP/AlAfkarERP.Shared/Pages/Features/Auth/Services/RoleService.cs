@@ -12,7 +12,7 @@ public class RoleService : BaseApiService, IRoleService
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
 
-    public RoleService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public RoleService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         this._apiConfig = apiConfig;
         _path = $"api/{_apiConfig.Version}/auth";

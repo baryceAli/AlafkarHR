@@ -20,7 +20,7 @@ public class AddressDto
 
     public string PostalCode { get; set; }
 
-    //public bool IsDefaultBilling { get; private set; }
+    public bool IsDefaultBilling { get; set; }
 
     public bool IsDefaultShipping { get; set; }
 

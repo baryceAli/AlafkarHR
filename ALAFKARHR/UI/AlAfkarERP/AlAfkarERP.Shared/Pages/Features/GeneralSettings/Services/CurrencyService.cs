@@ -10,7 +10,7 @@ public class CurrencyService : BaseApiService, ICurrencyService
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
 
-    public CurrencyService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public CurrencyService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         _apiConfig = apiConfig;
         _path = $"api/{_apiConfig.Version}/Settings";

@@ -12,7 +12,7 @@ public class ProductService : BaseApiService, IProductService
     //private readonly HttpClient _http;
     private readonly ApiConfig _apiConfig;
     //private readonly string _apiURL;
-    public ProductService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public ProductService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         //_http = http;
         _apiConfig = apiConfig;

@@ -10,7 +10,7 @@ public class BrandService : BaseApiService, IBrandService
 {
     private readonly ApiConfig _apiConfig;
 
-    public BrandService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public BrandService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         _apiConfig = apiConfig;
     }

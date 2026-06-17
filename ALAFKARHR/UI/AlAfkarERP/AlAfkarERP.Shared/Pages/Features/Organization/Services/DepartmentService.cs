@@ -11,7 +11,7 @@ public class DepartmentService : BaseApiService, IDepartmentService
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
 
-    public DepartmentService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public DepartmentService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         _apiConfig = apiConfig;
         _path = $"{apiConfig.BaseURL}/api/{apiConfig.Version}/organization/departments";

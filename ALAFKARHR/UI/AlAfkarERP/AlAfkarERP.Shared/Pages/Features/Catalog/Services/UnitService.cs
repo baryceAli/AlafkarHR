@@ -9,7 +9,7 @@ public class UnitService : BaseApiService, IUnitService
 {
     private readonly ApiConfig _apiConfig;
 
-    public UnitService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig): base(http, tokenService)
+    public UnitService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig): base(http, tokenService, apiConfig)
     {
         _apiConfig = apiConfig;
     }

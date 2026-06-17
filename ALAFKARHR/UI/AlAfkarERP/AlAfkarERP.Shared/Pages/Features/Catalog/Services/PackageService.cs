@@ -9,7 +9,7 @@ public class PackageService : BaseApiService, IPackageService
 {
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
-    public PackageService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig): base(http, tokenService)
+    public PackageService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig): base(http, tokenService, apiConfig)
     {
         _apiConfig = apiConfig;
         _path = $"api/{_apiConfig.Version}/catalog/packages";

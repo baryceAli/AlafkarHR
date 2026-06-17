@@ -9,7 +9,7 @@ public class CategoryService : BaseApiService, ICategoryService
 {
     private readonly ApiConfig _apiConfig;
 
-    public CategoryService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public CategoryService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         _apiConfig = apiConfig;
     }

@@ -9,7 +9,7 @@ public class SupplierService : BaseApiService, ISupplierService
 {
     private readonly string _path;
 
-    public SupplierService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public SupplierService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         _path = $"api/{apiConfig.Version}/suppliers/supplier";
     }

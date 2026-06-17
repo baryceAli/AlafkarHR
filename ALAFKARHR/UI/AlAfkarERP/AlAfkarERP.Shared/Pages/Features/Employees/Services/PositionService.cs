@@ -10,7 +10,7 @@ public class PositionService : BaseApiService, IPositionService
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
 
-    public PositionService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public PositionService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         _apiConfig = apiConfig;
         _path = $"api/{_apiConfig.Version}/employee/positions";

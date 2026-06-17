@@ -9,7 +9,7 @@ public class PayrollService : BaseApiService, IPayrollService
 {
     private readonly string _path;
 
-    public PayrollService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public PayrollService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         _path = $"api/{apiConfig.Version}/payroll";
     }

@@ -9,7 +9,7 @@ public class WarehouseService : BaseApiService, IWarehouseService
 {
     private readonly ApiConfig _apiConfig;
     private readonly string path;
-    public WarehouseService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public WarehouseService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         _apiConfig = apiConfig;
         path = $"api/{_apiConfig.Version}/inventory/warehouses";

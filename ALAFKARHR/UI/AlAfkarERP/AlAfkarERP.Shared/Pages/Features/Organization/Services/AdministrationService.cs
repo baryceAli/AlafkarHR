@@ -9,7 +9,7 @@ public class AdministrationService : BaseApiService,IAdministrationService
 {
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
-    public AdministrationService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public AdministrationService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         _apiConfig = apiConfig;
         //_path = $"{_apiConfig.BaseURL}/api/{_apiConfig.Version}/organization/administrations";

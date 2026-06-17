@@ -9,7 +9,7 @@ public class UserService : BaseApiService, IUserService
 {
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
-    public UserService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public UserService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         this._apiConfig = apiConfig;
         _path = $"api/{_apiConfig.Version}/auth";

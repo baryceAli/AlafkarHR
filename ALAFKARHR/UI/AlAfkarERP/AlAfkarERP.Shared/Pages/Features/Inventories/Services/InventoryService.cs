@@ -9,7 +9,7 @@ public class InventoryService : BaseApiService, IInventoryService
 {
     private readonly ApiConfig _apiConfig;
     private string _path;
-    public InventoryService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public InventoryService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         _apiConfig = apiConfig;
         _path = $"api/{_apiConfig.Version}/inventory/inventories";

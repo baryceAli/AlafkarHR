@@ -10,7 +10,7 @@ public class ProcurementService : BaseApiService, IProcurementService
 {
     private readonly ApiConfig _apiConfig;
 
-    public ProcurementService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public ProcurementService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         _apiConfig = apiConfig;
     }

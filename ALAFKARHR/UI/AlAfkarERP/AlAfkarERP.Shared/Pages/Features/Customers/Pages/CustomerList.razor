@@ -5,6 +5,7 @@
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using SharedWithUI.Customers.Dtos
 @using SharedWithUI.Customers.Enums
 @using SharedWithUI.Permissions
@@ -107,8 +108,9 @@ else
     {
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-body">
-            <EditForm Model="editingCustomer" OnValidSubmit="SaveCustomer">
+            <EditForm EditContext="customerEditContext" OnSubmit="SaveCustomer">
                 <DataAnnotationsValidator />
+                <ValidationSummary />
 
                 <div class="branch-edit-panel">
                 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
@@ -133,28 +135,28 @@ else
 
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
+                        <label class="form-label">@RequiredLabel(SharedDataService.SelectViewLang("Name", "الاسم"))</label>
                         <InputText class="form-control" @bind-Value="editingCustomer.Name" />
                         <ValidationMessage For="() => editingCustomer.Name" />
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">@SharedDataService.SelectViewLang("Customer Code", "رقم العميل")</label>
+                        <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Customer Code", "رقم العميل"))</label>
                         <InputText class="form-control" @bind-Value="editingCustomer.CustomerCode" />
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">@SharedDataService.SelectViewLang("Commercial Name", "الاسم التجاري")</label>
+                        <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Commercial Name", "الاسم التجاري"))</label>
                         <InputText class="form-control" @bind-Value="editingCustomer.CommercialName" />
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">@SharedDataService.SelectViewLang("VAT Number", "الرقم الضريبي")</label>
+                        <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("VAT Number", "الرقم الضريبي"))</label>
                         <InputText class="form-control" @bind-Value="editingCustomer.VatNumber" />
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">@SharedDataService.SelectViewLang("Commercial Registration", "السجل التجاري")</label>
+                        <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Commercial Registration", "السجل التجاري"))</label>
                         <InputText class="form-control" @bind-Value="editingCustomer.CommercialRegistrationNumber" />
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">@SharedDataService.SelectViewLang("Customer Group", "فئة العميل")</label>
+                        <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Customer Group", "فئة العميل"))</label>
                         <AutoCompleteComponent TItem="CustomerGroupDto"
                                                Items="customerGroups"
                                                ItemText="c=>SharedDataService.SelectViewLang(c.NameEng, c.Name)"
@@ -199,7 +201,7 @@ else
                         </InputSelect>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">@SharedDataService.SelectViewLang("Credit Hold Reason", "سبب إيقاف الائتمان")</label>
+                        <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Credit Hold Reason", "سبب إيقاف الائتمان"))</label>
                         <InputText class="form-control" @bind-Value="editingCustomer.CreditHoldReason" />
                     </div>
 
@@ -210,7 +212,7 @@ else
                         </div>
                     </div>
                     <div class="col-md-9">
-                        <label class="form-label">@SharedDataService.SelectViewLang("Notes", "ملاحظات")</label>
+                        <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Notes", "ملاحظات"))</label>
                         <InputTextArea class="form-control" rows="2" @bind-Value="editingCustomer.Notes" />
                     </div>
                 </div>
@@ -235,51 +237,58 @@ else
                         <div class="border rounded p-3 mb-2">
                             <div class="row g-2">
                                 <div class="col-md-3">
-                                    <label class="form-label">@SharedDataService.SelectViewLang("Title", "العنوان")</label>
+                                    <label class="form-label">@RequiredLabel(SharedDataService.SelectViewLang("Title", "العنوان"))</label>
                                     <InputText class="form-control" @bind-Value="address.Title" />
+                                    <ValidationMessage For="() => address.Title" />
                                 </div>
                                 <div class="col-md-5">
-                                    <label class="form-label">@SharedDataService.SelectViewLang("Address Line 1", "العنوان 1")</label>
+                                    <label class="form-label">@RequiredLabel(SharedDataService.SelectViewLang("Address Line 1", "العنوان 1"))</label>
                                     <InputText class="form-control" @bind-Value="address.AddressLine1" />
+                                    <ValidationMessage For="() => address.AddressLine1" />
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label">@SharedDataService.SelectViewLang("Address Line 2", "العنوان 2")</label>
+                                    <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Address Line 2", "العنوان 2"))</label>
                                     <InputText class="form-control" @bind-Value="address.AddressLine2" />
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">@SharedDataService.SelectViewLang("City", "المدينة")</label>
+                                    <label class="form-label">@RequiredLabel(SharedDataService.SelectViewLang("City", "المدينة"))</label>
                                     <InputText class="form-control" @bind-Value="address.City" />
+                                    <ValidationMessage For="() => address.City" />
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">@SharedDataService.SelectViewLang("State", "المنطقة")</label>
+                                    <label class="form-label">@RequiredLabel(SharedDataService.SelectViewLang("State", "المنطقة"))</label>
                                     <InputText class="form-control" @bind-Value="address.State" />
+                                    <ValidationMessage For="() => address.State" />
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">@SharedDataService.SelectViewLang("Country", "الدولة")</label>
+                                    <label class="form-label">@RequiredLabel(SharedDataService.SelectViewLang("Country", "الدولة"))</label>
                                     <InputText class="form-control" @bind-Value="address.Country" />
+                                    <ValidationMessage For="() => address.Country" />
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">@SharedDataService.SelectViewLang("Postal Code", "الرمز البريدي")</label>
+                                    <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Postal Code", "الرمز البريدي"))</label>
                                     <InputText class="form-control" @bind-Value="address.PostalCode" />
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">@SharedDataService.SelectViewLang("Longitude", "خط الطول")</label>
+                                    <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Longitude", "خط الطول"))</label>
                                     <InputNumber class="form-control" @bind-Value="address.Longitude" />
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">@SharedDataService.SelectViewLang("Latitude", "خط العرض")</label>
+                                    <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Latitude", "خط العرض"))</label>
                                     <InputNumber class="form-control" @bind-Value="address.Latitude" />
                                 </div>
                                 <div class="col-md-3">
                                     <div class="form-check mt-4">
                                         <InputCheckbox class="form-check-input" @bind-Value="address.IsDefaultBilling" />
                                         <label class="form-check-label">@SharedDataService.SelectViewLang("Default Billing", "الفوترة الافتراضية")</label>
+                                        <ValidationMessage For="() => address.IsDefaultBilling" />
                                     </div>
                                 </div>
                                 <div class="col-md-3">
                                     <div class="form-check mt-4">
                                         <InputCheckbox class="form-check-input" @bind-Value="address.IsDefaultShipping" />
                                         <label class="form-check-label">@SharedDataService.SelectViewLang("Default Shipping", "الشحن الافتراضي")</label>
+                                        <ValidationMessage For="() => address.IsDefaultShipping" />
                                     </div>
                                 </div>
                                 <div class="col-md-3 d-flex align-items-end justify-content-end">
@@ -312,25 +321,27 @@ else
                         <div class="border rounded p-3 mb-2">
                             <div class="row g-2">
                                 <div class="col-md-3">
-                                    <label class="form-label">@SharedDataService.SelectViewLang("Full Name", "الاسم الكامل")</label>
+                                    <label class="form-label">@RequiredLabel(SharedDataService.SelectViewLang("Full Name", "الاسم الكامل"))</label>
                                     <InputText class="form-control" @bind-Value="contact.FullName" />
+                                    <ValidationMessage For="() => contact.FullName" />
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">@SharedDataService.SelectViewLang("Job Title", "المسمى الوظيفي")</label>
+                                    <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Job Title", "المسمى الوظيفي"))</label>
                                     <InputText class="form-control" @bind-Value="contact.JobTitle" />
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">@SharedDataService.SelectViewLang("Email", "البريد الالكتروني")</label>
+                                    <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Email", "البريد الالكتروني"))</label>
                                     <InputText class="form-control" @bind-Value="contact.Email" />
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">@SharedDataService.SelectViewLang("Phone", "الهاتف")</label>
+                                    <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Phone", "الهاتف"))</label>
                                     <InputText class="form-control" @bind-Value="contact.PhoneNumber" />
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-check mt-2">
                                         <InputCheckbox class="form-check-input" @bind-Value="contact.IsPrimaryContact" />
                                         <label class="form-check-label">@SharedDataService.SelectViewLang("Primary Contact", "جهة الاتصال الرئيسية")</label>
+                                        <ValidationMessage For="() => contact.IsPrimaryContact" />
                                     </div>
                                 </div>
                                 <div class="col-md-6 d-flex justify-content-end">
@@ -504,6 +515,8 @@ else
     private int pageSize = 10;
     private int pageIndex;
     private int TotalPages = 1;
+    private EditContext? customerEditContext;
+    private ValidationMessageStore? customerValidationStore;
 
     private bool CanView => HasPermission(PermissionList.CustomerPermissions.View);
     private bool CanCreate => HasPermission(PermissionList.CustomerPermissions.Create);
@@ -550,6 +563,7 @@ else
     {
         editingCustomer = NewCustomer();
         editingCustomer.CompanyId = companyId;
+        SetCustomerEditContext();
         editingCustomerId = editingCustomer.Id;
         customerGroupIdText = "";
         selectedCustomerGroup = null;
@@ -565,17 +579,18 @@ else
             return;
         }
         editingCustomer = Normalize(response.Data);
+        SetCustomerEditContext();
         selectedCustomerGroup = customerGroups.FirstOrDefault(cg => cg.Id == editingCustomer.CustomerGroupId) ?? null;
         editingCustomerId = editingCustomer.Id;
         customerGroupIdText = editingCustomer.CustomerGroupId?.ToString() ?? "";
         isEdit = true;
     }
 
-    private async Task SaveCustomer()
+    private async Task SaveCustomer(EditContext _)
     {
-        if (string.IsNullOrWhiteSpace(editingCustomer.Name))
+        if (!ValidateCustomerForm())
         {
-            ShowError(SharedDataService.SelectViewLang("Customer name is required.", "اسم العميل مطلوب."));
+            ShowError(SharedDataService.SelectViewLang("Please complete the required customer fields.", "يرجى اكمال حقول العميل المطلوبة."));
             return;
         }
 
@@ -636,6 +651,7 @@ else
     {
         editingCustomerId = null;
         editingCustomer = NewCustomer();
+        SetCustomerEditContext();
         customerGroupIdText = "";
         isEdit = false;
     }
@@ -744,6 +760,104 @@ else
         return sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down";
     }
 
+    private MarkupString RequiredLabel(string label)
+        => (MarkupString)$"{System.Net.WebUtility.HtmlEncode(label)} <span class=\"text-danger\" aria-hidden=\"true\">*</span>";
+
+    private MarkupString OptionalLabel(string label)
+        => (MarkupString)$"{System.Net.WebUtility.HtmlEncode(label)} <span class=\"text-muted fw-normal small\">({SharedDataService.SelectViewLang("Optional", "اختياري")})</span>";
+
+    private void SetCustomerEditContext()
+    {
+        if (customerEditContext is not null)
+            customerEditContext.OnFieldChanged -= HandleCustomerFieldChanged;
+
+        customerEditContext = new EditContext(editingCustomer);
+        customerValidationStore = new ValidationMessageStore(customerEditContext);
+        customerEditContext.OnFieldChanged += HandleCustomerFieldChanged;
+    }
+
+    private void HandleCustomerFieldChanged(object? sender, FieldChangedEventArgs e)
+    {
+        if (customerValidationStore is null || customerEditContext is null)
+            return;
+
+        if (e.FieldIdentifier.FieldName is nameof(AddressDto.IsDefaultBilling) or nameof(AddressDto.IsDefaultShipping))
+        {
+            foreach (var address in editingCustomer.Addresses)
+                customerValidationStore.Clear(new FieldIdentifier(address, e.FieldIdentifier.FieldName));
+        }
+        else if (e.FieldIdentifier.FieldName == nameof(ContactDto.IsPrimaryContact))
+        {
+            foreach (var contact in editingCustomer.Contacts)
+                customerValidationStore.Clear(new FieldIdentifier(contact, nameof(ContactDto.IsPrimaryContact)));
+        }
+        else
+        {
+            customerValidationStore.Clear(e.FieldIdentifier);
+        }
+
+        customerEditContext.NotifyValidationStateChanged();
+    }
+
+    private bool ValidateCustomerForm()
+    {
+        if (customerEditContext is null || customerValidationStore is null)
+            SetCustomerEditContext();
+
+        customerValidationStore!.Clear();
+
+        AddRequiredMessage(editingCustomer, nameof(CustomerDto.Name), editingCustomer.Name, SharedDataService.SelectViewLang("Customer name is required.", "اسم العميل مطلوب."));
+
+        foreach (var address in editingCustomer.Addresses)
+        {
+            AddRequiredMessage(address, nameof(AddressDto.Title), address.Title, SharedDataService.SelectViewLang("Address title is required.", "عنوان العنوان مطلوب."));
+            AddRequiredMessage(address, nameof(AddressDto.AddressLine1), address.AddressLine1, SharedDataService.SelectViewLang("Address line 1 is required.", "العنوان 1 مطلوب."));
+            AddRequiredMessage(address, nameof(AddressDto.City), address.City, SharedDataService.SelectViewLang("City is required.", "المدينة مطلوبة."));
+            AddRequiredMessage(address, nameof(AddressDto.State), address.State, SharedDataService.SelectViewLang("State is required.", "المنطقة مطلوبة."));
+            AddRequiredMessage(address, nameof(AddressDto.Country), address.Country, SharedDataService.SelectViewLang("Country is required.", "الدولة مطلوبة."));
+        }
+
+        AddSingleSelectionMessages(
+            editingCustomer.Addresses.Where(a => a.IsDefaultBilling),
+            nameof(AddressDto.IsDefaultBilling),
+            SharedDataService.SelectViewLang("Only one default billing address is allowed.", "يسمح بعنوان فوترة افتراضي واحد فقط."));
+
+        AddSingleSelectionMessages(
+            editingCustomer.Addresses.Where(a => a.IsDefaultShipping),
+            nameof(AddressDto.IsDefaultShipping),
+            SharedDataService.SelectViewLang("Only one default shipping address is allowed.", "يسمح بعنوان شحن افتراضي واحد فقط."));
+
+        foreach (var contact in editingCustomer.Contacts)
+        {
+            AddRequiredMessage(contact, nameof(ContactDto.FullName), contact.FullName, SharedDataService.SelectViewLang("Contact full name is required.", "اسم جهة الاتصال مطلوب."));
+        }
+
+        AddSingleSelectionMessages(
+            editingCustomer.Contacts.Where(c => c.IsPrimaryContact),
+            nameof(ContactDto.IsPrimaryContact),
+            SharedDataService.SelectViewLang("Only one primary contact is allowed.", "يسمح بجهة اتصال رئيسية واحدة فقط."));
+
+        customerEditContext!.NotifyValidationStateChanged();
+        return !customerEditContext.GetValidationMessages().Any();
+    }
+
+    private void AddRequiredMessage(object model, string fieldName, string? value, string message)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            customerValidationStore!.Add(new FieldIdentifier(model, fieldName), message);
+    }
+
+    private void AddSingleSelectionMessages<T>(IEnumerable<T> selectedItems, string fieldName, string message)
+        where T : class
+    {
+        var items = selectedItems.ToList();
+        if (items.Count <= 1)
+            return;
+
+        foreach (var item in items)
+            customerValidationStore!.Add(new FieldIdentifier(item, fieldName), message);
+    }
+
     private void AddAddress()
     {
         editingCustomer.Addresses.Add(new AddressDto
@@ -761,6 +875,8 @@ else
     private void RemoveAddress(AddressDto address)
     {
         editingCustomer.Addresses.Remove(address);
+        customerValidationStore?.Clear();
+        customerEditContext?.NotifyValidationStateChanged();
     }
 
     private void AddContact()
@@ -775,6 +891,8 @@ else
     private void RemoveContact(ContactDto contact)
     {
         editingCustomer.Contacts.Remove(contact);
+        customerValidationStore?.Clear();
+        customerEditContext?.NotifyValidationStateChanged();
     }
 
     private static CustomerDto NewCustomer() => new()
@@ -858,6 +976,9 @@ else
 
     public void Dispose()
     {
+        if (customerEditContext is not null)
+            customerEditContext.OnFieldChanged -= HandleCustomerFieldChanged;
+
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }

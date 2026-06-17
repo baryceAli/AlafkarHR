@@ -11,7 +11,7 @@ public class PriceListService : BaseApiService, IPriceListService
     private readonly string _path;
     private readonly ApiConfig _apiConfig;
 
-    public PriceListService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public PriceListService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         _apiConfig = apiConfig;
         _path = $"/api/{_apiConfig.Version}/pricing/priceLists";

@@ -10,7 +10,7 @@ public class CustomerService : BaseApiService, ICustomerService
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
 
-    public CustomerService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public CustomerService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         _apiConfig = apiConfig;
         _path = $"api/{_apiConfig.Version}/customers/customer";

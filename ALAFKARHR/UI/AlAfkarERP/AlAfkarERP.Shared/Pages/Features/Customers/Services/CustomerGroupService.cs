@@ -10,7 +10,7 @@ public class CustomerGroupService : BaseApiService, ICustomerGroupService
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
 
-    public CustomerGroupService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public CustomerGroupService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         this._apiConfig = apiConfig;
         this._path = $"api/{_apiConfig.Version}/customers/customergroup";

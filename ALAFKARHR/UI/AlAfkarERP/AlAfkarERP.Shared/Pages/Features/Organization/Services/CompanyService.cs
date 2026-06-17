@@ -11,7 +11,7 @@ public class CompanyService : BaseApiService, ICompanyService
     private readonly string _path = "";
     private readonly ApiConfig _apiConfig;
 
-    public CompanyService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public CompanyService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         _apiConfig = apiConfig;
         _path = $"api/{_apiConfig.Version}/organization/companies";

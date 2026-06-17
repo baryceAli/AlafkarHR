@@ -8,7 +8,13 @@ public class CustomerDto
     public Guid Id { get; set; }
     public string Name { get;  set; }
 
+    public string? CustomerCode { get; set; }
+
     public string? CommercialName { get;  set; }
+
+    public string? VatNumber { get; set; }
+
+    public string? CommercialRegistrationNumber { get; set; }
 
     public Guid? CustomerGroupId { get; set; }
 
@@ -18,7 +24,13 @@ public class CustomerDto
 
     public decimal CreditLimit { get; set; }
 
-    //public PaymentTermType PaymentTerm { get; set; }
+    public PaymentTermType PaymentTerm { get; set; }
+
+    public CreditStatus CreditStatus { get; set; }
+
+    public string? CreditHoldReason { get; set; }
+
+    public decimal AvailableCredit { get; set; }
 
     public string? Notes { get; set; }
 

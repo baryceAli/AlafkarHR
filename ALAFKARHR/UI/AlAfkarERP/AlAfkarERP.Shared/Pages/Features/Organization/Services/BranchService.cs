@@ -10,7 +10,7 @@ public class BranchService : BaseApiService, IBranchService
 {
     private readonly ApiConfig _apiConfig;
     private readonly string _path;
-    public BranchService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService)
+    public BranchService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         _apiConfig = apiConfig;
         _path = $"{_apiConfig.BaseURL}/api/{_apiConfig.Version}/organization/branches";
