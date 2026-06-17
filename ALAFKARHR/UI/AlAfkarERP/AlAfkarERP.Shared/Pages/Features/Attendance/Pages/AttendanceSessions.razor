@@ -10,12 +10,14 @@
 @using SharedWithUI.Employees.Dtos
 @using SharedWithUI.Permissions
 @using Microsoft.AspNetCore.Components.Authorization;
+@using Microsoft.JSInterop
 @inject IAttendanceService AttendanceService
 @inject IEmployeeService EmployeeService
 
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
+@inject IJSRuntime JSRuntime
 
 <section class="sessions-page" dir="@SharedDataService.PageDirection">
     <div class="sessions-header">
@@ -182,7 +184,7 @@
     private Guid? employeeIdFilter;
     private DateTime? fromDate = DateTime.Today.AddDays(-7);
     private DateTime? toDate = DateTime.Today;
-    private bool isLoading;
+    private bool isLoading = true;
     private string? errorMessage;
     private Guid companyId;
     private AuthenticationState AuthState = default!;
@@ -193,6 +195,7 @@
     private DateTime? normalizeCheckOutLocal;
     private bool normalizeMarkAbsent;
     private string? normalizeNote;
+    private int browserTimezoneOffsetMinutes;
 
     protected override async Task OnInitializedAsync()
     {
@@ -207,7 +210,18 @@
 
         await LoadConfiguration();
         await LoadEmployees();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        browserTimezoneOffsetMinutes = await JSRuntime.InvokeAsync<int>("alAfkarTime.getTimezoneOffsetMinutes");
         await LoadSessions();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadConfiguration()
@@ -233,8 +247,8 @@
         isLoading = true;
         errorMessage = null;
 
-        var fromUtc = fromDate?.Date.ToUniversalTime();
-        var toUtc = toDate?.Date.AddDays(1).AddTicks(-1).ToUniversalTime();
+        DateTime? fromUtc = fromDate.HasValue ? ToUtcFromBrowserLocal(fromDate.Value.Date) : null;
+        DateTime? toUtc = toDate.HasValue ? ToUtcFromBrowserLocal(toDate.Value.Date.AddDays(1).AddTicks(-1)) : null;
         var response = await AttendanceService.GetSessionsAsync(0, 200, employeeIdFilter, fromUtc, toUtc);
 
         if (response.IsSuccess)
@@ -252,8 +266,8 @@
     private void BeginNormalize(AttendanceSessionDto session)
     {
         normalizingSession = session;
-        normalizeCheckInLocal = session.ActualStartTime?.ToLocalTime();
-        normalizeCheckOutLocal = session.ActualEndTime?.ToLocalTime();
+        normalizeCheckInLocal = ToBrowserLocal(session.ActualStartTime);
+        normalizeCheckOutLocal = ToBrowserLocal(session.ActualEndTime);
         normalizeMarkAbsent = session.NormalizationStatus == AttendanceNormalizationStatus.MarkedAbsent;
         normalizeNote = session.NormalizationNote;
     }
@@ -278,8 +292,8 @@
         var result = await AttendanceService.NormalizeSessionAsync(new NormalizeAttendanceSessionDto
         {
             SessionId = normalizingSession.Id,
-            CheckInTimeUtc = normalizeCheckInLocal?.ToUniversalTime(),
-            CheckOutTimeUtc = normalizeCheckOutLocal?.ToUniversalTime(),
+            CheckInTimeUtc = normalizeMarkAbsent ? null : ToUtcFromBrowserLocal(normalizeCheckInLocal),
+            CheckOutTimeUtc = normalizeMarkAbsent ? null : ToUtcFromBrowserLocal(normalizeCheckOutLocal),
             MarkAbsent = normalizeMarkAbsent,
             ManagerNote = normalizeNote
         });
@@ -309,8 +323,8 @@
         return !string.IsNullOrWhiteSpace(name) ? name : employee.Id.ToString();
     }
 
-    private static string FormatDate(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "-";
-    private static string FormatShiftWindowDate(DateTime value) => value.ToString("g");
+    private string FormatDate(DateTime? value) => ToBrowserLocal(value)?.ToString("g") ?? "-";
+    private string FormatShiftWindowDate(DateTime value) => ToBrowserLocal(value).ToString("g");
     private static string FormatTime(TimeSpan? value) => value.HasValue ? value.Value.ToString(@"hh\:mm") : "-";
     private static int DayOrder(DayOfWeek day) => day == DayOfWeek.Saturday ? 0 : (int)day + 1;
     private string DayName(DayOfWeek day) => day switch
@@ -362,6 +376,23 @@
         => session.RequiresNormalization ? "session-needs-normalization" : "";
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private DateTime ToBrowserLocal(DateTime utcValue)
+    {
+        var utc = DateTime.SpecifyKind(utcValue, DateTimeKind.Utc);
+        return DateTime.SpecifyKind(utc.AddMinutes(-browserTimezoneOffsetMinutes), DateTimeKind.Unspecified);
+    }
+
+    private DateTime? ToBrowserLocal(DateTime? utcValue)
+        => utcValue.HasValue ? ToBrowserLocal(utcValue.Value) : null;
+
+    private DateTime ToUtcFromBrowserLocal(DateTime localValue)
+    {
+        return DateTime.SpecifyKind(localValue.AddMinutes(browserTimezoneOffsetMinutes), DateTimeKind.Utc);
+    }
+
+    private DateTime? ToUtcFromBrowserLocal(DateTime? localValue)
+        => localValue.HasValue ? ToUtcFromBrowserLocal(localValue.Value) : null;
     
     protected override void OnInitialized()
     {

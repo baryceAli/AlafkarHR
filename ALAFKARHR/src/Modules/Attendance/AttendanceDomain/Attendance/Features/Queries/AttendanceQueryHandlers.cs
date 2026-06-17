@@ -33,7 +33,7 @@ public record GetShiftAssignmentsQuery(Guid? CompanyId, ShiftAssignmentScope? Sc
     : IQuery<GetShiftAssignmentsResult>;
 public record GetShiftAssignmentsResult(PaginatedResult<ShiftAssignmentDto> AssignmentList);
 
-public class GetAttendanceDashboardHandler(AttendanceDbContext dbContext)
+public class GetAttendanceDashboardHandler(AttendanceDbContext dbContext, ISender sender)
     : IQueryHandler<GetAttendanceDashboardQuery, GetAttendanceDashboardResult>
 {
     public async Task<GetAttendanceDashboardResult> Handle(GetAttendanceDashboardQuery request, CancellationToken cancellationToken)
@@ -57,6 +57,8 @@ public class GetAttendanceDashboardHandler(AttendanceDbContext dbContext)
             .ProjectToType<AttendanceSessionDto>()
             .ToListAsync(cancellationToken);
 
+        await PopulateEmployeeNamesAsync(recentSessions, cancellationToken);
+
         var pendingRequests = await lateRequests
             .Where(x => x.Status == AttendanceExceptionStatus.Pending)
             .OrderByDescending(x => x.RequestedCheckInTimeUtc)
@@ -77,6 +79,35 @@ public class GetAttendanceDashboardHandler(AttendanceDbContext dbContext)
         };
 
         return new GetAttendanceDashboardResult(dashboard);
+    }
+
+    private async Task PopulateEmployeeNamesAsync(List<AttendanceSessionDto> sessions, CancellationToken cancellationToken)
+    {
+        var employeeIds = sessions
+            .Select(x => x.EmployeeId)
+            .Distinct()
+            .ToList();
+
+        foreach (var employeeId in employeeIds)
+        {
+            GetEmployeeAttendanceProfileResult employee;
+
+            try
+            {
+                employee = await sender.Send(new GetEmployeeAttendanceProfileQuery(employeeId), cancellationToken);
+            }
+            catch (NotFoundException)
+            {
+                continue;
+            }
+
+            var employeeSessions = sessions.Where(x => x.EmployeeId == employeeId);
+
+            foreach (var session in employeeSessions)
+            {
+                session.EmployeeName = employee.FullName;
+            }
+        }
     }
 }
 

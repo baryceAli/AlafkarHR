@@ -53,6 +53,7 @@ public class AttendanceSessionDto
 {
     public Guid Id { get; set; }
     public Guid EmployeeId { get; set; }
+    public string? EmployeeName { get; set; }
     public Guid? ShiftId { get; set; }
     public EmployeeAttendanceType AttendanceType { get; set; }
     public DateTime ShiftStart { get; set; }

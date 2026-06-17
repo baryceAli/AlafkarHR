@@ -138,7 +138,7 @@
                         @foreach (var session in dashboard.RecentSessions)
                         {
                             <tr>
-                                <td>@ShortId(session.EmployeeId)</td>
+                                <td>@EmployeeLabel(session)</td>
                                 <td>@AttendanceTypeText(session.AttendanceType)</td>
                                 <td><span class="badge @StatusClass(session.Status)">@SessionStatusText(session.Status)</span></td>
                                 <td>@FormatDate(session.ActualStartTime ?? session.ShiftStart)</td>
@@ -183,6 +183,9 @@
     }
 
     private static string ShortId(Guid id) => id.ToString()[..8];
+    private static string EmployeeLabel(AttendanceSessionDto session)
+        => string.IsNullOrWhiteSpace(session.EmployeeName) ? ShortId(session.EmployeeId) : session.EmployeeName;
+
     private static string FormatDate(DateTime value) => value.ToLocalTime().ToString("g");
     private static string FormatNullable(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "-";
 
