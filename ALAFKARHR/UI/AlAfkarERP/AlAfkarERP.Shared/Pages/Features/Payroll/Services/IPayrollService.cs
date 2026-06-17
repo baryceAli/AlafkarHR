@@ -1,5 +1,6 @@
 using AlAfkarERP.Shared.Dtos;
 using SharedWithUI.Payroll.Dtos;
+using SharedWithUI.Payroll.Enums;
 
 namespace AlAfkarERP.Shared.Pages.Features.Payroll.Services;
 
@@ -24,6 +25,11 @@ public interface IPayrollService
     Task<ApiResult<CommitSalaryRunsPeriodDto>> CommitSalaryRunsPeriodAsync(Guid companyId, int salaryMonth, int salaryYear);
     Task<ApiResult<UndoSalaryRunsPeriodDto>> UndoSalaryRunsPeriodAsync(Guid companyId, int salaryMonth, int salaryYear);
     Task<ApiResult<SalaryRunDto>> GetSalaryRunByIdAsync(Guid id);
+    Task<ApiResult<PaginatedResult<EmployeeLoanDto>>> GetEmployeeLoansByCompanyAsync(Guid companyId, int pageIndex, int pageSize, Guid? employeeId = null, EmployeeLoanStatus? status = null, string? searchText = "");
+    Task<ApiResult<EmployeeLoanActionDto>> CreateEmployeeLoanAsync(CreateEmployeeLoanDto employeeLoan);
+    Task<ApiResult<EmployeeLoanActionDto>> UpdateEmployeeLoanAsync(UpdateEmployeeLoanDto employeeLoan);
+    Task<ApiResult<EmployeeLoanActionDto>> ApproveEmployeeLoanAsync(Guid employeeLoanId);
+    Task<ApiResult<EmployeeLoanActionDto>> CancelEmployeeLoanAsync(Guid employeeLoanId);
 }
 
 public class CreatePayrollResponseDto
@@ -65,4 +71,11 @@ public class UndoSalaryRunsPeriodDto
 public class DeletePayrollResponseDto
 {
     public bool IsSuccess { get; set; }
+}
+
+public class EmployeeLoanActionDto
+{
+    public Guid Id { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
 }

@@ -1,0 +1,503 @@
+@layout AdminLayout
+@page "/Payroll/Loans"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.Payroll.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Payroll.Dtos
+@using SharedWithUI.Payroll.Enums
+@using SharedWithUI.Permissions
+
+@inject IPayrollService PayrollService
+@inject IEmployeeService EmployeeService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (AuthState is not null && !CanView)
+{
+    <div class="alert alert-warning">
+        @SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليست لديك صلاحية لعرض هذه الصفحة")
+    </div>
+    return;
+}
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader
+        Overline='@SharedDataService.SelectViewLang("Payroll", "الرواتب")'
+        Title='@SharedDataService.SelectViewLang("Loans & Deductions", "السلف والخصومات")'
+        Subtitle='@SharedDataService.SelectViewLang("Manage approved employee loan installments and one-month deductions for payroll.", "إدارة أقساط السلف والخصومات الشهرية للموظفين ضمن الرواتب.")'
+        Icon="bi-wallet2">
+        <Actions>
+            <button class="btn btn-primary" type="button" @onclick="ShowCreate" disabled="@(!CanCreate)">
+                <i class="bi bi-plus-lg"></i>
+                @SharedDataService.SelectViewLang("New", "جديد")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (editingLoan is not null)
+    {
+        <AppCard
+            Title='@FormTitle'
+            Subtitle='@SharedDataService.SelectViewLang("Save as draft, then approve when it is ready for payroll.", "احفظ كمسودة ثم اعتمدها عند جاهزيتها للرواتب.")'
+            CssClass="mb-3">
+            <EditForm Model="editingLoan" OnValidSubmit="SaveLoanAsync">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Employee", "الموظف")</label>
+                        <InputSelect class="form-select" @bind-Value="editingLoan.EmployeeId">
+                            <option value="@Guid.Empty">@SharedDataService.SelectViewLang("Select employee", "اختر الموظف")</option>
+                            @foreach (var employee in employees)
+                            {
+                                <option value="@employee.Id">@GetEmployeeName(employee)</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => editingLoan.EmployeeId)" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Type", "النوع")</label>
+                        <InputSelect class="form-select" @bind-Value="editingLoan.Type">
+                            <option value="@EmployeeLoanType.Loan">@SharedDataService.SelectViewLang("Loan", "سلفة")</option>
+                            <option value="@EmployeeLoanType.OneTimeDeduction">@SharedDataService.SelectViewLang("One-month deduction", "خصم شهر واحد")</option>
+                        </InputSelect>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Start month", "شهر البداية")</label>
+                        <InputSelect class="form-select" @bind-Value="editingLoan.StartMonth">
+                            @for (var month = 1; month <= 12; month++)
+                            {
+                                <option value="@month">@month</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => editingLoan.StartMonth)" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Start year", "سنة البداية")</label>
+                        <InputNumber class="form-control" @bind-Value="editingLoan.StartYear" />
+                        <ValidationMessage For="@(() => editingLoan.StartYear)" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Amount", "المبلغ")</label>
+                        <InputNumber class="form-control" @bind-Value="editingLoan.Amount" />
+                        <ValidationMessage For="@(() => editingLoan.Amount)" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Installment", "القسط")</label>
+                        <InputNumber class="form-control" @bind-Value="editingLoan.InstallmentAmount" disabled="@(editingLoan.Type == EmployeeLoanType.OneTimeDeduction)" />
+                        <ValidationMessage For="@(() => editingLoan.InstallmentAmount)" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Reference", "المرجع")</label>
+                        <InputText class="form-control" @bind-Value="editingLoan.ReferenceNo" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Notes", "ملاحظات")</label>
+                        <InputText class="form-control" @bind-Value="editingLoan.Notes" />
+                    </div>
+
+                    <div class="col-12 d-flex flex-wrap justify-content-end gap-2">
+                        <button class="btn btn-outline-secondary" type="button" @onclick="CancelEdit">
+                            @SharedDataService.SelectViewLang("Cancel", "إلغاء")
+                        </button>
+                        <button class="btn btn-primary" type="submit" disabled="@(!CanSaveCurrent || isSaving)">
+                            <i class="bi bi-check-lg"></i>
+                            @SharedDataService.SelectViewLang("Save Draft", "حفظ المسودة")
+                        </button>
+                    </div>
+                </div>
+            </EditForm>
+        </AppCard>
+    }
+
+    <AppCard>
+        <FilterBar CssClass="mb-3">
+            <ChildContent>
+                <input class="form-control" placeholder="@SharedDataService.SelectViewLang("Search reference or notes", "بحث بالمرجع أو الملاحظات")" @bind="searchText" @bind:event="oninput" />
+                <select class="form-select" @bind="selectedEmployeeId">
+                    <option value="">@SharedDataService.SelectViewLang("All employees", "كل الموظفين")</option>
+                    @foreach (var employee in employees)
+                    {
+                        <option value="@employee.Id">@GetEmployeeName(employee)</option>
+                    }
+                </select>
+                <select class="form-select" @bind="selectedStatus">
+                    <option value="">@SharedDataService.SelectViewLang("All statuses", "كل الحالات")</option>
+                    @foreach (var status in Enum.GetValues<EmployeeLoanStatus>())
+                    {
+                        <option value="@status">@StatusText(status)</option>
+                    }
+                </select>
+            </ChildContent>
+            <Actions>
+                <button class="btn btn-outline-secondary" type="button" @onclick="LoadLoansAsync">
+                    <i class="bi bi-search"></i>
+                    @SharedDataService.SelectViewLang("Search", "بحث")
+                </button>
+            </Actions>
+        </FilterBar>
+
+        @if (isLoading)
+        {
+            <div class="py-4 text-center text-muted">
+                @SharedDataService.SelectViewLang("Loading loans and deductions...", "جاري تحميل السلف والخصومات...")
+            </div>
+        }
+        else if (loans.Count == 0)
+        {
+            <EmptyState
+                Icon="bi-wallet2"
+                Title='@SharedDataService.SelectViewLang("No loans or deductions", "لا توجد سلف أو خصومات")'
+                Message='@SharedDataService.SelectViewLang("Create a draft loan or one-month deduction to include it in payroll after approval.", "أنشئ مسودة سلفة أو خصم شهر واحد لإدراجها في الرواتب بعد الاعتماد.")' />
+        }
+        else
+        {
+            <div class="erp-table-wrap">
+                <table class="table erp-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>@SharedDataService.SelectViewLang("Employee", "الموظف")</th>
+                            <th>@SharedDataService.SelectViewLang("Type", "النوع")</th>
+                            <th>@SharedDataService.SelectViewLang("Start", "البداية")</th>
+                            <th>@SharedDataService.SelectViewLang("Amount", "المبلغ")</th>
+                            <th>@SharedDataService.SelectViewLang("Installment", "القسط")</th>
+                            <th>@SharedDataService.SelectViewLang("Deducted", "المخصوم")</th>
+                            <th>@SharedDataService.SelectViewLang("Remaining", "المتبقي")</th>
+                            <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var loan in loans)
+                        {
+                            <tr>
+                                <td>
+                                    <div>@EmployeeName(loan.EmployeeId)</div>
+                                    @if (!string.IsNullOrWhiteSpace(loan.ReferenceNo))
+                                    {
+                                        <div class="text-muted small">@loan.ReferenceNo</div>
+                                    }
+                                </td>
+                                <td>@TypeText(loan.Type)</td>
+                                <td>@($"{loan.StartMonth:00}/{loan.StartYear}")</td>
+                                <td>@loan.Amount.ToString("N2")</td>
+                                <td>@loan.InstallmentAmount.ToString("N2")</td>
+                                <td>@loan.DeductedAmount.ToString("N2")</td>
+                                <td>@loan.RemainingAmount.ToString("N2")</td>
+                                <td><span class="badge @StatusBadge(loan.Status)">@StatusText(loan.Status)</span></td>
+                                <td class="text-end">
+                                    <button class="btn btn-outline-warning btn-sm erp-row-action"
+                                            type="button"
+                                            @onclick="() => EditLoan(loan)"
+                                            disabled="@(!CanEdit || loan.Status != EmployeeLoanStatus.Draft)"
+                                            title="@SharedDataService.SelectViewLang("Edit", "تعديل")">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                    <button class="btn btn-outline-success btn-sm erp-row-action"
+                                            type="button"
+                                            @onclick="() => ApproveLoanAsync(loan)"
+                                            disabled="@(!CanApprove || loan.Status != EmployeeLoanStatus.Draft)"
+                                            title="@SharedDataService.SelectViewLang("Approve", "اعتماد")">
+                                        <i class="bi bi-check2-circle"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm erp-row-action"
+                                            type="button"
+                                            @onclick="() => CancelLoanAsync(loan)"
+                                            disabled="@(!CanCancel || loan.Status == EmployeeLoanStatus.Closed || loan.Status == EmployeeLoanStatus.Cancelled)"
+                                            title="@SharedDataService.SelectViewLang("Cancel", "إلغاء")">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </AppCard>
+</div>
+
+@code {
+    private AuthenticationState? AuthState;
+    private Guid companyId;
+    private bool isLoading;
+    private bool isSaving;
+    private string searchText = string.Empty;
+    private string selectedStatus = string.Empty;
+    private string selectedEmployeeId = string.Empty;
+    private List<EmployeeDto> employees = [];
+    private List<EmployeeLoanDto> loans = [];
+    private EmployeeLoanDto? editingLoan;
+
+    private bool CanView => HasPermission(PermissionList.PayrollLoanPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.PayrollLoanPermissions.Create);
+    private bool CanEdit => HasPermission(PermissionList.PayrollLoanPermissions.Edit);
+    private bool CanApprove => HasPermission(PermissionList.PayrollLoanPermissions.Approve);
+    private bool CanCancel => HasPermission(PermissionList.PayrollLoanPermissions.Cancel);
+    private bool CanSaveCurrent => editingLoan?.Id == Guid.Empty ? CanCreate : CanEdit;
+
+    private string FormTitle => editingLoan?.Id == Guid.Empty
+        ? SharedDataService.SelectViewLang("New loan or deduction", "سلفة أو خصم جديد")
+        : SharedDataService.SelectViewLang("Edit draft", "تعديل المسودة");
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+        await LoadEmployeesAsync();
+        await LoadLoansAsync();
+    }
+
+    private async Task LoadEmployeesAsync()
+    {
+        var result = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 500);
+        if (result.IsSuccess)
+        {
+            employees = result.Data?.Data?.ToList() ?? [];
+        }
+        else
+        {
+            ShowToast(result.Error?.Detail ?? "Unable to load employees", "error");
+        }
+    }
+
+    private async Task LoadLoansAsync()
+    {
+        isLoading = true;
+        try
+        {
+            Guid? employeeId = Guid.TryParse(selectedEmployeeId, out var parsedEmployeeId) ? parsedEmployeeId : null;
+            EmployeeLoanStatus? status = Enum.TryParse<EmployeeLoanStatus>(selectedStatus, out var parsedStatus) ? parsedStatus : null;
+            var result = await PayrollService.GetEmployeeLoansByCompanyAsync(companyId, 0, 500, employeeId, status, searchText);
+            if (result.IsSuccess)
+            {
+                loans = result.Data?.Data?.ToList() ?? [];
+            }
+            else
+            {
+                ShowToast(result.Error?.Detail ?? "Unable to load loans and deductions", "error");
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ShowCreate()
+    {
+        var nextMonth = DateTime.Today.AddMonths(1);
+        editingLoan = new EmployeeLoanDto
+        {
+            CompanyId = companyId,
+            EmployeeId = employees.FirstOrDefault()?.Id ?? Guid.Empty,
+            Type = EmployeeLoanType.Loan,
+            StartMonth = nextMonth.Month,
+            StartYear = nextMonth.Year,
+            Status = EmployeeLoanStatus.Draft
+        };
+    }
+
+    private void EditLoan(EmployeeLoanDto loan)
+    {
+        editingLoan = new EmployeeLoanDto
+        {
+            Id = loan.Id,
+            CompanyId = loan.CompanyId,
+            EmployeeId = loan.EmployeeId,
+            Type = loan.Type,
+            Amount = loan.Amount,
+            InstallmentAmount = loan.InstallmentAmount,
+            DeductedAmount = loan.DeductedAmount,
+            RemainingAmount = loan.RemainingAmount,
+            StartMonth = loan.StartMonth,
+            StartYear = loan.StartYear,
+            Status = loan.Status,
+            ReferenceNo = loan.ReferenceNo,
+            Notes = loan.Notes
+        };
+    }
+
+    private async Task SaveLoanAsync()
+    {
+        if (editingLoan is null)
+        {
+            return;
+        }
+
+        NormalizeEditingLoan();
+        isSaving = true;
+        try
+        {
+            var result = editingLoan.Id == Guid.Empty
+                ? await PayrollService.CreateEmployeeLoanAsync(new CreateEmployeeLoanDto
+                {
+                    CompanyId = companyId,
+                    EmployeeId = editingLoan.EmployeeId,
+                    Type = editingLoan.Type,
+                    Amount = editingLoan.Amount,
+                    InstallmentAmount = editingLoan.InstallmentAmount,
+                    StartMonth = editingLoan.StartMonth,
+                    StartYear = editingLoan.StartYear,
+                    ReferenceNo = editingLoan.ReferenceNo,
+                    Notes = editingLoan.Notes
+                })
+                : await PayrollService.UpdateEmployeeLoanAsync(new UpdateEmployeeLoanDto
+                {
+                    Id = editingLoan.Id,
+                    CompanyId = companyId,
+                    EmployeeId = editingLoan.EmployeeId,
+                    Type = editingLoan.Type,
+                    Amount = editingLoan.Amount,
+                    InstallmentAmount = editingLoan.InstallmentAmount,
+                    StartMonth = editingLoan.StartMonth,
+                    StartYear = editingLoan.StartYear,
+                    ReferenceNo = editingLoan.ReferenceNo,
+                    Notes = editingLoan.Notes
+                });
+
+            if (result.IsSuccess)
+            {
+                ShowToast(result.Data?.Message ?? "Saved successfully", "success");
+                editingLoan = null;
+                await LoadLoansAsync();
+            }
+            else
+            {
+                ShowToast(result.Error?.Detail ?? "Unable to save loan or deduction", "error");
+            }
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task ApproveLoanAsync(EmployeeLoanDto loan)
+    {
+        var result = await PayrollService.ApproveEmployeeLoanAsync(loan.Id);
+        if (result.IsSuccess)
+        {
+            ShowToast(result.Data?.Message ?? "Approved successfully", "success");
+            await LoadLoansAsync();
+        }
+        else
+        {
+            ShowToast(result.Error?.Detail ?? "Unable to approve loan or deduction", "error");
+        }
+    }
+
+    private async Task CancelLoanAsync(EmployeeLoanDto loan)
+    {
+        var result = await PayrollService.CancelEmployeeLoanAsync(loan.Id);
+        if (result.IsSuccess)
+        {
+            ShowToast(result.Data?.Message ?? "Cancelled successfully", "success");
+            await LoadLoansAsync();
+        }
+        else
+        {
+            ShowToast(result.Error?.Detail ?? "Unable to cancel loan or deduction", "error");
+        }
+    }
+
+    private void CancelEdit()
+    {
+        editingLoan = null;
+    }
+
+    private void NormalizeEditingLoan()
+    {
+        if (editingLoan is null)
+        {
+            return;
+        }
+
+        if (editingLoan.Type == EmployeeLoanType.OneTimeDeduction)
+        {
+            editingLoan.InstallmentAmount = editingLoan.Amount;
+        }
+    }
+
+    private string EmployeeName(Guid employeeId)
+    {
+        var employee = employees.FirstOrDefault(x => x.Id == employeeId);
+        return employee is null ? employeeId.ToString() : GetEmployeeName(employee);
+    }
+
+    private string GetEmployeeName(EmployeeDto employee)
+        => SharedDataService.SelectViewLang(employee.FullNameEng, employee.FullName);
+
+    private string TypeText(EmployeeLoanType type)
+        => type == EmployeeLoanType.OneTimeDeduction
+            ? SharedDataService.SelectViewLang("One-month deduction", "خصم شهر واحد")
+            : SharedDataService.SelectViewLang("Loan", "سلفة");
+
+    private string StatusText(EmployeeLoanStatus status)
+        => status switch
+        {
+            EmployeeLoanStatus.Draft => SharedDataService.SelectViewLang("Draft", "مسودة"),
+            EmployeeLoanStatus.Approved => SharedDataService.SelectViewLang("Approved", "معتمدة"),
+            EmployeeLoanStatus.Closed => SharedDataService.SelectViewLang("Closed", "مغلقة"),
+            EmployeeLoanStatus.Cancelled => SharedDataService.SelectViewLang("Cancelled", "ملغاة"),
+            _ => status.ToString()
+        };
+
+    private static string StatusBadge(EmployeeLoanStatus status)
+        => status switch
+        {
+            EmployeeLoanStatus.Draft => "text-bg-secondary",
+            EmployeeLoanStatus.Approved => "text-bg-success",
+            EmployeeLoanStatus.Closed => "text-bg-info",
+            EmployeeLoanStatus.Cancelled => "text-bg-danger",
+            _ => "text-bg-light"
+        };
+
+    private bool HasPermission(string permission)
+        => AuthState?.User.Claims.Any(c => c.Value == permission) == true;
+
+    private void ShowToast(string message, string type)
+    {
+        ToastService.Show(new ToastMessage
+        {
+            Message = message,
+            Type = type
+        });
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

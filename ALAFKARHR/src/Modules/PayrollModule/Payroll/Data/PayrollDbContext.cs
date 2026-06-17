@@ -17,6 +17,7 @@ public class PayrollDbContext:DbContext
     public DbSet<Component> Components => Set<Component>();
     public DbSet<EmployeeAllowance> EmployeeAllowances => Set<EmployeeAllowance>();
     public DbSet<EmployeeDeduction> EmployeeDeductions => Set<EmployeeDeduction>();
+    public DbSet<EmployeeLoan> EmployeeLoans => Set<EmployeeLoan>();
     public DbSet<EmployeeContract> EmployeeContracts => Set<EmployeeContract>();
     protected override void OnModelCreating(ModelBuilder builder)
     {

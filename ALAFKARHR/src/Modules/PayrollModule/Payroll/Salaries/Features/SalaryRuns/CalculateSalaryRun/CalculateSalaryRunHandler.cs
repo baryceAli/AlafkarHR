@@ -62,6 +62,14 @@ public class CalculateSalaryRunHandler(PayrollDbContext dbContext, IHttpContextA
             .Where(x => x.EmployeeId == salaryRun.EmployeeId && x.IsActive)
             .ToListAsync(cancellationToken);
 
+        var employeeLoans = await dbContext.Set<EmployeeLoan>()
+            .Where(x =>
+                x.CompanyId == contract.CompanyId &&
+                x.EmployeeId == salaryRun.EmployeeId &&
+                x.Status == EmployeeLoanStatus.Approved &&
+                !x.IsDeleted)
+            .ToListAsync(cancellationToken);
+
         decimal totalAllowances = 0;
         decimal totalDeductions = 0;
         decimal taxableAmount = 0;
@@ -135,6 +143,18 @@ public class CalculateSalaryRunHandler(PayrollDbContext dbContext, IHttpContextA
 
             totalDeductions += deductionAmount;
             salaryRunItems.Add(SalaryRunItem.Create(salaryRun.Id, deduction.Id, ComponentType.Deduction, deductionAmount));
+        }
+
+        foreach (var employeeLoan in employeeLoans)
+        {
+            var deductionAmount = employeeLoan.GetInstallmentForPeriod(salaryRun.SalaryMonth, salaryRun.SalaryYear);
+            if (deductionAmount <= 0)
+            {
+                continue;
+            }
+
+            totalDeductions += deductionAmount;
+            salaryRunItems.Add(SalaryRunItem.Create(salaryRun.Id, employeeLoan.Id, ComponentType.Deduction, deductionAmount));
         }
 
         var insuranceAmount = (salaryRun.TotalSalary + totalAllowances) * contract.InsurancePercentage / 100m;

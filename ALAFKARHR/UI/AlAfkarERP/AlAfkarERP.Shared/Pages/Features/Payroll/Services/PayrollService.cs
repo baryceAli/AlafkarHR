@@ -1,6 +1,7 @@
 using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
 using SharedWithUI.Payroll.Dtos;
+using SharedWithUI.Payroll.Enums;
 using System.Net.Http.Json;
 
 namespace AlAfkarERP.Shared.Pages.Features.Payroll.Services;
@@ -135,6 +136,55 @@ public class PayrollService : BaseApiService, IPayrollService
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/salary-runs/{id}");
         return await SendAsync<SalaryRunDto>(request, null);
+    }
+
+    public async Task<ApiResult<PaginatedResult<EmployeeLoanDto>>> GetEmployeeLoansByCompanyAsync(Guid companyId, int pageIndex, int pageSize, Guid? employeeId = null, EmployeeLoanStatus? status = null, string? searchText = "")
+    {
+        var query = $"pageIndex={pageIndex}&pageSize={pageSize}&searchText={searchText}";
+        if (employeeId.HasValue && employeeId.Value != Guid.Empty)
+        {
+            query += $"&employeeId={employeeId.Value}";
+        }
+
+        if (status.HasValue)
+        {
+            query += $"&status={status.Value}";
+        }
+
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/loans/company/{companyId}?{query}");
+        return await SendAsync<PaginatedResult<EmployeeLoanDto>>(request, "employeeLoanList");
+    }
+
+    public async Task<ApiResult<EmployeeLoanActionDto>> CreateEmployeeLoanAsync(CreateEmployeeLoanDto employeeLoan)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/loans")
+        {
+            Content = JsonContent.Create(new { EmployeeLoan = employeeLoan })
+        };
+
+        return await SendAsync<EmployeeLoanActionDto>(request, null);
+    }
+
+    public async Task<ApiResult<EmployeeLoanActionDto>> UpdateEmployeeLoanAsync(UpdateEmployeeLoanDto employeeLoan)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/loans/{employeeLoan.Id}")
+        {
+            Content = JsonContent.Create(new { EmployeeLoan = employeeLoan })
+        };
+
+        return await SendAsync<EmployeeLoanActionDto>(request, null);
+    }
+
+    public async Task<ApiResult<EmployeeLoanActionDto>> ApproveEmployeeLoanAsync(Guid employeeLoanId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/loans/{employeeLoanId}/approve");
+        return await SendAsync<EmployeeLoanActionDto>(request, null);
+    }
+
+    public async Task<ApiResult<EmployeeLoanActionDto>> CancelEmployeeLoanAsync(Guid employeeLoanId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/loans/{employeeLoanId}/cancel");
+        return await SendAsync<EmployeeLoanActionDto>(request, null);
     }
 
     public async Task<ApiResult<EmployeeContractDto>> AssignEmployeeContractAsync(EmployeeContractDto employeeContract)
