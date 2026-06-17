@@ -158,15 +158,30 @@ public class GetAttendanceCheckInPreviewHandler(AttendanceDbContext dbContext, I
             ? UtcDateTime.Normalize(request.WorkDateUtc.Value)
             : now;
 
-        var activeSession = await dbContext.AttendanceSessions
+        var shiftWindow = await ResolveShiftWindowAsync(employee, workDateUtc, cancellationToken);
+        var workDayStartUtc = shiftWindow.ShiftStart?.Date ?? workDateUtc.Date;
+        var workDayEndUtc = workDayStartUtc.AddDays(1);
+
+        if (await AttendanceSessionLifecycle.AutoCloseStaleSessionsAsync(
+            dbContext,
+            request.EmployeeId,
+            workDayStartUtc,
+            cancellationToken))
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        var activeSessionCandidates = await dbContext.AttendanceSessions
             .AsNoTracking()
             .Where(x => x.EmployeeId == request.EmployeeId
                 && (x.Status == AttendanceSessionStatus.Active || x.Status == AttendanceSessionStatus.OnBreak))
             .OrderByDescending(x => x.ActualStartTime ?? x.ShiftStart)
             .ProjectToType<AttendanceSessionDto>()
-            .FirstOrDefaultAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
 
-        var shiftWindow = await ResolveShiftWindowAsync(employee, workDateUtc, cancellationToken);
+        var activeSession = activeSessionCandidates
+            .FirstOrDefault(x => AttendanceSessionLifecycle.IsCurrentWorkdaySession(x, workDayStartUtc, workDayEndUtc));
+
         var preview = new AttendanceCheckInPreviewDto
         {
             EmployeeId = employee.EmployeeId,
@@ -226,9 +241,6 @@ public class GetAttendanceCheckInPreviewHandler(AttendanceDbContext dbContext, I
             preview.Message = "No effective shift was found for you today. Ask the administrator to assign a shift to your employee, department, administration, or company.";
             return new GetAttendanceCheckInPreviewResult(preview);
         }
-
-        var workDayStartUtc = shiftWindow.ShiftStart.Value.Date;
-        var workDayEndUtc = workDayStartUtc.AddDays(1);
 
         var completedSession = await dbContext.AttendanceSessions
             .AsNoTracking()

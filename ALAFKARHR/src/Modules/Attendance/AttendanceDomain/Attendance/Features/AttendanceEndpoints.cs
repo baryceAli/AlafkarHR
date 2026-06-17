@@ -1,10 +1,17 @@
 using AttendanceDomain.Attendance.Features.Breaks;
+using AttendanceDomain.Attendance.Features.BreakPolicies;
 using AttendanceDomain.Attendance.Features.CheckIns;
 using AttendanceDomain.Attendance.Features.EndSession;
-using AttendanceDomain.Attendance.Features.Enhancements;
+using AttendanceDomain.Attendance.Features.Configuration;
+using AttendanceDomain.Attendance.Features.EmergencyLeaves;
+using AttendanceDomain.Attendance.Features.Holidays;
 using AttendanceDomain.Attendance.Features.LateCheckInRequests;
+using AttendanceDomain.Attendance.Features.LeaveBalances;
 using AttendanceDomain.Attendance.Features.LocationPings;
+using AttendanceDomain.Attendance.Features.MidDayPermissions;
 using AttendanceDomain.Attendance.Features.Queries;
+using AttendanceDomain.Attendance.Features.Reports;
+using AttendanceDomain.Attendance.Features.SessionNormalization;
 using AttendanceDomain.Attendance.Features.ShiftAssignments;
 using AttendanceDomain.Attendance.Features.Shifts;
 using AttendanceDomain.Attendance.Features.StartSession;
@@ -19,6 +26,8 @@ namespace AttendanceDomain.Attendance.Features;
 
 public record StartAttendanceSessionRequest(StartAttendanceSessionDto Session);
 public record EndAttendanceSessionRequest(EndAttendanceSessionDto Session);
+public record EndMissingCheckInAttendanceSessionRequest(EndMissingCheckInAttendanceSessionDto Session);
+public record NormalizeAttendanceSessionRequest(NormalizeAttendanceSessionDto Session);
 public record AttendanceBreakRequest(Guid SessionId);
 public record SubmitAttendanceLocationPingRequest(AttendanceLocationPingDto Ping);
 public record SubmitAttendanceLocationPingBatchRequest(IReadOnlyCollection<AttendanceLocationPingDto> Pings);
@@ -127,6 +136,21 @@ public class AttendanceEndpoints : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("End an attendance session")
             .RequireAuthorization(PermissionList.AttendancePermissions.Create);
+
+        group.MapPost("/sessions/end-missing-checkin", EndMissingCheckInSession)
+            .WithName("EndMissingCheckInAttendanceSession")
+            .Produces<EndMissingCheckInAttendanceSessionResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Record checkout when the employee missed check-in")
+            .RequireAuthorization(PermissionList.AttendancePermissions.Create);
+
+        group.MapPost("/sessions/normalize", NormalizeSession)
+            .WithName("NormalizeAttendanceSession")
+            .Produces<NormalizeAttendanceSessionResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithSummary("Normalize missing check-in, missing checkout, or absence")
+            .RequireAuthorization(PermissionList.AttendancePermissions.ReviewRequests);
 
         group.MapPost("/sessions/break/start", StartBreak)
             .WithName("StartAttendanceBreak")
@@ -641,6 +665,26 @@ public class AttendanceEndpoints : ICarterModule
         ISender sender)
     {
         var result = await sender.Send(new EndAttendanceSessionCommand(request.Session));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<EndMissingCheckInAttendanceSessionResult>> EndMissingCheckInSession(
+        [FromBody] EndMissingCheckInAttendanceSessionRequest request,
+        ISender sender)
+    {
+        var result = await sender.Send(new EndMissingCheckInAttendanceSessionCommand(request.Session));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<NormalizeAttendanceSessionResult>> NormalizeSession(
+        [FromBody] NormalizeAttendanceSessionRequest request,
+        ClaimsPrincipal user,
+        ISender sender)
+    {
+        var normalizedBy = user.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new UnauthorizedAccessException("User is not authenticated");
+
+        var result = await sender.Send(new NormalizeAttendanceSessionCommand(request.Session, normalizedBy));
         return TypedResults.Ok(result);
     }
 

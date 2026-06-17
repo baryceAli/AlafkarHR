@@ -31,13 +31,24 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
             request.Session.LocationIntegrityNote);
 
         var shiftWindow = await ResolveShiftWindowAsync(request.Session, employee, cancellationToken);
+        var workdayStartUtc = shiftWindow.ShiftStart.Date;
+        var workdayEndUtc = workdayStartUtc.AddDays(1);
 
-        var hasActiveSession = await dbContext.AttendanceSessions.AnyAsync(
-            x => x.EmployeeId == request.Session.EmployeeId
-                && (x.Status == AttendanceSessionStatus.Active || x.Status == AttendanceSessionStatus.OnBreak),
-            cancellationToken);
+        if (await AttendanceSessionLifecycle.AutoCloseStaleSessionsAsync(
+            dbContext,
+            request.Session.EmployeeId,
+            workdayStartUtc,
+            cancellationToken))
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
 
-        if (hasActiveSession)
+        var activeSessions = await dbContext.AttendanceSessions
+            .Where(x => x.EmployeeId == request.Session.EmployeeId
+                && (x.Status == AttendanceSessionStatus.Active || x.Status == AttendanceSessionStatus.OnBreak))
+            .ToListAsync(cancellationToken);
+
+        if (activeSessions.Any(x => AttendanceSessionLifecycle.IsCurrentWorkdaySession(x, workdayStartUtc, workdayEndUtc)))
         {
             throw new BadRequestException("Employee already has an active attendance session.");
         }

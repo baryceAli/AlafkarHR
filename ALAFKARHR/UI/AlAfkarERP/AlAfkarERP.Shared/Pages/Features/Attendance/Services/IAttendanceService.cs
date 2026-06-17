@@ -20,6 +20,8 @@ public interface IAttendanceService
     Task<ApiResult<PaginatedResult<LateCheckInRequestDto>>> GetLateCheckInRequestsAsync(int pageIndex, int pageSize, AttendanceExceptionStatus? status = null, Guid? employeeId = null);
     Task<ApiResult<AttendanceSessionDto>> StartSessionAsync(StartAttendanceSessionDto session);
     Task<ApiResult<AttendanceSessionDto>> EndSessionAsync(Guid sessionId);
+    Task<ApiResult<AttendanceSessionDto>> EndMissingCheckInSessionAsync(EndMissingCheckInAttendanceSessionDto session);
+    Task<ApiResult<AttendanceSessionDto>> NormalizeSessionAsync(NormalizeAttendanceSessionDto session);
     Task<ApiResult<AttendanceSessionDto>> StartBreakAsync(Guid sessionId);
     Task<ApiResult<AttendanceSessionDto>> EndBreakAsync(Guid sessionId);
     Task<ApiResult<bool>> SubmitLocationPingAsync(AttendanceLocationPingDto ping);

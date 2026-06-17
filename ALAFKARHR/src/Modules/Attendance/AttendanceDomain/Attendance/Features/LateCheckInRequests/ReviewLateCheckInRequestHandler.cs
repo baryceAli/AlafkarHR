@@ -28,12 +28,24 @@ public class ReviewLateCheckInRequestHandler(AttendanceDbContext dbContext)
 
         var registeredTime = request.Review.RegisteredCheckInTimeUtc ?? lateRequest.RequestedCheckInTimeUtc;
 
-        var hasActiveSession = await dbContext.AttendanceSessions.AnyAsync(
-            x => x.EmployeeId == lateRequest.EmployeeId
-                && (x.Status == AttendanceSessionStatus.Active || x.Status == AttendanceSessionStatus.OnBreak),
-            cancellationToken);
+        var workdayStartUtc = lateRequest.ShiftStart.Date;
+        var workdayEndUtc = workdayStartUtc.AddDays(1);
 
-        if (hasActiveSession)
+        if (await AttendanceSessionLifecycle.AutoCloseStaleSessionsAsync(
+            dbContext,
+            lateRequest.EmployeeId,
+            workdayStartUtc,
+            cancellationToken))
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        var activeSessions = await dbContext.AttendanceSessions
+            .Where(x => x.EmployeeId == lateRequest.EmployeeId
+                && (x.Status == AttendanceSessionStatus.Active || x.Status == AttendanceSessionStatus.OnBreak))
+            .ToListAsync(cancellationToken);
+
+        if (activeSessions.Any(x => AttendanceSessionLifecycle.IsCurrentWorkdaySession(x, workdayStartUtc, workdayEndUtc)))
         {
             throw new BadRequestException("Employee already has an active attendance session.");
         }

@@ -177,6 +177,14 @@
                     <i class="bi bi-stop-circle"></i>
                     @Text("End", "إنهاء")
                 </button>
+                <button class="btn btn-outline-primary" @onclick="EndMissingCheckInSessionAsync" disabled="@(!CanEndMissingCheckInSession)">
+                    <i class="bi bi-box-arrow-right"></i>
+                    @Text("Checkout without check-in", "انصراف بدون حضور")
+                </button>
+                <button class="btn btn-outline-warning" @onclick="OpenLateRequestModal" disabled="@(!CanSubmitLateRequest)">
+                    <i class="bi bi-clock-history"></i>
+                    @Text("Late attendance", "حضور متأخر")
+                </button>
             </div>
 
             @if (activeSession is not null)
@@ -199,7 +207,9 @@
         </section>
     </div>
 
-    <div class="terminal-grid secondary-grid">
+    @if (IsMobileEmployee)
+    {
+        <div class="terminal-grid secondary-grid">
         <section class="terminal-panel">
             <div class="panel-title">
                 <h2>@Text("Mobile actions", "إجراءات الموظف المتنقل")</h2>
@@ -225,31 +235,58 @@
                 </button>
             </div>
         </section>
-
-        <section class="terminal-panel">
-            <div class="panel-title">
-                <h2>@Text("Late check-in request", "طلب تسجيل حضور متأخر")</h2>
-                <span class="text-muted">@Text("Available after the check-in closing time.", "متاح بعد وقت إغلاق تسجيل الحضور.")</span>
-            </div>
-            <div class="form-grid">
-                <label>
-                    @Text("Requested check-in time", "وقت الحضور المطلوب")
-                    <input class="form-control" type="datetime-local" @bind="lateRequestedLocal" />
-                </label>
-                <label class="wide">
-                    @Text("Reason", "السبب")
-                    <textarea class="form-control" rows="3" @bind="lateReason"></textarea>
-                </label>
-            </div>
-            <div class="action-row">
-                <button class="btn btn-warning" @onclick="CreateLateRequestAsync" disabled="@(!CanSubmitLateRequest)">
-                    <i class="bi bi-send"></i>
-                    @Text("Send request", "إرسال الطلب")
-                </button>
-            </div>
-        </section>
-    </div>
+        </div>
+    }
 </section>
+
+@if (isLateRequestModalOpen)
+{
+    <div class="late-modal-backdrop"></div>
+    <div class="late-modal modal show d-block"
+         tabindex="-1"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="late-request-title"
+         dir="@SharedDataService.PageDirection">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title" id="late-request-title">@Text("Late check-in request", "طلب تسجيل حضور متأخر")</h5>
+                        <p class="late-modal-subtitle">@Text("Available after the check-in closing time.", "متاح بعد وقت إغلاق تسجيل الحضور.")</p>
+                    </div>
+                    <button type="button" class="btn-close" aria-label="@Text("Close", "إغلاق")" @onclick="CloseLateRequestModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrWhiteSpace(message))
+                    {
+                        <div class="alert @messageClass">@message</div>
+                    }
+
+                    <div class="form-grid late-modal-form">
+                        <label>
+                            @Text("Requested check-in time", "وقت الحضور المطلوب")
+                            <input class="form-control" type="datetime-local" @bind="lateRequestedLocal" />
+                        </label>
+                        <label class="wide">
+                            @Text("Reason", "السبب")
+                            <textarea class="form-control" rows="3" @bind="lateReason"></textarea>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="CloseLateRequestModal" disabled="@isBusy">
+                        @Text("Cancel", "إلغاء")
+                    </button>
+                    <button type="button" class="btn btn-warning" @onclick="CreateLateRequestAsync" disabled="@(!CanSubmitLateRequest)">
+                        <i class="bi bi-send"></i>
+                        @Text("Send request", "إرسال الطلب")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private AttendanceCheckInPreviewDto? preview;
@@ -268,13 +305,21 @@
     private string messageClass = "alert-info";
     private bool isBusy;
     private bool firstLocationCheckCompleted;
+    private bool isLateRequestModalOpen;
 
     private bool HasLocation => latitude.HasValue && longitude.HasValue;
     private bool HasTrustedLocation => HasLocation && !isMockedLocation;
+    private bool IsMobileEmployee => preview?.AttendanceType == EmployeeAttendanceType.Mobile;
     private bool HasGeofencePreview => preview?.AttendanceType != EmployeeAttendanceType.FixedLocation
         || (preview?.DistanceMeters.HasValue == true && preview?.AllowedRadiusMeters.HasValue == true);
     private bool CanStartSession => !isBusy && preview?.CanCheckIn == true && activeSession is null && HasTrustedLocation;
     private bool CanSubmitLateRequest => !isBusy && preview?.CanSubmitLateRequest == true && HasTrustedLocation;
+    private bool CanEndMissingCheckInSession => !isBusy
+        && activeSession is null
+        && preview?.ShiftStart.HasValue == true
+        && preview?.ShiftEnd.HasValue == true
+        && !preview.IsAttendanceCompleted
+        && DateTime.UtcNow >= (preview.ProhibitCheckInAfterUtc ?? preview.ShiftStart.Value);
     private string ReadinessTitle => preview?.CanCheckIn == true
         ? Text("Ready to check in", "جاهز لتسجيل الحضور")
         : preview?.IsAttendanceCompleted == true
@@ -433,6 +478,37 @@
         await RefreshPreviewAsync();
     }
 
+    private async Task EndMissingCheckInSessionAsync()
+    {
+        if (!CanEndMissingCheckInSession || preview is null)
+        {
+            SetMessage(preview?.Message ?? Text("Checkout is not available yet.", "الانصراف غير متاح حاليا."), "alert-warning");
+            return;
+        }
+
+        isBusy = true;
+        var response = await AttendanceService.EndMissingCheckInSessionAsync(new EndMissingCheckInAttendanceSessionDto
+        {
+            EmployeeId = preview.EmployeeId,
+            ShiftId = preview.ShiftId,
+            ShiftStart = preview.ShiftStart!.Value,
+            ShiftEnd = preview.ShiftEnd!.Value
+        });
+
+        if (response.IsSuccess && response.Data is not null)
+        {
+            activeSession = response.Data;
+            SetMessage(Text("Checkout recorded. A manager must normalize the missing check-in before hours are calculated.", "تم تسجيل الانصراف. يجب على المدير تصحيح الحضور المفقود قبل احتساب الساعات."), "alert-warning");
+        }
+        else
+        {
+            SetMessage(response.Error?.Detail ?? Text("Unable to record checkout.", "تعذر تسجيل الانصراف."), "alert-danger");
+        }
+
+        isBusy = false;
+        await RefreshPreviewAsync();
+    }
+
     private async Task StartBreakAsync() => await ChangeBreakStateAsync(true);
     private async Task EndBreakAsync() => await ChangeBreakStateAsync(false);
 
@@ -509,6 +585,27 @@
         isBusy = false;
     }
 
+    private void OpenLateRequestModal()
+    {
+        if (!CanSubmitLateRequest)
+        {
+            SetMessage(preview?.Message ?? Text("Late check-in request is not available now.", "طلب تسجيل الحضور المتأخر غير متاح الآن."), "alert-warning");
+            return;
+        }
+
+        isLateRequestModalOpen = true;
+    }
+
+    private void CloseLateRequestModal()
+    {
+        if (isBusy)
+        {
+            return;
+        }
+
+        isLateRequestModalOpen = false;
+    }
+
     private async Task CreateLateRequestAsync()
     {
         if (!CanSubmitLateRequest || preview is null)
@@ -538,6 +635,11 @@
             IsMockedLocation = isMockedLocation,
             LocationIntegrityNote = locationIntegrityNote
         });
+
+        if (response.IsSuccess)
+        {
+            isLateRequestModalOpen = false;
+        }
 
         SetMessage(response.IsSuccess ? Text("Late check-in request sent.", "تم إرسال طلب تسجيل الحضور المتأخر.") : response.Error?.Detail ?? Text("Unable to send late request.", "تعذر إرسال طلب التأخير."), response.IsSuccess ? "alert-success" : "alert-danger");
         isBusy = false;
@@ -674,7 +776,7 @@
     }
 
     .secondary-grid {
-        grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+        grid-template-columns: minmax(0, 1fr);
         margin-top: .75rem;
     }
 
@@ -832,6 +934,38 @@
 
     .session-card strong {
         overflow-wrap: anywhere;
+    }
+
+    .late-modal {
+        z-index: 1055;
+    }
+
+    .late-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 1050;
+        background: rgba(15, 23, 42, .45);
+    }
+
+    .late-modal .modal-content {
+        border: 1px solid var(--erp-border, #e5e9f0);
+        border-radius: 10px;
+        box-shadow: 0 20px 60px rgba(15, 23, 42, .22);
+    }
+
+    .late-modal .modal-header,
+    .late-modal .modal-footer {
+        gap: .75rem;
+    }
+
+    .late-modal-subtitle {
+        margin: .25rem 0 0;
+        color: var(--erp-text-muted, #65758b);
+        font-size: .875rem;
+    }
+
+    .late-modal-form {
+        grid-template-columns: 1fr;
     }
 
     .empty-state {

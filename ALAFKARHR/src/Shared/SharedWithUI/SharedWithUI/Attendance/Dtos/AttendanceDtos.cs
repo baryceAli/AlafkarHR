@@ -60,8 +60,13 @@ public class AttendanceSessionDto
     public DateTime? ActualStartTime { get; set; }
     public DateTime? ActualEndTime { get; set; }
     public AttendanceSessionStatus Status { get; set; }
+    public AttendanceNormalizationStatus NormalizationStatus { get; set; } = AttendanceNormalizationStatus.Normal;
     public decimal TotalHours { get; set; }
     public decimal TotalDistanceKm { get; set; }
+    public string? NormalizationNote { get; set; }
+    public string? NormalizedBy { get; set; }
+    public DateTime? NormalizedAt { get; set; }
+    public bool RequiresNormalization => NormalizationStatus is not AttendanceNormalizationStatus.Normal;
 }
 
 public class AttendanceCheckInPreviewDto
@@ -116,6 +121,23 @@ public class ReviewLateCheckInRequestDto
     public Guid RequestId { get; set; }
     public bool IsApproved { get; set; }
     public DateTime? RegisteredCheckInTimeUtc { get; set; }
+    public string? ManagerNote { get; set; }
+}
+
+public class EndMissingCheckInAttendanceSessionDto
+{
+    public Guid EmployeeId { get; set; }
+    public Guid? ShiftId { get; set; }
+    public DateTime ShiftStart { get; set; }
+    public DateTime ShiftEnd { get; set; }
+}
+
+public class NormalizeAttendanceSessionDto
+{
+    public Guid SessionId { get; set; }
+    public DateTime? CheckInTimeUtc { get; set; }
+    public DateTime? CheckOutTimeUtc { get; set; }
+    public bool MarkAbsent { get; set; }
     public string? ManagerNote { get; set; }
 }
 
@@ -437,6 +459,7 @@ public class AttendanceReportRowDto
     public string Category { get; set; } = string.Empty;
     public AttendanceExceptionStatus? Status { get; set; }
     public AttendanceSessionStatus? SessionStatus { get; set; }
+    public AttendanceNormalizationStatus? NormalizationStatus { get; set; }
     public DateTime? ShiftStartUtc { get; set; }
     public DateTime? ShiftEndUtc { get; set; }
     public DateTime? CheckInUtc { get; set; }
@@ -450,6 +473,9 @@ public class AttendanceReportRowDto
     public int BreakMinutes { get; set; }
     public string? Reason { get; set; }
     public string? ApproverComment { get; set; }
+    public string? NormalizationNote { get; set; }
+    public bool RequiresNormalization => NormalizationStatus.HasValue
+        && NormalizationStatus.Value is not AttendanceNormalizationStatus.Normal;
 }
 
 public class AttendanceReportDto

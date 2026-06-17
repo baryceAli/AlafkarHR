@@ -173,6 +173,22 @@ public class AttendanceService : BaseApiService, IAttendanceService
         }, "session");
     }
 
+    public async Task<ApiResult<AttendanceSessionDto>> EndMissingCheckInSessionAsync(EndMissingCheckInAttendanceSessionDto session)
+    {
+        return await SendAsync<AttendanceSessionDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/sessions/end-missing-checkin")
+        {
+            Content = JsonContent.Create(new { Session = session })
+        }, "session");
+    }
+
+    public async Task<ApiResult<AttendanceSessionDto>> NormalizeSessionAsync(NormalizeAttendanceSessionDto session)
+    {
+        return await SendAsync<AttendanceSessionDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/sessions/normalize")
+        {
+            Content = JsonContent.Create(new { Session = session })
+        }, "session");
+    }
+
     public async Task<ApiResult<AttendanceSessionDto>> StartBreakAsync(Guid sessionId)
     {
         return await SendAsync<AttendanceSessionDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/sessions/break/start")
