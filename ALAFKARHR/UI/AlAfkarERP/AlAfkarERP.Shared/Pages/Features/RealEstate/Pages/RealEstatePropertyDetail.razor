@@ -1,0 +1,155 @@
+@page "/RealEstate/Properties/{Id:guid}"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.RealEstate.Services
+@using SharedWithUI.RealEstate.Dtos
+@using SharedWithUI.RealEstate.Enums
+@inject IRealEstateService RealEstateService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@((property?.Name) ?? Text("Property Detail", "تفاصيل العقار"))" Subtitle="@Text("Units, leases, expenses, utilities, and maintenance linkage.", "الوحدات والعقود والمصاريف والخدمات وربط الصيانة.")" Icon="bi-building">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo("/RealEstate/Properties"))"><i class="bi bi-arrow-left"></i> @Text("Back", "رجوع")</button>
+            @if (property is not null)
+            {
+                <button class="btn btn-primary" @onclick="@(() => NavigationManager.NavigateTo($"/RealEstate/Properties/Form/{property.Id}"))"><i class="bi bi-pencil"></i> @Text("Edit", "تعديل")</button>
+            }
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <article class="erp-card"><div class="erp-card-body text-muted">@Text("Loading property...", "جاري تحميل العقار...")</div></article>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+    else if (property is not null)
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Units", "الوحدات")" Value="@units.Count.ToString()" Icon="bi-door-open" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Active Leases", "العقود النشطة")" Value="@leases.Count(x => x.Status == LeaseStatus.Active).ToString()" Icon="bi-file-earmark-check" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Expenses", "المصاريف")" Value="@expenses.Sum(x => x.TotalAmount).ToString("N2")" Icon="bi-receipt" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Open Bills", "الفواتير المفتوحة")" Value="@utilityBills.Count(x => !x.IsPaid).ToString()" Icon="bi-lightning-charge" /></div>
+        </div>
+
+        <article class="erp-card mb-3">
+            <div class="erp-card-body">
+                <div class="row g-3">
+                    <div class="col-12 col-md-3"><div class="text-muted small">@Text("Code", "الكود")</div><strong>@property.Code</strong></div>
+                    <div class="col-12 col-md-3"><div class="text-muted small">@Text("Status", "الحالة")</div><span class="badge text-bg-secondary">@property.Status</span></div>
+                    <div class="col-12 col-md-3"><div class="text-muted small">@Text("City", "المدينة")</div><strong>@property.City</strong></div>
+                    <div class="col-12 col-md-3"><div class="text-muted small">@Text("Maintenance Asset", "أصل الصيانة")</div><strong>@Text("Linked from RealEstate", "مرتبط من العقارات")</strong></div>
+                    <div class="col-12"><div class="text-muted small">@Text("Address", "العنوان")</div>@property.Address</div>
+                </div>
+            </div>
+        </article>
+
+        <article class="erp-card">
+            <div class="erp-card-body">
+                <ul class="nav nav-tabs mb-3">
+                    @foreach (var tab in tabs)
+                    {
+                        <li class="nav-item"><button class="nav-link @(activeTab == tab ? "active" : "")" @onclick="() => activeTab = tab">@TabTitle(tab)</button></li>
+                    }
+                </ul>
+                @if (activeTab == "Units")
+                {
+                    @if (units.Count == 0)
+                    {
+                        <div class="text-muted">@Text("No units for this property.", "لا توجد وحدات لهذا العقار.")</div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table align-middle">
+                                <thead><tr><th>@Text("Unit", "الوحدة")</th><th>@Text("Name", "الاسم")</th><th>@Text("Type", "النوع")</th><th>@Text("Status", "الحالة")</th><th>@Text("Area", "المساحة")</th><th></th></tr></thead>
+                                <tbody>
+                                    @foreach (var item in units)
+                                    {
+                                        <tr>
+                                            <td>@item.UnitNumber</td>
+                                            <td>@item.Name</td>
+                                            <td>@item.UnitType</td>
+                                            <td><span class="badge text-bg-secondary">@item.Status</span></td>
+                                            <td>@item.Area</td>
+                                            <td class="text-end"><button class="btn btn-sm btn-outline-primary" @onclick="@(() => NavigationManager.NavigateTo($"/RealEstate/Units/Form/{item.Id}"))"><i class="bi bi-pencil"></i></button></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                }
+                else if (activeTab == "Leases")
+                {
+                    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>@Text("Number", "الرقم")</th><th>@Text("Party", "الطرف")</th><th>@Text("Direction", "الاتجاه")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>@foreach (var item in leases) { <tr><td>@item.Number</td><td>@item.PartyDisplayName</td><td>@item.Direction</td><td><span class="badge text-bg-secondary">@item.Status</span></td><td class="text-end"><button class="btn btn-sm btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo($"/RealEstate/Leases/{item.Id}"))"><i class="bi bi-eye"></i></button></td></tr> }</tbody></table></div>
+                }
+                else if (activeTab == "Expenses")
+                {
+                    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Category", "التصنيف")</th><th>@Text("Supplier", "المورد")</th><th>@Text("Total", "الإجمالي")</th></tr></thead><tbody>@foreach (var item in expenses) { <tr><td>@item.ExpenseDate.ToShortDateString()</td><td>@item.Category</td><td>@item.SupplierName</td><td>@item.TotalAmount.ToString("N2")</td></tr> }</tbody></table></div>
+                }
+                else if (activeTab == "Utilities")
+                {
+                    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>@Text("Due", "الاستحقاق")</th><th>@Text("Total", "الإجمالي")</th><th>@Text("Paid", "مدفوعة")</th><th>@Text("Reference", "المرجع")</th></tr></thead><tbody>@foreach (var item in utilityBills) { <tr><td>@item.DueDate.ToShortDateString()</td><td>@item.TotalAmount.ToString("N2")</td><td>@(item.IsPaid ? Text("Yes", "نعم") : Text("No", "لا"))</td><td>@item.Reference</td></tr> }</tbody></table></div>
+                }
+                else
+                {
+                    <div class="text-muted">@Text("Maintenance assets are created and updated automatically for properties and units. Work orders remain in the Maintenance module.", "يتم إنشاء وتحديث أصول الصيانة تلقائيا للعقارات والوحدات، وتبقى أوامر العمل داخل وحدة الصيانة.")</div>
+                }
+            </div>
+        </article>
+    }
+</main>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private PropertyDto? property;
+    private List<PropertyUnitDto> units = [];
+    private List<LeaseDto> leases = [];
+    private List<PropertyExpenseDto> expenses = [];
+    private List<UtilityBillDto> utilityBills = [];
+    private readonly string[] tabs = ["Units", "Leases", "Expenses", "Utilities", "Maintenance"];
+    private string activeTab = "Units";
+    private bool isLoading;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var propertyResult = await RealEstateService.GetPropertyByIdAsync(Id);
+        property = propertyResult.Data;
+        var unitsResult = await RealEstateService.GetUnitsAsync(1, 200, propertyId: Id);
+        var leasesResult = await RealEstateService.GetLeasesAsync(1, 200, propertyId: Id);
+        var expensesResult = await RealEstateService.GetExpensesAsync(1, 200, propertyId: Id);
+        var billsResult = await RealEstateService.GetUtilityBillsAsync(1, 200, propertyId: Id);
+        units = unitsResult.Data?.Data.ToList() ?? [];
+        leases = leasesResult.Data?.Data.ToList() ?? [];
+        expenses = expensesResult.Data?.Data.ToList() ?? [];
+        utilityBills = billsResult.Data?.Data.ToList() ?? [];
+        errorMessage = propertyResult.IsSuccess ? null : propertyResult.Error?.GetDisplayMessage(SharedDataService.Language);
+        isLoading = false;
+    }
+
+    private string TabTitle(string tab) => tab switch
+    {
+        "Units" => Text("Units", "الوحدات"),
+        "Leases" => Text("Leases", "العقود"),
+        "Expenses" => Text("Expenses", "المصاريف"),
+        "Utilities" => Text("Utilities", "الخدمات"),
+        _ => Text("Maintenance", "الصيانة")
+    };
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

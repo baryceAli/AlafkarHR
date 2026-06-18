@@ -1,0 +1,143 @@
+@page "/RealEstate/Collections"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.RealEstate.Services
+@using SharedWithUI.RealEstate.Dtos
+@using SharedWithUI.RealEstate.Enums
+@inject IRealEstateService RealEstateService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+@inject ApiConfig ApiConfig
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Rent Collections", "تحصيل الإيجارات")" Subtitle="@Text("Filter tenant installments and allocate full or partial payments.", "تصفية أقساط المستأجرين وتخصيص السداد الكامل أو الجزئي.")" Icon="bi-cash-coin" />
+
+    <article class="erp-card mb-3">
+        <div class="erp-card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-3"><label class="form-label">@Text("Status", "الحالة")</label><select class="form-select" @bind="statusText"><option value="">@Text("All", "الكل")</option>@foreach (var status in Enum.GetValues<InstallmentStatus>()) { <option value="@status">@status</option> }</select></div>
+                <div class="col-12 col-md-3"><label class="form-label">@Text("View", "العرض")</label><select class="form-select" @bind="quickView"><option value="">@Text("All", "الكل")</option><option value="Overdue">@Text("Overdue", "متأخر")</option><option value="Open">@Text("Open", "مفتوح")</option></select></div>
+                <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadAsync"><i class="bi bi-search"></i> @Text("Filter", "تصفية")</button></div>
+            </div>
+        </div>
+    </article>
+
+    @if (selected is not null)
+    {
+        <article class="erp-card mb-3">
+            <div class="erp-card-header"><strong>@Text("Record Payment", "تسجيل سداد")</strong></div>
+            <div class="erp-card-body">
+                <EditForm Model="payment" OnValidSubmit="RecordPaymentAsync">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 col-md-3"><label class="form-label">@Text("Installment", "القسط")</label><input class="form-control" value="@($"#{selected.Sequence} - {selected.RemainingAmount:N2}")" disabled /></div>
+                        <div class="col-12 col-md-2"><label class="form-label">@Text("Amount", "المبلغ")</label><InputNumber class="form-control" @bind-Value="paymentAmount" /></div>
+                        <div class="col-12 col-md-2"><label class="form-label">@Text("Date", "التاريخ")</label><InputDate class="form-control" @bind-Value="payment.PaymentDate" /></div>
+                        <div class="col-12 col-md-3"><label class="form-label">@Text("Reference", "المرجع")</label><InputText class="form-control" @bind-Value="payment.Reference" /></div>
+                        <div class="col-12 col-md-2"><button class="btn btn-success w-100" type="submit"><i class="bi bi-check2"></i> @Text("Allocate", "تخصيص")</button></div>
+                        <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputTextArea class="form-control" @bind-Value="payment.Notes" rows="2" /></div>
+                    </div>
+                </EditForm>
+            </div>
+        </article>
+    }
+
+    <article class="erp-card">
+        <div class="erp-card-body">
+            @if (isLoading)
+            {
+                <div class="text-muted">@Text("Loading installments...", "جاري تحميل الأقساط...")</div>
+            }
+            else if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="alert alert-danger">@errorMessage</div>
+            }
+            else if (FilteredInstallments.Count == 0)
+            {
+                <div class="text-muted">@Text("No installments found.", "لا توجد أقساط.")</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead><tr><th>@Text("Due Date", "تاريخ الاستحقاق")</th><th>@Text("Period", "الفترة")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Paid", "المدفوع")</th><th>@Text("Remaining", "المتبقي")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                        <tbody>
+                            @foreach (var item in FilteredInstallments)
+                            {
+                                <tr>
+                                    <td>@item.DueDate.ToShortDateString()</td>
+                                    <td>@item.PeriodStart.ToShortDateString() - @item.PeriodEnd.ToShortDateString()</td>
+                                    <td>@item.Amount.ToString("N2")</td>
+                                    <td>@item.PaidAmount.ToString("N2")</td>
+                                    <td>@item.RemainingAmount.ToString("N2")</td>
+                                    <td><span class="badge text-bg-secondary">@item.Status</span></td>
+                                    <td class="text-end text-nowrap">
+                                        <button class="btn btn-sm btn-outline-success" disabled="@(item.RemainingAmount <= 0)" @onclick="@(() => SelectInstallment(item))"><i class="bi bi-cash"></i> @Text("Pay", "سداد")</button>
+                                        <button class="btn btn-sm btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo($"/RealEstate/Leases/{item.LeaseId}"))"><i class="bi bi-eye"></i></button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </article>
+</main>
+
+@code {
+    private List<LeaseInstallmentDto> installments = [];
+    private LeaseInstallmentDto? selected;
+    private RecordRentPaymentDto payment = new() { PaymentDate = DateTime.UtcNow.Date };
+    private decimal paymentAmount;
+    private bool isLoading;
+    private string statusText = string.Empty;
+    private string quickView = string.Empty;
+    private string? errorMessage;
+    private List<LeaseInstallmentDto> FilteredInstallments => installments.Where(x =>
+        quickView != "Overdue" || x.Status == InstallmentStatus.Overdue || (x.Status == InstallmentStatus.Pending && x.DueDate.Date < DateTime.UtcNow.Date))
+        .Where(x => quickView != "Open" || x.RemainingAmount > 0)
+        .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        InstallmentStatus? status = Enum.TryParse<InstallmentStatus>(statusText, out var parsed) ? parsed : null;
+        var companyId = ApiConfig.CompanyId == Guid.Empty ? (Guid?)null : ApiConfig.CompanyId;
+        var result = await RealEstateService.GetInstallmentsAsync(1, 500, companyId: companyId, status: status);
+        installments = result.Data?.Data.ToList() ?? [];
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        isLoading = false;
+    }
+
+    private void SelectInstallment(LeaseInstallmentDto installment)
+    {
+        selected = installment;
+        paymentAmount = installment.RemainingAmount;
+        payment = new RecordRentPaymentDto { LeaseId = installment.LeaseId, PaymentDate = DateTime.UtcNow.Date };
+    }
+
+    private async Task RecordPaymentAsync()
+    {
+        if (selected is null) return;
+        payment.LeaseId = selected.LeaseId;
+        payment.Allocations = [new RentPaymentAllocationDto { InstallmentId = selected.Id, Amount = paymentAmount }];
+        var result = await RealEstateService.RecordRentPaymentAsync(payment);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess)
+        {
+            selected = null;
+            await LoadAsync();
+        }
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

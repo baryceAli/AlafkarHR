@@ -1,0 +1,116 @@
+@page "/RealEstate/Properties"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.RealEstate.Services
+@using SharedWithUI.RealEstate.Dtos
+@using SharedWithUI.RealEstate.Enums
+@inject IRealEstateService RealEstateService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+@inject ApiConfig ApiConfig
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Properties", "العقارات")" Subtitle="@Text("Buildings and properties rented by the company.", "المباني والعقارات المستأجرة من قبل الشركة.")" Icon="bi-buildings">
+        <Actions>
+            <button class="btn btn-primary" @onclick="@(() => NavigationManager.NavigateTo("/RealEstate/Properties/Form"))">
+                <i class="bi bi-plus-lg"></i> @Text("New Property", "عقار جديد")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    <article class="erp-card mb-3">
+        <div class="erp-card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-5">
+                    <label class="form-label">@Text("Search", "بحث")</label>
+                    <input class="form-control" @bind="searchText" @bind:event="oninput" placeholder="@Text("Code, Arabic name, or English name", "الكود أو الاسم")" />
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">@Text("Company", "الشركة")</label>
+                    <input class="form-control" value="@EffectiveCompanyId" disabled />
+                </div>
+                <div class="col-12 col-md-2">
+                    <button class="btn btn-outline-primary w-100" @onclick="LoadAsync"><i class="bi bi-search"></i> @Text("Filter", "تصفية")</button>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <article class="erp-card">
+        <div class="erp-card-body">
+            @if (isLoading)
+            {
+                <div class="text-muted">@Text("Loading properties...", "جاري تحميل العقارات...")</div>
+            }
+            else if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="alert alert-danger">@errorMessage</div>
+            }
+            else if (properties.Count == 0)
+            {
+                <div class="text-muted">@Text("No properties found.", "لا توجد عقارات.")</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead><tr><th>@Text("Code", "الكود")</th><th>@Text("Name", "الاسم")</th><th>@Text("Status", "الحالة")</th><th>@Text("Units", "الوحدات")</th><th>@Text("Location", "الموقع")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                        <tbody>
+                            @foreach (var item in properties)
+                            {
+                                <tr>
+                                    <td>@item.Code</td>
+                                    <td><strong>@item.Name</strong><div class="text-muted small">@item.NameEng</div></td>
+                                    <td><span class="badge text-bg-secondary">@item.Status</span></td>
+                                    <td>@item.UnitsCount</td>
+                                    <td>@string.Join(" - ", new[] { item.City, item.District }.Where(x => !string.IsNullOrWhiteSpace(x)))</td>
+                                    <td class="text-end text-nowrap">
+                                        <button class="btn btn-sm btn-outline-secondary" title="@Text("View", "عرض")" @onclick="@(() => NavigationManager.NavigateTo($"/RealEstate/Properties/{item.Id}"))"><i class="bi bi-eye"></i></button>
+                                        <button class="btn btn-sm btn-outline-primary" title="@Text("Edit", "تعديل")" @onclick="@(() => NavigationManager.NavigateTo($"/RealEstate/Properties/Form/{item.Id}"))"><i class="bi bi-pencil"></i></button>
+                                        <button class="btn btn-sm btn-outline-danger" title="@Text("Delete", "حذف")" @onclick="@(() => DeleteAsync(item.Id))"><i class="bi bi-trash"></i></button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </article>
+</main>
+
+@code {
+    private readonly List<PropertyDto> properties = [];
+    private bool isLoading;
+    private string searchText = string.Empty;
+    private string? errorMessage;
+    private Guid? EffectiveCompanyId => ApiConfig.CompanyId == Guid.Empty ? null : ApiConfig.CompanyId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await RealEstateService.GetPropertiesAsync(1, 100, searchText, EffectiveCompanyId);
+        properties.Clear();
+        properties.AddRange(result.Data?.Data ?? []);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        isLoading = false;
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        var result = await RealEstateService.DeletePropertyAsync(id);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) await LoadAsync();
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

@@ -1,0 +1,128 @@
+@page "/RealEstate/OwnerLeases"
+@page "/RealEstate/TenantLeases"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.RealEstate.Services
+@using SharedWithUI.RealEstate.Dtos
+@using SharedWithUI.RealEstate.Enums
+@inject IRealEstateService RealEstateService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+@inject ApiConfig ApiConfig
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Title" Subtitle="@Text("Operational lease records linked to signed Contracts.", "سجلات التأجير التشغيلية المرتبطة بالعقود.")" Icon="bi-file-earmark-check">
+        <Actions>
+            <button class="btn btn-primary" @onclick="@(() => NavigationManager.NavigateTo($"/RealEstate/Leases/Form/{Direction}"))"><i class="bi bi-plus-lg"></i> @Text("New Lease", "عقد جديد")</button>
+        </Actions>
+    </PageHeader>
+
+    <article class="erp-card mb-3">
+        <div class="erp-card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-4"><label class="form-label">@Text("Search", "بحث")</label><input class="form-control" @bind="searchText" @bind:event="oninput" /></div>
+                <div class="col-12 col-md-3"><label class="form-label">@Text("Status", "الحالة")</label><select class="form-select" @bind="statusText"><option value="">@Text("All", "الكل")</option>@foreach (var status in Enum.GetValues<LeaseStatus>()) { <option value="@status">@status</option> }</select></div>
+                <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadAsync"><i class="bi bi-search"></i> @Text("Filter", "تصفية")</button></div>
+            </div>
+        </div>
+    </article>
+
+    <article class="erp-card">
+        <div class="erp-card-body">
+            @if (isLoading)
+            {
+                <div class="text-muted">@Text("Loading leases...", "جاري تحميل العقود...")</div>
+            }
+            else if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="alert alert-danger">@errorMessage</div>
+            }
+            else if (leases.Count == 0)
+            {
+                <div class="text-muted">@Text("No leases found.", "لا توجد عقود.")</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead><tr><th>@Text("Number", "الرقم")</th><th>@Text("Party", "الطرف")</th><th>@Text("Property", "العقار")</th><th>@Text("Unit", "الوحدة")</th><th>@Text("Rent", "الإيجار")</th><th>@Text("Contract", "العقد")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                        <tbody>
+                            @foreach (var item in leases)
+                            {
+                                <tr>
+                                    <td>@item.Number</td>
+                                    <td>@item.PartyDisplayName</td>
+                                    <td>@item.PropertyName</td>
+                                    <td>@item.UnitNumber</td>
+                                    <td>@item.RentAmount.ToString("N2")</td>
+                                    <td>@item.ContractNumber</td>
+                                    <td><span class="badge text-bg-secondary">@item.Status</span></td>
+                                    <td class="text-end text-nowrap">
+                                        <button class="btn btn-sm btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo($"/RealEstate/Leases/{item.Id}"))"><i class="bi bi-eye"></i></button>
+                                        @if (item.Status == LeaseStatus.Draft)
+                                        {
+                                            <button class="btn btn-sm btn-outline-primary" @onclick="@(() => NavigationManager.NavigateTo($"/RealEstate/Leases/Form/{Direction}/{item.Id}"))"><i class="bi bi-pencil"></i></button>
+                                            <button class="btn btn-sm btn-outline-secondary" @onclick="@(() => GenerateAsync(item.Id))">@Text("Generate", "توليد")</button>
+                                            <button class="btn btn-sm btn-outline-success" @onclick="@(() => ActivateAsync(item.Id))">@Text("Activate", "تفعيل")</button>
+                                        }
+                                        @if (item.Status == LeaseStatus.Active)
+                                        {
+                                            <button class="btn btn-sm btn-outline-warning" @onclick="@(() => SuspendAsync(item.Id))">@Text("Suspend", "تعليق")</button>
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="@(() => TerminateAsync(item.Id))">@Text("Terminate", "إنهاء")</button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </article>
+</main>
+
+@code {
+    private List<LeaseDto> leases = [];
+    private bool isLoading;
+    private string searchText = string.Empty;
+    private string statusText = string.Empty;
+    private string? errorMessage;
+    private LeaseDirection Direction => NavigationManager.Uri.Contains("OwnerLeases", StringComparison.OrdinalIgnoreCase) ? LeaseDirection.OwnerToCompany : LeaseDirection.CompanyToTenant;
+    private Guid? CompanyId => ApiConfig.CompanyId == Guid.Empty ? null : ApiConfig.CompanyId;
+    private string Title => Direction == LeaseDirection.OwnerToCompany ? Text("Owner Leases", "عقود الملاك") : Text("Tenant Leases", "عقود المستأجرين");
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadAsync();
+    }
+
+    protected override async Task OnParametersSetAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        LeaseStatus? status = Enum.TryParse<LeaseStatus>(statusText, out var parsed) ? parsed : null;
+        var result = await RealEstateService.GetLeasesAsync(1, 200, searchText, Direction, CompanyId, status: status);
+        leases = result.Data?.Data.ToList() ?? [];
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        isLoading = false;
+    }
+
+    private async Task GenerateAsync(Guid id) => await RunLeaseActionAsync(() => RealEstateService.GenerateInstallmentsAsync(id));
+    private async Task ActivateAsync(Guid id) => await RunLeaseActionAsync(() => RealEstateService.ActivateLeaseAsync(id));
+    private async Task SuspendAsync(Guid id) => await RunLeaseActionAsync(() => RealEstateService.SuspendLeaseAsync(id));
+    private async Task TerminateAsync(Guid id) => await RunLeaseActionAsync(() => RealEstateService.TerminateLeaseAsync(id));
+
+    private async Task RunLeaseActionAsync(Func<Task<ApiResult<UpdateDeleteResponseDto>>> action)
+    {
+        var result = await action();
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        await LoadAsync();
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

@@ -1,0 +1,236 @@
+@page "/RealEstate/Leases/Form/{DirectionText}"
+@page "/RealEstate/Leases/Form/{DirectionText}/{Id:guid}"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Contracts.Services
+@using AlAfkarERP.Shared.Pages.Features.Customers.Services
+@using AlAfkarERP.Shared.Pages.Features.RealEstate.Services
+@using AlAfkarERP.Shared.Pages.Features.Suppliers.Services
+@using SharedWithUI.Contracts.Dtos
+@using SharedWithUI.Contracts.Enums
+@using SharedWithUI.Customers.Dtos
+@using SharedWithUI.RealEstate.Dtos
+@using SharedWithUI.RealEstate.Enums
+@using SharedWithUI.Suppliers.Dtos
+@inject IRealEstateService RealEstateService
+@inject ICustomerService CustomerService
+@inject ISupplierService SupplierService
+@inject IContractsService ContractsService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+@inject ApiConfig ApiConfig
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Title" Subtitle="@Text("Create or edit a draft operational lease.", "إنشاء أو تعديل عقد تأجير تشغيلي بحالة مسودة.")" Icon="bi-file-earmark-check">
+        <Actions><button class="btn btn-outline-secondary" @onclick="Back"><i class="bi bi-arrow-left"></i> @Text("Back", "رجوع")</button></Actions>
+    </PageHeader>
+
+    <article class="erp-card">
+        <div class="erp-card-body">
+            @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
+            @if (isLoading)
+            {
+                <div class="text-muted">@Text("Loading lease...", "جاري تحميل العقد...")</div>
+            }
+            else
+            {
+                <EditForm Model="lease" OnValidSubmit="SaveAsync">
+                    <DataAnnotationsValidator />
+                    <div class="row g-3">
+                        <div class="col-12 col-md-3"><label class="form-label">@Text("Company", "الشركة")</label><input class="form-control" value="@lease.CompanyId" disabled /></div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Property", "العقار")</label>
+                            <select class="form-select" @bind="propertyIdText" @bind:after="OnPropertyChanged">
+                                <option value="">@Text("Select property", "اختر العقار")</option>
+                                @foreach (var property in properties) { <option value="@property.Id">@property.Name</option> }
+                            </select>
+                        </div>
+                        @if (Direction == LeaseDirection.CompanyToTenant)
+                        {
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">@Text("Unit", "الوحدة")</label>
+                                <select class="form-select" @bind="unitIdText">
+                                    <option value="">@Text("Select unit", "اختر الوحدة")</option>
+                                    @foreach (var unit in units) { <option value="@unit.Id">@unit.UnitNumber - @unit.Name</option> }
+                                </select>
+                            </div>
+                        }
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@PartyLabel</label>
+                            <select class="form-select" @bind="partyIdText" @bind:after="OnPartyChanged">
+                                <option value="">@Text("Select party", "اختر الطرف")</option>
+                                @if (Direction == LeaseDirection.CompanyToTenant)
+                                {
+                                    @foreach (var customer in customers) { <option value="@customer.Id">@customer.Name</option> }
+                                }
+                                else
+                                {
+                                    @foreach (var supplier in suppliers) { <option value="@supplier.Id">@supplier.Name</option> }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label">@Text("Contract", "العقد")</label>
+                            <select class="form-select" @bind="contractIdText" @bind:after="OnContractChanged">
+                                <option value="">@Text("Select contract", "اختر العقد")</option>
+                                @foreach (var contract in contracts) { <option value="@contract.Id">@contract.Number - @contract.Title (@contract.Status)</option> }
+                            </select>
+                            <div class="form-text">@Text("Activation requires a signed or active matching contract.", "يتطلب التفعيل عقدا مطابقا موقعا أو نشطا.")</div>
+                        </div>
+                        <div class="col-12 col-md-2"><label class="form-label">@Text("Rent Amount", "مبلغ الإيجار")</label><InputNumber class="form-control" @bind-Value="lease.RentAmount" /></div>
+                        <div class="col-12 col-md-2"><label class="form-label">@Text("Deposit", "التأمين")</label><InputNumber class="form-control" @bind-Value="lease.DepositAmount" /></div>
+                        <div class="col-12 col-md-2"><label class="form-label">@Text("Frequency", "الدورية")</label><InputSelect class="form-select" @bind-Value="lease.BillingFrequency">@foreach (var value in Enum.GetValues<BillingFrequency>()) { <option value="@value">@value</option> }</InputSelect></div>
+                        <div class="col-12 col-md-2"><label class="form-label">@Text("Due Day", "يوم الاستحقاق")</label><InputNumber class="form-control" @bind-Value="lease.DueDay" /></div>
+                        <div class="col-12 col-md-2"><label class="form-label">@Text("Grace Days", "أيام السماح")</label><InputNumber class="form-control" @bind-Value="lease.GraceDays" /></div>
+                        <div class="col-12 col-md-2"><label class="form-label">@Text("Custom Months", "أشهر مخصصة")</label><InputNumber class="form-control" @bind-Value="lease.CustomIntervalMonths" /></div>
+                        <div class="col-12 col-md-3"><label class="form-label">@Text("Start Date", "تاريخ البداية")</label><InputDate class="form-control" @bind-Value="lease.StartDate" /></div>
+                        <div class="col-12 col-md-3"><label class="form-label">@Text("End Date", "تاريخ النهاية")</label><InputDate class="form-control" @bind-Value="lease.EndDate" /></div>
+                        <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputTextArea class="form-control" rows="3" @bind-Value="lease.Notes" /></div>
+                    </div>
+                    <div class="d-flex gap-2 justify-content-end mt-4">
+                        <button class="btn btn-outline-secondary" type="button" @onclick="Back">@Text("Cancel", "إلغاء")</button>
+                        <button class="btn btn-primary" type="submit" disabled="@isSaving"><i class="bi bi-check2"></i> @Text("Save Draft", "حفظ المسودة")</button>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </article>
+</main>
+
+@code {
+    [Parameter] public string DirectionText { get; set; } = nameof(LeaseDirection.CompanyToTenant);
+    [Parameter] public Guid? Id { get; set; }
+    private LeaseDto lease = new() { StartDate = DateTime.UtcNow.Date, EndDate = DateTime.UtcNow.Date.AddYears(1), DueDay = 1, CustomIntervalMonths = 1, BillingFrequency = BillingFrequency.Monthly };
+    private List<PropertyDto> properties = [];
+    private List<PropertyUnitDto> units = [];
+    private List<CustomerDto> customers = [];
+    private List<SupplierDto> suppliers = [];
+    private List<ContractDto> contracts = [];
+    private string propertyIdText = string.Empty;
+    private string unitIdText = string.Empty;
+    private string partyIdText = string.Empty;
+    private string contractIdText = string.Empty;
+    private bool isLoading;
+    private bool isSaving;
+    private string? errorMessage;
+    private LeaseDirection Direction => Enum.TryParse<LeaseDirection>(DirectionText, out var direction) ? direction : LeaseDirection.CompanyToTenant;
+    private string Title => Id.HasValue ? Text("Edit Lease", "تعديل عقد") : Direction == LeaseDirection.OwnerToCompany ? Text("New Owner Lease", "عقد مالك جديد") : Text("New Tenant Lease", "عقد مستأجر جديد");
+    private string PartyLabel => Direction == LeaseDirection.OwnerToCompany ? Text("Owner / Supplier", "المالك / المورد") : Text("Tenant / Customer", "المستأجر / العميل");
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        lease.Direction = Direction;
+        lease.PartyType = Direction == LeaseDirection.OwnerToCompany ? "Supplier" : "Customer";
+        if (ApiConfig.CompanyId != Guid.Empty) lease.CompanyId = ApiConfig.CompanyId;
+        await LoadLookupsAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var companyId = ApiConfig.CompanyId == Guid.Empty ? (Guid?)null : ApiConfig.CompanyId;
+        properties = (await RealEstateService.GetPropertiesAsync(1, 500, companyId: companyId)).Data?.Data.ToList() ?? [];
+        if (ApiConfig.CompanyId != Guid.Empty)
+        {
+            customers = (await CustomerService.GetByCompany(ApiConfig.CompanyId, 1, 500)).Data?.Data.ToList() ?? [];
+            suppliers = (await SupplierService.GetByCompanyAsync(ApiConfig.CompanyId, 1, 500)).Data?.Data.ToList() ?? [];
+        }
+        var contractType = Direction == LeaseDirection.OwnerToCompany ? "RealEstate.OwnerLease" : "RealEstate.TenantLease";
+        var partyType = Direction == LeaseDirection.OwnerToCompany ? "Supplier" : "Customer";
+        contracts = (await ContractsService.GetContractsAsync(companyId, partyType, null, null, contractType, null, null, null, 1, 500, null)).Data?.Data.ToList() ?? [];
+    }
+
+    private async Task LoadAsync()
+    {
+        if (!Id.HasValue) return;
+        isLoading = true;
+        var result = await RealEstateService.GetLeaseByIdAsync(Id.Value);
+        if (result.IsSuccess && result.Data is not null)
+        {
+            lease = result.Data;
+            propertyIdText = lease.PropertyId.ToString();
+            unitIdText = lease.UnitId?.ToString() ?? string.Empty;
+            partyIdText = lease.PartyId.ToString();
+            contractIdText = lease.ContractId.ToString();
+            await OnPropertyChanged();
+        }
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        isLoading = false;
+    }
+
+    private async Task OnPropertyChanged()
+    {
+        units = Guid.TryParse(propertyIdText, out var propertyId)
+            ? (await RealEstateService.GetUnitsAsync(1, 500, propertyId: propertyId)).Data?.Data.ToList() ?? []
+            : [];
+    }
+
+    private Task OnPartyChanged()
+    {
+        if (Guid.TryParse(partyIdText, out var partyId))
+        {
+            if (Direction == LeaseDirection.CompanyToTenant)
+                lease.PartyDisplayName = customers.FirstOrDefault(x => x.Id == partyId)?.Name ?? string.Empty;
+            else
+                lease.PartyDisplayName = suppliers.FirstOrDefault(x => x.Id == partyId)?.Name ?? string.Empty;
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task OnContractChanged()
+    {
+        if (Guid.TryParse(contractIdText, out var contractId))
+        {
+            var contract = contracts.FirstOrDefault(x => x.Id == contractId);
+            lease.ContractNumber = contract?.Number ?? string.Empty;
+        }
+        return Task.CompletedTask;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!Guid.TryParse(propertyIdText, out var propertyId) || !Guid.TryParse(partyIdText, out var partyId) || !Guid.TryParse(contractIdText, out var contractId))
+        {
+            errorMessage = Text("Property, party, and contract are required.", "العقار والطرف والعقد مطلوبة.");
+            return;
+        }
+        if (Direction == LeaseDirection.CompanyToTenant && !Guid.TryParse(unitIdText, out _))
+        {
+            errorMessage = Text("Tenant lease requires a unit.", "عقد المستأجر يتطلب وحدة.");
+            return;
+        }
+
+        isSaving = true;
+        lease.Direction = Direction;
+        lease.CompanyId = ApiConfig.CompanyId;
+        lease.PropertyId = propertyId;
+        lease.UnitId = Direction == LeaseDirection.CompanyToTenant && Guid.TryParse(unitIdText, out var unitId) ? unitId : null;
+        lease.PartyType = Direction == LeaseDirection.OwnerToCompany ? "Supplier" : "Customer";
+        lease.PartyId = partyId;
+        lease.ContractId = contractId;
+        await OnPartyChanged();
+        await OnContractChanged();
+        var isSuccess = false;
+        if (Id.HasValue)
+        {
+            var result = await RealEstateService.UpdateLeaseAsync(lease);
+            isSuccess = result.IsSuccess;
+            errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        else
+        {
+            var result = await RealEstateService.CreateLeaseAsync(lease);
+            isSuccess = result.IsSuccess;
+            errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        isSaving = false;
+        if (isSuccess) Back();
+    }
+
+    private void Back() => NavigationManager.NavigateTo(Direction == LeaseDirection.OwnerToCompany ? "/RealEstate/OwnerLeases" : "/RealEstate/TenantLeases");
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

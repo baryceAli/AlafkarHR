@@ -17,6 +17,7 @@ using Payroll;
 using Payments;
 using Pricing;
 using Procurement;
+using RealEstate;
 using Sales;
 using SalesOrder;
 using Shared.Exceptions.Handler;
@@ -56,6 +57,7 @@ var supplierAssembly =typeof(SupplierModule).Assembly;
 var paymentsAssembly = typeof(PaymentsModule).Assembly;
 var pricingAssembly = typeof(PricingModule).Assembly;
 var procurementAssembly = typeof(ProcurementModule).Assembly;
+var realEstateAssembly = typeof(RealEstateModule).Assembly;
 var salesAssembly = typeof(SalesModule).Assembly;
 var payrollAssembly = typeof(PayrollModule).Assembly;
 var taskManagementAssembly = typeof(TaskManagementModule).Assembly;
@@ -80,6 +82,7 @@ builder.Services.AddCarterWithAssemblies(
                         paymentsAssembly,
                         pricingAssembly,
                         procurementAssembly,
+                        realEstateAssembly,
                         salesAssembly,
                         payrollAssembly,
                         taskManagementAssembly,
@@ -108,6 +111,7 @@ builder.Services.AddMediatRWithAssemblies(
                         paymentsAssembly,
                         pricingAssembly,
                         procurementAssembly,
+                        realEstateAssembly,
                         salesAssembly,
                         payrollAssembly,
                         taskManagementAssembly,
@@ -141,6 +145,7 @@ builder.Services
         .AddPaymentsModule(builder.Configuration)
         .AddPricingModule(builder.Configuration)
         .AddProcurementModule(builder.Configuration)
+        .AddRealEstateModule(builder.Configuration)
         .AddPayrollModule(builder.Configuration)
         .AddTaskManagementModule(builder.Configuration)
         .AddMaintenanceModule(builder.Configuration)
@@ -188,6 +193,7 @@ app
     .UsePaymentsModule(app.Environment)
     .UsePricingModule(app.Environment)
     .UseProcurementModule(app.Environment)
+    .UseRealEstateModule(app.Environment)
     .UsePayrollModule(app.Environment)
     .UseTaskManagementModule(app.Environment)
     .UseMaintenanceModule(app.Environment)

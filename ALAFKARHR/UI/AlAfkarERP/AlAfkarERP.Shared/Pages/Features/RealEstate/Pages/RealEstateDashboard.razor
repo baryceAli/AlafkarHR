@@ -1,0 +1,73 @@
+@page "/RealEstate/Dashboard"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.RealEstate.Services
+@using SharedWithUI.RealEstate.Dtos
+@inject IRealEstateService RealEstateService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Real Estate Dashboard", "Real Estate Dashboard")"
+                Subtitle="@Text("Property occupancy, rent collection, expenses, and profitability.", "Property occupancy, rent collection, expenses, and profitability.")"
+                Icon="bi-buildings">
+        <Actions>
+            <button class="btn btn-primary" @onclick="@(() => NavigationManager.NavigateTo("/RealEstate/Properties"))">
+                <i class="bi bi-building-add"></i>
+                @Text("Properties", "Properties")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <div class="erp-card"><div class="erp-card-body text-muted">@Text("Loading dashboard...", "Loading dashboard...")</div></div>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+    else if (dashboard is not null)
+    {
+        <div class="row g-3">
+            <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Properties", "Properties")" Value="@dashboard.Properties.ToString()" Icon="bi-buildings" OnClick="@(() => NavigationManager.NavigateTo("/RealEstate/Properties"))" /></div>
+            <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Units", "Units")" Value="@dashboard.Units.ToString()" Icon="bi-door-open" OnClick="@(() => NavigationManager.NavigateTo("/RealEstate/Units"))" /></div>
+            <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Occupied", "Occupied")" Value="@dashboard.OccupiedUnits.ToString()" Icon="bi-person-check" Tone="success" /></div>
+            <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Tenant Leases", "Tenant Leases")" Value="@dashboard.ActiveTenantLeases.ToString()" Icon="bi-file-earmark-check" OnClick="@(() => NavigationManager.NavigateTo("/RealEstate/TenantLeases"))" /></div>
+            <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Overdue", "Overdue")" Value="@dashboard.OverdueRent.ToString("N2")" Icon="bi-exclamation-triangle" Tone="warning" /></div>
+            <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Net Profit", "Net Profit")" Value="@dashboard.NetProfit.ToString("N2")" Icon="bi-graph-up-arrow" Tone="success" /></div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-12 col-lg-3"><article class="erp-card"><div class="erp-card-header"><strong>@Text("Expected Rent", "Expected Rent")</strong></div><div class="erp-card-body fs-4 fw-semibold">@dashboard.ExpectedRent.ToString("N2")</div></article></div>
+            <div class="col-12 col-lg-3"><article class="erp-card"><div class="erp-card-header"><strong>@Text("Collected Rent", "Collected Rent")</strong></div><div class="erp-card-body fs-4 fw-semibold">@dashboard.CollectedRent.ToString("N2")</div></article></div>
+            <div class="col-12 col-lg-3"><article class="erp-card"><div class="erp-card-header"><strong>@Text("Expenses", "Expenses")</strong></div><div class="erp-card-body fs-4 fw-semibold">@dashboard.Expenses.ToString("N2")</div></article></div>
+            <div class="col-12 col-lg-3"><article class="erp-card"><div class="erp-card-header"><strong>@Text("Profit", "Profit")</strong></div><div class="erp-card-body fs-4 fw-semibold">@dashboard.NetProfit.ToString("N2")</div></article></div>
+        </div>
+    }
+</main>
+
+@code {
+    private RealEstateDashboardDto? dashboard;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await RealEstateService.GetDashboardAsync();
+        dashboard = result.Data;
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        isLoading = false;
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

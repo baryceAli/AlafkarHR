@@ -13,6 +13,8 @@ public class PaymentAttemptConfiguration : IEntityTypeConfiguration<PaymentAttem
         builder.Property(x => x.Method).HasConversion<int>().IsRequired();
         builder.Property(x => x.Status).HasConversion<int>().IsRequired();
         builder.Property(x => x.Source).HasConversion<int>().IsRequired();
+        builder.Property(x => x.SourceType).HasConversion<int>().IsRequired();
+        builder.Property(x => x.SourceDocumentNumber).HasMaxLength(100);
         builder.Property(x => x.Amount).HasPrecision(18, 2);
         builder.Property(x => x.Channel).HasMaxLength(100);
         builder.Property(x => x.Reference).HasMaxLength(100);
@@ -22,6 +24,7 @@ public class PaymentAttemptConfiguration : IEntityTypeConfiguration<PaymentAttem
         builder.Property(x => x.ModifiedBy).HasMaxLength(100);
         builder.Property(x => x.DeletedBy).HasMaxLength(100);
         builder.HasIndex(x => new { x.CompanyId, x.CustomerId, x.CreatedAt });
+        builder.HasIndex(x => new { x.SourceType, x.SourceDocumentId });
         builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }
