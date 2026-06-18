@@ -1,6 +1,6 @@
 ﻿namespace Inventory.Warehouses.Features.Warehouses.GetWarehouses;
 
-public record GetWarehousesQuery(Guid CompanyId,PaginationRequest PaginationRequest) : IQuery<GetWarehousesResult>;
+public record GetWarehousesQuery(Guid CompanyId, PaginationRequest PaginationRequest, WarehouseType? WarehouseType) : IQuery<GetWarehousesResult>;
 public record GetWarehousesResult(PaginatedResult<WarehouseDto> WarehouseList);
 public class GetWarehousesHandler (InventoryDbContext dbContext) : IQueryHandler<GetWarehousesQuery, GetWarehousesResult>
 {
@@ -11,6 +11,10 @@ public class GetWarehousesHandler (InventoryDbContext dbContext) : IQueryHandler
 
         var query = dbContext.Warehouses.AsNoTracking().AsQueryable();
         query=query.Where(w=>!w.IsDeleted && w.CompanyId==request.CompanyId);
+        if (request.WarehouseType.HasValue)
+        {
+            query = query.Where(w => w.WarehouseType == request.WarehouseType.Value);
+        }
         var searchText=request.PaginationRequest.SearchText;
         if (!string.IsNullOrWhiteSpace( searchText))
         {

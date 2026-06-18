@@ -9,10 +9,12 @@ public record UpdateFleetVehicleCommand(UpdateFleetVehicleDto Vehicle) : IComman
 public record DeleteFleetVehicleCommand(Guid Id) : ICommand<FleetActionResult>;
 public record UpdateFleetVehicleOdometerCommand(Guid Id, int Odometer) : ICommand<FleetActionResult>;
 public record CreateEmergencyFleetMaintenanceCommand(CreateEmergencyFleetMaintenanceRequest WorkOrder) : ICommand<CreateEmergencyFleetMaintenanceResult>;
+public record RepairFleetVehicleMaintenanceLinksCommand(Guid? CompanyId) : ICommand<RepairFleetVehicleMaintenanceLinksResult>;
 public record GetFleetVehiclesQuery(PaginationRequest PaginationRequest, FleetVehicleFilterDto Filter) : IQuery<GetFleetVehiclesResult>;
 public record GetFleetVehicleByIdQuery(Guid Id) : IQuery<GetFleetVehicleByIdResult>;
 public record CreateFleetVehicleResult(Guid Id);
 public record CreateEmergencyFleetMaintenanceResult(Guid Id);
+public record RepairFleetVehicleMaintenanceLinksResult(int RepairedCount);
 public record GetFleetVehiclesResult(PaginatedResult<FleetVehicleDto> Vehicles);
 public record GetFleetVehicleByIdResult(FleetVehicleDetailsDto VehicleDetails);
 public record FleetActionResult(bool IsSuccess);
@@ -100,14 +102,22 @@ public class FleetVehicleEndpoint : ICarterModule
         .WithName("CreateEmergencyFleetMaintenance")
         .Produces<CreateEmergencyFleetMaintenanceResult>(StatusCodes.Status201Created)
         .RequireAuthorization(PermissionList.MaintenanceWorkOrderPermissions.Create);
+
+        app.MapPost("/api/v1/fleet/vehicles/maintenance/repair-links", async (Guid? companyId, ISender sender) =>
+        {
+            var result = await sender.Send(new RepairFleetVehicleMaintenanceLinksCommand(companyId));
+            return Results.Ok(result);
+        })
+        .WithName("RepairFleetVehicleMaintenanceLinks")
+        .Produces<RepairFleetVehicleMaintenanceLinksResult>(StatusCodes.Status200OK)
+        .RequireAuthorization(PermissionList.FleetVehiclePermissions.Edit);
     }
 }
 
 public class CreateFleetVehicleHandler(
     FleetDbContext dbContext,
-    MaintenanceDbContext maintenanceDbContext,
     IFleetNumberGenerator fleetNumberGenerator,
-    IMaintenanceNumberGenerator maintenanceNumberGenerator,
+    ISender sender,
     IHttpContextAccessor httpContextAccessor)
     : ICommandHandler<CreateFleetVehicleCommand, CreateFleetVehicleResult>
 {
@@ -120,14 +130,17 @@ public class CreateFleetVehicleHandler(
 
         var vehicle = FleetVehicle.Create(vehicleCode, request.Vehicle, currentUserId);
         dbContext.Vehicles.Add(vehicle);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
-        var assetCode = await maintenanceNumberGenerator.GenerateAssetCodeAsync(MaintenanceAssetType.Vehicle, cancellationToken);
-        var asset = MaintenanceAsset.Create(
-            assetCode,
+        var asset = await sender.Send(new UpsertLinkedMaintenanceAssetCommand(
+            "Fleet",
+            nameof(FleetVehicle),
+            vehicle.Id,
+            null,
             request.Vehicle.Name,
             request.Vehicle.NameEng,
             MaintenanceAssetType.Vehicle,
-            MaintenanceAssetStatus.Active,
+            request.Vehicle.Status == FleetVehicleStatus.UnderMaintenance ? MaintenanceAssetStatus.UnderMaintenance : MaintenanceAssetStatus.Active,
             request.Vehicle.CompanyId,
             request.Vehicle.BranchId,
             null,
@@ -135,20 +148,16 @@ public class CreateFleetVehicleHandler(
             request.Vehicle.PlateNumber,
             request.Vehicle.Vin ?? request.Vehicle.EngineNumber,
             request.Vehicle.PurchaseDate,
-            request.Vehicle.WarrantyEndDate,
-            currentUserId);
+            request.Vehicle.WarrantyEndDate), cancellationToken);
 
-        maintenanceDbContext.MaintenanceAssets.Add(asset);
-        vehicle.LinkMaintenanceAsset(asset.Id, currentUserId);
-
-        await maintenanceDbContext.SaveChangesAsync(cancellationToken);
+        vehicle.LinkMaintenanceAsset(asset.MaintenanceAssetId, currentUserId);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new CreateFleetVehicleResult(vehicle.Id);
     }
 }
 
-public class UpdateFleetVehicleHandler(FleetDbContext dbContext, MaintenanceDbContext maintenanceDbContext, IHttpContextAccessor httpContextAccessor)
+public class UpdateFleetVehicleHandler(FleetDbContext dbContext, ISender sender, IHttpContextAccessor httpContextAccessor)
     : ICommandHandler<UpdateFleetVehicleCommand, FleetActionResult>
 {
     public async Task<FleetActionResult> Handle(UpdateFleetVehicleCommand request, CancellationToken cancellationToken)
@@ -158,34 +167,36 @@ public class UpdateFleetVehicleHandler(FleetDbContext dbContext, MaintenanceDbCo
             ?? throw new NotFoundException("Fleet vehicle", request.Vehicle.Id);
 
         vehicle.Update(request.Vehicle, currentUserId);
-
-        if (vehicle.MaintenanceAssetId.HasValue)
-        {
-            var asset = await maintenanceDbContext.MaintenanceAssets.FirstOrDefaultAsync(x => x.Id == vehicle.MaintenanceAssetId.Value, cancellationToken);
-            asset?.Update(
-                asset.AssetCode,
-                vehicle.Name,
-                vehicle.NameEng,
-                MaintenanceAssetType.Vehicle,
-                vehicle.Status == FleetVehicleStatus.UnderMaintenance ? MaintenanceAssetStatus.UnderMaintenance : MaintenanceAssetStatus.Active,
-                vehicle.CompanyId,
-                vehicle.BranchId,
-                null,
-                vehicle.Notes,
-                vehicle.PlateNumber,
-                vehicle.Vin ?? vehicle.EngineNumber,
-                vehicle.PurchaseDate,
-                vehicle.WarrantyEndDate,
-                currentUserId);
-        }
-
-        await maintenanceDbContext.SaveChangesAsync(cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        var asset = await sender.Send(new UpsertLinkedMaintenanceAssetCommand(
+            "Fleet",
+            nameof(FleetVehicle),
+            vehicle.Id,
+            null,
+            vehicle.Name,
+            vehicle.NameEng,
+            MaintenanceAssetType.Vehicle,
+            vehicle.Status == FleetVehicleStatus.UnderMaintenance ? MaintenanceAssetStatus.UnderMaintenance : MaintenanceAssetStatus.Active,
+            vehicle.CompanyId,
+            vehicle.BranchId,
+            null,
+            vehicle.Notes,
+            vehicle.PlateNumber,
+            vehicle.Vin ?? vehicle.EngineNumber,
+            vehicle.PurchaseDate,
+            vehicle.WarrantyEndDate), cancellationToken);
+
+        if (vehicle.MaintenanceAssetId != asset.MaintenanceAssetId)
+        {
+            vehicle.LinkMaintenanceAsset(asset.MaintenanceAssetId, currentUserId);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
         return new FleetActionResult(true);
     }
 }
 
-public class DeleteFleetVehicleHandler(FleetDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class DeleteFleetVehicleHandler(FleetDbContext dbContext, ISender sender, IHttpContextAccessor httpContextAccessor)
     : ICommandHandler<DeleteFleetVehicleCommand, FleetActionResult>
 {
     public async Task<FleetActionResult> Handle(DeleteFleetVehicleCommand request, CancellationToken cancellationToken)
@@ -193,6 +204,24 @@ public class DeleteFleetVehicleHandler(FleetDbContext dbContext, IHttpContextAcc
         var currentUserId = FleetFeatureHelpers.GetCurrentUserId(httpContextAccessor);
         var vehicle = await dbContext.Vehicles.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException("Fleet vehicle", request.Id);
+
+        await sender.Send(new UpsertLinkedMaintenanceAssetCommand(
+            "Fleet",
+            nameof(FleetVehicle),
+            vehicle.Id,
+            null,
+            vehicle.Name,
+            vehicle.NameEng,
+            MaintenanceAssetType.Vehicle,
+            MaintenanceAssetStatus.Inactive,
+            vehicle.CompanyId,
+            vehicle.BranchId,
+            null,
+            vehicle.Notes,
+            vehicle.PlateNumber,
+            vehicle.Vin ?? vehicle.EngineNumber,
+            vehicle.PurchaseDate,
+            vehicle.WarrantyEndDate), cancellationToken);
 
         vehicle.Remove(currentUserId);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -212,6 +241,46 @@ public class UpdateFleetVehicleOdometerHandler(FleetDbContext dbContext, IHttpCo
         vehicle.UpdateOdometer(request.Odometer, currentUserId);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new FleetActionResult(true);
+    }
+}
+
+public class RepairFleetVehicleMaintenanceLinksHandler(FleetDbContext dbContext, ISender sender, IHttpContextAccessor httpContextAccessor)
+    : ICommandHandler<RepairFleetVehicleMaintenanceLinksCommand, RepairFleetVehicleMaintenanceLinksResult>
+{
+    public async Task<RepairFleetVehicleMaintenanceLinksResult> Handle(RepairFleetVehicleMaintenanceLinksCommand request, CancellationToken cancellationToken)
+    {
+        var currentUserId = FleetFeatureHelpers.GetCurrentUserId(httpContextAccessor);
+        var query = dbContext.Vehicles.Where(x => !x.MaintenanceAssetId.HasValue);
+
+        if (request.CompanyId.HasValue)
+            query = query.Where(x => x.CompanyId == request.CompanyId.Value);
+
+        var vehicles = await query.ToListAsync(cancellationToken);
+        foreach (var vehicle in vehicles)
+        {
+            var asset = await sender.Send(new UpsertLinkedMaintenanceAssetCommand(
+                "Fleet",
+                nameof(FleetVehicle),
+                vehicle.Id,
+                null,
+                vehicle.Name,
+                vehicle.NameEng,
+                MaintenanceAssetType.Vehicle,
+                vehicle.Status == FleetVehicleStatus.UnderMaintenance ? MaintenanceAssetStatus.UnderMaintenance : MaintenanceAssetStatus.Active,
+                vehicle.CompanyId,
+                vehicle.BranchId,
+                null,
+                vehicle.Notes,
+                vehicle.PlateNumber,
+                vehicle.Vin ?? vehicle.EngineNumber,
+                vehicle.PurchaseDate,
+                vehicle.WarrantyEndDate), cancellationToken);
+
+            vehicle.LinkMaintenanceAsset(asset.MaintenanceAssetId, currentUserId);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new RepairFleetVehicleMaintenanceLinksResult(vehicles.Count);
     }
 }
 
@@ -360,10 +429,39 @@ public class CreateEmergencyFleetMaintenanceHandler(
 
         workOrder.AddHistory(MaintenanceHistory.Create(workOrder.Id, "CreatedFromFleet", "Emergency fleet maintenance request created.", currentUserId));
         maintenanceDbContext.MaintenanceWorkOrders.Add(workOrder);
+        await FleetMaintenanceAssetSync.MarkUnderMaintenanceAsync(maintenanceDbContext, vehicle.MaintenanceAssetId.Value, currentUserId, cancellationToken);
         vehicle.SetStatus(FleetVehicleStatus.UnderMaintenance, currentUserId);
 
         await maintenanceDbContext.SaveChangesAsync(cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new CreateEmergencyFleetMaintenanceResult(workOrder.Id);
+    }
+}
+
+internal static class FleetMaintenanceAssetSync
+{
+    public static async Task MarkUnderMaintenanceAsync(MaintenanceDbContext maintenanceDbContext, Guid maintenanceAssetId, Guid currentUserId, CancellationToken cancellationToken)
+    {
+        var asset = await maintenanceDbContext.MaintenanceAssets.FirstOrDefaultAsync(x => x.Id == maintenanceAssetId, cancellationToken)
+            ?? throw new NotFoundException("Maintenance asset", maintenanceAssetId);
+
+        asset.Update(
+            asset.AssetCode,
+            asset.Name,
+            asset.NameEng,
+            asset.AssetType,
+            MaintenanceAssetStatus.UnderMaintenance,
+            asset.CompanyId,
+            asset.BranchId,
+            asset.ParentAssetId,
+            asset.SourceModule,
+            asset.SourceEntityName,
+            asset.SourceEntityId,
+            asset.Description,
+            asset.Location,
+            asset.SerialNumber,
+            asset.PurchaseDate,
+            asset.WarrantyEndDate,
+            currentUserId);
     }
 }

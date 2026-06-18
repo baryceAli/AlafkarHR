@@ -26,6 +26,7 @@ global using Fleet.Data;
 global using Fleet.Features;
 global using Fleet.Models;
 global using Fleet.Services;
+global using Maintenance.Contracts.Assets;
 global using Maintenance.Assets.Models;
 global using Maintenance.Data;
 global using Maintenance.Services;

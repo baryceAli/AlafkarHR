@@ -25,6 +25,10 @@ public class ProductSku : Entity<Guid>
     public string ImageUrl { get; set; }
     public Guid CompanyId { get; set; }
     public bool ShowOnStore { get; private set; }
+    public bool IsSellable { get; private set; } = true;
+    public bool IsPurchasable { get; private set; } = true;
+    public bool IsInventoryTracked { get; private set; } = true;
+    public bool IsAssetTrackable { get; private set; }
 
     private readonly List<ProductSkuVariant> _variants = new();
     public IReadOnlyCollection<ProductSkuVariant> Variants => _variants;
@@ -83,11 +87,15 @@ public class ProductSku : Entity<Guid>
     string skuKey,
     string? barcode,
     string imageUrl,
-    decimal price,
-    SkuProductionType productionType,
-    bool showOnStore,
-    Guid companyId,
-    string createdBy)
+        decimal price,
+        SkuProductionType productionType,
+        bool showOnStore,
+        bool isSellable,
+        bool isPurchasable,
+        bool isInventoryTracked,
+        bool isAssetTrackable,
+        Guid companyId,
+        string createdBy)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(skuCode);
         ArgumentException.ThrowIfNullOrWhiteSpace(skuCodeEng);
@@ -108,6 +116,10 @@ public class ProductSku : Entity<Guid>
             Barcode = barcode,
             Price = price,
             ProductionType = NormalizeProductionType(productionType),
+            IsSellable = showOnStore || isSellable,
+            IsPurchasable = isPurchasable,
+            IsInventoryTracked = isInventoryTracked,
+            IsAssetTrackable = isAssetTrackable,
             ShowOnStore = showOnStore,
             CompanyId = companyId,
             CreatedBy = createdBy,
@@ -125,6 +137,10 @@ public class ProductSku : Entity<Guid>
         string skuCodeEng,
         SkuProductionType productionType,
         Guid companyId,
+        bool isSellable,
+        bool isPurchasable,
+        bool isInventoryTracked,
+        bool isAssetTrackable,
         List<ProductSkuVariantDto> variantDtos,
         List<Guid> packageIds,
         List<ProductSkuComponentDto> componentDtos,
@@ -137,6 +153,10 @@ public class ProductSku : Entity<Guid>
         Price = price;
         ProductionType = NormalizeProductionType(productionType);
         ImageUrl = imageUrl;
+        IsSellable = showOnStore || isSellable;
+        IsPurchasable = isPurchasable;
+        IsInventoryTracked = isInventoryTracked;
+        IsAssetTrackable = isAssetTrackable;
         ShowOnStore = showOnStore;
         CompanyId = companyId;
         ModifiedAt = DateTime.UtcNow;

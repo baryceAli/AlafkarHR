@@ -197,6 +197,7 @@ public class CreateMaintenanceFromFleetServiceRuleHandler(
 
         workOrder.AddHistory(MaintenanceHistory.Create(workOrder.Id, "CreatedFromFleetServiceRule", "Regular fleet service work order created.", currentUserId));
         maintenanceDbContext.MaintenanceWorkOrders.Add(workOrder);
+        await FleetMaintenanceAssetSync.MarkUnderMaintenanceAsync(maintenanceDbContext, rule.Vehicle.MaintenanceAssetId.Value, currentUserId, cancellationToken);
         rule.Vehicle.SetStatus(FleetVehicleStatus.UnderMaintenance, currentUserId);
         await maintenanceDbContext.SaveChangesAsync(cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);

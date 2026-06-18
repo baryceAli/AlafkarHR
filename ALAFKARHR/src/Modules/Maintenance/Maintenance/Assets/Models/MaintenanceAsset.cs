@@ -10,6 +10,9 @@ public class MaintenanceAsset : Aggregate<Guid>
     public Guid CompanyId { get; private set; }
     public Guid? BranchId { get; private set; }
     public Guid? ParentAssetId { get; private set; }
+    public string? SourceModule { get; private set; }
+    public string? SourceEntityName { get; private set; }
+    public Guid? SourceEntityId { get; private set; }
     public string? Description { get; private set; }
     public string? Location { get; private set; }
     public string? SerialNumber { get; private set; }
@@ -32,6 +35,9 @@ public class MaintenanceAsset : Aggregate<Guid>
         Guid companyId,
         Guid? branchId,
         Guid? parentAssetId,
+        string? sourceModule,
+        string? sourceEntityName,
+        Guid? sourceEntityId,
         string? description,
         string? location,
         string? serialNumber,
@@ -52,6 +58,9 @@ public class MaintenanceAsset : Aggregate<Guid>
             CompanyId = companyId,
             BranchId = branchId,
             ParentAssetId = parentAssetId,
+            SourceModule = sourceModule?.Trim(),
+            SourceEntityName = sourceEntityName?.Trim(),
+            SourceEntityId = sourceEntityId,
             Description = description?.Trim(),
             Location = location?.Trim(),
             SerialNumber = serialNumber?.Trim(),
@@ -71,6 +80,9 @@ public class MaintenanceAsset : Aggregate<Guid>
         Guid companyId,
         Guid? branchId,
         Guid? parentAssetId,
+        string? sourceModule,
+        string? sourceEntityName,
+        Guid? sourceEntityId,
         string? description,
         string? location,
         string? serialNumber,
@@ -90,6 +102,9 @@ public class MaintenanceAsset : Aggregate<Guid>
         CompanyId = companyId;
         BranchId = branchId;
         ParentAssetId = parentAssetId;
+        SourceModule = sourceModule?.Trim();
+        SourceEntityName = sourceEntityName?.Trim();
+        SourceEntityId = sourceEntityId;
         Description = description?.Trim();
         Location = location?.Trim();
         SerialNumber = serialNumber?.Trim();

@@ -86,6 +86,10 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext, ISender send
                         FinalUnitAmount = sku.Price,
                         ProductionType = sku.ProductionType,
                         ShowOnStore = sku.ShowOnStore,
+                        IsSellable = sku.IsSellable,
+                        IsPurchasable = sku.IsPurchasable,
+                        IsInventoryTracked = sku.IsInventoryTracked,
+                        IsAssetTrackable = sku.IsAssetTrackable,
                         Variants = sku.Variants
                             .Where(v => !v.IsDeleted)
                             .Select(v => new ProductSkuVariantDto

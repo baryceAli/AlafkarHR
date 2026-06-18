@@ -17,6 +17,22 @@ public class ProductSKUConfiguration : IEntityTypeConfiguration<ProductSku>
             .HasConversion<int>()
             .HasDefaultValue(SkuProductionType.PurchasedRawMaterial);
 
+        builder.Property(x => x.IsSellable)
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        builder.Property(x => x.IsPurchasable)
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        builder.Property(x => x.IsInventoryTracked)
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        builder.Property(x => x.IsAssetTrackable)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         builder.Property(x => x.SkuCode)
             .HasMaxLength(100);
 

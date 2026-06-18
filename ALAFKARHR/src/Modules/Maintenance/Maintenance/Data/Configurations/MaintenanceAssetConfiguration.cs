@@ -13,11 +13,16 @@ public class MaintenanceAssetConfiguration : IEntityTypeConfiguration<Maintenanc
         builder.Property(x => x.AssetType).HasConversion<string>().HasMaxLength(40);
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(40);
         builder.Property(x => x.Description).HasMaxLength(2000);
+        builder.Property(x => x.SourceModule).HasMaxLength(100);
+        builder.Property(x => x.SourceEntityName).HasMaxLength(150);
         builder.Property(x => x.Location).HasMaxLength(500);
         builder.Property(x => x.SerialNumber).HasMaxLength(120);
         builder.HasIndex(x => x.CompanyId);
         builder.HasIndex(x => x.BranchId);
         builder.HasIndex(x => x.ParentAssetId);
+        builder.HasIndex(x => new { x.SourceModule, x.SourceEntityName, x.SourceEntityId })
+            .IsUnique()
+            .HasFilter("[SourceModule] IS NOT NULL AND [SourceEntityName] IS NOT NULL AND [SourceEntityId] IS NOT NULL");
         builder.HasOne(x => x.ParentAsset)
             .WithMany(x => x.ChildAssets)
             .HasForeignKey(x => x.ParentAssetId)

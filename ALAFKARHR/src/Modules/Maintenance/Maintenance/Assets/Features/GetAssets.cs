@@ -16,6 +16,9 @@ public class GetMaintenanceAssetsEndpoint : ICarterModule
             Guid? companyId,
             Guid? branchId,
             Guid? parentAssetId,
+            string? sourceModule,
+            string? sourceEntityName,
+            Guid? sourceEntityId,
             ISender sender) =>
         {
             var filter = new MaintenanceAssetFilterDto
@@ -24,7 +27,10 @@ public class GetMaintenanceAssetsEndpoint : ICarterModule
                 Status = status,
                 CompanyId = companyId,
                 BranchId = branchId,
-                ParentAssetId = parentAssetId
+                ParentAssetId = parentAssetId,
+                SourceModule = sourceModule,
+                SourceEntityName = sourceEntityName,
+                SourceEntityId = sourceEntityId
             };
 
             var result = await sender.Send(new GetMaintenanceAssetsQuery(new PaginationRequest(PageIndex, PageSize, searchText), filter));
@@ -57,6 +63,12 @@ public class GetMaintenanceAssetsHandler(MaintenanceDbContext dbContext)
             query = query.Where(x => x.BranchId == request.Filter.BranchId.Value);
         if (request.Filter.ParentAssetId.HasValue)
             query = query.Where(x => x.ParentAssetId == request.Filter.ParentAssetId.Value);
+        if (!string.IsNullOrWhiteSpace(request.Filter.SourceModule))
+            query = query.Where(x => x.SourceModule == request.Filter.SourceModule.Trim());
+        if (!string.IsNullOrWhiteSpace(request.Filter.SourceEntityName))
+            query = query.Where(x => x.SourceEntityName == request.Filter.SourceEntityName.Trim());
+        if (request.Filter.SourceEntityId.HasValue)
+            query = query.Where(x => x.SourceEntityId == request.Filter.SourceEntityId.Value);
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
         {
             var search = request.PaginationRequest.SearchText.ToLower();

@@ -21,6 +21,7 @@ global using SharedWithUI.Maintenance.Enums;
 global using SharedWithUI.Permissions;
 global using System.Reflection;
 global using System.Security.Claims;
+global using Maintenance.Contracts.Assets;
 global using Maintenance.Assets.Models;
 global using Maintenance.Data;
 global using Maintenance.Services;

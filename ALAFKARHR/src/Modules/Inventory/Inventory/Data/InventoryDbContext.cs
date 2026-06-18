@@ -10,6 +10,7 @@ public class InventoryDbContext:DbContext
         
     }
     public DbSet<Warehouse> Warehouses=> Set<Warehouse>();
+    public DbSet<AssetInstance> AssetInstances => Set<AssetInstance>();
     public DbSet<Batch> Batches => Set<Batch>();
     public DbSet<BatchStock> BatchStocks => Set<BatchStock>();
     public DbSet<InventoryAggregate> Inventories=> Set<InventoryAggregate>();
