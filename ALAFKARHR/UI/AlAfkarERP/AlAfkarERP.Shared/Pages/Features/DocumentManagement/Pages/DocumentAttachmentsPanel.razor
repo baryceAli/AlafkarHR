@@ -1,0 +1,25 @@
+@using Microsoft.AspNetCore.Components
+@using SharedWithUI.DocumentManagement.Enums
+
+@inject SharedDataService SharedDataService
+
+<DocumentLibraryView Title="@PanelTitle"
+                     Subtitle="@PanelSubtitle"
+                     Icon="bi-paperclip"
+                     Scope="DocumentListScope.All"
+                     InitialSourceModule="@SourceModule"
+                     InitialSourceEntity="@SourceEntity"
+                     InitialSourceRecordId="@SourceRecordId"
+                     CanChangeSourceFilters="false"
+                     ShowPageHeader="false" />
+
+@code {
+    [Parameter, EditorRequired] public string SourceModule { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string SourceEntity { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public Guid SourceRecordId { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Subtitle { get; set; }
+
+    private string PanelTitle => Title ?? SharedDataService.SelectViewLang("Attachments", "المرفقات");
+    private string PanelSubtitle => Subtitle ?? SharedDataService.SelectViewLang("Documents linked to this record.", "المستندات المرتبطة بهذا السجل.");
+}

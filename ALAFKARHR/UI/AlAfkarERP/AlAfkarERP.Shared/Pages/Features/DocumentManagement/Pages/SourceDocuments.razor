@@ -1,0 +1,36 @@
+@layout AdminLayout
+@page "/DocumentManagement/SourceDocuments"
+@implements IDisposable
+
+@using Microsoft.AspNetCore.Components
+@using SharedWithUI.DocumentManagement.Enums
+
+@inject SharedDataService SharedDataService
+
+<DocumentLibraryView Title="@Text("Source Documents", "مستندات المصدر")"
+                     Subtitle="@Text("Find documents linked to a specific ERP module record.", "البحث عن المستندات المرتبطة بسجل محدد في النظام.")"
+                     Icon="bi-link-45deg"
+                     Scope="DocumentListScope.All"
+                     InitialSourceModule="@SourceModule"
+                     InitialSourceEntity="@SourceEntity"
+                     InitialSourceRecordId="@SourceRecordId" />
+
+@code {
+    [SupplyParameterFromQuery] public string? SourceModule { get; set; }
+    [SupplyParameterFromQuery] public string? SourceEntity { get; set; }
+    [SupplyParameterFromQuery] public Guid? SourceRecordId { get; set; }
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

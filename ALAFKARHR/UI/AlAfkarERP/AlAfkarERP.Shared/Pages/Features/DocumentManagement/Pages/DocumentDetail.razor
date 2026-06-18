@@ -9,7 +9,6 @@
 @using SharedWithUI.Auth.Dtos
 @using SharedWithUI.DocumentManagement.Dtos
 @using SharedWithUI.DocumentManagement.Enums
-@using SharedWithUI.Permissions
 
 @inject IDocumentManagementService DocumentService
 @inject IUserService UserService
@@ -48,11 +47,16 @@
                             <input class="form-control" disabled="@(!document.CanWrite)" @bind="editModel.Title" />
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">@Text("Source", "المصدر")</label>
-                            <div class="d-flex gap-2">
-                                <input class="form-control" disabled="@(!document.CanWrite)" placeholder="@Text("Module", "الوحدة")" @bind="editModel.SourceModule" />
-                                <input class="form-control" disabled="@(!document.CanWrite)" placeholder="@Text("Entity", "الكيان")" @bind="editModel.SourceEntity" />
-                            </div>
+                            <label class="form-label">@Text("Source module", "الوحدة المرتبطة")</label>
+                            <input class="form-control" disabled="@(!document.CanWrite)" @bind="editModel.SourceModule" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">@Text("Source entity", "الكيان المرتبط")</label>
+                            <input class="form-control" disabled="@(!document.CanWrite)" @bind="editModel.SourceEntity" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">@Text("Source record id", "رقم السجل المرتبط")</label>
+                            <input class="form-control" disabled="@(!document.CanWrite)" @bind="editSourceRecordIdText" />
                         </div>
                         <div class="col-12">
                             <label class="form-label">@Text("Description", "الوصف")</label>
@@ -71,7 +75,7 @@
                     {
                         <div class="d-flex gap-2 mb-3">
                             <InputFile class="form-control" OnChange="OnVersionFileSelected" />
-                            <button class="btn btn-primary" disabled="@(versionFile is null || isSaving)" @onclick="UploadVersion">
+                            <button class="btn btn-primary" disabled="@(versionFile is null || isSaving)" @onclick="UploadVersion" title="@Text("Upload version", "رفع إصدار")">
                                 <i class="bi bi-cloud-upload"></i>
                             </button>
                         </div>
@@ -84,7 +88,7 @@
                                     <th>@Text("Version", "الإصدار")</th>
                                     <th>@Text("File", "الملف")</th>
                                     <th>@Text("Uploaded", "تاريخ الرفع")</th>
-                                    <th></th>
+                                    <th class="text-end">@Text("Actions", "الإجراءات")</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -98,7 +102,7 @@
                                         </td>
                                         <td>@version.UploadedAt.ToLocalTime()</td>
                                         <td class="text-end">
-                                            <button class="btn btn-sm btn-outline-primary erp-row-action" @onclick="() => Download(version.Id)">
+                                            <button class="btn btn-sm btn-outline-primary erp-row-action" @onclick="() => Download(version.Id)" title="@Text("Download", "تنزيل")">
                                                 <i class="bi bi-download"></i>
                                             </button>
                                         </td>
@@ -144,14 +148,23 @@
                     }
                     @foreach (var collaborator in document.Collaborators)
                     {
-                        <div class="d-flex align-items-center justify-content-between border-bottom py-2">
+                        <div class="d-flex align-items-center justify-content-between gap-2 border-bottom py-2">
                             <div>
                                 <div class="fw-semibold">@(!string.IsNullOrWhiteSpace(collaborator.UserName) ? collaborator.UserName : collaborator.UserId)</div>
                                 <small class="text-muted">@AccessText(collaborator.AccessLevel)</small>
                             </div>
-                            <button class="btn btn-sm btn-outline-danger" disabled="@(!document.CanShare)" @onclick="() => RemoveCollaborator(collaborator.Id)">
-                                <i class="bi bi-x-lg"></i>
-                            </button>
+                            <div class="d-flex align-items-center gap-2">
+                                <select class="form-select form-select-sm" style="width: 150px" disabled="@(!document.CanShare)" value="@GetCollaboratorAccess(collaborator)" @onchange="args => SetCollaboratorAccess(collaborator.Id, args.Value?.ToString())">
+                                    <option value="@DocumentAccessLevel.Read">@Text("Read only", "قراءة فقط")</option>
+                                    <option value="@DocumentAccessLevel.ReadWrite">@Text("Read/write", "قراءة وكتابة")</option>
+                                </select>
+                                <button class="btn btn-sm btn-outline-primary" title="@Text("Save access", "حفظ الصلاحية")" disabled="@(!document.CanShare || isSaving || !CollaboratorAccessChanged(collaborator))" @onclick="() => UpdateCollaboratorAccess(collaborator)">
+                                    <i class="bi bi-save"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" title="@Text("Remove", "حذف")" disabled="@(!document.CanShare)" @onclick="() => RemoveCollaborator(collaborator.Id)">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
                         </div>
                     }
                 </AppCard>
@@ -165,7 +178,9 @@
 
     private DocumentDetailDto? document;
     private UpdateDocumentDto editModel = new();
+    private string editSourceRecordIdText = string.Empty;
     private List<UserDto> users = [];
+    private Dictionary<Guid, DocumentAccessLevel> collaboratorAccessEdits = [];
     private IBrowserFile? versionFile;
     private string inviteUserId = string.Empty;
     private DocumentAccessLevel inviteAccess = DocumentAccessLevel.Read;
@@ -213,6 +228,8 @@
                 SourceEntity = document.SourceEntity,
                 SourceRecordId = document.SourceRecordId
             };
+            editSourceRecordIdText = document.SourceRecordId?.ToString() ?? string.Empty;
+            collaboratorAccessEdits = document.Collaborators.ToDictionary(x => x.Id, x => x.AccessLevel);
         }
         else
         {
@@ -235,6 +252,13 @@
         if (document is null || string.IsNullOrWhiteSpace(editModel.Title))
             return;
 
+        if (!string.IsNullOrWhiteSpace(editSourceRecordIdText) && !Guid.TryParse(editSourceRecordIdText, out _))
+        {
+            ToastService.ShowError(Text("Source record id must be a valid GUID.", "رقم السجل المرتبط يجب أن يكون معرف GUID صحيح."));
+            return;
+        }
+
+        editModel.SourceRecordId = Guid.TryParse(editSourceRecordIdText, out var sourceRecordId) ? sourceRecordId : null;
         isSaving = true;
         var response = await DocumentService.UpdateAsync(editModel);
         isSaving = false;
@@ -293,6 +317,43 @@
         else
         {
             ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to invite collaborator.", "تعذر دعوة المتعاون."));
+        }
+    }
+
+    private DocumentAccessLevel GetCollaboratorAccess(DocumentCollaboratorDto collaborator) =>
+        collaboratorAccessEdits.TryGetValue(collaborator.Id, out var accessLevel) ? accessLevel : collaborator.AccessLevel;
+
+    private void SetCollaboratorAccess(Guid collaboratorId, string? value)
+    {
+        if (Enum.TryParse<DocumentAccessLevel>(value, out var accessLevel))
+            collaboratorAccessEdits[collaboratorId] = accessLevel;
+    }
+
+    private bool CollaboratorAccessChanged(DocumentCollaboratorDto collaborator) =>
+        GetCollaboratorAccess(collaborator) != collaborator.AccessLevel;
+
+    private async Task UpdateCollaboratorAccess(DocumentCollaboratorDto collaborator)
+    {
+        if (document is null)
+            return;
+
+        isSaving = true;
+        var response = await DocumentService.InviteCollaboratorAsync(document.Id, new InviteDocumentCollaboratorDto
+        {
+            UserId = collaborator.UserId,
+            UserName = collaborator.UserName,
+            AccessLevel = GetCollaboratorAccess(collaborator)
+        });
+        isSaving = false;
+
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Collaborator access saved.", "تم حفظ صلاحية المتعاون."));
+            await LoadDocument();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to save collaborator access.", "تعذر حفظ صلاحية المتعاون."));
         }
     }
 

@@ -1,15 +1,15 @@
 @layout AdminLayout
-@page "/DocumentManagement/List"
+@page "/DocumentManagement/MyDocuments"
 @implements IDisposable
 
 @using SharedWithUI.DocumentManagement.Enums
 
 @inject SharedDataService SharedDataService
 
-<DocumentLibraryView Title="@Text("Document Library", "مكتبة المستندات")"
-                     Subtitle="@Text("All documents you can view, edit, or manage.", "كل المستندات التي يمكنك عرضها أو تحريرها أو إدارتها.")"
-                     Icon="bi-folder2-open"
-                     Scope="DocumentListScope.All" />
+<DocumentLibraryView Title="@Text("My Documents", "مستنداتي")"
+                     Subtitle="@Text("Documents you created and own.", "المستندات التي أنشأتها وتملكها.")"
+                     Icon="bi-person-lines-fill"
+                     Scope="DocumentListScope.OwnedByMe" />
 
 @code {
     protected override void OnInitialized()
