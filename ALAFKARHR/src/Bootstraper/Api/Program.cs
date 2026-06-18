@@ -3,7 +3,9 @@ using Auth;
 using Cart;
 using Carter;
 using Catalog;
+using Contracts;
 using CustomersModule;
+using DocumentManagement;
 using EmployeeModule;
 using GeneralSettings;
 using Inventory;
@@ -38,6 +40,8 @@ builder.Services.AddDataProtection();
 var authAssembly = typeof(AuthModule).Assembly;
 var attendanceAssembly = typeof(AttendanceDomainModule).Assembly;
 var cartAssembly = typeof(CartModule).Assembly;
+var contractsAssembly = typeof(ContractsModule).Assembly;
+var documentManagementAssembly = typeof(DocumentManagementModule).Assembly;
 var organizationAssembly = typeof(OrganizationModule).Assembly;
 var ordersAssembly = typeof(OrdersModule).Assembly;
 var employeeAssembly = typeof(EmployeesModule).Assembly;
@@ -58,6 +62,8 @@ builder.Services.AddCarterWithAssemblies(
                         authAssembly,
                         attendanceAssembly,
                         cartAssembly,
+                        contractsAssembly,
+                        documentManagementAssembly,
                         organizationAssembly,
                         ordersAssembly,
                         employeeAssembly,
@@ -82,6 +88,8 @@ builder.Services.AddMediatRWithAssemblies(
                         authAssembly,
                         attendanceAssembly,
                         cartAssembly,
+                        contractsAssembly,
+                        documentManagementAssembly,
                         organizationAssembly,
                         ordersAssembly,
                         employeeAssembly,
@@ -110,6 +118,8 @@ builder.Services
         .AddAuthModule(builder.Configuration)
         .AddAttendanceModule(builder.Configuration)
         .AddCartModule(builder.Configuration)
+        .AddContractsModule(builder.Configuration)
+        .AddDocumentManagementModule(builder.Configuration)
         .AddOrganizationModule(builder.Configuration)
         .AddOrdersModule(builder.Configuration)
         .AddEmployeeModule(builder.Configuration)
@@ -153,6 +163,8 @@ app
     .UseAuthModule(app.Environment)
     .UseAttendanceModule(app.Environment)
     .UseCartModule(app.Environment)
+    .UseContractsModule(app.Environment)
+    .UseDocumentManagementModule(app.Environment)
     .UseGeneralSettingsModule(app.Environment)
     .UseOrganizationModule(app.Environment)
     .UseOrdersModule(app.Environment)

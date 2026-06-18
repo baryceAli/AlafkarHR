@@ -1,0 +1,304 @@
+@layout AdminLayout
+@page "/DocumentManagement/List"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.DocumentManagement.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.DocumentManagement.Dtos
+@using SharedWithUI.Permissions
+
+@inject IDocumentManagementService DocumentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+@if (!CanView)
+{
+    <div class="alert alert-warning" dir="@SharedDataService.PageDirection">@Text("You do not have permission to view document management.", "ليس لديك صلاحية لعرض إدارة المستندات.")</div>
+    return;
+}
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Document Management", "إدارة المستندات")"
+                Subtitle="@Text("Manage protected files, versions, and employee collaboration.", "إدارة الملفات المحمية والإصدارات والتعاون بين الموظفين.")"
+                Icon="bi-files"
+                Actions="@HeaderActions" />
+
+    @if (showCreate)
+    {
+        <AppCard Title="@Text("New Document", "مستند جديد")" CssClass="mb-3">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">@Text("Title", "العنوان")</label>
+                    <input class="form-control" @bind="newDocument.Title" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">@Text("Source module", "الوحدة المرتبطة")</label>
+                    <input class="form-control" @bind="newDocument.SourceModule" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">@Text("Source entity", "الكيان المرتبط")</label>
+                    <input class="form-control" @bind="newDocument.SourceEntity" />
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">@Text("Description", "الوصف")</label>
+                    <textarea class="form-control" rows="2" @bind="newDocument.Description"></textarea>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">@Text("File", "الملف")</label>
+                    <InputFile class="form-control" OnChange="OnCreateFileSelected" />
+                </div>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button class="btn btn-outline-secondary" @onclick="CancelCreate">@Text("Cancel", "إلغاء")</button>
+                    <button class="btn btn-primary" disabled="@(!CanCreate || isSaving || createFile is null)" @onclick="CreateDocument">
+                        <i class="bi bi-cloud-upload"></i> @Text("Create", "إنشاء")
+                    </button>
+                </div>
+            </div>
+        </AppCard>
+    }
+
+    <AppCard>
+        <div class="row g-2 mb-3">
+            <div class="col-md-4">
+                <input class="form-control" placeholder="@Text("Search documents", "بحث في المستندات")" @bind="searchText" @bind:event="oninput" />
+            </div>
+            <div class="col-md-3">
+                <input class="form-control" placeholder="@Text("Source module", "الوحدة المرتبطة")" @bind="sourceModule" />
+            </div>
+            <div class="col-md-3">
+                <input class="form-control" placeholder="@Text("Source entity", "الكيان المرتبط")" @bind="sourceEntity" />
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button class="btn btn-outline-primary flex-fill" @onclick="Search"><i class="bi bi-search"></i></button>
+                <button class="btn btn-outline-secondary flex-fill" @onclick="ClearFilters"><i class="bi bi-x-circle"></i></button>
+            </div>
+        </div>
+
+        <div class="erp-table-wrap">
+            <table class="table erp-table align-middle">
+                <thead>
+                    <tr>
+                        <th>@Text("Title", "العنوان")</th>
+                        <th>@Text("Latest version", "آخر إصدار")</th>
+                        <th>@Text("Source", "المصدر")</th>
+                        <th>@Text("Access", "الصلاحية")</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (isLoading)
+                    {
+                        <tr><td colspan="5" class="text-center text-muted py-4">@Text("Loading documents...", "جاري تحميل المستندات...")</td></tr>
+                    }
+                    else if (!documents.Any())
+                    {
+                        <tr><td colspan="5" class="text-center text-muted py-4">@Text("No documents found.", "لا توجد مستندات.")</td></tr>
+                    }
+                    @foreach (var document in documents)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@document.Title</div>
+                                <small class="text-muted">@document.Description</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">v@document.LatestVersionNumber</span>
+                                <small class="text-muted d-block">@document.LatestFileName</small>
+                            </td>
+                            <td>@SourceText(document)</td>
+                            <td>@AccessText(document)</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-secondary erp-row-action" title="@Text("View", "عرض")" @onclick='() => NavigationManager.NavigateTo($"/DocumentManagement/View/{document.Id}")'>
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary erp-row-action" title="@Text("Download", "تنزيل")" @onclick="() => Download(document.Id)">
+                                    <i class="bi bi-download"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger erp-row-action" title="@Text("Archive", "أرشفة")" disabled="@(!document.CanDelete)" @onclick="() => DeleteDocument(document.Id)">
+                                    <i class="bi bi-archive"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-end align-items-center gap-2 mt-3">
+            <button class="btn btn-sm btn-secondary" @onclick="PrevPage" disabled="@(pageIndex == 0)">@Text("Previous", "السابق")</button>
+            <span>@Text("Page", "صفحة") @(pageIndex + 1) @Text("of", "من") @totalPages</span>
+            <button class="btn btn-sm btn-secondary" @onclick="NextPage" disabled="@(pageIndex >= totalPages - 1)">@Text("Next", "التالي")</button>
+        </div>
+    </AppCard>
+</div>
+
+@code {
+    private List<DocumentItemDto> documents = [];
+    private CreateDocumentDto newDocument = new();
+    private IBrowserFile? createFile;
+    private string searchText = string.Empty;
+    private string sourceModule = string.Empty;
+    private string sourceEntity = string.Empty;
+    private int pageIndex;
+    private int pageSize = 10;
+    private int totalPages = 1;
+    private Guid companyId;
+    private bool CanView;
+    private bool CanCreate;
+    private bool isLoading;
+    private bool isSaving;
+    private bool showCreate;
+
+    private RenderFragment HeaderActions => @<button class="btn btn-primary" disabled="@(!CanCreate)" @onclick="StartCreate">
+        <i class="bi bi-plus-lg"></i> @Text("New Document", "مستند جديد")
+    </button>;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        CanView = true;
+        CanCreate = authState.User.Claims.Any(c => c.Value == PermissionList.DocumentManagementPermissions.Create);
+        Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId);
+        await LoadDocuments();
+    }
+
+    private async Task LoadDocuments()
+    {
+        isLoading = true;
+        var response = await DocumentService.GetAsync(pageIndex, pageSize, searchText, sourceModule, sourceEntity, null);
+        if (response.IsSuccess)
+        {
+            documents = response.Data?.Data.ToList() ?? [];
+            totalPages = Math.Max(1, (int)Math.Ceiling((response.Data?.Count ?? 0) / (double)pageSize));
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load documents.", "تعذر تحميل المستندات."));
+        }
+        isLoading = false;
+    }
+
+    private void StartCreate()
+    {
+        newDocument = new CreateDocumentDto { CompanyId = companyId };
+        createFile = null;
+        showCreate = true;
+    }
+
+    private void CancelCreate()
+    {
+        showCreate = false;
+        createFile = null;
+    }
+
+    private void OnCreateFileSelected(InputFileChangeEventArgs e) => createFile = e.File;
+
+    private async Task CreateDocument()
+    {
+        if (createFile is null || string.IsNullOrWhiteSpace(newDocument.Title))
+            return;
+
+        isSaving = true;
+        newDocument.CompanyId = companyId;
+        var response = await DocumentService.CreateAsync(newDocument, createFile);
+        isSaving = false;
+
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Document created.", "تم إنشاء المستند."));
+            showCreate = false;
+            await LoadDocuments();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Document could not be created.", "تعذر إنشاء المستند."));
+        }
+    }
+
+    private async Task Download(Guid id)
+    {
+        var response = await DocumentService.DownloadAsync(id);
+        if (response.IsSuccess && response.Data is not null)
+            await JS.InvokeVoidAsync("alafkarDocumentDownload.downloadBase64", response.Data.FileName, response.Data.ContentType, response.Data.Base64Content);
+        else
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Download failed.", "فشل التنزيل."));
+    }
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    private async Task DeleteDocument(Guid id)
+    {
+        var response = await DocumentService.DeleteAsync(id);
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Document archived.", "تمت أرشفة المستند."));
+            await LoadDocuments();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to archive document.", "تعذر أرشفة المستند."));
+        }
+    }
+
+    private async Task Search()
+    {
+        pageIndex = 0;
+        await LoadDocuments();
+    }
+
+    private async Task ClearFilters()
+    {
+        searchText = string.Empty;
+        sourceModule = string.Empty;
+        sourceEntity = string.Empty;
+        pageIndex = 0;
+        await LoadDocuments();
+    }
+
+    private async Task NextPage()
+    {
+        if (pageIndex < totalPages - 1)
+        {
+            pageIndex++;
+            await LoadDocuments();
+        }
+    }
+
+    private async Task PrevPage()
+    {
+        if (pageIndex > 0)
+        {
+            pageIndex--;
+            await LoadDocuments();
+        }
+    }
+
+    private string SourceText(DocumentItemDto document) =>
+        string.IsNullOrWhiteSpace(document.SourceModule)
+            ? Text("Library", "المكتبة")
+            : $"{document.SourceModule}/{document.SourceEntity}";
+
+    private string AccessText(DocumentItemDto document) =>
+        document.CanShare ? Text("Owner", "مالك") :
+        document.CanWrite ? Text("Read and write", "قراءة وكتابة") :
+        Text("Read only", "قراءة فقط");
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

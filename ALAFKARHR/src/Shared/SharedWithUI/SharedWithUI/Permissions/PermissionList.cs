@@ -37,6 +37,10 @@ public static class PermissionList
             .. CartPermissions.Permissions,
             .. OrderIntakePermissions.Permissions,
             .. PaymentPermissions.Permissions,
+            .. ContractPermissions.Permissions,
+            .. ContractTemplatePermissions.Permissions,
+            .. ContractRenewalPermissions.Permissions,
+            .. DocumentManagementPermissions.Permissions,
             .. SalesOrderPermissions.Permissions,
             .. PurchaseRequestPermissions.Permissions,
             .. RequestForQuotationPermissions.Permissions,
@@ -709,6 +713,59 @@ public static class PermissionList
                 $"{Reject}",
                 $"{Refund}",
             };
+    }
+
+    public static class ContractPermissions
+    {
+        public static string GroupName { get; set; } = "Contracts.Contract";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string SubmitReview { get; set; } = $"{GroupName}.SubmitReview";
+        public static string Sign { get; set; } = $"{GroupName}.Sign";
+        public static string Activate { get; set; } = $"{GroupName}.Activate";
+        public static string Terminate { get; set; } = $"{GroupName}.Terminate";
+        public static string Renew { get; set; } = $"{GroupName}.Renew";
+
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, SubmitReview, Sign, Activate, Terminate, Renew];
+    }
+
+    public static class ContractTemplatePermissions
+    {
+        public static string GroupName { get; set; } = "Contracts.Template";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions => [View, Create, Edit, Delete];
+    }
+
+    public static class ContractRenewalPermissions
+    {
+        public static string GroupName { get; set; } = "Contracts.Renewal";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Configure { get; set; } = $"{GroupName}.Configure";
+        public static string Process { get; set; } = $"{GroupName}.Process";
+        public static string RecordPayment { get; set; } = $"{GroupName}.RecordPayment";
+
+        public static List<string> Permissions => [View, Configure, Process, RecordPayment];
+    }
+
+    public static class DocumentManagementPermissions
+    {
+        public static string GroupName { get; set; } = "DocumentManagement.Document";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Share { get; set; } = $"{GroupName}.Share";
+        public static string ManageAll { get; set; } = $"{GroupName}.ManageAll";
+
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Share, ManageAll];
     }
 
     public static class PricingPermissions

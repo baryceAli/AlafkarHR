@@ -136,6 +136,51 @@ public class MenuItem
             KeywordsEn = "control panel admin dashboard overview",
             KeywordsAr = "لوحة التحكم الإدارة نظرة عامة"
         },
+        new MenuItem
+        {
+            TextEn = "Contracts",
+            TextAr = "العقود",
+            Icon = "bi-file-earmark-check",
+            PermissionPolicy = PermissionList.ContractPermissions.Select,
+            WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            KeywordsEn = "admin contracts agreements renewals templates fees",
+            KeywordsAr = "إدارة عقود اتفاقيات تجديدات قوالب رسوم",
+            Children = new()
+            {
+                new MenuItem
+                {
+                    TextEn = "Dashboard",
+                    TextAr = "لوحة العقود",
+                    Icon = "bi-speedometer2",
+                    Url = "/Contracts/Dashboard",
+                    PermissionPolicy = PermissionList.ContractPermissions.Select
+                },
+                new MenuItem
+                {
+                    TextEn = "Contracts List",
+                    TextAr = "قائمة العقود",
+                    Icon = "bi-list-check",
+                    Url = "/Contracts/List",
+                    PermissionPolicy = PermissionList.ContractPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Renewals",
+                    TextAr = "تجديدات العقود",
+                    Icon = "bi-arrow-repeat",
+                    Url = "/Contracts/Renewals",
+                    PermissionPolicy = PermissionList.ContractRenewalPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Templates",
+                    TextAr = "القوالب",
+                    Icon = "bi-file-earmark-text",
+                    Url = "/Contracts/Templates",
+                    PermissionPolicy = PermissionList.ContractTemplatePermissions.View
+                }
+            }
+        },
         
         //Organizational Structure
         new MenuItem
@@ -882,6 +927,29 @@ public class MenuItem
                 //    Url = "/Inventory/Dashboard",
                 //    PermissionPolicy = "View.Inventory",
                 //},
+            }
+        },
+
+        //Document Management
+        new MenuItem
+        {
+            TextEn = "Document Management",
+            TextAr = "إدارة المستندات",
+            Icon = "bi-files",
+            PermissionPolicy = PermissionList.DocumentManagementPermissions.Select,
+            WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            KeywordsEn = "admin documents attachments files versions collaboration",
+            KeywordsAr = "إدارة مستندات مرفقات ملفات إصدارات تعاون",
+            Children = new()
+            {
+                new MenuItem
+                {
+                    TextEn = "Document Library",
+                    TextAr = "مكتبة المستندات",
+                    Icon = "bi-folder2-open",
+                    Url = "/DocumentManagement/List",
+                    PermissionPolicy = PermissionList.DocumentManagementPermissions.View,
+                }
             }
         },
 

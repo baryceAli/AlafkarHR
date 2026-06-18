@@ -3,7 +3,9 @@ using AlAfkarERP.Shared.Pages.Features.Auth.Services;
 using AlAfkarERP.Shared.Pages.Features.Attendance.Services;
 using AlAfkarERP.Shared.Pages.Features.Catalog.Services;
 using AlAfkarERP.Shared.Pages.Features.Company.Services;
+using AlAfkarERP.Shared.Pages.Features.Contracts.Services;
 using AlAfkarERP.Shared.Pages.Features.Customers.Services;
+using AlAfkarERP.Shared.Pages.Features.DocumentManagement.Services;
 using AlAfkarERP.Shared.Pages.Features.Employees.Services;
 using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services;
 using AlAfkarERP.Shared.Pages.Features.Inventories.Services;
@@ -263,6 +265,22 @@ builder.Services.AddHttpClient<IProcurementService, ProcurementService>(client =
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
 #endregion Procurement
+
+#region Contracts
+builder.Services.AddScoped<IContractsService, ContractsService>();
+builder.Services.AddHttpClient<IContractsService, ContractsService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+#endregion Contracts
+
+#region DocumentManagement
+builder.Services.AddScoped<IDocumentManagementService, DocumentManagementService>();
+builder.Services.AddHttpClient<IDocumentManagementService, DocumentManagementService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+#endregion DocumentManagement
 
 #region Sales
 builder.Services.AddScoped<ICartService, CartService>();

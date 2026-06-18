@@ -1,0 +1,346 @@
+@layout AdminLayout
+@page "/DocumentManagement/View/{Id:guid}"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Auth.Services
+@using AlAfkarERP.Shared.Pages.Features.DocumentManagement.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Auth.Dtos
+@using SharedWithUI.DocumentManagement.Dtos
+@using SharedWithUI.DocumentManagement.Enums
+@using SharedWithUI.Permissions
+
+@inject IDocumentManagementService DocumentService
+@inject IUserService UserService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+@inject IJSRuntime JS
+
+@if (!CanView)
+{
+    <div class="alert alert-warning" dir="@SharedDataService.PageDirection">@Text("You do not have permission to view this document.", "ليس لديك صلاحية لعرض هذا المستند.")</div>
+    return;
+}
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@(document?.Title ?? Text("Document", "مستند"))"
+                Subtitle="@Text("Versions and collaboration", "الإصدارات والتعاون")"
+                Icon="bi-file-earmark-text"
+                Actions="@HeaderActions" />
+
+    @if (document is null)
+    {
+        <AppCard>
+            <div class="text-center text-muted py-4">@Text("Loading document...", "جاري تحميل المستند...")</div>
+        </AppCard>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-lg-7">
+                <AppCard Title="@Text("Metadata", "البيانات")" CssClass="mb-3">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">@Text("Title", "العنوان")</label>
+                            <input class="form-control" disabled="@(!document.CanWrite)" @bind="editModel.Title" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">@Text("Source", "المصدر")</label>
+                            <div class="d-flex gap-2">
+                                <input class="form-control" disabled="@(!document.CanWrite)" placeholder="@Text("Module", "الوحدة")" @bind="editModel.SourceModule" />
+                                <input class="form-control" disabled="@(!document.CanWrite)" placeholder="@Text("Entity", "الكيان")" @bind="editModel.SourceEntity" />
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">@Text("Description", "الوصف")</label>
+                            <textarea class="form-control" rows="3" disabled="@(!document.CanWrite)" @bind="editModel.Description"></textarea>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end">
+                            <button class="btn btn-primary" disabled="@(!document.CanWrite || isSaving)" @onclick="SaveMetadata">
+                                <i class="bi bi-save"></i> @Text("Save", "حفظ")
+                            </button>
+                        </div>
+                    </div>
+                </AppCard>
+
+                <AppCard Title="@Text("Versions", "الإصدارات")">
+                    @if (document.CanWrite)
+                    {
+                        <div class="d-flex gap-2 mb-3">
+                            <InputFile class="form-control" OnChange="OnVersionFileSelected" />
+                            <button class="btn btn-primary" disabled="@(versionFile is null || isSaving)" @onclick="UploadVersion">
+                                <i class="bi bi-cloud-upload"></i>
+                            </button>
+                        </div>
+                    }
+
+                    <div class="erp-table-wrap">
+                        <table class="table erp-table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>@Text("Version", "الإصدار")</th>
+                                    <th>@Text("File", "الملف")</th>
+                                    <th>@Text("Uploaded", "تاريخ الرفع")</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var version in document.Versions)
+                                {
+                                    <tr>
+                                        <td><span class="badge bg-secondary">v@version.VersionNumber</span></td>
+                                        <td>
+                                            <div>@version.OriginalFileName</div>
+                                            <small class="text-muted">@FormatFileSize(version.FileSize)</small>
+                                        </td>
+                                        <td>@version.UploadedAt.ToLocalTime()</td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-outline-primary erp-row-action" @onclick="() => Download(version.Id)">
+                                                <i class="bi bi-download"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+
+            <div class="col-lg-5">
+                <AppCard Title="@Text("Collaborators", "المتعاونون")">
+                    @if (document.CanShare)
+                    {
+                        <div class="row g-2 mb-3">
+                            <div class="col-7">
+                                <select class="form-select" @bind="inviteUserId">
+                                    <option value="">@Text("Select employee", "اختر الموظف")</option>
+                                    @foreach (var user in users)
+                                    {
+                                        <option value="@user.Id">@user.UserName</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-5">
+                                <select class="form-select" @bind="inviteAccess">
+                                    <option value="@DocumentAccessLevel.Read">@Text("Read only", "قراءة فقط")</option>
+                                    <option value="@DocumentAccessLevel.ReadWrite">@Text("Read/write", "قراءة وكتابة")</option>
+                                </select>
+                            </div>
+                            <div class="col-12 d-flex justify-content-end">
+                                <button class="btn btn-outline-primary" @onclick="InviteCollaborator">
+                                    <i class="bi bi-person-plus"></i> @Text("Invite", "دعوة")
+                                </button>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!document.Collaborators.Any())
+                    {
+                        <div class="text-muted py-3">@Text("No collaborators yet.", "لا يوجد متعاونون بعد.")</div>
+                    }
+                    @foreach (var collaborator in document.Collaborators)
+                    {
+                        <div class="d-flex align-items-center justify-content-between border-bottom py-2">
+                            <div>
+                                <div class="fw-semibold">@(!string.IsNullOrWhiteSpace(collaborator.UserName) ? collaborator.UserName : collaborator.UserId)</div>
+                                <small class="text-muted">@AccessText(collaborator.AccessLevel)</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger" disabled="@(!document.CanShare)" @onclick="() => RemoveCollaborator(collaborator.Id)">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                    }
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private DocumentDetailDto? document;
+    private UpdateDocumentDto editModel = new();
+    private List<UserDto> users = [];
+    private IBrowserFile? versionFile;
+    private string inviteUserId = string.Empty;
+    private DocumentAccessLevel inviteAccess = DocumentAccessLevel.Read;
+    private Guid companyId;
+    private bool CanView;
+    private bool isSaving;
+
+    private RenderFragment HeaderActions => @<div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo("/DocumentManagement/List")'>
+            <i class="bi bi-arrow-return-left"></i> @Text("Back", "رجوع")
+        </button>
+        <button class="btn btn-primary" disabled="@(document is null)" @onclick="() => Download(null)">
+            <i class="bi bi-download"></i> @Text("Download Latest", "تنزيل الأحدث")
+        </button>
+    </div>;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        CanView = true;
+        Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId);
+        await LoadDocument();
+        await LoadUsers();
+    }
+
+    private async Task LoadDocument()
+    {
+        var response = await DocumentService.GetByIdAsync(Id);
+        if (response.IsSuccess && response.Data is not null)
+        {
+            document = response.Data;
+            editModel = new UpdateDocumentDto
+            {
+                Id = document.Id,
+                Title = document.Title,
+                Description = document.Description,
+                SourceModule = document.SourceModule,
+                SourceEntity = document.SourceEntity,
+                SourceRecordId = document.SourceRecordId
+            };
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load document.", "تعذر تحميل المستند."));
+        }
+    }
+
+    private async Task LoadUsers()
+    {
+        if (companyId == Guid.Empty)
+            return;
+
+        var response = await UserService.GetUsersByCompany(companyId, 0, 10000);
+        if (response.IsSuccess)
+            users = response.Data?.Data.ToList() ?? [];
+    }
+
+    private async Task SaveMetadata()
+    {
+        if (document is null || string.IsNullOrWhiteSpace(editModel.Title))
+            return;
+
+        isSaving = true;
+        var response = await DocumentService.UpdateAsync(editModel);
+        isSaving = false;
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Document saved.", "تم حفظ المستند."));
+            await LoadDocument();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to save document.", "تعذر حفظ المستند."));
+        }
+    }
+
+    private void OnVersionFileSelected(InputFileChangeEventArgs e) => versionFile = e.File;
+
+    private async Task UploadVersion()
+    {
+        if (document is null || versionFile is null)
+            return;
+
+        isSaving = true;
+        var response = await DocumentService.UploadVersionAsync(document.Id, versionFile);
+        isSaving = false;
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Version uploaded.", "تم رفع الإصدار."));
+            versionFile = null;
+            await LoadDocument();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to upload version.", "تعذر رفع الإصدار."));
+        }
+    }
+
+    private async Task InviteCollaborator()
+    {
+        if (document is null || !Guid.TryParse(inviteUserId, out var userId))
+            return;
+
+        var user = users.FirstOrDefault(x => x.Id == userId);
+        var response = await DocumentService.InviteCollaboratorAsync(document.Id, new InviteDocumentCollaboratorDto
+        {
+            UserId = userId,
+            UserName = user?.UserName,
+            AccessLevel = inviteAccess
+        });
+
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Collaborator saved.", "تم حفظ المتعاون."));
+            inviteUserId = string.Empty;
+            await LoadDocument();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to invite collaborator.", "تعذر دعوة المتعاون."));
+        }
+    }
+
+    private async Task RemoveCollaborator(Guid collaboratorId)
+    {
+        if (document is null)
+            return;
+
+        var response = await DocumentService.RemoveCollaboratorAsync(document.Id, collaboratorId);
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Collaborator removed.", "تم حذف المتعاون."));
+            await LoadDocument();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to remove collaborator.", "تعذر حذف المتعاون."));
+        }
+    }
+
+    private async Task Download(Guid? versionId)
+    {
+        if (document is null)
+            return;
+
+        var response = await DocumentService.DownloadAsync(document.Id, versionId);
+        if (response.IsSuccess && response.Data is not null)
+            await JS.InvokeVoidAsync("alafkarDocumentDownload.downloadBase64", response.Data.FileName, response.Data.ContentType, response.Data.Base64Content);
+        else
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Download failed.", "فشل التنزيل."));
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024d:0.#} KB";
+        return $"{bytes / 1024d / 1024d:0.#} MB";
+    }
+
+    private string AccessText(DocumentAccessLevel accessLevel) =>
+        accessLevel == DocumentAccessLevel.ReadWrite ? Text("Read and write", "قراءة وكتابة") : Text("Read only", "قراءة فقط");
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
