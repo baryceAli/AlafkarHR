@@ -3028,9 +3028,381 @@ body {
     font-size: var(--erp-type-body-md-size);
 }
 
+/* Full-system rollout helpers */
+.erp-auth-layout {
+    background: var(--erp-bg);
+    color: var(--erp-text);
+    display: flex;
+    min-height: 100vh;
+}
+
+.erp-auth-compact-card {
+    inline-size: min(350px, calc(100vw - (var(--erp-space-4) * 2)));
+}
+
+.erp-loader-overlay {
+    align-items: center;
+    background: color-mix(in srgb, var(--erp-color-inverse-surface) 58%, transparent);
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    position: fixed;
+    z-index: 9999;
+}
+
+.erp-loader-spinner {
+    color: var(--erp-primary-contrast);
+    height: 3rem;
+    width: 3rem;
+}
+
+.erp-modal-layer {
+    z-index: 1055;
+}
+
+.erp-modal-table-scroll {
+    max-height: 400px;
+    overflow: auto;
+}
+
+.erp-clickable-row,
+.erp-sortable-column,
+.erp-pointer,
+.cursor-pointer,
+.upload-label,
+.profile-upload-label {
+    cursor: pointer;
+}
+
+.erp-draggable-card {
+    cursor: grab;
+}
+
+.erp-search-control,
+.branch-search,
+.employee-lookup-search,
+.org-search {
+    inline-size: min(100%, 320px);
+}
+
+.erp-search-control-wide {
+    inline-size: min(100%, 360px);
+}
+
+.erp-status-filter {
+    inline-size: min(100%, 220px);
+}
+
+.erp-hidden-input {
+    display: none;
+}
+
+.erp-column-width-sm {
+    inline-size: 80px;
+}
+
+.erp-column-width-md {
+    inline-size: 150px;
+}
+
+.erp-column-width-lg {
+    inline-size: 180px;
+}
+
+.erp-min-width-progress {
+    min-inline-size: 160px;
+}
+
+.erp-progress,
+.progress {
+    background: var(--erp-surface-muted);
+    border-radius: var(--erp-radius-full);
+    min-height: 8px;
+}
+
+.erp-progress .progress-bar,
+.progress .progress-bar {
+    background-color: var(--erp-primary);
+    border-radius: inherit;
+    width: var(--erp-progress-value, auto);
+}
+
+.progress .bg-info {
+    background-color: var(--erp-info) !important;
+}
+
+.erp-stat-panel,
+.branch-stat,
+.org-stat,
+.employee-lookup-stat,
+.operation-stat,
+.metric-card,
+.attendance-card,
+.employee-360-hero,
+.company-tile {
+    align-items: center;
+    background: var(--erp-surface) !important;
+    border: 1px solid var(--erp-border) !important;
+    border-inline-start: 4px solid var(--erp-primary) !important;
+    border-radius: var(--erp-radius-lg) !important;
+    box-shadow: var(--erp-shadow-sm) !important;
+    color: var(--erp-text) !important;
+}
+
+.branch-stat-icon,
+.org-stat-icon,
+.employee-lookup-stat-icon,
+.operation-stat-icon,
+.metric-icon,
+.attendance-icon {
+    background: var(--erp-surface-muted) !important;
+    border-radius: var(--erp-radius-lg) !important;
+    color: var(--erp-primary) !important;
+}
+
+.branch-stat-value,
+.org-stat-value,
+.employee-lookup-stat-value,
+.operation-stat-value,
+.metric-value,
+.attendance-value {
+    color: var(--erp-text) !important;
+}
+
+.branch-search i,
+.org-search i,
+.employee-lookup-search i {
+    color: var(--erp-text-muted) !important;
+    inset-block-start: 50%;
+    inset-inline-start: var(--erp-space-3) !important;
+    left: auto !important;
+    right: auto !important;
+    position: absolute;
+    transform: translateY(-50%);
+}
+
+.branch-search .form-control,
+.org-search .form-control,
+.employee-lookup-search .form-control {
+    padding-inline-start: 2.5rem !important;
+}
+
+.branch-table-wrap,
+.org-table-wrap,
+.employee-lookup-table-wrap,
+.operation-panel,
+.branch-edit-panel,
+.org-edit-panel,
+.employee-lookup-edit-panel,
+.employee-360-card,
+.pos-panel {
+    background: var(--erp-surface) !important;
+    border: 1px solid var(--erp-border) !important;
+    border-radius: var(--erp-radius-lg) !important;
+    box-shadow: var(--erp-shadow-sm);
+}
+
+.branch-edit-row > td,
+.org-edit-row > td,
+.employee-lookup-edit-row > td {
+    background: var(--erp-surface-muted) !important;
+    padding: var(--erp-space-4) !important;
+}
+
+.branch-empty,
+.org-empty,
+.employee-lookup-empty,
+.attendance-empty {
+    color: var(--erp-text-muted) !important;
+    padding: var(--erp-space-8) !important;
+}
+
+.branch-check,
+.org-check,
+.employee-lookup-check {
+    background: var(--erp-surface-muted) !important;
+    border: 1px solid var(--erp-border) !important;
+    border-radius: var(--erp-radius-default) !important;
+}
+
+.metric-card.warning,
+.erp-tone-warning {
+    border-inline-start-color: var(--erp-warning) !important;
+}
+
+.metric-card.success,
+.erp-tone-success {
+    border-inline-start-color: var(--erp-success) !important;
+}
+
+.metric-card.danger,
+.erp-tone-danger {
+    border-inline-start-color: var(--erp-danger) !important;
+}
+
+.erp-tone-info {
+    border-inline-start-color: var(--erp-info) !important;
+}
+
+.erp-kanban-page,
+.task-page {
+    inline-size: 100%;
+    max-inline-size: calc(100vw - var(--erp-sidebar-expanded-width) - var(--erp-container-margin));
+    min-inline-size: 0;
+    overflow: hidden;
+}
+
+.kanban-wrapper {
+    margin-block-end: var(--erp-space-5);
+    max-inline-size: 100%;
+    min-inline-size: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.kanban-container {
+    border: 1px solid var(--erp-border) !important;
+    border-radius: var(--erp-radius-lg) !important;
+    box-sizing: border-box;
+    display: block;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    scrollbar-color: var(--erp-border-strong) transparent;
+    scrollbar-width: thin;
+}
+
+.kanban-flex-wrapper {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    gap: var(--erp-space-4);
+    inline-size: max-content;
+    min-inline-size: max-content;
+    padding: var(--erp-space-3);
+}
+
+.kanban-panel {
+    background: var(--erp-surface) !important;
+    border: 1px solid var(--erp-border) !important;
+    border-inline-start: 3px solid var(--erp-primary) !important;
+    border-radius: var(--erp-radius-lg) !important;
+    flex: 0 0 280px;
+    min-block-size: 480px;
+    inline-size: 280px !important;
+}
+
+.kanban-panel-draft,
+.kanban-panel-assigned {
+    border-inline-start-color: var(--erp-primary) !important;
+}
+
+.kanban-panel-inprogress,
+.kanban-panel-overdue {
+    border-inline-start-color: var(--erp-danger) !important;
+}
+
+.kanban-panel-onhold {
+    border-inline-start-color: var(--erp-warning) !important;
+}
+
+.kanban-panel-completed {
+    border-inline-start-color: var(--erp-success) !important;
+}
+
+.kanban-panel-cancelled {
+    border-inline-start-color: var(--erp-text-soft) !important;
+}
+
+.kanban-task-card {
+    background: var(--erp-surface) !important;
+    border: 1px solid var(--erp-border) !important;
+    border-radius: var(--erp-radius-default) !important;
+    color: var(--erp-text);
+    cursor: grab;
+}
+
+.erp-public-page,
+.employee-public-page,
+.employee-qr-page {
+    background: var(--erp-bg);
+    color: var(--erp-text);
+    min-block-size: 100vh;
+}
+
+.employee-public-card {
+    inline-size: min(40rem, calc(100vw - (var(--erp-space-4) * 2)));
+    margin-block-start: var(--erp-space-8);
+}
+
+.employee-public-card-sm,
+.employee-qr-card {
+    inline-size: min(30rem, calc(100vw - (var(--erp-space-4) * 2)));
+    margin-block-start: var(--erp-space-8);
+}
+
+.employee-qr-card {
+    inline-size: min(18rem, calc(100vw - (var(--erp-space-4) * 2)));
+}
+
+.employee-label-cell {
+    inline-size: 35%;
+}
+
+.pos-shell {
+    background: var(--erp-bg) !important;
+    color: var(--erp-text);
+}
+
+.pos-muted-surface {
+    background: var(--erp-surface-muted) !important;
+}
+
+.topbar-search-input,
+.auth-management-search {
+    inline-size: min(100%, 200px);
+}
+
+.auth-management-sidebar {
+    background: var(--erp-sidebar-bg);
+    border-inline-end: 1px solid var(--erp-sidebar-border);
+    color: var(--erp-sidebar-text);
+    inline-size: 250px;
+}
+
+.auth-management-sidebar .nav-link {
+    border-radius: var(--erp-radius-default);
+}
+
+img,
+svg,
+canvas,
+video {
+    max-inline-size: 100%;
+}
+
+[dir="rtl"] .branch-stat,
+[dir="rtl"] .org-stat,
+[dir="rtl"] .employee-lookup-stat,
+[dir="rtl"] .operation-stat,
+[dir="rtl"] .metric-card,
+[dir="rtl"] .attendance-card,
+[dir="rtl"] .company-tile,
+[dir="rtl"] .kanban-panel {
+    border-inline-start-width: 0 !important;
+    border-inline-end: 4px solid var(--erp-primary) !important;
+}
+
 @media (max-width: 991.98px) {
     .desktop-workspace-shell {
         display: none;
+    }
+
+    .erp-kanban-page,
+    .task-page {
+        max-inline-size: calc(100vw - (var(--erp-space-4) * 2));
     }
 }
 

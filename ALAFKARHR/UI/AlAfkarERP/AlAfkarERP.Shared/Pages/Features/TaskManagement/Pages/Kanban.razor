@@ -22,29 +22,28 @@
         <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
         return;
     }
-
-    <h5 class="text-black mb-3 px-2">@Text("Kanban Board", "لوحة كانبان")</h5>
-
+    <PageHeader Title="@Text("Kanban Board", "لوحة كانبان")"
+                Subtitle="@Text("Move tasks between workflow states.", "انقل المهام بين حالات سير العمل.")"
+                Icon="bi-kanban" />
     <div class="kanban-wrapper" @onkeydown="HandleKeyDown" tabindex="0">
         <div class="kanban-container" #kanbanContainer @ref="containerRef" dir="ltr">
             <div class="kanban-flex-wrapper">
                 @foreach (var status in Enum.GetValues<TaskWorkflowStatus>())
                 {
-                    var backgroundColor = GetStatusColor(status);
-                    <div class="card kanban-panel p-2" dir="@SharedDataService.PageDirection" style="background-color: @backgroundColor; border: 2px solid @GetStatusBorderColor(status); border-radius: 8px;"
+                    <div class="card kanban-panel p-2 @KanbanPanelClass(status)" dir="@SharedDataService.PageDirection"
                          @ondragover:preventDefault
                          @ondrop="() => DropOnStatus(status)">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <strong class="text-dark">@StatusText(status)</strong>
-                            <span class="badge bg-dark">@tasks.Count(x => x.Status == status)</span>
+                            <StatusChip Text="@tasks.Count(x => x.Status == status).ToString()" Tone="@StatusTone(status)" />
                         </div>
                         @foreach (var task in tasks.Where(x => x.Status == status))
                         {
-                            <div class="border rounded p-2 mb-2 bg-white" draggable="@(CanEdit || CanClose)" @ondragstart="() => StartDrag(task)" style="cursor: grab;">
+                            <div class="kanban-task-card p-2 mb-2" draggable="@(CanEdit || CanClose)" @ondragstart="() => StartDrag(task)">
                                 <div class="fw-semibold">@task.Title</div>
                                 <small class="text-muted" dir="ltr">@task.TaskNumber</small>
                                 <div class="d-flex justify-content-between mt-2">
-                                    <span class="badge bg-light text-dark">@PriorityText(task.Priority)</span>
+                                    <StatusChip Text="@PriorityText(task.Priority)" Tone="muted" />
                                     <button class="btn btn-sm btn-link p-0" @onclick='() => NavigationManager.NavigateTo($"/TaskManagement/View/{task.Id}")'>@Text("Open", "فتح")</button>
                                 </div>
                             </div>
@@ -153,29 +152,25 @@
         TaskPriority.Critical => Text("Critical", "حرجة"),
         _ => priority.ToString()
     };
-
-    private string GetStatusColor(TaskWorkflowStatus status) => status switch
+    private static string KanbanPanelClass(TaskWorkflowStatus status) => status switch
     {
-        TaskWorkflowStatus.Draft => "#f0f4ff",
-        TaskWorkflowStatus.Assigned => "#fff4e6",
-        TaskWorkflowStatus.InProgress => "#fff0f0",
-        TaskWorkflowStatus.OnHold => "#fff9e6",
-        TaskWorkflowStatus.Completed => "#e6ffe6",
-        TaskWorkflowStatus.Cancelled => "#f5f5f5",
-        TaskWorkflowStatus.Overdue => "#ffe6e6",
-        _ => "#ffffff"
+        TaskWorkflowStatus.Draft => "kanban-panel-draft",
+        TaskWorkflowStatus.Assigned => "kanban-panel-assigned",
+        TaskWorkflowStatus.InProgress => "kanban-panel-inprogress",
+        TaskWorkflowStatus.OnHold => "kanban-panel-onhold",
+        TaskWorkflowStatus.Completed => "kanban-panel-completed",
+        TaskWorkflowStatus.Cancelled => "kanban-panel-cancelled",
+        TaskWorkflowStatus.Overdue => "kanban-panel-overdue",
+        _ => "kanban-panel-draft"
     };
 
-    private string GetStatusBorderColor(TaskWorkflowStatus status) => status switch
+    private static string StatusTone(TaskWorkflowStatus status) => status switch
     {
-        TaskWorkflowStatus.Draft => "#0056b3",
-        TaskWorkflowStatus.Assigned => "#ff8c00",
-        TaskWorkflowStatus.InProgress => "#dc3545",
-        TaskWorkflowStatus.OnHold => "#ffc107",
-        TaskWorkflowStatus.Completed => "#28a745",
-        TaskWorkflowStatus.Cancelled => "#6c757d",
-        TaskWorkflowStatus.Overdue => "#c82333",
-        _ => "#cccccc"
+        TaskWorkflowStatus.Completed => "success",
+        TaskWorkflowStatus.OnHold => "warning",
+        TaskWorkflowStatus.InProgress or TaskWorkflowStatus.Overdue => "danger",
+        TaskWorkflowStatus.Cancelled => "muted",
+        _ => "primary"
     };
 
     protected override void OnInitialized()
@@ -193,78 +188,3 @@
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }
-
-<style>
-    .task-page {
-        width: 100%;
-        max-width: calc(100vw - 282px);
-        min-width: 0;
-        overflow: hidden;
-    }
-
-    @@media (max-width: 991.98px) {
-        .task-page {
-            max-width: calc(100vw - 2rem);
-        }
-    }
-
-    .kanban-wrapper {
-        position: relative;
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        margin-bottom: 20px;
-        overflow: hidden;
-    }
-
-    .kanban-container {
-        box-sizing: border-box;
-        scrollbar-width: auto;
-        scrollbar-color: #888 #f1f1f1;
-        display: block;
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        overflow-x: scroll;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        scroll-behavior: smooth;
-    }
-
-    .kanban-container::-webkit-scrollbar {
-        height: 12px;
-    }
-
-    .kanban-container::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 10px;
-    }
-
-    .kanban-container::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 10px;
-        cursor: grab;
-    }
-
-    .kanban-container::-webkit-scrollbar-thumb:hover {
-        background: #555;
-        cursor: grabbing;
-    }
-
-    .kanban-flex-wrapper {
-        display: inline-flex;
-        flex-wrap: nowrap;
-        gap: 1rem;
-        padding: 10px;
-        width: max-content;
-        min-width: max-content;
-    }
-
-    .kanban-panel {
-        flex: 0 0 280px;
-        width: 280px !important;
-        min-height: 480px;
-    }
-</style>

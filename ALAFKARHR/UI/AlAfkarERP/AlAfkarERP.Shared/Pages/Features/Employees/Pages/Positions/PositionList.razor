@@ -241,10 +241,10 @@
 
     .employee-lookup-stat {
         align-items: center;
-        background: #fff;
-        border-left: 4px solid;
-        border-radius: 8px;
-        box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.08);
+        background: var(--erp-surface);
+        border-inline-start: 4px solid;
+        border-radius: var(--erp-radius-lg);
+        box-shadow: var(--erp-shadow-sm);
         display: flex;
         gap: 0.875rem;
         min-height: 86px;
@@ -253,8 +253,8 @@
 
     .employee-lookup-stat-icon {
         align-items: center;
-        background: #f8fafc;
-        border-radius: 8px;
+        background: var(--erp-surface-muted);
+        border-radius: var(--erp-radius-lg);
         display: inline-flex;
         font-size: 1.4rem;
         height: 44px;
@@ -263,7 +263,7 @@
     }
 
     .employee-lookup-stat-value {
-        color: #111827;
+        color: var(--erp-text);
         font-size: 1.55rem;
         font-weight: 700;
         line-height: 1.1;
@@ -283,15 +283,15 @@
     }
 
     .employee-lookup-search i {
-        color: #64748b;
-        left: 0.85rem;
+        color: var(--erp-text-muted);
+        inset-inline-start: 0.85rem;
         position: absolute;
         top: 50%;
         transform: translateY(-50%);
     }
 
     .employee-lookup-search .form-control {
-        padding-left: 2.5rem;
+        padding-inline-start: 2.5rem;
     }
 
     .employee-lookup-page-size {
@@ -299,8 +299,8 @@
     }
 
     .employee-lookup-table thead th {
-        background: #f8fafc;
-        color: #334155;
+        background: var(--erp-surface-muted);
+        color: var(--erp-text-muted);
         font-size: 0.82rem;
         font-weight: 700;
         letter-spacing: 0;
@@ -314,13 +314,13 @@
     }
 
     .employee-lookup-table tbody tr:hover {
-        background: #f8fafc;
+        background: var(--erp-surface-muted);
     }
 
     .employee-lookup-edit-panel {
-        background: #f8fafc;
-        border: 1px solid #dbeafe;
-        border-radius: 8px;
+        background: var(--erp-surface-muted);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
         padding: 1rem;
     }
 
@@ -335,7 +335,7 @@
 
     .employee-lookup-pagination {
         align-items: center;
-        border-top: 1px solid #e2e8f0;
+        border-top: 1px solid var(--erp-border);
         display: flex;
         flex-wrap: wrap;
         gap: 0.75rem;
@@ -345,18 +345,18 @@
     }
 
     [dir="rtl"] .employee-lookup-stat {
-        border-left: 0;
-        border-right: 4px solid;
+        border-inline-start: 0;
+        border-inline-end: 4px solid;
     }
 
     [dir="rtl"] .employee-lookup-search i {
-        left: auto;
-        right: 0.85rem;
+        inset-inline-start: auto;
+        inset-inline-end: 0.85rem;
     }
 
     [dir="rtl"] .employee-lookup-search .form-control {
-        padding-left: 0.75rem;
-        padding-right: 2.5rem;
+        padding-inline-start: 0.75rem;
+        padding-inline-end: 2.5rem;
     }
 </style>
 

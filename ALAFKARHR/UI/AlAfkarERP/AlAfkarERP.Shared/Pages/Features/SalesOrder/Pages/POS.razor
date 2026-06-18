@@ -1,4 +1,4 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/SalesOrder/POS"
 @using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
@@ -26,7 +26,7 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.View}"))
+@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.SalesOrderPermissions.View}"))
 {
     <div class="alert alert-warning">
         <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
@@ -277,7 +277,7 @@
 <style>
 
     body {
-        background: #f5f7fb;
+        background: var(--erp-bg);
     }
 
     .product-card {
@@ -303,7 +303,7 @@
         overflow: hidden;
         border-top-left-radius: 1rem;
         border-top-right-radius: 1rem;
-        background: #f8f9fa;
+        background: var(--erp-surface-muted);
         display: flex;
         align-items: center;
         justify-content: center;

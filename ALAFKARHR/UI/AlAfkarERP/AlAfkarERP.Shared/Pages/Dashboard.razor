@@ -217,7 +217,7 @@
             "bi-boxes",
             new[]
             {
-                new DashboardLink("POS", "نقطة البيع", "Open the sales point of service.", "افتح نقطة البيع.", "bi-receipt-cutoff", "/SalesOrder/POS", PermissionList.InventoryPermissions.View),
+                new DashboardLink("POS", "نقطة البيع", "Open the sales point of service.", "افتح نقطة البيع.", "bi-receipt-cutoff", "/SalesOrder/POS", PermissionList.SalesOrderPermissions.View),
                 new DashboardLink("Inventory", "المخزون", "Review stock balances and operations.", "راجع أرصدة المخزون والعمليات.", "bi-boxes", "/Inventory/Dashboard", PermissionList.InventoryPermissions.Select),
                 new DashboardLink("Procurement", "المشتريات", "Manage purchase documents.", "إدارة مستندات الشراء.", "bi-cart-check", "/Procurement/Dashboard", PermissionList.PurchaseOrderPermissions.Select),
                 new DashboardLink("Suppliers", "الموردون", "Open supplier profiles and groups.", "افتح ملفات الموردين والمجموعات.", "bi-truck", "/Suppliers/Supplier/List", PermissionList.SupplierPermissions.View)

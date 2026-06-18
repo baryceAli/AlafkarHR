@@ -4,7 +4,7 @@
 {
     <div class="modal-backdrop fade show"></div>
 
-    <div class="modal show d-block" tabindex="-1" style="z-index:1055;">
+    <div class="modal show d-block erp-modal-layer" tabindex="-1">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
 
@@ -25,7 +25,7 @@
                            @onkeydown="HandleKeyDown" />
 
                     <!-- Table -->
-                    <div style="max-height:400px; overflow:auto">
+                    <div class="erp-modal-table-scroll">
                         <table class="table table-hover">
                             <thead>
                                 <tr>
@@ -45,8 +45,7 @@
                                     var item = items[i];
                                     var isActive = i == activeIndex;
 
-                                    <tr class="@(isActive ? "table-primary" : "")"
-                                        style="cursor:pointer"
+                                    <tr class="@(isActive ? "table-primary erp-clickable-row" : "erp-clickable-row")"
                                         @onclick="() => Select(item, i)">
 
                                         @if (Options.MultiSelect)

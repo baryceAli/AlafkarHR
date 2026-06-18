@@ -162,7 +162,7 @@
                                         </label>
                                         <div>
                                             <InputFile id="companyLogoUpload"
-                                                       style="display:none"
+                                                       class="erp-hidden-input"
                                                        OnChange="OnCompanyLogoSelected"
                                                        accept="image/*" />
                                             <label for="companyLogoUpload" class="btn btn-outline-primary btn-sm mb-1">
@@ -274,7 +274,7 @@
     .profile-link {
         align-items: center;
         background: var(--erp-surface);
-        border-left: 4px solid;
+        border-inline-start: 4px solid;
         border-radius: var(--erp-radius-lg);
         box-shadow: var(--erp-shadow-sm);
         color: var(--erp-text);
@@ -384,13 +384,13 @@
     }
 
     .location-picker-marker {
-        color: #dc3545;
+        color: var(--erp-danger);
         font-size: 2rem;
-        left: 50%;
+        inset-inline-start: 50%;
         line-height: 1;
         pointer-events: none;
         position: absolute;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+        text-shadow: 0 2px 4px color-mix(in srgb, var(--erp-color-inverse-surface) 25%, transparent);
         top: 50%;
         transform: translate(-50%, -100%);
         z-index: 2;
@@ -405,8 +405,8 @@
     }
 
     [dir="rtl"] .profile-link {
-        border-left: 0;
-        border-right: 4px solid;
+        border-inline-start: 0;
+        border-inline-end: 4px solid;
     }
 </style>
 

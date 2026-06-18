@@ -22,7 +22,7 @@
                 <tr>
                     @foreach (var column in Columns.Where(c => !c.isHidden && !c.IsActionColumn))
                     {
-                        <th @onclick="() => Sort(column.Property)" style="cursor:pointer">
+                        <th @onclick="() => Sort(column.Property)" class="erp-sortable-column">
                             @column.Title
                             @(CurrentSortColumn == column.Property ? (SortAscending ? " ↑" : " ↓") : "")
                         </th>

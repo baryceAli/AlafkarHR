@@ -35,19 +35,9 @@ public class MenuItem
             TextEn = "Home",
             TextAr = "الرئيسية",
             Icon = "bi-house-door",
-            Url = "/",
+            Url = "/Dashboard",
             PermissionPolicy = PermissionList.ProductPermissions.View
         },
-        //POS
-        new MenuItem
-        {
-            TextEn = "POS",
-            TextAr = "نقطة بيع",
-            Icon = "bi-receipt-cutoff",
-            Url = "/SalesOrder/POS",
-            PermissionPolicy = PermissionList.InventoryPermissions.View
-        },
-
         //Control Panel
         new MenuItem
         {
@@ -493,6 +483,24 @@ public class MenuItem
             Icon = "bi-box-seam",
             Children = new()
             {
+                new MenuItem
+                {
+                    TextEn = "Sales",
+                    TextAr = "المبيعات",
+                    Icon = "bi-receipt-cutoff",
+                    PermissionPolicy = PermissionList.SalesOrderPermissions.Select,
+                    Children = new()
+                    {
+                        new MenuItem
+                        {
+                            TextEn = "POS",
+                            TextAr = "نقطة بيع",
+                            Icon = "bi-receipt-cutoff",
+                            Url = "/SalesOrder/POS",
+                            PermissionPolicy = PermissionList.SalesOrderPermissions.View
+                        }
+                    }
+                },
                 new MenuItem
                 {
                     TextEn = "Products Management",

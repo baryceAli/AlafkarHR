@@ -35,7 +35,7 @@
         <AppCard Title="@SharedDataService.SelectViewLang(Meta.En, Meta.Ar)">
             <FilterBar CssClass="mb-3">
                 <ChildContent>
-                    <div class="input-group" style="max-width: 340px;">
+                    <div class="input-group erp-search-control">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
                         <input class="form-control"
                                placeholder="@SharedDataService.SelectViewLang("Search number or supplier", "ابحث بالرقم أو المورد")"
@@ -43,7 +43,7 @@
                                @bind:event="oninput"
                                @onkeydown="HandleSearchKey" />
                     </div>
-                    <select class="form-select" style="max-width: 220px;" @bind="statusFilter">
+                    <select class="form-select erp-status-filter" @bind="statusFilter">
                         <option value="">@SharedDataService.SelectViewLang("All statuses", "كل الحالات")</option>
                         @foreach (var status in StatusOptions)
                         {

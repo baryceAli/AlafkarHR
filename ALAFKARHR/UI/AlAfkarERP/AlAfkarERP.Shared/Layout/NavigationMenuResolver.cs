@@ -10,7 +10,7 @@ public static class NavigationMenuResolver
     public const string WorkspaceFinancePayroll = "finance-payroll";
     public const string WorkspaceInventory = "inventory";
     public const string WorkspaceMore = "more";
-    public const string WorkspacePos = WorkspaceOperations;
+    public const string WorkspacePos = "pos";
     public const string WorkspaceProcurement = WorkspaceOperations;
 
     public const string HubPeople = "people";
@@ -21,9 +21,10 @@ public static class NavigationMenuResolver
 
     public static readonly IReadOnlyList<NavigationWorkspace> MobileWorkspaces =
     [
-        new(WorkspaceHome, "Home", "\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629", "bi-house-door", "/"),
+        new(WorkspaceHome, "Home", "\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629", "bi-house-door", "/Dashboard"),
         new(WorkspacePeople, "People", "\u0627\u0644\u0623\u0641\u0631\u0627\u062f", "bi-people", "/Employee/Dashboard"),
-        new(WorkspaceOperations, "Operations", "\u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a", "bi-kanban", "/SalesOrder/POS"),
+        new(WorkspacePos, "POS", "\u0646\u0642\u0637\u0629 \u0628\u064a\u0639", "bi-receipt-cutoff", "/SalesOrder/POS"),
+        new(WorkspaceOperations, "Operations", "\u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a", "bi-kanban", null),
         new(WorkspaceFinancePayroll, "Finance / Payroll", "\u0627\u0644\u0645\u0627\u0644\u064a\u0629 / \u0627\u0644\u0631\u0648\u0627\u062a\u0628", "bi-cash-stack", "/Payroll/SalaryRuns"),
         new(WorkspaceInventory, "Inventory", "\u0627\u0644\u0645\u062e\u0632\u0648\u0646", "bi-boxes", "/Inventory/Dashboard"),
         new(WorkspaceMore, "More", "\u0627\u0644\u0645\u0632\u064a\u062f", "bi-grid-3x3-gap", null)
@@ -106,9 +107,14 @@ public static class NavigationMenuResolver
         var path = NormalizePath(item.Url);
         var text = item.TextEn;
 
-        if (path == "/" || text.Equals("Home", StringComparison.OrdinalIgnoreCase))
+        if (path == "/" || path == "/dashboard" || text.Equals("Home", StringComparison.OrdinalIgnoreCase))
         {
             return WorkspaceHome;
+        }
+
+        if (path == "/salesorder/pos" || text.Equals("POS", StringComparison.OrdinalIgnoreCase))
+        {
+            return WorkspacePos;
         }
 
         if (path.StartsWith("/payroll", StringComparison.OrdinalIgnoreCase)
@@ -155,7 +161,6 @@ public static class NavigationMenuResolver
             || path.StartsWith("/suppliers", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/customers", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/catalog", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("POS", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Operations", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Procurement", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Purchase", StringComparison.OrdinalIgnoreCase)
