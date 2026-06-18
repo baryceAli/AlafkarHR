@@ -4,6 +4,7 @@
 
 @using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using Microsoft.AspNetCore.Components.Authorization
@@ -17,6 +18,7 @@
 @inject ICategoryService CategoryService
 @inject IBrandService BrandService
 @inject ICartService CartService
+@inject ICompanySettingService CompanySettingService
 @inject ToastService ToastService
 @inject LoadingService LoadingService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -34,7 +36,7 @@
     <PageHeader Title="@Text("Point of Sale", "نقطة البيع")"
                 Subtitle="@Text("Sell priced SKUs, manage the active cart, and submit checkout to order intake.", "بيع المنتجات المسعرة وإدارة السلة وإرسال الطلب.")"
                 Overline="@Text("Sales", "المبيعات")"
-                Icon="bi-receipt-cutoff">
+                Icon="bi-receipt">
         <Actions>
             <a class="btn btn-outline-secondary" href="/Orders/Intakes">
                 <i class="bi bi-card-checklist"></i> @Text("Order Intakes", "طلبات البيع")
@@ -210,6 +212,7 @@
     private bool isLoading;
     private bool isCartBusy;
     private Guid companyId;
+    private Guid? defaultPosCustomerId;
     private string? userId;
     private string searchText = string.Empty;
     private Guid? selectedCategoryId;
@@ -266,11 +269,13 @@
             var productTask = ProductService.GetPricedByCompanyAsync(companyId, null, 0, 1000);
             var categoryTask = CategoryService.GetByCompanyIdAsync(companyId, 0, 1000);
             var brandTask = BrandService.GetByCompanyIdAsync(companyId, 0, 1000);
-            await Task.WhenAll(productTask, categoryTask, brandTask);
+            var settingTask = CompanySettingService.GetAsync(companyId);
+            await Task.WhenAll(productTask, categoryTask, brandTask, settingTask);
 
             products = productTask.Result.IsSuccess ? productTask.Result.Data?.Data?.ToList() ?? [] : [];
             categories = categoryTask.Result.IsSuccess ? categoryTask.Result.Data?.Data?.ToList() ?? [] : [];
             brands = brandTask.Result.IsSuccess ? brandTask.Result.Data?.Data?.ToList() ?? [] : [];
+            defaultPosCustomerId = settingTask.Result.IsSuccess ? settingTask.Result.Data?.DefaultPosCustomerId : null;
         }
         finally
         {
@@ -338,9 +343,18 @@
         if (cart is not null)
             return;
 
+        if (!defaultPosCustomerId.HasValue)
+        {
+            ToastService.ShowError(Text(
+                "Default POS customer is not configured. Please configure it in System Settings.",
+                "لم يتم ضبط عميل نقطة البيع الافتراضي. يرجى ضبطه من إعدادات النظام."));
+            return;
+        }
+
         var result = await CartService.CreateAsync(new CartDto
         {
             CompanyId = companyId,
+            CustomerId = defaultPosCustomerId,
             UserId = userId,
             Source = OrderIntakeSource.Pos,
             Channel = "POS"
@@ -353,7 +367,14 @@
         }
 
         var loaded = await CartService.GetByIdAsync(result.Data.Id);
-        cart = loaded.IsSuccess ? loaded.Data : new CartDto { Id = result.Data.Id, CompanyId = companyId, Source = OrderIntakeSource.Pos, Channel = "POS" };
+        cart = loaded.IsSuccess ? loaded.Data : new CartDto
+        {
+            Id = result.Data.Id,
+            CompanyId = companyId,
+            CustomerId = defaultPosCustomerId,
+            Source = OrderIntakeSource.Pos,
+            Channel = "POS"
+        };
     }
 
     private async Task RefreshCartAsync()
@@ -412,6 +433,14 @@
     {
         if (cart is null || !cart.Lines.Any())
             return;
+
+        if (!cart.CustomerId.HasValue)
+        {
+            ToastService.ShowError(Text(
+                "Default POS customer is not configured. Please configure it in System Settings.",
+                "لم يتم ضبط عميل نقطة البيع الافتراضي. يرجى ضبطه من إعدادات النظام."));
+            return;
+        }
 
         isCartBusy = true;
         var result = await CartService.CheckoutAsync(cart.Id, paymentMethod, paymentReference, paymentNotes);

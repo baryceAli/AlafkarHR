@@ -71,6 +71,12 @@ window.alafkarLocationPicker = (() => {
         marker.style.top = "50%";
     }
 
+    function notifyLocationSelected(state) {
+        if (state.dotNetRef?.invokeMethodAsync) {
+            state.dotNetRef.invokeMethodAsync("OnMapLocationSelected", state.lat, state.lon);
+        }
+    }
+
     function setCenter(elementId, lat, lon, notify) {
         const state = getState(elementId);
         state.lat = clamp(Number(lat) || 0, -85, 85);
@@ -78,7 +84,7 @@ window.alafkarLocationPicker = (() => {
         render(state);
 
         if (notify) {
-            state.dotNetRef.invokeMethodAsync("OnMapLocationSelected", state.lat, state.lon);
+            notifyLocationSelected(state);
         }
     }
 
@@ -97,7 +103,7 @@ window.alafkarLocationPicker = (() => {
     }
 
     return {
-        init(elementId, lat, lon, dotNetRef) {
+        init(elementId, lat, lon, zoomOrDotNetRef, dotNetRef) {
             const element = document.getElementById(elementId);
             if (!element) {
                 return;
@@ -113,12 +119,15 @@ window.alafkarLocationPicker = (() => {
 
             const initialLat = clamp(Number(lat) || 24.7136, -85, 85);
             const initialLon = clamp(Number(lon) || 46.6753, -180, 180);
+            const hasZoom = typeof zoomOrDotNetRef === "number";
+            const initialZoom = hasZoom ? clamp(zoomOrDotNetRef, 2, 19) : 13;
+            const callbackRef = hasZoom ? dotNetRef : zoomOrDotNetRef;
 
             const state = {
                 element,
                 marker,
-                dotNetRef,
-                zoom: 13,
+                dotNetRef: callbackRef,
+                zoom: initialZoom,
                 lat: initialLat,
                 lon: initialLon,
                 isDragging: false,
@@ -172,7 +181,7 @@ window.alafkarLocationPicker = (() => {
                 element.classList.remove("is-dragging");
 
                 if (current.didDrag) {
-                    current.dotNetRef.invokeMethodAsync("OnMapLocationSelected", current.lat, current.lon);
+                    notifyLocationSelected(current);
                 }
             });
 
@@ -200,7 +209,7 @@ window.alafkarLocationPicker = (() => {
                 current.lon = tileXToLon(clickedX / tileSize, current.zoom);
                 current.lat = tileYToLat(clickedY / tileSize, current.zoom);
                 render(current);
-                current.dotNetRef.invokeMethodAsync("OnMapLocationSelected", current.lat, current.lon);
+                notifyLocationSelected(current);
             });
 
             render(state);
