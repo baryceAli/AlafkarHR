@@ -1,0 +1,302 @@
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.DocumentManagement.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.DocumentManagement.Dtos
+@using SharedWithUI.DocumentManagement.Enums
+@using SharedWithUI.Permissions
+
+@inject IDocumentManagementService DocumentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+@inject IJSRuntime JS
+
+@if (!CanView)
+{
+    <div class="alert alert-warning" dir="@SharedDataService.PageDirection">@Text("You do not have permission to view document management.", "ليس لديك صلاحية لعرض إدارة المستندات.")</div>
+}
+else
+{
+    <div class="@(ShowPageHeader ? "erp-page" : string.Empty)" dir="@SharedDataService.PageDirection">
+        @if (ShowPageHeader)
+        {
+            <PageHeader Title="@Title"
+                        Subtitle="@Subtitle"
+                        Icon="@Icon"
+                        Actions="@HeaderActions" />
+        }
+
+        <AppCard Title="@(ShowPageHeader ? null : Title)" Subtitle="@(ShowPageHeader ? null : Subtitle)" Actions="@(ShowPageHeader ? null : HeaderActions)">
+            <div class="row g-2 mb-3">
+                <div class="col-md-3">
+                    <input class="form-control" placeholder="@Text("Search documents", "بحث في المستندات")" @bind="searchText" @bind:event="oninput" />
+                </div>
+                <div class="col-md-3">
+                    <input class="form-control" placeholder="@Text("Source module", "الوحدة المرتبطة")" @bind="sourceModule" disabled="@HasFixedSourceModule" />
+                </div>
+                <div class="col-md-2">
+                    <input class="form-control" placeholder="@Text("Source entity", "الكيان المرتبط")" @bind="sourceEntity" disabled="@HasFixedSourceEntity" />
+                </div>
+                <div class="col-md-2">
+                    <input class="form-control" placeholder="@Text("Source record id", "رقم السجل المرتبط")" @bind="sourceRecordIdText" disabled="@HasFixedSourceRecordId" />
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button class="btn btn-outline-primary flex-fill" @onclick="Search" title="@Text("Search", "بحث")"><i class="bi bi-search"></i></button>
+                    <button class="btn btn-outline-secondary flex-fill" @onclick="ClearFilters" title="@Text("Clear", "مسح")"><i class="bi bi-x-circle"></i></button>
+                </div>
+            </div>
+
+            <div class="erp-table-wrap">
+                <table class="table erp-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>@Text("Title", "العنوان")</th>
+                            <th>@Text("Latest version", "آخر إصدار")</th>
+                            <th>@Text("Source", "المصدر")</th>
+                            <th>@Text("Access", "الصلاحية")</th>
+                            <th class="text-end">@Text("Actions", "الإجراءات")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (isLoading)
+                        {
+                            <tr><td colspan="5" class="text-center text-muted py-4">@Text("Loading documents...", "جاري تحميل المستندات...")</td></tr>
+                        }
+                        else if (!documents.Any())
+                        {
+                            <tr><td colspan="5" class="text-center text-muted py-4">@Text("No documents found.", "لا توجد مستندات.")</td></tr>
+                        }
+                        @foreach (var document in documents)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@document.Title</div>
+                                    <small class="text-muted">@document.Description</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">v@document.LatestVersionNumber</span>
+                                    <small class="text-muted d-block">@document.LatestFileName</small>
+                                </td>
+                                <td>@SourceText(document)</td>
+                                <td>@AccessText(document)</td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-secondary erp-row-action" title="@Text("View", "عرض")" @onclick='() => NavigationManager.NavigateTo($"/DocumentManagement/View/{document.Id}")'>
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary erp-row-action" title="@Text("Download", "تنزيل")" @onclick="() => Download(document.Id)">
+                                        <i class="bi bi-download"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger erp-row-action" title="@Text("Archive", "أرشفة")" disabled="@(!document.CanDelete)" @onclick="() => DeleteDocument(document.Id)">
+                                        <i class="bi bi-archive"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-end align-items-center gap-2 mt-3">
+                <button class="btn btn-sm btn-secondary" @onclick="PrevPage" disabled="@(pageIndex == 0)">@Text("Previous", "السابق")</button>
+                <span>@Text("Page", "صفحة") @(pageIndex + 1) @Text("of", "من") @totalPages</span>
+                <button class="btn btn-sm btn-secondary" @onclick="NextPage" disabled="@(pageIndex >= totalPages - 1)">@Text("Next", "التالي")</button>
+            </div>
+        </AppCard>
+    </div>
+}
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string Subtitle { get; set; } = string.Empty;
+    [Parameter] public string Icon { get; set; } = "bi-files";
+    [Parameter] public bool ShowPageHeader { get; set; } = true;
+    [Parameter] public DocumentListScope Scope { get; set; } = DocumentListScope.All;
+    [Parameter] public string? InitialSourceModule { get; set; }
+    [Parameter] public string? InitialSourceEntity { get; set; }
+    [Parameter] public Guid? InitialSourceRecordId { get; set; }
+    [Parameter] public bool CanChangeSourceFilters { get; set; } = true;
+
+    private List<DocumentItemDto> documents = [];
+    private string searchText = string.Empty;
+    private string sourceModule = string.Empty;
+    private string sourceEntity = string.Empty;
+    private string sourceRecordIdText = string.Empty;
+    private int pageIndex;
+    private int pageSize = 10;
+    private int totalPages = 1;
+    private bool CanView;
+    private bool CanCreate;
+    private bool isLoading;
+
+    private bool HasFixedSourceModule => !CanChangeSourceFilters && !string.IsNullOrWhiteSpace(InitialSourceModule);
+    private bool HasFixedSourceEntity => !CanChangeSourceFilters && !string.IsNullOrWhiteSpace(InitialSourceEntity);
+    private bool HasFixedSourceRecordId => !CanChangeSourceFilters && InitialSourceRecordId.HasValue;
+
+    private RenderFragment HeaderActions => @<button class="btn btn-primary" disabled="@(!CanCreate)" @onclick="CreateDocument">
+        <i class="bi bi-plus-lg"></i> @Text("New Document", "مستند جديد")
+    </button>;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        CanView = true;
+        CanCreate = authState.User.Claims.Any(c => c.Value == PermissionList.DocumentManagementPermissions.Create);
+        ResetSourceFiltersFromParameters();
+        await LoadDocuments();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        ResetSourceFiltersFromParameters();
+        if (CanView)
+            await LoadDocuments();
+    }
+
+    private void ResetSourceFiltersFromParameters()
+    {
+        if (InitialSourceModule is not null)
+            sourceModule = InitialSourceModule;
+        if (InitialSourceEntity is not null)
+            sourceEntity = InitialSourceEntity;
+        if (InitialSourceRecordId.HasValue)
+            sourceRecordIdText = InitialSourceRecordId.Value.ToString();
+    }
+
+    private async Task LoadDocuments()
+    {
+        isLoading = true;
+        var sourceRecordId = ParseSourceRecordId();
+        var response = await DocumentService.GetAsync(pageIndex, pageSize, searchText, sourceModule, sourceEntity, sourceRecordId, Scope);
+        if (response.IsSuccess)
+        {
+            documents = response.Data?.Data.ToList() ?? [];
+            totalPages = Math.Max(1, (int)Math.Ceiling((response.Data?.Count ?? 0) / (double)pageSize));
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load documents.", "تعذر تحميل المستندات."));
+        }
+        isLoading = false;
+    }
+
+    private Guid? ParseSourceRecordId()
+    {
+        if (string.IsNullOrWhiteSpace(sourceRecordIdText))
+            return null;
+
+        if (Guid.TryParse(sourceRecordIdText, out var id))
+            return id;
+
+        ToastService.ShowError(Text("Source record id must be a valid GUID.", "رقم السجل المرتبط يجب أن يكون معرف GUID صحيح."));
+        return null;
+    }
+
+    private void CreateDocument()
+    {
+        var query = new List<string>();
+        if (!string.IsNullOrWhiteSpace(sourceModule))
+            query.Add($"sourceModule={Uri.EscapeDataString(sourceModule)}");
+        if (!string.IsNullOrWhiteSpace(sourceEntity))
+            query.Add($"sourceEntity={Uri.EscapeDataString(sourceEntity)}");
+        if (ParseSourceRecordId() is { } sourceRecordId)
+            query.Add($"sourceRecordId={sourceRecordId}");
+
+        NavigationManager.NavigateTo(query.Count == 0 ? "/DocumentManagement/Create" : $"/DocumentManagement/Create?{string.Join("&", query)}");
+    }
+
+    private async Task Download(Guid id)
+    {
+        var response = await DocumentService.DownloadAsync(id);
+        if (response.IsSuccess && response.Data is not null)
+            await JS.InvokeVoidAsync("alafkarDocumentDownload.downloadBase64", response.Data.FileName, response.Data.ContentType, response.Data.Base64Content);
+        else
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Download failed.", "فشل التنزيل."));
+    }
+
+    private async Task DeleteDocument(Guid id)
+    {
+        var response = await DocumentService.DeleteAsync(id);
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Document archived.", "تمت أرشفة المستند."));
+            await LoadDocuments();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to archive document.", "تعذر أرشفة المستند."));
+        }
+    }
+
+    private async Task Search()
+    {
+        pageIndex = 0;
+        await LoadDocuments();
+    }
+
+    private async Task ClearFilters()
+    {
+        searchText = string.Empty;
+        if (CanChangeSourceFilters)
+        {
+            sourceModule = string.Empty;
+            sourceEntity = string.Empty;
+            sourceRecordIdText = string.Empty;
+        }
+        else
+        {
+            ResetSourceFiltersFromParameters();
+        }
+
+        pageIndex = 0;
+        await LoadDocuments();
+    }
+
+    private async Task NextPage()
+    {
+        if (pageIndex < totalPages - 1)
+        {
+            pageIndex++;
+            await LoadDocuments();
+        }
+    }
+
+    private async Task PrevPage()
+    {
+        if (pageIndex > 0)
+        {
+            pageIndex--;
+            await LoadDocuments();
+        }
+    }
+
+    private string SourceText(DocumentItemDto document) =>
+        string.IsNullOrWhiteSpace(document.SourceModule)
+            ? Text("Library", "المكتبة")
+            : document.SourceRecordId.HasValue
+                ? $"{document.SourceModule}/{document.SourceEntity} - {document.SourceRecordId}"
+                : $"{document.SourceModule}/{document.SourceEntity}";
+
+    private string AccessText(DocumentItemDto document) =>
+        document.CanShare ? Text("Owner", "مالك") :
+        document.CanWrite ? Text("Read and write", "قراءة وكتابة") :
+        Text("Read only", "قراءة فقط");
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

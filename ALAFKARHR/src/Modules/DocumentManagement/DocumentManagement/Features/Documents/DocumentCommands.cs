@@ -5,7 +5,8 @@ public record GetDocumentsQuery(
     string? SearchText,
     string? SourceModule,
     string? SourceEntity,
-    Guid? SourceRecordId) : IQuery<GetDocumentsResult>;
+    Guid? SourceRecordId,
+    DocumentListScope Scope) : IQuery<GetDocumentsResult>;
 
 public record GetDocumentsResult(PaginatedResult<DocumentItemDto> Documents);
 

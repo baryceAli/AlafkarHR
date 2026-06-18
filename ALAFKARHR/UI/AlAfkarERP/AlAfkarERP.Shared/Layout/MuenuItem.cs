@@ -949,6 +949,38 @@ public class MenuItem
                     Icon = "bi-folder2-open",
                     Url = "/DocumentManagement/List",
                     PermissionPolicy = PermissionList.DocumentManagementPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "My Documents",
+                    TextAr = "مستنداتي",
+                    Icon = "bi-person-lines-fill",
+                    Url = "/DocumentManagement/MyDocuments",
+                    PermissionPolicy = PermissionList.DocumentManagementPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Shared With Me",
+                    TextAr = "مشاركة معي",
+                    Icon = "bi-people",
+                    Url = "/DocumentManagement/SharedWithMe",
+                    PermissionPolicy = PermissionList.DocumentManagementPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "New Document",
+                    TextAr = "مستند جديد",
+                    Icon = "bi-cloud-upload",
+                    Url = "/DocumentManagement/Create",
+                    PermissionPolicy = PermissionList.DocumentManagementPermissions.Create,
+                },
+                new MenuItem
+                {
+                    TextEn = "Source Documents",
+                    TextAr = "مستندات المصدر",
+                    Icon = "bi-link-45deg",
+                    Url = "/DocumentManagement/SourceDocuments",
+                    PermissionPolicy = PermissionList.DocumentManagementPermissions.View,
                 }
             }
         },

@@ -16,10 +16,11 @@ public class DocumentEndpoints : ICarterModule
             string? sourceModule,
             string? sourceEntity,
             Guid? sourceRecordId,
+            DocumentListScope? scope,
             ISender sender) =>
         {
             var pagination = new PaginationRequest(pageIndex ?? 0, pageSize ?? 20);
-            var result = await sender.Send(new GetDocumentsQuery(pagination, searchText, sourceModule, sourceEntity, sourceRecordId));
+            var result = await sender.Send(new GetDocumentsQuery(pagination, searchText, sourceModule, sourceEntity, sourceRecordId, scope ?? DocumentListScope.All));
             return Results.Ok(new { documents = result.Documents });
         })
         .WithName("GetDocuments")

@@ -13,6 +13,13 @@ public class GetDocumentsHandler(DocumentManagementDbContext dbContext, IHttpCon
             .IncludeDetails()
             .ApplyVisibility(companyId, currentUserId, manageAll);
 
+        documents = query.Scope switch
+        {
+            DocumentListScope.OwnedByMe => documents.Where(x => x.OwnerUserId == currentUserId),
+            DocumentListScope.SharedWithMe => documents.Where(x => x.OwnerUserId != currentUserId && x.Collaborators.Any(c => c.UserId == currentUserId && !c.IsDeleted)),
+            _ => documents
+        };
+
         if (!string.IsNullOrWhiteSpace(query.SearchText))
         {
             var searchText = query.SearchText.Trim();

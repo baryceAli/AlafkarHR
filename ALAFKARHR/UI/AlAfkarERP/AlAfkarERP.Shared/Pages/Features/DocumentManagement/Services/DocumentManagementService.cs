@@ -3,6 +3,7 @@ using AlAfkarERP.Shared.Services;
 using AlAfkarERP.Shared.Utilities;
 using Microsoft.AspNetCore.Components.Forms;
 using SharedWithUI.DocumentManagement.Dtos;
+using SharedWithUI.DocumentManagement.Enums;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
@@ -19,7 +20,7 @@ public class DocumentManagementService : BaseApiService, IDocumentManagementServ
         _path = $"api/{apiConfig.Version}/documentmanagement/documents";
     }
 
-    public async Task<ApiResult<PaginatedResult<DocumentItemDto>>> GetAsync(int pageIndex, int pageSize, string? searchText, string? sourceModule, string? sourceEntity, Guid? sourceRecordId)
+    public async Task<ApiResult<PaginatedResult<DocumentItemDto>>> GetAsync(int pageIndex, int pageSize, string? searchText, string? sourceModule, string? sourceEntity, Guid? sourceRecordId, DocumentListScope scope = DocumentListScope.All)
     {
         var query = QueryString(
             ("pageIndex", pageIndex.ToString()),
@@ -27,7 +28,8 @@ public class DocumentManagementService : BaseApiService, IDocumentManagementServ
             ("searchText", searchText),
             ("sourceModule", sourceModule),
             ("sourceEntity", sourceEntity),
-            ("sourceRecordId", sourceRecordId?.ToString()));
+            ("sourceRecordId", sourceRecordId?.ToString()),
+            ("scope", scope == DocumentListScope.All ? null : scope.ToString()));
 
         return await SendAsync<PaginatedResult<DocumentItemDto>>(new HttpRequestMessage(HttpMethod.Get, $"{_path}/{query}"), "documents");
     }
