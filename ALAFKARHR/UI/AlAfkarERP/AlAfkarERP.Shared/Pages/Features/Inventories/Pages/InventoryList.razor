@@ -1,5 +1,6 @@
 @layout AdminLayout
 @page "/Inventories/List"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
 @using AlAfkarERP.Shared.Pages.Features.Inventories.Services
@@ -62,6 +63,8 @@
                 </div>
             </ChildContent>
             <Actions>
+                <TableExportActions Title="@SharedDataService.SelectViewLang("Stock Balances", "أرصدة المخزون")"
+                                    FileName="inventory-stock-balances.xls" />
                 <select class="form-select erp-page-size-select" @onchange="OnPageSizeChanged" aria-label="@SharedDataService.SelectViewLang("Page size", "حجم الصفحة")">
                     <option value="5">5</option>
                     <option value="10">10</option>
@@ -72,11 +75,7 @@
             </Actions>
         </FilterBar>
 
-        <div class="erp-table-wrap">
-                    <div class="d-flex justify-content-end mb-2">
-            <TableExportActions />
-        </div>
-
+        <div class="erp-table-wrap has-mobile-cards">
             <table class="table erp-table mb-0">
         <thead>
             <tr>
@@ -245,6 +244,39 @@
             }
             </tbody>
         </table>
+        </div>
+
+        <div class="erp-list-card-grid">
+            @foreach (var inventory in ProcessedInventory.Where(x => x.Id != editingInventoryId))
+            {
+                <article class="erp-mobile-list-card">
+                    <div>
+                        <div class="erp-mobile-list-card-meta">
+                            <StatusChip Text="@SharedDataService.SelectViewLang(inventory.WarehouseNameEng, inventory.WarehouseName)" Tone="primary" />
+                        </div>
+                        <h2 class="erp-mobile-list-card-title">
+                            @SharedDataService.SelectViewLang(inventory.ProductNameEng, inventory.ProductName)
+                        </h2>
+                        <div class="text-muted small">
+                            @SharedDataService.SelectViewLang(inventory.ProductSkuNameEng, inventory.ProductSkuName)
+                        </div>
+                    </div>
+                    <div class="erp-mobile-list-card-metrics">
+                        <div class="erp-mobile-list-card-metric">
+                            <small>@SharedDataService.SelectViewLang("Total", "الإجمالي")</small>
+                            <strong>@inventory.TotalQuantity</strong>
+                        </div>
+                        <div class="erp-mobile-list-card-metric">
+                            <small>@SharedDataService.SelectViewLang("Reserved", "المحجوز")</small>
+                            <strong>@inventory.TotalReserved</strong>
+                        </div>
+                        <div class="erp-mobile-list-card-metric">
+                            <small>@SharedDataService.SelectViewLang("Available", "المتاح")</small>
+                            <strong>@inventory.TotalAvailable</strong>
+                        </div>
+                    </div>
+                </article>
+            }
         </div>
 
         @if (!ProcessedInventory.Any() && editingInventoryId == null)

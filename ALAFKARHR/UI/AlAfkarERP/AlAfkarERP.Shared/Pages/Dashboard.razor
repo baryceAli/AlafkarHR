@@ -60,9 +60,7 @@
                             <span class="dashboard-badge-row">
                                 @foreach (var badge in BadgesFor(card))
                                 {
-                                    <span class="dashboard-live-badge dashboard-badge-@badge.Tone">
-                                        @badge.DisplayText
-                                    </span>
+                                    <StatusChip Text="@badge.DisplayText" Tone="@badge.Tone" />
                                 }
                             </span>
                         }
@@ -475,22 +473,21 @@
         border-radius: var(--erp-radius-lg);
         box-shadow: var(--erp-shadow-sm);
         min-width: 0;
-        transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+        transition: background-color .15s ease, border-color .15s ease;
     }
 
     .dashboard-status-card:hover,
     .dashboard-shortcut:hover,
     .dashboard-priority-item:hover {
+        background: var(--erp-surface-muted);
         border-color: var(--erp-border-strong);
-        box-shadow: var(--erp-shadow-md);
-        transform: translateY(-1px);
     }
 
     .dashboard-status-card:focus-visible,
     .dashboard-shortcut:focus-visible,
     .dashboard-priority-item:focus-visible {
         outline: 0;
-        box-shadow: var(--erp-focus-ring), var(--erp-shadow-md);
+        box-shadow: 0 0 0 3px var(--erp-focus-ring), var(--erp-shadow-md);
     }
 
     .dashboard-status-card {
@@ -564,43 +561,6 @@
         flex-wrap: wrap;
         gap: .4rem;
         margin-top: .2rem;
-    }
-
-    .dashboard-live-badge {
-        align-items: center;
-        border: 1px solid transparent;
-        border-radius: 999px;
-        display: inline-flex;
-        font-size: .75rem;
-        font-weight: 700;
-        line-height: 1;
-        min-height: 24px;
-        padding: .3rem .55rem;
-        white-space: nowrap;
-    }
-
-    .dashboard-badge-warning {
-        background: color-mix(in srgb, var(--erp-warning) 14%, transparent);
-        border-color: color-mix(in srgb, var(--erp-warning) 28%, transparent);
-        color: var(--erp-warning);
-    }
-
-    .dashboard-badge-danger {
-        background: color-mix(in srgb, var(--erp-danger) 14%, transparent);
-        border-color: color-mix(in srgb, var(--erp-danger) 28%, transparent);
-        color: var(--erp-danger);
-    }
-
-    .dashboard-badge-success {
-        background: color-mix(in srgb, var(--erp-success) 14%, transparent);
-        border-color: color-mix(in srgb, var(--erp-success) 28%, transparent);
-        color: var(--erp-success);
-    }
-
-    .dashboard-badge-muted {
-        background: var(--erp-surface-muted);
-        border-color: var(--erp-border);
-        color: var(--erp-text-muted);
     }
 
     .dashboard-link-arrow {
