@@ -325,10 +325,13 @@
         {
             return ActiveWorkspace switch
             {
-                NavigationMenuResolver.WorkspacePeople => NavigationMenuResolver.HubPeople,
-                NavigationMenuResolver.WorkspaceOperations => NavigationMenuResolver.HubOperations,
-                NavigationMenuResolver.WorkspaceFinancePayroll => NavigationMenuResolver.HubPeople,
-                NavigationMenuResolver.WorkspaceInventory => NavigationMenuResolver.HubOperations,
+                NavigationMenuResolver.WorkspaceHr => NavigationMenuResolver.HubHr,
+                NavigationMenuResolver.WorkspaceSales => NavigationMenuResolver.HubSales,
+                NavigationMenuResolver.WorkspacePurchasing => NavigationMenuResolver.HubPurchasing,
+                NavigationMenuResolver.WorkspaceWarehouse => NavigationMenuResolver.HubWarehouse,
+                NavigationMenuResolver.WorkspaceAccountingFinance => NavigationMenuResolver.HubAccountingFinance,
+                NavigationMenuResolver.WorkspaceAdmin => NavigationMenuResolver.HubAdmin,
+                NavigationMenuResolver.WorkspaceSecurity => NavigationMenuResolver.HubSecurity,
                 _ => NavigationMenuResolver.ResolveHubWorkspaceKey(NavigationManager.Uri, NavigationManager.BaseUri)
             };
         }

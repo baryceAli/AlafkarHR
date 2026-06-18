@@ -1253,7 +1253,10 @@ body {
     flex-direction: column;
     gap: var(--erp-space-2);
     padding: var(--erp-space-3) var(--erp-space-2);
-    width: 92px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    width: 96px;
 }
 
 .desktop-rail-item {
@@ -1263,14 +1266,15 @@ body {
     border-radius: var(--erp-radius-lg);
     color: var(--erp-text-muted);
     display: grid;
-    font-size: .72rem;
+    font-size: .68rem;
     gap: .18rem;
-    min-height: 58px;
+    min-height: 56px;
     justify-items: center;
     line-height: 1.15;
-    padding: var(--erp-space-1);
+    min-width: 0;
+    padding: var(--erp-space-1) .25rem;
     text-align: center;
-    width: 72px;
+    width: 78px;
 }
 
 .desktop-rail-item i {
@@ -1278,10 +1282,12 @@ body {
 }
 
 .desktop-rail-item span {
+    display: block;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: normal;
 }
 
 .desktop-rail-item:hover,
@@ -1614,6 +1620,7 @@ body {
     gap: var(--erp-space-2);
     overflow-x: auto;
     padding-bottom: var(--erp-space-1);
+    scroll-padding-inline: var(--erp-space-4);
     scrollbar-width: thin;
 }
 
@@ -1628,7 +1635,14 @@ body {
     font-weight: 800;
     gap: var(--erp-space-2);
     min-height: 42px;
+    max-width: min(72vw, 240px);
     padding: var(--erp-space-2) var(--erp-space-3);
+}
+
+.more-hub-tab span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .more-hub-tab.is-active {
