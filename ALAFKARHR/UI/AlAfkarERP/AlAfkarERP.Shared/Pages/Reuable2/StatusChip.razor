@@ -1,0 +1,23 @@
+<span class="@ChipClass" title="@Title">
+    @if (!string.IsNullOrWhiteSpace(Icon))
+    {
+        <i class="bi @Icon" aria-hidden="true"></i>
+    }
+    @Text
+</span>
+
+@code {
+    [Parameter] public string Text { get; set; } = "";
+    [Parameter] public string Tone { get; set; } = "muted";
+    [Parameter] public string? CssClass { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string? Title { get; set; }
+
+    private string ChipClass
+        => $"erp-status-chip erp-status-chip-{NormalizeTone(Tone)} {CssClass}".Trim();
+
+    private static string NormalizeTone(string? tone)
+        => string.IsNullOrWhiteSpace(tone)
+            ? "muted"
+            : tone.Trim().ToLowerInvariant();
+}

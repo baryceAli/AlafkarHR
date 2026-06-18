@@ -54,7 +54,7 @@
         <EditForm Model="document" OnValidSubmit="SaveAsync">
             <DataAnnotationsValidator />
 
-            <AppCard Title="@SharedDataService.SelectViewLang("Document", "المستند")" CssClass="mb-3">
+            <AppCard Title="@SharedDataService.SelectViewLang("Document", "المستند")" CssClass="mb-3 erp-form-section">
                 <div class="row g-3">
                     @if (IsGoodsReceipt)
                     {
@@ -226,7 +226,7 @@
                 </div>
             </AppCard>
 
-            <AppCard Title="@SharedDataService.SelectViewLang("Lines", "البنود")">
+            <AppCard Title="@SharedDataService.SelectViewLang("Lines", "البنود")" CssClass="erp-form-section">
                 <div class="d-flex justify-content-end mb-3">
                     <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddLine">
                         <i class="bi bi-plus-lg"></i>
@@ -236,7 +236,9 @@
 
                 @if (document.Lines.Count == 0)
                 {
-                    <div class="text-muted small">@SharedDataService.SelectViewLang("No lines added.", "لا توجد بنود.")</div>
+                    <EmptyState Icon="bi-list-ul"
+                                Title="@SharedDataService.SelectViewLang("No lines added", "لا توجد بنود")"
+                                Message="@SharedDataService.SelectViewLang("Add the first procurement line to continue.", "أضف أول بند مشتريات للمتابعة.")" />
                 }
                 @foreach (var line in document.Lines)
                 {
@@ -246,7 +248,7 @@
                                 <span class="procurement-line-number">@SharedDataService.SelectViewLang("Line", "بند") @LineDisplayNumber(line)</span>
                                 @if (line.IsSourceLine)
                                 {
-                                    <span class="procurement-line-badge">@SharedDataService.SelectViewLang("From source", "من مصدر")</span>
+                                    <StatusChip Text="@SharedDataService.SelectViewLang("From source", "من مصدر")" Tone="info" />
                                 }
                             </div>
                             <div class="procurement-line-summary" title="@LineSummary(line)">
@@ -450,11 +452,12 @@
 
 <style>
     .procurement-line-card {
-        background: var(--erp-surface);
+        background: var(--erp-surface-level-1);
         border: 1px solid var(--erp-border);
         border-radius: var(--erp-radius-lg);
+        box-shadow: var(--erp-shadow-sm);
         margin-bottom: var(--erp-space-3);
-        padding: var(--erp-space-3);
+        padding: var(--erp-space-4);
     }
 
     .procurement-line-header {
@@ -477,18 +480,7 @@
 
     .procurement-line-number {
         color: var(--erp-text);
-        font-weight: 800;
-        white-space: nowrap;
-    }
-
-    .procurement-line-badge {
-        background: var(--erp-primary-soft);
-        border: 1px solid var(--erp-border);
-        border-radius: 999px;
-        color: var(--erp-primary);
-        font-size: .75rem;
         font-weight: 700;
-        padding: .2rem .55rem;
         white-space: nowrap;
     }
 
@@ -516,9 +508,9 @@
     .procurement-readonly-field {
         background: var(--erp-surface-muted);
         border: 1px solid var(--erp-border);
-        border-radius: var(--erp-radius-md);
+        border-radius: var(--erp-radius-default);
         color: var(--erp-text);
-        min-height: 38px;
+        min-height: var(--erp-control-height);
         padding: .45rem .75rem;
     }
 
@@ -530,7 +522,7 @@
         align-items: center;
         background: var(--erp-bg-subtle);
         border: 1px solid var(--erp-border);
-        border-radius: var(--erp-radius-md);
+        border-radius: var(--erp-radius-default);
         color: var(--erp-text-muted);
         display: flex;
         flex-wrap: wrap;

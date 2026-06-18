@@ -477,25 +477,25 @@ else
 <style>
     .branches-page { max-width: 1400px; }
     .branches-header { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
-    .branch-stat { align-items: center; background: var(--erp-surface); border-left: 4px solid; border-radius: 8px; box-shadow: var(--erp-shadow-sm); display: flex; gap: 0.875rem; min-height: 88px; padding: 1rem; }
-    .branch-stat-icon { align-items: center; background: var(--erp-surface-muted); border-radius: 8px; display: inline-flex; font-size: 1.35rem; height: 44px; justify-content: center; width: 44px; }
+    .branch-stat { align-items: center; background: var(--erp-surface); border-inline-start: 4px solid; border-radius: var(--erp-radius-lg); box-shadow: var(--erp-shadow-sm); display: flex; gap: 0.875rem; min-height: 88px; padding: 1rem; }
+    .branch-stat-icon { align-items: center; background: var(--erp-surface-muted); border-radius: var(--erp-radius-lg); display: inline-flex; font-size: 1.35rem; height: 44px; justify-content: center; width: 44px; }
     .branch-stat-value { color: var(--erp-text); font-size: 1.35rem; font-weight: 700; line-height: 1.15; }
     .branch-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
     .branch-search { max-width: 420px; position: relative; width: min(100%, 420px); }
-    .branch-search i { color: var(--erp-text-muted); left: 0.875rem; position: absolute; top: 50%; transform: translateY(-50%); }
-    .branch-search .form-control { padding-left: 2.5rem; }
+    .branch-search i { color: var(--erp-text-muted); inset-inline-start: 0.875rem; position: absolute; top: 50%; transform: translateY(-50%); }
+    .branch-search .form-control { padding-inline-start: 2.5rem; }
     .branch-page-size { min-width: 82px; }
-    .branch-table-wrap { border: 1px solid var(--erp-border); border-radius: 8px; }
+    .branch-table-wrap { border: 1px solid var(--erp-border); border-radius: var(--erp-radius-lg); }
     .branch-table thead th { background: var(--erp-surface-muted); color: var(--erp-text-muted); font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
     .branch-table tbody tr:hover { background: var(--erp-primary-soft); }
     .branch-table .sortable { cursor: pointer; user-select: none; }
     .branch-table .sortable i { color: var(--erp-text-muted); font-size: 0.75rem; margin-inline-start: 0.35rem; }
     .branch-action { align-items: center; display: inline-flex; height: 32px; justify-content: center; width: 36px; }
-    .branch-edit-panel { background: var(--erp-surface); border: 1px solid var(--erp-border); border-radius: 8px; padding: 1rem; }
+    .branch-edit-panel { background: var(--erp-surface); border: 1px solid var(--erp-border); border-radius: var(--erp-radius-lg); padding: 1rem; }
     .branch-pagination { align-items: center; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; margin-top: 1rem; }
-    [dir="rtl"] .branch-stat { border-left: 0; border-right: 4px solid; }
-    [dir="rtl"] .branch-search i { left: auto; right: 0.875rem; }
-    [dir="rtl"] .branch-search .form-control { padding-left: 0.75rem; padding-right: 2.5rem; }
+    [dir="rtl"] .branch-stat { border-inline-start: 0; border-inline-end: 4px solid; }
+    [dir="rtl"] .branch-search i { inset-inline-start: auto; inset-inline-end: 0.875rem; }
+    [dir="rtl"] .branch-search .form-control { padding-inline-start: 0.75rem; padding-inline-end: 2.5rem; }
 </style>
 
 @code {

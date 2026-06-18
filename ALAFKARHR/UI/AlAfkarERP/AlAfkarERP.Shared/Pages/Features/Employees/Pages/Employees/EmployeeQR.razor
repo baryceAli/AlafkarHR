@@ -11,10 +11,10 @@
 @inject ApiConfig ApiConfig
 @inject SharedDataService SharedDataService
 
-<main class="d-flex justify-content-center align-items-center" style="height: 100vh;">
+<main class="employee-qr-page d-flex justify-content-center align-items-center">
     @if (employee != null)
     {
-        <div class="card" style="width: 18rem;margin-top:100px;">
+        <div class="card employee-qr-card">
             <img src="@QrImage"
                  class="card-img-top" alt="...">
             <div class="card-body">
@@ -24,7 +24,7 @@
     }
     else if (isLoading)
     {
-        <div class="card" style="width: 18rem;margin-top:100px;">
+        <div class="card employee-qr-card">
             <img src="_content/AlAfkarERP.Shared/images/empPlaceholder.png" class="card-img-top" alt="...">
             <div class="card-body">
                 <h5 class="card-title">يتم جلب الـ QR الرجاء الانتظار</h5>
@@ -34,7 +34,7 @@
     }
     else
     {
-        <div class="card" style="width: 18rem;margin-top:100px;">
+        <div class="card employee-qr-card">
             <img src="_content/AlAfkarERP.Shared/images/empPlaceholder.png" class="card-img-top" alt="...">
             <div class="card-body">
                 <h5 class="card-title">لم يتم العثور على الموظف</h5>

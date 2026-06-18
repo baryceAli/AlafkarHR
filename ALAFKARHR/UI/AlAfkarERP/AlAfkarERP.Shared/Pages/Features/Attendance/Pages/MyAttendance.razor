@@ -733,7 +733,7 @@
 
 <style>
     .attendance-terminal {
-        color: #172033;
+        color: var(--erp-text);
     }
 
     .terminal-header,
@@ -763,7 +763,7 @@
 
     .eyebrow {
         margin: 0 0 .25rem;
-        color: #65758b;
+        color: var(--erp-text-muted);
         font-size: .78rem;
         text-transform: uppercase;
         letter-spacing: .06em;
@@ -781,11 +781,11 @@
     }
 
     .terminal-panel {
-        background: #fff;
-        border: 1px solid #e5e9f0;
-        border-radius: 8px;
+        background: var(--erp-surface);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
         padding: 1rem;
-        box-shadow: 0 8px 22px rgba(15, 23, 42, .04);
+        box-shadow: var(--erp-shadow-sm);
     }
 
     .action-panel {
@@ -816,7 +816,7 @@
 
     .profile-block span,
     .detail-list span {
-        color: #65758b;
+        color: var(--erp-text-muted);
         font-size: .82rem;
     }
 
@@ -825,9 +825,9 @@
         height: 44px;
         display: grid;
         place-items: center;
-        border-radius: 8px;
-        background: #eaf2ff;
-        color: #174c99;
+        border-radius: var(--erp-radius-lg);
+        background: var(--erp-primary-soft);
+        color: var(--erp-primary);
         font-weight: 800;
     }
 
@@ -850,27 +850,27 @@
         display: flex;
         gap: .75rem;
         padding: .85rem;
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        background: #f8fafc;
+        border-radius: var(--erp-radius-lg);
+        border: 1px solid var(--erp-border);
+        background: var(--erp-surface-muted);
     }
 
     .readiness-card.ready {
-        border-color: #a7f3d0;
-        background: #ecfdf5;
-        color: #065f46;
+        border-color: color-mix(in srgb, var(--erp-success) 28%, transparent);
+        background: color-mix(in srgb, var(--erp-success) 10%, transparent);
+        color: var(--erp-success);
     }
 
     .readiness-card.blocked {
-        border-color: #fed7aa;
-        background: #fff7ed;
-        color: #7c2d12;
+        border-color: color-mix(in srgb, var(--erp-warning) 28%, transparent);
+        background: var(--erp-surface)7ed;
+        color: var(--erp-warning);
     }
 
     .readiness-card.completed {
-        border-color: #cbd5e1;
-        background: #f8fafc;
-        color: #334155;
+        border-color: var(--erp-border-strong);
+        background: var(--erp-surface-muted);
+        color: var(--erp-text-muted);
     }
 
     .readiness-card i {
@@ -898,7 +898,7 @@
     .action-stack label {
         display: grid;
         gap: .35rem;
-        color: #526174;
+        color: var(--erp-text-muted);
         font-size: .9rem;
         font-weight: 600;
     }
@@ -922,13 +922,13 @@
         display: grid;
         gap: .5rem;
         padding: .75rem;
-        background: #f8fafc;
-        border-radius: 8px;
+        background: var(--erp-surface-muted);
+        border-radius: var(--erp-radius-lg);
     }
 
     .session-card span {
         display: block;
-        color: #65758b;
+        color: var(--erp-text-muted);
         font-size: .78rem;
     }
 
@@ -944,13 +944,13 @@
         position: fixed;
         inset: 0;
         z-index: 1050;
-        background: rgba(15, 23, 42, .45);
+        background: color-mix(in srgb, var(--erp-color-inverse-surface) 45%, transparent);
     }
 
     .late-modal .modal-content {
-        border: 1px solid var(--erp-border, #e5e9f0);
-        border-radius: 10px;
-        box-shadow: 0 20px 60px rgba(15, 23, 42, .22);
+        border: 1px solid var(--erp-border, var(--erp-border));
+        border-radius: var(--erp-radius-lg);
+        box-shadow: var(--erp-shadow-md);
     }
 
     .late-modal .modal-header,
@@ -960,7 +960,7 @@
 
     .late-modal-subtitle {
         margin: .25rem 0 0;
-        color: var(--erp-text-muted, #65758b);
+        color: var(--erp-text-muted, var(--erp-text-muted));
         font-size: .875rem;
     }
 
@@ -974,7 +974,7 @@
         gap: .5rem;
         min-height: 150px;
         text-align: center;
-        color: #64748b;
+        color: var(--erp-text-muted);
     }
 
     .empty-state i {

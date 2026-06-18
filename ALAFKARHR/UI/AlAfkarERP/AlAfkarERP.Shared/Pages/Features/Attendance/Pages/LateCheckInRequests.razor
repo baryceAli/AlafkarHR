@@ -230,7 +230,7 @@
 
 <style>
     .requests-page {
-        color: #172033;
+        color: var(--erp-text);
     }
 
     .requests-header,
@@ -254,7 +254,7 @@
 
     .eyebrow {
         margin: 0 0 .25rem;
-        color: #65758b;
+        color: var(--erp-text-muted);
         font-size: .78rem;
         text-transform: uppercase;
         letter-spacing: .06em;
@@ -268,10 +268,10 @@
 
     .requests-panel,
     .request-card {
-        background: #fff;
-        border: 1px solid #e5e9f0;
-        border-radius: 8px;
-        box-shadow: 0 8px 22px rgba(15, 23, 42, .04);
+        background: var(--erp-surface);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
+        box-shadow: var(--erp-shadow-sm);
     }
 
     .requests-panel {
@@ -293,7 +293,7 @@
 
     .request-meta,
     .reviewed {
-        color: #65758b;
+        color: var(--erp-text-muted);
         font-size: .88rem;
         display: flex;
         flex-wrap: wrap;
@@ -303,8 +303,8 @@
     .reason {
         margin: .75rem 0;
         padding: .75rem;
-        background: #f8fafc;
-        border-radius: 8px;
+        background: var(--erp-surface-muted);
+        border-radius: var(--erp-radius-lg);
     }
 
     .review-grid {
@@ -316,7 +316,7 @@
     .review-grid label {
         display: grid;
         gap: .35rem;
-        color: #526174;
+        color: var(--erp-text-muted);
         font-size: .9rem;
         font-weight: 600;
     }
@@ -328,7 +328,7 @@
 
     .empty-state {
         padding: 2rem;
-        color: #65758b;
+        color: var(--erp-text-muted);
         text-align: center;
     }
 

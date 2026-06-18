@@ -117,9 +117,9 @@
                         <td><span class="badge bg-secondary">@PriorityText(task.Priority)</span></td>
                         <td><span class="badge bg-info text-dark">@StatusText(task.Status)</span></td>
                         <td>@task.DueDate.ToShortDateString()</td>
-                        <td style="min-width:160px">
+                        <td class="erp-min-width-progress">
                             <div class="progress">
-                                <div class="progress-bar" style="width:@task.ProgressPercentage%">@task.ProgressPercentage%</div>
+                                <div class="progress-bar" style="--erp-progress-value:@task.ProgressPercentage%">@task.ProgressPercentage%</div>
                             </div>
                         </td>
                         <td class="text-end">

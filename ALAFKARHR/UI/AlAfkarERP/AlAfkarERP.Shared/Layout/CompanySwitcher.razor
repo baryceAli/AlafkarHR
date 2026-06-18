@@ -1,0 +1,111 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using AlAfkarERP.Shared.Utilities
+@inject SharedDataService SharedDataService
+@implements IDisposable
+
+<div class="desktop-company-switcher">
+    <button type="button"
+            class="company-switcher-trigger"
+            aria-haspopup="menu"
+            aria-expanded="@isOpen"
+            @onclick="ToggleMenu">
+        <span class="company-switcher-logo">@CompanyInitials</span>
+        <span class="company-switcher-copy">
+            <small>@SharedDataService.SelectViewLang("Company", "الشركة")</small>
+            <strong>@CompanyName</strong>
+        </span>
+        <i class="bi bi-chevron-down company-switcher-chevron" aria-hidden="true"></i>
+    </button>
+
+    @if (isOpen)
+    {
+        <div class="company-switcher-menu" role="menu">
+            <div class="company-switcher-option" role="menuitem">
+                <span class="company-switcher-option-logo">@CompanyInitials</span>
+                <span class="company-switcher-option-copy">
+                    <strong>@CompanyName</strong>
+                    <small>@CompanyIdentifierText</small>
+                </span>
+                <i class="bi bi-check2" aria-hidden="true"></i>
+            </div>
+            <p class="company-switcher-note">
+                @SharedDataService.SelectViewLang("Company switching is not configured for this session.", "تبديل الشركة غير مهيأ لهذه الجلسة.")
+            </p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public AuthenticationState? AuthState { get; set; }
+
+    private bool isOpen;
+
+    private ClaimsPrincipal? User => AuthState?.User;
+
+    private string CompanyName
+        => FirstClaimValue(
+               User,
+               "company_name",
+               "companyName",
+               "CompanyName",
+               "company",
+               "tenant_name",
+               "tenantName")
+           ?? SharedDataService.SelectViewLang("Alafkar Global HQ", "ألفكار الرئيسي");
+
+    private string CompanyIdentifierText
+    {
+        get
+        {
+            var id = FirstClaimValue(User, "company_id", "companyId", "CompanyId");
+            return string.IsNullOrWhiteSpace(id)
+                ? SharedDataService.SelectViewLang("Current company", "الشركة الحالية")
+                : SharedDataService.SelectViewLang($"ID {ShortId(id)}", $"المعرف {ShortId(id)}");
+        }
+    }
+
+    private string CompanyInitials
+    {
+        get
+        {
+            var parts = CompanyName
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Take(2)
+                .Select(part => part[0]);
+
+            var initials = string.Concat(parts);
+            return string.IsNullOrWhiteSpace(initials)
+                ? "A"
+                : initials[..Math.Min(2, initials.Length)].ToUpperInvariant();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private void ToggleMenu()
+    {
+        isOpen = !isOpen;
+    }
+
+    private static string ShortId(string value)
+        => value.Length <= 8 ? value : value[..8];
+
+    private static string? FirstClaimValue(ClaimsPrincipal? user, params string[] claimTypes)
+        => claimTypes
+            .Select(type => user?.Claims.FirstOrDefault(claim => claim.Type == type)?.Value)
+            .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

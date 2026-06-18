@@ -121,12 +121,23 @@ public static class NavigationMenuResolver
         var path = NormalizePath(item.Url);
         var text = item.TextEn;
 
-        if (path == "/" || text.Equals("Home", StringComparison.OrdinalIgnoreCase))
+        if (path == "/" || path == "/dashboard" || text.Equals("Home", StringComparison.OrdinalIgnoreCase))
         {
             return WorkspaceHome;
         }
 
-        if (path == "/dashboard" || text.Contains("Control Panel", StringComparison.OrdinalIgnoreCase))
+        if (path == "/salesorder/pos" || text.Equals("POS", StringComparison.OrdinalIgnoreCase))
+        {
+            return WorkspacePos;
+        }
+
+        if (path.StartsWith("/payroll", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/pricing", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/catalog/pricing", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Payroll", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Salary", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Finance", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Pricing", StringComparison.OrdinalIgnoreCase))
         {
             return WorkspaceAdmin;
         }

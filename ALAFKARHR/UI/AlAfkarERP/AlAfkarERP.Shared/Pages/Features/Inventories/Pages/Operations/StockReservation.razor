@@ -1,4 +1,4 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Inventory/Operations/StockReservation"
 
 
@@ -245,11 +245,11 @@
 <style>
     .operation-page { max-width: 1400px; }
     .operation-header { align-items: flex-start; display: flex; gap: 1rem; justify-content: space-between; }
-    .operation-panel { background: #fff; border: 1px solid #dbeafe; border-radius: 8px; padding: 1rem; }
-    .operation-stat { align-items: center; background: #fff; border-left: 4px solid; border-radius: 8px; box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.08); display: flex; gap: 0.875rem; min-height: 88px; padding: 1rem; }
-    .operation-stat-icon { align-items: center; background: #f8f9fa; border-radius: 8px; display: inline-flex; font-size: 1.35rem; height: 44px; justify-content: center; width: 44px; }
-    .operation-stat-value { color: #212529; font-size: 1.35rem; font-weight: 700; line-height: 1.15; }
-    [dir="rtl"] .operation-stat { border-left: 0; border-right: 4px solid; }
+    .operation-panel { background: var(--erp-surface); border: 1px solid var(--erp-border); border-radius: var(--erp-radius-lg); padding: 1rem; }
+    .operation-stat { align-items: center; background: var(--erp-surface); border-inline-start: 4px solid; border-radius: var(--erp-radius-lg); box-shadow: var(--erp-shadow-sm); display: flex; gap: 0.875rem; min-height: 88px; padding: 1rem; }
+    .operation-stat-icon { align-items: center; background: var(--erp-surface-muted); border-radius: var(--erp-radius-lg); display: inline-flex; font-size: 1.35rem; height: 44px; justify-content: center; width: 44px; }
+    .operation-stat-value { color: var(--erp-text); font-size: 1.35rem; font-weight: 700; line-height: 1.15; }
+    [dir="rtl"] .operation-stat { border-inline-start: 0; border-inline-end: 4px solid; }
     @@media (max-width: 767.98px) {
         .operation-header { flex-direction: column; }
     }

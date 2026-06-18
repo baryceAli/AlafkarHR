@@ -11,12 +11,12 @@
 
 @inject ApiConfig ApiConfig
 
-<main class="d-flex justify-content-center align-items-center mx-3" style="height: 100vh;" dir="rtl">
+<main class="employee-public-page d-flex justify-content-center align-items-center mx-3" dir="rtl">
    
-    @* <main style="margin-top: 80px;"> *@
+    @* Public employee card content *@
     @if (employee != null)
     {
-        <div class="card shadow " style="width: 40rem;margin-top:120px;">
+        <div class="card shadow employee-public-card">
             @* <img src="@(string.IsNullOrEmpty(employee?.PhotoUrl)
                                                                  ? "_content/AlAfkarERP.Shared/images/empPlaceholder.png"
                                                                  : (employee.PhotoUrl.Contains("data:")
@@ -69,7 +69,7 @@
                         @if (!string.IsNullOrWhiteSpace(employee.BranchName) || !string.IsNullOrWhiteSpace(employee.BranchLocation))
                         {
                             <tr>
-                                <td style="width:35%;"><strong>الموقع الوظيفي</strong></td>
+                                <td class="employee-label-cell"><strong>الموقع الوظيفي</strong></td>
                                 <td>@employee.BranchName@if (!string.IsNullOrWhiteSpace(employee.BranchLocation)) { <span> - @employee.BranchLocation</span> }</td>
                             </tr>
                         }
@@ -93,7 +93,7 @@
     }
     else if (isLoading)
     {
-        <div class="card" style="width: 30rem;margin-top:50px;">
+        <div class="card employee-public-card-sm">
             @* <img src="_content/AlAfkarERP.Shared/images/empPlaceholder.png" class="card-img-top" alt="..."> *@
             <div class="card-body">
                 <h5 class="card-title text-center">جاري تحميل البيانات .. الرجاء الانتظار</h5>
@@ -104,7 +104,7 @@
     }
     else
     {
-        <div class="card" style="width: 30rem;margin-top:100px;">
+        <div class="card employee-public-card-sm">
             @* <img src="_content/AlAfkarERP.Shared/images/empPlaceholder.png" class="card-img-top" alt="..."> *@
             <div class="card-body">
                 <h5 class="card-title text-center">غير معروف</h5>

@@ -6,7 +6,7 @@
 @inject IJSRuntime JSRuntime
 @implements IDisposable
 
-<aside class="desktop-workspace-shell">
+<aside class="@SidebarShellClass">
     <nav class="desktop-rail" aria-label="Primary workspaces">
         @foreach (var workspace in AuthorizedWorkspaces.Where(item => item.Key != NavigationMenuResolver.WorkspaceMore))
         {
@@ -43,9 +43,20 @@
             <i class="bi bi-search"></i>
             <span>@SharedDataService.SelectViewLang("Search", "\u0628\u062d\u062b")</span>
         </button>
+        <button type="button"
+                class="desktop-rail-item desktop-rail-collapse"
+                title="@CollapseLabel"
+                aria-label="@CollapseLabel"
+                aria-pressed="@isCollapsed"
+                @onclick="ToggleCollapsedAsync">
+            <i class="bi bi-layout-sidebar-inset"></i>
+            <span>@CollapseText</span>
+        </button>
     </nav>
 
     <section class="desktop-workspace-panel">
+        <CompanySwitcher AuthState="@AuthState" />
+
         <div class="desktop-workspace-header">
             <div>
                 <span>@SharedDataService.SelectViewLang("Workspace", "\u0645\u0633\u0627\u062d\u0629 \u0627\u0644\u0639\u0645\u0644")</span>
@@ -87,29 +98,35 @@
             </div>
         }
 
-        <div class="desktop-nav-section">
-            <h3>@SharedDataService.SelectViewLang("Pages", "\u0627\u0644\u0635\u0641\u062d\u0627\u062a")</h3>
-            @foreach (var row in VisibleWorkspaceRows)
-            {
-                var hasChildren = HasAccordionChildren(row);
-                var isExpanded = IsExpanded(row);
-                <button type="button"
-                        class="@DesktopRowClass(row)"
-                        disabled="@(!CanNavigate(row.Item) && !hasChildren)"
-                        aria-expanded="@(hasChildren ? isExpanded : null)"
-                        @onclick="() => HandleWorkspaceRowClickAsync(row)">
-                    <i class="bi @row.Item.Icon"></i>
-                    <span>
-                        <strong>@Label(row.Item)</strong>
-                        <small>@PathLabel(row)</small>
-                    </span>
-                    @if (hasChildren)
-                    {
-                        <i class="bi @(isExpanded ? "bi-chevron-down" : "bi-chevron-right") desktop-nav-chevron"></i>
-                    }
-                </button>
-            }
-        </div>
+        @{
+            var visibleWorkspaceRows = VisibleWorkspaceRows.ToList();
+        }
+        @if (visibleWorkspaceRows.Any())
+        {
+            <div class="desktop-nav-section">
+                <h3>@SharedDataService.SelectViewLang("Pages", "\u0627\u0644\u0635\u0641\u062d\u0627\u062a")</h3>
+                @foreach (var row in visibleWorkspaceRows)
+                {
+                    var hasChildren = HasAccordionChildren(row);
+                    var isExpanded = IsExpanded(row);
+                    <button type="button"
+                            class="@DesktopRowClass(row)"
+                            disabled="@(!CanNavigate(row.Item) && !hasChildren)"
+                            aria-expanded="@(hasChildren ? isExpanded : null)"
+                            @onclick="() => HandleWorkspaceRowClickAsync(row)">
+                        <i class="bi @row.Item.Icon"></i>
+                        <span>
+                            <strong>@Label(row.Item)</strong>
+                            <small>@PathLabel(row)</small>
+                        </span>
+                        @if (hasChildren)
+                        {
+                            <i class="bi @(isExpanded ? "bi-chevron-down" : "bi-chevron-right") desktop-nav-chevron"></i>
+                        }
+                    </button>
+                }
+            </div>
+        }
     </section>
 </aside>
 
@@ -122,13 +139,23 @@
     private IReadOnlyList<string> favoriteKeys = [];
     private IReadOnlyList<string> recentKeys = [];
     private readonly HashSet<string> expandedWorkspaceRowKeys = new(StringComparer.OrdinalIgnoreCase);
+    private bool isCollapsed;
 
     private IReadOnlyList<NavigationWorkspace> AuthorizedWorkspaces => NavigationMenuResolver.GetAuthorizedWorkspaces(AuthState?.User);
     private IEnumerable<MenuItem> AuthorizedItems => NavigationMenuResolver.GetAuthorizedNavigableItems(AuthState?.User);
     private IEnumerable<NavigationMenuRow> WorkspaceRows => NavigationMenuResolver.GetAuthorizedWorkspaceRows(AuthState?.User, ActiveWorkspace);
-    private IEnumerable<NavigationMenuRow> VisibleWorkspaceRows => WorkspaceRows.Where(IsVisibleWorkspaceRow);
-    private IEnumerable<MenuItem> FavoriteItems => ResolveKeys(favoriteKeys).Where(MatchesActiveWorkspace).Take(5);
-    private IEnumerable<MenuItem> RecentItems => ResolveKeys(recentKeys).Where(MatchesActiveWorkspace).Take(NavigationShellState.MaxRecentItems);
+    private IEnumerable<NavigationMenuRow> VisibleWorkspaceRows => WorkspaceRows.Where(row => IsVisibleWorkspaceRow(row) && !IsPanelExcludedItem(row.Item));
+    private IEnumerable<MenuItem> FavoriteItems => ResolveKeys(favoriteKeys).Where(MatchesActiveWorkspace).Where(item => !IsPanelExcludedItem(item)).Take(5);
+    private IEnumerable<MenuItem> RecentItems => ResolveKeys(recentKeys).Where(MatchesActiveWorkspace).Where(item => !IsPanelExcludedItem(item)).Take(NavigationShellState.MaxRecentItems);
+    private string SidebarShellClass => $"desktop-workspace-shell {(isCollapsed ? "is-collapsed" : "")}";
+    private string CollapseText
+        => isCollapsed
+            ? SharedDataService.SelectViewLang("Expand", "\u062a\u0648\u0633\u064a\u0639")
+            : SharedDataService.SelectViewLang("Collapse", "\u0637\u064a");
+    private string CollapseLabel
+        => isCollapsed
+            ? SharedDataService.SelectViewLang("Expand sidebar", "\u062a\u0648\u0633\u064a\u0639 \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u062c\u0627\u0646\u0628\u064a")
+            : SharedDataService.SelectViewLang("Collapse sidebar", "\u0637\u064a \u0627\u0644\u0634\u0631\u064a\u0637 \u0627\u0644\u062c\u0627\u0646\u0628\u064a");
 
     private string WorkspaceLabel
         => ActiveWorkspace == NavigationMenuResolver.WorkspaceMore
@@ -167,6 +194,12 @@
     private bool MatchesActiveWorkspace(MenuItem item)
         => ActiveWorkspace == NavigationMenuResolver.WorkspaceMore
            || NavigationMenuResolver.GetWorkspaceKey(item) == ActiveWorkspace;
+
+    private static bool IsPanelExcludedItem(MenuItem item)
+    {
+        var path = NavigationMenuResolver.NormalizePath(item.Url);
+        return path == "/dashboard" || path == "/salesorder/pos";
+    }
 
     private bool CanNavigate(MenuItem item)
         => !string.IsNullOrWhiteSpace(item.Url) && IsAuthorized(item);
@@ -338,12 +371,32 @@
         await JSRuntime.InvokeVoidAsync("localStorage.setItem", NavigationShellState.RecentStorageKey, NavigationShellState.SerializeKeys(recentKeys));
     }
 
+    private async Task ToggleCollapsedAsync()
+    {
+        isCollapsed = !isCollapsed;
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", NavigationShellState.SidebarCollapsedStorageKey, isCollapsed ? "true" : "false");
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        catch (JSException)
+        {
+        }
+    }
+
     private async Task LoadStateAsync()
     {
         try
         {
             favoriteKeys = NavigationShellState.ParseKeys(await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.FavoriteStorageKey));
             recentKeys = NavigationShellState.ParseKeys(await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.RecentStorageKey));
+            isCollapsed = string.Equals(
+                await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.SidebarCollapsedStorageKey),
+                "true",
+                StringComparison.OrdinalIgnoreCase);
         }
         catch (InvalidOperationException)
         {
