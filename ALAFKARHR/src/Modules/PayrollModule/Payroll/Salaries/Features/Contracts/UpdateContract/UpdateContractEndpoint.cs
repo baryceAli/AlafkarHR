@@ -28,7 +28,7 @@ public class UpdateContractEndpoint : ICarterModule
 
             return Results.Ok(result.Adapt<UpdateContractResponse>());
         })
-            .WithName("UpdateContract")
+            .WithName("UpdatePayrollContract")
             .Produces<UpdateContractResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)

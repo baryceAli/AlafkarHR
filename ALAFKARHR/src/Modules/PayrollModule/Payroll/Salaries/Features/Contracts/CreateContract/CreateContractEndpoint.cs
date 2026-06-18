@@ -21,7 +21,7 @@ public class CreateContractEndpoint : ICarterModule
             var result = await sender.Send(request.Adapt<CreateContractCommand>());
             return Results.Created($"/api/v1/payroll/contracts/{result.Id}", result.Adapt<CreateContractResponse>());
         })
-            .WithName("CreateContract")
+            .WithName("CreatePayrollContract")
             .Produces<CreateContractResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)

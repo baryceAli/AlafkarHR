@@ -19,7 +19,7 @@ public class GetContractByIdEndpoint : ICarterModule
             var result = await sender.Send(new GetContractByIdQuery(id));
             return Results.Ok(result.Adapt<GetContractByIdResponse>());
         })
-            .WithName("GetContractById")
+            .WithName("GetPayrollContractById")
             .Produces<GetContractByIdResponse>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound)
