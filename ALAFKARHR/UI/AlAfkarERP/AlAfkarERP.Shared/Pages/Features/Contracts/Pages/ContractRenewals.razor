@@ -1,0 +1,256 @@
+@layout AdminLayout
+@page "/Contracts/Renewals"
+
+@using AlAfkarERP.Shared.Pages.Features.Contracts.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Contracts.Dtos
+@using SharedWithUI.Contracts.Enums
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IContractsService ContractsService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Renewal Work Queue", "Renewal Work Queue")"
+                Subtitle="@Text("Process auto-renewals and record renewal fee payments from one operational queue.", "Process auto-renewals and record renewal fee payments from one operational queue.")"
+                Overline="@Text("Contracts", "Contracts")"
+                Icon="bi-arrow-repeat">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo("/Contracts/Dashboard")'>
+                <i class="bi bi-speedometer2"></i>
+                @Text("Dashboard", "Dashboard")
+            </button>
+            <button class="btn btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo("/Contracts/List")'>
+                <i class="bi bi-list-check"></i>
+                @Text("Contracts", "Contracts")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view renewal work.", "You don't have permissions to view renewal work.")</div>
+    }
+    else
+    {
+        <AppCard Title="@Text("Renewal Queue", "Renewal Queue")">
+            <FilterBar CssClass="mb-3">
+                <ChildContent>
+                    <div class="input-group erp-search-control">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input class="form-control" placeholder="@Text("Search contract or party", "Search contract or party")" @bind="searchText" @bind:event="oninput" @onkeydown="HandleSearchKey" />
+                    </div>
+                    <select class="form-select" @bind="status">
+                        <option value="">@Text("All statuses", "All statuses")</option>
+                        @foreach (var option in Enum.GetValues<ContractStatus>())
+                        {
+                            <option value="@option">@option</option>
+                        }
+                    </select>
+                    <select class="form-select" @bind="paymentStatus">
+                        <option value="">@Text("All payment states", "All payment states")</option>
+                        @foreach (var option in Enum.GetValues<ContractRenewalPaymentStatus>())
+                        {
+                            <option value="@option">@option</option>
+                        }
+                    </select>
+                    <InputDate class="form-control" @bind-Value="fromDate" />
+                    <InputDate class="form-control" @bind-Value="toDate" />
+                </ChildContent>
+                <Actions>
+                    <button class="btn btn-outline-secondary" @onclick="ClearFilters">
+                        <i class="bi bi-x-circle"></i>
+                        @Text("Clear", "Clear")
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="SearchAsync">
+                        <i class="bi bi-arrow-repeat"></i>
+                        @Text("Refresh", "Refresh")
+                    </button>
+                </Actions>
+            </FilterBar>
+
+            <div class="erp-table-wrap">
+                <table class="table erp-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>@Text("Contract", "Contract")</th>
+                            <th>@Text("Party", "Party")</th>
+                            <th>@Text("End Date", "End Date")</th>
+                            <th>@Text("Status", "Status")</th>
+                            <th>@Text("Renewal", "Renewal")</th>
+                            <th class="text-end">@Text("Actions", "Actions")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (isLoading)
+                        {
+                            <tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>
+                        }
+                        else if (contracts.Count == 0)
+                        {
+                            <tr><td colspan="6" class="text-center text-muted py-4">@Text("No renewal work found.", "No renewal work found.")</td></tr>
+                        }
+                        @foreach (var contract in contracts)
+                        {
+                            var pendingRenewal = contract.Renewals.FirstOrDefault(x => x.PaymentStatus == ContractRenewalPaymentStatus.Pending);
+                            <tr>
+                                <td><div class="fw-semibold">@contract.Number</div><div class="text-muted small">@contract.Title</div></td>
+                                <td><div>@contract.PartyDisplayName</div><div class="text-muted small">@contract.PartyType</div></td>
+                                <td>@contract.EndDate.ToString("yyyy-MM-dd")</td>
+                                <td><StatusChip Text="@contract.Status.ToString()" Tone="@StatusTone(contract.Status)" /></td>
+                                <td>
+                                    @if (pendingRenewal is not null)
+                                    {
+                                        <div>@pendingRenewal.FeeAmount.ToString("N2")</div>
+                                        <StatusChip Text="@pendingRenewal.PaymentStatus.ToString()" Tone="@PaymentTone(pendingRenewal.PaymentStatus)" />
+                                    }
+                                    else if (contract.RenewalSettings.AutoRenew)
+                                    {
+                                        <StatusChip Text="@Text("Auto Renew", "Auto Renew")" Tone="info" />
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <button class="btn btn-outline-primary btn-sm erp-row-action" title="@Text("Open", "Open")" @onclick='() => NavigationManager.NavigateTo($"/Contracts/Detail/{contract.Id}")'>
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning btn-sm erp-row-action" title="@Text("Process renewal", "Process renewal")" @onclick="() => ProcessRenewalAsync(contract.Id)" disabled="@(!CanProcess)">
+                                            <i class="bi bi-arrow-repeat"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success btn-sm erp-row-action" title="@Text("Record payment", "Record payment")" @onclick="() => RecordPaymentAsync(contract, pendingRenewal)" disabled="@(!CanRecordPayment(pendingRenewal))">
+                                            <i class="bi bi-cash-coin"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-end align-items-center gap-2 mt-3">
+                <button class="btn btn-sm btn-outline-secondary" @onclick="PrevPage" disabled="@(pageIndex <= 1)">@Text("Previous", "Previous")</button>
+                <span class="text-muted small">@Text("Page", "Page") @pageIndex @Text("of", "of") @TotalPages</span>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="NextPage" disabled="@(pageIndex >= TotalPages)">@Text("Next", "Next")</button>
+            </div>
+        </AppCard>
+    }
+</div>
+
+@code {
+    private List<ContractDto> contracts = [];
+    private AuthenticationState? authState;
+    private Guid? companyId;
+    private string? searchText;
+    private ContractStatus? status = ContractStatus.PendingRenewalPayment;
+    private ContractRenewalPaymentStatus? paymentStatus;
+    private DateTime? fromDate = DateTime.Today;
+    private DateTime? toDate = DateTime.Today.AddDays(30);
+    private int pageIndex = 1;
+    private int pageSize = 20;
+    private long totalCount;
+    private bool isLoading;
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+
+    private bool CanView => HasPermission(PermissionList.ContractRenewalPermissions.View);
+    private bool CanProcess => HasPermission(PermissionList.ContractRenewalPermissions.Process);
+    private bool CanRecord => HasPermission(PermissionList.ContractRenewalPermissions.RecordPayment);
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var parsedCompanyId))
+            companyId = parsedCompanyId;
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (!CanView)
+            return;
+
+        isLoading = true;
+        var response = await ContractsService.GetContractsAsync(companyId, null, null, status, null, paymentStatus, fromDate, toDate, pageIndex, pageSize, searchText);
+        if (response.IsSuccess)
+        {
+            contracts = response.Data?.Data?.ToList() ?? [];
+            totalCount = response.Data?.Count ?? 0;
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load renewal queue.", "Could not load renewal queue."));
+        }
+        isLoading = false;
+    }
+
+    private async Task ProcessRenewalAsync(Guid contractId)
+    {
+        var response = await ContractsService.ProcessRenewalAsync(contractId);
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Renewal processed.", "Renewal processed."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not process renewal.", "Could not process renewal."));
+        }
+    }
+
+    private async Task RecordPaymentAsync(ContractDto contract, ContractRenewalDto? renewal)
+    {
+        if (renewal is null)
+            return;
+
+        var response = await ContractsService.RecordRenewalPaymentAsync(contract.Id, renewal.Id, null, renewal.FeeAmount);
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Renewal payment recorded.", "Renewal payment recorded."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not record payment.", "Could not record payment."));
+        }
+    }
+
+    private bool CanRecordPayment(ContractRenewalDto? renewal) => CanRecord && renewal is not null && renewal.FeeRequired && renewal.PaymentStatus == ContractRenewalPaymentStatus.Pending;
+    private async Task SearchAsync() { pageIndex = 1; await LoadAsync(); }
+    private async Task ClearFilters() { searchText = null; status = ContractStatus.PendingRenewalPayment; paymentStatus = null; fromDate = DateTime.Today; toDate = DateTime.Today.AddDays(30); await SearchAsync(); }
+    private async Task PrevPage() { if (pageIndex > 1) { pageIndex--; await LoadAsync(); } }
+    private async Task NextPage() { if (pageIndex < TotalPages) { pageIndex++; await LoadAsync(); } }
+    private Task HandleSearchKey(KeyboardEventArgs args) => args.Key == "Enter" ? SearchAsync() : Task.CompletedTask;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private static string StatusTone(ContractStatus value) => value switch
+    {
+        ContractStatus.Active => "success",
+        ContractStatus.PendingRenewalPayment or ContractStatus.UnderReview => "warning",
+        ContractStatus.Terminated or ContractStatus.Expired => "danger",
+        ContractStatus.Signed or ContractStatus.Renewed => "info",
+        _ => "muted"
+    };
+    private static string PaymentTone(ContractRenewalPaymentStatus value) => value switch
+    {
+        ContractRenewalPaymentStatus.Paid => "success",
+        ContractRenewalPaymentStatus.Pending => "warning",
+        ContractRenewalPaymentStatus.Waived => "info",
+        _ => "muted"
+    };
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

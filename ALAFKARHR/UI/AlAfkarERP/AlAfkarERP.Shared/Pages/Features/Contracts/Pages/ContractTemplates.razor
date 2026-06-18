@@ -1,0 +1,251 @@
+@layout AdminLayout
+@page "/Contracts/Templates"
+
+@using AlAfkarERP.Shared.Pages.Features.Contracts.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using SharedWithUI.Contracts.Dtos
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IContractsService ContractsService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Contract Templates", "Contract Templates")"
+                Subtitle="@Text("Store reusable contract template files for later document generation.", "Store reusable contract template files for later document generation.")"
+                Overline="@Text("Contracts", "Contracts")"
+                Icon="bi-file-earmark-text">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo("/Contracts/List")'>
+                <i class="bi bi-arrow-return-left"></i>
+                @Text("Back", "Back")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    <div class="row g-3">
+        <div class="col-lg-4">
+            <EditForm Model="editing" OnValidSubmit="SaveAsync">
+                <DataAnnotationsValidator />
+                <AppCard Title="@Text("Template", "Template")">
+                    <div class="mb-3">
+                        <label class="form-label">@Text("Name", "Name")</label>
+                        <InputText class="form-control" @bind-Value="editing.Name" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">@Text("English Name", "English Name")</label>
+                        <InputText class="form-control" @bind-Value="editing.NameEng" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">@Text("Contract Type", "Contract Type")</label>
+                        <InputText class="form-control" @bind-Value="editing.ContractType" />
+                    </div>
+                    <div class="form-check mb-3">
+                        <InputCheckbox class="form-check-input" @bind-Value="editing.IsActive" />
+                        <label class="form-check-label">@Text("Active", "Active")</label>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" disabled="@(!CanSave)">
+                            <i class="bi bi-check-lg"></i>
+                            @Text("Save", "Save")
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" @onclick="NewTemplate">@Text("New", "New")</button>
+                    </div>
+                </AppCard>
+            </EditForm>
+        </div>
+        <div class="col-lg-8">
+            <AppCard Title="@Text("Templates", "Templates")">
+                <FilterBar CssClass="mb-3">
+                    <ChildContent>
+                        <div class="input-group erp-search-control">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input class="form-control" placeholder="@Text("Search templates", "Search templates")" @bind="searchText" @bind:event="oninput" @onkeydown="HandleSearchKey" />
+                        </div>
+                    </ChildContent>
+                    <Actions>
+                        <button class="btn btn-outline-secondary" @onclick="SearchAsync"><i class="bi bi-arrow-repeat"></i> @Text("Refresh", "Refresh")</button>
+                    </Actions>
+                </FilterBar>
+                <div class="erp-table-wrap">
+                    <table class="table erp-table mb-0">
+                        <thead><tr><th>@Text("Name", "Name")</th><th>@Text("Type", "Type")</th><th>@Text("File", "File")</th><th class="text-end">@Text("Actions", "Actions")</th></tr></thead>
+                        <tbody>
+                            @if (templates.Count == 0)
+                            {
+                                <tr><td colspan="4" class="text-center text-muted py-4">@Text("No templates found.", "No templates found.")</td></tr>
+                            }
+                            @foreach (var template in templates)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">@Text(template.NameEng, template.Name)</div>
+                                        <StatusChip Text="@(template.IsActive ? Text("Active", "Active") : Text("Inactive", "Inactive"))" Tone="@(template.IsActive ? "success" : "muted")" />
+                                    </td>
+                                    <td>@template.ContractType</td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(template.FilePath))
+                                        {
+                                            <a href="@template.FilePath" target="_blank">@template.FileName</a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="d-flex justify-content-end gap-2">
+                                            <InputFile OnChange="args => UploadAsync(template.Id, args)" disabled="@(!CanEdit)" />
+                                            <button class="btn btn-outline-primary btn-sm erp-row-action" title="@Text("Edit", "Edit")" @onclick="() => Edit(template)" disabled="@(!CanEdit)"><i class="bi bi-pencil-square"></i></button>
+                                            <button class="btn btn-outline-danger btn-sm erp-row-action" title="@Text("Delete", "Delete")" @onclick="() => DeleteAsync(template.Id)" disabled="@(!CanDelete)"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-end align-items-center gap-2 mt-3">
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="PrevPage" disabled="@(pageIndex <= 1)">@Text("Previous", "Previous")</button>
+                    <span class="text-muted small">@Text("Page", "Page") @pageIndex @Text("of", "of") @TotalPages</span>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="NextPage" disabled="@(pageIndex >= TotalPages)">@Text("Next", "Next")</button>
+                </div>
+            </AppCard>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ContractTemplateDto> templates = [];
+    private ContractTemplateDto editing = NewTemplateModel();
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private string? searchText;
+    private int pageIndex = 1;
+    private int pageSize = 20;
+    private long totalCount;
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+
+    private bool CanSave => editing.Id == Guid.Empty ? HasPermission(PermissionList.ContractTemplatePermissions.Create) : HasPermission(PermissionList.ContractTemplatePermissions.Edit);
+    private bool CanEdit => HasPermission(PermissionList.ContractTemplatePermissions.Edit);
+    private bool CanDelete => HasPermission(PermissionList.ContractTemplatePermissions.Delete);
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var parsedCompanyId))
+            companyId = parsedCompanyId;
+        editing.CompanyId = companyId;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var response = await ContractsService.GetTemplatesAsync(companyId, null, pageIndex, pageSize, searchText);
+        if (response.IsSuccess)
+        {
+            templates = response.Data?.Data?.ToList() ?? [];
+            totalCount = response.Data?.Count ?? 0;
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load templates.", "Could not load templates."));
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        editing.CompanyId = companyId;
+        if (editing.Id == Guid.Empty)
+        {
+            var createResponse = await ContractsService.CreateTemplateAsync(editing);
+            if (createResponse.IsSuccess)
+            {
+                ToastService.ShowSuccess(Text("Template saved.", "Template saved."));
+                NewTemplate();
+                await LoadAsync();
+            }
+            else
+            {
+                ToastService.ShowError(createResponse.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not save template.", "Could not save template."));
+            }
+
+            return;
+        }
+
+        var response = await ContractsService.UpdateTemplateAsync(editing);
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Template saved.", "Template saved."));
+            NewTemplate();
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not save template.", "Could not save template."));
+        }
+    }
+
+    private async Task UploadAsync(Guid id, InputFileChangeEventArgs args)
+    {
+        var response = await ContractsService.UploadTemplateFileAsync(id, args.File);
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Template file uploaded.", "Template file uploaded."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not upload file.", "Could not upload file."));
+        }
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        var response = await ContractsService.DeleteTemplateAsync(id);
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Template deleted.", "Template deleted."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not delete template.", "Could not delete template."));
+        }
+    }
+
+    private void Edit(ContractTemplateDto template) => editing = new ContractTemplateDto
+    {
+        Id = template.Id,
+        CompanyId = template.CompanyId,
+        Name = template.Name,
+        NameEng = template.NameEng,
+        ContractType = template.ContractType,
+        IsActive = template.IsActive
+    };
+
+    private void NewTemplate()
+    {
+        editing = NewTemplateModel();
+        editing.CompanyId = companyId;
+    }
+    private async Task SearchAsync() { pageIndex = 1; await LoadAsync(); }
+    private async Task PrevPage() { if (pageIndex > 1) { pageIndex--; await LoadAsync(); } }
+    private async Task NextPage() { if (pageIndex < TotalPages) { pageIndex++; await LoadAsync(); } }
+    private static ContractTemplateDto NewTemplateModel() => new() { IsActive = true };
+    private Task HandleSearchKey(KeyboardEventArgs args) => args.Key == "Enter" ? SearchAsync() : Task.CompletedTask;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

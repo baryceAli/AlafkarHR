@@ -1,0 +1,288 @@
+@layout AdminLayout
+@page "/Contracts/Form"
+@page "/Contracts/Form/{Id:guid}"
+
+@using AlAfkarERP.Shared.Pages.Features.Contracts.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Contracts.Dtos
+@using SharedWithUI.Contracts.Enums
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IContractsService ContractsService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@PageTitle"
+                Subtitle="@Text("Create or edit contract master data and renewal settings.", "Create or edit contract master data and renewal settings.")"
+                Overline="@Text("Contracts", "Contracts")"
+                Icon="bi-file-earmark-check">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="Back">
+                <i class="bi bi-arrow-return-left"></i>
+                @Text("Back", "Back")
+            </button>
+            @if (contract.Id != Guid.Empty)
+            {
+                <button class="btn btn-outline-primary" @onclick='() => NavigationManager.NavigateTo($"/Contracts/Detail/{contract.Id}")'>
+                    <i class="bi bi-eye"></i>
+                    @Text("Detail", "Detail")
+                </button>
+            }
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="fw-semibold">@Text("Loading contract...", "Loading contract...")</div>
+            </div>
+        </AppCard>
+    }
+    else
+    {
+        <EditForm Model="contract" OnValidSubmit="SaveAsync">
+            <DataAnnotationsValidator />
+            <AppCard Title="@Text("Contract Details", "Contract Details")" CssClass="mb-3 erp-form-section">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">@Text("Number", "Number")</label>
+                        <InputText class="form-control" @bind-Value="contract.Number" readonly />
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">@Text("Title", "Title")</label>
+                        <InputText class="form-control" @bind-Value="contract.Title" />
+                        <ValidationMessage For="() => contract.Title" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">@Text("English Title", "English Title")</label>
+                        <InputText class="form-control" @bind-Value="contract.TitleEng" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@Text("Type", "Type")</label>
+                        <InputText class="form-control" @bind-Value="contract.Type" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@Text("Party Type", "Party Type")</label>
+                        <InputText class="form-control" @bind-Value="contract.PartyType" placeholder="Customer, Employee, Supplier" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@Text("Party Id", "Party Id")</label>
+                        <InputText class="form-control" @bind-Value="partyIdText" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@Text("Party Name", "Party Name")</label>
+                        <InputText class="form-control" @bind-Value="contract.PartyDisplayName" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@Text("Start Date", "Start Date")</label>
+                        <InputDate class="form-control" @bind-Value="contract.StartDate" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@Text("End Date", "End Date")</label>
+                        <InputDate class="form-control" @bind-Value="contract.EndDate" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@Text("Value", "Value")</label>
+                        <InputNumber class="form-control" @bind-Value="contract.ContractValue" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@Text("Status", "Status")</label>
+                        <input class="form-control" value="@contract.Status" readonly />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">@Text("Notes", "Notes")</label>
+                        <InputTextArea class="form-control" @bind-Value="contract.Notes" />
+                    </div>
+                </div>
+            </AppCard>
+
+            <AppCard Title="@Text("Auto Renewal", "Auto Renewal")" CssClass="mb-3 erp-form-section">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2">
+                        <div class="form-check">
+                            <InputCheckbox class="form-check-input" @bind-Value="contract.RenewalSettings.AutoRenew" />
+                            <label class="form-check-label">@Text("Auto renew", "Auto renew")</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">@Text("Term", "Term")</label>
+                        <InputNumber class="form-control" @bind-Value="contract.RenewalSettings.RenewalTermValue" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">@Text("Unit", "Unit")</label>
+                        <InputSelect class="form-select" @bind-Value="contract.RenewalSettings.RenewalTermUnit">
+                            @foreach (var unit in Enum.GetValues<ContractTermUnit>())
+                            {
+                                <option value="@unit">@unit</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">@Text("Notice days", "Notice days")</label>
+                        <InputNumber class="form-control" @bind-Value="contract.RenewalSettings.RenewalNoticeDays" />
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-check">
+                            <InputCheckbox class="form-check-input" @bind-Value="contract.RenewalSettings.RequiresRenewalFee" />
+                            <label class="form-check-label">@Text("Renewal fee", "Renewal fee")</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">@Text("Grace days", "Grace days")</label>
+                        <InputNumber class="form-control" @bind-Value="contract.RenewalSettings.PaymentGraceDays" />
+                    </div>
+                    @if (contract.RenewalSettings.RequiresRenewalFee)
+                    {
+                        <div class="col-md-3">
+                            <label class="form-label">@Text("Fee mode", "Fee mode")</label>
+                            <InputSelect class="form-select" @bind-Value="contract.RenewalSettings.FeeMode">
+                                <option value="@ContractRenewalFeeMode.FixedAmount">@Text("Fixed amount", "Fixed amount")</option>
+                                <option value="@ContractRenewalFeeMode.PercentageOfContractValue">@Text("Percent of value", "Percent of value")</option>
+                            </InputSelect>
+                        </div>
+                        @if (contract.RenewalSettings.FeeMode == ContractRenewalFeeMode.FixedAmount)
+                        {
+                            <div class="col-md-3">
+                                <label class="form-label">@Text("Fee amount", "Fee amount")</label>
+                                <InputNumber class="form-control" @bind-Value="contract.RenewalSettings.FeeAmount" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col-md-3">
+                                <label class="form-label">@Text("Fee percentage", "Fee percentage")</label>
+                                <InputNumber class="form-control" @bind-Value="contract.RenewalSettings.FeePercentage" />
+                            </div>
+                        }
+                    }
+                </div>
+            </AppCard>
+
+            <div class="d-flex justify-content-end gap-2 mb-3">
+                <button type="button" class="btn btn-outline-secondary" @onclick="Back">@Text("Cancel", "Cancel")</button>
+                <button type="submit" class="btn btn-primary" disabled="@(!CanSave)">
+                    <i class="bi bi-check-lg"></i>
+                    @Text("Save", "Save")
+                </button>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+    [SupplyParameterFromQuery(Name = "partyType")] public string? QueryPartyType { get; set; }
+    [SupplyParameterFromQuery(Name = "partyId")] public string? QueryPartyId { get; set; }
+    [SupplyParameterFromQuery(Name = "partyName")] public string? QueryPartyName { get; set; }
+
+    private ContractDto contract = NewContract();
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private string partyIdText = string.Empty;
+    private bool isLoading;
+    private string PageTitle => contract.Id == Guid.Empty ? Text("New Contract", "New Contract") : $"{contract.Number} - {contract.Title}";
+    private bool CanSave => contract.Id == Guid.Empty ? HasPermission(PermissionList.ContractPermissions.Create) : HasPermission(PermissionList.ContractPermissions.Edit);
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var parsedCompanyId))
+            companyId = parsedCompanyId;
+
+        if (Id.HasValue && Id.Value != Guid.Empty)
+        {
+            isLoading = true;
+            var response = await ContractsService.GetContractByIdAsync(Id.Value);
+            if (response.IsSuccess && response.Data is not null)
+            {
+                contract = response.Data;
+                partyIdText = contract.PartyId.ToString();
+            }
+            else
+            {
+                ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load contract.", "Could not load contract."));
+            }
+            isLoading = false;
+        }
+        else
+        {
+            contract = NewContract();
+            contract.CompanyId = companyId;
+            ApplyPartyQuery();
+        }
+    }
+
+    private void ApplyPartyQuery()
+    {
+        if (!string.IsNullOrWhiteSpace(QueryPartyType))
+            contract.PartyType = QueryPartyType;
+
+        if (!string.IsNullOrWhiteSpace(QueryPartyId))
+            partyIdText = QueryPartyId;
+        else
+            partyIdText = string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(QueryPartyName))
+            contract.PartyDisplayName = QueryPartyName;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!Guid.TryParse(partyIdText, out var partyId))
+        {
+            ToastService.ShowWarning(Text("Party Id must be a valid Guid.", "Party Id must be a valid Guid."));
+            return;
+        }
+
+        contract.CompanyId = companyId;
+        contract.PartyId = partyId;
+        if (contract.Id == Guid.Empty)
+        {
+            var createResponse = await ContractsService.CreateContractAsync(contract);
+            if (!createResponse.IsSuccess)
+            {
+                ToastService.ShowError(createResponse.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not save contract.", "Could not save contract."));
+                return;
+            }
+
+            ToastService.ShowSuccess(Text("Contract saved.", "Contract saved."));
+            if (createResponse.Data is not null)
+                NavigationManager.NavigateTo($"/Contracts/Detail/{createResponse.Data.Id}");
+            return;
+        }
+
+        var response = await ContractsService.UpdateContractAsync(contract);
+        if (!response.IsSuccess)
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not save contract.", "Could not save contract."));
+            return;
+        }
+
+        ToastService.ShowSuccess(Text("Contract saved.", "Contract saved."));
+        NavigationManager.NavigateTo($"/Contracts/Detail/{contract.Id}");
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private void Back() => NavigationManager.NavigateTo("/Contracts/List");
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+
+    private static ContractDto NewContract() => new()
+    {
+        StartDate = DateTime.Today,
+        EndDate = DateTime.Today.AddYears(1),
+        RenewalSettings = new ContractRenewalSettingsDto()
+    };
+}

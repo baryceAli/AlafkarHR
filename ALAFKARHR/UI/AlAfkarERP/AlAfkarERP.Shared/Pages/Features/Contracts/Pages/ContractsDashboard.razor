@@ -1,0 +1,216 @@
+@layout AdminLayout
+@page "/Contracts/Dashboard"
+
+@using AlAfkarERP.Shared.Pages.Features.Contracts.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Contracts.Dtos
+@using SharedWithUI.Contracts.Enums
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IContractsService ContractsService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Contracts Dashboard", "Contracts Dashboard")"
+                Subtitle="@Text("Monitor contract workload, renewal payment holds, and agreements ending soon.", "Monitor contract workload, renewal payment holds, and agreements ending soon.")"
+                Overline="@Text("Contracts", "Contracts")"
+                Icon="bi-speedometer2">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo("/Contracts/List")' disabled="@(!CanView)">
+                <i class="bi bi-list-check"></i>
+                @Text("Contracts", "Contracts")
+            </button>
+            <button class="btn btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo("/Contracts/Renewals")' disabled="@(!CanViewRenewals)">
+                <i class="bi bi-arrow-repeat"></i>
+                @Text("Renewals", "Renewals")
+            </button>
+            <button class="btn btn-primary" @onclick='() => NavigationManager.NavigateTo("/Contracts/Form")' disabled="@(!CanCreate)">
+                <i class="bi bi-plus-lg"></i>
+                @Text("New Contract", "New Contract")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view contracts.", "You don't have permissions to view contracts.")</div>
+    }
+    else
+    {
+        <div class="row g-3 mb-3">
+            @foreach (var stat in stats)
+            {
+                <div class="col-sm-6 col-xl-4">
+                    <AppCard>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-muted small">@stat.Label</div>
+                                <div class="h4 mb-0">@stat.Count</div>
+                            </div>
+                            <StatusChip Text="@stat.Status.ToString()" Tone="@StatusTone(stat.Status)" />
+                        </div>
+                    </AppCard>
+                </div>
+            }
+        </div>
+
+        <div class="row g-3">
+            <div class="col-xl-6">
+                <AppCard Title="@Text("Expiring Soon", "Expiring Soon")">
+                    <div class="erp-table-wrap">
+                        <table class="table erp-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>@Text("Contract", "Contract")</th>
+                                    <th>@Text("Party", "Party")</th>
+                                    <th>@Text("End Date", "End Date")</th>
+                                    <th class="text-end">@Text("Actions", "Actions")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!expiringSoon.Any())
+                                {
+                                    <tr><td colspan="4" class="text-center text-muted py-4">@Text("No contracts are ending in the next 30 days.", "No contracts are ending in the next 30 days.")</td></tr>
+                                }
+                                @foreach (var contract in expiringSoon)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">@contract.Number</div>
+                                            <div class="text-muted small">@contract.Title</div>
+                                        </td>
+                                        <td>@contract.PartyDisplayName</td>
+                                        <td>@contract.EndDate.ToString("yyyy-MM-dd")</td>
+                                        <td class="text-end">
+                                            <button class="btn btn-outline-primary btn-sm erp-row-action" title="@Text("Open", "Open")" @onclick='() => NavigationManager.NavigateTo($"/Contracts/Detail/{contract.Id}")'>
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+            <div class="col-xl-6">
+                <AppCard Title="@Text("Pending Renewal Payment", "Pending Renewal Payment")">
+                    <div class="erp-table-wrap">
+                        <table class="table erp-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>@Text("Contract", "Contract")</th>
+                                    <th>@Text("Party", "Party")</th>
+                                    <th>@Text("End Date", "End Date")</th>
+                                    <th class="text-end">@Text("Actions", "Actions")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!pendingPayment.Any())
+                                {
+                                    <tr><td colspan="4" class="text-center text-muted py-4">@Text("No contracts are waiting for renewal payment.", "No contracts are waiting for renewal payment.")</td></tr>
+                                }
+                                @foreach (var contract in pendingPayment)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">@contract.Number</div>
+                                            <div class="text-muted small">@contract.Title</div>
+                                        </td>
+                                        <td>@contract.PartyDisplayName</td>
+                                        <td>@contract.EndDate.ToString("yyyy-MM-dd")</td>
+                                        <td class="text-end">
+                                            <button class="btn btn-outline-primary btn-sm erp-row-action" title="@Text("Open", "Open")" @onclick='() => NavigationManager.NavigateTo($"/Contracts/Detail/{contract.Id}")'>
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly List<DashboardStat> stats = [];
+    private List<ContractDto> expiringSoon = [];
+    private List<ContractDto> pendingPayment = [];
+    private AuthenticationState? authState;
+    private Guid? companyId;
+
+    private bool CanView => HasPermission(PermissionList.ContractPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.ContractPermissions.Create);
+    private bool CanViewRenewals => HasPermission(PermissionList.ContractRenewalPermissions.View);
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var parsedCompanyId))
+            companyId = parsedCompanyId;
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (!CanView)
+            return;
+
+        stats.Clear();
+        foreach (var status in new[] { ContractStatus.Active, ContractStatus.UnderReview, ContractStatus.PendingRenewalPayment, ContractStatus.Expired, ContractStatus.Terminated })
+        {
+            var response = await ContractsService.GetContractsAsync(companyId, null, null, status, null, null, null, null, 1, 1, null);
+            if (response.IsSuccess)
+                stats.Add(new DashboardStat(StatusLabel(status), response.Data?.Count ?? 0, status));
+            else
+                ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load dashboard counts.", "Could not load dashboard counts."));
+        }
+
+        var soonResponse = await ContractsService.GetContractsAsync(companyId, null, null, ContractStatus.Active, null, null, DateTime.Today, DateTime.Today.AddDays(30), 1, 5, null);
+        if (soonResponse.IsSuccess)
+            expiringSoon = soonResponse.Data?.Data?.ToList() ?? [];
+
+        var paymentResponse = await ContractsService.GetContractsAsync(companyId, null, null, ContractStatus.PendingRenewalPayment, null, null, null, null, 1, 5, null);
+        if (paymentResponse.IsSuccess)
+            pendingPayment = paymentResponse.Data?.Data?.ToList() ?? [];
+    }
+
+    private string StatusLabel(ContractStatus status) => status switch
+    {
+        ContractStatus.Active => Text("Active", "Active"),
+        ContractStatus.UnderReview => Text("Under Review", "Under Review"),
+        ContractStatus.PendingRenewalPayment => Text("Pending Payment", "Pending Payment"),
+        ContractStatus.Expired => Text("Expired", "Expired"),
+        ContractStatus.Terminated => Text("Terminated", "Terminated"),
+        _ => status.ToString()
+    };
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private static string StatusTone(ContractStatus value) => value switch
+    {
+        ContractStatus.Active => "success",
+        ContractStatus.PendingRenewalPayment or ContractStatus.UnderReview => "warning",
+        ContractStatus.Terminated or ContractStatus.Expired => "danger",
+        ContractStatus.Signed or ContractStatus.Renewed => "info",
+        _ => "muted"
+    };
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+
+    private sealed record DashboardStat(string Label, long Count, ContractStatus Status);
+}
