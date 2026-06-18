@@ -1,0 +1,267 @@
+@layout AdminLayout
+@page "/Contracts/List"
+
+@using AlAfkarERP.Shared.Pages.Features.Contracts.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Contracts.Dtos
+@using SharedWithUI.Contracts.Enums
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IContractsService ContractsService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Contracts", "Contracts")"
+                Subtitle="@Text("Track agreements, renewals, fees, templates, and attachments.", "Track agreements, renewals, fees, templates, and attachments.")"
+                Overline="@Text("Lifecycle Hub", "Lifecycle Hub")"
+                Icon="bi-file-earmark-check">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo("/Contracts/Dashboard")' disabled="@(!CanView)">
+                <i class="bi bi-speedometer2"></i>
+                @Text("Dashboard", "Dashboard")
+            </button>
+            <button class="btn btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo("/Contracts/Renewals")' disabled="@(!CanViewRenewals)">
+                <i class="bi bi-arrow-repeat"></i>
+                @Text("Renewals", "Renewals")
+            </button>
+            <button class="btn btn-outline-secondary" @onclick="OpenTemplates" disabled="@(!CanViewTemplates)">
+                <i class="bi bi-file-earmark-text"></i>
+                @Text("Templates", "Templates")
+            </button>
+            <button class="btn btn-primary" @onclick="CreateNew" disabled="@(!CanCreate)">
+                <i class="bi bi-plus-lg"></i>
+                @Text("New Contract", "New Contract")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view contracts.", "You don't have permissions to view contracts.")</div>
+    }
+    else
+    {
+        <AppCard Title="@Text("Contract Register", "Contract Register")">
+            <FilterBar CssClass="mb-3">
+                <ChildContent>
+                    <div class="input-group erp-search-control">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input class="form-control" placeholder="@Text("Search number, title, or party", "Search number, title, or party")" @bind="searchText" @bind:event="oninput" @onkeydown="HandleSearchKey" />
+                    </div>
+                    <InputText class="form-control" placeholder="@Text("Party type", "Party type")" @bind-Value="partyType" />
+                    <InputText class="form-control" placeholder="@Text("Contract type", "Contract type")" @bind-Value="contractType" />
+                    <select class="form-select" @bind="status">
+                        <option value="">@Text("All statuses", "All statuses")</option>
+                        @foreach (var option in Enum.GetValues<ContractStatus>())
+                        {
+                            <option value="@option">@option</option>
+                        }
+                    </select>
+                    <select class="form-select" @bind="paymentStatus">
+                        <option value="">@Text("All payment states", "All payment states")</option>
+                        @foreach (var option in Enum.GetValues<ContractRenewalPaymentStatus>())
+                        {
+                            <option value="@option">@option</option>
+                        }
+                    </select>
+                    <InputDate class="form-control" @bind-Value="fromDate" />
+                    <InputDate class="form-control" @bind-Value="toDate" />
+                </ChildContent>
+                <Actions>
+                    <button class="btn btn-outline-secondary" @onclick="ClearFilters">
+                        <i class="bi bi-x-circle"></i>
+                        @Text("Clear", "Clear")
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="SearchAsync">
+                        <i class="bi bi-arrow-repeat"></i>
+                        @Text("Refresh", "Refresh")
+                    </button>
+                </Actions>
+            </FilterBar>
+
+            <div class="erp-table-wrap">
+                <table class="table erp-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>@Text("Number", "Number")</th>
+                            <th>@Text("Contract", "Contract")</th>
+                            <th>@Text("Party", "Party")</th>
+                            <th>@Text("Dates", "Dates")</th>
+                            <th>@Text("Renewal", "Renewal")</th>
+                            <th>@Text("Status", "Status")</th>
+                            <th class="text-end">@Text("Actions", "Actions")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (isLoading)
+                        {
+                            <tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>
+                        }
+                        else if (contracts.Count == 0)
+                        {
+                            <tr><td colspan="7" class="text-center text-muted py-4">@Text("No contracts found.", "No contracts found.")</td></tr>
+                        }
+                        @foreach (var contract in contracts)
+                        {
+                            <tr>
+                                <td><span class="fw-semibold">@contract.Number</span></td>
+                                <td>
+                                    <div class="fw-semibold">@contract.Title</div>
+                                    <div class="text-muted small">@contract.Type</div>
+                                </td>
+                                <td>
+                                    <div>@contract.PartyDisplayName</div>
+                                    <div class="text-muted small">@contract.PartyType</div>
+                                </td>
+                                <td>@contract.StartDate.ToString("yyyy-MM-dd") - @contract.EndDate.ToString("yyyy-MM-dd")</td>
+                                <td>
+                                    @if (contract.RenewalSettings.AutoRenew)
+                                    {
+                                        <StatusChip Text="@Text("Auto", "Auto")" Tone="info" />
+                                        @if (contract.RenewalSettings.RequiresRenewalFee)
+                                        {
+                                            <StatusChip Text="@Text("Fee", "Fee")" Tone="warning" CssClass="ms-1" />
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td><StatusChip Text="@contract.Status.ToString()" Tone="@StatusTone(contract.Status)" /></td>
+                                <td>
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <button class="btn btn-outline-primary btn-sm erp-row-action" title="@Text("Open", "Open")" @onclick="() => Open(contract.Id)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary btn-sm erp-row-action" title="@Text("Edit", "Edit")" @onclick="() => Edit(contract.Id)" disabled="@(!CanEdit)">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm erp-row-action" title="@Text("Delete", "Delete")" @onclick="() => DeleteAsync(contract.Id)" disabled="@(!CanDelete)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-end align-items-center gap-2 mt-3">
+                <button class="btn btn-sm btn-outline-secondary" @onclick="PrevPage" disabled="@(pageIndex <= 1)">@Text("Previous", "Previous")</button>
+                <span class="text-muted small">@Text("Page", "Page") @pageIndex @Text("of", "of") @TotalPages</span>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="NextPage" disabled="@(pageIndex >= TotalPages)">@Text("Next", "Next")</button>
+            </div>
+        </AppCard>
+    }
+</div>
+
+@code {
+    private List<ContractDto> contracts = [];
+    private AuthenticationState? authState;
+    private Guid? companyId;
+    private string? searchText;
+    private string? partyType;
+    private string? contractType;
+    private ContractStatus? status;
+    private ContractRenewalPaymentStatus? paymentStatus;
+    private DateTime? fromDate;
+    private DateTime? toDate;
+    private int pageIndex = 1;
+    private int pageSize = 20;
+    private long totalCount;
+    private bool isLoading;
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+
+    private bool CanView => HasPermission(PermissionList.ContractPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.ContractPermissions.Create);
+    private bool CanEdit => HasPermission(PermissionList.ContractPermissions.Edit);
+    private bool CanDelete => HasPermission(PermissionList.ContractPermissions.Delete);
+    private bool CanViewTemplates => HasPermission(PermissionList.ContractTemplatePermissions.View);
+    private bool CanViewRenewals => HasPermission(PermissionList.ContractRenewalPermissions.View);
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var parsedCompanyId))
+            companyId = parsedCompanyId;
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (!CanView)
+            return;
+
+        isLoading = true;
+        var response = await ContractsService.GetContractsAsync(companyId, partyType, null, status, contractType, paymentStatus, fromDate, toDate, pageIndex, pageSize, searchText);
+        if (response.IsSuccess)
+        {
+            contracts = response.Data?.Data?.ToList() ?? [];
+            totalCount = response.Data?.Count ?? 0;
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load contracts.", "Could not load contracts."));
+        }
+        isLoading = false;
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        var response = await ContractsService.DeleteContractAsync(id);
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Contract deleted.", "Contract deleted."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not delete contract.", "Could not delete contract."));
+        }
+    }
+
+    private async Task SearchAsync() { pageIndex = 1; await LoadAsync(); }
+    private async Task ClearFilters()
+    {
+        searchText = null;
+        partyType = null;
+        contractType = null;
+        status = null;
+        paymentStatus = null;
+        fromDate = null;
+        toDate = null;
+        await SearchAsync();
+    }
+    private async Task PrevPage() { if (pageIndex > 1) { pageIndex--; await LoadAsync(); } }
+    private async Task NextPage() { if (pageIndex < TotalPages) { pageIndex++; await LoadAsync(); } }
+    private Task HandleSearchKey(KeyboardEventArgs args) => args.Key == "Enter" ? SearchAsync() : Task.CompletedTask;
+    private void CreateNew() => NavigationManager.NavigateTo("/Contracts/Form");
+    private void Open(Guid id) => NavigationManager.NavigateTo($"/Contracts/Detail/{id}");
+    private void Edit(Guid id) => NavigationManager.NavigateTo($"/Contracts/Form/{id}");
+    private void OpenTemplates() => NavigationManager.NavigateTo("/Contracts/Templates");
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private static string StatusTone(ContractStatus value) => value switch
+    {
+        ContractStatus.Active => "success",
+        ContractStatus.PendingRenewalPayment or ContractStatus.UnderReview => "warning",
+        ContractStatus.Terminated or ContractStatus.Expired => "danger",
+        ContractStatus.Signed or ContractStatus.Renewed => "info",
+        _ => "muted"
+    };
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}
