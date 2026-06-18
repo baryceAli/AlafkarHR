@@ -27,6 +27,10 @@ namespace Inventory.Data.Configurations
 
             builder.Property(x => x.Longitude);
             builder.Property(x => x.Latitude);
+            builder.Property(x => x.WarehouseType)
+                .HasConversion<string>()
+                .HasMaxLength(40)
+                .HasDefaultValue(WarehouseType.Commercial);
 
             // Audit fields are provided by base types; allow nulls
             builder.Property<DateTime?>("CreatedAt");

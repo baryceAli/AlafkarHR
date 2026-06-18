@@ -1,8 +1,10 @@
-﻿using MediatR;
+using Catalog.Contracts.Products.Features.GetProductSkuById;
+using MediatR;
 
 namespace Catalog.Products.Features.Products.GetProductSkuById;
 
 public record GetProductSkuByIdResponse(ProductSkuDto ProductSku);
+
 public class GetProductSkuByIdEndPoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)

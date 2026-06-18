@@ -1,8 +1,9 @@
-﻿namespace Catalog.Products.Features.Products.GetProductSkuById;
+using Catalog.Contracts.Products.Features.GetProductSkuById;
 
-public record GetProductSkuByIdQuery(Guid Id):IQuery<GetProductSkuByIdResult>;
-public record GetProductSkuByIdResult(ProductSkuDto ProductSku);
-public class GetProductSkuByIdHandler (CatalogDbContext dbContext): IQueryHandler<GetProductSkuByIdQuery, GetProductSkuByIdResult>
+namespace Catalog.Products.Features.Products.GetProductSkuById;
+
+public class GetProductSkuByIdHandler(CatalogDbContext dbContext)
+    : IQueryHandler<GetProductSkuByIdQuery, GetProductSkuByIdResult>
 {
     public async Task<GetProductSkuByIdResult> Handle(GetProductSkuByIdQuery request, CancellationToken cancellationToken)
     {
@@ -13,7 +14,8 @@ public class GetProductSkuByIdHandler (CatalogDbContext dbContext): IQueryHandle
             .ThenInclude(c => c.ComponentProductSku)
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
-        if(productSku is null)
+
+        if (productSku is null)
             throw new Exception($"Product Sku not found: {request.Id}");
 
         var productSkuDto = productSku.Adapt<ProductSkuDto>();

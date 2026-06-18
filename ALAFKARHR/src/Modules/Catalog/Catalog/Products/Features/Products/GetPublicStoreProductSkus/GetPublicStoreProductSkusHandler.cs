@@ -91,7 +91,7 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISende
                 on sku.BrandId equals brand.Id
             join skuPackage in dbContext.ProductSkuPackages.AsNoTracking()
                 on sku.Id equals skuPackage.ProductSkuId
-            where sku.ShowOnStore
+            where sku.ShowOnStore && sku.IsSellable
                   && !sku.IsDeleted
                   && !product.IsDeleted
                   && !category.IsDeleted
@@ -136,7 +136,7 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISende
                 on product.CategoryId equals category.Id
             join brand in dbContext.Brands.AsNoTracking()
                 on sku.BrandId equals brand.Id
-            where sku.ShowOnStore
+            where sku.ShowOnStore && sku.IsSellable
                   && !sku.IsDeleted
                   && !product.IsDeleted
                   && !category.IsDeleted
@@ -180,6 +180,10 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISende
                 ImageUrl = sku.ImageUrl,
                 CompanyId = sku.CompanyId,
                 ShowOnStore = sku.ShowOnStore,
+                IsSellable = sku.IsSellable,
+                IsPurchasable = sku.IsPurchasable,
+                IsInventoryTracked = sku.IsInventoryTracked,
+                IsAssetTrackable = sku.IsAssetTrackable,
                 CreatedAt = sku.CreatedAt,
                 Packages = dbContext.ProductSkuPackages
                     .Where(p => p.ProductSkuId == sku.Id)

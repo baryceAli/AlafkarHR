@@ -68,6 +68,10 @@ public class GetProductByIdHandler(CatalogDbContext dbContext)
                             Price = sku.Price,
                             ProductionType = sku.ProductionType,
                             ShowOnStore = sku.ShowOnStore,
+                            IsSellable = sku.IsSellable,
+                            IsPurchasable = sku.IsPurchasable,
+                            IsInventoryTracked = sku.IsInventoryTracked,
+                            IsAssetTrackable = sku.IsAssetTrackable,
                             // ✅ ADD THIS
                             Variants = sku.Variants
                                 .Where(v => !v.IsDeleted)

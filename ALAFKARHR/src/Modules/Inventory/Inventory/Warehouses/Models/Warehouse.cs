@@ -11,9 +11,10 @@ public class Warehouse : Aggregate<Guid>
     public double Longitude { get; private set; }
     public double Latitude { get; private set; }
     public Guid CompanyId { get; set; }
+    public WarehouseType WarehouseType { get; private set; } = WarehouseType.Commercial;
     private Warehouse() { }
 
-    public static Warehouse Create(Guid id, string name, string nameEng, string location, string? address, double longitude, double latitude,Guid companyId, string createdBy)
+    public static Warehouse Create(Guid id, string name, string nameEng, string location, string? address, double longitude, double latitude, Guid companyId, WarehouseType warehouseType, string createdBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(name,"Name is required");
         ArgumentException.ThrowIfNullOrEmpty(location,"Location is required");
@@ -27,11 +28,12 @@ public class Warehouse : Aggregate<Guid>
             Longitude = longitude,
             Latitude = latitude,
             CompanyId = companyId,
+            WarehouseType = warehouseType,
             CreatedBy = createdBy,
             CreatedAt = DateTime.UtcNow,
         };
     }
-    public void Update(string name, string nameEng,string location, string? address, double longitude, double latitude, string modifiedBy)
+    public void Update(string name, string nameEng, string location, string? address, double longitude, double latitude, WarehouseType warehouseType, string modifiedBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(name,"Name is required");
         ArgumentException.ThrowIfNullOrEmpty(location,"Location is required");
@@ -41,6 +43,7 @@ public class Warehouse : Aggregate<Guid>
         Address = address;
         Longitude = longitude;
         Latitude = latitude;
+        WarehouseType = warehouseType;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }

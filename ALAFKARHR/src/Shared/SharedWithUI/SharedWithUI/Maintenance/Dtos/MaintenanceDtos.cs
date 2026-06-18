@@ -20,6 +20,9 @@ public class MaintenanceAssetDto
     public Guid? BranchId { get; set; }
     public Guid? ParentAssetId { get; set; }
     public string? ParentAssetName { get; set; }
+    public string? SourceModule { get; set; }
+    public string? SourceEntityName { get; set; }
+    public Guid? SourceEntityId { get; set; }
     public string? Description { get; set; }
     public string? Location { get; set; }
     public string? SerialNumber { get; set; }
@@ -65,6 +68,9 @@ public class MaintenanceAssetFilterDto
     public Guid? CompanyId { get; set; }
     public Guid? BranchId { get; set; }
     public Guid? ParentAssetId { get; set; }
+    public string? SourceModule { get; set; }
+    public string? SourceEntityName { get; set; }
+    public Guid? SourceEntityId { get; set; }
 }
 
 public class MaintenanceWorkOrderDto

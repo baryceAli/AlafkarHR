@@ -144,6 +144,10 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
             command.ProductSku.Price,
             productionType,
             command.ProductSku.ShowOnStore,
+            command.ProductSku.IsSellable,
+            command.ProductSku.IsPurchasable,
+            command.ProductSku.IsInventoryTracked,
+            command.ProductSku.IsAssetTrackable,
             command.ProductSku.CompanyId,
             userId);
         

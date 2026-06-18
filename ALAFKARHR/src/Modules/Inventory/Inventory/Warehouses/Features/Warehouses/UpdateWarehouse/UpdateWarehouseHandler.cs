@@ -30,7 +30,9 @@ public class UpdateWarehouseHandler(InventoryDbContext dbContext, IHttpContextAc
             request.Warehouse.Location,
             request.Warehouse.Address, 
             request.Warehouse.Longitude, 
-            request.Warehouse.Latitude, userId);
+            request.Warehouse.Latitude,
+            request.Warehouse.WarehouseType,
+            userId);
         await dbContext.SaveChangesAsync();
         return new UpdateWarehouseResult(true);
     }

@@ -56,6 +56,10 @@ public class ProductSkuDto
     public string ImageUrl { get; set; }
     public Guid CompanyId { get; set; }
     public bool ShowOnStore { get; set; }
+    public bool IsSellable { get; set; } = true;
+    public bool IsPurchasable { get; set; } = true;
+    public bool IsInventoryTracked { get; set; } = true;
+    public bool IsAssetTrackable { get; set; }
     public DateTime? CreatedAt { get; set; }
 
     public List<ProductSkuVariantDto> Variants { get; set; } = new();
