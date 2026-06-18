@@ -1048,6 +1048,61 @@ public class MenuItem
             }
         },
 
+        //Maintenance
+        new MenuItem
+        {
+            TextEn = "Maintenance",
+            TextAr = "الصيانة",
+            Icon = "bi-tools",
+            PermissionPolicy = PermissionList.MaintenanceWorkOrderPermissions.Select,
+            WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            KeywordsEn = "admin maintenance assets buildings apartments offices vehicles work orders repairs",
+            KeywordsAr = "إدارة صيانة أصول مباني شقق مكاتب مركبات أوامر عمل إصلاحات",
+            Children = new()
+            {
+                new MenuItem
+                {
+                    TextEn = "Dashboard",
+                    TextAr = "لوحة الصيانة",
+                    Icon = "bi-speedometer2",
+                    Url = "/Maintenance/Dashboard",
+                    PermissionPolicy = PermissionList.MaintenanceWorkOrderPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Assets",
+                    TextAr = "الأصول",
+                    Icon = "bi-buildings",
+                    Url = "/Maintenance/Assets",
+                    PermissionPolicy = PermissionList.MaintenanceAssetPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Work Orders",
+                    TextAr = "أوامر العمل",
+                    Icon = "bi-clipboard2-check",
+                    Url = "/Maintenance/WorkOrders",
+                    PermissionPolicy = PermissionList.MaintenanceWorkOrderPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "My Requests",
+                    TextAr = "طلباتي",
+                    Icon = "bi-person-check",
+                    Url = "/Maintenance/WorkOrders/MyRequests",
+                    PermissionPolicy = PermissionList.MaintenanceWorkOrderPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Reports",
+                    TextAr = "التقارير",
+                    Icon = "bi-bar-chart-line",
+                    Url = "/Maintenance/Reports",
+                    PermissionPolicy = PermissionList.MaintenanceWorkOrderPermissions.ViewReports,
+                }
+            }
+        },
+
         //Security Management
         new MenuItem
         {

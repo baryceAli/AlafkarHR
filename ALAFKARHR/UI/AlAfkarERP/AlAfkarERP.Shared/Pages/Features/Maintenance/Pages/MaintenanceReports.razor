@@ -1,0 +1,113 @@
+@page "/Maintenance/Reports"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.Maintenance.Services
+@using SharedWithUI.Maintenance.Dtos
+@inject IMaintenanceService MaintenanceService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Maintenance Reports", "تقارير الصيانة")"
+                Subtitle="@Text("Summary by status, asset type, and costs.", "ملخص حسب الحالة ونوع الأصل والتكاليف.")"
+                Icon="bi-bar-chart-line" />
+
+    <section class="erp-card mb-3">
+        <div class="erp-card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-4">
+                    <label class="form-label">@Text("From", "من")</label>
+                    <InputDate class="form-control" @bind-Value="fromDate" />
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">@Text("To", "إلى")</label>
+                    <InputDate class="form-control" @bind-Value="toDate" />
+                </div>
+                <div class="col-12 col-md-4">
+                    <button class="btn btn-outline-secondary w-100" @onclick="LoadAsync">
+                        <i class="bi bi-funnel"></i>
+                        @Text("Apply", "تطبيق")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @if (isLoading)
+    {
+        <div class="erp-card"><div class="erp-card-body text-muted">@Text("Loading reports...", "جاري تحميل التقارير...")</div></div>
+    }
+    else if (report is not null)
+    {
+        <div class="row g-3">
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Open", "مفتوحة")" Value="@report.OpenWorkOrders.ToString()" Icon="bi-clipboard2" OnClick="@(() => NavigateToStatus("Open"))" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("In Progress", "قيد التنفيذ")" Value="@report.InProgressWorkOrders.ToString()" Icon="bi-arrow-repeat" Tone="info" OnClick="@(() => NavigateToStatus("InProgress"))" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Approvals", "اعتمادات")" Value="@report.PendingApprovals.ToString()" Icon="bi-hourglass" Tone="warning" OnClick="@(() => NavigateToStatus("PendingApproval"))" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Actual Cost", "التكلفة الفعلية")" Value="@report.ActualCost.ToString("N2")" Icon="bi-cash-coin" Tone="success" /></div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-12 col-lg-6">
+                <article class="erp-card">
+                    <div class="erp-card-header"><strong>@Text("By Status", "حسب الحالة")</strong></div>
+                    <div class="erp-card-body">
+                        @foreach (var item in report.StatusSummary)
+                        {
+                            <button type="button" class="btn btn-link w-100 d-flex justify-content-between border-bottom py-2 px-0 text-decoration-none"
+                                    @onclick="@(() => NavigateToStatus(item.Status.ToString()))">
+                                <span>@item.Status</span>
+                                <strong>@item.Count</strong>
+                            </button>
+                        }
+                    </div>
+                </article>
+            </div>
+            <div class="col-12 col-lg-6">
+                <article class="erp-card">
+                    <div class="erp-card-header"><strong>@Text("By Asset Type", "حسب نوع الأصل")</strong></div>
+                    <div class="erp-card-body">
+                        @foreach (var item in report.AssetTypeSummary)
+                        {
+                            <button type="button" class="btn btn-link w-100 d-flex justify-content-between border-bottom py-2 px-0 text-decoration-none"
+                                    @onclick="@(() => NavigateToAssetType(item.AssetType.ToString()))">
+                                <span>@item.AssetType</span>
+                                <strong>@item.Count</strong>
+                            </button>
+                        }
+                    </div>
+                </article>
+            </div>
+        </div>
+    }
+</main>
+
+@code {
+    private MaintenanceSummaryReportDto? report;
+    private DateTime? fromDate;
+    private DateTime? toDate;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await MaintenanceService.GetSummaryReportAsync(fromDate, toDate);
+        report = result.IsSuccess ? result.Data : null;
+        isLoading = false;
+    }
+
+    private void NavigateToStatus(string status) => NavigationManager.NavigateTo($"/Maintenance/WorkOrders?status={Uri.EscapeDataString(status)}");
+
+    private void NavigateToAssetType(string assetType) => NavigationManager.NavigateTo($"/Maintenance/WorkOrders?assetType={Uri.EscapeDataString(assetType)}");
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

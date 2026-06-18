@@ -1,0 +1,105 @@
+@page "/Maintenance/Dashboard"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.Maintenance.Services
+@using SharedWithUI.Maintenance.Dtos
+@inject IMaintenanceService MaintenanceService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Maintenance Dashboard", "لوحة الصيانة")"
+                Subtitle="@Text("Assets, work orders, approvals, and maintenance cost overview.", "نظرة عامة على الأصول وأوامر العمل والاعتمادات وتكاليف الصيانة.")"
+                Icon="bi-tools">
+        <Actions>
+            <button class="btn btn-primary" @onclick="@(() => NavigationManager.NavigateTo("/Maintenance/WorkOrders/Form"))">
+                <i class="bi bi-plus-lg"></i>
+                @Text("New Work Order", "أمر عمل جديد")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <div class="erp-card"><div class="erp-card-body text-muted">@Text("Loading dashboard...", "جاري تحميل اللوحة...")</div></div>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+    else if (dashboard is not null)
+    {
+        <div class="row g-3">
+            <div class="col-12 col-md-4 col-xl-2">
+                <StatsCard Title="@Text("Assets", "الأصول")" Value="@dashboard.TotalAssets.ToString()" Icon="bi-buildings" OnClick="@(() => NavigationManager.NavigateTo("/Maintenance/Assets"))" />
+            </div>
+            <div class="col-12 col-md-4 col-xl-2">
+                <StatsCard Title="@Text("Active", "نشطة")" Value="@dashboard.ActiveAssets.ToString()" Icon="bi-check-circle" Tone="success" OnClick="@(() => NavigationManager.NavigateTo("/Maintenance/Assets?status=Active"))" />
+            </div>
+            <div class="col-12 col-md-4 col-xl-2">
+                <StatsCard Title="@Text("Open", "مفتوحة")" Value="@dashboard.OpenWorkOrders.ToString()" Icon="bi-clipboard2" Tone="primary" OnClick="@(() => NavigationManager.NavigateTo("/Maintenance/WorkOrders?status=Open"))" />
+            </div>
+            <div class="col-12 col-md-4 col-xl-2">
+                <StatsCard Title="@Text("In Progress", "قيد التنفيذ")" Value="@dashboard.InProgressWorkOrders.ToString()" Icon="bi-arrow-repeat" Tone="info" OnClick="@(() => NavigationManager.NavigateTo("/Maintenance/WorkOrders?status=InProgress"))" />
+            </div>
+            <div class="col-12 col-md-4 col-xl-2">
+                <StatsCard Title="@Text("Approvals", "اعتمادات")" Value="@dashboard.PendingApprovals.ToString()" Icon="bi-hourglass-split" Tone="warning" OnClick="@(() => NavigationManager.NavigateTo("/Maintenance/WorkOrders?status=PendingApproval"))" />
+            </div>
+            <div class="col-12 col-md-4 col-xl-2">
+                <StatsCard Title="@Text("Completed", "مكتملة")" Value="@dashboard.CompletedThisMonth.ToString()" Icon="bi-check2-square" Tone="success" OnClick="@(() => NavigationManager.NavigateTo("/Maintenance/WorkOrders?status=Completed"))" />
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-12 col-lg-6">
+                <article class="erp-card">
+                    <div class="erp-card-header"><strong>@Text("Estimated Cost", "التكلفة التقديرية")</strong></div>
+                    <div class="erp-card-body fs-4 fw-semibold">@dashboard.EstimatedCost.ToString("N2")</div>
+                </article>
+            </div>
+            <div class="col-12 col-lg-6">
+                <article class="erp-card">
+                    <div class="erp-card-header"><strong>@Text("Actual Cost", "التكلفة الفعلية")</strong></div>
+                    <div class="erp-card-body fs-4 fw-semibold">@dashboard.ActualCost.ToString("N2")</div>
+                </article>
+            </div>
+        </div>
+    }
+</main>
+
+@code {
+    private MaintenanceDashboardDto? dashboard;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await MaintenanceService.GetDashboardAsync();
+        if (result.IsSuccess)
+        {
+            dashboard = result.Data;
+            errorMessage = null;
+        }
+        else
+        {
+            errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load dashboard.", "تعذر تحميل اللوحة.");
+        }
+        isLoading = false;
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

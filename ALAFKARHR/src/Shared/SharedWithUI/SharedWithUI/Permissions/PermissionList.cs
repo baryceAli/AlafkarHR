@@ -55,6 +55,8 @@ public static class PermissionList
             .. SalaryRunPermissions.Permissions,
             .. AttendancePermissions.Permissions,
             .. TaskManagementPermissions.Permissions,
+            .. MaintenanceAssetPermissions.Permissions,
+            .. MaintenanceWorkOrderPermissions.Permissions,
             .. SystemSettingsPermissions.Permissions,
         ];
 
@@ -1027,6 +1029,56 @@ public static class PermissionList
                 $"{Close}",
                 $"{ViewReports}",
                 $"{ManageAllTasks}",
+            };
+    }
+
+    public static class MaintenanceAssetPermissions
+    {
+        public static string GroupName { get; set; } = "Maintenance.Asset";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
+    }
+
+    public static class MaintenanceWorkOrderPermissions
+    {
+        public static string GroupName { get; set; } = "Maintenance.WorkOrder";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Assign { get; set; } = $"{GroupName}.Assign";
+        public static string ApproveCost { get; set; } = $"{GroupName}.ApproveCost";
+        public static string Close { get; set; } = $"{GroupName}.Close";
+        public static string ViewReports { get; set; } = $"{GroupName}.ViewReports";
+        public static string ManageAll { get; set; } = $"{GroupName}.ManageAll";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+                $"{Assign}",
+                $"{ApproveCost}",
+                $"{Close}",
+                $"{ViewReports}",
+                $"{ManageAll}",
             };
     }
 

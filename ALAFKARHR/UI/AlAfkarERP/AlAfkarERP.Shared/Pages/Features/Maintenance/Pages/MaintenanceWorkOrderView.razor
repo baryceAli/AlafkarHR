@@ -1,0 +1,395 @@
+@page "/Maintenance/WorkOrders/View/{Id:guid}"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.Auth.Services
+@using AlAfkarERP.Shared.Pages.Features.Maintenance.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using SharedWithUI.Auth.Dtos
+@using SharedWithUI.Maintenance.Dtos
+@using SharedWithUI.Maintenance.Enums
+@using SharedWithUI.Permissions
+@inject IMaintenanceService MaintenanceService
+@inject IUserService UserService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@workOrder?.WorkOrderNumber"
+                Subtitle="@workOrder?.Title"
+                Icon="bi-clipboard2-check">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo("/Maintenance/WorkOrders"))">
+                <i class="bi bi-arrow-return-left"></i>
+                @Text("Back", "رجوع")
+            </button>
+            @if (workOrder is not null && Can(PermissionList.MaintenanceWorkOrderPermissions.Edit))
+            {
+                <button class="btn btn-outline-primary" @onclick="@(() => NavigationManager.NavigateTo($"/Maintenance/WorkOrders/Form/{workOrder.Id}"))">
+                    <i class="bi bi-pencil"></i>
+                    @Text("Edit", "تعديل")
+                </button>
+            }
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <div class="erp-card"><div class="erp-card-body text-muted">@Text("Loading work order...", "جاري تحميل أمر العمل...")</div></div>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+    else if (workOrder is null)
+    {
+        <div class="alert alert-danger">@Text("Work order was not found.", "لم يتم العثور على أمر العمل.")</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-12 col-xl-8">
+                <article class="erp-card">
+                    <div class="erp-card-header d-flex flex-wrap gap-2 justify-content-between">
+                        <strong>@Text("Details", "التفاصيل")</strong>
+                        <div class="d-flex gap-2">
+                            <StatusChip Text="@workOrder.Priority.ToString()" Tone="@PriorityTone(workOrder.Priority)" />
+                            <StatusChip Text="@workOrder.Status.ToString()" Tone="@StatusTone(workOrder.Status)" />
+                            <StatusChip Text="@workOrder.CostApprovalStatus.ToString()" Tone="@CostTone(workOrder.CostApprovalStatus)" />
+                        </div>
+                    </div>
+                    <div class="erp-card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-3">@Text("Asset", "الأصل")</dt>
+                            <dd class="col-sm-9">
+                                <button class="btn btn-link p-0" @onclick="@(() => NavigationManager.NavigateTo($"/Maintenance/Assets/View/{workOrder.AssetId}"))">@workOrder.AssetName</button>
+                            </dd>
+                            <dt class="col-sm-3">@Text("Description", "الوصف")</dt>
+                            <dd class="col-sm-9">@workOrder.Description</dd>
+                            <dt class="col-sm-3">@Text("Assigned To", "مسند إلى")</dt>
+                            <dd class="col-sm-9">@workOrder.AssignedToUserId</dd>
+                            <dt class="col-sm-3">@Text("Due Date", "تاريخ الاستحقاق")</dt>
+                            <dd class="col-sm-9">@workOrder.DueDate?.ToString("yyyy-MM-dd")</dd>
+                            <dt class="col-sm-3">@Text("Vendor", "المورد")</dt>
+                            <dd class="col-sm-9">@workOrder.VendorName</dd>
+                            <dt class="col-sm-3">@Text("Costs", "التكاليف")</dt>
+                            <dd class="col-sm-9">
+                                @Text("Estimated", "تقديرية"): @workOrder.EstimatedCost?.ToString("N2")
+                                /
+                                @Text("Approved", "معتمدة"): @workOrder.ApprovedCost?.ToString("N2")
+                                /
+                                @Text("Actual", "فعلية"): @workOrder.ActualCost?.ToString("N2")
+                            </dd>
+                        </dl>
+                    </div>
+                </article>
+
+                <article class="erp-card mt-3">
+                    <div class="erp-card-header"><strong>@Text("Comments", "التعليقات")</strong></div>
+                    <div class="erp-card-body">
+                        <div class="input-group mb-3">
+                            <input class="form-control" @bind="newComment" @bind:event="oninput" />
+                            <button class="btn btn-outline-secondary" @onclick="AddCommentAsync" disabled="@string.IsNullOrWhiteSpace(newComment)">
+                                <i class="bi bi-chat-left-text"></i>
+                                @Text("Add", "إضافة")
+                            </button>
+                        </div>
+                        @if (!workOrder.Comments.Any())
+                        {
+                            <div class="text-muted">@Text("No comments yet.", "لا توجد تعليقات بعد.")</div>
+                        }
+                        else
+                        {
+                            <div class="d-grid gap-2">
+                                @foreach (var comment in workOrder.Comments.OrderByDescending(x => x.CreatedAt))
+                                {
+                                    <div class="border rounded p-2">
+                                        <div>@comment.Comment</div>
+                                        <small class="text-muted">@comment.CreatedAt.ToString("yyyy-MM-dd HH:mm")</small>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </article>
+
+                <article class="erp-card mt-3">
+                    <div class="erp-card-header"><strong>@Text("Attachments", "المرفقات")</strong></div>
+                    <div class="erp-card-body">
+                        @if (Can(PermissionList.MaintenanceWorkOrderPermissions.Edit))
+                        {
+                            <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                                <InputFile OnChange="OnAttachmentSelected" />
+                                <button class="btn btn-sm btn-outline-primary" disabled="@(selectedAttachment is null || isUploadingAttachment)" @onclick="UploadAttachmentAsync">
+                                    <i class="bi bi-paperclip"></i>
+                                    @Text("Upload", "رفع")
+                                </button>
+                            </div>
+                        }
+                        @if (!workOrder.Attachments.Any())
+                        {
+                            <div class="text-muted">@Text("No attachments yet.", "لا توجد مرفقات بعد.")</div>
+                        }
+                        else
+                        {
+                            <div class="d-grid gap-2">
+                                @foreach (var attachment in workOrder.Attachments.OrderByDescending(x => x.CreatedAt))
+                                {
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center border rounded p-2 gap-2">
+                                        <a href="@attachment.FilePath" target="_blank" rel="noopener">@attachment.FileName</a>
+                                        <small class="text-muted">@FormatFileSize(attachment.FileSize) - @attachment.CreatedAt.ToString("yyyy-MM-dd HH:mm")</small>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </article>
+
+                <article class="erp-card mt-3">
+                    <div class="erp-card-header"><strong>@Text("History", "السجل")</strong></div>
+                    <div class="erp-card-body">
+                        @if (!workOrder.History.Any())
+                        {
+                            <div class="text-muted">@Text("No history yet.", "لا يوجد سجل بعد.")</div>
+                        }
+                        else
+                        {
+                            @foreach (var item in workOrder.History.OrderByDescending(x => x.CreatedAt))
+                            {
+                                <div class="d-flex justify-content-between border-bottom py-2">
+                                    <span>@item.Action - @item.Details</span>
+                                    <small class="text-muted">@item.CreatedAt.ToString("yyyy-MM-dd HH:mm")</small>
+                                </div>
+                            }
+                        }
+                    </div>
+                </article>
+            </div>
+
+            <div class="col-12 col-xl-4">
+                <article class="erp-card">
+                    <div class="erp-card-header"><strong>@Text("Workflow", "سير العمل")</strong></div>
+                    <div class="erp-card-body d-grid gap-3">
+                        @if (Can(PermissionList.MaintenanceWorkOrderPermissions.Assign))
+                        {
+                            <div>
+                                <label class="form-label">@Text("Assign To", "تعيين إلى")</label>
+                                <AutoCompleteComponent TItem="UserDto"
+                                                       Items="users"
+                                                       ItemText="UserText"
+                                                       Value="selectedUser"
+                                                       ValueChanged="OnUserChanged"
+                                                       PlaceHolder="@Text("Search user", "ابحث عن مستخدم")" />
+                            </div>
+                            <button class="btn btn-outline-primary" @onclick="AssignAsync" disabled="@(selectedUser is null)">
+                                <i class="bi bi-person-check"></i>
+                                @Text("Assign", "تعيين")
+                            </button>
+                        }
+
+                        @if (Can(PermissionList.MaintenanceWorkOrderPermissions.Edit))
+                        {
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-secondary" @onclick="@(() => SetStatusAsync(MaintenanceWorkOrderStatus.InProgress))">
+                                    <i class="bi bi-play-circle"></i>
+                                    @Text("Start Progress", "بدء التنفيذ")
+                                </button>
+                                <button class="btn btn-outline-warning" @onclick="@(() => SetStatusAsync(MaintenanceWorkOrderStatus.PendingApproval))">
+                                    <i class="bi bi-hourglass-split"></i>
+                                    @Text("Pending Approval", "بانتظار الاعتماد")
+                                </button>
+                                <button class="btn btn-outline-success" @onclick="@(() => SetStatusAsync(MaintenanceWorkOrderStatus.Completed))">
+                                    <i class="bi bi-check2-square"></i>
+                                    @Text("Complete", "إكمال")
+                                </button>
+                                <button class="btn btn-outline-danger" @onclick="@(() => SetStatusAsync(MaintenanceWorkOrderStatus.Cancelled))">
+                                    <i class="bi bi-x-circle"></i>
+                                    @Text("Cancel", "إلغاء")
+                                </button>
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("Advanced Status", "حالة متقدمة")</label>
+                                <select class="form-select" @bind="statusText">
+                                    @foreach (var status in Enum.GetValues<MaintenanceWorkOrderStatus>())
+                                    {
+                                        <option value="@status">@status</option>
+                                    }
+                                </select>
+                            </div>
+                            <button class="btn btn-outline-secondary" @onclick="ChangeStatusAsync">
+                                <i class="bi bi-arrow-repeat"></i>
+                                @Text("Update Status", "تحديث الحالة")
+                            </button>
+                        }
+                    </div>
+                </article>
+
+                @if (Can(PermissionList.MaintenanceWorkOrderPermissions.ApproveCost))
+                {
+                    <article class="erp-card mt-3">
+                        <div class="erp-card-header"><strong>@Text("Cost Approval", "اعتماد التكلفة")</strong></div>
+                        <div class="erp-card-body d-grid gap-3">
+                            <div>
+                                <label class="form-label">@Text("Approved Cost", "التكلفة المعتمدة")</label>
+                                <input type="number" step="0.01" class="form-control" @bind="approvedCost" />
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                                <textarea class="form-control" @bind="approvalNotes"></textarea>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary" @onclick="@(() => ApproveCostAsync(true))">
+                                    <i class="bi bi-check-lg"></i>
+                                    @Text("Approve", "اعتماد")
+                                </button>
+                                <button class="btn btn-outline-danger" @onclick="@(() => ApproveCostAsync(false))">
+                                    <i class="bi bi-x-lg"></i>
+                                    @Text("Reject", "رفض")
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                }
+            </div>
+        </div>
+    }
+</main>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private MaintenanceWorkOrderDto? workOrder;
+    private List<UserDto> users = [];
+    private UserDto? selectedUser;
+    private IBrowserFile? selectedAttachment;
+    private bool isLoading = true;
+    private bool isUploadingAttachment;
+    private string statusText = string.Empty;
+    private string newComment = string.Empty;
+    private decimal? approvedCost;
+    private string? approvalNotes;
+    private string? errorMessage;
+    private Guid companyId;
+    private AuthenticationState? authState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        companyId = ResolveCompanyId();
+        await LoadUsersAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        var result = await MaintenanceService.GetWorkOrderByIdAsync(Id);
+        if (result.IsSuccess)
+        {
+            workOrder = result.Data;
+            selectedUser = users.FirstOrDefault(x => x.Id.ToString() == workOrder?.AssignedToUserId || x.UserName == workOrder?.AssignedToUserId);
+            statusText = workOrder?.Status.ToString() ?? MaintenanceWorkOrderStatus.Open.ToString();
+            approvedCost = workOrder?.ApprovedCost ?? workOrder?.EstimatedCost;
+        }
+        else
+        {
+            workOrder = null;
+            errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load work order.", "تعذر تحميل أمر العمل.");
+        }
+        isLoading = false;
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        if (companyId == Guid.Empty)
+            return;
+
+        var result = await UserService.GetUsersByCompany(companyId, 0, 1000);
+        users = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+    }
+
+    private async Task AssignAsync()
+    {
+        if (selectedUser is null || workOrder is null)
+            return;
+
+        var response = await MaintenanceService.AssignWorkOrderAsync(Id, new AssignMaintenanceWorkOrderDto { AssignedToUserId = selectedUser.Id.ToString(), DueDate = workOrder.DueDate });
+        if (!response.IsSuccess)
+            errorMessage = response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to assign work order.", "تعذر تعيين أمر العمل.");
+        await LoadAsync();
+    }
+
+    private async Task SetStatusAsync(MaintenanceWorkOrderStatus status)
+    {
+        var response = await MaintenanceService.ChangeWorkOrderStatusAsync(Id, status);
+        if (!response.IsSuccess)
+            errorMessage = response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to update status.", "تعذر تحديث الحالة.");
+        await LoadAsync();
+    }
+
+    private async Task ChangeStatusAsync()
+    {
+        if (Enum.TryParse<MaintenanceWorkOrderStatus>(statusText, out var status))
+            await SetStatusAsync(status);
+    }
+
+    private async Task ApproveCostAsync(bool approved)
+    {
+        var response = await MaintenanceService.ApproveCostAsync(Id, new ApproveMaintenanceCostDto { IsApproved = approved, ApprovedCost = approvedCost, ApprovalNotes = approvalNotes });
+        if (!response.IsSuccess)
+            errorMessage = response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to update cost approval.", "تعذر تحديث اعتماد التكلفة.");
+        await LoadAsync();
+    }
+
+    private async Task AddCommentAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newComment))
+            return;
+
+        var response = await MaintenanceService.AddCommentAsync(Id, newComment);
+        if (!response.IsSuccess)
+            errorMessage = response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to add comment.", "تعذر إضافة التعليق.");
+        newComment = string.Empty;
+        await LoadAsync();
+    }
+
+    private void OnAttachmentSelected(InputFileChangeEventArgs e)
+    {
+        selectedAttachment = e.File;
+    }
+
+    private async Task UploadAttachmentAsync()
+    {
+        if (selectedAttachment is null)
+            return;
+
+        isUploadingAttachment = true;
+        await using var stream = selectedAttachment.OpenReadStream(20 * 1024 * 1024);
+        var response = await MaintenanceService.UploadAttachmentAsync(Id, stream, selectedAttachment.Name, selectedAttachment.ContentType);
+        if (!response.IsSuccess)
+            errorMessage = response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to upload attachment.", "تعذر رفع المرفق.");
+        selectedAttachment = null;
+        isUploadingAttachment = false;
+        await LoadAsync();
+    }
+
+    private Task OnUserChanged(UserDto? user)
+    {
+        selectedUser = user;
+        return Task.CompletedTask;
+    }
+
+    private Guid ResolveCompanyId() => Guid.TryParse(authState?.User.Claims.FirstOrDefault(claim => claim.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
+    private bool Can(string permission) => authState?.User.Claims.Any(claim => claim.Value == permission) == true;
+    private string UserText(UserDto user) => user.UserName;
+    private string FormatFileSize(long bytes) => bytes < 1024 ? $"{bytes} B" : bytes < 1024 * 1024 ? $"{bytes / 1024m:N1} KB" : $"{bytes / 1024m / 1024m:N1} MB";
+    private string PriorityTone(MaintenancePriority priority) => priority is MaintenancePriority.High or MaintenancePriority.Critical ? "danger" : priority == MaintenancePriority.Medium ? "warning" : "muted";
+    private string StatusTone(MaintenanceWorkOrderStatus status) => status == MaintenanceWorkOrderStatus.Completed ? "success" : status is MaintenanceWorkOrderStatus.Cancelled or MaintenanceWorkOrderStatus.Rejected ? "danger" : status == MaintenanceWorkOrderStatus.PendingApproval ? "warning" : "info";
+    private string CostTone(MaintenanceCostApprovalStatus status) => status == MaintenanceCostApprovalStatus.Approved ? "success" : status == MaintenanceCostApprovalStatus.Rejected ? "danger" : status == MaintenanceCostApprovalStatus.Pending ? "warning" : "muted";
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}
