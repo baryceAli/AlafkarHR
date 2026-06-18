@@ -1,0 +1,203 @@
+@page "/Maintenance/WorkOrders/Form"
+@page "/Maintenance/WorkOrders/Form/{Id:guid}"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.Maintenance.Services
+@using SharedWithUI.Maintenance.Dtos
+@using SharedWithUI.Maintenance.Enums
+@inject IMaintenanceService MaintenanceService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text(Id.HasValue ? "Edit Work Order" : "New Work Order", Id.HasValue ? "تعديل أمر عمل" : "أمر عمل جديد")"
+                Subtitle="@Text("Create and maintain repair requests with cost tracking.", "إنشاء ومتابعة طلبات الإصلاح مع تتبع التكلفة.")"
+                Icon="bi-clipboard2-check" />
+
+    <EditForm Model="model" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <section class="erp-card">
+            <div class="erp-card-body">
+                @if (!string.IsNullOrWhiteSpace(errorMessage))
+                {
+                    <div class="alert alert-danger">@errorMessage</div>
+                }
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">@Text("Title", "العنوان")</label>
+                        <InputText class="form-control" @bind-Value="model.Title" />
+                        <ValidationMessage For="@(() => model.Title)" />
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">@Text("Asset", "الأصل")</label>
+                        <select class="form-select" @bind="assetIdText">
+                            <option value="">@Text("Select asset", "اختر الأصل")</option>
+                            @foreach (var asset in assets)
+                            {
+                                <option value="@asset.Id">@asset.AssetCode - @LocalizedName(asset.NameEng, asset.Name)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Priority", "الأولوية")</label>
+                        <InputSelect class="form-select" @bind-Value="model.Priority">
+                            @foreach (var priority in Enum.GetValues<MaintenancePriority>())
+                            {
+                                <option value="@priority">@priority</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Due Date", "تاريخ الاستحقاق")</label>
+                        <InputDate class="form-control" @bind-Value="model.DueDate" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Category", "التصنيف")</label>
+                        <InputText class="form-control" @bind-Value="model.Category" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Currency", "العملة")</label>
+                        <InputText class="form-control" @bind-Value="model.CurrencyCode" />
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">@Text("Estimated Cost", "التكلفة التقديرية")</label>
+                        <InputNumber class="form-control" @bind-Value="model.EstimatedCost" />
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">@Text("Actual Cost", "التكلفة الفعلية")</label>
+                        <InputNumber class="form-control" @bind-Value="model.ActualCost" />
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">@Text("Vendor", "المورد")</label>
+                        <InputText class="form-control" @bind-Value="model.VendorName" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">@Text("Description", "الوصف")</label>
+                        <InputTextArea class="form-control" @bind-Value="model.Description" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">@Text("Internal Notes", "ملاحظات داخلية")</label>
+                        <InputTextArea class="form-control" @bind-Value="model.InternalNotes" />
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-4">
+                    <button class="btn btn-primary" type="submit" disabled="@isSaving">
+                        <i class="bi bi-save"></i>
+                        @Text("Save", "حفظ")
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" @onclick="@(() => NavigationManager.NavigateTo("/Maintenance/WorkOrders"))">
+                        @Text("Cancel", "إلغاء")
+                    </button>
+                </div>
+            </div>
+        </section>
+    </EditForm>
+</main>
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+
+    private UpdateMaintenanceWorkOrderDto model = new();
+    private List<MaintenanceAssetDto> assets = [];
+    private string assetIdText = string.Empty;
+    private bool isSaving;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadAssetsAsync();
+
+        if (Id.HasValue)
+        {
+            var result = await MaintenanceService.GetWorkOrderByIdAsync(Id.Value);
+            if (result.IsSuccess && result.Data is not null)
+            {
+                model = new UpdateMaintenanceWorkOrderDto
+                {
+                    Id = result.Data.Id,
+                    Title = result.Data.Title,
+                    Description = result.Data.Description,
+                    AssetId = result.Data.AssetId,
+                    Priority = result.Data.Priority,
+                    DueDate = result.Data.DueDate,
+                    Category = result.Data.Category,
+                    InternalNotes = result.Data.InternalNotes,
+                    EstimatedCost = result.Data.EstimatedCost,
+                    ActualCost = result.Data.ActualCost,
+                    CurrencyCode = result.Data.CurrencyCode,
+                    VendorName = result.Data.VendorName,
+                    SupplierId = result.Data.SupplierId
+                };
+                assetIdText = model.AssetId.ToString();
+            }
+        }
+        else
+        {
+            ApplyQueryDefaults();
+        }
+    }
+
+    private async Task LoadAssetsAsync()
+    {
+        var result = await MaintenanceService.GetAssetsAsync(0, 500);
+        assets = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!Guid.TryParse(assetIdText, out var assetId))
+        {
+            errorMessage = Text("Asset is required.", "الأصل مطلوب.");
+            return;
+        }
+
+        model.AssetId = assetId;
+        isSaving = true;
+        var isSuccess = false;
+        string? error = null;
+        if (Id.HasValue)
+        {
+            var result = await MaintenanceService.UpdateWorkOrderAsync(model);
+            isSuccess = result.IsSuccess;
+            error = result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        else
+        {
+            var result = await MaintenanceService.CreateWorkOrderAsync(model);
+            isSuccess = result.IsSuccess;
+            error = result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        isSaving = false;
+        if (isSuccess)
+            NavigationManager.NavigateTo("/Maintenance/WorkOrders");
+        else
+            errorMessage = error ?? Text("Unable to save work order.", "تعذر حفظ أمر العمل.");
+    }
+
+    private void ApplyQueryDefaults()
+    {
+        var query = ParseQuery();
+        if (query.TryGetValue("assetId", out var assetId) && Guid.TryParse(assetId, out var id))
+        {
+            var asset = assets.FirstOrDefault(x => x.Id == id);
+            if (asset is not null)
+                assetIdText = asset.Id.ToString();
+        }
+    }
+
+    private Dictionary<string, string> ParseQuery()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        return uri.Query.TrimStart('?')
+            .Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => part.Split('=', 2))
+            .Where(parts => parts.Length == 2)
+            .ToDictionary(parts => Uri.UnescapeDataString(parts[0]), parts => Uri.UnescapeDataString(parts[1]));
+    }
+
+    private string LocalizedName(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

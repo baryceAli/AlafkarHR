@@ -1,0 +1,356 @@
+@page "/Maintenance/WorkOrders"
+@page "/Maintenance/WorkOrders/MyRequests"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.Maintenance.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@using SharedWithUI.Maintenance.Dtos
+@using SharedWithUI.Maintenance.Enums
+@using SharedWithUI.Organization.Dtos
+@using SharedWithUI.Permissions
+@inject IMaintenanceService MaintenanceService
+@inject IBranchService BranchService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JSRuntime
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text(IsMyRequests ? "My Maintenance Requests" : "Maintenance Work Orders", IsMyRequests ? "طلبات الصيانة الخاصة بي" : "أوامر عمل الصيانة")"
+                Subtitle="@Text("Track requests, assignments, approvals, and completion.", "متابعة الطلبات والتعيينات والاعتمادات والإغلاق.")"
+                Icon="bi-clipboard2-check">
+        <Actions>
+            @if (Can(PermissionList.MaintenanceWorkOrderPermissions.Create))
+            {
+                <button class="btn btn-primary" @onclick="@(() => NavigationManager.NavigateTo("/Maintenance/WorkOrders/Form"))">
+                    <i class="bi bi-plus-lg"></i>
+                    @Text("New Work Order", "أمر عمل جديد")
+                </button>
+            }
+        </Actions>
+    </PageHeader>
+
+    <section class="erp-card mb-3">
+        <div class="erp-card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-lg-3">
+                    <label class="form-label">@Text("Search", "بحث")</label>
+                    <input class="form-control" @bind="searchText" @bind:event="oninput" />
+                </div>
+                <div class="col-12 col-lg-3">
+                    <label class="form-label">@Text("Asset", "الأصل")</label>
+                    <AutoCompleteComponent TItem="MaintenanceAssetDto"
+                                           Items="assetOptions"
+                                           ItemText="AssetText"
+                                           Value="selectedAsset"
+                                           ValueChanged="OnAssetFilterChanged"
+                                           PlaceHolder="@Text("Search asset", "ابحث عن أصل")" />
+                </div>
+                <div class="col-6 col-lg-2">
+                    <label class="form-label">@Text("Branch", "الفرع")</label>
+                    <select class="form-select" @bind="branchIdText" disabled="@IsMyRequests">
+                        <option value="">@Text("All", "الكل")</option>
+                        @foreach (var branch in branches)
+                        {
+                            <option value="@branch.Id">@LocalizedName(branch.NameEng, branch.Name)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <label class="form-label">@Text("Asset Type", "نوع الأصل")</label>
+                    <select class="form-select" @bind="assetTypeText" disabled="@IsMyRequests">
+                        <option value="">@Text("All", "الكل")</option>
+                        @foreach (var type in Enum.GetValues<MaintenanceAssetType>())
+                        {
+                            <option value="@type">@type</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <label class="form-label">@Text("Priority", "الأولوية")</label>
+                    <select class="form-select" @bind="priorityText" disabled="@IsMyRequests">
+                        <option value="">@Text("All", "الكل")</option>
+                        @foreach (var priority in Enum.GetValues<MaintenancePriority>())
+                        {
+                            <option value="@priority">@priority</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <label class="form-label">@Text("Status", "الحالة")</label>
+                    <select class="form-select" @bind="statusText" disabled="@IsMyRequests">
+                        <option value="">@Text("All", "الكل")</option>
+                        @foreach (var status in Enum.GetValues<MaintenanceWorkOrderStatus>())
+                        {
+                            <option value="@status">@status</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <label class="form-label">@Text("From", "من")</label>
+                    <InputDate class="form-control" @bind-Value="fromDate" disabled="@IsMyRequests" />
+                </div>
+                <div class="col-6 col-lg-2">
+                    <label class="form-label">@Text("To", "إلى")</label>
+                    <InputDate class="form-control" @bind-Value="toDate" disabled="@IsMyRequests" />
+                </div>
+                <div class="col-12 col-lg-2">
+                    <button class="btn btn-outline-secondary w-100" @onclick="ApplyFiltersAsync">
+                        <i class="bi bi-search"></i>
+                        @Text("Apply", "تطبيق")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    <section class="erp-card">
+        <div class="erp-table-wrap">
+            <table class="erp-table table">
+                <thead>
+                    <tr>
+                        <th>@Text("Number", "الرقم")</th>
+                        <th>@Text("Title", "العنوان")</th>
+                        <th>@Text("Asset", "الأصل")</th>
+                        <th>@Text("Priority", "الأولوية")</th>
+                        <th>@Text("Status", "الحالة")</th>
+                        <th>@Text("Cost Approval", "اعتماد التكلفة")</th>
+                        <th>@Text("Due", "الاستحقاق")</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (isLoading)
+                    {
+                        <tr><td colspan="8" class="text-muted">@Text("Loading work orders...", "جاري تحميل أوامر العمل...")</td></tr>
+                    }
+                    else if (!workOrders.Any())
+                    {
+                        <tr><td colspan="8" class="text-muted">@Text("No work orders found.", "لا توجد أوامر عمل.")</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var workOrder in workOrders)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@workOrder.WorkOrderNumber</td>
+                                <td>@workOrder.Title</td>
+                                <td>@workOrder.AssetName</td>
+                                <td><StatusChip Text="@workOrder.Priority.ToString()" Tone="@PriorityTone(workOrder.Priority)" /></td>
+                                <td><StatusChip Text="@workOrder.Status.ToString()" Tone="@StatusTone(workOrder.Status)" /></td>
+                                <td><StatusChip Text="@workOrder.CostApprovalStatus.ToString()" Tone="@CostTone(workOrder.CostApprovalStatus)" /></td>
+                                <td>@workOrder.DueDate?.ToString("yyyy-MM-dd")</td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" title="@Text("View", "عرض")" @onclick="@(() => NavigationManager.NavigateTo($"/Maintenance/WorkOrders/View/{workOrder.Id}"))">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        @if (Can(PermissionList.MaintenanceWorkOrderPermissions.Edit))
+                                        {
+                                            <button class="btn btn-outline-secondary" title="@Text("Edit", "تعديل")" @onclick="@(() => NavigationManager.NavigateTo($"/Maintenance/WorkOrders/Form/{workOrder.Id}"))">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        }
+                                        @if (Can(PermissionList.MaintenanceWorkOrderPermissions.Delete))
+                                        {
+                                            <button class="btn btn-outline-danger" title="@Text("Delete", "حذف")" @onclick="@(() => DeleteAsync(workOrder))">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="erp-card-body border-top">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div class="text-muted small">@Text("Total", "الإجمالي"): @totalCount</div>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" disabled="@(pageIndex == 0 || isLoading)" @onclick="PreviousPageAsync">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <span class="small">@Text("Page", "صفحة") @(pageIndex + 1)</span>
+                    <button class="btn btn-sm btn-outline-secondary" disabled="@(!HasNextPage || isLoading)" @onclick="NextPageAsync">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                    <select class="form-select form-select-sm" @bind="pageSize" @bind:after="ApplyFiltersAsync">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+@code {
+    private List<MaintenanceWorkOrderDto> workOrders = [];
+    private List<MaintenanceAssetDto> assetOptions = [];
+    private List<BranchDto> branches = [];
+    private MaintenanceAssetDto? selectedAsset;
+    private string searchText = string.Empty;
+    private string branchIdText = string.Empty;
+    private string assetTypeText = string.Empty;
+    private string priorityText = string.Empty;
+    private string statusText = string.Empty;
+    private DateTime? fromDate;
+    private DateTime? toDate;
+    private Guid companyId;
+    private int pageIndex;
+    private int pageSize = 25;
+    private long totalCount;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private AuthenticationState? authState;
+    private bool IsMyRequests => NavigationManager.Uri.Contains("/Maintenance/WorkOrders/MyRequests", StringComparison.OrdinalIgnoreCase);
+    private bool HasNextPage => (pageIndex + 1) * pageSize < totalCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        companyId = ResolveCompanyId();
+        await LoadLookupsAsync();
+        ReadQueryFilters();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        var result = IsMyRequests
+            ? await MaintenanceService.GetMyWorkOrdersAsync(pageIndex, pageSize, searchText)
+            : await MaintenanceService.GetWorkOrdersAsync(
+                pageIndex,
+                pageSize,
+                searchText,
+                selectedAsset?.Id,
+                ParseGuid(branchIdText),
+                ParseAssetType(),
+                ParsePriority(),
+                ParseStatus(),
+                fromDate,
+                toDate);
+
+        if (result.IsSuccess)
+        {
+            workOrders = result.Data?.Data.ToList() ?? [];
+            totalCount = result.Data?.Count ?? 0;
+        }
+        else
+        {
+            workOrders = [];
+            totalCount = 0;
+            errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load work orders.", "تعذر تحميل أوامر العمل.");
+        }
+        isLoading = false;
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        pageIndex = 0;
+        await LoadAsync();
+    }
+
+    private async Task NextPageAsync()
+    {
+        if (!HasNextPage)
+            return;
+        pageIndex++;
+        await LoadAsync();
+    }
+
+    private async Task PreviousPageAsync()
+    {
+        if (pageIndex == 0)
+            return;
+        pageIndex--;
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(MaintenanceWorkOrderDto workOrder)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", Text("Delete this work order?", "هل تريد حذف أمر العمل؟"));
+        if (!confirmed)
+            return;
+
+        var result = await MaintenanceService.DeleteWorkOrderAsync(workOrder.Id);
+        if (!result.IsSuccess)
+        {
+            errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to delete work order.", "تعذر حذف أمر العمل.");
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var assetResult = await MaintenanceService.GetAssetsAsync(0, 1000, companyId: companyId == Guid.Empty ? null : companyId);
+        assetOptions = assetResult.IsSuccess ? assetResult.Data?.Data.ToList() ?? [] : [];
+        if (companyId != Guid.Empty)
+        {
+            var branchResult = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+            branches = branchResult.IsSuccess ? branchResult.Data?.Data.ToList() ?? [] : [];
+        }
+    }
+
+    private void ReadQueryFilters()
+    {
+        var query = ParseQuery();
+        if (query.TryGetValue("assetId", out var assetId) && Guid.TryParse(assetId, out var id))
+            selectedAsset = assetOptions.FirstOrDefault(x => x.Id == id);
+        if (query.TryGetValue("branchId", out var branchId))
+            branchIdText = branchId;
+        if (query.TryGetValue("assetType", out var assetType))
+            assetTypeText = assetType;
+        if (query.TryGetValue("priority", out var priority))
+            priorityText = priority;
+        if (query.TryGetValue("status", out var status))
+            statusText = status;
+    }
+
+    private Dictionary<string, string> ParseQuery()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        return uri.Query.TrimStart('?')
+            .Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => part.Split('=', 2))
+            .Where(parts => parts.Length == 2)
+            .ToDictionary(parts => Uri.UnescapeDataString(parts[0]), parts => Uri.UnescapeDataString(parts[1]));
+    }
+
+    private Task OnAssetFilterChanged(MaintenanceAssetDto? asset)
+    {
+        selectedAsset = asset;
+        return Task.CompletedTask;
+    }
+
+    private MaintenanceAssetType? ParseAssetType() => Enum.TryParse<MaintenanceAssetType>(assetTypeText, out var value) ? value : null;
+    private MaintenancePriority? ParsePriority() => Enum.TryParse<MaintenancePriority>(priorityText, out var value) ? value : null;
+    private MaintenanceWorkOrderStatus? ParseStatus() => Enum.TryParse<MaintenanceWorkOrderStatus>(statusText, out var value) ? value : null;
+    private Guid? ParseGuid(string value) => Guid.TryParse(value, out var id) ? id : null;
+    private Guid ResolveCompanyId() => Guid.TryParse(authState?.User.Claims.FirstOrDefault(claim => claim.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
+    private bool Can(string permission) => authState?.User.Claims.Any(claim => claim.Value == permission) == true;
+    private string AssetText(MaintenanceAssetDto asset) => $"{asset.AssetCode} - {LocalizedName(asset.NameEng, asset.Name)}";
+    private string PriorityTone(MaintenancePriority priority) => priority is MaintenancePriority.High or MaintenancePriority.Critical ? "danger" : priority == MaintenancePriority.Medium ? "warning" : "muted";
+    private string StatusTone(MaintenanceWorkOrderStatus status) => status == MaintenanceWorkOrderStatus.Completed ? "success" : status is MaintenanceWorkOrderStatus.Cancelled or MaintenanceWorkOrderStatus.Rejected ? "danger" : status == MaintenanceWorkOrderStatus.PendingApproval ? "warning" : "info";
+    private string CostTone(MaintenanceCostApprovalStatus status) => status == MaintenanceCostApprovalStatus.Approved ? "success" : status == MaintenanceCostApprovalStatus.Rejected ? "danger" : status == MaintenanceCostApprovalStatus.Pending ? "warning" : "muted";
+    private string LocalizedName(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

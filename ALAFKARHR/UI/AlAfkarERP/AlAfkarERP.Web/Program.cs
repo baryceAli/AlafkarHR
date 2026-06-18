@@ -9,6 +9,7 @@ using AlAfkarERP.Shared.Pages.Features.DocumentManagement.Services;
 using AlAfkarERP.Shared.Pages.Features.Employees.Services;
 using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services;
 using AlAfkarERP.Shared.Pages.Features.Inventories.Services;
+using AlAfkarERP.Shared.Pages.Features.Maintenance.Services;
 using AlAfkarERP.Shared.Pages.Features.Payroll.Services;
 using AlAfkarERP.Shared.Pages.Features.Procurement.Services;
 using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services;
@@ -249,6 +250,14 @@ builder.Services.AddHttpClient<ITaskManagementService, TaskManagementService>(cl
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
 #endregion TaskManagement
+
+#region Maintenance
+builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
+builder.Services.AddHttpClient<IMaintenanceService, MaintenanceService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+#endregion Maintenance
 
 #region Payroll
 builder.Services.AddScoped<IPayrollService, PayrollService>();

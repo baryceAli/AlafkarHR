@@ -1,0 +1,244 @@
+@page "/Maintenance/Assets/View/{Id:guid}"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.Maintenance.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@using SharedWithUI.Maintenance.Dtos
+@using SharedWithUI.Maintenance.Enums
+@using SharedWithUI.Permissions
+@inject IMaintenanceService MaintenanceService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JSRuntime
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@LocalizedAssetName"
+                Subtitle="@asset?.AssetCode"
+                Icon="bi-building">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo("/Maintenance/Assets"))">
+                <i class="bi bi-arrow-return-left"></i>
+                @Text("Back", "رجوع")
+            </button>
+            @if (asset is not null && Can(PermissionList.MaintenanceAssetPermissions.Create))
+            {
+                <button class="btn btn-outline-primary" @onclick="@(() => NavigationManager.NavigateTo($"/Maintenance/Assets/Form?parentAssetId={asset.Id}"))">
+                    <i class="bi bi-diagram-2"></i>
+                    @Text("Child Asset", "أصل فرعي")
+                </button>
+            }
+            @if (asset is not null && Can(PermissionList.MaintenanceWorkOrderPermissions.Create))
+            {
+                <button class="btn btn-primary" @onclick="@(() => NavigationManager.NavigateTo($"/Maintenance/WorkOrders/Form?assetId={asset.Id}"))">
+                    <i class="bi bi-plus-lg"></i>
+                    @Text("Work Order", "أمر عمل")
+                </button>
+            }
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <section class="erp-card"><div class="erp-card-body text-muted">@Text("Loading asset...", "جاري تحميل الأصل...")</div></section>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+    else if (asset is not null)
+    {
+        <div class="row g-3">
+            <div class="col-12 col-xl-5">
+                <article class="erp-card">
+                    <div class="erp-card-header d-flex justify-content-between align-items-center">
+                        <strong>@Text("Asset Details", "تفاصيل الأصل")</strong>
+                        <StatusChip Text="@asset.Status.ToString()" Tone="@AssetStatusTone(asset.Status)" />
+                    </div>
+                    <div class="erp-card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">@Text("Type", "النوع")</dt>
+                            <dd class="col-sm-8">@asset.AssetType</dd>
+                            <dt class="col-sm-4">@Text("Parent", "الأصل الرئيسي")</dt>
+                            <dd class="col-sm-8">@asset.ParentAssetName</dd>
+                            <dt class="col-sm-4">@Text("Location", "الموقع")</dt>
+                            <dd class="col-sm-8">@asset.Location</dd>
+                            <dt class="col-sm-4">@Text("Serial", "التسلسل")</dt>
+                            <dd class="col-sm-8">@asset.SerialNumber</dd>
+                            <dt class="col-sm-4">@Text("Purchase", "الشراء")</dt>
+                            <dd class="col-sm-8">@asset.PurchaseDate?.ToString("yyyy-MM-dd")</dd>
+                            <dt class="col-sm-4">@Text("Warranty", "الضمان")</dt>
+                            <dd class="col-sm-8">@asset.WarrantyEndDate?.ToString("yyyy-MM-dd")</dd>
+                            <dt class="col-sm-4">@Text("Description", "الوصف")</dt>
+                            <dd class="col-sm-8">@asset.Description</dd>
+                        </dl>
+                        <div class="d-flex flex-wrap gap-2 mt-4">
+                            @if (Can(PermissionList.MaintenanceAssetPermissions.Edit))
+                            {
+                                <button class="btn btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo($"/Maintenance/Assets/Form/{asset.Id}"))">
+                                    <i class="bi bi-pencil"></i>
+                                    @Text("Edit", "تعديل")
+                                </button>
+                            }
+                            @if (Can(PermissionList.MaintenanceAssetPermissions.Delete))
+                            {
+                                <button class="btn btn-outline-danger" @onclick="DeleteAsync">
+                                    <i class="bi bi-trash"></i>
+                                    @Text("Delete", "حذف")
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </article>
+            </div>
+
+            <div class="col-12 col-xl-7">
+                <article class="erp-card mb-3">
+                    <div class="erp-card-header"><strong>@Text("Child Assets", "الأصول الفرعية")</strong></div>
+                    <div class="erp-table-wrap">
+                        <table class="erp-table table">
+                            <thead>
+                                <tr>
+                                    <th>@Text("Code", "الكود")</th>
+                                    <th>@Text("Name", "الاسم")</th>
+                                    <th>@Text("Type", "النوع")</th>
+                                    <th>@Text("Status", "الحالة")</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!childAssets.Any())
+                                {
+                                    <tr><td colspan="5" class="text-muted">@Text("No child assets.", "لا توجد أصول فرعية.")</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var child in childAssets)
+                                    {
+                                        <tr>
+                                            <td>@child.AssetCode</td>
+                                            <td>@LocalizedName(child.NameEng, child.Name)</td>
+                                            <td>@child.AssetType</td>
+                                            <td><StatusChip Text="@child.Status.ToString()" Tone="@AssetStatusTone(child.Status)" /></td>
+                                            <td class="text-end">
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="@(() => NavigationManager.NavigateTo($"/Maintenance/Assets/View/{child.Id}"))">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <article class="erp-card">
+                    <div class="erp-card-header"><strong>@Text("Related Work Orders", "أوامر العمل المرتبطة")</strong></div>
+                    <div class="erp-table-wrap">
+                        <table class="erp-table table">
+                            <thead>
+                                <tr>
+                                    <th>@Text("Number", "الرقم")</th>
+                                    <th>@Text("Title", "العنوان")</th>
+                                    <th>@Text("Status", "الحالة")</th>
+                                    <th>@Text("Due", "الاستحقاق")</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!workOrders.Any())
+                                {
+                                    <tr><td colspan="5" class="text-muted">@Text("No work orders for this asset.", "لا توجد أوامر عمل لهذا الأصل.")</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var workOrder in workOrders)
+                                    {
+                                        <tr>
+                                            <td>@workOrder.WorkOrderNumber</td>
+                                            <td>@workOrder.Title</td>
+                                            <td><StatusChip Text="@workOrder.Status.ToString()" Tone="@StatusTone(workOrder.Status)" /></td>
+                                            <td>@workOrder.DueDate?.ToString("yyyy-MM-dd")</td>
+                                            <td class="text-end">
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="@(() => NavigationManager.NavigateTo($"/Maintenance/WorkOrders/View/{workOrder.Id}"))">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+        </div>
+    }
+</main>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private MaintenanceAssetDto? asset;
+    private List<MaintenanceAssetDto> childAssets = [];
+    private List<MaintenanceWorkOrderDto> workOrders = [];
+    private bool isLoading = true;
+    private string? errorMessage;
+    private AuthenticationState? authState;
+
+    private string LocalizedAssetName => asset is null ? Text("Asset", "الأصل") : LocalizedName(asset.NameEng, asset.Name);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        var assetResult = await MaintenanceService.GetAssetByIdAsync(Id);
+        if (!assetResult.IsSuccess || assetResult.Data is null)
+        {
+            errorMessage = assetResult.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load asset.", "تعذر تحميل الأصل.");
+            isLoading = false;
+            return;
+        }
+
+        asset = assetResult.Data;
+        var childResult = await MaintenanceService.GetAssetsAsync(0, 100, parentAssetId: Id);
+        childAssets = childResult.IsSuccess ? childResult.Data?.Data.ToList() ?? [] : [];
+        var workOrderResult = await MaintenanceService.GetWorkOrdersAsync(0, 100, assetId: Id);
+        workOrders = workOrderResult.IsSuccess ? workOrderResult.Data?.Data.ToList() ?? [] : [];
+        isLoading = false;
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (asset is null)
+            return;
+
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", Text("Delete this asset?", "هل تريد حذف هذا الأصل؟"));
+        if (!confirmed)
+            return;
+
+        var result = await MaintenanceService.DeleteAssetAsync(asset.Id);
+        if (result.IsSuccess)
+            NavigationManager.NavigateTo("/Maintenance/Assets");
+        else
+            errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to delete asset.", "تعذر حذف الأصل.");
+    }
+
+    private bool Can(string permission) => authState?.User.Claims.Any(claim => claim.Value == permission) == true;
+    private string AssetStatusTone(MaintenanceAssetStatus status) => status == MaintenanceAssetStatus.Active ? "success" : status == MaintenanceAssetStatus.UnderMaintenance ? "warning" : "muted";
+    private string StatusTone(MaintenanceWorkOrderStatus status) => status == MaintenanceWorkOrderStatus.Completed ? "success" : status is MaintenanceWorkOrderStatus.Cancelled or MaintenanceWorkOrderStatus.Rejected ? "danger" : status == MaintenanceWorkOrderStatus.PendingApproval ? "warning" : "info";
+    private string LocalizedName(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

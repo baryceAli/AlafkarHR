@@ -9,6 +9,7 @@ using DocumentManagement;
 using EmployeeModule;
 using GeneralSettings;
 using Inventory;
+using Maintenance;
 using Organization;
 using Orders;
 using Payroll;
@@ -57,6 +58,7 @@ var procurementAssembly = typeof(ProcurementModule).Assembly;
 var salesAssembly = typeof(SalesModule).Assembly;
 var payrollAssembly = typeof(PayrollModule).Assembly;
 var taskManagementAssembly = typeof(TaskManagementModule).Assembly;
+var maintenanceAssembly = typeof(MaintenanceModule).Assembly;
 
 builder.Services.AddCarterWithAssemblies(
                         authAssembly,
@@ -78,7 +80,8 @@ builder.Services.AddCarterWithAssemblies(
                         procurementAssembly,
                         salesAssembly,
                         payrollAssembly,
-                        taskManagementAssembly
+                        taskManagementAssembly,
+                        maintenanceAssembly
                         );
 //catalogAssembly,
 //basketAssembly,
@@ -104,7 +107,8 @@ builder.Services.AddMediatRWithAssemblies(
                         procurementAssembly,
                         salesAssembly,
                         payrollAssembly,
-                        taskManagementAssembly
+                        taskManagementAssembly,
+                        maintenanceAssembly
                         );
 //catalogAssembly,
 //basketAssembly,
@@ -134,7 +138,8 @@ builder.Services
         .AddPricingModule(builder.Configuration)
         .AddProcurementModule(builder.Configuration)
         .AddPayrollModule(builder.Configuration)
-        .AddTaskManagementModule(builder.Configuration);
+        .AddTaskManagementModule(builder.Configuration)
+        .AddMaintenanceModule(builder.Configuration);
 #endregion
 
 
@@ -179,7 +184,8 @@ app
     .UsePricingModule(app.Environment)
     .UseProcurementModule(app.Environment)
     .UsePayrollModule(app.Environment)
-    .UseTaskManagementModule(app.Environment);
+    .UseTaskManagementModule(app.Environment)
+    .UseMaintenanceModule(app.Environment);
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())
