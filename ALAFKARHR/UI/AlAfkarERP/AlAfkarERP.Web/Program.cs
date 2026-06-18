@@ -13,6 +13,7 @@ using AlAfkarERP.Shared.Pages.Features.Inventories.Services;
 using AlAfkarERP.Shared.Pages.Features.Maintenance.Services;
 using AlAfkarERP.Shared.Pages.Features.Payroll.Services;
 using AlAfkarERP.Shared.Pages.Features.Procurement.Services;
+using AlAfkarERP.Shared.Pages.Features.RealEstate.Services;
 using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services;
 using AlAfkarERP.Shared.Pages.Features.Suppliers.Services;
 using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services;
@@ -259,6 +260,14 @@ builder.Services.AddHttpClient<IMaintenanceService, MaintenanceService>(client =
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
 #endregion Maintenance
+
+#region RealEstate
+builder.Services.AddScoped<IRealEstateService, RealEstateService>();
+builder.Services.AddHttpClient<IRealEstateService, RealEstateService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+#endregion RealEstate
 
 #region Fleet
 builder.Services.AddScoped<IFleetService, FleetService>();

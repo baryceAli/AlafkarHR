@@ -11,6 +11,9 @@ public class PaymentAttempt : Aggregate<Guid>
     public Guid? CustomerId { get; private set; }
     public Guid? OrderIntakeId { get; private set; }
     public OrderIntakeSource Source { get; private set; }
+    public PaymentSourceType SourceType { get; private set; }
+    public Guid? SourceDocumentId { get; private set; }
+    public string? SourceDocumentNumber { get; private set; }
     public string? Channel { get; private set; }
     public PaymentMethodType Method { get; private set; }
     public PaymentStatus Status { get; private set; }
@@ -34,6 +37,9 @@ public class PaymentAttempt : Aggregate<Guid>
             CompanyId = dto.CompanyId,
             CustomerId = dto.CustomerId,
             Source = dto.Source,
+            SourceType = dto.SourceType,
+            SourceDocumentId = dto.SourceDocumentId,
+            SourceDocumentNumber = dto.SourceDocumentNumber,
             Channel = dto.Channel,
             Method = dto.Method,
             Status = status,

@@ -1,0 +1,183 @@
+@page "/RealEstate/Utilities"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.RealEstate.Services
+@using AlAfkarERP.Shared.Pages.Features.Suppliers.Services
+@using SharedWithUI.RealEstate.Dtos
+@using SharedWithUI.RealEstate.Enums
+@using SharedWithUI.Suppliers.Dtos
+@inject IRealEstateService RealEstateService
+@inject ISupplierService SupplierService
+@inject SharedDataService SharedDataService
+@inject ApiConfig ApiConfig
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Utilities", "الخدمات")" Subtitle="@Text("Utility accounts, recurring bills, payment status, and expense links.", "حسابات الخدمات والفواتير وحالة السداد وربط المصاريف.")" Icon="bi-lightning-charge" />
+    @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
+
+    <div class="row g-3">
+        <div class="col-12 col-xl-5">
+            <article class="erp-card mb-3">
+                <div class="erp-card-header"><strong>@(editingAccount.Id == Guid.Empty ? Text("Utility Account", "حساب خدمة") : Text("Edit Account", "تعديل حساب"))</strong></div>
+                <div class="erp-card-body">
+                    <EditForm Model="editingAccount" OnValidSubmit="SaveAccountAsync">
+                        <div class="row g-3">
+                            <div class="col-12"><label class="form-label">@Text("Property", "العقار")</label><select class="form-select" @bind="accountPropertyIdText"><option value="">@Text("Select property", "اختر العقار")</option>@foreach (var property in properties) { <option value="@property.Id">@property.Name</option> }</select></div>
+                            <div class="col-12 col-md-6"><label class="form-label">@Text("Service", "الخدمة")</label><InputSelect class="form-select" @bind-Value="editingAccount.ServiceType">@foreach (var type in Enum.GetValues<UtilityServiceType>()) { <option value="@type">@type</option> }</InputSelect></div>
+                            <div class="col-12 col-md-6"><label class="form-label">@Text("Account No.", "رقم الحساب")</label><InputText class="form-control" @bind-Value="editingAccount.AccountNumber" /></div>
+                            <div class="col-12 col-md-6"><label class="form-label">@Text("Meter No.", "رقم العداد")</label><InputText class="form-control" @bind-Value="editingAccount.MeterNumber" /></div>
+                            <div class="col-12 col-md-6"><label class="form-label">@Text("Provider", "المزود")</label><InputText class="form-control" @bind-Value="editingAccount.ProviderName" /></div>
+                            <div class="col-12"><label class="form-label">@Text("Supplier", "المورد")</label><select class="form-select" @bind="accountSupplierIdText"><option value="">@Text("No supplier", "بدون مورد")</option>@foreach (var supplier in suppliers) { <option value="@supplier.Id">@supplier.Name</option> }</select></div>
+                            <div class="col-12"><div class="form-check"><InputCheckbox class="form-check-input" @bind-Value="editingAccount.IsActive" /><label class="form-check-label">@Text("Active", "نشط")</label></div></div>
+                        </div>
+                        <div class="d-flex gap-2 justify-content-end mt-3"><button class="btn btn-outline-secondary" type="button" @onclick="ResetAccount">@Text("Clear", "مسح")</button><button class="btn btn-primary" type="submit">@Text("Save", "حفظ")</button></div>
+                    </EditForm>
+                </div>
+            </article>
+        </div>
+        <div class="col-12 col-xl-7">
+            <article class="erp-card mb-3">
+                <div class="erp-card-header"><strong>@(editingBill.Id == Guid.Empty ? Text("Utility Bill", "فاتورة خدمة") : Text("Edit Bill", "تعديل فاتورة"))</strong></div>
+                <div class="erp-card-body">
+                    <EditForm Model="editingBill" OnValidSubmit="SaveBillAsync">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4"><label class="form-label">@Text("Account", "الحساب")</label><select class="form-select" @bind="billAccountIdText"><option value="">@Text("Select account", "اختر الحساب")</option>@foreach (var account in accounts) { <option value="@account.Id">@account.ServiceType - @account.AccountNumber</option> }</select></div>
+                            <div class="col-12 col-md-2"><label class="form-label">@Text("Bill Date", "تاريخ الفاتورة")</label><InputDate class="form-control" @bind-Value="editingBill.BillDate" /></div>
+                            <div class="col-12 col-md-2"><label class="form-label">@Text("Due Date", "الاستحقاق")</label><InputDate class="form-control" @bind-Value="editingBill.DueDate" /></div>
+                            <div class="col-12 col-md-2"><label class="form-label">@Text("Amount", "المبلغ")</label><InputNumber class="form-control" @bind-Value="editingBill.Amount" /></div>
+                            <div class="col-12 col-md-2"><label class="form-label">@Text("Tax", "الضريبة")</label><InputNumber class="form-control" @bind-Value="editingBill.TaxAmount" /></div>
+                            <div class="col-12 col-md-4"><label class="form-label">@Text("Reference", "المرجع")</label><InputText class="form-control" @bind-Value="editingBill.Reference" /></div>
+                            <div class="col-12 col-md-4"><label class="form-label">@Text("Linked Expense Id", "معرف المصروف المرتبط")</label><input class="form-control" @bind="expenseIdText" /></div>
+                            <div class="col-12 col-md-4 d-flex align-items-end"><div class="form-check"><InputCheckbox class="form-check-input" @bind-Value="editingBill.IsPaid" /><label class="form-check-label">@Text("Paid", "مدفوعة")</label></div></div>
+                        </div>
+                        <div class="d-flex gap-2 justify-content-end mt-3"><button class="btn btn-outline-secondary" type="button" @onclick="ResetBill">@Text("Clear", "مسح")</button><button class="btn btn-primary" type="submit">@Text("Save", "حفظ")</button></div>
+                    </EditForm>
+                </div>
+            </article>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12 col-xl-5">
+            <article class="erp-card"><div class="erp-card-header"><strong>@Text("Accounts", "الحسابات")</strong></div><div class="erp-card-body"><div class="table-responsive"><table class="table align-middle"><thead><tr><th>@Text("Account", "الحساب")</th><th>@Text("Service", "الخدمة")</th><th>@Text("Provider", "المزود")</th><th></th></tr></thead><tbody>@foreach (var item in accounts) { <tr><td>@item.AccountNumber</td><td>@item.ServiceType</td><td>@item.ProviderName</td><td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-primary" @onclick="@(() => EditAccount(item))"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" @onclick="@(() => DeleteAccountAsync(item.Id))"><i class="bi bi-trash"></i></button></td></tr> }</tbody></table></div></div></article>
+        </div>
+        <div class="col-12 col-xl-7">
+            <article class="erp-card"><div class="erp-card-header"><strong>@Text("Bills", "الفواتير")</strong></div><div class="erp-card-body"><div class="row g-3 align-items-end mb-3"><div class="col-12 col-md-4"><label class="form-label">@Text("Paid Filter", "تصفية السداد")</label><select class="form-select" @bind="paidFilter"><option value="">@Text("All", "الكل")</option><option value="false">@Text("Unpaid", "غير مدفوعة")</option><option value="true">@Text("Paid", "مدفوعة")</option></select></div><div class="col-12 col-md-3"><button class="btn btn-outline-primary w-100" @onclick="LoadBillsAsync">@Text("Filter", "تصفية")</button></div></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>@Text("Due", "الاستحقاق")</th><th>@Text("Total", "الإجمالي")</th><th>@Text("Paid", "مدفوعة")</th><th>@Text("Reference", "المرجع")</th><th></th></tr></thead><tbody>@foreach (var item in bills) { <tr><td>@item.DueDate.ToShortDateString()</td><td>@item.TotalAmount.ToString("N2")</td><td>@(item.IsPaid ? Text("Yes", "نعم") : Text("No", "لا"))</td><td>@item.Reference</td><td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-primary" @onclick="@(() => EditBill(item))"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-success" disabled="@item.IsPaid" @onclick="@(() => MarkPaidAsync(item.Id))">@Text("Paid", "سداد")</button><button class="btn btn-sm btn-outline-danger" @onclick="@(() => DeleteBillAsync(item.Id))"><i class="bi bi-trash"></i></button></td></tr> }</tbody></table></div></div></article>
+        </div>
+    </div>
+</main>
+
+@code {
+    private List<PropertyDto> properties = [];
+    private List<SupplierDto> suppliers = [];
+    private List<UtilityAccountDto> accounts = [];
+    private List<UtilityBillDto> bills = [];
+    private UtilityAccountDto editingAccount = NewAccount();
+    private UtilityBillDto editingBill = NewBill();
+    private string accountPropertyIdText = string.Empty;
+    private string accountSupplierIdText = string.Empty;
+    private string billAccountIdText = string.Empty;
+    private string expenseIdText = string.Empty;
+    private string paidFilter = string.Empty;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadLookupsAsync();
+        await LoadAccountsAsync();
+        await LoadBillsAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var companyId = ApiConfig.CompanyId == Guid.Empty ? (Guid?)null : ApiConfig.CompanyId;
+        properties = (await RealEstateService.GetPropertiesAsync(1, 500, companyId: companyId)).Data?.Data.ToList() ?? [];
+        if (ApiConfig.CompanyId != Guid.Empty)
+            suppliers = (await SupplierService.GetByCompanyAsync(ApiConfig.CompanyId, 1, 500)).Data?.Data.ToList() ?? [];
+    }
+
+    private async Task LoadAccountsAsync()
+    {
+        var result = await RealEstateService.GetUtilityAccountsAsync(1, 500);
+        accounts = result.Data?.Data.ToList() ?? [];
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+    }
+
+    private async Task LoadBillsAsync()
+    {
+        bool? isPaid = bool.TryParse(paidFilter, out var parsed) ? parsed : null;
+        var result = await RealEstateService.GetUtilityBillsAsync(1, 500, isPaid: isPaid);
+        bills = result.Data?.Data.ToList() ?? [];
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+    }
+
+    private async Task SaveAccountAsync()
+    {
+        if (!Guid.TryParse(accountPropertyIdText, out var propertyId)) { errorMessage = Text("Property is required.", "العقار مطلوب."); return; }
+        editingAccount.CompanyId = ApiConfig.CompanyId;
+        editingAccount.PropertyId = propertyId;
+        editingAccount.SupplierId = Guid.TryParse(accountSupplierIdText, out var supplierId) ? supplierId : null;
+        var isSuccess = false;
+        if (editingAccount.Id == Guid.Empty)
+        {
+            var result = await RealEstateService.CreateUtilityAccountAsync(editingAccount);
+            isSuccess = result.IsSuccess;
+            errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        else
+        {
+            var result = await RealEstateService.UpdateUtilityAccountAsync(editingAccount);
+            isSuccess = result.IsSuccess;
+            errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        if (isSuccess) { ResetAccount(); await LoadAccountsAsync(); }
+    }
+
+    private async Task SaveBillAsync()
+    {
+        if (!Guid.TryParse(billAccountIdText, out var accountId)) { errorMessage = Text("Utility account is required.", "حساب الخدمة مطلوب."); return; }
+        editingBill.UtilityAccountId = accountId;
+        editingBill.ExpenseId = Guid.TryParse(expenseIdText, out var expenseId) ? expenseId : null;
+        var isSuccess = false;
+        if (editingBill.Id == Guid.Empty)
+        {
+            var result = await RealEstateService.CreateUtilityBillAsync(editingBill);
+            isSuccess = result.IsSuccess;
+            errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        else
+        {
+            var result = await RealEstateService.UpdateUtilityBillAsync(editingBill);
+            isSuccess = result.IsSuccess;
+            errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        if (isSuccess) { ResetBill(); await LoadBillsAsync(); }
+    }
+
+    private void EditAccount(UtilityAccountDto account)
+    {
+        editingAccount = account;
+        accountPropertyIdText = account.PropertyId.ToString();
+        accountSupplierIdText = account.SupplierId?.ToString() ?? string.Empty;
+    }
+
+    private void EditBill(UtilityBillDto bill)
+    {
+        editingBill = bill;
+        billAccountIdText = bill.UtilityAccountId.ToString();
+        expenseIdText = bill.ExpenseId?.ToString() ?? string.Empty;
+    }
+
+    private async Task DeleteAccountAsync(Guid id) { var result = await RealEstateService.DeleteUtilityAccountAsync(id); errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language); if (result.IsSuccess) await LoadAccountsAsync(); }
+    private async Task DeleteBillAsync(Guid id) { var result = await RealEstateService.DeleteUtilityBillAsync(id); errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language); if (result.IsSuccess) await LoadBillsAsync(); }
+    private async Task MarkPaidAsync(Guid id) { var result = await RealEstateService.MarkUtilityBillPaidAsync(id); errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language); if (result.IsSuccess) await LoadBillsAsync(); }
+    private void ResetAccount() { editingAccount = NewAccount(); accountPropertyIdText = string.Empty; accountSupplierIdText = string.Empty; }
+    private void ResetBill() { editingBill = NewBill(); billAccountIdText = string.Empty; expenseIdText = string.Empty; }
+    private static UtilityAccountDto NewAccount() => new() { IsActive = true, ServiceType = UtilityServiceType.Electricity };
+    private static UtilityBillDto NewBill() => new() { BillDate = DateTime.UtcNow.Date, DueDate = DateTime.UtcNow.Date };
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

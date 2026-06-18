@@ -57,6 +57,13 @@ public static class PermissionList
             .. TaskManagementPermissions.Permissions,
             .. MaintenanceAssetPermissions.Permissions,
             .. MaintenanceWorkOrderPermissions.Permissions,
+            .. RealEstatePropertyPermissions.Permissions,
+            .. RealEstateUnitPermissions.Permissions,
+            .. RealEstateLeasePermissions.Permissions,
+            .. RealEstateInstallmentPermissions.Permissions,
+            .. RealEstateUtilityPermissions.Permissions,
+            .. RealEstateExpensePermissions.Permissions,
+            .. RealEstateReportsPermissions.Permissions,
             .. FleetVehiclePermissions.Permissions,
             .. FleetVehicleAssignmentPermissions.Permissions,
             .. FleetVehicleExpensePermissions.Permissions,
@@ -1085,6 +1092,80 @@ public static class PermissionList
                 $"{ViewReports}",
                 $"{ManageAll}",
             };
+    }
+
+    public static class RealEstatePropertyPermissions
+    {
+        public static string GroupName { get; set; } = "RealEstate.Property";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete];
+    }
+
+    public static class RealEstateUnitPermissions
+    {
+        public static string GroupName { get; set; } = "RealEstate.Unit";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete];
+    }
+
+    public static class RealEstateLeasePermissions
+    {
+        public static string GroupName { get; set; } = "RealEstate.Lease";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Activate { get; set; } = $"{GroupName}.Activate";
+        public static string Suspend { get; set; } = $"{GroupName}.Suspend";
+        public static string Terminate { get; set; } = $"{GroupName}.Terminate";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Activate, Suspend, Terminate];
+    }
+
+    public static class RealEstateInstallmentPermissions
+    {
+        public static string GroupName { get; set; } = "RealEstate.Installment";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Generate { get; set; } = $"{GroupName}.Generate";
+        public static string RecordPayment { get; set; } = $"{GroupName}.RecordPayment";
+        public static List<string> Permissions => [View, Generate, RecordPayment];
+    }
+
+    public static class RealEstateUtilityPermissions
+    {
+        public static string GroupName { get; set; } = "RealEstate.Utility";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete];
+    }
+
+    public static class RealEstateExpensePermissions
+    {
+        public static string GroupName { get; set; } = "RealEstate.Expense";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete];
+    }
+
+    public static class RealEstateReportsPermissions
+    {
+        public static string GroupName { get; set; } = "RealEstate.Reports";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static List<string> Permissions => [View];
     }
 
     public static class FleetVehiclePermissions

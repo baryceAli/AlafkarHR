@@ -1,0 +1,153 @@
+@page "/RealEstate/Properties/Form"
+@page "/RealEstate/Properties/Form/{Id:guid}"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.RealEstate.Services
+@using SharedWithUI.RealEstate.Dtos
+@using SharedWithUI.RealEstate.Enums
+@inject IRealEstateService RealEstateService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+@inject ApiConfig ApiConfig
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Title" Subtitle="@Text("Property master data and operating responsibility.", "بيانات العقار والمسؤولية التشغيلية.")" Icon="bi-building">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo("/RealEstate/Properties"))"><i class="bi bi-arrow-left"></i> @Text("Back", "رجوع")</button>
+        </Actions>
+    </PageHeader>
+
+    <article class="erp-card">
+        <div class="erp-card-body">
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="alert alert-danger">@errorMessage</div>
+            }
+            @if (isLoading)
+            {
+                <div class="text-muted">@Text("Loading property...", "جاري تحميل العقار...")</div>
+            }
+            else
+            {
+                <EditForm Model="property" OnValidSubmit="SaveAsync">
+                    <DataAnnotationsValidator />
+                    <div class="row g-3">
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Company", "الشركة")</label>
+                            <input class="form-control" value="@property.CompanyId" disabled="@(ApiConfig.CompanyId != Guid.Empty)" @onchange="SetCompany" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Code", "الكود")</label>
+                            <InputText class="form-control" @bind-Value="property.Code" placeholder="@Text("Auto if empty", "تلقائي عند تركه فارغا")" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Arabic Name", "الاسم العربي")</label>
+                            <InputText class="form-control" @bind-Value="property.Name" />
+                            <ValidationMessage For="@(() => property.Name)" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("English Name", "الاسم الإنجليزي")</label>
+                            <InputText class="form-control" @bind-Value="property.NameEng" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Status", "الحالة")</label>
+                            <InputSelect class="form-select" @bind-Value="property.Status">
+                                @foreach (var status in Enum.GetValues<PropertyStatus>())
+                                {
+                                    <option value="@status">@status</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("City", "المدينة")</label>
+                            <InputText class="form-control" @bind-Value="property.City" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("District", "الحي")</label>
+                            <InputText class="form-control" @bind-Value="property.District" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Responsible User", "المستخدم المسؤول")</label>
+                            <input class="form-control" @bind="responsibleUserText" placeholder="@Text("Optional user id", "اختياري")" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">@Text("Address", "العنوان")</label>
+                            <InputText class="form-control" @bind-Value="property.Address" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                            <InputTextArea class="form-control" @bind-Value="property.Notes" rows="3" />
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 justify-content-end mt-4">
+                        <button class="btn btn-outline-secondary" type="button" @onclick="@(() => NavigationManager.NavigateTo("/RealEstate/Properties"))">@Text("Cancel", "إلغاء")</button>
+                        <button class="btn btn-primary" type="submit" disabled="@isSaving"><i class="bi bi-check2"></i> @Text("Save", "حفظ")</button>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </article>
+</main>
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+    private PropertyDto property = new() { Status = PropertyStatus.Active };
+    private bool isLoading;
+    private bool isSaving;
+    private string? errorMessage;
+    private string responsibleUserText = string.Empty;
+    private string Title => Id.HasValue ? Text("Edit Property", "تعديل عقار") : Text("New Property", "عقار جديد");
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        if (ApiConfig.CompanyId != Guid.Empty) property.CompanyId = ApiConfig.CompanyId;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (!Id.HasValue) return;
+        isLoading = true;
+        var result = await RealEstateService.GetPropertyByIdAsync(Id.Value);
+        if (result.IsSuccess && result.Data is not null)
+        {
+            property = result.Data;
+            responsibleUserText = property.ResponsibleUserId?.ToString() ?? string.Empty;
+        }
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        isLoading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        isSaving = true;
+        if (ApiConfig.CompanyId != Guid.Empty) property.CompanyId = ApiConfig.CompanyId;
+        if (Guid.TryParse(responsibleUserText, out var responsibleUserId)) property.ResponsibleUserId = responsibleUserId;
+        var isSuccess = false;
+        if (Id.HasValue)
+        {
+            var result = await RealEstateService.UpdatePropertyAsync(property);
+            isSuccess = result.IsSuccess;
+            errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        else
+        {
+            var result = await RealEstateService.CreatePropertyAsync(property);
+            isSuccess = result.IsSuccess;
+            errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        isSaving = false;
+        if (isSuccess) NavigationManager.NavigateTo("/RealEstate/Properties");
+    }
+
+    private void SetCompany(ChangeEventArgs args)
+    {
+        if (Guid.TryParse(args.Value?.ToString(), out var companyId)) property.CompanyId = companyId;
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

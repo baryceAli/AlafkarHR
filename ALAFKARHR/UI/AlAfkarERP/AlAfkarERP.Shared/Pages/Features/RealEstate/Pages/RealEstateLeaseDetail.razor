@@ -1,0 +1,120 @@
+@page "/RealEstate/Leases/{Id:guid}"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.RealEstate.Services
+@using SharedWithUI.RealEstate.Dtos
+@using SharedWithUI.RealEstate.Enums
+@inject IRealEstateService RealEstateService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@((lease?.Number) ?? Text("Lease Detail", "تفاصيل العقد"))" Subtitle="@Text("Contract summary, installments, lifecycle actions, and payment history.", "ملخص العقد والأقساط والإجراءات وسجل السداد.")" Icon="bi-file-earmark-check">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="Back"><i class="bi bi-arrow-left"></i> @Text("Back", "رجوع")</button>
+            @if (lease is not null && lease.Status == LeaseStatus.Draft)
+            {
+                <button class="btn btn-outline-primary" @onclick="@(() => NavigationManager.NavigateTo($"/RealEstate/Leases/Form/{lease.Direction}/{lease.Id}"))"><i class="bi bi-pencil"></i> @Text("Edit", "تعديل")</button>
+                <button class="btn btn-outline-secondary" @onclick="GenerateAsync">@Text("Generate", "توليد")</button>
+                <button class="btn btn-success" @onclick="ActivateAsync">@Text("Activate", "تفعيل")</button>
+            }
+            @if (lease is not null && lease.Status == LeaseStatus.Active)
+            {
+                <button class="btn btn-outline-warning" @onclick="SuspendAsync">@Text("Suspend", "تعليق")</button>
+                <button class="btn btn-outline-danger" @onclick="TerminateAsync">@Text("Terminate", "إنهاء")</button>
+            }
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <article class="erp-card"><div class="erp-card-body text-muted">@Text("Loading lease...", "جاري تحميل العقد...")</div></article>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+    else if (lease is not null)
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Rent", "الإيجار")" Value="@lease.RentAmount.ToString("N2")" Icon="bi-cash" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Expected", "المستحق")" Value="@lease.Installments.Sum(x => x.Amount).ToString("N2")" Icon="bi-calendar-check" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Paid", "المدفوع")" Value="@lease.Installments.Sum(x => x.PaidAmount).ToString("N2")" Icon="bi-check2-circle" Tone="success" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Remaining", "المتبقي")" Value="@lease.Installments.Sum(x => x.RemainingAmount).ToString("N2")" Icon="bi-hourglass-split" Tone="warning" /></div>
+        </div>
+
+        <article class="erp-card mb-3">
+            <div class="erp-card-body">
+                <div class="row g-3">
+                    <div class="col-12 col-md-3"><div class="text-muted small">@Text("Status", "الحالة")</div><span class="badge text-bg-secondary">@lease.Status</span></div>
+                    <div class="col-12 col-md-3"><div class="text-muted small">@Text("Party", "الطرف")</div><strong>@lease.PartyDisplayName</strong></div>
+                    <div class="col-12 col-md-3"><div class="text-muted small">@Text("Property", "العقار")</div><strong>@lease.PropertyName</strong></div>
+                    <div class="col-12 col-md-3"><div class="text-muted small">@Text("Unit", "الوحدة")</div><strong>@lease.UnitNumber</strong></div>
+                    <div class="col-12 col-md-3"><div class="text-muted small">@Text("Contract", "العقد")</div><strong>@lease.ContractNumber</strong></div>
+                    <div class="col-12 col-md-3"><div class="text-muted small">@Text("Period", "الفترة")</div>@lease.StartDate.ToShortDateString() - @lease.EndDate.ToShortDateString()</div>
+                    <div class="col-12 col-md-3"><div class="text-muted small">@Text("Frequency", "الدورية")</div>@lease.BillingFrequency</div>
+                    <div class="col-12 col-md-3"><div class="text-muted small">@Text("Contract Status", "حالة العقد")</div>@Text("Shown in Contracts module; activation validates signed/active status.", "تظهر في وحدة العقود، ويتم التحقق عند التفعيل.")</div>
+                </div>
+            </div>
+        </article>
+
+        <article class="erp-card">
+            <div class="erp-card-header"><strong>@Text("Installments", "الأقساط")</strong></div>
+            <div class="erp-card-body">
+                @if (lease.Installments.Count == 0)
+                {
+                    <div class="text-muted">@Text("No installments generated yet.", "لم يتم توليد الأقساط بعد.")</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead><tr><th>#</th><th>@Text("Due", "الاستحقاق")</th><th>@Text("Period", "الفترة")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Paid", "المدفوع")</th><th>@Text("Remaining", "المتبقي")</th><th>@Text("Status", "الحالة")</th></tr></thead>
+                            <tbody>@foreach (var item in lease.Installments) { <tr><td>@item.Sequence</td><td>@item.DueDate.ToShortDateString()</td><td>@item.PeriodStart.ToShortDateString() - @item.PeriodEnd.ToShortDateString()</td><td>@item.Amount.ToString("N2")</td><td>@item.PaidAmount.ToString("N2")</td><td>@item.RemainingAmount.ToString("N2")</td><td><span class="badge text-bg-secondary">@item.Status</span></td></tr> }</tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </article>
+    }
+</main>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private LeaseDto? lease;
+    private bool isLoading;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await RealEstateService.GetLeaseByIdAsync(Id);
+        lease = result.Data;
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        isLoading = false;
+    }
+
+    private async Task GenerateAsync() => await RunAsync(() => RealEstateService.GenerateInstallmentsAsync(Id));
+    private async Task ActivateAsync() => await RunAsync(() => RealEstateService.ActivateLeaseAsync(Id));
+    private async Task SuspendAsync() => await RunAsync(() => RealEstateService.SuspendLeaseAsync(Id));
+    private async Task TerminateAsync() => await RunAsync(() => RealEstateService.TerminateLeaseAsync(Id));
+
+    private async Task RunAsync(Func<Task<ApiResult<UpdateDeleteResponseDto>>> action)
+    {
+        var result = await action();
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        await LoadAsync();
+    }
+
+    private void Back() => NavigationManager.NavigateTo(lease?.Direction == LeaseDirection.OwnerToCompany ? "/RealEstate/OwnerLeases" : "/RealEstate/TenantLeases");
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

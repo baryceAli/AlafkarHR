@@ -1,0 +1,124 @@
+@page "/RealEstate/Units/Form"
+@page "/RealEstate/Units/Form/{Id:guid}"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.RealEstate.Services
+@using SharedWithUI.RealEstate.Dtos
+@using SharedWithUI.RealEstate.Enums
+@inject IRealEstateService RealEstateService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Title" Subtitle="@Text("Unit data and maintenance asset linkage.", "بيانات الوحدة وربط أصل الصيانة.")" Icon="bi-door-open">
+        <Actions><button class="btn btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo("/RealEstate/Units"))"><i class="bi bi-arrow-left"></i> @Text("Back", "رجوع")</button></Actions>
+    </PageHeader>
+    <article class="erp-card">
+        <div class="erp-card-body">
+            @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
+            @if (isLoading)
+            {
+                <div class="text-muted">@Text("Loading unit...", "جاري تحميل الوحدة...")</div>
+            }
+            else
+            {
+                <EditForm Model="unit" OnValidSubmit="SaveAsync">
+                    <DataAnnotationsValidator />
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label class="form-label">@Text("Property", "العقار")</label>
+                            <select class="form-select" @bind="propertyIdText">
+                                <option value="">@Text("Select property", "اختر العقار")</option>
+                                @foreach (var property in properties)
+                                {
+                                    <option value="@property.Id">@property.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-2"><label class="form-label">@Text("Unit Number", "رقم الوحدة")</label><InputText class="form-control" @bind-Value="unit.UnitNumber" /><ValidationMessage For="@(() => unit.UnitNumber)" /></div>
+                        <div class="col-12 col-md-3"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="unit.Name" /></div>
+                        <div class="col-12 col-md-3"><label class="form-label">@Text("Type", "النوع")</label><InputSelect class="form-select" @bind-Value="unit.UnitType">@foreach (var type in Enum.GetValues<PropertyUnitType>()) { <option value="@type">@type</option> }</InputSelect></div>
+                        <div class="col-12 col-md-3"><label class="form-label">@Text("Status", "الحالة")</label><InputSelect class="form-select" @bind-Value="unit.Status">@foreach (var status in Enum.GetValues<UnitStatus>()) { <option value="@status">@status</option> }</InputSelect></div>
+                        <div class="col-12 col-md-3"><label class="form-label">@Text("Floor", "الدور")</label><InputText class="form-control" @bind-Value="unit.Floor" /></div>
+                        <div class="col-12 col-md-2"><label class="form-label">@Text("Area", "المساحة")</label><InputNumber class="form-control" @bind-Value="unit.Area" /></div>
+                        <div class="col-12 col-md-2"><label class="form-label">@Text("Bedrooms", "غرف النوم")</label><InputNumber class="form-control" @bind-Value="unit.Bedrooms" /></div>
+                        <div class="col-12 col-md-2"><label class="form-label">@Text("Bathrooms", "دورات المياه")</label><InputNumber class="form-control" @bind-Value="unit.Bathrooms" /></div>
+                        <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputTextArea class="form-control" @bind-Value="unit.Notes" rows="3" /></div>
+                    </div>
+                    <div class="d-flex gap-2 justify-content-end mt-4">
+                        <button class="btn btn-outline-secondary" type="button" @onclick="@(() => NavigationManager.NavigateTo("/RealEstate/Units"))">@Text("Cancel", "إلغاء")</button>
+                        <button class="btn btn-primary" type="submit" disabled="@isSaving"><i class="bi bi-check2"></i> @Text("Save", "حفظ")</button>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </article>
+</main>
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+    private PropertyUnitDto unit = new() { Status = UnitStatus.Available };
+    private List<PropertyDto> properties = [];
+    private bool isLoading;
+    private bool isSaving;
+    private string propertyIdText = string.Empty;
+    private string? errorMessage;
+    private string Title => Id.HasValue ? Text("Edit Unit", "تعديل وحدة") : Text("New Unit", "وحدة جديدة");
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadLookupsAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var result = await RealEstateService.GetPropertiesAsync(1, 500);
+        properties = result.Data?.Data.ToList() ?? [];
+    }
+
+    private async Task LoadAsync()
+    {
+        if (!Id.HasValue) return;
+        isLoading = true;
+        var result = await RealEstateService.GetUnitByIdAsync(Id.Value);
+        if (result.IsSuccess && result.Data is not null)
+        {
+            unit = result.Data;
+            propertyIdText = unit.PropertyId.ToString();
+        }
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        isLoading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!Guid.TryParse(propertyIdText, out var propertyId))
+        {
+            errorMessage = Text("Property is required.", "العقار مطلوب.");
+            return;
+        }
+        isSaving = true;
+        unit.PropertyId = propertyId;
+        var isSuccess = false;
+        if (Id.HasValue)
+        {
+            var result = await RealEstateService.UpdateUnitAsync(unit);
+            isSuccess = result.IsSuccess;
+            errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        else
+        {
+            var result = await RealEstateService.CreateUnitAsync(unit);
+            isSuccess = result.IsSuccess;
+            errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        isSaving = false;
+        if (isSuccess) NavigationManager.NavigateTo("/RealEstate/Units");
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

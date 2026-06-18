@@ -8,6 +8,9 @@ public class CheckoutPaymentRequestDto
     public Guid CompanyId { get; set; }
     public Guid? CustomerId { get; set; }
     public OrderIntakeSource Source { get; set; }
+    public PaymentSourceType SourceType { get; set; } = PaymentSourceType.Checkout;
+    public Guid? SourceDocumentId { get; set; }
+    public string? SourceDocumentNumber { get; set; }
     public string? Channel { get; set; }
     public PaymentMethodType Method { get; set; }
     public decimal Amount { get; set; }

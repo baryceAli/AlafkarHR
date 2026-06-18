@@ -1119,6 +1119,93 @@ public class MenuItem
             }
         },
 
+        //Real Estate
+        new MenuItem
+        {
+            TextEn = "Real Estate",
+            TextAr = "Real Estate",
+            Icon = "bi-buildings",
+            PermissionPolicy = PermissionList.RealEstatePropertyPermissions.Select,
+            WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            KeywordsEn = "admin real estate properties units leases rent utilities expenses",
+            KeywordsAr = "real estate properties units leases rent utilities expenses",
+            Children = new()
+            {
+                new MenuItem
+                {
+                    TextEn = "Dashboard",
+                    TextAr = "Dashboard",
+                    Icon = "bi-speedometer2",
+                    Url = "/RealEstate/Dashboard",
+                    PermissionPolicy = PermissionList.RealEstateReportsPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Properties",
+                    TextAr = "Properties",
+                    Icon = "bi-buildings",
+                    Url = "/RealEstate/Properties",
+                    PermissionPolicy = PermissionList.RealEstatePropertyPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Units",
+                    TextAr = "Units",
+                    Icon = "bi-door-open",
+                    Url = "/RealEstate/Units",
+                    PermissionPolicy = PermissionList.RealEstateUnitPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Owner Leases",
+                    TextAr = "Owner Leases",
+                    Icon = "bi-file-earmark-minus",
+                    Url = "/RealEstate/OwnerLeases",
+                    PermissionPolicy = PermissionList.RealEstateLeasePermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Tenant Leases",
+                    TextAr = "Tenant Leases",
+                    Icon = "bi-file-earmark-check",
+                    Url = "/RealEstate/TenantLeases",
+                    PermissionPolicy = PermissionList.RealEstateLeasePermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Rent Collections",
+                    TextAr = "Rent Collections",
+                    Icon = "bi-cash-coin",
+                    Url = "/RealEstate/Collections",
+                    PermissionPolicy = PermissionList.RealEstateInstallmentPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Utilities",
+                    TextAr = "Utilities",
+                    Icon = "bi-lightning-charge",
+                    Url = "/RealEstate/Utilities",
+                    PermissionPolicy = PermissionList.RealEstateUtilityPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Expenses",
+                    TextAr = "Expenses",
+                    Icon = "bi-receipt",
+                    Url = "/RealEstate/Expenses",
+                    PermissionPolicy = PermissionList.RealEstateExpensePermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Reports",
+                    TextAr = "Reports",
+                    Icon = "bi-bar-chart-line",
+                    Url = "/RealEstate/Reports",
+                    PermissionPolicy = PermissionList.RealEstateReportsPermissions.View,
+                }
+            }
+        },
+
         //Maintenance
         new MenuItem
         {
