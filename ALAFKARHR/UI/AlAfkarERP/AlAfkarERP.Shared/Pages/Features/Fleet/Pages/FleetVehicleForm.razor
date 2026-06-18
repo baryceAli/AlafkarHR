@@ -1,0 +1,304 @@
+@page "/Fleet/Vehicles/Form"
+@page "/Fleet/Vehicles/Form/{Id:guid}"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.Fleet.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Fleet.Dtos
+@using SharedWithUI.Fleet.Enums
+@inject IFleetService FleetService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Title"
+                Subtitle="@Text("Register owned vehicles and rented vehicles in one fleet record.", "تسجيل المركبات المملوكة والمؤجرة في سجل أسطول واحد.")"
+                Icon="bi-truck-front">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo("/Fleet/Vehicles"))">
+                <i class="bi bi-arrow-left"></i>
+                @Text("Back", "رجوع")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    <EditForm Model="vehicle" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <section class="erp-card mb-3">
+            <div class="erp-card-header"><strong>@Text("Vehicle Details", "بيانات المركبة")</strong></div>
+            <div class="erp-card-body">
+                <div class="row g-3">
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Vehicle Code", "كود المركبة")</label>
+                        <InputText class="form-control" @bind-Value="vehicle.VehicleCode" placeholder="@Text("Auto-generated if blank", "يولد تلقائيا إذا ترك فارغا")" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Plate Number", "رقم اللوحة")</label>
+                        <InputText class="form-control" @bind-Value="vehicle.PlateNumber" />
+                        <ValidationMessage For="@(() => vehicle.PlateNumber)" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Arabic Name", "الاسم العربي")</label>
+                        <InputText class="form-control" @bind-Value="vehicle.Name" />
+                        <ValidationMessage For="@(() => vehicle.Name)" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("English Name", "الاسم الإنجليزي")</label>
+                        <InputText class="form-control" @bind-Value="vehicle.NameEng" />
+                        <ValidationMessage For="@(() => vehicle.NameEng)" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Make", "الشركة")</label>
+                        <InputText class="form-control" @bind-Value="vehicle.Make" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Model", "الموديل")</label>
+                        <InputText class="form-control" @bind-Value="vehicle.Model" />
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label">@Text("Year", "السنة")</label>
+                        <InputNumber class="form-control" @bind-Value="vehicle.Year" />
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label">@Text("Color", "اللون")</label>
+                        <InputText class="form-control" @bind-Value="vehicle.Color" />
+                    </div>
+                    <div class="col-12 col-md-2">
+                        <label class="form-label">@Text("Type", "النوع")</label>
+                        <InputSelect class="form-select" @bind-Value="vehicle.VehicleType">
+                            @foreach (var value in Enum.GetValues<FleetVehicleType>())
+                            {
+                                <option value="@value">@value</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("VIN / Chassis", "رقم الهيكل")</label>
+                        <InputText class="form-control" @bind-Value="vehicle.Vin" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Engine Number", "رقم المحرك")</label>
+                        <InputText class="form-control" @bind-Value="vehicle.EngineNumber" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Odometer", "العداد")</label>
+                        <InputNumber class="form-control" @bind-Value="vehicle.CurrentOdometer" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Fuel Type", "نوع الوقود")</label>
+                        <InputSelect class="form-select" @bind-Value="vehicle.FuelType">
+                            @foreach (var value in Enum.GetValues<FleetFuelType>())
+                            {
+                                <option value="@value">@value</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Fuel Capacity", "سعة الوقود")</label>
+                        <InputNumber class="form-control" @bind-Value="vehicle.FuelCapacity" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Status", "الحالة")</label>
+                        <InputSelect class="form-select" @bind-Value="vehicle.Status">
+                            @foreach (var value in Enum.GetValues<FleetVehicleStatus>())
+                            {
+                                <option value="@value">@value</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="erp-card mb-3">
+            <div class="erp-card-header"><strong>@Text("Ownership", "الملكية")</strong></div>
+            <div class="erp-card-body">
+                <div class="row g-3">
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Ownership Type", "نوع الملكية")</label>
+                        <InputSelect class="form-select" @bind-Value="vehicle.OwnershipType">
+                            @foreach (var value in Enum.GetValues<FleetVehicleOwnershipType>())
+                            {
+                                <option value="@value">@value</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    @if (vehicle.OwnershipType == FleetVehicleOwnershipType.Owned)
+                    {
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Purchase Date", "تاريخ الشراء")</label>
+                            <InputDate class="form-control" @bind-Value="vehicle.PurchaseDate" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Purchase Cost", "تكلفة الشراء")</label>
+                            <InputNumber class="form-control" @bind-Value="vehicle.PurchaseCost" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Warranty End", "نهاية الضمان")</label>
+                            <InputDate class="form-control" @bind-Value="vehicle.WarrantyEndDate" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Supplier Id", "معرف المورد")</label>
+                            <input class="form-control" @bind="supplierIdText" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Contract Id", "معرف العقد")</label>
+                            <input class="form-control" @bind="contractIdText" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Rental Start", "بداية الإيجار")</label>
+                            <InputDate class="form-control" @bind-Value="vehicle.RentalStartDate" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Rental End", "نهاية الإيجار")</label>
+                            <InputDate class="form-control" @bind-Value="vehicle.RentalEndDate" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Monthly Rent", "الإيجار الشهري")</label>
+                            <InputNumber class="form-control" @bind-Value="vehicle.MonthlyRent" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Daily Rent", "الإيجار اليومي")</label>
+                            <InputNumber class="form-control" @bind-Value="vehicle.DailyRent" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Deposit", "العربون")</label>
+                            <InputNumber class="form-control" @bind-Value="vehicle.DepositAmount" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Allowed KM", "الكيلومترات المسموحة")</label>
+                            <InputNumber class="form-control" @bind-Value="vehicle.AllowedKilometers" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">@Text("Excess KM Rate", "سعر الكيلومتر الزائد")</label>
+                            <InputNumber class="form-control" @bind-Value="vehicle.ExcessKilometerRate" />
+                        </div>
+                    }
+                    <div class="col-12">
+                        <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                        <InputTextArea class="form-control" rows="3" @bind-Value="vehicle.Notes" />
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo("/Fleet/Vehicles"))">@Text("Cancel", "إلغاء")</button>
+            <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                <i class="bi bi-save"></i>
+                @Text("Save Vehicle", "حفظ المركبة")
+            </button>
+        </div>
+    </EditForm>
+</main>
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+    private UpdateFleetVehicleDto vehicle = new();
+    private string? supplierIdText;
+    private string? contractIdText;
+    private string? errorMessage;
+    private bool isSaving;
+    private AuthenticationState? authState;
+    private string Title => Id.HasValue ? Text("Edit Vehicle", "تعديل مركبة") : Text("New Vehicle", "مركبة جديدة");
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        vehicle.CompanyId = ResolveCompanyId();
+
+        if (Id.HasValue)
+        {
+            var result = await FleetService.GetVehicleByIdAsync(Id.Value);
+            if (result.IsSuccess && result.Data?.Vehicle is not null)
+            {
+                var existing = result.Data.Vehicle;
+                vehicle = new UpdateFleetVehicleDto
+                {
+                    Id = existing.Id,
+                    VehicleCode = existing.VehicleCode,
+                    PlateNumber = existing.PlateNumber,
+                    Name = existing.Name,
+                    NameEng = existing.NameEng,
+                    Make = existing.Make,
+                    Model = existing.Model,
+                    Year = existing.Year,
+                    Color = existing.Color,
+                    Vin = existing.Vin,
+                    EngineNumber = existing.EngineNumber,
+                    VehicleType = existing.VehicleType,
+                    Status = existing.Status,
+                    OwnershipType = existing.OwnershipType,
+                    CompanyId = existing.CompanyId,
+                    BranchId = existing.BranchId,
+                    PurchaseDate = existing.PurchaseDate,
+                    PurchaseCost = existing.PurchaseCost,
+                    WarrantyEndDate = existing.WarrantyEndDate,
+                    SupplierId = existing.SupplierId,
+                    RentalContractId = existing.RentalContractId,
+                    RentalStartDate = existing.RentalStartDate,
+                    RentalEndDate = existing.RentalEndDate,
+                    MonthlyRent = existing.MonthlyRent,
+                    DailyRent = existing.DailyRent,
+                    DepositAmount = existing.DepositAmount,
+                    AllowedKilometers = existing.AllowedKilometers,
+                    ExcessKilometerRate = existing.ExcessKilometerRate,
+                    CurrentOdometer = existing.CurrentOdometer,
+                    FuelType = existing.FuelType,
+                    FuelCapacity = existing.FuelCapacity,
+                    DefaultDriverEmployeeId = existing.DefaultDriverEmployeeId,
+                    Notes = existing.Notes
+                };
+                supplierIdText = existing.SupplierId?.ToString();
+                contractIdText = existing.RentalContractId?.ToString();
+            }
+            else
+            {
+                errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load vehicle.", "تعذر تحميل المركبة.");
+            }
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        isSaving = true;
+        errorMessage = null;
+        vehicle.SupplierId = ParseGuid(supplierIdText);
+        vehicle.RentalContractId = ParseGuid(contractIdText);
+
+        if (Id.HasValue)
+        {
+            var result = await FleetService.UpdateVehicleAsync(vehicle);
+            if (result.IsSuccess)
+                NavigationManager.NavigateTo("/Fleet/Vehicles");
+            else
+                errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to save vehicle.", "تعذر حفظ المركبة.");
+        }
+        else
+        {
+            var result = await FleetService.CreateVehicleAsync(vehicle);
+            if (result.IsSuccess)
+                NavigationManager.NavigateTo("/Fleet/Vehicles");
+            else
+                errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to save vehicle.", "تعذر حفظ المركبة.");
+        }
+
+        isSaving = false;
+    }
+
+    private Guid? ParseGuid(string? value) => Guid.TryParse(value, out var id) ? id : null;
+    private Guid ResolveCompanyId() => Guid.TryParse(authState?.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

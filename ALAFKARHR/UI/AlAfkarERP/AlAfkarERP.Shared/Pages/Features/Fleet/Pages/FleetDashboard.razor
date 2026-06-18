@@ -1,0 +1,118 @@
+@page "/Fleet/Dashboard"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.Fleet.Services
+@using SharedWithUI.Fleet.Dtos
+@inject IFleetService FleetService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Fleet Dashboard", "لوحة الأسطول")"
+                Subtitle="@Text("Vehicles, assignments, renewals, maintenance due dates, and monthly costs.", "المركبات والعهد والتجديدات ومواعيد الصيانة والتكاليف الشهرية.")"
+                Icon="bi-truck-front">
+        <Actions>
+            <button class="btn btn-primary" @onclick="@(() => NavigationManager.NavigateTo("/Fleet/Vehicles/Form"))">
+                <i class="bi bi-plus-lg"></i>
+                @Text("New Vehicle", "مركبة جديدة")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <section class="erp-card"><div class="erp-card-body text-muted">@Text("Loading dashboard...", "جاري تحميل اللوحة...")</div></section>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+    else if (dashboard is not null)
+    {
+        <div class="row g-3">
+            <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Vehicles", "المركبات")" Value="@dashboard.TotalVehicles.ToString()" Icon="bi-truck-front" OnClick="@(() => NavigationManager.NavigateTo("/Fleet/Vehicles"))" /></div>
+            <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Owned", "مملوكة")" Value="@dashboard.OwnedVehicles.ToString()" Icon="bi-building-check" Tone="success" OnClick="@(() => NavigationManager.NavigateTo("/Fleet/Vehicles?ownershipType=Owned"))" /></div>
+            <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Rented", "مؤجرة")" Value="@dashboard.RentedVehicles.ToString()" Icon="bi-key" Tone="info" OnClick="@(() => NavigationManager.NavigateTo("/Fleet/Vehicles?ownershipType=Rented"))" /></div>
+            <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Assigned", "عهد نشطة")" Value="@dashboard.ActiveAssignments.ToString()" Icon="bi-person-vcard" Tone="primary" OnClick="@(() => NavigationManager.NavigateTo("/Fleet/Assignments"))" /></div>
+            <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Renewals", "تجديدات")" Value="@dashboard.ExpiringDocuments.ToString()" Icon="bi-file-earmark-text" Tone="warning" OnClick="@(() => NavigationManager.NavigateTo("/Fleet/Documents"))" /></div>
+            <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Due Service", "صيانة مستحقة")" Value="@dashboard.OverdueServices.ToString()" Icon="bi-tools" Tone="danger" /></div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-12 col-lg-4">
+                <article class="erp-card">
+                    <div class="erp-card-header"><strong>@Text("Monthly Expenses", "مصروفات الشهر")</strong></div>
+                    <div class="erp-card-body fs-4 fw-semibold">@dashboard.MonthlyExpenses.ToString("N2")</div>
+                </article>
+            </div>
+            <div class="col-12 col-lg-4">
+                <article class="erp-card">
+                    <div class="erp-card-header"><strong>@Text("Expiring Documents", "مستندات قاربت على الانتهاء")</strong></div>
+                    <div class="erp-card-body">
+                        @foreach (var document in dashboard.ExpiringDocumentList.Take(5))
+                        {
+                            <div class="d-flex justify-content-between gap-2 py-1 border-bottom">
+                                <span>@document.VehicleName - @document.DocumentType</span>
+                                <span class="text-muted small">@document.ExpiryDate?.ToString("yyyy-MM-dd")</span>
+                            </div>
+                        }
+                        @if (!dashboard.ExpiringDocumentList.Any())
+                        {
+                            <div class="text-muted">@Text("No upcoming renewals.", "لا توجد تجديدات قريبة.")</div>
+                        }
+                    </div>
+                </article>
+            </div>
+            <div class="col-12 col-lg-4">
+                <article class="erp-card">
+                    <div class="erp-card-header"><strong>@Text("Due Service Rules", "قواعد صيانة مستحقة")</strong></div>
+                    <div class="erp-card-body">
+                        @foreach (var rule in dashboard.DueServiceRules.Take(5))
+                        {
+                            <div class="d-flex justify-content-between gap-2 py-1 border-bottom">
+                                <span>@rule.VehicleName - @rule.ServiceType</span>
+                                <span class="text-muted small">@rule.NextDueDate?.ToString("yyyy-MM-dd") @rule.NextDueOdometer</span>
+                            </div>
+                        }
+                        @if (!dashboard.DueServiceRules.Any())
+                        {
+                            <div class="text-muted">@Text("No service due.", "لا توجد صيانة مستحقة.")</div>
+                        }
+                    </div>
+                </article>
+            </div>
+        </div>
+    }
+</main>
+
+@code {
+    private FleetDashboardDto? dashboard;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await FleetService.GetDashboardAsync();
+        if (result.IsSuccess)
+        {
+            dashboard = result.Data;
+            errorMessage = null;
+        }
+        else
+        {
+            errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load dashboard.", "تعذر تحميل اللوحة.");
+        }
+        isLoading = false;
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

@@ -7,6 +7,7 @@ using Contracts;
 using CustomersModule;
 using DocumentManagement;
 using EmployeeModule;
+using Fleet;
 using GeneralSettings;
 using Inventory;
 using Maintenance;
@@ -59,6 +60,7 @@ var salesAssembly = typeof(SalesModule).Assembly;
 var payrollAssembly = typeof(PayrollModule).Assembly;
 var taskManagementAssembly = typeof(TaskManagementModule).Assembly;
 var maintenanceAssembly = typeof(MaintenanceModule).Assembly;
+var fleetAssembly = typeof(FleetModule).Assembly;
 
 builder.Services.AddCarterWithAssemblies(
                         authAssembly,
@@ -81,7 +83,8 @@ builder.Services.AddCarterWithAssemblies(
                         salesAssembly,
                         payrollAssembly,
                         taskManagementAssembly,
-                        maintenanceAssembly
+                        maintenanceAssembly,
+                        fleetAssembly
                         );
 //catalogAssembly,
 //basketAssembly,
@@ -108,7 +111,8 @@ builder.Services.AddMediatRWithAssemblies(
                         salesAssembly,
                         payrollAssembly,
                         taskManagementAssembly,
-                        maintenanceAssembly
+                        maintenanceAssembly,
+                        fleetAssembly
                         );
 //catalogAssembly,
 //basketAssembly,
@@ -139,7 +143,8 @@ builder.Services
         .AddProcurementModule(builder.Configuration)
         .AddPayrollModule(builder.Configuration)
         .AddTaskManagementModule(builder.Configuration)
-        .AddMaintenanceModule(builder.Configuration);
+        .AddMaintenanceModule(builder.Configuration)
+        .AddFleetModule(builder.Configuration);
 #endregion
 
 
@@ -185,7 +190,8 @@ app
     .UseProcurementModule(app.Environment)
     .UsePayrollModule(app.Environment)
     .UseTaskManagementModule(app.Environment)
-    .UseMaintenanceModule(app.Environment);
+    .UseMaintenanceModule(app.Environment)
+    .UseFleetModule(app.Environment);
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())

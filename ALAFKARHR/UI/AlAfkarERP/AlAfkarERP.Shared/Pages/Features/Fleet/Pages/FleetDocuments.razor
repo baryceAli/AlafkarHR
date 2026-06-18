@@ -1,0 +1,340 @@
+@page "/Fleet/Documents"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.Fleet.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@using SharedWithUI.Fleet.Dtos
+@using SharedWithUI.Fleet.Enums
+@using SharedWithUI.Permissions
+@inject IFleetService FleetService
+@inject SharedDataService SharedDataService
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthStateProvider
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Fleet Documents", "مستندات الأسطول")"
+                Subtitle="@Text("Registration, insurance, inspection, and rental document renewals.", "تجديدات الاستمارة والتأمين والفحص ومستندات الإيجار.")"
+                Icon="bi-file-earmark-text" />
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    @if (Can(PermissionList.FleetVehicleDocumentPermissions.Create) || editingDocumentId.HasValue)
+    {
+    <section class="erp-card mb-3">
+        <div class="erp-card-header d-flex justify-content-between align-items-center">
+            <strong>@(editingDocumentId.HasValue ? Text("Edit Document", "تعديل المستند") : Text("New Document", "مستند جديد"))</strong>
+            @if (editingDocumentId.HasValue)
+            {
+                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ResetForm">@Text("New", "جديد")</button>
+            }
+        </div>
+        <div class="erp-card-body">
+            <EditForm Model="documentForm" OnValidSubmit="SaveAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-lg-3">
+                        <label class="form-label">@Text("Vehicle", "المركبة")</label>
+                        <InputSelect class="form-select" @bind-Value="documentForm.VehicleId">
+                            <option value="@Guid.Empty">@Text("Select vehicle", "اختر المركبة")</option>
+                            @foreach (var vehicle in vehicles)
+                            {
+                                <option value="@vehicle.Id">@vehicle.PlateNumber - @Name(vehicle)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <label class="form-label">@Text("Type", "النوع")</label>
+                        <InputSelect class="form-select" @bind-Value="documentForm.DocumentType">
+                            @foreach (var value in Enum.GetValues<FleetDocumentType>())
+                            {
+                                <option value="@value">@value</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-6 col-lg-2"><label class="form-label">@Text("Number", "الرقم")</label><InputText class="form-control" @bind-Value="documentForm.DocumentNumber" /></div>
+                    <div class="col-6 col-lg-2"><label class="form-label">@Text("Issue", "الإصدار")</label><InputDate class="form-control" @bind-Value="documentForm.IssueDate" /></div>
+                    <div class="col-6 col-lg-2"><label class="form-label">@Text("Expiry", "الانتهاء")</label><InputDate class="form-control" @bind-Value="documentForm.ExpiryDate" /></div>
+                    <div class="col-6 col-lg-1"><label class="form-label">@Text("Cost", "التكلفة")</label><InputNumber class="form-control" @bind-Value="documentForm.RenewalCost" /></div>
+                    <div class="col-12 col-lg-3"><label class="form-label">@Text("Supplier Id", "معرف المورد")</label><input class="form-control" @bind="supplierIdText" /></div>
+                    <div class="col-12 col-lg-3"><label class="form-label">@Text("File Name", "اسم الملف")</label><InputText class="form-control" @bind-Value="documentForm.FileName" /></div>
+                    <div class="col-12 col-lg-3"><label class="form-label">@Text("File Path", "مسار الملف")</label><InputText class="form-control" @bind-Value="documentForm.FilePath" /></div>
+                    <div class="col-12 col-lg-2"><label class="form-label">@Text("Content Type", "نوع الملف")</label><InputText class="form-control" @bind-Value="documentForm.ContentType" /></div>
+                    <div class="col-12 col-lg-1"><label class="form-label">@Text("Size", "الحجم")</label><InputNumber class="form-control" @bind-Value="documentForm.FileSize" /></div>
+                    <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputTextArea class="form-control" rows="2" @bind-Value="documentForm.Notes" /></div>
+                    <div class="col-12 d-flex justify-content-end gap-2">
+                        <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @Text("Save", "حفظ")</button>
+                        <button class="btn btn-outline-secondary" type="button" @onclick="ResetForm">@Text("Clear", "مسح")</button>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </section>
+    }
+
+    @if (renewingDocument is not null && Can(PermissionList.FleetVehicleDocumentPermissions.Renew))
+    {
+        <section class="erp-card mb-3">
+            <div class="erp-card-header"><strong>@Text("Renew Document", "تجديد المستند")</strong></div>
+            <div class="erp-card-body">
+                <EditForm Model="renewalForm" OnValidSubmit="ConfirmRenewAsync">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-lg-3">@renewingDocument.VehicleName - @renewingDocument.DocumentType</div>
+                        <div class="col-6 col-lg-2"><label class="form-label">@Text("Issue", "الإصدار")</label><InputDate class="form-control" @bind-Value="renewalForm.IssueDate" /></div>
+                        <div class="col-6 col-lg-2"><label class="form-label">@Text("Expiry", "الانتهاء")</label><InputDate class="form-control" @bind-Value="renewalForm.ExpiryDate" /></div>
+                        <div class="col-6 col-lg-2"><label class="form-label">@Text("Cost", "التكلفة")</label><InputNumber class="form-control" @bind-Value="renewalForm.RenewalCost" /></div>
+                        <div class="col-12 col-lg-3"><label class="form-label">@Text("Supplier Id", "معرف المورد")</label><input class="form-control" @bind="renewalSupplierIdText" /></div>
+                        <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="renewalForm.Notes" /></div>
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                            <button class="btn btn-success" type="submit">@Text("Renew", "تجديد")</button>
+                            <button class="btn btn-outline-secondary" type="button" @onclick="@(() => renewingDocument = null)">@Text("Cancel", "إلغاء")</button>
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </section>
+    }
+
+    <section class="erp-card mb-3">
+        <div class="erp-card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-lg-3"><label class="form-label">@Text("Search", "بحث")</label><input class="form-control" @bind="searchText" @bind:event="oninput" /></div>
+                <div class="col-12 col-lg-3">
+                    <label class="form-label">@Text("Vehicle", "المركبة")</label>
+                    <select class="form-select" @bind="filterVehicleIdText">
+                        <option value="">@Text("All", "الكل")</option>
+                        @foreach (var vehicle in vehicles)
+                        {
+                            <option value="@vehicle.Id">@vehicle.PlateNumber - @Name(vehicle)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-6 col-lg-2"><label class="form-label">@Text("Type", "النوع")</label><select class="form-select" @bind="documentTypeText"><option value="">@Text("All", "الكل")</option>@foreach (var value in Enum.GetValues<FleetDocumentType>()) { <option value="@value">@value</option> }</select></div>
+                <div class="col-6 col-lg-2"><label class="form-label">@Text("Status", "الحالة")</label><select class="form-select" @bind="statusText"><option value="">@Text("All", "الكل")</option>@foreach (var value in Enum.GetValues<FleetDocumentStatus>()) { <option value="@value">@value</option> }</select></div>
+                <div class="col-12 col-lg-2"><button class="btn btn-outline-secondary w-100" @onclick="ApplyFiltersAsync"><i class="bi bi-search"></i></button></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="erp-card">
+        <div class="erp-table-wrap">
+            <table class="erp-table table">
+                <thead>
+                    <tr>
+                        <th>@Text("Vehicle", "المركبة")</th>
+                        <th>@Text("Type", "النوع")</th>
+                        <th>@Text("Number", "الرقم")</th>
+                        <th>@Text("Issue / Expiry", "الإصدار / الانتهاء")</th>
+                        <th>@Text("Cost", "التكلفة")</th>
+                        <th>@Text("File", "الملف")</th>
+                        <th>@Text("Status", "الحالة")</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (isLoading)
+                    {
+                        <tr><td colspan="8" class="text-muted">@Text("Loading documents...", "جاري تحميل المستندات...")</td></tr>
+                    }
+                    else if (!documents.Any())
+                    {
+                        <tr><td colspan="8" class="text-muted">@Text("No documents found.", "لا توجد مستندات.")</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var document in documents)
+                        {
+                            <tr>
+                                <td>@document.VehicleName</td>
+                                <td>@document.DocumentType</td>
+                                <td>@document.DocumentNumber</td>
+                                <td>@document.IssueDate?.ToString("yyyy-MM-dd") / @document.ExpiryDate?.ToString("yyyy-MM-dd")</td>
+                                <td>@document.RenewalCost?.ToString("N2")</td>
+                                <td class="small">@document.FileName<div class="text-muted">@document.ContentType @document.FileSize</div></td>
+                                <td><StatusChip Text="@document.Status.ToString()" Tone="@DocumentTone(document.Status)" /></td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        @if (Can(PermissionList.FleetVehicleDocumentPermissions.Renew))
+                                        {
+                                            <button class="btn btn-outline-primary" @onclick="@(() => BeginRenew(document))">@Text("Renew", "تجديد")</button>
+                                        }
+                                        @if (Can(PermissionList.FleetVehicleDocumentPermissions.Edit))
+                                        {
+                                            <button class="btn btn-outline-secondary" @onclick="@(() => Edit(document))"><i class="bi bi-pencil"></i></button>
+                                        }
+                                        @if (Can(PermissionList.FleetVehicleDocumentPermissions.Delete))
+                                        {
+                                            <button class="btn btn-outline-danger" @onclick="@(() => DeleteAsync(document.Id))"><i class="bi bi-trash"></i></button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="erp-card-body border-top d-flex justify-content-between align-items-center gap-2">
+            <span class="text-muted small">@Text("Total", "الإجمالي"): @totalCount</span>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-secondary" disabled="@(pageIndex == 0 || isLoading)" @onclick="PreviousPageAsync"><i class="bi bi-chevron-left"></i></button>
+                <span class="small">@Text("Page", "صفحة") @(pageIndex + 1)</span>
+                <button class="btn btn-sm btn-outline-secondary" disabled="@(!HasNextPage || isLoading)" @onclick="NextPageAsync"><i class="bi bi-chevron-right"></i></button>
+            </div>
+        </div>
+    </section>
+</main>
+
+@code {
+    private List<FleetVehicleDto> vehicles = [];
+    private List<FleetVehicleDocumentDto> documents = [];
+    private UpdateFleetVehicleDocumentDto documentForm = NewDocument();
+    private Guid? editingDocumentId;
+    private FleetVehicleDocumentDto? renewingDocument;
+    private RenewFleetVehicleDocumentDto renewalForm = new();
+    private string? supplierIdText;
+    private string? renewalSupplierIdText;
+    private string searchText = string.Empty;
+    private string filterVehicleIdText = string.Empty;
+    private string documentTypeText = string.Empty;
+    private string statusText = string.Empty;
+    private string? errorMessage;
+    private int pageIndex;
+    private int pageSize = 25;
+    private long totalCount;
+    private bool isLoading = true;
+    private AuthenticationState? authState;
+    private bool HasNextPage => (pageIndex + 1) * pageSize < totalCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        await LoadVehiclesAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadVehiclesAsync()
+    {
+        var result = await FleetService.GetVehiclesAsync(0, 1000);
+        vehicles = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await FleetService.GetDocumentsAsync(pageIndex, pageSize, searchText, ParseGuid(filterVehicleIdText), ParseType(), ParseStatus());
+        if (result.IsSuccess)
+        {
+            documents = result.Data?.Data.ToList() ?? [];
+            totalCount = result.Data?.Count ?? 0;
+            errorMessage = null;
+        }
+        else
+        {
+            errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        isLoading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        documentForm.SupplierId = ParseGuid(supplierIdText);
+        if (editingDocumentId.HasValue)
+        {
+            documentForm.Id = editingDocumentId.Value;
+            var update = await FleetService.UpdateDocumentAsync(documentForm);
+            errorMessage = update.IsSuccess ? null : update.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        else
+        {
+            var create = await FleetService.CreateDocumentAsync(documentForm);
+            errorMessage = create.IsSuccess ? null : create.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+
+        if (string.IsNullOrWhiteSpace(errorMessage))
+            ResetForm();
+        await LoadAsync();
+    }
+
+    private void Edit(FleetVehicleDocumentDto document)
+    {
+        editingDocumentId = document.Id;
+        documentForm = new UpdateFleetVehicleDocumentDto
+        {
+            Id = document.Id,
+            VehicleId = document.VehicleId,
+            DocumentType = document.DocumentType,
+            DocumentNumber = document.DocumentNumber,
+            IssueDate = document.IssueDate,
+            ExpiryDate = document.ExpiryDate,
+            RenewalCost = document.RenewalCost,
+            SupplierId = document.SupplierId,
+            FileName = document.FileName,
+            FilePath = document.FilePath,
+            ContentType = document.ContentType,
+            FileSize = document.FileSize,
+            Notes = document.Notes
+        };
+        supplierIdText = document.SupplierId?.ToString();
+    }
+
+    private void BeginRenew(FleetVehicleDocumentDto document)
+    {
+        renewingDocument = document;
+        renewalForm = new RenewFleetVehicleDocumentDto
+        {
+            IssueDate = DateTime.UtcNow.Date,
+            ExpiryDate = document.ExpiryDate?.Date.AddYears(1) ?? DateTime.UtcNow.Date.AddYears(1),
+            RenewalCost = document.RenewalCost,
+            SupplierId = document.SupplierId,
+            Notes = document.Notes
+        };
+        renewalSupplierIdText = document.SupplierId?.ToString();
+    }
+
+    private async Task ConfirmRenewAsync()
+    {
+        if (renewingDocument is null)
+            return;
+        renewalForm.SupplierId = ParseGuid(renewalSupplierIdText);
+        var result = await FleetService.RenewDocumentAsync(renewingDocument.Id, renewalForm);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        renewingDocument = null;
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", Text("Delete this document?", "هل تريد حذف هذا المستند؟")))
+            return;
+        var result = await FleetService.DeleteDocumentAsync(id);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        await LoadAsync();
+    }
+
+    private async Task ApplyFiltersAsync() { pageIndex = 0; await LoadAsync(); }
+    private async Task NextPageAsync() { if (HasNextPage) { pageIndex++; await LoadAsync(); } }
+    private async Task PreviousPageAsync() { if (pageIndex > 0) { pageIndex--; await LoadAsync(); } }
+
+    private void ResetForm()
+    {
+        editingDocumentId = null;
+        documentForm = NewDocument();
+        supplierIdText = null;
+    }
+
+    private static UpdateFleetVehicleDocumentDto NewDocument() => new() { ExpiryDate = DateTime.UtcNow.Date.AddYears(1) };
+    private FleetDocumentType? ParseType() => Enum.TryParse<FleetDocumentType>(documentTypeText, out var value) ? value : null;
+    private FleetDocumentStatus? ParseStatus() => Enum.TryParse<FleetDocumentStatus>(statusText, out var value) ? value : null;
+    private Guid? ParseGuid(string? value) => Guid.TryParse(value, out var id) ? id : null;
+    private string DocumentTone(FleetDocumentStatus status) => status == FleetDocumentStatus.Expired ? "danger" : status == FleetDocumentStatus.ExpiringSoon ? "warning" : status == FleetDocumentStatus.Renewed ? "primary" : "success";
+    private bool Can(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string Name(FleetVehicleDto vehicle) => SharedDataService.SelectViewLang(vehicle.NameEng, vehicle.Name);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

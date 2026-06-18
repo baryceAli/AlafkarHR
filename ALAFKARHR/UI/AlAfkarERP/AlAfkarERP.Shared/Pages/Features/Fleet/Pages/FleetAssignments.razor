@@ -1,0 +1,260 @@
+@page "/Fleet/Assignments"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.Fleet.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Fleet.Dtos
+@using SharedWithUI.Fleet.Enums
+@using SharedWithUI.Permissions
+@inject IFleetService FleetService
+@inject SharedDataService SharedDataService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Vehicle Assignments", "عهد المركبات")"
+                Subtitle="@Text("Assign vehicles and record return odometer, fuel, and notes.", "تسليم المركبات وتسجيل عداد ووقود وملاحظات الإرجاع.")"
+                Icon="bi-person-vcard" />
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    @if (Can(PermissionList.FleetVehicleAssignmentPermissions.Create))
+    {
+    <section class="erp-card mb-3">
+        <div class="erp-card-header"><strong>@Text("New Assignment", "عهدة جديدة")</strong></div>
+        <div class="erp-card-body">
+            <EditForm Model="newAssignment" OnValidSubmit="CreateAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-lg-3">
+                        <label class="form-label">@Text("Vehicle", "المركبة")</label>
+                        <InputSelect class="form-select" @bind-Value="newAssignment.VehicleId">
+                            <option value="@Guid.Empty">@Text("Select vehicle", "اختر المركبة")</option>
+                            @foreach (var vehicle in vehicles)
+                            {
+                                <option value="@vehicle.Id">@vehicle.PlateNumber - @Name(vehicle)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-12 col-lg-2"><label class="form-label">@Text("Employee Id", "معرف الموظف")</label><input class="form-control" @bind="employeeIdText" /></div>
+                    <div class="col-12 col-lg-2"><label class="form-label">@Text("User Id", "معرف المستخدم")</label><input class="form-control" @bind="userIdText" /></div>
+                    <div class="col-12 col-lg-2"><label class="form-label">@Text("Branch Id", "معرف الفرع")</label><input class="form-control" @bind="branchIdText" /></div>
+                    <div class="col-12 col-lg-2"><label class="form-label">@Text("Department Id", "معرف الإدارة")</label><input class="form-control" @bind="departmentIdText" /></div>
+                    <div class="col-6 col-lg-2"><label class="form-label">@Text("Start", "البداية")</label><InputDate class="form-control" @bind-Value="newAssignment.StartDate" /></div>
+                    <div class="col-6 col-lg-1"><label class="form-label">@Text("Out KM", "عداد")</label><InputNumber class="form-control" @bind-Value="newAssignment.OdometerOut" /></div>
+                    <div class="col-6 col-lg-1"><label class="form-label">@Text("Fuel", "وقود")</label><InputNumber class="form-control" @bind-Value="newAssignment.FuelLevelOut" /></div>
+                    <div class="col-12 col-lg-1"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-plus-lg"></i></button></div>
+                    <div class="col-12"><label class="form-label">@Text("Purpose", "الغرض")</label><InputText class="form-control" @bind-Value="newAssignment.Purpose" /></div>
+                </div>
+            </EditForm>
+        </div>
+    </section>
+    }
+
+    @if (returningAssignment is not null && Can(PermissionList.FleetVehicleAssignmentPermissions.Close))
+    {
+        <section class="erp-card mb-3">
+            <div class="erp-card-header"><strong>@Text("Return Vehicle", "إرجاع المركبة")</strong></div>
+            <div class="erp-card-body">
+                <EditForm Model="returnForm" OnValidSubmit="ConfirmReturnAsync">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-lg-3">@returningAssignment.PlateNumber - @returningAssignment.VehicleName</div>
+                        <div class="col-6 col-lg-2"><label class="form-label">@Text("Return Date", "تاريخ الإرجاع")</label><InputDate class="form-control" @bind-Value="returnForm.ReturnDate" /></div>
+                        <div class="col-6 col-lg-2"><label class="form-label">@Text("Odometer In", "عداد الإرجاع")</label><InputNumber class="form-control" @bind-Value="returnForm.OdometerIn" /></div>
+                        <div class="col-6 col-lg-2"><label class="form-label">@Text("Fuel In", "وقود الإرجاع")</label><InputNumber class="form-control" @bind-Value="returnForm.FuelLevelIn" /></div>
+                        <div class="col-12 col-lg-3 d-flex gap-2">
+                            <button class="btn btn-success" type="submit">@Text("Return", "إرجاع")</button>
+                            <button class="btn btn-outline-secondary" type="button" @onclick="@(() => returningAssignment = null)">@Text("Cancel", "إلغاء")</button>
+                        </div>
+                        <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="returnForm.Notes" /></div>
+                    </div>
+                </EditForm>
+            </div>
+        </section>
+    }
+
+    <section class="erp-card mb-3">
+        <div class="erp-card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-lg-3"><label class="form-label">@Text("Search", "بحث")</label><input class="form-control" @bind="searchText" @bind:event="oninput" /></div>
+                <div class="col-12 col-lg-4">
+                    <label class="form-label">@Text("Vehicle", "المركبة")</label>
+                    <select class="form-select" @bind="filterVehicleIdText"><option value="">@Text("All", "الكل")</option>@foreach (var vehicle in vehicles) { <option value="@vehicle.Id">@vehicle.PlateNumber - @Name(vehicle)</option> }</select>
+                </div>
+                <div class="col-12 col-lg-3">
+                    <label class="form-label">@Text("Status", "الحالة")</label>
+                    <select class="form-select" @bind="statusText"><option value="">@Text("All", "الكل")</option>@foreach (var status in Enum.GetValues<FleetAssignmentStatus>()) { <option value="@status">@status</option> }</select>
+                </div>
+                <div class="col-12 col-lg-2"><button class="btn btn-outline-secondary w-100" @onclick="ApplyFiltersAsync"><i class="bi bi-search"></i></button></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="erp-card">
+        <div class="erp-table-wrap">
+            <table class="erp-table table">
+                <thead><tr><th>@Text("Vehicle", "المركبة")</th><th>@Text("Employee/User", "موظف/مستخدم")</th><th>@Text("Branch/Dept", "فرع/إدارة")</th><th>@Text("Period", "الفترة")</th><th>@Text("Odometer", "العداد")</th><th>@Text("Fuel", "الوقود")</th><th>@Text("Purpose", "الغرض")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead>
+                <tbody>
+                    @if (isLoading)
+                    {
+                        <tr><td colspan="9" class="text-muted">@Text("Loading assignments...", "جاري تحميل العهد...")</td></tr>
+                    }
+                    else if (!assignments.Any())
+                    {
+                        <tr><td colspan="9" class="text-muted">@Text("No assignments found.", "لا توجد عهد.")</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var assignment in assignments)
+                        {
+                            <tr>
+                                <td>@assignment.PlateNumber - @assignment.VehicleName</td>
+                                <td class="small">@assignment.EmployeeId<br />@assignment.UserId</td>
+                                <td class="small">@assignment.BranchId<br />@assignment.DepartmentId</td>
+                                <td>@assignment.StartDate.ToString("yyyy-MM-dd") - @assignment.EndDate?.ToString("yyyy-MM-dd")</td>
+                                <td>@assignment.OdometerOut / @assignment.OdometerIn</td>
+                                <td>@assignment.FuelLevelOut / @assignment.FuelLevelIn</td>
+                                <td>@assignment.Purpose</td>
+                                <td><StatusChip Text="@assignment.Status.ToString()" Tone="primary" /></td>
+                                <td class="text-end">
+                                    @if (assignment.Status == FleetAssignmentStatus.Active)
+                                    {
+                                        @if (Can(PermissionList.FleetVehicleAssignmentPermissions.Close))
+                                        {
+                                            <button class="btn btn-sm btn-outline-success" @onclick="@(() => BeginReturn(assignment))">@Text("Return", "إرجاع")</button>
+                                        }
+                                        @if (Can(PermissionList.FleetVehicleAssignmentPermissions.Edit))
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="@(() => CancelAsync(assignment.Id))">@Text("Cancel", "إلغاء")</button>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="erp-card-body border-top d-flex justify-content-between align-items-center gap-2">
+            <span class="text-muted small">@Text("Total", "الإجمالي"): @totalCount</span>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-secondary" disabled="@(pageIndex == 0 || isLoading)" @onclick="PreviousPageAsync"><i class="bi bi-chevron-left"></i></button>
+                <span class="small">@Text("Page", "صفحة") @(pageIndex + 1)</span>
+                <button class="btn btn-sm btn-outline-secondary" disabled="@(!HasNextPage || isLoading)" @onclick="NextPageAsync"><i class="bi bi-chevron-right"></i></button>
+            </div>
+        </div>
+    </section>
+</main>
+
+@code {
+    private List<FleetVehicleDto> vehicles = [];
+    private List<FleetVehicleAssignmentDto> assignments = [];
+    private CreateFleetVehicleAssignmentDto newAssignment = new();
+    private string? employeeIdText;
+    private string? userIdText;
+    private string? branchIdText;
+    private string? departmentIdText;
+    private string searchText = string.Empty;
+    private string filterVehicleIdText = string.Empty;
+    private string statusText = string.Empty;
+    private string? errorMessage;
+    private int pageIndex;
+    private int pageSize = 25;
+    private long totalCount;
+    private bool isLoading = true;
+    private AuthenticationState? authState;
+    private FleetVehicleAssignmentDto? returningAssignment;
+    private ReturnFleetVehicleAssignmentDto returnForm = new();
+    private bool HasNextPage => (pageIndex + 1) * pageSize < totalCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        await LoadVehiclesAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadVehiclesAsync()
+    {
+        var result = await FleetService.GetVehiclesAsync(0, 1000);
+        vehicles = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await FleetService.GetAssignmentsAsync(pageIndex, pageSize, searchText, ParseGuid(filterVehicleIdText), ParseStatus());
+        if (result.IsSuccess)
+        {
+            assignments = result.Data?.Data.ToList() ?? [];
+            totalCount = result.Data?.Count ?? 0;
+            errorMessage = null;
+        }
+        else
+        {
+            errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        isLoading = false;
+    }
+
+    private async Task CreateAsync()
+    {
+        newAssignment.EmployeeId = ParseGuid(employeeIdText);
+        newAssignment.UserId = ParseGuid(userIdText);
+        newAssignment.BranchId = ParseGuid(branchIdText);
+        newAssignment.DepartmentId = ParseGuid(departmentIdText);
+        var result = await FleetService.CreateAssignmentAsync(newAssignment);
+        if (result.IsSuccess)
+        {
+            newAssignment = new();
+            employeeIdText = null;
+            userIdText = null;
+            branchIdText = null;
+            departmentIdText = null;
+        }
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        await LoadAsync();
+    }
+
+    private void BeginReturn(FleetVehicleAssignmentDto assignment)
+    {
+        returningAssignment = assignment;
+        returnForm = new ReturnFleetVehicleAssignmentDto
+        {
+            ReturnDate = DateTime.UtcNow.Date,
+            OdometerIn = assignment.OdometerOut,
+            FuelLevelIn = assignment.FuelLevelOut
+        };
+    }
+
+    private async Task ConfirmReturnAsync()
+    {
+        if (returningAssignment is null)
+            return;
+        var result = await FleetService.ReturnAssignmentAsync(returningAssignment.Id, returnForm);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        returningAssignment = null;
+        await LoadAsync();
+    }
+
+    private async Task CancelAsync(Guid id)
+    {
+        var result = await FleetService.CancelAssignmentAsync(id);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        await LoadAsync();
+    }
+
+    private async Task ApplyFiltersAsync() { pageIndex = 0; await LoadAsync(); }
+    private async Task NextPageAsync() { if (HasNextPage) { pageIndex++; await LoadAsync(); } }
+    private async Task PreviousPageAsync() { if (pageIndex > 0) { pageIndex--; await LoadAsync(); } }
+    private FleetAssignmentStatus? ParseStatus() => Enum.TryParse<FleetAssignmentStatus>(statusText, out var value) ? value : null;
+    private Guid? ParseGuid(string? value) => Guid.TryParse(value, out var id) ? id : null;
+    private string Name(FleetVehicleDto vehicle) => SharedDataService.SelectViewLang(vehicle.NameEng, vehicle.Name);
+    private bool Can(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

@@ -1,0 +1,110 @@
+@page "/Fleet/Reports"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.Fleet.Services
+@using SharedWithUI.Fleet.Dtos
+@inject IFleetService FleetService
+@inject SharedDataService SharedDataService
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Fleet Reports", "تقارير الأسطول")"
+                Subtitle="@Text("Expense totals by category and vehicle, including maintenance and rented vehicle cost.", "إجماليات المصروفات حسب التصنيف والمركبة مع تكلفة الصيانة والمركبات المؤجرة.")"
+                Icon="bi-bar-chart-line" />
+
+    <section class="erp-card mb-3">
+        <div class="erp-card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-3">
+                    <label class="form-label">@Text("From", "من")</label>
+                    <InputDate class="form-control" @bind-Value="fromDate" />
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">@Text("To", "إلى")</label>
+                    <InputDate class="form-control" @bind-Value="toDate" />
+                </div>
+                <div class="col-12 col-md-2">
+                    <button class="btn btn-outline-secondary w-100" @onclick="LoadAsync"><i class="bi bi-search"></i></button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+    else if (report is not null)
+    {
+        <div class="row g-3">
+            <div class="col-12 col-md-4"><StatsCard Title="@Text("Total Expenses", "إجمالي المصروفات")" Value="@report.TotalExpenses.ToString("N2")" Icon="bi-cash-stack" /></div>
+            <div class="col-12 col-md-4"><StatsCard Title="@Text("Maintenance", "الصيانة")" Value="@report.MaintenanceExpenses.ToString("N2")" Icon="bi-tools" Tone="warning" /></div>
+            <div class="col-12 col-md-4"><StatsCard Title="@Text("Rented Vehicles", "المركبات المؤجرة")" Value="@report.RentedVehicleExpenses.ToString("N2")" Icon="bi-key" Tone="info" /></div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-12 col-lg-6">
+                <article class="erp-card">
+                    <div class="erp-card-header"><strong>@Text("By Category", "حسب التصنيف")</strong></div>
+                    <div class="erp-table-wrap">
+                        <table class="erp-table table">
+                            <thead><tr><th>@Text("Category", "التصنيف")</th><th>@Text("Amount", "المبلغ")</th></tr></thead>
+                            <tbody>
+                                @foreach (var item in report.ExpensesByCategory)
+                                {
+                                    <tr><td>@item.Category</td><td>@item.Amount.ToString("N2")</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+            <div class="col-12 col-lg-6">
+                <article class="erp-card">
+                    <div class="erp-card-header"><strong>@Text("By Vehicle", "حسب المركبة")</strong></div>
+                    <div class="erp-table-wrap">
+                        <table class="erp-table table">
+                            <thead><tr><th>@Text("Vehicle", "المركبة")</th><th>@Text("Amount", "المبلغ")</th></tr></thead>
+                            <tbody>
+                                @foreach (var item in report.ExpensesByVehicle)
+                                {
+                                    <tr><td>@item.VehicleName</td><td>@item.Amount.ToString("N2")</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+        </div>
+    }
+</main>
+
+@code {
+    private FleetSummaryReportDto? report;
+    private DateTime? fromDate = DateTime.UtcNow.Date.AddMonths(-1);
+    private DateTime? toDate = DateTime.UtcNow.Date;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await FleetService.GetSummaryReportAsync(fromDate, toDate);
+        if (result.IsSuccess)
+        {
+            report = result.Data;
+            errorMessage = null;
+        }
+        else
+        {
+            errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load report.", "تعذر تحميل التقرير.");
+        }
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

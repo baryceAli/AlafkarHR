@@ -1,0 +1,15 @@
+<article class="erp-card">
+    <div class="erp-card-header"><strong>@Title</strong></div>
+    <div class="erp-table-wrap">
+        <table class="erp-table table">
+            <thead>@Header</thead>
+            <tbody>@Body</tbody>
+        </table>
+    </div>
+</article>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? Header { get; set; }
+    [Parameter] public RenderFragment? Body { get; set; }
+}

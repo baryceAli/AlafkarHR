@@ -7,6 +7,7 @@ using AlAfkarERP.Shared.Pages.Features.Contracts.Services;
 using AlAfkarERP.Shared.Pages.Features.Customers.Services;
 using AlAfkarERP.Shared.Pages.Features.DocumentManagement.Services;
 using AlAfkarERP.Shared.Pages.Features.Employees.Services;
+using AlAfkarERP.Shared.Pages.Features.Fleet.Services;
 using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services;
 using AlAfkarERP.Shared.Pages.Features.Inventories.Services;
 using AlAfkarERP.Shared.Pages.Features.Maintenance.Services;
@@ -258,6 +259,14 @@ builder.Services.AddHttpClient<IMaintenanceService, MaintenanceService>(client =
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
 #endregion Maintenance
+
+#region Fleet
+builder.Services.AddScoped<IFleetService, FleetService>();
+builder.Services.AddHttpClient<IFleetService, FleetService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+#endregion Fleet
 
 #region Payroll
 builder.Services.AddScoped<IPayrollService, PayrollService>();

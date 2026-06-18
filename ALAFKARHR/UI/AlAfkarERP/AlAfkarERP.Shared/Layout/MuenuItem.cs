@@ -1048,6 +1048,77 @@ public class MenuItem
             }
         },
 
+        //Fleet
+        new MenuItem
+        {
+            TextEn = "Fleet",
+            TextAr = "الأسطول",
+            Icon = "bi-truck-front",
+            PermissionPolicy = PermissionList.FleetVehiclePermissions.Select,
+            WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            KeywordsEn = "admin fleet vehicles cars rented owned assignments expenses fuel oil documents renewals maintenance",
+            KeywordsAr = "إدارة أسطول مركبات سيارات مؤجرة مملوكة عهد مصروفات وقود زيت مستندات تجديد صيانة",
+            Children = new()
+            {
+                new MenuItem
+                {
+                    TextEn = "Dashboard",
+                    TextAr = "لوحة الأسطول",
+                    Icon = "bi-speedometer2",
+                    Url = "/Fleet/Dashboard",
+                    PermissionPolicy = PermissionList.FleetReportsPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Vehicles",
+                    TextAr = "المركبات",
+                    Icon = "bi-truck-front",
+                    Url = "/Fleet/Vehicles",
+                    PermissionPolicy = PermissionList.FleetVehiclePermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Assignments",
+                    TextAr = "العهد",
+                    Icon = "bi-person-vcard",
+                    Url = "/Fleet/Assignments",
+                    PermissionPolicy = PermissionList.FleetVehicleAssignmentPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Expenses",
+                    TextAr = "المصروفات",
+                    Icon = "bi-receipt",
+                    Url = "/Fleet/Expenses",
+                    PermissionPolicy = PermissionList.FleetVehicleExpensePermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Documents",
+                    TextAr = "المستندات والتجديدات",
+                    Icon = "bi-file-earmark-text",
+                    Url = "/Fleet/Documents",
+                    PermissionPolicy = PermissionList.FleetVehicleDocumentPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Service Rules",
+                    TextAr = "قواعد الصيانة",
+                    Icon = "bi-wrench-adjustable",
+                    Url = "/Fleet/ServiceRules",
+                    PermissionPolicy = PermissionList.FleetVehiclePermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Reports",
+                    TextAr = "التقارير",
+                    Icon = "bi-bar-chart-line",
+                    Url = "/Fleet/Reports",
+                    PermissionPolicy = PermissionList.FleetReportsPermissions.View,
+                }
+            }
+        },
+
         //Maintenance
         new MenuItem
         {

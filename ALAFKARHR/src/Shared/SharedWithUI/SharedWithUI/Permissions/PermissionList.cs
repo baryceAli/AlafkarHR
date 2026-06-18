@@ -57,6 +57,11 @@ public static class PermissionList
             .. TaskManagementPermissions.Permissions,
             .. MaintenanceAssetPermissions.Permissions,
             .. MaintenanceWorkOrderPermissions.Permissions,
+            .. FleetVehiclePermissions.Permissions,
+            .. FleetVehicleAssignmentPermissions.Permissions,
+            .. FleetVehicleExpensePermissions.Permissions,
+            .. FleetVehicleDocumentPermissions.Permissions,
+            .. FleetReportsPermissions.Permissions,
             .. SystemSettingsPermissions.Permissions,
         ];
 
@@ -1080,6 +1085,61 @@ public static class PermissionList
                 $"{ViewReports}",
                 $"{ManageAll}",
             };
+    }
+
+    public static class FleetVehiclePermissions
+    {
+        public static string GroupName { get; set; } = "Fleet.Vehicle";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete];
+    }
+
+    public static class FleetVehicleAssignmentPermissions
+    {
+        public static string GroupName { get; set; } = "Fleet.VehicleAssignment";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Close { get; set; } = $"{GroupName}.Close";
+
+        public static List<string> Permissions => [View, Create, Edit, Close];
+    }
+
+    public static class FleetVehicleExpensePermissions
+    {
+        public static string GroupName { get; set; } = "Fleet.VehicleExpense";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Approve { get; set; } = $"{GroupName}.Approve";
+
+        public static List<string> Permissions => [View, Create, Edit, Delete, Approve];
+    }
+
+    public static class FleetVehicleDocumentPermissions
+    {
+        public static string GroupName { get; set; } = "Fleet.VehicleDocument";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Renew { get; set; } = $"{GroupName}.Renew";
+
+        public static List<string> Permissions => [View, Create, Edit, Delete, Renew];
+    }
+
+    public static class FleetReportsPermissions
+    {
+        public static string GroupName { get; set; } = "Fleet.Reports";
+        public static string View { get; set; } = $"{GroupName}.View";
+
+        public static List<string> Permissions => [View];
     }
 
     public static class AttendancePermissions

@@ -1,0 +1,298 @@
+@page "/Fleet/ServiceRules"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.Fleet.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@using SharedWithUI.Fleet.Dtos
+@using SharedWithUI.Fleet.Enums
+@using SharedWithUI.Permissions
+@inject IFleetService FleetService
+@inject SharedDataService SharedDataService
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthStateProvider
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Fleet Service Rules", "قواعد صيانة الأسطول")"
+                Subtitle="@Text("Create, complete, and convert regular service rules into maintenance work orders.", "إنشاء وإكمال وتحويل قواعد الصيانة الدورية إلى أوامر عمل صيانة.")"
+                Icon="bi-wrench-adjustable" />
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    @if (Can(PermissionList.FleetVehiclePermissions.Create) || editingRule is not null)
+    {
+    <section class="erp-card mb-3">
+        <div class="erp-card-header"><strong>@(editingRule is null ? Text("New Service Rule", "قاعدة صيانة جديدة") : Text("Edit Service Rule", "تعديل قاعدة الصيانة"))</strong></div>
+        <div class="erp-card-body">
+            <EditForm Model="ruleForm" OnValidSubmit="SaveAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-lg-3">
+                        <label class="form-label">@Text("Vehicle", "المركبة")</label>
+                        <InputSelect class="form-select" @bind-Value="ruleForm.VehicleId">
+                            <option value="@Guid.Empty">@Text("Select vehicle", "اختر المركبة")</option>
+                            @foreach (var vehicle in vehicles)
+                            {
+                                <option value="@vehicle.Id">@vehicle.PlateNumber - @Name(vehicle)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <label class="form-label">@Text("Service", "الخدمة")</label>
+                        <InputSelect class="form-select" @bind-Value="ruleForm.ServiceType">
+                            @foreach (var value in Enum.GetValues<FleetServiceType>())
+                            {
+                                <option value="@value">@value</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-6 col-lg-1">
+                        <label class="form-label">@Text("KM", "كم")</label>
+                        <InputNumber class="form-control" @bind-Value="ruleForm.IntervalKilometers" />
+                    </div>
+                    <div class="col-6 col-lg-1">
+                        <label class="form-label">@Text("Days", "أيام")</label>
+                        <InputNumber class="form-control" @bind-Value="ruleForm.IntervalDays" />
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <label class="form-label">@Text("Last KM", "آخر عداد")</label>
+                        <InputNumber class="form-control" @bind-Value="ruleForm.LastServiceOdometer" />
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <label class="form-label">@Text("Last Date", "آخر تاريخ")</label>
+                        <InputDate class="form-control" @bind-Value="ruleForm.LastServiceDate" />
+                    </div>
+                    <div class="col-6 col-lg-1">
+                        <label class="form-label">@Text("Active", "نشط")</label>
+                        <InputCheckbox class="form-check-input d-block mt-2" @bind-Value="ruleForm.IsActive" />
+                    </div>
+                    <div class="col-12 col-lg-1">
+                        <button class="btn btn-primary w-100" type="submit"><i class="bi bi-save"></i></button>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                        <InputText class="form-control" @bind-Value="ruleForm.Notes" />
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </section>
+    }
+
+    <section class="erp-card mb-3">
+        <div class="erp-card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-lg-4">
+                    <label class="form-label">@Text("Search", "بحث")</label>
+                    <input class="form-control" @bind="searchText" @bind:event="oninput" />
+                </div>
+                <div class="col-12 col-lg-4">
+                    <label class="form-label">@Text("Vehicle", "المركبة")</label>
+                    <select class="form-select" @bind="filterVehicleIdText">
+                        <option value="">@Text("All", "الكل")</option>
+                        @foreach (var vehicle in vehicles)
+                        {
+                            <option value="@vehicle.Id">@vehicle.PlateNumber - @Name(vehicle)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <label class="form-label">@Text("Due Only", "المستحقة فقط")</label>
+                    <select class="form-select" @bind="dueOnlyText">
+                        <option value="">@Text("All", "الكل")</option>
+                        <option value="true">@Text("Due", "مستحقة")</option>
+                    </select>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <button class="btn btn-outline-secondary w-100" @onclick="ApplyFiltersAsync"><i class="bi bi-search"></i></button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="erp-card">
+        <div class="erp-table-wrap">
+            <table class="erp-table table">
+                <thead>
+                    <tr>
+                        <th>@Text("Vehicle", "المركبة")</th>
+                        <th>@Text("Type", "النوع")</th>
+                        <th>@Text("Interval", "الفاصل")</th>
+                        <th>@Text("Next Due", "الاستحقاق القادم")</th>
+                        <th>@Text("Active", "نشط")</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (isLoading)
+                    {
+                        <tr><td colspan="6" class="text-muted">@Text("Loading service rules...", "جاري تحميل قواعد الصيانة...")</td></tr>
+                    }
+                    else if (!rules.Any())
+                    {
+                        <tr><td colspan="6" class="text-muted">@Text("No service rules found.", "لا توجد قواعد صيانة.")</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var rule in rules)
+                        {
+                            <tr>
+                                <td>@rule.VehicleName</td>
+                                <td>@rule.ServiceType</td>
+                                <td>@rule.IntervalKilometers @Text("KM", "كم") / @rule.IntervalDays @Text("days", "يوم")</td>
+                                <td>@rule.NextDueDate?.ToString("yyyy-MM-dd") / @rule.NextDueOdometer</td>
+                                <td><StatusChip Text="@(rule.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))" Tone="@(rule.IsDue ? "warning" : "success")" /></td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        @if (Can(PermissionList.FleetVehiclePermissions.Edit))
+                                        {
+                                            <button class="btn btn-outline-secondary" @onclick="@(() => Edit(rule))"><i class="bi bi-pencil"></i></button>
+                                            <button class="btn btn-outline-success" @onclick="@(() => CompleteAsync(rule))">@Text("Complete", "إكمال")</button>
+                                        }
+                                        @if (Can(PermissionList.MaintenanceWorkOrderPermissions.Create))
+                                        {
+                                            <button class="btn btn-outline-warning" @onclick="@(() => CreateWorkOrderAsync(rule.Id))">@Text("WO", "أمر")</button>
+                                        }
+                                        @if (Can(PermissionList.FleetVehiclePermissions.Delete))
+                                        {
+                                            <button class="btn btn-outline-danger" @onclick="@(() => DeleteAsync(rule.Id))"><i class="bi bi-trash"></i></button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+@code {
+    private List<FleetVehicleDto> vehicles = [];
+    private List<FleetVehicleServiceRuleDto> rules = [];
+    private CreateFleetVehicleServiceRuleDto ruleForm = NewRule();
+    private FleetVehicleServiceRuleDto? editingRule;
+    private string searchText = string.Empty;
+    private string filterVehicleIdText = string.Empty;
+    private string dueOnlyText = string.Empty;
+    private string? errorMessage;
+    private bool isLoading = true;
+    private AuthenticationState? authState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        await LoadVehiclesAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadVehiclesAsync()
+    {
+        var result = await FleetService.GetVehiclesAsync(0, 1000);
+        vehicles = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await FleetService.GetServiceRulesAsync(0, 100, searchText, ParseGuid(filterVehicleIdText), bool.TryParse(dueOnlyText, out var due) ? due : null);
+        rules = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        isLoading = false;
+    }
+
+    private async Task ApplyFiltersAsync() => await LoadAsync();
+
+    private async Task SaveAsync()
+    {
+        if (editingRule is null)
+        {
+            var create = await FleetService.CreateServiceRuleAsync(ruleForm);
+            errorMessage = create.IsSuccess ? null : create.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        else
+        {
+            var update = await FleetService.UpdateServiceRuleAsync(new UpdateFleetVehicleServiceRuleDto
+            {
+                Id = editingRule.Id,
+                VehicleId = ruleForm.VehicleId,
+                ServiceType = ruleForm.ServiceType,
+                IntervalKilometers = ruleForm.IntervalKilometers,
+                IntervalDays = ruleForm.IntervalDays,
+                LastServiceOdometer = ruleForm.LastServiceOdometer,
+                LastServiceDate = ruleForm.LastServiceDate,
+                IsActive = ruleForm.IsActive,
+                Notes = ruleForm.Notes
+            });
+            errorMessage = update.IsSuccess ? null : update.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+
+        editingRule = null;
+        ruleForm = NewRule();
+        await LoadAsync();
+    }
+
+    private void Edit(FleetVehicleServiceRuleDto rule)
+    {
+        editingRule = rule;
+        ruleForm = new CreateFleetVehicleServiceRuleDto
+        {
+            VehicleId = rule.VehicleId,
+            ServiceType = rule.ServiceType,
+            IntervalKilometers = rule.IntervalKilometers,
+            IntervalDays = rule.IntervalDays,
+            LastServiceOdometer = rule.LastServiceOdometer,
+            LastServiceDate = rule.LastServiceDate,
+            IsActive = rule.IsActive,
+            Notes = rule.Notes
+        };
+    }
+
+    private async Task CompleteAsync(FleetVehicleServiceRuleDto rule)
+    {
+        var result = await FleetService.CompleteServiceRuleAsync(rule.Id, new CompleteFleetVehicleServiceRuleDto
+        {
+            Odometer = rule.NextDueOdometer,
+            ServiceDate = DateTime.UtcNow.Date
+        });
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        await LoadAsync();
+    }
+
+    private async Task CreateWorkOrderAsync(Guid id)
+    {
+        var result = await FleetService.CreateMaintenanceFromServiceRuleAsync(id);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", Text("Delete this service rule?", "هل تريد حذف قاعدة الصيانة؟")))
+            return;
+        var result = await FleetService.DeleteServiceRuleAsync(id);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        await LoadAsync();
+    }
+
+    private static CreateFleetVehicleServiceRuleDto NewRule() => new()
+    {
+        ServiceType = FleetServiceType.OilChange,
+        IntervalKilometers = 5000,
+        IntervalDays = 90,
+        LastServiceDate = DateTime.UtcNow.Date,
+        IsActive = true
+    };
+
+    private Guid? ParseGuid(string? value) => Guid.TryParse(value, out var id) ? id : null;
+    private string Name(FleetVehicleDto vehicle) => SharedDataService.SelectViewLang(vehicle.NameEng, vehicle.Name);
+    private bool Can(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

@@ -1,0 +1,354 @@
+@page "/Fleet/Vehicles/View/{Id:guid}"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.Fleet.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Fleet.Dtos
+@using SharedWithUI.Fleet.Enums
+@using SharedWithUI.Maintenance.Enums
+@using SharedWithUI.Permissions
+@inject IFleetService FleetService
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Vehicle Details", "تفاصيل المركبة")"
+                Subtitle="@details?.Vehicle.PlateNumber"
+                Icon="bi-truck-front">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo("/Fleet/Vehicles"))"><i class="bi bi-arrow-left"></i> @Text("Back", "رجوع")</button>
+            @if (Can(PermissionList.FleetVehicleAssignmentPermissions.Create))
+            {
+                <button class="btn btn-outline-primary" @onclick="@(() => NavigationManager.NavigateTo("/Fleet/Assignments"))"><i class="bi bi-person-plus"></i> @Text("Assign", "تسليم")</button>
+            }
+            @if (Can(PermissionList.FleetVehicleExpensePermissions.Create))
+            {
+                <button class="btn btn-outline-primary" @onclick="@(() => NavigationManager.NavigateTo("/Fleet/Expenses"))"><i class="bi bi-receipt"></i> @Text("Add Expense", "إضافة مصروف")</button>
+            }
+            @if (Can(PermissionList.FleetVehicleDocumentPermissions.Create))
+            {
+                <button class="btn btn-outline-primary" @onclick="@(() => NavigationManager.NavigateTo("/Fleet/Documents"))"><i class="bi bi-file-earmark-plus"></i> @Text("Add Document", "إضافة مستند")</button>
+            }
+            @if (Can(PermissionList.FleetVehiclePermissions.Edit))
+            {
+                <button class="btn btn-primary" @onclick="@(() => NavigationManager.NavigateTo($"/Fleet/Vehicles/Form/{Id}"))"><i class="bi bi-pencil"></i> @Text("Edit", "تعديل")</button>
+            }
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <section class="erp-card"><div class="erp-card-body text-muted">@Text("Loading vehicle...", "جاري تحميل المركبة...")</div></section>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+    else if (details is not null)
+    {
+        <section class="erp-card mb-3">
+            <div class="erp-card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    @if (Can(PermissionList.FleetVehiclePermissions.Edit))
+                    {
+                        <button class="btn btn-outline-dark" @onclick="BeginOdometer"><i class="bi bi-speedometer2"></i> @Text("Update Odometer", "تحديث العداد")</button>
+                        <button class="btn btn-outline-success" @onclick="CreateServiceRuleAsync"><i class="bi bi-plus-lg"></i> @Text("Add Oil Rule", "إضافة قاعدة زيت")</button>
+                        <button class="btn btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo("/Fleet/ServiceRules"))"><i class="bi bi-wrench-adjustable"></i> @Text("Edit Service Rules", "تعديل قواعد الصيانة")</button>
+                    }
+                    @if (Can(PermissionList.MaintenanceWorkOrderPermissions.Create))
+                    {
+                        <button class="btn btn-outline-warning" @onclick="BeginEmergency"><i class="bi bi-tools"></i> @Text("Emergency Maintenance", "صيانة طارئة")</button>
+                    }
+                </div>
+            </div>
+        </section>
+
+        @if (showOdometer)
+        {
+            <section class="erp-card mb-3">
+                <div class="erp-card-header"><strong>@Text("Update Odometer", "تحديث العداد")</strong></div>
+                <div class="erp-card-body">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-md-4">@details.Vehicle.PlateNumber - @Name(details.Vehicle)</div>
+                        <div class="col-12 col-md-3"><input class="form-control" type="number" @bind="odometerValue" /></div>
+                        <div class="col-12 col-md-5 d-flex gap-2">
+                            <button class="btn btn-primary" @onclick="SaveOdometerAsync">@Text("Save", "حفظ")</button>
+                            <button class="btn btn-outline-secondary" @onclick="@(() => showOdometer = false)">@Text("Cancel", "إلغاء")</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        }
+
+        @if (showEmergency)
+        {
+            <section class="erp-card mb-3">
+                <div class="erp-card-header"><strong>@Text("Emergency Maintenance", "صيانة طارئة")</strong></div>
+                <div class="erp-card-body">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-lg-3"><label class="form-label">@Text("Title", "العنوان")</label><input class="form-control" @bind="emergencyTitle" /></div>
+                        <div class="col-12 col-lg-3"><label class="form-label">@Text("Description", "الوصف")</label><input class="form-control" @bind="emergencyDescription" /></div>
+                        <div class="col-6 col-lg-2"><label class="form-label">@Text("Priority", "الأولوية")</label><select class="form-select" @bind="emergencyPriority">@foreach (var value in Enum.GetValues<MaintenancePriority>()) { <option value="@value">@value</option> }</select></div>
+                        <div class="col-6 col-lg-2"><label class="form-label">@Text("Estimated Cost", "التكلفة")</label><input class="form-control" type="number" @bind="emergencyCost" /></div>
+                        <div class="col-12 col-lg-2 d-flex gap-2">
+                            <button class="btn btn-warning" @onclick="CreateEmergencyAsync">@Text("Create", "إنشاء")</button>
+                            <button class="btn btn-outline-secondary" @onclick="@(() => showEmergency = false)">@Text("Cancel", "إلغاء")</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        }
+
+        <div class="row g-3">
+            <div class="col-12 col-xl-4">
+                <article class="erp-card h-100">
+                    <div class="erp-card-header"><strong>@Text("Profile", "الملف")</strong></div>
+                    <div class="erp-card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-5">@Text("Code", "الكود")</dt><dd class="col-7">@details.Vehicle.VehicleCode</dd>
+                            <dt class="col-5">@Text("Name", "الاسم")</dt><dd class="col-7">@Name(details.Vehicle)</dd>
+                            <dt class="col-5">@Text("Plate", "اللوحة")</dt><dd class="col-7">@details.Vehicle.PlateNumber</dd>
+                            <dt class="col-5">@Text("Make/Model", "الشركة/الموديل")</dt><dd class="col-7">@details.Vehicle.Make @details.Vehicle.Model @details.Vehicle.Year</dd>
+                            <dt class="col-5">@Text("VIN", "الشاسيه")</dt><dd class="col-7">@details.Vehicle.Vin</dd>
+                            <dt class="col-5">@Text("Engine", "المحرك")</dt><dd class="col-7">@details.Vehicle.EngineNumber</dd>
+                            <dt class="col-5">@Text("Type", "النوع")</dt><dd class="col-7">@details.Vehicle.VehicleType</dd>
+                            <dt class="col-5">@Text("Status", "الحالة")</dt><dd class="col-7"><StatusChip Text="@details.Vehicle.Status.ToString()" Tone="primary" /></dd>
+                            <dt class="col-5">@Text("Odometer", "العداد")</dt><dd class="col-7">@details.Vehicle.CurrentOdometer.ToString("N0")</dd>
+                            <dt class="col-5">@Text("Fuel", "الوقود")</dt><dd class="col-7">@details.Vehicle.FuelType / @details.Vehicle.FuelCapacity</dd>
+                            <dt class="col-5">@Text("Branch", "الفرع")</dt><dd class="col-7">@details.Vehicle.BranchId</dd>
+                            <dt class="col-5">@Text("Default Driver", "السائق الافتراضي")</dt><dd class="col-7">@details.Vehicle.DefaultDriverEmployeeId</dd>
+                            <dt class="col-5">@Text("Maintenance Asset", "أصل الصيانة")</dt><dd class="col-7">@details.Vehicle.MaintenanceAssetId</dd>
+                        </dl>
+                    </div>
+                </article>
+            </div>
+            <div class="col-12 col-xl-4">
+                <article class="erp-card h-100">
+                    <div class="erp-card-header"><strong>@Text("Ownership", "الملكية")</strong></div>
+                    <div class="erp-card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-5">@Text("Ownership", "الملكية")</dt><dd class="col-7"><StatusChip Text="@details.Vehicle.OwnershipType.ToString()" Tone="info" /></dd>
+                            @if (details.Vehicle.OwnershipType == FleetVehicleOwnershipType.Owned)
+                            {
+                                <dt class="col-5">@Text("Purchase Date", "تاريخ الشراء")</dt><dd class="col-7">@details.Vehicle.PurchaseDate?.ToString("yyyy-MM-dd")</dd>
+                                <dt class="col-5">@Text("Purchase Cost", "تكلفة الشراء")</dt><dd class="col-7">@details.Vehicle.PurchaseCost?.ToString("N2")</dd>
+                                <dt class="col-5">@Text("Warranty End", "نهاية الضمان")</dt><dd class="col-7">@details.Vehicle.WarrantyEndDate?.ToString("yyyy-MM-dd")</dd>
+                            }
+                            else
+                            {
+                                <dt class="col-5">@Text("Supplier Id", "معرف المورد")</dt><dd class="col-7">@details.Vehicle.SupplierId</dd>
+                                <dt class="col-5">@Text("Contract Id", "معرف العقد")</dt><dd class="col-7">@details.Vehicle.RentalContractId</dd>
+                                <dt class="col-5">@Text("Rental Period", "فترة الإيجار")</dt><dd class="col-7">@details.Vehicle.RentalStartDate?.ToString("yyyy-MM-dd") - @details.Vehicle.RentalEndDate?.ToString("yyyy-MM-dd")</dd>
+                                <dt class="col-5">@Text("Monthly Rent", "الإيجار الشهري")</dt><dd class="col-7">@details.Vehicle.MonthlyRent?.ToString("N2")</dd>
+                                <dt class="col-5">@Text("Daily Rent", "الإيجار اليومي")</dt><dd class="col-7">@details.Vehicle.DailyRent?.ToString("N2")</dd>
+                                <dt class="col-5">@Text("Deposit", "العربون")</dt><dd class="col-7">@details.Vehicle.DepositAmount?.ToString("N2")</dd>
+                                <dt class="col-5">@Text("Allowed KM", "الكيلومترات المسموحة")</dt><dd class="col-7">@details.Vehicle.AllowedKilometers</dd>
+                                <dt class="col-5">@Text("Excess Rate", "سعر الزيادة")</dt><dd class="col-7">@details.Vehicle.ExcessKilometerRate?.ToString("N2")</dd>
+                            }
+                            <dt class="col-5">@Text("Notes", "ملاحظات")</dt><dd class="col-7">@details.Vehicle.Notes</dd>
+                        </dl>
+                    </div>
+                </article>
+            </div>
+            <div class="col-12 col-xl-4">
+                <article class="erp-card h-100">
+                    <div class="erp-card-header"><strong>@Text("Assignments", "العهد")</strong></div>
+                    <div class="erp-table-wrap">
+                        <table class="erp-table table">
+                            <thead><tr><th>@Text("Employee/User", "موظف/مستخدم")</th><th>@Text("Period", "الفترة")</th><th>@Text("KM", "كم")</th><th>@Text("Status", "الحالة")</th></tr></thead>
+                            <tbody>
+                                @foreach (var assignment in details.Assignments.Take(8))
+                                {
+                                    <tr><td class="small">@assignment.EmployeeId<br />@assignment.UserId</td><td>@assignment.StartDate.ToString("yyyy-MM-dd") - @assignment.EndDate?.ToString("yyyy-MM-dd")</td><td>@assignment.OdometerOut / @assignment.OdometerIn</td><td>@assignment.Status</td></tr>
+                                }
+                                @if (!details.Assignments.Any())
+                                {
+                                    <tr><td colspan="4" class="text-muted">@Text("No assignments.", "لا توجد عهد.")</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-12 col-xl-6">
+                <FleetTable Title="@Text("Documents", "المستندات")">
+                    <Header><tr><th>@Text("Type", "النوع")</th><th>@Text("Number", "الرقم")</th><th>@Text("Expiry", "الانتهاء")</th><th>@Text("Status", "الحالة")</th></tr></Header>
+                    <Body>
+                        @foreach (var document in details.Documents.Take(8))
+                        {
+                            <tr><td>@document.DocumentType</td><td>@document.DocumentNumber</td><td>@document.ExpiryDate?.ToString("yyyy-MM-dd")</td><td><StatusChip Text="@document.Status.ToString()" Tone="warning" /></td></tr>
+                        }
+                        @if (!details.Documents.Any())
+                        {
+                            <tr><td colspan="4" class="text-muted">@Text("No documents.", "لا توجد مستندات.")</td></tr>
+                        }
+                    </Body>
+                </FleetTable>
+            </div>
+            <div class="col-12 col-xl-6">
+                <FleetTable Title="@Text("Expenses", "المصروفات")">
+                    <Header><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Category", "التصنيف")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Status", "الحالة")</th></tr></Header>
+                    <Body>
+                        @foreach (var expense in details.Expenses.Take(8))
+                        {
+                            <tr><td>@expense.ExpenseDate.ToString("yyyy-MM-dd")</td><td>@expense.Category</td><td>@expense.Amount.ToString("N2") @expense.CurrencyCode</td><td>@expense.ApprovalStatus</td></tr>
+                        }
+                        @if (!details.Expenses.Any())
+                        {
+                            <tr><td colspan="4" class="text-muted">@Text("No expenses.", "لا توجد مصروفات.")</td></tr>
+                        }
+                    </Body>
+                </FleetTable>
+            </div>
+            <div class="col-12 col-xl-6">
+                <FleetTable Title="@Text("Service Rules", "قواعد الصيانة")">
+                    <Header><tr><th>@Text("Type", "النوع")</th><th>@Text("Interval", "الفاصل")</th><th>@Text("Next Due", "الاستحقاق")</th><th></th></tr></Header>
+                    <Body>
+                        @foreach (var rule in details.ServiceRules.Take(8))
+                        {
+                            <tr>
+                                <td>@rule.ServiceType</td>
+                                <td>@rule.IntervalKilometers @Text("KM", "كم") / @rule.IntervalDays @Text("days", "يوم")</td>
+                                <td>@rule.NextDueDate?.ToString("yyyy-MM-dd") / @rule.NextDueOdometer</td>
+                                <td class="text-end">
+                                    @if (Can(PermissionList.MaintenanceWorkOrderPermissions.Create))
+                                    {
+                                        <button class="btn btn-sm btn-outline-warning" @onclick="@(() => CreateMaintenanceFromRuleAsync(rule.Id))">@Text("Create WO", "إنشاء أمر")</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        @if (!details.ServiceRules.Any())
+                        {
+                            <tr><td colspan="4" class="text-muted">@Text("No service rules.", "لا توجد قواعد صيانة.")</td></tr>
+                        }
+                    </Body>
+                </FleetTable>
+            </div>
+            <div class="col-12 col-xl-6">
+                <FleetTable Title="@Text("Maintenance Work Orders", "أوامر الصيانة")">
+                    <Header><tr><th>@Text("Number", "الرقم")</th><th>@Text("Title", "العنوان")</th><th>@Text("Priority", "الأولوية")</th><th>@Text("Status", "الحالة")</th></tr></Header>
+                    <Body>
+                        @foreach (var order in details.MaintenanceWorkOrders.Take(8))
+                        {
+                            <tr><td>@order.WorkOrderNumber</td><td>@order.Title</td><td>@order.Priority</td><td>@order.Status</td></tr>
+                        }
+                        @if (!details.MaintenanceWorkOrders.Any())
+                        {
+                            <tr><td colspan="4" class="text-muted">@Text("No maintenance work orders.", "لا توجد أوامر صيانة.")</td></tr>
+                        }
+                    </Body>
+                </FleetTable>
+            </div>
+        </div>
+    }
+</main>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private FleetVehicleDetailsDto? details;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private bool showOdometer;
+    private bool showEmergency;
+    private int odometerValue;
+    private string emergencyTitle = string.Empty;
+    private string emergencyDescription = string.Empty;
+    private MaintenancePriority emergencyPriority = MaintenancePriority.High;
+    private decimal? emergencyCost;
+    private AuthenticationState? authState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await FleetService.GetVehicleByIdAsync(Id);
+        if (result.IsSuccess)
+        {
+            details = result.Data;
+            errorMessage = null;
+        }
+        else
+        {
+            errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load vehicle.", "تعذر تحميل المركبة.");
+        }
+        isLoading = false;
+    }
+
+    private void BeginOdometer()
+    {
+        odometerValue = details?.Vehicle.CurrentOdometer ?? 0;
+        showOdometer = true;
+    }
+
+    private async Task SaveOdometerAsync()
+    {
+        var result = await FleetService.UpdateOdometerAsync(Id, odometerValue);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        showOdometer = false;
+        await LoadAsync();
+    }
+
+    private void BeginEmergency()
+    {
+        emergencyTitle = $"{details?.Vehicle.PlateNumber} - Emergency maintenance";
+        emergencyDescription = string.Empty;
+        emergencyPriority = MaintenancePriority.High;
+        emergencyCost = null;
+        showEmergency = true;
+    }
+
+    private async Task CreateEmergencyAsync()
+    {
+        var result = await FleetService.CreateEmergencyMaintenanceAsync(new CreateEmergencyFleetMaintenanceRequestDto
+        {
+            VehicleId = Id,
+            Title = emergencyTitle,
+            Description = emergencyDescription,
+            Priority = emergencyPriority,
+            EstimatedCost = emergencyCost
+        });
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        showEmergency = false;
+        await LoadAsync();
+    }
+
+    private async Task CreateServiceRuleAsync()
+    {
+        var result = await FleetService.CreateServiceRuleAsync(new CreateFleetVehicleServiceRuleDto
+        {
+            VehicleId = Id,
+            ServiceType = FleetServiceType.OilChange,
+            IntervalKilometers = 5000,
+            IntervalDays = 90,
+            LastServiceOdometer = details?.Vehicle.CurrentOdometer,
+            LastServiceDate = DateTime.UtcNow.Date,
+            IsActive = true
+        });
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        await LoadAsync();
+    }
+
+    private async Task CreateMaintenanceFromRuleAsync(Guid ruleId)
+    {
+        var result = await FleetService.CreateMaintenanceFromServiceRuleAsync(ruleId);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        await LoadAsync();
+    }
+
+    private string Name(FleetVehicleDto vehicle) => SharedDataService.SelectViewLang(vehicle.NameEng, vehicle.Name);
+    private bool Can(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

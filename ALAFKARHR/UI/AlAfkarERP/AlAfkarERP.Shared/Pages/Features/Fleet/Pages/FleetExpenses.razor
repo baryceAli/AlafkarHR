@@ -1,0 +1,331 @@
+@page "/Fleet/Expenses"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.Fleet.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@using SharedWithUI.Fleet.Dtos
+@using SharedWithUI.Fleet.Enums
+@using SharedWithUI.Permissions
+@inject IFleetService FleetService
+@inject SharedDataService SharedDataService
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthStateProvider
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Fleet Expenses", "مصروفات الأسطول")"
+                Subtitle="@Text("Fuel, oil, renewal, rental, and maintenance expense records.", "سجلات الوقود والزيت والتجديد والإيجار والصيانة.")"
+                Icon="bi-receipt" />
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    @if (Can(PermissionList.FleetVehicleExpensePermissions.Create) || editingExpenseId.HasValue)
+    {
+    <section class="erp-card mb-3">
+        <div class="erp-card-header d-flex justify-content-between align-items-center">
+            <strong>@(editingExpenseId.HasValue ? Text("Edit Expense", "تعديل المصروف") : Text("New Expense", "مصروف جديد"))</strong>
+            @if (editingExpenseId.HasValue)
+            {
+                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ResetForm">@Text("New", "جديد")</button>
+            }
+        </div>
+        <div class="erp-card-body">
+            <EditForm Model="expenseForm" OnValidSubmit="SaveAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-lg-3">
+                        <label class="form-label">@Text("Vehicle", "المركبة")</label>
+                        <InputSelect class="form-select" @bind-Value="expenseForm.VehicleId">
+                            <option value="@Guid.Empty">@Text("Select vehicle", "اختر المركبة")</option>
+                            @foreach (var vehicle in vehicles)
+                            {
+                                <option value="@vehicle.Id">@vehicle.PlateNumber - @Name(vehicle)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <label class="form-label">@Text("Date", "التاريخ")</label>
+                        <InputDate class="form-control" @bind-Value="expenseForm.ExpenseDate" />
+                    </div>
+                    <div class="col-6 col-lg-2">
+                        <label class="form-label">@Text("Category", "التصنيف")</label>
+                        <InputSelect class="form-select" @bind-Value="expenseForm.Category">
+                            @foreach (var value in Enum.GetValues<FleetExpenseCategory>())
+                            {
+                                <option value="@value">@value</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-6 col-lg-2"><label class="form-label">@Text("Amount", "المبلغ")</label><InputNumber class="form-control" @bind-Value="expenseForm.Amount" /></div>
+                    <div class="col-6 col-lg-1"><label class="form-label">@Text("Currency", "العملة")</label><InputText class="form-control" @bind-Value="expenseForm.CurrencyCode" /></div>
+                    <div class="col-6 col-lg-2"><label class="form-label">@Text("Odometer", "العداد")</label><InputNumber class="form-control" @bind-Value="expenseForm.Odometer" /></div>
+                    <div class="col-6 col-lg-2"><label class="form-label">@Text("Quantity", "الكمية")</label><InputNumber class="form-control" @bind-Value="expenseForm.Quantity" /></div>
+                    <div class="col-6 col-lg-2"><label class="form-label">@Text("Unit Price", "سعر الوحدة")</label><InputNumber class="form-control" @bind-Value="expenseForm.UnitPrice" /></div>
+                    <div class="col-12 col-lg-3"><label class="form-label">@Text("Supplier Id", "معرف المورد")</label><input class="form-control" @bind="supplierIdText" /></div>
+                    <div class="col-12 col-lg-3"><label class="form-label">@Text("Vendor", "المورد")</label><InputText class="form-control" @bind-Value="expenseForm.VendorName" /></div>
+                    <div class="col-12 col-lg-3"><label class="form-label">@Text("File Name", "اسم الملف")</label><InputText class="form-control" @bind-Value="expenseForm.FileName" /></div>
+                    <div class="col-12 col-lg-3"><label class="form-label">@Text("File Path", "مسار الملف")</label><InputText class="form-control" @bind-Value="expenseForm.FilePath" /></div>
+                    <div class="col-12 col-lg-3"><label class="form-label">@Text("Maintenance WO Id", "معرف أمر الصيانة")</label><input class="form-control" @bind="maintenanceWorkOrderIdText" /></div>
+                    <div class="col-12 col-lg-3"><label class="form-label">@Text("Contract Id", "معرف العقد")</label><input class="form-control" @bind="contractIdText" /></div>
+                    <div class="col-12 col-lg-3"><label class="form-label">@Text("Procurement Id", "معرف المشتريات")</label><input class="form-control" @bind="procurementDocumentIdText" /></div>
+                    <div class="col-12 col-lg-3"><label class="form-label">@Text("Payment Ref Id", "معرف الدفع")</label><input class="form-control" @bind="paymentReferenceIdText" /></div>
+                    <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputTextArea class="form-control" rows="2" @bind-Value="expenseForm.Notes" /></div>
+                    <div class="col-12 d-flex justify-content-end gap-2">
+                        <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @Text("Save", "حفظ")</button>
+                        <button class="btn btn-outline-secondary" type="button" @onclick="ResetForm">@Text("Clear", "مسح")</button>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </section>
+    }
+
+    <section class="erp-card mb-3">
+        <div class="erp-card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-lg-3"><label class="form-label">@Text("Search", "بحث")</label><input class="form-control" @bind="searchText" @bind:event="oninput" /></div>
+                <div class="col-12 col-lg-3">
+                    <label class="form-label">@Text("Vehicle", "المركبة")</label>
+                    <select class="form-select" @bind="filterVehicleIdText">
+                        <option value="">@Text("All", "الكل")</option>
+                        @foreach (var vehicle in vehicles)
+                        {
+                            <option value="@vehicle.Id">@vehicle.PlateNumber - @Name(vehicle)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-6 col-lg-2"><label class="form-label">@Text("Category", "التصنيف")</label><select class="form-select" @bind="categoryText"><option value="">@Text("All", "الكل")</option>@foreach (var value in Enum.GetValues<FleetExpenseCategory>()) { <option value="@value">@value</option> }</select></div>
+                <div class="col-6 col-lg-2"><label class="form-label">@Text("Status", "الحالة")</label><select class="form-select" @bind="statusText"><option value="">@Text("All", "الكل")</option>@foreach (var value in Enum.GetValues<FleetExpenseApprovalStatus>()) { <option value="@value">@value</option> }</select></div>
+                <div class="col-6 col-lg-1"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="fromDate" /></div>
+                <div class="col-6 col-lg-1"><label class="form-label">@Text("To", "إلى")</label><InputDate class="form-control" @bind-Value="toDate" /></div>
+                <div class="col-12"><button class="btn btn-outline-secondary" @onclick="ApplyFiltersAsync"><i class="bi bi-search"></i> @Text("Apply Filters", "تطبيق الفلاتر")</button></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="erp-card">
+        <div class="erp-table-wrap">
+            <table class="erp-table table">
+                <thead>
+                    <tr>
+                        <th>@Text("Date", "التاريخ")</th>
+                        <th>@Text("Vehicle", "المركبة")</th>
+                        <th>@Text("Category", "التصنيف")</th>
+                        <th>@Text("Amount", "المبلغ")</th>
+                        <th>@Text("Vendor", "المورد")</th>
+                        <th>@Text("Links", "الروابط")</th>
+                        <th>@Text("Status", "الحالة")</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (isLoading)
+                    {
+                        <tr><td colspan="8" class="text-muted">@Text("Loading expenses...", "جاري تحميل المصروفات...")</td></tr>
+                    }
+                    else if (!expenses.Any())
+                    {
+                        <tr><td colspan="8" class="text-muted">@Text("No expenses found.", "لا توجد مصروفات.")</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var expense in expenses)
+                        {
+                            <tr>
+                                <td>@expense.ExpenseDate.ToString("yyyy-MM-dd")</td>
+                                <td>@expense.PlateNumber - @expense.VehicleName</td>
+                                <td>@expense.Category<div class="small text-muted">@expense.Odometer @Text("KM", "كم")</div></td>
+                                <td>@expense.Amount.ToString("N2") @expense.CurrencyCode</td>
+                                <td>@expense.VendorName<div class="small text-muted">@expense.SupplierId</div></td>
+                                <td class="small">@LinkSummary(expense)</td>
+                                <td><StatusChip Text="@expense.ApprovalStatus.ToString()" Tone="@ExpenseTone(expense.ApprovalStatus)" /></td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        @if (Can(PermissionList.FleetVehicleExpensePermissions.Edit))
+                                        {
+                                            <button class="btn btn-outline-secondary" @onclick="@(() => Edit(expense))"><i class="bi bi-pencil"></i></button>
+                                        }
+                                        @if (Can(PermissionList.FleetVehicleExpensePermissions.Edit) && expense.ApprovalStatus == FleetExpenseApprovalStatus.Draft)
+                                        {
+                                            <button class="btn btn-outline-primary" @onclick="@(() => SubmitAsync(expense.Id))">@Text("Submit", "إرسال")</button>
+                                        }
+                                        @if (Can(PermissionList.FleetVehicleExpensePermissions.Approve) && expense.ApprovalStatus == FleetExpenseApprovalStatus.Submitted)
+                                        {
+                                            <button class="btn btn-outline-success" @onclick="@(() => ApproveAsync(expense.Id, true))">@Text("Approve", "اعتماد")</button>
+                                            <button class="btn btn-outline-danger" @onclick="@(() => ApproveAsync(expense.Id, false))">@Text("Reject", "رفض")</button>
+                                        }
+                                        @if (Can(PermissionList.FleetVehicleExpensePermissions.Delete))
+                                        {
+                                            <button class="btn btn-outline-danger" @onclick="@(() => DeleteAsync(expense.Id))"><i class="bi bi-trash"></i></button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="erp-card-body border-top d-flex justify-content-between align-items-center gap-2">
+            <span class="text-muted small">@Text("Total", "الإجمالي"): @totalCount</span>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-secondary" disabled="@(pageIndex == 0 || isLoading)" @onclick="PreviousPageAsync"><i class="bi bi-chevron-left"></i></button>
+                <span class="small">@Text("Page", "صفحة") @(pageIndex + 1)</span>
+                <button class="btn btn-sm btn-outline-secondary" disabled="@(!HasNextPage || isLoading)" @onclick="NextPageAsync"><i class="bi bi-chevron-right"></i></button>
+            </div>
+        </div>
+    </section>
+</main>
+
+@code {
+    private List<FleetVehicleDto> vehicles = [];
+    private List<FleetVehicleExpenseDto> expenses = [];
+    private UpdateFleetVehicleExpenseDto expenseForm = NewExpense();
+    private Guid? editingExpenseId;
+    private string? supplierIdText;
+    private string? maintenanceWorkOrderIdText;
+    private string? contractIdText;
+    private string? procurementDocumentIdText;
+    private string? paymentReferenceIdText;
+    private string searchText = string.Empty;
+    private string filterVehicleIdText = string.Empty;
+    private string categoryText = string.Empty;
+    private string statusText = string.Empty;
+    private DateTime? fromDate;
+    private DateTime? toDate;
+    private string? errorMessage;
+    private int pageIndex;
+    private int pageSize = 25;
+    private long totalCount;
+    private bool isLoading = true;
+    private AuthenticationState? authState;
+    private bool HasNextPage => (pageIndex + 1) * pageSize < totalCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        await LoadVehiclesAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadVehiclesAsync()
+    {
+        var result = await FleetService.GetVehiclesAsync(0, 1000);
+        vehicles = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await FleetService.GetExpensesAsync(pageIndex, pageSize, searchText, ParseGuid(filterVehicleIdText), ParseCategory(), ParseStatus(), fromDate, toDate);
+        if (result.IsSuccess)
+        {
+            expenses = result.Data?.Data.ToList() ?? [];
+            totalCount = result.Data?.Count ?? 0;
+            errorMessage = null;
+        }
+        else
+        {
+            errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        isLoading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        ApplyLinkedIds();
+        if (editingExpenseId.HasValue)
+        {
+            expenseForm.Id = editingExpenseId.Value;
+            var update = await FleetService.UpdateExpenseAsync(expenseForm);
+            errorMessage = update.IsSuccess ? null : update.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        else
+        {
+            var create = await FleetService.CreateExpenseAsync(expenseForm);
+            errorMessage = create.IsSuccess ? null : create.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+
+        if (string.IsNullOrWhiteSpace(errorMessage))
+            ResetForm();
+        await LoadAsync();
+    }
+
+    private void Edit(FleetVehicleExpenseDto expense)
+    {
+        editingExpenseId = expense.Id;
+        expenseForm = new UpdateFleetVehicleExpenseDto
+        {
+            Id = expense.Id,
+            VehicleId = expense.VehicleId,
+            ExpenseDate = expense.ExpenseDate,
+            Category = expense.Category,
+            Amount = expense.Amount,
+            CurrencyCode = expense.CurrencyCode,
+            SupplierId = expense.SupplierId,
+            VendorName = expense.VendorName,
+            Odometer = expense.Odometer,
+            Quantity = expense.Quantity,
+            UnitPrice = expense.UnitPrice,
+            Notes = expense.Notes,
+            FileName = expense.FileName,
+            FilePath = expense.FilePath,
+            MaintenanceWorkOrderId = expense.MaintenanceWorkOrderId,
+            ContractId = expense.ContractId,
+            ProcurementDocumentId = expense.ProcurementDocumentId,
+            PaymentReferenceId = expense.PaymentReferenceId
+        };
+        supplierIdText = expense.SupplierId?.ToString();
+        maintenanceWorkOrderIdText = expense.MaintenanceWorkOrderId?.ToString();
+        contractIdText = expense.ContractId?.ToString();
+        procurementDocumentIdText = expense.ProcurementDocumentId?.ToString();
+        paymentReferenceIdText = expense.PaymentReferenceId?.ToString();
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", Text("Delete this expense?", "هل تريد حذف هذا المصروف؟")))
+            return;
+        var result = await FleetService.DeleteExpenseAsync(id);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        await LoadAsync();
+    }
+
+    private async Task SubmitAsync(Guid id) { var result = await FleetService.SubmitExpenseAsync(id); errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language); await LoadAsync(); }
+    private async Task ApproveAsync(Guid id, bool isApproved) { var result = await FleetService.ApproveExpenseAsync(id, new ApproveFleetVehicleExpenseDto { IsApproved = isApproved }); errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language); await LoadAsync(); }
+    private async Task ApplyFiltersAsync() { pageIndex = 0; await LoadAsync(); }
+    private async Task NextPageAsync() { if (HasNextPage) { pageIndex++; await LoadAsync(); } }
+    private async Task PreviousPageAsync() { if (pageIndex > 0) { pageIndex--; await LoadAsync(); } }
+
+    private void ResetForm()
+    {
+        editingExpenseId = null;
+        expenseForm = NewExpense();
+        supplierIdText = maintenanceWorkOrderIdText = contractIdText = procurementDocumentIdText = paymentReferenceIdText = null;
+    }
+
+    private void ApplyLinkedIds()
+    {
+        expenseForm.SupplierId = ParseGuid(supplierIdText);
+        expenseForm.MaintenanceWorkOrderId = ParseGuid(maintenanceWorkOrderIdText);
+        expenseForm.ContractId = ParseGuid(contractIdText);
+        expenseForm.ProcurementDocumentId = ParseGuid(procurementDocumentIdText);
+        expenseForm.PaymentReferenceId = ParseGuid(paymentReferenceIdText);
+    }
+
+    private static UpdateFleetVehicleExpenseDto NewExpense() => new() { ExpenseDate = DateTime.UtcNow.Date, Category = FleetExpenseCategory.Fuel, CurrencyCode = "SAR" };
+    private FleetExpenseCategory? ParseCategory() => Enum.TryParse<FleetExpenseCategory>(categoryText, out var value) ? value : null;
+    private FleetExpenseApprovalStatus? ParseStatus() => Enum.TryParse<FleetExpenseApprovalStatus>(statusText, out var value) ? value : null;
+    private Guid? ParseGuid(string? value) => Guid.TryParse(value, out var id) ? id : null;
+    private string ExpenseTone(FleetExpenseApprovalStatus status) => status == FleetExpenseApprovalStatus.Approved ? "success" : status == FleetExpenseApprovalStatus.Rejected ? "danger" : status == FleetExpenseApprovalStatus.Submitted ? "warning" : "muted";
+    private string LinkSummary(FleetVehicleExpenseDto expense) => string.Join(" / ", new[] { expense.MaintenanceWorkOrderId.HasValue ? "WO" : null, expense.ContractId.HasValue ? "Contract" : null, expense.ProcurementDocumentId.HasValue ? "PO" : null, expense.PaymentReferenceId.HasValue ? "Pay" : null }.Where(x => x is not null));
+    private bool Can(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string Name(FleetVehicleDto vehicle) => SharedDataService.SelectViewLang(vehicle.NameEng, vehicle.Name);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}
