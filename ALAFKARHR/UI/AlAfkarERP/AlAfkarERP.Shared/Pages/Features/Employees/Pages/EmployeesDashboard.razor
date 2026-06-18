@@ -1,55 +1,287 @@
-﻿@layout AdminLayout
+@layout AdminLayout
+@implements IDisposable
 @page "/Employee/Dashboard"
+
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Permissions
+
+@inject IEmployeeService EmployeeService
+@inject IPositionService PositionService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
-<h3>EmployeesDashboard</h3>
 
+@if (AuthState is null)
+{
+    <div class="erp-loading">
+        <div class="spinner-border text-primary" role="status"></div>
+        <div class="mt-2">@Text("Loading HR workspace...", "جاري تحميل مساحة الموارد البشرية...")</div>
+    </div>
+}
+else if (!CanOpenDashboard)
+{
+    <div class="alert alert-warning">
+        @Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")
+    </div>
+}
+else
+{
+    <div class="erp-page hr-dashboard-page" dir="@SharedDataService.PageDirection">
+        <PageHeader Title="@Text("HR Dashboard", "لوحة الموارد البشرية")"
+                    Subtitle="@Text("Monitor employee coverage, position setup, and the fastest HR actions.", "متابعة تغطية الموظفين وإعداد المسميات وأسرع إجراءات الموارد البشرية.")"
+                    Overline="@Text("People", "الأفراد")"
+                    Icon="bi-people">
+            <Actions>
+                <button type="button" class="btn btn-outline-secondary" @onclick="LoadDashboardAsync" disabled="@isLoading">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    @Text("Refresh", "تحديث")
+                </button>
+                @if (CanCreateEmployee)
+                {
+                    <a class="btn btn-primary" href="/Employee/Employee/Form">
+                        <i class="bi bi-plus-lg"></i>
+                        @Text("New Employee", "موظف جديد")
+                    </a>
+                }
+            </Actions>
+        </PageHeader>
 
-<div class="row g-3 mt-4">
-    <h3>@SharedDataService.SelectViewLang("Dashboard", "لوحة التحكم")</h3>
-    @if (1 == 3)
-    {
-        
-        <div class="col-md-4">
-            <a href="/Organization/Branch/List" class="text-decoration-none">
-                <div class="card text-white bg-primary shadow h-100">
-                    <div class="card-body text-center">
-                        @* <h6>Branches</h6> *@
-                        <h3>@SharedDataService.SelectViewLang("Positions", "المسمى الوظيفي")</h3>
+        @if (isLoading)
+        {
+            <div class="erp-loading">
+                <div class="spinner-border text-primary" role="status"></div>
+                <div class="mt-2">@Text("Loading dashboard metrics...", "جاري تحميل مؤشرات اللوحة...")</div>
+            </div>
+        }
+        else if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <AppPageMessage Message="@errorMessage"
+                            Type="error"
+                            Direction="@SharedDataService.PageDirection"
+                            Dismissible="false" />
+        }
+        else
+        {
+            <div class="hr-dashboard-stats">
+                <StatsCard Title="@Text("Employees", "الموظفون")"
+                           Value="@MetricValue(CanViewEmployees, totalEmployees)"
+                           Subtitle="@Text("Total records in this company", "إجمالي السجلات في هذه الشركة")"
+                           Icon="bi-person-badge"
+                           Tone="primary" />
+                <StatsCard Title="@Text("Active", "النشطون")"
+                           Value="@MetricValue(CanViewEmployees, activeEmployees)"
+                           Subtitle="@Text("Employees marked active", "الموظفون المحددون كنشطين")"
+                           Icon="bi-person-check"
+                           Tone="success" />
+                <StatsCard Title="@Text("With Position", "لديهم مسمى")"
+                           Value="@MetricValue(CanViewEmployees, employeesWithPosition)"
+                           Subtitle="@Text("Employees linked to job titles", "الموظفون المرتبطون بمسميات وظيفية")"
+                           Icon="bi-briefcase"
+                           Tone="info" />
+                <StatsCard Title="@Text("Positions", "المسميات")"
+                           Value="@MetricValue(CanViewPositions, totalPositions)"
+                           Subtitle="@Text("Configured HR job titles", "المسميات الوظيفية المعرفة")"
+                           Icon="bi-diagram-3"
+                           Tone="warning" />
+            </div>
+
+            <div class="hr-dashboard-grid">
+                <AppCard Title="@Text("Quick Actions", "إجراءات سريعة")"
+                         Subtitle="@Text("Jump into the HR workflows available to your role.", "انتقل مباشرة إلى مسارات الموارد البشرية المتاحة لدورك.")">
+                    @if (QuickActions.Any())
+                    {
+                        <div class="hr-quick-grid">
+                            @foreach (var action in QuickActions)
+                            {
+                                <a class="hr-quick-action" href="@action.Url">
+                                    <span class="hr-quick-icon"><i class="bi @action.Icon"></i></span>
+                                    <span>
+                                        <strong>@Text(action.TitleEn, action.TitleAr)</strong>
+                                        <small>@Text(action.DescriptionEn, action.DescriptionAr)</small>
+                                    </span>
+                                    <i class="bi bi-arrow-up-right hr-quick-arrow"></i>
+                                </a>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <EmptyState Title="@Text("No HR actions available", "لا توجد إجراءات موارد بشرية متاحة")"
+                                    Message="@Text("Your current permissions do not expose dashboard actions.", "صلاحياتك الحالية لا تعرض إجراءات في هذه اللوحة.")"
+                                    Icon="bi-shield-lock" />
+                    }
+                </AppCard>
+
+                <AppCard Title="@Text("Data Access", "الوصول للبيانات")"
+                         Subtitle="@Text("This pilot only loads metrics that your permissions allow.", "هذا النموذج التجريبي يحمل المؤشرات التي تسمح بها صلاحياتك فقط.")">
+                    <div class="hr-access-list">
+                        @AccessRow(CanViewEmployees, Text("Employee metrics", "مؤشرات الموظفين"), PermissionList.EmployeePermissions.View)
+                        @AccessRow(CanViewPositions, Text("Position metrics", "مؤشرات المسميات"), PermissionList.PositionPermissions.View)
+                        @AccessRow(CanCreateEmployee, Text("Create employee", "إنشاء موظف"), PermissionList.EmployeePermissions.Create)
                     </div>
-                </div>
-            </a>
-        </div>
+                </AppCard>
+            </div>
+        }
+    </div>
+}
 
-        <div class="col-md-4">
-            <a href="/Organization/Administration/List" class="text-decoration-none">
-                <div class="card text-white bg-success shadow h-100">
-                    <div class="card-body text-center">
-                        @* <h6>Admins</h6> *@
-                        <h3>@SharedDataService.SelectViewLang("Qualifications", "المؤهلات")</h3>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <div class="col-md-4">
-            <a href="/Organization/Department/List" class="text-decoration-none">
-                <div class="card text-white bg-warning shadow h-100">
-                    <div class="card-body text-center">
-                        @* <h6>Departments</h6> *@
-                        <h3>@SharedDataService.SelectViewLang("Employees", "الموظفون")</h3>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-    }
-</div>
 @code {
+    private AuthenticationState? AuthState;
+    private List<EmployeeDto> employees = [];
+    private List<PositionDto> positions = [];
+    private Guid companyId;
+    private bool isLoading;
+    private string errorMessage = "";
+    private long totalEmployees;
+    private long totalPositions;
+
+    private bool CanOpenDashboard => HasPermission(PermissionList.EmployeePermissions.Select);
+    private bool CanViewEmployees => HasPermission(PermissionList.EmployeePermissions.View);
+    private bool CanCreateEmployee => HasPermission(PermissionList.EmployeePermissions.Create);
+    private bool CanViewPositions => HasPermission(PermissionList.PositionPermissions.View);
+
+    private int activeEmployees => employees.Count(employee => employee.IsActive);
+    private int employeesWithPosition => employees.Count(employee => employee.PositionId.HasValue);
+
+    private IEnumerable<DashboardAction> QuickActions
+    {
+        get
+        {
+            if (CanViewEmployees)
+            {
+                yield return new(
+                    "Employees",
+                    "الموظفون",
+                    "Review, search, and manage employee profiles.",
+                    "مراجعة وبحث وإدارة ملفات الموظفين.",
+                    "/Employee/Employee/List",
+                    "bi-person-lines-fill");
+            }
+
+            if (CanCreateEmployee)
+            {
+                yield return new(
+                    "Create Employee",
+                    "إنشاء موظف",
+                    "Start a new employee record.",
+                    "بدء سجل موظف جديد.",
+                    "/Employee/Employee/Form",
+                    "bi-person-plus");
+            }
+
+            if (CanViewPositions)
+            {
+                yield return new(
+                    "Positions",
+                    "المسميات الوظيفية",
+                    "Maintain job titles and salary references.",
+                    "إدارة المسميات الوظيفية ومراجع الرواتب.",
+                    "/Employee/Position/List",
+                    "bi-briefcase");
+            }
+        }
+    }
+
     protected override void OnInitialized()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
     }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+
+        if (!CanOpenDashboard)
+        {
+            return;
+        }
+
+        if (!TryReadCompanyId())
+        {
+            errorMessage = Text("Company context was not found for the current user.", "لم يتم العثور على سياق الشركة للمستخدم الحالي.");
+            return;
+        }
+
+        await LoadDashboardAsync();
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        if (!CanOpenDashboard || companyId == Guid.Empty)
+        {
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = "";
+
+        try
+        {
+            employees = [];
+            positions = [];
+            totalEmployees = 0;
+            totalPositions = 0;
+
+            if (CanViewEmployees)
+            {
+                var employeeResponse = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 10000);
+                if (employeeResponse.IsSuccess)
+                {
+                    employees = employeeResponse.Data?.Data?.ToList() ?? [];
+                    totalEmployees = employeeResponse.Data?.Count ?? employees.Count;
+                }
+                else
+                {
+                    errorMessage = Text("Employee metrics could not be loaded.", "تعذر تحميل مؤشرات الموظفين.");
+                }
+            }
+
+            if (CanViewPositions)
+            {
+                var positionResponse = await PositionService.GetAsync(companyId, 0, 10000);
+                if (positionResponse.IsSuccess)
+                {
+                    positions = positionResponse.Data?.Data?.ToList() ?? [];
+                    totalPositions = positionResponse.Data?.Count ?? positions.Count;
+                }
+                else if (string.IsNullOrWhiteSpace(errorMessage))
+                {
+                    errorMessage = Text("Position metrics could not be loaded.", "تعذر تحميل مؤشرات المسميات الوظيفية.");
+                }
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private bool TryReadCompanyId()
+    {
+        var value = AuthState?.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+        return Guid.TryParse(value, out companyId);
+    }
+
+    private bool HasPermission(string permission)
+        => AuthState?.User.Claims.Any(c => c.Value == permission) ?? false;
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private static string MetricValue(bool canView, long value) => canView ? value.ToString("N0") : "-";
+
+    private RenderFragment AccessRow(bool allowed, string label, string permission) => @<div class="hr-access-row">
+        <span class="hr-access-state @(allowed ? "is-allowed" : "is-muted")">
+            <i class="bi @(allowed ? "bi-check2" : "bi-lock")"></i>
+        </span>
+        <span>
+            <strong>@label</strong>
+            <small>@permission</small>
+        </span>
+    </div>;
 
     private async Task HandleChangeAsync()
     {
@@ -60,4 +292,12 @@
     {
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
+
+    private sealed record DashboardAction(
+        string TitleEn,
+        string TitleAr,
+        string DescriptionEn,
+        string DescriptionAr,
+        string Url,
+        string Icon);
 }
