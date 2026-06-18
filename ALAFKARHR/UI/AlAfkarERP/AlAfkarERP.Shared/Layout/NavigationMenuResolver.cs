@@ -5,10 +5,13 @@ namespace AlAfkarERP.Shared.Layout;
 public static class NavigationMenuResolver
 {
     public const string WorkspaceHome = "home";
-    public const string WorkspacePeople = "people";
-    public const string WorkspaceOperations = "operations";
-    public const string WorkspaceFinancePayroll = "finance-payroll";
-    public const string WorkspaceInventory = "inventory";
+    public const string WorkspaceHr = "hr";
+    public const string WorkspaceSales = "sales";
+    public const string WorkspacePurchasing = "purchasing";
+    public const string WorkspaceWarehouse = "warehouse";
+    public const string WorkspaceAccountingFinance = "accounting-finance";
+    public const string WorkspaceAdmin = "admin";
+    public const string WorkspaceSecurity = "it-security";
     public const string WorkspaceMore = "more";
     public const string WorkspacePos = "pos";
     public const string WorkspaceProcurement = WorkspaceOperations;
@@ -32,11 +35,13 @@ public static class NavigationMenuResolver
 
     public static readonly IReadOnlyList<NavigationHubWorkspace> HubWorkspaces =
     [
-        new(HubPeople, "People", "\u0627\u0644\u0623\u0641\u0631\u0627\u062f", "bi-people"),
-        new(HubOperations, "Operations", "\u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a", "bi-box-seam"),
-        new(HubTasks, "Tasks", "\u0627\u0644\u0645\u0647\u0627\u0645", "bi-check2-square"),
-        new(HubSecurity, "Security", "\u0627\u0644\u0623\u0645\u0627\u0646", "bi-shield-lock"),
-        new(HubSettings, "Settings", "\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a", "bi-gear")
+        new(HubHr, "HR", "\u0627\u0644\u0645\u0648\u0627\u0631\u062f", "bi-people"),
+        new(HubSales, "Sales", "\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a", "bi-receipt-cutoff"),
+        new(HubPurchasing, "Purchasing", "\u0627\u0644\u0645\u0634\u062a\u0631\u064a\u0627\u062a", "bi-cart-check"),
+        new(HubWarehouse, "Warehouse", "\u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639", "bi-boxes"),
+        new(HubAccountingFinance, "Accounting / Finance", "\u0627\u0644\u0645\u062d\u0627\u0633\u0628\u0629 / \u0627\u0644\u0645\u0627\u0644\u064a\u0629", "bi-cash-stack"),
+        new(HubAdmin, "Admin", "\u0627\u0644\u0625\u062f\u0627\u0631\u0629", "bi-sliders2-vertical"),
+        new(HubSecurity, "IT / Security", "\u062a\u0642\u0646\u064a\u0629 \u0648\u0623\u0645\u0627\u0646", "bi-shield-lock")
     ];
 
     public static IReadOnlyList<MenuItem> GetActivePath(string currentUri, string baseUri)
@@ -125,51 +130,80 @@ public static class NavigationMenuResolver
             || text.Contains("Finance", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Pricing", StringComparison.OrdinalIgnoreCase))
         {
-            return WorkspaceFinancePayroll;
+            return WorkspaceAdmin;
         }
 
-        if (path.StartsWith("/inventory", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/inventories", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/warehouse", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Inventory", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Stock", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Warehouse", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Batch", StringComparison.OrdinalIgnoreCase))
+        if (path.StartsWith("/auth", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Security", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Role", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("User", StringComparison.OrdinalIgnoreCase))
         {
-            return WorkspaceInventory;
+            return WorkspaceSecurity;
         }
 
-        if (path.StartsWith("/organization", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/employee", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/attendance", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/leavesmanagement", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("People", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Human Resource", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Employee", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Attendance", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Leave", StringComparison.OrdinalIgnoreCase)
+        if (path.StartsWith("/generalsettings", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/organization", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/taskmanagement", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Organization", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Company", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Branch", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Department", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Administration", StringComparison.OrdinalIgnoreCase))
+            || text.Contains("Administration", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Task", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Settings", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Currency", StringComparison.OrdinalIgnoreCase))
         {
-            return WorkspacePeople;
+            return WorkspaceAdmin;
+        }
+
+        if (path.StartsWith("/employee", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/attendance", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/leavesmanagement", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Human Resource", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Employee", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Attendance", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Leave", StringComparison.OrdinalIgnoreCase))
+        {
+            return WorkspaceHr;
+        }
+
+        if (path.StartsWith("/payroll", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/pricing", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/catalog/pricing", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Payroll", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Salary", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Finance", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Pricing", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Loan", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Deduction", StringComparison.OrdinalIgnoreCase))
+        {
+            return WorkspaceAccountingFinance;
         }
 
         if (path.StartsWith("/salesorder", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/procurement", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/suppliers", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/customers", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/catalog", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Operations", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Procurement", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Purchase", StringComparison.OrdinalIgnoreCase)
             || text.Contains("RFQ", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Supplier", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Customer", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Supplier", StringComparison.OrdinalIgnoreCase))
+        {
+            return WorkspacePurchasing;
+        }
+
+        if (path.StartsWith("/inventory", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/inventories", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/warehouse", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/catalog/product", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/catalog/variant", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Inventory", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Stock", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Warehouse", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Batch", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Product", StringComparison.OrdinalIgnoreCase))
         {
-            return WorkspaceOperations;
+            return WorkspaceWarehouse;
         }
 
         return WorkspaceMore;
@@ -244,43 +278,13 @@ public static class NavigationMenuResolver
     public static string ResolveHubWorkspaceKey(string currentUri, string baseUri)
     {
         var activePath = GetActivePath(currentUri, baseUri);
-        return activePath.Count == 0 ? HubPeople : ResolveHubWorkspaceKey(activePath.Last());
+        return activePath.Count == 0 ? HubAdmin : ResolveHubWorkspaceKey(activePath.Last());
     }
 
     public static string ResolveHubWorkspaceKey(MenuItem item)
     {
-        var path = GetMenuPath(item);
-        if (path.Count == 0)
-        {
-            path = [item];
-        }
-
-        if (path.Any(IsSettingsMenu))
-        {
-            return HubSettings;
-        }
-
-        if (path.Any(candidate => IsText(candidate, "Task Management")))
-        {
-            return HubTasks;
-        }
-
-        if (path.Any(candidate => IsText(candidate, "Security Management")))
-        {
-            return HubSecurity;
-        }
-
-        if (path.Any(candidate => IsText(candidate, "Operations")
-                                  || IsText(candidate, "POS")
-                                  || IsText(candidate, "Products Management")
-                                  || IsText(candidate, "Inventory Management")
-                                  || IsText(candidate, "Supplier Management")
-                                  || IsText(candidate, "Procurement")))
-        {
-            return HubOperations;
-        }
-
-        return HubPeople;
+        var workspaceKey = GetWorkspaceKey(item);
+        return workspaceKey == WorkspaceMore ? HubAdmin : workspaceKey;
     }
 
     public static IReadOnlyList<NavigationMenuRow> GetAuthorizedRows(ClaimsPrincipal? user, IEnumerable<MenuItem>? source = null)
@@ -334,20 +338,27 @@ public static class NavigationMenuResolver
         return path switch
         {
             "/" => 0,
-            "/salesorder/pos" => 1,
-            "/inventories/list" => 2,
-            "/inventory/operations/stockin" => 3,
-            "/inventory/operations/stockout" => 4,
-            "/inventory/operations/stockadjustment" => 5,
-            "/inventory/operations/stockreservation" => 6,
-            "/inventory/operations/stockrelease" => 7,
-            "/inventory/warehouse/list" => 8,
-            "/inventory/batch/list" => 9,
-            "/suppliers/supplier/list" => 10,
-            "/procurement/purchase-requests" => 11,
-            "/procurement/purchase-orders" => 12,
-            "/procurement/goods-receipts" => 13,
-            "/procurement/supplier-invoices" => 14,
+            "/dashboard" => 1,
+            "/employee/dashboard" => 2,
+            "/employee/employee/list" => 3,
+            "/salesorder/pos" => 4,
+            "/customers/customer/list" => 5,
+            "/procurement/dashboard" => 6,
+            "/procurement/purchase-requests" => 7,
+            "/procurement/purchase-orders" => 8,
+            "/suppliers/supplier/list" => 9,
+            "/inventory/dashboard" => 10,
+            "/inventories/list" => 11,
+            "/inventory/operations/stockin" => 12,
+            "/inventory/operations/stockout" => 13,
+            "/inventory/warehouse/list" => 14,
+            "/payroll/salaryruns" => 15,
+            "/taskmanagement/mytasks" => 16,
+            "/taskmanagement/dashboard" => 17,
+            "/generalsettings/systemsettings" => 18,
+            "/auth/dashboard" => 19,
+            "/auth/role/list" => 20,
+            "/auth/user/assignrole" => 21,
             _ => 100
         };
     }
@@ -529,7 +540,12 @@ public static class NavigationMenuResolver
 
         if (IsText(root, "Security Management"))
         {
-            AddSecuritySections(root, user, hubWorkspaceKey, sections);
+            if (hubWorkspaceKey == HubSecurity)
+            {
+                AddHubSection(root, user, hubWorkspaceKey, sections);
+            }
+
+            AddSecurityAdminSections(root, user, hubWorkspaceKey, sections);
             return;
         }
 
@@ -538,45 +554,26 @@ public static class NavigationMenuResolver
 
     private static void AddHubSection(MenuItem section, ClaimsPrincipal? user, string hubWorkspaceKey, List<NavigationHubSection> sections)
     {
-        var workspaceKey = ResolveHubWorkspaceKey(section);
-        if (workspaceKey != hubWorkspaceKey)
-        {
-            return;
-        }
-
         var source = !string.IsNullOrWhiteSpace(section.Url) ? [section] : section.Children;
-        var rows = GetAuthorizedRows(user, source);
+        var rows = GetAuthorizedRows(user, source)
+            .Where(row => RowBelongsToWorkspace(row.Item, hubWorkspaceKey, user))
+            .ToList();
         if (rows.Count == 0)
         {
             return;
         }
 
-        sections.Add(new NavigationHubSection(GetStorageKey(section), section.TextEn, section.TextAr, section.Icon, workspaceKey, rows));
+        sections.Add(new NavigationHubSection(GetStorageKey(section), section.TextEn, section.TextAr, section.Icon, hubWorkspaceKey, rows));
     }
 
-    private static void AddSecuritySections(MenuItem section, ClaimsPrincipal? user, string hubWorkspaceKey, List<NavigationHubSection> sections)
+    private static void AddSecurityAdminSections(MenuItem section, ClaimsPrincipal? user, string hubWorkspaceKey, List<NavigationHubSection> sections)
     {
-        var securityRows = new List<NavigationMenuRow>();
-        if (hubWorkspaceKey == HubSecurity && HasOwnPermission(section, user) && !string.IsNullOrWhiteSpace(section.Url))
-        {
-            securityRows.Add(new NavigationMenuRow(section, 0, [section]));
-        }
-
-        if (hubWorkspaceKey == HubSecurity)
-        {
-            securityRows.AddRange(GetAuthorizedRows(user, section.Children.Where(item => !IsSettingsMenu(item))));
-            if (securityRows.Count > 0)
-            {
-                sections.Add(new NavigationHubSection(GetStorageKey(section), section.TextEn, section.TextAr, section.Icon, HubSecurity, securityRows));
-            }
-        }
-
-        if (hubWorkspaceKey == HubSettings)
+        if (hubWorkspaceKey == HubAdmin)
         {
             var settingsRows = GetAuthorizedRows(user, section.Children.Where(IsSettingsMenu));
             if (settingsRows.Count > 0)
             {
-                sections.Add(new NavigationHubSection("settings", "Settings", "\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a", "bi-gear", HubSettings, settingsRows));
+                sections.Add(new NavigationHubSection("settings", "Settings", "\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a", "bi-gear", HubAdmin, settingsRows));
             }
         }
     }
