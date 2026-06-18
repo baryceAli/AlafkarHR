@@ -53,6 +53,12 @@ public class CustomExceptionHandler(ILogger<CustomExceptionHandler> logger)
                 "Unauthorized",
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized
             ),
+            ForbiddenException =>
+            (
+                exception.Message,
+                "Forbidden",
+                context.Response.StatusCode = StatusCodes.Status403Forbidden
+            ),
             NotFoundException =>
             (
                 exception.Message,
