@@ -14,7 +14,12 @@ public class GetRolesHandler(RoleManager<ApplicationRole> roleManager)
         List<RoleDto> rolesResult = new List<RoleDto>();
         foreach (var role in roles)
         {
-            rolesResult.Add(new RoleDto { RoleName = role.Name });
+            rolesResult.Add(new RoleDto
+            {
+                RoleName = role.Name ?? string.Empty,
+                DisplayName = string.IsNullOrWhiteSpace(role.DisplayName) ? role.Name ?? string.Empty : role.DisplayName,
+                CompanyId = role.CompanyId
+            });
         }
 
         return new GetRolesResult(rolesResult);

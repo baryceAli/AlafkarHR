@@ -75,7 +75,7 @@
                         <label class="form-label">@Text("Role", "Role")</label>
                         <AutoCompleteComponent TItem="RoleDto"
                                                Items="AvailableRolesForEdit"
-                                               ItemText="(role => role.RoleName)"
+                                               ItemText="(role => RoleDisplayName(role))"
                                                Value="selectedRole"
                                                PlaceHolder="@Text("Search roles ...", "Search roles ...")"
                                                ValueChanged="OnRoleValueChanged" />
@@ -190,7 +190,7 @@
                                     {
                                         @foreach (var role in visibleRoles)
                                         {
-                                            <span class="badge text-bg-light me-1">@role.RoleName</span>
+                                            <span class="badge text-bg-light me-1">@RoleDisplayName(role)</span>
                                         }
                                     }
                                 </td>
@@ -299,7 +299,7 @@
             .Where(row =>
                 string.IsNullOrWhiteSpace(searchText) ||
                 row.DisplayName.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                row.AssignedRoles.Any(role => role.RoleName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true))
+                row.AssignedRoles.Any(role => RoleDisplayName(role).Contains(searchText, StringComparison.OrdinalIgnoreCase)))
             .OrderBy(row => sortAscending ? row.DisplayName : string.Empty)
             .ThenByDescending(row => sortAscending ? string.Empty : row.DisplayName);
 
@@ -453,6 +453,7 @@
     {
         selectedRole = role;
         formRole.RoleName = role?.RoleName ?? string.Empty;
+        formRole.DisplayName = role?.DisplayName ?? string.Empty;
         formRole.CompanyId = companyId;
         formRole.Permissions = role?.Permissions ?? [];
     }
@@ -503,7 +504,7 @@
         await ModalService.ShowAsync(new ModalOptions
         {
             Title = Text("Confirm unassign role", "Confirm unassign role"),
-            Message = Text($"Are you sure you want to unassign this role: {role.RoleName}?", $"Are you sure you want to unassign this role: {role.RoleName}?"),
+            Message = Text($"Are you sure you want to unassign this role: {RoleDisplayName(role)}?", $"Are you sure you want to unassign this role: {RoleDisplayName(role)}?"),
             ShowCancel = true,
             OkText = Text("Yes", "Yes"),
             CancelText = Text("No", "No"),
@@ -601,7 +602,7 @@
         return allRoles
             .Where(role => !IsCompanyAdminRole(role.RoleName))
             .Where(role => !assigned.Contains(role.RoleName))
-            .OrderBy(role => role.RoleName);
+            .OrderBy(RoleDisplayName);
     }
 
     private IEnumerable<RoleDto> DisplayRoles(EmployeeUserRolesRow row)
@@ -612,6 +613,7 @@
         => new()
         {
             RoleName = string.Empty,
+            DisplayName = string.Empty,
             CompanyId = companyId,
             Permissions = []
         };
@@ -678,6 +680,9 @@
         var companyAdminRoleName = $"SystemAdmin-{companyId:N}";
         return string.Equals(roleName, companyAdminRoleName, StringComparison.OrdinalIgnoreCase);
     }
+
+    private static string RoleDisplayName(RoleDto role)
+        => string.IsNullOrWhiteSpace(role.DisplayName) ? role.RoleName : role.DisplayName;
 
     private bool HasPermission(string permission)
         => AuthState?.User.Claims.Any(c => c.Value == permission) == true;

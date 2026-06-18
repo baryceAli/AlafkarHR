@@ -36,6 +36,7 @@ public class CreateCompanyAdminHandler(
             role = new ApplicationRole
             {
                 Name = roleName,
+                DisplayName = "System Admin",
                 CompanyId = request.CompanyId
             };
 
@@ -48,11 +49,19 @@ public class CreateCompanyAdminHandler(
         }
 
         var roleClaims = await roleManager.GetClaimsAsync(role);
+        if (string.IsNullOrWhiteSpace(role.DisplayName))
+        {
+            role.DisplayName = "System Admin";
+            await roleManager.UpdateAsync(role);
+        }
+
         foreach (var permission in PermissionList.GetAll())
         {
             if (!roleClaims.Any(c => c.Type == "Permission" && c.Value == permission))
                 await roleManager.AddClaimAsync(role, new Claim("Permission", permission));
         }
+
+        await CompanyRoleTemplates.SeedDefaultRolesAsync(roleManager, request.CompanyId);
 
         var user = ApplicationUser.Create(
             Guid.NewGuid(),

@@ -8,9 +8,9 @@ public class DeleteRoleEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapDelete("/api/v1/auth/roles/{roleName}", async ([FromRoute] string roleName, [FromServices] ISender sender) =>
+        app.MapDelete("/api/v1/auth/roles/{roleName}", async ([FromRoute] string roleName, ClaimsPrincipal user, [FromServices] ISender sender) =>
         {
-            var result = await sender.Send(new DeleteRoleCommand(roleName));
+            var result = await sender.Send(new DeleteRoleCommand(roleName, GetCompanyId(user)));
 
             return Results.Ok(new DeleteRoleResponse(result.IsSuccess));
         })
@@ -21,5 +21,13 @@ public class DeleteRoleEndpoint : ICarterModule
             .WithSummary("DeleteRole")
             .WithDescription("DeleteRole")
             .RequireAuthorization(PermissionList.RolesPermissions.Delete);
+    }
+
+    private static Guid GetCompanyId(ClaimsPrincipal user)
+    {
+        if (!Guid.TryParse(user.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var companyId))
+            throw new BadRequestException("Company claim is missing.");
+
+        return companyId;
     }
 }

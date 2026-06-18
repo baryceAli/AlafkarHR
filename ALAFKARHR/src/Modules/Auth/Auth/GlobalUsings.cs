@@ -1,6 +1,7 @@
 ﻿global using Auth.Data;
 global using Auth.Data.Seed;
 global using Auth.Users.Models;
+global using Auth.Users.Roles;
 global using Microsoft.AspNetCore.Builder;
 global using Microsoft.AspNetCore.Identity;
 global using Microsoft.EntityFrameworkCore;

@@ -40,9 +40,9 @@
             @foreach (var role in roles)
             {
                 <tr>
-                    <td>@role.RoleName</td>
+                    <td>@RoleDisplayName(role)</td>
                     <td>
-                        <button @onclick='() => { NavigationManager.NavigateTo($"/Auth/Role/Form/{role.RoleName}"); }'
+                        <button @onclick='() => { NavigationManager.NavigateTo($"/Auth/Role/Form/{Uri.EscapeDataString(role.RoleName)}"); }'
                                 class="btn btn-outline-warning btn-sm erp-row-action"
                                 title="@SharedDataService.SelectViewLang("Edit", "تعديل")">
                             <i class="bi bi-pencil-square"></i>
@@ -103,4 +103,7 @@
     {
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
+
+    private static string RoleDisplayName(RoleDto role)
+        => string.IsNullOrWhiteSpace(role.DisplayName) ? role.RoleName : role.DisplayName;
 }

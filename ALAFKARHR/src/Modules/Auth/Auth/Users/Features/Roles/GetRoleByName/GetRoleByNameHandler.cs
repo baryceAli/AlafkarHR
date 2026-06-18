@@ -2,7 +2,7 @@
 
 namespace Auth.Users.Features.Roles.GetRoleByName;
 
-public record GetRoleByNameQuery(string RoleName):IQuery<GetRoleByNameResult>;
+public record GetRoleByNameQuery(string RoleName, Guid CompanyId):IQuery<GetRoleByNameResult>;
 public record GetRoleByNameResult(RoleDto Role);
 public class GetRoleByNameHandler(RoleManager<ApplicationRole> roleManager)
     : IQueryHandler<GetRoleByNameQuery, GetRoleByNameResult>
@@ -12,6 +12,8 @@ public class GetRoleByNameHandler(RoleManager<ApplicationRole> roleManager)
         var role= await roleManager.FindByNameAsync(request.RoleName);
         if (role is null)
             throw new NotFoundException($"Role not found: {request.RoleName}");
+        if (role.CompanyId != request.CompanyId)
+            throw new BadRequestException("Role does not belong to the selected company.");
 
         var claims = await roleManager.GetClaimsAsync(role);
         List<string> permissions = [];
@@ -22,7 +24,9 @@ public class GetRoleByNameHandler(RoleManager<ApplicationRole> roleManager)
 
         return new GetRoleByNameResult(new RoleDto
         {
-            RoleName = role.Name,
+            RoleName = role.Name ?? string.Empty,
+            DisplayName = string.IsNullOrWhiteSpace(role.DisplayName) ? role.Name ?? string.Empty : role.DisplayName,
+            CompanyId = role.CompanyId,
             Permissions = permissions
         });
     }

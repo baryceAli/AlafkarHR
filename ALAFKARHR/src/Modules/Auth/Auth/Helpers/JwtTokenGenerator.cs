@@ -46,6 +46,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             // ✅ Get Role Permissions (THIS FIXES YOUR 403)
             var roleEntity = await _roleManager.FindByNameAsync(role);
             if (roleEntity is null) continue;
+            if (roleEntity.CompanyId != user.CompanyId) continue;
 
             var roleClaims = await _roleManager.GetClaimsAsync(roleEntity);
 

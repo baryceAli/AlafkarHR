@@ -39,8 +39,8 @@
             <div class="row">
                 <div class="col-8">
 
-                    <InputText class="form-control" @bind-Value="roleDto.RoleName" disabled="@isEdit" />
-                    <ValidationMessage For="() => roleDto.RoleName" />
+                    <InputText class="form-control" @bind-Value="roleDto.DisplayName" />
+                    <ValidationMessage For="() => roleDto.DisplayName" />
                 </div>
                 <div class="col-4">
 
@@ -131,37 +131,42 @@
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
         // var authState = await AuthStateTask;
         Guid.TryParse(AuthState.User?.Claims?.FirstOrDefault(c => c.Type == "company_id")?.Value ?? "", out companyId);
-        // if (string.IsNullOrWhiteSpace(RoleName))
-        // {
-        // return;
-        // }
-        var roleRes = await RoleService.GetByName(RoleName);
-        if (roleRes.IsSuccess)
+        if (!string.IsNullOrWhiteSpace(RoleName))
         {
-            isEdit = true;
-            var role = roleRes.Data;
-            // CurrentRolePermissions = new List<string>();
-            // CurrentRolePermissions.AddRange(roleRes.Data.Permissions);
-            foreach (var p in PermissionList.GetAll())
+            RoleName = Uri.UnescapeDataString(RoleName);
+            var roleRes = await RoleService.GetByName(RoleName);
+            if (roleRes.IsSuccess)
             {
-                SelectedPermissions[p] = false;
-                SelectedPermissions[p] = role.Permissions.Any(r => r == p);
-            }
-        }
-        else
-        {
-            isEdit = false;
-            foreach (var p in PermissionList.GetAll())
-            {
-                SelectedPermissions[p] = false;
-            }
+                isEdit = true;
+                var role = roleRes.Data;
+                foreach (var p in PermissionList.GetAll())
+                {
+                    SelectedPermissions[p] = role.Permissions.Any(r => r == p);
+                }
 
+                roleDto = new RoleDto
+                {
+                    RoleName = role.RoleName,
+                    DisplayName = role.DisplayName,
+                    CompanyId = companyId,
+                    Permissions = role.Permissions ?? []
+                };
+                return;
+            }
         }
+
+        isEdit = false;
+        foreach (var p in PermissionList.GetAll())
+        {
+            SelectedPermissions[p] = false;
+        }
+
         roleDto = new RoleDto
         {
-            RoleName = RoleName,
+            RoleName = string.Empty,
+            DisplayName = string.Empty,
             CompanyId = companyId,
-            Permissions = PermissionList.GetAll()
+            Permissions = []
         };
         // var cl = PermissionList.GetAll();
         // var res = AuthState.User.Claims.Any(c => c.Value == PermissionList.RolesPermissions.View);
@@ -169,26 +174,23 @@
     }
     private async Task ApplyChanges()
     {
-        if (!isEdit && RoleName == roleDto.RoleName)
+        if (string.IsNullOrWhiteSpace(roleDto.DisplayName))
         {
-            //Show error message and stop processing: role with name is already exist
-
             await ModalService.ShowAsync(
                 new ModalOptions
                 {
                     Title = SharedDataService.SelectViewLang("Roles Management", "إدارة الصلاحيات"),
                     IsError = true,
-                    Message = SharedDataService
-                        .SelectViewLang($"Role ({roleDto.RoleName} is already exist, please change the name and try again)",
-                            $"الصلاحية ({roleDto.RoleName}) موجودة مسبقا، الرجاء قم بتغيير الاسم والمحاولة مرة أخرى"),
+                    Message = SharedDataService.SelectViewLang("Role name is required.", "اسم الصلاحية مطلوب."),
                     OnOk = async () =>
                     {
 
                     }
 
-                });
+            });
             return;
         }
+
         List<string> rolePermissions = new List<string>();
         foreach (var permission in PermissionList.GetAll())
         {
@@ -197,9 +199,9 @@
             {
                 rolePermissions.Add(permission);
             }
-            roleDto.Permissions = new List<string>(rolePermissions);
 
         }
+        roleDto.Permissions = new List<string>(rolePermissions);
 
         var res = await RoleService.CreateAsync(roleDto);
         if (res.IsSuccess)

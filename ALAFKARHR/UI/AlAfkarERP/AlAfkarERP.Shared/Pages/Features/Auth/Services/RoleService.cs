@@ -46,7 +46,8 @@ public class RoleService : BaseApiService, IRoleService
     public async Task<ApiResult<RoleDto>> GetByName(string name)
     {
         ///api/v1/auth/roles/{roleName}
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/roles/{name}");
+        var encodedName = Uri.EscapeDataString(name);
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/roles/{encodedName}");
         return await SendAsync<RoleDto>(request, "role");
     }
 

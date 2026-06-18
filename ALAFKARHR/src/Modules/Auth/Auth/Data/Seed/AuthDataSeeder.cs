@@ -12,49 +12,67 @@ public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManage
         var role = await roleManager.FindByNameAsync("SystemUser");
         if (role is null)
         {
-            var result = await roleManager.CreateAsync(new ApplicationRole() { Name = "SystemUser",CompanyId= Guid.Parse("4c3d205f-7e2b-42c2-a081-1700b229d91e") });
+            var result = await roleManager.CreateAsync(new ApplicationRole()
+            {
+                Name = "SystemUser",
+                DisplayName = "SystemUser",
+                CompanyId = CompanyRoleTemplates.DefaultCompanyId
+            });
             if (result.Succeeded)
             {
                 var addedRole = await roleManager.FindByNameAsync("SystemUser");
-                foreach (var permission in PermissionList.GetAll())
-                {
-                   await roleManager.AddClaimAsync(addedRole, new Claim("Permission", permission));
-                }
+                await CompanyRoleTemplates.SyncPermissionClaimsAsync(
+                    roleManager,
+                    addedRole!,
+                    PermissionList.GetAll(),
+                    removeObsolete: false);
                 //var msg = "Success";
             }
         }
         else
         {
-            var roleClaims = await roleManager.GetClaimsAsync(role);
-            foreach (var permission in PermissionList.GetAll())
+            if (string.IsNullOrWhiteSpace(role.DisplayName))
             {
-                if (!roleClaims.Any(rc => rc.Type == "Permission" && rc.Value == permission))
-                {
-                    await roleManager.AddClaimAsync(role, new Claim("Permission", permission));
-                }
+                role.DisplayName = role.Name ?? "SystemUser";
+                await roleManager.UpdateAsync(role);
             }
+
+            await CompanyRoleTemplates.SyncPermissionClaimsAsync(
+                roleManager,
+                role,
+                PermissionList.GetAll(),
+                removeObsolete: false);
         }
 
         role = await roleManager.FindByNameAsync("Customer");
         if (role is null)
         {
-            var result = await roleManager.CreateAsync(new ApplicationRole() { Name = "Customer",CompanyId= Guid.Parse("4c3d205f-7e2b-42c2-a081-1700b229d91e") });
+            var result = await roleManager.CreateAsync(new ApplicationRole()
+            {
+                Name = "Customer",
+                DisplayName = "Customer",
+                CompanyId = CompanyRoleTemplates.DefaultCompanyId
+            });
             if (result.Succeeded)
             {
-                var msg = "Success";
             }
         }
 
         role = await roleManager.FindByNameAsync("Driver");
         if (role is null)
         {
-            var result = await roleManager.CreateAsync(new ApplicationRole() { Name = "Driver" , CompanyId = Guid.Parse("4c3d205f-7e2b-42c2-a081-1700b229d91e") });
+            var result = await roleManager.CreateAsync(new ApplicationRole()
+            {
+                Name = "Driver",
+                DisplayName = "Driver",
+                CompanyId = CompanyRoleTemplates.DefaultCompanyId
+            });
             if (result.Succeeded)
             {
-
-                var msg = "Success";
             }
         }
+
+        await CompanyRoleTemplates.SeedDefaultRolesAsync(roleManager, CompanyRoleTemplates.DefaultCompanyId);
 
 
         var user = await userManager.FindByNameAsync("admin");
@@ -70,7 +88,7 @@ public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManage
                 GenerateOTP.Generate(oTPOptions.Value.Length),
                                  OTPType.ConfirmEmail,
                 DateTime.UtcNow.AddMinutes(oTPOptions.Value.ExpirationMinutes),
-                Guid.Parse("4c3d205f-7e2b-42c2-a081-1700b229d91e"));
+                CompanyRoleTemplates.DefaultCompanyId);
             var result = await userManager.CreateAsync(userToRegister, "Admin@123");
             if (result.Succeeded)
             {
@@ -79,7 +97,7 @@ public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManage
 
                 //await dbContext.SaveChangesAsync();
                 var otp = new Random().Next(1000, 9999).ToString();
-                createdUser.UpdateOtp(otp,OTPType.ConfirmEmail,DateTime.UtcNow.AddMinutes(5),true);
+                createdUser!.UpdateOtp(otp,OTPType.ConfirmEmail,DateTime.UtcNow.AddMinutes(5),true);
 
                 await userManager.UpdateAsync(createdUser);
                 // send Email with OTP to userToRegister.Email

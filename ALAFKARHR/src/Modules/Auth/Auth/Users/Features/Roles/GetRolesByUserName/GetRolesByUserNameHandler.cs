@@ -25,13 +25,15 @@ public class GetRolesByUserNameHandler(RoleManager<ApplicationRole> roleManager,
         {
             var role = await roleManager.FindByNameAsync(roleName);
             if (role == null) continue;
+            if (role.CompanyId != user.CompanyId) continue;
 
             var claims = await roleManager.GetClaimsAsync(role);
 
             roleList.Add(new RoleDto
             {
                 CompanyId = user.CompanyId,
-                RoleName = roleName,
+                RoleName = role.Name ?? string.Empty,
+                DisplayName = string.IsNullOrWhiteSpace(role.DisplayName) ? role.Name ?? string.Empty : role.DisplayName,
                 Permissions = claims.Select(c => c.Value).ToList()
             });
         }

@@ -4,7 +4,7 @@ namespace Auth.Users.Features.Users.UnassignRoleFromUser;
 
 public record UnassignRoleFromUserCommand(UserRoleDto UserRole) : ICommand<UnassignRoleFromUserResult>;
 public record UnassignRoleFromUserResult(bool IsSuccess);
-public class UnassignRoleFromUserHandler(UserManager<ApplicationUser> userManager)
+public class UnassignRoleFromUserHandler(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager)
     : ICommandHandler<UnassignRoleFromUserCommand, UnassignRoleFromUserResult>
 {
     public async Task<UnassignRoleFromUserResult> Handle(UnassignRoleFromUserCommand request, CancellationToken cancellationToken)
@@ -20,11 +20,18 @@ public class UnassignRoleFromUserHandler(UserManager<ApplicationUser> userManage
         if (await IsProtectedAdmin(user))
             throw new BadRequestException("Admin role assignments cannot be changed from this page.");
 
-        var role = await userManager.IsInRoleAsync(user, request.UserRole.RoleName);
-        if (!role)
-            throw new BadRequestException($"Role ({request.UserRole.RoleName}) is not assigned to user ({userName}).");
+        var role = await roleManager.FindByNameAsync(request.UserRole.RoleName);
+        if (role is null)
+            throw new NotFoundException($"Role not found: {request.UserRole.RoleName}");
 
-        var result = await userManager.RemoveFromRoleAsync(user, request.UserRole.RoleName);
+        if (role.CompanyId != user.CompanyId)
+            throw new BadRequestException("Cannot unassign a role from another company.");
+
+        var isAssigned = await userManager.IsInRoleAsync(user, role.Name!);
+        if (!isAssigned)
+            throw new BadRequestException($"Role ({role.DisplayName}) is not assigned to user ({userName}).");
+
+        var result = await userManager.RemoveFromRoleAsync(user, role.Name!);
 
         return new UnassignRoleFromUserResult(result.Succeeded);
     }

@@ -7,8 +7,9 @@ public class CreateRoleEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/v1/auth/roles", async (CreateRoleRequest request, ISender sender) =>
+        app.MapPost("/api/v1/auth/roles", async (CreateRoleRequest request, ClaimsPrincipal user, ISender sender) =>
         {
+            request.Role.CompanyId = GetCompanyId(user);
             var result = await sender.Send(request.Adapt<CreateRoleCommand>());
             return Results.Ok(result.Adapt<CreateRoleResponse>());
         })
@@ -19,5 +20,13 @@ public class CreateRoleEndpoint : ICarterModule
             .WithSummary("CreateRole")
             .WithDescription("CreateRole")
             .RequireAuthorization(PermissionList.RolesPermissions.Create);
+    }
+
+    private static Guid GetCompanyId(ClaimsPrincipal user)
+    {
+        if (!Guid.TryParse(user.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var companyId))
+            throw new BadRequestException("Company claim is missing.");
+
+        return companyId;
     }
 }
