@@ -45,6 +45,7 @@ public class UpdateCompanySettingHandler(GeneralSettingsDbContext dbContext, IHt
                 request.CompanySetting.DefaultLocation,
                 request.CompanySetting.DefaultLatitude,
                 request.CompanySetting.DefaultLongitude,
+                request.CompanySetting.DefaultPosCustomerId,
                 userId);
 
             await dbContext.CompanySettings.AddAsync(setting, cancellationToken);
@@ -55,6 +56,7 @@ public class UpdateCompanySettingHandler(GeneralSettingsDbContext dbContext, IHt
                 request.CompanySetting.DefaultLocation,
                 request.CompanySetting.DefaultLatitude,
                 request.CompanySetting.DefaultLongitude,
+                request.CompanySetting.DefaultPosCustomerId,
                 userId);
         }
 

@@ -19,6 +19,7 @@ public static class InitialData
             "Riyadh, Saudi Arabia",
             24.7136,
             46.6753,
+            null,
             "2243B966-E7C2-43F5-9E00-21F6315BCB22")
     };
 }

@@ -1,34 +1,35 @@
 @layout AdminLayout
 @page "/GeneralSettings/SystemSettings"
+@using AlAfkarERP.Shared.Pages.Features.Customers.Services
 @using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Customers.Dtos
 @using SharedWithUI.GeneralSettings.Dtos
 @using SharedWithUI.Permissions
 @implements IDisposable
 
 @inject ICompanySettingService CompanySettingService
+@inject ICustomerService CustomerService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 @inject ToastService ToastService
 @inject IJSRuntime JSRuntime
 
-<div class="system-settings-page">
-    <div class="settings-header mb-4">
-        <div>
-            <div class="text-muted small">@Text("General Settings", "الإعدادات العامة")</div>
-            <h3 class="mb-1">@Text("System Settings", "إعدادات النظام")</h3>
-            <div class="text-muted">
-                @Text("Control company-wide defaults used by organization, branch, warehouse, and map screens.", "التحكم في الإعدادات الافتراضية المستخدمة في شاشات الشركة والفروع والمستودعات والخرائط.")
-            </div>
-        </div>
+<div class="system-settings-page erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("System Settings", "إعدادات النظام")"
+                Subtitle="@Text("Control company-wide defaults used by organization, branch, warehouse, and map screens.", "التحكم في الإعدادات الافتراضية المستخدمة في شاشات الشركة والفروع والمستودعات والخرائط.")"
+                Overline="@Text("General Settings", "الإعدادات العامة")"
+                Icon="bi-gear-wide-connected">
+        <Actions>
         <button class="btn btn-outline-primary" @onclick="LoadSettingsAsync" disabled="@isLoading">
             <i class="bi bi-arrow-clockwise"></i>
             @Text("Refresh", "تحديث")
         </button>
-    </div>
+        </Actions>
+    </PageHeader>
 
     <AppPageMessage Message="@pageMessage"
                     Type="@pageMessageType"
@@ -37,12 +38,12 @@
 
     @if (isLoading)
     {
-        <div class="card border-0 shadow-sm">
-            <div class="card-body py-5 text-center">
+        <AppCard>
+            <div class="py-5 text-center">
                 <div class="spinner-border text-primary mb-3" role="status"></div>
                 <div class="fw-semibold">@Text("Loading settings...", "جاري تحميل الإعدادات...")</div>
             </div>
-        </div>
+        </AppCard>
     }
     else if (!CanView)
     {
@@ -65,8 +66,7 @@
 
             <div class="row g-4">
                 <div class="col-xl-5">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body">
+                    <AppCard CssClass="h-100" BodyClass="settings-form-card-body">
                             <div class="d-flex align-items-center gap-2 mb-3">
                                 <span class="settings-icon"><i class="bi bi-geo-alt"></i></span>
                                 <div>
@@ -94,6 +94,20 @@
                                 </div>
                             </div>
 
+                            <div class="mt-3">
+                                <label class="form-label">@Text("Default POS Customer", "عميل نقطة البيع الافتراضي")</label>
+                                <InputSelect class="form-select" @bind-Value="settings.DefaultPosCustomerId" disabled="@(!CanEdit)">
+                                    <option value="">@Text("Select walk-in customer", "اختر عميل البيع المباشر")</option>
+                                    @foreach (var customer in customers)
+                                    {
+                                        <option value="@customer.Id">@CustomerDisplay(customer)</option>
+                                    }
+                                </InputSelect>
+                                <div class="form-text">
+                                    @Text("Used automatically when POS creates a new cart.", "يستخدم تلقائيا عند إنشاء سلة جديدة في نقطة البيع.")
+                                </div>
+                            </div>
+
                             <div class="d-flex flex-wrap gap-2 mt-4">
                                 <button type="button" class="btn btn-outline-secondary" @onclick="UseKsaDefaultAsync" disabled="@(!CanEdit)">
                                     <i class="bi bi-pin-map"></i>
@@ -108,8 +122,8 @@
                                     @Text("Center Map", "توسيط الخريطة")
                                 </button>
                             </div>
-                        </div>
-                        <div class="card-footer bg-white border-0 d-flex justify-content-end gap-2">
+
+                            <div class="settings-save-actions">
                             <button type="submit" class="btn btn-primary" disabled="@(!CanEdit || isSaving)">
                                 @if (isSaving)
                                 {
@@ -121,31 +135,28 @@
                                 }
                                 @Text("Save Settings", "حفظ الإعدادات")
                             </button>
-                        </div>
-                    </div>
+                            </div>
+                    </AppCard>
                 </div>
 
                 <div class="col-xl-7">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                                <div>
-                                    <h5 class="mb-1">@Text("Company Map Default", "الخريطة الافتراضية للشركة")</h5>
-                                    <div class="text-muted small">@Text("Click or drag the map to choose the default coordinates.", "اضغط أو حرّك الخريطة لاختيار الإحداثيات الافتراضية.")</div>
-                                </div>
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-outline-secondary" title="@Text("Zoom in", "تكبير")" @onclick="ZoomInAsync">
-                                        <i class="bi bi-plus-lg"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary" title="@Text("Zoom out", "تصغير")" @onclick="ZoomOutAsync">
-                                        <i class="bi bi-dash-lg"></i>
-                                    </button>
-                                </div>
+                    <AppCard CssClass="h-100"
+                             Title="@Text("Company Map Default", "الخريطة الافتراضية للشركة")"
+                             Subtitle="@Text("Click or drag the map to choose the default coordinates.", "اضغط أو حرّك الخريطة لاختيار الإحداثيات الافتراضية.")">
+                        <Actions>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-outline-secondary" title="@Text("Zoom in", "تكبير")" @onclick="ZoomInAsync">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" title="@Text("Zoom out", "تصغير")" @onclick="ZoomOutAsync">
+                                    <i class="bi bi-dash-lg"></i>
+                                </button>
                             </div>
-
+                        </Actions>
+                        <ChildContent>
                             <div id="@mapElementId" class="settings-map"></div>
-                        </div>
-                    </div>
+                        </ChildContent>
+                    </AppCard>
                 </div>
             </div>
         </EditForm>
@@ -160,6 +171,7 @@
     private DotNetObjectReference<SystemSettings>? dotNetReference;
     private AuthenticationState? AuthState;
     private CompanySettingDto settings = new();
+    private List<CustomerDto> customers = [];
     private Guid companyId;
     private bool isLoading = true;
     private bool isSaving;
@@ -223,6 +235,8 @@
         }
 
         var response = await CompanySettingService.GetAsync(companyId);
+        await LoadCustomersAsync();
+
         if (response.IsSuccess && response.Data is not null)
         {
             settings = response.Data;
@@ -234,6 +248,19 @@
 
         isLoading = false;
         mapReady = false;
+    }
+
+    private async Task LoadCustomersAsync()
+    {
+        var response = await CustomerService.GetByCompany(companyId, 0, 1000);
+        if (response.IsSuccess)
+        {
+            customers = response.Data?.Data?.ToList() ?? [];
+            return;
+        }
+
+        customers = [];
+        ShowPageError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load customers.", "تعذر تحميل العملاء."));
     }
 
     private async Task SaveAsync()
@@ -290,7 +317,7 @@
             return;
         }
 
-        await JSRuntime.InvokeVoidAsync("alafkarLocationPicker.setCenter", mapElementId, MapLatitude, MapLongitude, 8);
+        await JSRuntime.InvokeVoidAsync("alafkarLocationPicker.setCenter", mapElementId, MapLatitude, MapLongitude, false);
     }
 
     private async Task ZoomInAsync()
@@ -325,6 +352,11 @@
 
     private double MapLatitude => settings.DefaultLatitude == 0 ? KsaDefaultLatitude : settings.DefaultLatitude;
     private double MapLongitude => settings.DefaultLongitude == 0 ? KsaDefaultLongitude : settings.DefaultLongitude;
+    private static string CustomerDisplay(CustomerDto customer) =>
+        string.IsNullOrWhiteSpace(customer.CustomerCode)
+            ? customer.Name
+            : $"{customer.Name} ({customer.CustomerCode})";
+
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 
     private void ShowPageError(string message)
@@ -359,51 +391,85 @@
 
 <style>
     .system-settings-page {
-        max-width: 1280px;
-        margin: 0 auto;
-    }
-
-    .settings-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 1rem;
+        margin-inline: auto;
+        max-inline-size: 1280px;
     }
 
     .settings-icon {
-        width: 42px;
-        height: 42px;
-        display: inline-flex;
         align-items: center;
-        justify-content: center;
-        border-radius: var(--erp-radius-lg);
         background: var(--erp-primary-soft);
+        block-size: 42px;
+        border-radius: var(--erp-radius-lg);
         color: var(--erp-primary);
-        font-size: 1.2rem;
+        display: inline-flex;
         flex: 0 0 auto;
+        font-size: 1.2rem;
+        inline-size: 42px;
+        justify-content: center;
+    }
+
+    .settings-form-card-body {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .settings-save-actions {
+        border-block-start: 1px solid var(--erp-border);
+        display: flex;
+        gap: var(--erp-space-2);
+        justify-content: flex-end;
+        margin-block-start: auto;
+        padding-block-start: var(--erp-space-4);
     }
 
     .settings-map {
-        min-height: 520px;
+        background: var(--erp-surface-muted);
+        block-size: clamp(280px, 38vh, 380px);
         border: 1px solid var(--erp-border);
         border-radius: var(--erp-radius-lg);
+        inline-size: 100%;
         overflow: hidden;
-        background: var(--erp-surface-muted);
     }
 
     .validation-message {
         color: var(--erp-danger);
-        font-size: .875rem;
-        margin-top: .25rem;
+        font-size: var(--erp-font-size-sm);
+        margin-block-start: var(--erp-space-1);
+    }
+
+    .location-picker-map {
+        cursor: grab;
+        position: relative;
+        touch-action: none;
+    }
+
+    .location-picker-map.is-dragging {
+        cursor: grabbing;
+    }
+
+    .location-picker-tile {
+        block-size: 256px;
+        inline-size: 256px;
+        position: absolute;
+        user-select: none;
+    }
+
+    .location-picker-marker {
+        color: var(--erp-danger);
+        font-size: 2rem;
+        inset-block-start: 50%;
+        inset-inline-start: 50%;
+        line-height: 1;
+        pointer-events: none;
+        position: absolute;
+        text-shadow: 0 2px 4px color-mix(in srgb, var(--erp-color-inverse-surface) 25%, transparent);
+        transform: translate(-50%, -100%);
+        z-index: 2;
     }
 
     @@media (max-width: 767.98px) {
-        .settings-header {
-            flex-direction: column;
-        }
-
         .settings-map {
-            min-height: 360px;
+            block-size: 280px;
         }
     }
 </style>

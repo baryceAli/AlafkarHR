@@ -16,4 +16,6 @@ public class CompanySettingDto
 
     [Range(-180, 180)]
     public double DefaultLongitude { get; set; } = 46.6753;
+
+    public Guid? DefaultPosCustomerId { get; set; }
 }

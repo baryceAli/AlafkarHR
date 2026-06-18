@@ -32,7 +32,8 @@ public class GetCompanySettingHandler(GeneralSettingsDbContext dbContext)
             CompanyId = request.CompanyId,
             DefaultLocation = "Riyadh, Saudi Arabia",
             DefaultLatitude = KsaDefaultLatitude,
-            DefaultLongitude = KsaDefaultLongitude
+            DefaultLongitude = KsaDefaultLongitude,
+            DefaultPosCustomerId = null
         });
     }
 }

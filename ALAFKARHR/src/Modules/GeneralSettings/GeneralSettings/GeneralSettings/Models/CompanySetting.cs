@@ -8,6 +8,7 @@ public class CompanySetting : Aggregate<Guid>
     public string DefaultLocation { get; private set; } = default!;
     public double DefaultLatitude { get; private set; }
     public double DefaultLongitude { get; private set; }
+    public Guid? DefaultPosCustomerId { get; private set; }
 
     private CompanySetting()
     {
@@ -19,6 +20,7 @@ public class CompanySetting : Aggregate<Guid>
         string defaultLocation,
         double defaultLatitude,
         double defaultLongitude,
+        Guid? defaultPosCustomerId,
         string createdBy)
     {
         return new CompanySetting
@@ -28,16 +30,23 @@ public class CompanySetting : Aggregate<Guid>
             DefaultLocation = defaultLocation,
             DefaultLatitude = defaultLatitude,
             DefaultLongitude = defaultLongitude,
+            DefaultPosCustomerId = defaultPosCustomerId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
     }
 
-    public void Update(string defaultLocation, double defaultLatitude, double defaultLongitude, string modifiedBy)
+    public void Update(
+        string defaultLocation,
+        double defaultLatitude,
+        double defaultLongitude,
+        Guid? defaultPosCustomerId,
+        string modifiedBy)
     {
         DefaultLocation = defaultLocation;
         DefaultLatitude = defaultLatitude;
         DefaultLongitude = defaultLongitude;
+        DefaultPosCustomerId = defaultPosCustomerId;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }
