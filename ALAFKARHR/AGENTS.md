@@ -1,8 +1,8 @@
 # Codex Project Instructions
 
-<!-- Before any development task in this repository, read and follow: -->
+Before any development task in this repository, read and follow:
 
-<!-- `.codex/skills/alafkar-erp-development-guide/SKILL.md` -->
+`.codex/skills/alafkar-erp-development-guide/SKILL.md`
 
 <!-- This applies to creating or editing modules, backend endpoints, EF Core data access, Blazor pages, layout/sidebar/topbar, permissions, reports, integrations, localization, theme/UI design, and existing ERP functionality. -->
 
