@@ -5,6 +5,10 @@ namespace AlAfkarERP.Shared.Layout;
 public static class NavigationMenuResolver
 {
     public const string WorkspaceHome = "home";
+    public const string WorkspacePeople = "people";
+    public const string WorkspaceOperations = "operations";
+    public const string WorkspaceFinancePayroll = "finance-payroll";
+    public const string WorkspaceInventory = "inventory";
     public const string WorkspaceHr = "hr";
     public const string WorkspaceSales = "sales";
     public const string WorkspacePurchasing = "purchasing";
@@ -19,6 +23,12 @@ public static class NavigationMenuResolver
     public const string HubPeople = "people";
     public const string HubOperations = "operations";
     public const string HubTasks = "tasks";
+    public const string HubHr = WorkspaceHr;
+    public const string HubSales = WorkspaceSales;
+    public const string HubPurchasing = WorkspacePurchasing;
+    public const string HubWarehouse = WorkspaceWarehouse;
+    public const string HubAccountingFinance = WorkspaceAccountingFinance;
+    public const string HubAdmin = WorkspaceAdmin;
     public const string HubSecurity = "security";
     public const string HubSettings = "settings";
 
@@ -212,12 +222,12 @@ public static class NavigationMenuResolver
     public static string ResolveActiveWorkspace(string currentUri, string baseUri)
     {
         var activePath = GetActivePath(currentUri, baseUri);
-        return activePath.Count == 0 ? WorkspaceHome : GetWorkspaceKey(activePath.Last());
+        return activePath.Count == 0 ? WorkspaceHome : GetMobileWorkspaceKey(GetWorkspaceKey(activePath.Last()));
     }
 
     public static IReadOnlyList<MenuItem> GetWorkspaceItems(string workspaceKey)
         => MenuItem.Menu
-            .Where(item => GetWorkspaceKey(item) == workspaceKey || Flatten(item.Children).Any(child => GetWorkspaceKey(child) == workspaceKey))
+            .Where(item => RowBelongsToMobileWorkspace(item, workspaceKey))
             .ToList();
 
     public static IReadOnlyList<MenuItem> GetNavigableItems()
@@ -261,7 +271,8 @@ public static class NavigationMenuResolver
             return workspace.Url;
         }
 
-        return authorizedItems.FirstOrDefault(item => GetWorkspaceKey(item) == workspaceKey)?.Url;
+        return authorizedItems.FirstOrDefault(item => GetWorkspaceKey(item) == workspaceKey)?.Url
+               ?? authorizedItems.FirstOrDefault(item => GetMobileWorkspaceKey(GetWorkspaceKey(item)) == workspaceKey)?.Url;
     }
 
     public static IReadOnlyList<NavigationHubSection> GetAuthorizedHubSections(ClaimsPrincipal? user, string hubWorkspaceKey)
@@ -597,7 +608,7 @@ public static class NavigationMenuResolver
             return true;
         }
 
-        return authorizedItems.Any(item => GetWorkspaceKey(item) == workspace.Key);
+        return authorizedItems.Any(item => GetMobileWorkspaceKey(GetWorkspaceKey(item)) == workspace.Key);
     }
 
     private static bool RowBelongsToWorkspace(MenuItem item, string workspaceKey, ClaimsPrincipal? user)
@@ -614,6 +625,28 @@ public static class NavigationMenuResolver
 
         return item.Children.Any(child => RowBelongsToWorkspace(child, workspaceKey, user));
     }
+
+    private static bool RowBelongsToMobileWorkspace(MenuItem item, string workspaceKey)
+    {
+        var itemWorkspaceKey = GetWorkspaceKey(item);
+        if (itemWorkspaceKey == workspaceKey || GetMobileWorkspaceKey(itemWorkspaceKey) == workspaceKey)
+        {
+            return true;
+        }
+
+        return item.Children.Any(child => RowBelongsToMobileWorkspace(child, workspaceKey));
+    }
+
+    private static string GetMobileWorkspaceKey(string workspaceKey)
+        => workspaceKey switch
+        {
+            WorkspaceHr => WorkspacePeople,
+            WorkspaceSales or WorkspacePurchasing => WorkspaceOperations,
+            WorkspaceAccountingFinance => WorkspaceFinancePayroll,
+            WorkspaceWarehouse => WorkspaceInventory,
+            WorkspaceAdmin or WorkspaceSecurity => WorkspaceMore,
+            _ => workspaceKey
+        };
 
     private static bool IsText(MenuItem item, string text)
         => item.TextEn.Equals(text, StringComparison.OrdinalIgnoreCase);
