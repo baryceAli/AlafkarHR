@@ -325,14 +325,11 @@
         {
             return ActiveWorkspace switch
             {
-                NavigationMenuResolver.WorkspacePeople => NavigationMenuResolver.HubHr,
+                NavigationMenuResolver.WorkspacePos => NavigationMenuResolver.HubSales,
                 NavigationMenuResolver.WorkspaceHr => NavigationMenuResolver.HubHr,
-                NavigationMenuResolver.WorkspaceOperations => NavigationMenuResolver.HubSales,
                 NavigationMenuResolver.WorkspaceSales => NavigationMenuResolver.HubSales,
                 NavigationMenuResolver.WorkspacePurchasing => NavigationMenuResolver.HubPurchasing,
-                NavigationMenuResolver.WorkspaceInventory => NavigationMenuResolver.HubWarehouse,
                 NavigationMenuResolver.WorkspaceWarehouse => NavigationMenuResolver.HubWarehouse,
-                NavigationMenuResolver.WorkspaceFinancePayroll => NavigationMenuResolver.HubAccountingFinance,
                 NavigationMenuResolver.WorkspaceAccountingFinance => NavigationMenuResolver.HubAccountingFinance,
                 NavigationMenuResolver.WorkspaceAdmin => NavigationMenuResolver.HubAdmin,
                 NavigationMenuResolver.WorkspaceSecurity => NavigationMenuResolver.HubSecurity,

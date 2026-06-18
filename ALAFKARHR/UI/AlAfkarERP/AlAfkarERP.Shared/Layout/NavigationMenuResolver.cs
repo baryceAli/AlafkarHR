@@ -5,10 +5,6 @@ namespace AlAfkarERP.Shared.Layout;
 public static class NavigationMenuResolver
 {
     public const string WorkspaceHome = "home";
-    public const string WorkspacePeople = "people";
-    public const string WorkspaceOperations = "operations";
-    public const string WorkspaceFinancePayroll = "finance-payroll";
-    public const string WorkspaceInventory = "inventory";
     public const string WorkspaceHr = "hr";
     public const string WorkspaceSales = "sales";
     public const string WorkspacePurchasing = "purchasing";
@@ -17,36 +13,39 @@ public static class NavigationMenuResolver
     public const string WorkspaceAdmin = "admin";
     public const string WorkspaceSecurity = "it-security";
     public const string WorkspaceMore = "more";
+    public const string WorkspacePeople = WorkspaceHr;
+    public const string WorkspaceOperations = WorkspaceSales;
+    public const string WorkspaceFinancePayroll = WorkspaceAccountingFinance;
+    public const string WorkspaceInventory = WorkspaceWarehouse;
     public const string WorkspacePos = "pos";
-    public const string WorkspaceProcurement = WorkspaceOperations;
+    public const string WorkspaceProcurement = WorkspacePurchasing;
 
-    public const string HubPeople = "people";
-    public const string HubOperations = "operations";
-    public const string HubTasks = "tasks";
     public const string HubHr = WorkspaceHr;
     public const string HubSales = WorkspaceSales;
     public const string HubPurchasing = WorkspacePurchasing;
     public const string HubWarehouse = WorkspaceWarehouse;
     public const string HubAccountingFinance = WorkspaceAccountingFinance;
     public const string HubAdmin = WorkspaceAdmin;
-    public const string HubSecurity = "security";
-    public const string HubSettings = "settings";
+    public const string HubSecurity = WorkspaceSecurity;
 
     public static readonly IReadOnlyList<NavigationWorkspace> MobileWorkspaces =
     [
-        new(WorkspaceHome, "Home", "\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629", "bi-house-door", "/Dashboard"),
-        new(WorkspacePeople, "People", "\u0627\u0644\u0623\u0641\u0631\u0627\u062f", "bi-people", "/Employee/Dashboard"),
-        new(WorkspacePos, "POS", "\u0646\u0642\u0637\u0629 \u0628\u064a\u0639", "bi-receipt-cutoff", "/SalesOrder/POS"),
-        new(WorkspaceOperations, "Operations", "\u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a", "bi-kanban", null),
-        new(WorkspaceFinancePayroll, "Finance / Payroll", "\u0627\u0644\u0645\u0627\u0644\u064a\u0629 / \u0627\u0644\u0631\u0648\u0627\u062a\u0628", "bi-cash-stack", "/Payroll/SalaryRuns"),
-        new(WorkspaceInventory, "Inventory", "\u0627\u0644\u0645\u062e\u0632\u0648\u0646", "bi-boxes", "/Inventory/Dashboard"),
+        new(WorkspaceHome, "Home", "\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629", "bi-house-door", "/"),
+        new(WorkspacePos, "POS", "\u0646\u0642\u0637\u0629 \u0628\u064a\u0639", "bi-cash-register", "/SalesOrder/POS"),
+        new(WorkspaceHr, "HR", "\u0627\u0644\u0645\u0648\u0627\u0631\u062f", "bi-people", "/Employee/Dashboard"),
+        new(WorkspaceSales, "Sales", "\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a", "bi-graph-up-arrow", "/Sales/Dashboard"),
+        new(WorkspacePurchasing, "Purchasing", "\u0627\u0644\u0645\u0634\u062a\u0631\u064a\u0627\u062a", "bi-cart-check", "/Procurement/Dashboard"),
+        new(WorkspaceWarehouse, "Warehouse", "\u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639", "bi-boxes", "/Inventory/Dashboard"),
+        new(WorkspaceAccountingFinance, "Accounting / Finance", "\u0627\u0644\u0645\u062d\u0627\u0633\u0628\u0629 / \u0627\u0644\u0645\u0627\u0644\u064a\u0629", "bi-cash-stack", "/Payroll/SalaryRuns"),
+        new(WorkspaceAdmin, "Admin", "\u0627\u0644\u0625\u062f\u0627\u0631\u0629", "bi-sliders2-vertical", "/Dashboard"),
+        new(WorkspaceSecurity, "IT / Security", "\u062a\u0642\u0646\u064a\u0629 \u0648\u0623\u0645\u0627\u0646", "bi-shield-lock", "/Auth/Dashboard"),
         new(WorkspaceMore, "More", "\u0627\u0644\u0645\u0632\u064a\u062f", "bi-grid-3x3-gap", null)
     ];
 
     public static readonly IReadOnlyList<NavigationHubWorkspace> HubWorkspaces =
     [
         new(HubHr, "HR", "\u0627\u0644\u0645\u0648\u0627\u0631\u062f", "bi-people"),
-        new(HubSales, "Sales", "\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a", "bi-receipt-cutoff"),
+        new(HubSales, "Sales", "\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a", "bi-graph-up-arrow"),
         new(HubPurchasing, "Purchasing", "\u0627\u0644\u0645\u0634\u062a\u0631\u064a\u0627\u062a", "bi-cart-check"),
         new(HubWarehouse, "Warehouse", "\u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639", "bi-boxes"),
         new(HubAccountingFinance, "Accounting / Finance", "\u0627\u0644\u0645\u062d\u0627\u0633\u0628\u0629 / \u0627\u0644\u0645\u0627\u0644\u064a\u0629", "bi-cash-stack"),
@@ -190,10 +189,24 @@ public static class NavigationMenuResolver
             return WorkspaceAccountingFinance;
         }
 
+        if (path == "/salesorder/pos"
+            || text.Equals("POS", StringComparison.OrdinalIgnoreCase))
+        {
+            return WorkspacePos;
+        }
+
         if (path.StartsWith("/salesorder", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/sales", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/orders", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/customers", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/catalog", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Operations", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Sales", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Customer", StringComparison.OrdinalIgnoreCase))
+        {
+            return WorkspaceSales;
+        }
+
+        if (path.StartsWith("/procurement", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/suppliers", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Procurement", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Purchase", StringComparison.OrdinalIgnoreCase)
             || text.Contains("RFQ", StringComparison.OrdinalIgnoreCase)
@@ -221,13 +234,19 @@ public static class NavigationMenuResolver
 
     public static string ResolveActiveWorkspace(string currentUri, string baseUri)
     {
+        var currentPath = NormalizePath(ToRelativePath(currentUri, baseUri));
+        if (currentPath == "/")
+        {
+            return WorkspaceHome;
+        }
+
         var activePath = GetActivePath(currentUri, baseUri);
-        return activePath.Count == 0 ? WorkspaceHome : GetMobileWorkspaceKey(GetWorkspaceKey(activePath.Last()));
+        return activePath.Count == 0 ? WorkspaceHome : GetWorkspaceKey(activePath.Last());
     }
 
     public static IReadOnlyList<MenuItem> GetWorkspaceItems(string workspaceKey)
         => MenuItem.Menu
-            .Where(item => RowBelongsToMobileWorkspace(item, workspaceKey))
+            .Where(item => GetWorkspaceKey(item) == workspaceKey || Flatten(item.Children).Any(child => GetWorkspaceKey(child) == workspaceKey))
             .ToList();
 
     public static IReadOnlyList<MenuItem> GetNavigableItems()
@@ -258,6 +277,11 @@ public static class NavigationMenuResolver
 
     public static string? GetWorkspaceDefaultUrl(string workspaceKey, ClaimsPrincipal? user)
     {
+        if (workspaceKey == WorkspaceHome)
+        {
+            return "/";
+        }
+
         if (workspaceKey == WorkspaceMore)
         {
             return null;
@@ -271,8 +295,7 @@ public static class NavigationMenuResolver
             return workspace.Url;
         }
 
-        return authorizedItems.FirstOrDefault(item => GetWorkspaceKey(item) == workspaceKey)?.Url
-               ?? authorizedItems.FirstOrDefault(item => GetMobileWorkspaceKey(GetWorkspaceKey(item)) == workspaceKey)?.Url;
+        return authorizedItems.FirstOrDefault(item => GetWorkspaceKey(item) == workspaceKey)?.Url;
     }
 
     public static IReadOnlyList<NavigationHubSection> GetAuthorizedHubSections(ClaimsPrincipal? user, string hubWorkspaceKey)
@@ -295,6 +318,11 @@ public static class NavigationMenuResolver
     public static string ResolveHubWorkspaceKey(MenuItem item)
     {
         var workspaceKey = GetWorkspaceKey(item);
+        if (workspaceKey == WorkspacePos)
+        {
+            return HubSales;
+        }
+
         return workspaceKey == WorkspaceMore ? HubAdmin : workspaceKey;
     }
 
@@ -596,6 +624,11 @@ public static class NavigationMenuResolver
 
     private static bool IsWorkspaceAvailable(NavigationWorkspace workspace, ClaimsPrincipal? user)
     {
+        if (workspace.Key == WorkspaceHome)
+        {
+            return true;
+        }
+
         var authorizedItems = GetAuthorizedNavigableItems(user).ToList();
         if (workspace.Key == WorkspaceMore)
         {
@@ -608,7 +641,7 @@ public static class NavigationMenuResolver
             return true;
         }
 
-        return authorizedItems.Any(item => GetMobileWorkspaceKey(GetWorkspaceKey(item)) == workspace.Key);
+        return authorizedItems.Any(item => GetWorkspaceKey(item) == workspace.Key);
     }
 
     private static bool RowBelongsToWorkspace(MenuItem item, string workspaceKey, ClaimsPrincipal? user)
@@ -618,35 +651,15 @@ public static class NavigationMenuResolver
             return false;
         }
 
-        if (GetWorkspaceKey(item) == workspaceKey)
+        var itemWorkspaceKey = GetWorkspaceKey(item);
+        if (itemWorkspaceKey == workspaceKey
+            || workspaceKey == WorkspaceSales && itemWorkspaceKey == WorkspacePos)
         {
             return true;
         }
 
         return item.Children.Any(child => RowBelongsToWorkspace(child, workspaceKey, user));
     }
-
-    private static bool RowBelongsToMobileWorkspace(MenuItem item, string workspaceKey)
-    {
-        var itemWorkspaceKey = GetWorkspaceKey(item);
-        if (itemWorkspaceKey == workspaceKey || GetMobileWorkspaceKey(itemWorkspaceKey) == workspaceKey)
-        {
-            return true;
-        }
-
-        return item.Children.Any(child => RowBelongsToMobileWorkspace(child, workspaceKey));
-    }
-
-    private static string GetMobileWorkspaceKey(string workspaceKey)
-        => workspaceKey switch
-        {
-            WorkspaceHr => WorkspacePeople,
-            WorkspaceSales or WorkspacePurchasing => WorkspaceOperations,
-            WorkspaceAccountingFinance => WorkspaceFinancePayroll,
-            WorkspaceWarehouse => WorkspaceInventory,
-            WorkspaceAdmin or WorkspaceSecurity => WorkspaceMore,
-            _ => workspaceKey
-        };
 
     private static bool IsText(MenuItem item, string text)
         => item.TextEn.Equals(text, StringComparison.OrdinalIgnoreCase);

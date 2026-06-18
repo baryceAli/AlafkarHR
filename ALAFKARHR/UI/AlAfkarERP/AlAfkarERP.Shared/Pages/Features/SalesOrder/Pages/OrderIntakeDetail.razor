@@ -1,0 +1,237 @@
+@layout AdminLayout
+@page "/Orders/Intakes/{Id:guid}"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Orders.Dtos
+@using SharedWithUI.Orders.Enums
+@using SharedWithUI.Permissions
+
+@inject IOrderIntakeService OrderIntakeService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+<section class="sales-page" dir="@SharedDataService.PageDirection">
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        return;
+    }
+
+    <PageHeader Title="@(order?.Number ?? Text("Order Intake", "طلب البيع"))"
+                Subtitle="@Text("Review line items, payment state, and intake workflow decisions.", "مراجعة الأصناف وحالة الدفع وقرارات الطلب.")"
+                Overline="@Text("Order Intake", "طلب البيع")"
+                Icon="bi-card-checklist">
+        <Actions>
+            <a class="btn btn-outline-secondary" href="/Orders/Intakes">
+                <i class="bi bi-arrow-left"></i> @Text("Back", "رجوع")
+            </a>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <div class="erp-loading py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2">@Text("Loading intake...", "جاري تحميل الطلب...")</div>
+        </div>
+    }
+    else if (order is null)
+    {
+        <EmptyState Title="@Text("Order intake not found", "لم يتم العثور على الطلب")"
+                    Message="@Text("The requested intake could not be loaded.", "تعذر تحميل الطلب المطلوب.")"
+                    Icon="bi-exclamation-circle" />
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <AppCard Title="@Text("Lines", "الأصناف")">
+                    <div class="erp-table-wrap">
+                        <table class="table erp-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>@Text("Item", "الصنف")</th>
+                                    <th>@Text("SKU", "الرمز")</th>
+                                    <th>@Text("Qty", "الكمية")</th>
+                                    <th>@Text("Price", "السعر")</th>
+                                    <th>@Text("Total", "الإجمالي")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var line in order.Lines)
+                                {
+                                    <tr>
+                                        <td>@Text(line.ProductNameEng, line.ProductName)</td>
+                                        <td>@line.SkuCode</td>
+                                        <td>@line.Quantity</td>
+                                        <td>@Money(line.RequestedUnitPrice)</td>
+                                        <td>@Money(line.TotalAmount)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+            <div class="col-lg-4">
+                <AppCard Title="@Text("Summary", "الملخص")" CssClass="mb-3">
+                    <div class="summary-row"><span>@Text("Status", "الحالة")</span><strong>@StatusText(order.Status)</strong></div>
+                    <div class="summary-row"><span>@Text("Customer", "العميل")</span><strong>@(order.CustomerName ?? Text("Walk-in", "عميل مباشر"))</strong></div>
+                    <div class="summary-row"><span>@Text("Payment", "الدفع")</span><strong>@(order.PaymentStatus?.ToString() ?? "-")</strong></div>
+                    <div class="summary-row"><span>@Text("Payment method", "طريقة الدفع")</span><strong>@(order.PaymentMethod?.ToString() ?? "-")</strong></div>
+                    <div class="summary-row"><span>@Text("Submitted", "تاريخ الإرسال")</span><strong>@DateText(order.SubmittedAt)</strong></div>
+                    <div class="summary-row summary-total"><span>@Text("Total", "الإجمالي")</span><strong>@Money(order.CheckoutTotal)</strong></div>
+
+                    @if (!string.IsNullOrWhiteSpace(order.RejectionReason))
+                    {
+                        <div class="alert alert-warning mt-3">@order.RejectionReason</div>
+                    }
+                </AppCard>
+
+                @if (order.Status is OrderIntakeStatus.Submitted or OrderIntakeStatus.Validated)
+                {
+                    <AppCard Title="@Text("Decision", "القرار")">
+                        @if (CanAccept)
+                        {
+                            <button class="btn btn-success w-100 mb-2" @onclick="AcceptAsync" disabled="@isSaving">
+                                <i class="bi bi-check2-circle"></i> @Text("Accept", "قبول")
+                            </button>
+                        }
+                        @if (CanReject)
+                        {
+                            <label class="form-label">@Text("Reject reason", "سبب الرفض")</label>
+                            <textarea class="form-control mb-2" rows="3" @bind="rejectReason"></textarea>
+                            <button class="btn btn-outline-danger w-100" @onclick="RejectAsync" disabled="@isSaving">
+                                <i class="bi bi-x-circle"></i> @Text("Reject", "رفض")
+                            </button>
+                        }
+                    </AppCard>
+                }
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private bool CanView;
+    private bool CanAccept;
+    private bool CanReject;
+    private bool isLoading;
+    private bool isSaving;
+    private string rejectReason = string.Empty;
+    private OrderIntakeDto? order;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var permissions = authState.User.Claims.Select(c => c.Value).ToHashSet();
+        CanView = permissions.Contains(PermissionList.OrderIntakePermissions.View);
+        CanAccept = permissions.Contains(PermissionList.OrderIntakePermissions.Accept);
+        CanReject = permissions.Contains(PermissionList.OrderIntakePermissions.Reject);
+        if (!authState.User.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (CanView)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await OrderIntakeService.GetByIdAsync(Id);
+        order = result.IsSuccess ? result.Data : null;
+        isLoading = false;
+    }
+
+    private async Task AcceptAsync()
+    {
+        isSaving = true;
+        var result = await OrderIntakeService.AcceptAsync(Id);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Order intake accepted.", "تم قبول الطلب."));
+            if (result.Data?.SalesOrderId != Guid.Empty)
+                NavigationManager.NavigateTo($"/Sales/Orders/{result.Data!.SalesOrderId}");
+            else
+                await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to accept intake.", "تعذر قبول الطلب."));
+        }
+        isSaving = false;
+    }
+
+    private async Task RejectAsync()
+    {
+        if (string.IsNullOrWhiteSpace(rejectReason))
+        {
+            ToastService.ShowWarning(Text("Enter a rejection reason.", "أدخل سبب الرفض."));
+            return;
+        }
+
+        isSaving = true;
+        var result = await OrderIntakeService.RejectAsync(Id, rejectReason);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Order intake rejected.", "تم رفض الطلب."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to reject intake.", "تعذر رفض الطلب."));
+        }
+        isSaving = false;
+    }
+
+    private string StatusText(OrderIntakeStatus status) => status switch
+    {
+        OrderIntakeStatus.Submitted => Text("Submitted", "مرسل"),
+        OrderIntakeStatus.Validated => Text("Validated", "تم التحقق"),
+        OrderIntakeStatus.Rejected => Text("Rejected", "مرفوض"),
+        OrderIntakeStatus.Accepted => Text("Accepted", "مقبول"),
+        OrderIntakeStatus.ConvertedToSales => Text("Converted", "محول للبيع"),
+        OrderIntakeStatus.Cancelled => Text("Cancelled", "ملغي"),
+        _ => Text("Draft", "مسودة")
+    };
+
+    private string DateText(DateTime? value) => value?.ToString("yyyy-MM-dd HH:mm") ?? "-";
+    private string Money(decimal value) => $"{value:N2} SAR";
+    private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
+
+<style>
+    .summary-row {
+        align-items: center;
+        border-bottom: 1px solid var(--erp-border);
+        display: flex;
+        justify-content: space-between;
+        gap: var(--erp-space-3);
+        padding-block: var(--erp-space-2);
+    }
+
+    .summary-row:last-child {
+        border-bottom: 0;
+    }
+
+    .summary-total {
+        font-size: 1.1rem;
+    }
+</style>
