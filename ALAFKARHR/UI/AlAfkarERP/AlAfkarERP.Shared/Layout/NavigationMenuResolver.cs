@@ -30,8 +30,8 @@ public static class NavigationMenuResolver
 
     public static readonly IReadOnlyList<NavigationWorkspace> MobileWorkspaces =
     [
-        new(WorkspaceHome, "Home", "\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629", "bi-house-door", "/"),
-        new(WorkspacePos, "POS", "\u0646\u0642\u0637\u0629 \u0628\u064a\u0639", "bi-cash-register", "/SalesOrder/POS"),
+        new(WorkspaceHome, "Home", "\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629", "bi-house-door", "/Dashboard"),
+        new(WorkspacePos, "POS", "\u0646\u0642\u0637\u0629 \u0628\u064a\u0639", "bi-receipt", "/SalesOrder/POS"),
         new(WorkspaceHr, "HR", "\u0627\u0644\u0645\u0648\u0627\u0631\u062f", "bi-people", "/Employee/Dashboard"),
         new(WorkspaceSales, "Sales", "\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a", "bi-graph-up-arrow", "/Sales/Dashboard"),
         new(WorkspacePurchasing, "Purchasing", "\u0627\u0644\u0645\u0634\u062a\u0631\u064a\u0627\u062a", "bi-cart-check", "/Procurement/Dashboard"),
@@ -235,7 +235,7 @@ public static class NavigationMenuResolver
     public static string ResolveActiveWorkspace(string currentUri, string baseUri)
     {
         var currentPath = NormalizePath(ToRelativePath(currentUri, baseUri));
-        if (currentPath == "/")
+        if (currentPath == "/" || currentPath == "/dashboard")
         {
             return WorkspaceHome;
         }
@@ -279,7 +279,7 @@ public static class NavigationMenuResolver
     {
         if (workspaceKey == WorkspaceHome)
         {
-            return "/";
+            return "/Dashboard";
         }
 
         if (workspaceKey == WorkspaceMore)

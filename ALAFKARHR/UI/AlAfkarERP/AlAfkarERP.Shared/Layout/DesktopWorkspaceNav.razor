@@ -198,7 +198,7 @@
     private static bool IsPanelExcludedItem(MenuItem item)
     {
         var path = NavigationMenuResolver.NormalizePath(item.Url);
-        return path == "/dashboard" || path == "/salesorder/pos";
+        return path == "/dashboard";
     }
 
     private bool CanNavigate(MenuItem item)

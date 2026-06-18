@@ -44,7 +44,7 @@ public class MenuItem
                 {
                     TextEn = "POS",
                     TextAr = "نقطة بيع",
-                    Icon = "bi-cash-register",
+                    Icon = "bi-receipt",
                     Url = "/SalesOrder/POS",
                     PermissionPolicy = PermissionList.SalesOrderPermissions.View,
                     WorkspaceKey = NavigationMenuResolver.WorkspacePos,
@@ -75,6 +75,51 @@ public class MenuItem
                     Icon = "bi-list-check",
                     Url = "/Sales/Orders",
                     PermissionPolicy = PermissionList.SalesOrderPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Customers Management",
+                    TextAr = "إدارة العملاء",
+                    Icon = "bi-person-vcard-fill",
+                    PermissionPolicy = PermissionList.CustomerPermissions.Select,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceSales,
+                    KeywordsEn = "sales customers customer groups customer pricing",
+                    KeywordsAr = "مبيعات عملاء مجموعات العملاء تسعير العملاء",
+                    Children = new()
+                    {
+                        new MenuItem
+                        {
+                            TextEn = "Dashboard",
+                            TextAr = "لوحة العملاء",
+                            Icon = "bi-speedometer2",
+                            Url = "/Customers/Customer/Dashboard",
+                            PermissionPolicy = PermissionList.CustomerPermissions.Select
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Customers List",
+                            TextAr = "قائمة العملاء",
+                            Icon = "bi-people-fill",
+                            Url = "/Customers/Customer/List",
+                            PermissionPolicy = PermissionList.CustomerPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Customer Groups",
+                            TextAr = "مجموعات العملاء",
+                            Icon = "bi-collection-fill",
+                            Url = "/Customers/CustomerGroup/List",
+                            PermissionPolicy = PermissionList.CustomerGroupPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Special Customer Pricing",
+                            TextAr = "تخصيص تسعير العملاء",
+                            Icon = "bi-percent",
+                            Url = "/Customers/CustomerPricingProfile/List",
+                            PermissionPolicy = PermissionList.CustomerPricingProfilePermissions.View
+                        }
+                    }
                 }
             }
         },
@@ -491,51 +536,6 @@ public class MenuItem
                             PermissionPolicy = PermissionList.PayrollLoanPermissions.View
                         }
                     }
-                },
-                new MenuItem
-                {
-                    TextEn = "Customers Management",
-                    TextAr = "إدارة العملاء",
-                    Icon = "bi-person-vcard-fill",
-                    PermissionPolicy = PermissionList.CustomerPermissions.Select,
-                    WorkspaceKey = NavigationMenuResolver.WorkspaceSales,
-                    KeywordsEn = "sales customers customer groups customer pricing",
-                    KeywordsAr = "مبيعات عملاء مجموعات العملاء تسعير العملاء",
-                    Children = new()
-                    {
-                        new MenuItem
-                        {
-                            TextEn = "Dashboard",
-                            TextAr = "لوحة العملاء",
-                            Icon = "bi-speedometer2",
-                            Url = "/Customers/Customer/Dashboard",
-                            PermissionPolicy = PermissionList.CustomerPermissions.Select
-                        },
-                        new MenuItem
-                        {
-                            TextEn = "Customers List",
-                            TextAr = "قائمة العملاء",
-                            Icon = "bi-people-fill",
-                            Url = "/Customers/Customer/List",
-                            PermissionPolicy = PermissionList.CustomerPermissions.View,
-                        }, 
-                        new MenuItem
-                        {
-                            TextEn = "Customer Groups",
-                            TextAr = "مجموعات العملاء",
-                            Icon = "bi-collection-fill",
-                            Url = "/Customers/CustomerGroup/List",
-                            PermissionPolicy = PermissionList.CustomerGroupPermissions.View
-                        },
-                        new MenuItem
-                        {
-                            TextEn = "Special Customer Pricing",
-                            TextAr = "تخصيص تسعير العملاء",
-                            Icon = "bi-percent",
-                            Url = "/Customers/CustomerPricingProfile/List",
-                            PermissionPolicy = PermissionList.CustomerPricingProfilePermissions.View
-                        }
-                    }
                 }
             }
         },
@@ -551,24 +551,6 @@ public class MenuItem
             KeywordsAr = "مستودع مشتريات منتجات مخزون موردين",
             Children = new()
             {
-                new MenuItem
-                {
-                    TextEn = "Sales",
-                    TextAr = "المبيعات",
-                    Icon = "bi-receipt-cutoff",
-                    PermissionPolicy = PermissionList.SalesOrderPermissions.Select,
-                    Children = new()
-                    {
-                        new MenuItem
-                        {
-                            TextEn = "POS",
-                            TextAr = "نقطة بيع",
-                            Icon = "bi-receipt-cutoff",
-                            Url = "/SalesOrder/POS",
-                            PermissionPolicy = PermissionList.SalesOrderPermissions.View
-                        }
-                    }
-                },
                 new MenuItem
                 {
                     TextEn = "Products Management",
