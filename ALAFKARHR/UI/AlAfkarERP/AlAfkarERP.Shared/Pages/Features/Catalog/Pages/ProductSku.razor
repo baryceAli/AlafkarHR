@@ -81,7 +81,7 @@
              Subtitle="@SharedDataService.SelectViewLang("Search, sort, edit, and remove SKU records.", "ابحث ورتب وعدل واحذف سجلات المنتجات المخزنية.")">
         <FilterBar CssClass="mb-3">
             <ChildContent>
-            <div class="input-group" style="max-width: 320px;">
+            <div class="input-group erp-search-control">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                 <input class="form-control"
                        placeholder="@SharedDataService.SelectViewLang("Search SKUs...", "ابحث في المنتجات المخزنية...")"
@@ -331,7 +331,7 @@
                                     <div class="mb-3 row">
                                         <label for="DateOfBirth" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Photo", "الصورة")</label>
                                         <div class="col-sm-10">
-                                            <label for="profileUpload" style="cursor:pointer;">
+                                            <label for="profileUpload" class="erp-pointer">
                                                 <img src="@(string.IsNullOrEmpty(editingItem?.ImageUrl)
                                                                                                                                                          ? "_content/AlAfkarERP.Shared/images/productPlaceHolder.jpg"
                                                                                                                                                          : (editingItem.ImageUrl.Contains("data:")
@@ -345,7 +345,7 @@
                                             </label>
 
                                             <InputFile id="profileUpload"
-                                                       style="display:none"
+                                                       class="erp-hidden-input"
                                                        OnChange="OnProductImageSelected"
                                                        accept="image/*" />
                                             <ValidationMessage For="@(() => editingItem.ImageUrl)" class="text-danger" />

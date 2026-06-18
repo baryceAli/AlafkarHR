@@ -1,4 +1,4 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Organization/Branch/List"
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
@@ -399,7 +399,7 @@
     .branch-stat {
         align-items: center;
         background: var(--erp-surface);
-        border-left: 4px solid;
+        border-inline-start: 4px solid;
         border-radius: var(--erp-radius-lg);
         box-shadow: var(--erp-shadow-sm);
         display: flex;
@@ -442,14 +442,14 @@
 
     .branch-search i {
         color: var(--erp-text-muted);
-        left: 0.875rem;
+        inset-inline-start: 0.875rem;
         position: absolute;
         top: 50%;
         transform: translateY(-50%);
     }
 
     .branch-search .form-control {
-        padding-left: 2.5rem;
+        padding-inline-start: 2.5rem;
     }
 
     .branch-page-size {
@@ -572,13 +572,13 @@
     }
 
     .location-picker-marker {
-        color: #dc3545;
+        color: var(--erp-danger);
         font-size: 2rem;
-        left: 50%;
+        inset-inline-start: 50%;
         line-height: 1;
         pointer-events: none;
         position: absolute;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+        text-shadow: 0 2px 4px color-mix(in srgb, var(--erp-color-inverse-surface) 25%, transparent);
         top: 50%;
         transform: translate(-50%, -100%);
         z-index: 2;
@@ -617,18 +617,18 @@
     }
 
     [dir="rtl"] .branch-stat {
-        border-left: 0;
-        border-right: 4px solid;
+        border-inline-start: 0;
+        border-inline-end: 4px solid;
     }
 
     [dir="rtl"] .branch-search i {
-        left: auto;
-        right: 0.875rem;
+        inset-inline-start: auto;
+        inset-inline-end: 0.875rem;
     }
 
     [dir="rtl"] .branch-search .form-control {
-        padding-left: 0.75rem;
-        padding-right: 2.5rem;
+        padding-inline-start: 0.75rem;
+        padding-inline-end: 2.5rem;
     }
 </style>
 

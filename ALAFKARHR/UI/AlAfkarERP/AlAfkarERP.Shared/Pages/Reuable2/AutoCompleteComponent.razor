@@ -5,10 +5,7 @@
 @* <div class="position-relative"> *@
     <div class="input-group">
         <span class="input-group-text bg-white border-end-0">
-            <!-- simple inline magnifier SVG to avoid external icon dependency -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M11.742 10.344a6.5 6.5 0 10-1.397 1.398h-.001l3.85 3.85a1 1 0 001.415-1.415l-3.85-3.85zm-5.242.656a5 5 0 110-10 5 5 0 010 10z"/>
-            </svg>
+            <i class="bi bi-search" aria-hidden="true"></i>
             @* <span class="btn" onclick="()=>{}"><i class="bi bi-plus-square"></i></span> *@
         </span>
 
@@ -33,7 +30,7 @@
 
     @if (isOpen)
     {
-        <div class="dropdown-menu show w-100 mt-1 p-0 shadow-sm autocomplete-menu mb-3" style="z-index:1000;" role="listbox" aria-label="Search results">
+        <div class="dropdown-menu show w-100 mt-1 p-0 shadow-sm autocomplete-menu mb-3" role="listbox" aria-label="Search results">
             @if (filteredItems.Any())
             {
                 @foreach (var item in filteredItems.Select((value, idx) => (value, idx)))
@@ -59,23 +56,17 @@
 </div>
 
 <style>
-    /* component-scoped styling to improve appearance using Bootstrap primitives */
     .autocomplete-menu {
         max-height: 14rem;
         overflow-y: auto;
-        border-radius: .375rem;
+        border-radius: var(--erp-radius-md);
+        z-index: 1000;
     }
 
-    /* subtle hover/focus for items */
     .autocomplete-menu .dropdown-item:hover,
     .autocomplete-menu .dropdown-item.active {
-        background-color: rgba(13,110,253,.08); /* bootstrap primary 10% tint */
-        color: #0d6efd;
-    }
-
-    /* keep the input-group icon visually connected */
-    .input-group .input-group-text svg {
-        display: block;
+        background-color: color-mix(in srgb, var(--erp-primary) 8%, transparent);
+        color: var(--erp-primary);
     }
 </style>
 

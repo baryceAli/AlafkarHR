@@ -300,10 +300,10 @@
 
     .org-stat {
         align-items: center;
-        background: #fff;
-        border-left: 4px solid;
-        border-radius: 8px;
-        box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.08);
+        background: var(--erp-surface);
+        border-inline-start: 4px solid;
+        border-radius: var(--erp-radius-lg);
+        box-shadow: var(--erp-shadow-sm);
         display: flex;
         gap: 0.875rem;
         min-height: 88px;
@@ -312,8 +312,8 @@
 
     .org-stat-icon {
         align-items: center;
-        background: #f8f9fa;
-        border-radius: 8px;
+        background: var(--erp-surface-muted);
+        border-radius: var(--erp-radius-lg);
         display: inline-flex;
         font-size: 1.35rem;
         height: 44px;
@@ -322,7 +322,7 @@
     }
 
     .org-stat-value {
-        color: #212529;
+        color: var(--erp-text);
         font-size: 1.35rem;
         font-weight: 700;
         line-height: 1.15;
@@ -348,15 +348,15 @@
     }
 
     .org-search i {
-        color: #6c757d;
-        left: 0.875rem;
+        color: var(--erp-text-muted);
+        inset-inline-start: 0.875rem;
         position: absolute;
         top: 50%;
         transform: translateY(-50%);
     }
 
     .org-search .form-control {
-        padding-left: 2.5rem;
+        padding-inline-start: 2.5rem;
     }
 
     .org-page-size {
@@ -364,13 +364,13 @@
     }
 
     .org-table-wrap {
-        border: 1px solid #e9ecef;
-        border-radius: 8px;
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
     }
 
     .org-table thead th {
-        background: #f8f9fa;
-        color: #495057;
+        background: var(--erp-surface-muted);
+        color: var(--erp-text-muted);
         font-size: 0.8125rem;
         font-weight: 700;
         text-transform: uppercase;
@@ -378,7 +378,7 @@
     }
 
     .org-table tbody tr:hover {
-        background: #fbfcfe;
+        background: var(--erp-surface-muted);
     }
 
     .org-table .sortable {
@@ -387,7 +387,7 @@
     }
 
     .org-table .sortable i {
-        color: #6c757d;
+        color: var(--erp-text-muted);
         font-size: 0.75rem;
         margin-inline-start: 0.35rem;
     }
@@ -401,22 +401,22 @@
     }
 
     .org-edit-row > td {
-        background: #f8fbff;
+        background: var(--erp-surface-muted);
         padding: 1rem;
     }
 
     .org-edit-panel {
-        background: #fff;
-        border: 1px solid #dbeafe;
-        border-radius: 8px;
+        background: var(--erp-surface);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
         padding: 1rem;
     }
 
     .org-check {
         align-items: center;
-        background: #f8f9fa;
-        border: 1px solid #e9ecef;
-        border-radius: 8px;
+        background: var(--erp-surface-muted);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
         display: inline-flex;
         gap: 0.5rem;
         padding: 0.75rem 1rem;
@@ -436,18 +436,18 @@
     }
 
     [dir="rtl"] .org-stat {
-        border-left: 0;
-        border-right: 4px solid;
+        border-inline-start: 0;
+        border-inline-end: 4px solid;
     }
 
     [dir="rtl"] .org-search i {
-        left: auto;
-        right: 0.875rem;
+        inset-inline-start: auto;
+        inset-inline-end: 0.875rem;
     }
 
     [dir="rtl"] .org-search .form-control {
-        padding-left: 0.75rem;
-        padding-right: 2.5rem;
+        padding-inline-start: 0.75rem;
+        padding-inline-end: 2.5rem;
     }
 </style>
 

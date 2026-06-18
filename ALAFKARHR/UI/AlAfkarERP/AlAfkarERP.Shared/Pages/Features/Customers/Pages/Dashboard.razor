@@ -142,15 +142,15 @@ else
 <style>
     .branches-page { max-width: 1400px; }
     .branches-header { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
-    .branch-stat { align-items: center; background: var(--erp-surface); border-left: 4px solid; border-radius: 8px; box-shadow: var(--erp-shadow-sm); display: flex; gap: 0.875rem; min-height: 88px; padding: 1rem; }
-    .branch-stat-icon { align-items: center; background: var(--erp-surface-muted); border-radius: 8px; display: inline-flex; font-size: 1.35rem; height: 44px; justify-content: center; width: 44px; }
+    .branch-stat { align-items: center; background: var(--erp-surface); border-inline-start: 4px solid; border-radius: var(--erp-radius-lg); box-shadow: var(--erp-shadow-sm); display: flex; gap: 0.875rem; min-height: 88px; padding: 1rem; }
+    .branch-stat-icon { align-items: center; background: var(--erp-surface-muted); border-radius: var(--erp-radius-lg); display: inline-flex; font-size: 1.35rem; height: 44px; justify-content: center; width: 44px; }
     .branch-stat-value { color: var(--erp-text); font-size: 1.35rem; font-weight: 700; line-height: 1.15; }
-    .branch-table-wrap { border: 1px solid var(--erp-border); border-radius: 8px; }
+    .branch-table-wrap { border: 1px solid var(--erp-border); border-radius: var(--erp-radius-lg); }
     .branch-table thead th { background: var(--erp-surface-muted); color: var(--erp-text-muted); font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
     .branch-table tbody tr:hover { background: var(--erp-primary-soft); }
     .branch-empty { align-items: center; color: var(--erp-text-muted); display: grid; justify-items: center; padding: 2rem; text-align: center; }
     .branch-empty i { color: var(--erp-text-soft); font-size: 2rem; margin-bottom: 0.5rem; }
-    [dir="rtl"] .branch-stat { border-left: 0; border-right: 4px solid; }
+    [dir="rtl"] .branch-stat { border-inline-start: 0; border-inline-end: 4px solid; }
 </style>
 
 @code {
