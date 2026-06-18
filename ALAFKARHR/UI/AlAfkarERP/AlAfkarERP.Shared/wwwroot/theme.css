@@ -334,6 +334,24 @@ body {
     padding: var(--erp-space-4);
 }
 
+.erp-stat-action {
+    cursor: pointer;
+    text-align: start;
+    transition: background var(--erp-transition-fast), border-color var(--erp-transition-fast), transform var(--erp-transition-fast);
+    width: 100%;
+}
+
+.erp-stat-action:hover,
+.erp-stat-action:focus {
+    background: color-mix(in srgb, var(--erp-primary-soft) 38%, var(--erp-surface));
+    border-color: color-mix(in srgb, var(--erp-primary) 28%, var(--erp-border));
+    color: var(--erp-text);
+}
+
+.erp-stat-action:hover {
+    transform: translateY(-1px);
+}
+
 .erp-stat-icon {
     align-items: center;
     background: var(--erp-primary-soft);

@@ -9,6 +9,7 @@ using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services;
 using AlAfkarERP.Shared.Pages.Features.Inventories.Services;
 using AlAfkarERP.Shared.Pages.Features.Payroll.Services;
 using AlAfkarERP.Shared.Pages.Features.Procurement.Services;
+using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services;
 using AlAfkarERP.Shared.Pages.Features.Suppliers.Services;
 using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services;
 using AlAfkarERP.Shared.Pages.Reuable2;
@@ -262,6 +263,32 @@ builder.Services.AddHttpClient<IProcurementService, ProcurementService>(client =
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
 #endregion Procurement
+
+#region Sales
+builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddHttpClient<ICartService, CartService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+
+builder.Services.AddScoped<IOrderIntakeService, OrderIntakeService>();
+builder.Services.AddHttpClient<IOrderIntakeService, OrderIntakeService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+
+builder.Services.AddScoped<ISalesService, SalesService>();
+builder.Services.AddHttpClient<ISalesService, SalesService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+
+builder.Services.AddScoped<ISalesOrderWorkflowService, SalesOrderWorkflowService>();
+builder.Services.AddHttpClient<ISalesOrderWorkflowService, SalesOrderWorkflowService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+#endregion Sales
 var app = builder.Build();
 
 

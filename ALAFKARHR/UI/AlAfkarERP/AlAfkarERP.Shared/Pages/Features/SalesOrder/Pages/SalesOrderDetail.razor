@@ -1,0 +1,222 @@
+@layout AdminLayout
+@page "/Sales/Orders/{Id:guid}"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.SalesOrder.Dtos
+@using SharedWithUI.SalesOrder.Enums
+
+@inject ISalesService SalesService
+@inject ISalesOrderWorkflowService WorkflowService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+<section class="sales-page" dir="@SharedDataService.PageDirection">
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        return;
+    }
+
+    <PageHeader Title="@(order?.Number ?? Text("Sales Order", "أمر بيع"))"
+                Subtitle="@Text("Review sales order lines, totals, and fulfillment workflow.", "مراجعة الأصناف والإجماليات وسير التنفيذ.")"
+                Overline="@Text("Sales Order", "أمر بيع")"
+                Icon="bi-list-check">
+        <Actions>
+            <a class="btn btn-outline-secondary" href="/Sales/Orders">
+                <i class="bi bi-arrow-left"></i> @Text("Back", "رجوع")
+            </a>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <div class="erp-loading py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2">@Text("Loading sales order...", "جاري تحميل أمر البيع...")</div>
+        </div>
+    }
+    else if (order is null)
+    {
+        <EmptyState Title="@Text("Sales order not found", "لم يتم العثور على الأمر")"
+                    Message="@Text("The requested sales order could not be loaded.", "تعذر تحميل أمر البيع المطلوب.")"
+                    Icon="bi-exclamation-circle" />
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <AppCard Title="@Text("Lines", "الأصناف")">
+                    <div class="erp-table-wrap">
+                        <table class="table erp-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>@Text("Item", "الصنف")</th>
+                                    <th>@Text("SKU", "الرمز")</th>
+                                    <th>@Text("Qty", "الكمية")</th>
+                                    <th>@Text("Delivered", "مسلم")</th>
+                                    <th>@Text("Invoiced", "مفوتر")</th>
+                                    <th>@Text("Total", "الإجمالي")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var line in order.Lines)
+                                {
+                                    <tr>
+                                        <td>@Text(line.ProductNameEng, line.ProductName)</td>
+                                        <td>@line.SkuCode</td>
+                                        <td>@line.Quantity</td>
+                                        <td>@line.DeliveredQuantity</td>
+                                        <td>@line.InvoicedQuantity</td>
+                                        <td>@Money(line.TotalAmount)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+            <div class="col-lg-4">
+                <AppCard Title="@Text("Summary", "الملخص")" CssClass="mb-3">
+                    <div class="summary-row"><span>@Text("Status", "الحالة")</span><strong>@StatusText(order.Status)</strong></div>
+                    <div class="summary-row"><span>@Text("Order date", "تاريخ الأمر")</span><strong>@order.OrderDate.ToString("yyyy-MM-dd")</strong></div>
+                    <div class="summary-row"><span>@Text("Subtotal", "المجموع")</span><strong>@Money(order.Subtotal)</strong></div>
+                    <div class="summary-row"><span>@Text("Tax", "الضريبة")</span><strong>@Money(order.TaxAmount)</strong></div>
+                    <div class="summary-row summary-total"><span>@Text("Total", "الإجمالي")</span><strong>@Money(order.TotalAmount)</strong></div>
+                </AppCard>
+
+                @if (CanEdit && !order.IsCancelled && !order.IsCompleted)
+                {
+                    <AppCard Title="@Text("Workflow", "سير العمل")">
+                        <button class="btn btn-outline-primary w-100 mb-2" @onclick="DeliverAsync" disabled="@isSaving">
+                            <i class="bi bi-truck"></i> @Text("Mark delivered", "تحديد كمسلم")
+                        </button>
+                        <button class="btn btn-outline-success w-100 mb-2" @onclick="InvoiceAsync" disabled="@isSaving">
+                            <i class="bi bi-receipt"></i> @Text("Mark invoiced", "تحديد كمفوتر")
+                        </button>
+                        <label class="form-label">@Text("Cancel reason", "سبب الإلغاء")</label>
+                        <textarea class="form-control mb-2" rows="2" @bind="cancelReason"></textarea>
+                        <button class="btn btn-outline-danger w-100" @onclick="CancelAsync" disabled="@isSaving">
+                            <i class="bi bi-x-circle"></i> @Text("Cancel order", "إلغاء الأمر")
+                        </button>
+                    </AppCard>
+                }
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private bool CanView;
+    private bool CanEdit;
+    private bool isLoading;
+    private bool isSaving;
+    private string cancelReason = string.Empty;
+    private SalesOrderDto? order;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var permissions = authState.User.Claims.Select(c => c.Value).ToHashSet();
+        CanView = permissions.Contains(PermissionList.SalesOrderPermissions.View);
+        CanEdit = permissions.Contains(PermissionList.SalesOrderPermissions.Edit);
+        if (!authState.User.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (CanView)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await SalesService.GetOrderByIdAsync(Id);
+        order = result.IsSuccess ? result.Data : null;
+        isLoading = false;
+    }
+
+    private async Task DeliverAsync() => await RunWorkflowAsync(() => WorkflowService.DeliverAsync(order!), Text("Order delivered.", "تم تحديد الأمر كمسلم."));
+
+    private async Task InvoiceAsync() => await RunWorkflowAsync(() => WorkflowService.InvoiceAsync(order!), Text("Order invoiced.", "تم تحديد الأمر كمفوتر."));
+
+    private async Task CancelAsync()
+    {
+        if (string.IsNullOrWhiteSpace(cancelReason))
+        {
+            ToastService.ShowWarning(Text("Enter a cancel reason.", "أدخل سبب الإلغاء."));
+            return;
+        }
+
+        await RunWorkflowAsync(() => WorkflowService.CancelAsync(Id, cancelReason), Text("Order cancelled.", "تم إلغاء الأمر."));
+    }
+
+    private async Task RunWorkflowAsync(Func<Task<AlAfkarERP.Shared.Dtos.ApiResult<bool>>> action, string successMessage)
+    {
+        if (order is null)
+            return;
+
+        isSaving = true;
+        var result = await action();
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(successMessage);
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Workflow action failed.", "فشل إجراء سير العمل."));
+        }
+        isSaving = false;
+    }
+
+    private string StatusText(SalesOrderStatus status) => status switch
+    {
+        SalesOrderStatus.Confirmed => Text("Confirmed", "مؤكد"),
+        SalesOrderStatus.PartiallyDelivered => Text("Partially delivered", "مسلم جزئيا"),
+        SalesOrderStatus.Delivered => Text("Delivered", "مسلم"),
+        SalesOrderStatus.PartiallyInvoiced => Text("Partially invoiced", "مفوتر جزئيا"),
+        SalesOrderStatus.Invoiced => Text("Invoiced", "مفوتر"),
+        SalesOrderStatus.Completed => Text("Completed", "مكتمل"),
+        SalesOrderStatus.Cancelled => Text("Cancelled", "ملغي"),
+        _ => Text("Draft", "مسودة")
+    };
+
+    private string Money(decimal value) => $"{value:N2} SAR";
+    private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
+
+<style>
+    .summary-row {
+        align-items: center;
+        border-bottom: 1px solid var(--erp-border);
+        display: flex;
+        justify-content: space-between;
+        gap: var(--erp-space-3);
+        padding-block: var(--erp-space-2);
+    }
+
+    .summary-row:last-child {
+        border-bottom: 0;
+    }
+
+    .summary-total {
+        font-size: 1.1rem;
+    }
+</style>

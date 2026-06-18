@@ -1,683 +1,445 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/SalesOrder/POS"
+@implements IDisposable
+
 @using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
-@using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Cart.Dtos
 @using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Orders.Enums
+@using SharedWithUI.Payments.Enums
 @using SharedWithUI.Permissions
-
-
-
-@inject ToastService ToastService
-@inject ModalService ModalService
-@inject LoadingService LoadingService
-
-@inject AuthenticationStateProvider AuthenticationStateProvider
 
 @inject IProductService ProductService
 @inject ICategoryService CategoryService
 @inject IBrandService BrandService
-@inject IVariantService VariantService
-@inject IUnitService UnitService
-
+@inject ICartService CartService
+@inject ToastService ToastService
+@inject LoadingService LoadingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ApiConfig ApiConfig
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-@if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.VariantPermissions.View}"))
-{
-    <div class="alert alert-warning">
-        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
-    </div>
-    return;
-}
-
-<!-- POS -->
-<h5 class="text-black">@SharedDataService.SelectViewLang("POS", "نقطة بيع")</h5>
-<PageTitle>POS Catalog</PageTitle>
-
-<div class="container-fluid py-3">
-    <!-- FILTER BAR -->
-    <div class="card shadow-sm border-0 rounded-4 mb-3">
-        <div class="card-body">
-            <div class="row g-3 align-items-end">
-
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold">@SharedDataService.SelectViewLang("Search", "بحث")</label>
-                    <input class="form-control"
-                           placeholder="@SharedDataService.SelectViewLang("Search products...", "ابحث عن المنتجات...")"
-                           @bind="SearchText"
-                           @bind:after="ApplyFilters" />
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">@SharedDataService.SelectViewLang("Category", "الفئة")</label>
-                    <select class="form-select"
-                            @bind="SelectedCategoryId"
-                            @bind:after="ApplyFilters">
-                        <option value="">@SharedDataService.SelectViewLang("All Categories", "جميع الفئات")</option>
-
-                        @foreach (var category in Categories)
-                        {
-                            <option value="@category.Id">
-                                @SharedDataService.SelectViewLang(category.NameEng, category.Name)
-                            </option>
-                        }
-                    </select>
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">@SharedDataService.SelectViewLang("Brand", "العلامة التجارية")</label>
-                    <select class="form-select"
-                            @bind="SelectedBrandId"
-                            @bind:after="ApplyFilters">
-                        <option value="">@SharedDataService.SelectViewLang("All Brands", "جميع العلامات التجارية")</option>
-
-                        @foreach (var brand in Brands)
-                        {
-                            <option value="@brand.Id">
-                                @SharedDataService.SelectViewLang(brand.NameEng, brand.Name)
-                            </option>
-                        }
-                    </select>
-                </div>
-
-                <div class="col-md-2 d-grid">
-                    <button class="btn btn-primary"
-                            @onclick="ApplyFilters">
-                        @SharedDataService.SelectViewLang("Filter", "تصفية")
-                    </button>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-    <!-- PRODUCTS AS PILLS -->
-    <div class="card shadow-sm border-0 rounded-4 mb-4">
-        <div class="card-body">
-
-            <div class="d-flex flex-wrap gap-2">
-                <button class="btn @(SelectedProduct==null ? "btn-primary": "btn-outline-primary") rounded-pill px-4"
-                        @onclick="() => SelectProduct(null)">
-
-                    @SharedDataService.SelectViewLang("All", "الكل")
-
-                    <span class="badge bg-light text-dark ms-2">
-                        @(FilteredProducts.SelectMany(s=>s.Skus).Count())
-                    </span>
-
-                </button>
-                @foreach (var product in FilteredProducts)
-                {
-                    var isSelected = SelectedProduct?.Id == product.Id;
-
-                    <button class="btn @(isSelected
-                                                                                ? "btn-primary"
-                                                                                : "btn-outline-primary") rounded-pill px-4"
-                            @onclick="() => SelectProduct(product)">
-
-                        @SharedDataService.SelectViewLang(product.NameEng, product.Name)
-
-                        <span class="badge bg-light text-dark ms-2">
-                            @product.Skus.Count
-                        </span>
-
-                    </button>
-                }
-
-            </div>
-
-        </div>
-    </div>
-
-    
-    @if (SelectedProduct is not null)
+<section class="pos-page" dir="@SharedDataService.PageDirection">
+    @if (!CanView)
     {
-        <!-- PRODUCT HEADER -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-
-            <div>
-                <h4 class="fw-bold mb-1">
-                    @SharedDataService.SelectViewLang(SelectedProduct.NameEng, SelectedProduct.Name)
-                </h4>
-
-                <div class="text-muted">
-                    @SharedDataService.SelectViewLang(SelectedProduct?.CategoryNameEng??"", SelectedProduct?.CategoryName??"")
-                </div>
-            </div>
-
-        </div>
-
-        
-    }
-    <!-- BRAND FILTER -->
-    @if (AvailableBrands.Any())
-    {
-        <div class="mb-4">
-
-            <div class="fw-bold mb-2">
-                @SharedDataService.SelectViewLang("Brand", "العلامة التجارية")
-            </div>
-
-            <div class="d-flex flex-wrap gap-2">
-
-                <button class="btn @(SelectedBrandForSkuId == null
-                                            ? "btn-dark"
-                                            : "btn-outline-dark") rounded-pill"
-                        @onclick="() => SelectBrand(null)">
-                    @SharedDataService.SelectViewLang("All", "الكل")
-                </button>
-
-                @foreach (var brand in AvailableBrands)
-                {
-                    var isSelected = SelectedBrandForSkuId == brand.Id;
-
-                    <button class="btn @(isSelected
-                                                                                                                        ? "btn-primary"
-                                                                                                                        : "btn-outline-primary") rounded-pill"
-                            @onclick="() => SelectBrand(brand.Id)">
-                        @SharedDataService.SelectViewLang(brand.NameEng, brand.Name)
-                    </button>
-                }
-
-            </div>
-
-        </div>
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        return;
     }
 
-        <!-- SKU CARDS -->
-        <div class="row g-3">
+    <PageHeader Title="@Text("Point of Sale", "نقطة البيع")"
+                Subtitle="@Text("Sell priced SKUs, manage the active cart, and submit checkout to order intake.", "بيع المنتجات المسعرة وإدارة السلة وإرسال الطلب.")"
+                Overline="@Text("Sales", "المبيعات")"
+                Icon="bi-receipt-cutoff">
+        <Actions>
+            <a class="btn btn-outline-secondary" href="/Orders/Intakes">
+                <i class="bi bi-card-checklist"></i> @Text("Order Intakes", "طلبات البيع")
+            </a>
+        </Actions>
+    </PageHeader>
 
-        @foreach (var sku in DisplaySkus)
+    <div class="row g-3">
+        <div class="col-xl-8">
+            <AppCard Title="@Text("Catalog", "الكتالوج")" CssClass="mb-3">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label">@Text("Search", "بحث")</label>
+                        <input class="form-control" @bind="searchText" @bind:after="ApplyFilters" placeholder="@Text("Search products or SKU codes", "ابحث باسم المنتج أو الرمز")" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">@Text("Category", "الفئة")</label>
+                        <select class="form-select" @bind="selectedCategoryId" @bind:after="ApplyFilters">
+                            <option value="">@Text("All categories", "كل الفئات")</option>
+                            @foreach (var category in categories)
+                            {
+                                <option value="@category.Id">@Text(category.NameEng, category.Name)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@Text("Brand", "العلامة")</label>
+                        <select class="form-select" @bind="selectedBrandId" @bind:after="ApplyFilters">
+                            <option value="">@Text("All brands", "كل العلامات")</option>
+                            @foreach (var brand in brands)
+                            {
+                                <option value="@brand.Id">@Text(brand.NameEng, brand.Name)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </AppCard>
+
+            @if (isLoading)
             {
-                <div class="col-xl-3 col-lg-4 col-md-6">
-
-                    <div class="card h-100 border-0 shadow-sm rounded-4 sku-card">
-
-                        <div class="sku-image-container">
-                            <img src="@(string.IsNullOrEmpty(sku?.ImageUrl)? 
-                                            "_content/AlAfkarERP.Shared/images/productPlaceHolder.jpg": 
-                                            (sku.ImageUrl.Contains("data:")? 
-                                                sku.ImageUrl: 
-                                                $"{ApiConfig.BaseURL}/Images/Products/{sku.ImageUrl}"))"
-                                 class="sku-image" />
-                        </div>
-
-                        <div class="card-body d-flex flex-column">
-
-                            <div class="flex-grow-1">
-
-                                <div class="d-flex justify-content-between mb-2">
-
-                                    <span class="badge bg-primary">
-                                        @SharedDataService.SelectViewLang(sku?.BrandNameEng??"", sku?.BrandName??"")
-                                    </span>
-
-                                    <span class="fw-bold text-success">
-                                        @(sku?.Price??0) SAR
-                                    </span>
-
+                <div class="erp-loading py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <div class="mt-2">@Text("Loading products...", "جاري تحميل المنتجات...")</div>
+                </div>
+            }
+            else if (!displaySkus.Any())
+            {
+                <EmptyState Title="@Text("No products found", "لا توجد منتجات")"
+                            Message="@Text("Try changing the search or filters.", "جرب تغيير البحث أو التصفية.")"
+                            Icon="bi-box-seam" />
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var sku in displaySkus)
+                    {
+                        <div class="col-lg-4 col-md-6">
+                            <div class="card h-100 border-0 shadow-sm sku-card">
+                                <div class="sku-image-container">
+                                    <img src="@ImageUrl(sku)" class="sku-image" alt="@Text(sku.NameEng, sku.Name)" />
                                 </div>
-
-                                <h5 class="fw-bold mb-1">
-                                    @SharedDataService.SelectViewLang(sku?.NameEng??"", sku?.Name??"")
-                                </h5>
-
-                                <div class="text-muted small mb-2">
-                                    @SharedDataService.SelectViewLang(sku?.SkuCodeEng??"", sku?.SkuCode??"")
+                                <div class="card-body d-flex flex-column">
+                                    <div class="d-flex justify-content-between gap-2 mb-2">
+                                        <span class="badge text-bg-light">@Text(sku.BrandNameEng, sku.BrandName)</span>
+                                        <span class="fw-bold text-success">@Money(sku.Price)</span>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">@Text(sku.NameEng, sku.Name)</h6>
+                                    <div class="text-muted small mb-3">@Text(sku.SkuCodeEng, sku.SkuCode)</div>
+                                    <button class="btn btn-success mt-auto" @onclick="() => AddToCartAsync(sku)" disabled="@(isCartBusy || !CanManageCart)">
+                                        <i class="bi bi-cart-plus"></i> @Text("Add To Cart", "إضافة للسلة")
+                                    </button>
                                 </div>
-
-                                <div class="small mb-3">
-
-                                    @foreach (var variant in sku?.Variants)
-                                    {
-                                        var variantName = SharedDataService.SelectViewLang(
-                                            Variants.FirstOrDefault(v => v.Id == variant.VariantId)?.NameEng??"",
-                                            Variants.FirstOrDefault(v => v.Id == variant.VariantId)?.Name??""
-                                        );
-
-                                        var variantValue = SharedDataService.SelectViewLang(
-                                            Variants.FirstOrDefault(v => v.Id == variant.VariantId)?
-                                            .Values?
-                                            .FirstOrDefault(v => v.Id == variant.VariantValueId)?
-                                            .ValueEng??"",
-                                            Variants.FirstOrDefault(v => v.Id == variant.VariantId)?
-                                            .Values?
-                                            .FirstOrDefault(v => v.Id == variant.VariantValueId)?
-                                            .Value??""
-                                        );
-
-                                        <span class="badge bg-light text-dark me-1 mb-1">
-                                            @variantName: @variantValue
-                                        </span>
-                                    }
-
-                                </div>
-
                             </div>
-
-                            <div class="d-grid mt-auto">
-                                <button class="btn btn-success rounded-3">
-                                    @SharedDataService.SelectViewLang("Add To Cart", "إضافة إلى السلة")
-                                </button>
-                            </div>
-
                         </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="col-xl-4">
+            <AppCard Title="@Text("Active Cart", "السلة الحالية")"
+                     Subtitle="@(cart is null ? Text("Add an item to create a cart.", "أضف منتجا لإنشاء سلة.") : Text($"{cart.Lines.Count} lines", $"{cart.Lines.Count} صنف"))">
+                @if (checkoutResult is not null)
+                {
+                    <div class="alert alert-success">
+                        <div class="fw-semibold">@Text("Checkout completed", "تم إكمال الدفع")</div>
+                        <div>@Text("Order intake", "طلب البيع"): @checkoutResult.Number</div>
+                        <div>@Text("Total", "الإجمالي"): @Money(checkoutResult.CheckoutTotal)</div>
+                        <a class="btn btn-sm btn-outline-success mt-2" href="@($"/Orders/Intakes/{checkoutResult.OrderIntakeId}")">@Text("View intake", "عرض الطلب")</a>
+                    </div>
+                }
+
+                @if (!CanManageCart)
+                {
+                    <div class="alert alert-warning">@Text("You need cart permissions to add or edit cart lines.", "تحتاج إلى صلاحيات السلة لإضافة أو تعديل الأصناف.")</div>
+                }
+
+                @if (cart is null || !cart.Lines.Any())
+                {
+                    <EmptyState Title="@Text("Cart is empty", "السلة فارغة")"
+                                Message="@Text("Selected products will appear here.", "ستظهر المنتجات المختارة هنا.")"
+                                Icon="bi-cart" />
+                }
+                else
+                {
+                    <div class="cart-lines">
+                        @foreach (var line in cart.Lines)
+                        {
+                            <div class="cart-line">
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold">@Text(line.ProductNameEng, line.ProductName)</div>
+                                    <div class="text-muted small">@line.SkuCode</div>
+                                    <div class="small">@Money(line.UnitPrice) x @line.Quantity = <strong>@Money(line.TotalAmount)</strong></div>
+                                </div>
+                                <div class="cart-actions">
+                                    <input class="form-control form-control-sm" type="number" min="1" step="1" value="@line.Quantity" @onchange="args => UpdateQuantityAsync(line, args.Value?.ToString())" disabled="@(isCartBusy || !CanManageCart)" />
+                                    <button class="btn btn-sm btn-outline-danger" title="@Text("Remove", "حذف")" @onclick="() => RemoveLineAsync(line)" disabled="@(isCartBusy || !CanManageCart)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        }
                     </div>
 
-                </div>
-            }
+                    <div class="cart-total">
+                        <span>@Text("Subtotal", "المجموع")</span>
+                        <strong>@Money(cart.Subtotal)</strong>
+                    </div>
+                    <div class="cart-total">
+                        <span>@Text("Tax", "الضريبة")</span>
+                        <strong>@Money(cart.TaxAmount)</strong>
+                    </div>
+                    <div class="cart-total cart-grand-total">
+                        <span>@Text("Total", "الإجمالي")</span>
+                        <strong>@Money(cart.TotalAmount)</strong>
+                    </div>
 
+                    <hr />
+
+                    <div class="mb-2">
+                        <label class="form-label">@Text("Payment method", "طريقة الدفع")</label>
+                        <select class="form-select" @bind="paymentMethod">
+                            @foreach (var method in Enum.GetValues<PaymentMethodType>())
+                            {
+                                <option value="@method">@method</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">@Text("Payment reference", "مرجع الدفع")</label>
+                        <input class="form-control" @bind="paymentReference" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                        <textarea class="form-control" rows="2" @bind="paymentNotes"></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary flex-grow-1" @onclick="CheckoutAsync" disabled="@(isCartBusy || !CanCheckoutCart)">
+                            <i class="bi bi-check2-circle"></i> @Text("Checkout", "إتمام الطلب")
+                        </button>
+                        <button class="btn btn-outline-secondary" @onclick="ClearCartAsync" disabled="@(isCartBusy || !CanManageCart)">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </div>
+                }
+            </AppCard>
         </div>
-</div>
-
-<style>
-
-    body {
-        background: #f5f7fb;
-    }
-
-    .product-card {
-        cursor: pointer;
-        transition: all .2s ease;
-    }
-
-        .product-card:hover {
-            transform: translateY(-4px);
-        }
-
-    .sku-card {
-        transition: all .2s ease;
-    }
-
-        .sku-card:hover {
-            transform: translateY(-4px);
-        }
-
-    .sku-image-container {
-        width: 100%;
-        height: 240px;
-        overflow: hidden;
-        border-top-left-radius: 1rem;
-        border-top-right-radius: 1rem;
-        background: #f8f9fa;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .sku-image {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        padding: 12px;
-    }
-</style>
-
+    </div>
+</section>
 
 @code {
-
-
-
-
-    private string SearchText = string.Empty;
-
-    private Guid? SelectedCategoryId;
-
-    private Guid? SelectedBrandId;
-    private Guid? SelectedBrandForSkuId;
-
-    private ProductDto? SelectedProduct;
-
-    private ProductSkuDto? MatchedSku;
-
-
-    private Dictionary<Guid, Guid> SelectedVariantValues = new();
-
-    // MOCK DATA
-
-    private List<BrandDto> Brands = new();
-    private List<BrandDto> AvailableBrands = new();
-    private List<CategoryDto> Categories = new();
-    private List<VariantDto> Variants = new();
-    private List<VariantDto> AvailableVariants = new();
-    private List<ProductDto> Products = new();
-    private List<UnitDto> Units = new();
-
-    private IEnumerable<ProductSkuDto> DisplaySkus =>
-    SelectedProduct is null
-        ? FilteredProducts
-            .SelectMany(p => p.Skus)
-            .Where(x =>
-                !SelectedBrandForSkuId.HasValue ||
-                x.BrandId == SelectedBrandForSkuId)
-        : SelectedProduct.Skus
-            .Where(x =>
-                !SelectedBrandForSkuId.HasValue ||
-                x.BrandId == SelectedBrandForSkuId);
-
-
-
-    private List<ProductDto> FilteredProducts => Products
-    .Select(product => new ProductDto
-    {
-        Id = product.Id,
-        Name = product.Name,
-        NameEng = product.NameEng,
-        CategoryId = product.CategoryId,
-        CategoryName = product.CategoryName,
-        CategoryNameEng = product.CategoryNameEng,
-
-        Skus = product.Skus
-            .Where(s =>
-                !SelectedBrandId.HasValue
-                || s.BrandId == SelectedBrandId)
-            .ToList()
-    })
-    .Where(x =>
-        (string.IsNullOrWhiteSpace(SearchText)
-            || x.NameEng.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
-
-        && (!SelectedCategoryId.HasValue
-            || x.CategoryId == SelectedCategoryId)
-
-        && x.Skus.Any()
-    )
-    .ToList();
-
-    AuthenticationState AuthState;
-    Guid companyId;
+    private bool CanView;
+    private bool isLoading;
+    private bool isCartBusy;
+    private Guid companyId;
+    private string? userId;
+    private string searchText = string.Empty;
+    private Guid? selectedCategoryId;
+    private Guid? selectedBrandId;
+    private PaymentMethodType paymentMethod = PaymentMethodType.Cash;
+    private string? paymentReference;
+    private string? paymentNotes;
+    private CartDto? cart;
+    private CheckoutCartResultDto? checkoutResult;
     private List<ProductDto> products = [];
+    private List<CategoryDto> categories = [];
+    private List<BrandDto> brands = [];
+    private HashSet<string> permissions = [];
+    private bool CanManageCart => permissions.Contains(PermissionList.CartPermissions.Create) && permissions.Contains(PermissionList.CartPermissions.Edit);
+    private bool CanCheckoutCart => permissions.Contains(PermissionList.CartPermissions.Checkout);
+
+    private IEnumerable<ProductSkuDto> displaySkus => products
+        .Where(product => !selectedCategoryId.HasValue || product.CategoryId == selectedCategoryId)
+        .SelectMany(product => product.Skus)
+        .Where(sku => (!selectedBrandId.HasValue || sku.BrandId == selectedBrandId) &&
+                      (string.IsNullOrWhiteSpace(searchText) ||
+                       (sku.NameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                       (sku.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                       (sku.SkuCode?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                       (sku.SkuCodeEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)))
+        .OrderBy(sku => Text(sku.NameEng, sku.Name));
+
     protected override async Task OnInitializedAsync()
     {
-        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-        if (!AuthState!.User!.Identity!.IsAuthenticated)
+        SharedDataService.OnChange1 += HandleChangeAsync;
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        permissions = authState.User.Claims.Select(c => c.Value).ToHashSet();
+        CanView = authState.User.Claims.Any(c => c.Value == PermissionList.SalesOrderPermissions.View);
+        if (!authState.User.Identity?.IsAuthenticated ?? true)
         {
             NavigationManager.NavigateTo("/login", true);
-
+            return;
         }
-        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
-        // LoadingService.Show();
-        // var prodRes = await ProductService.GetByCompanyAsync(companyId, 0, 10000);
-        // if (prodRes.IsSuccess)
-        // {
-        //     products = prodRes.Data?.Data?.ToList() ?? [];
-        // }
-        // LoadingService.Hide();
-        await LoadData();
+
+        companyId = Guid.Parse(authState.User.Claims.First(c => c.Type == "company_id").Value);
+        userId = authState.User.Claims.FirstOrDefault(c => c.Type.EndsWith("nameidentifier", StringComparison.OrdinalIgnoreCase))?.Value;
+
+        if (CanView)
+            await LoadDataAsync();
     }
 
-    private void SelectBrand(Guid? brandId)
+    private async Task LoadDataAsync()
     {
-        SelectedBrandForSkuId = brandId;
-
-        SelectedVariantValues.Clear();
-
-        MatchedSku = null;
-    }
-
-    private async Task LoadData()
-    {
+        isLoading = true;
         LoadingService.Show();
-        var brandTask = BrandService.GetByCompanyIdAsync(companyId, 0, 100);
-        var categoryTask = CategoryService.GetByCompanyIdAsync(companyId, 0, 100);
-        var productTask = ProductService.GetPricedByCompanyAsync(companyId, null, 0, 100);
-        var variantTask = VariantService.GetByCompanyAsync(companyId, 0, 100);
+        try
+        {
+            var productTask = ProductService.GetPricedByCompanyAsync(companyId, null, 0, 1000);
+            var categoryTask = CategoryService.GetByCompanyIdAsync(companyId, 0, 1000);
+            var brandTask = BrandService.GetByCompanyIdAsync(companyId, 0, 1000);
+            await Task.WhenAll(productTask, categoryTask, brandTask);
 
-        var unitTask = UnitService.GetByCompanyAsync(companyId, 0, 1000);
-        await Task.WhenAll(brandTask, categoryTask, productTask, variantTask, unitTask);
-
-        if (brandTask.Result.IsSuccess)
-            Brands = brandTask.Result.Data?.Data?.ToList() ?? [];
-        if (categoryTask.Result.IsSuccess)
-            Categories = categoryTask.Result.Data?.Data?.ToList() ?? [];
-        if (productTask.Result.IsSuccess)
-            Products = productTask.Result.Data?.Data?.ToList() ?? [];
-        if (variantTask.Result.IsSuccess)
-            Variants = variantTask.Result.Data?.Data?.ToList() ?? [];
-        if (unitTask.Result.IsSuccess)
-            Units = unitTask.Result.Data?.Data?.ToList() ?? [];
-            BuildBrands(null);
-        // AvailableBrands = Products.SelectMany(p => p.Skus)
-        // .GroupBy(x => x.BrandId)
-        // .Select(g => new BrandDto
-        // {
-        //     Id = g.Key,
-        //     NameEng = g.FirstOrDefault()?.BrandNameEng??"",
-        //     Name = g.FirstOrDefault()?.BrandName??""
-        // })
-        // .ToList();
-        LoadingService.Hide();
+            products = productTask.Result.IsSuccess ? productTask.Result.Data?.Data?.ToList() ?? [] : [];
+            categories = categoryTask.Result.IsSuccess ? categoryTask.Result.Data?.Data?.ToList() ?? [] : [];
+            brands = brandTask.Result.IsSuccess ? brandTask.Result.Data?.Data?.ToList() ?? [] : [];
+        }
+        finally
+        {
+            LoadingService.Hide();
+            isLoading = false;
+        }
     }
 
-    private Task ApplyFilters()
-    {
-        if (SelectedProduct is not null)
-        {
-            SelectedProduct = FilteredProducts
-                .FirstOrDefault(p => p.Id == SelectedProduct.Id);
+    private Task ApplyFilters() => InvokeAsync(StateHasChanged);
 
-            if (SelectedProduct is not null)
+    private async Task AddToCartAsync(ProductSkuDto sku)
+    {
+        if (!CanView || !CanManageCart)
+            return;
+
+        checkoutResult = null;
+        isCartBusy = true;
+        try
+        {
+            await EnsureCartAsync();
+            if (cart is null)
+                return;
+
+            var existing = cart.Lines.FirstOrDefault(x => x.ProductSkuId == sku.Id);
+            ApiResult<bool> result;
+            if (existing is not null)
             {
-                BuildBrands(SelectedProduct);
-                BuildVariants(SelectedProduct);
+                result = await CartService.UpdateLineAsync(cart.Id, existing.Id, existing.Quantity + 1);
             }
             else
             {
-                BuildBrands(null);
-                AvailableVariants.Clear();
+                result = await CartService.AddLineAsync(cart.Id, new CartLineDto
+                {
+                    ProductId = sku.ProductId,
+                    ProductSkuId = sku.Id,
+                    ProductName = sku.Name,
+                    ProductNameEng = sku.NameEng,
+                    SkuCode = sku.SkuCode,
+                    UnitOfMeasureId = sku.UnitId ?? Guid.Empty,
+                    Quantity = 1,
+                    UnitPrice = sku.Price,
+                    DiscountRate = sku.DiscountRate,
+                    TaxRate = sku.TaxRate
+                });
             }
-        }
-        else
-        {
-            BuildBrands(null);
-        }
 
-        return Task.CompletedTask;
-    }
-    private Task ApplyFilters1()
-    {
-        if (SelectedProduct is not null)
-        {
-            SelectedProduct = FilteredProducts
-                .FirstOrDefault(p => p.Id == SelectedProduct.Id);
-
-            if (SelectedProduct is not null)
+            if (result.IsSuccess)
             {
-                BuildBrands(SelectedProduct);
-                BuildVariants(SelectedProduct);
+                await RefreshCartAsync();
+                ToastService.ShowSuccess(Text("Item added to cart.", "تمت إضافة الصنف للسلة."));
             }
             else
             {
-                AvailableBrands.Clear();
-                AvailableVariants.Clear();
+                ToastService.ShowError(result.Error?.Detail ?? Text("Unable to update cart.", "تعذر تحديث السلة."));
             }
         }
-
-        return Task.CompletedTask;
-    }
-
-
-    private void SelectProduct(ProductDto? product)
-    {
-        SelectedProduct = product;
-        MatchedSku = null;
-
-        SelectedBrandForSkuId = null;
-
-        SelectedVariantValues.Clear();
-
-        BuildBrands(product);
-
-        BuildVariants(product);
-    }
-
-    private void BuildBrands(ProductDto? product)
-    {
-        List<Guid>? brandIds;
-        if (product == null)
+        finally
         {
-            brandIds = FilteredProducts
-             .SelectMany(p => p.Skus)
-             .Where(s => s.BrandId != Guid.Empty)
-             .Select(s => s.BrandId)
-             .Distinct().ToList();
+            isCartBusy = false;
+        }
+    }
+
+    private async Task EnsureCartAsync()
+    {
+        if (cart is not null)
+            return;
+
+        var result = await CartService.CreateAsync(new CartDto
+        {
+            CompanyId = companyId,
+            UserId = userId,
+            Source = OrderIntakeSource.Pos,
+            Channel = "POS"
+        });
+
+        if (!result.IsSuccess || result.Data is null)
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to create cart.", "تعذر إنشاء السلة."));
+            return;
+        }
+
+        var loaded = await CartService.GetByIdAsync(result.Data.Id);
+        cart = loaded.IsSuccess ? loaded.Data : new CartDto { Id = result.Data.Id, CompanyId = companyId, Source = OrderIntakeSource.Pos, Channel = "POS" };
+    }
+
+    private async Task RefreshCartAsync()
+    {
+        if (cart is null)
+            return;
+
+        var result = await CartService.GetByIdAsync(cart.Id);
+        if (result.IsSuccess)
+            cart = result.Data;
+    }
+
+    private async Task UpdateQuantityAsync(CartLineDto line, string? value)
+    {
+        if (!decimal.TryParse(value, out var quantity) || quantity <= 0 || cart is null)
+            return;
+
+        isCartBusy = true;
+        var result = await CartService.UpdateLineAsync(cart.Id, line.Id, quantity);
+        if (result.IsSuccess)
+            await RefreshCartAsync();
+        else
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to update quantity.", "تعذر تحديث الكمية."));
+        isCartBusy = false;
+    }
+
+    private async Task RemoveLineAsync(CartLineDto line)
+    {
+        if (cart is null)
+            return;
+
+        isCartBusy = true;
+        var result = await CartService.RemoveLineAsync(cart.Id, line.Id);
+        if (result.IsSuccess)
+            await RefreshCartAsync();
+        else
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to remove item.", "تعذر حذف الصنف."));
+        isCartBusy = false;
+    }
+
+    private async Task ClearCartAsync()
+    {
+        if (cart is null)
+            return;
+
+        isCartBusy = true;
+        var result = await CartService.ClearAsync(cart.Id);
+        if (result.IsSuccess)
+            await RefreshCartAsync();
+        else
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to clear cart.", "تعذر تفريغ السلة."));
+        isCartBusy = false;
+    }
+
+    private async Task CheckoutAsync()
+    {
+        if (cart is null || !cart.Lines.Any())
+            return;
+
+        isCartBusy = true;
+        var result = await CartService.CheckoutAsync(cart.Id, paymentMethod, paymentReference, paymentNotes);
+        if (result.IsSuccess)
+        {
+            checkoutResult = result.Data;
+            cart = null;
+            paymentReference = null;
+            paymentNotes = null;
+            ToastService.ShowSuccess(Text("Checkout completed.", "تم إكمال الطلب."));
         }
         else
         {
-            brandIds = product.Skus
-                .Select(x => x.BrandId)
-                .Distinct()
-                .ToList();
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to checkout cart.", "تعذر إتمام الطلب."));
         }
-
-        AvailableBrands = Brands
-            .Where(x => brandIds.Contains(x.Id))
-            .ToList();
+        isCartBusy = false;
     }
 
-    private void ClosePanel()
-    {
-        SelectedProduct = null;
-    }
+    private string ImageUrl(ProductSkuDto sku) =>
+        string.IsNullOrWhiteSpace(sku.ImageUrl)
+            ? "_content/AlAfkarERP.Shared/images/productPlaceHolder.jpg"
+            : sku.ImageUrl.Contains("data:", StringComparison.OrdinalIgnoreCase)
+                ? sku.ImageUrl
+                : $"{ApiConfig.BaseURL}/Images/Products/{sku.ImageUrl}";
 
-    private void BuildVariants(ProductDto? product)
-    {
-        AvailableVariants.Clear();
+    private string Money(decimal amount) => $"{amount:N2} SAR";
 
-        List<Guid>? variantIds;
-        // all variant ids used by this product
-        if (product == null)
-        {
-            variantIds = Variants
-                .Select(x => x.Id)
-                .Distinct()
-                .ToList();
-        }
-        else
-        {
-            variantIds = product.Skus
-                .SelectMany(x => x.Variants)
-                .Select(x => x.VariantId)
-                .Distinct()
-                .ToList();
-        }
-
-        foreach (var variantId in variantIds)
-        {
-            // find variant from master list
-            var masterVariant = Variants
-                .FirstOrDefault(x => x.Id == variantId);
-
-            if (masterVariant is null)
-                continue;
-            List<Guid>? usedValueIds;
-            if (product is null)
-            {
-                usedValueIds=FilteredProducts
-                    .SelectMany(p => p.Skus)
-                    .SelectMany(s => s.Variants)
-                    .Where(x => x.VariantId == variantId)
-                    .Select(x => x.VariantValueId)
-                    .Distinct()
-                    .ToList();
-            }
-            else
-            {
-                
-            // collect only values used by this product
-            usedValueIds = product.Skus
-                .SelectMany(x => x.Variants)
-                .Where(x => x.VariantId == variantId)
-                .Select(x => x.VariantValueId)
-                .Distinct()
-                .ToList();
-            }
-
-            var variant = new VariantDto
-            {
-                Id = masterVariant.Id,
-                Name = masterVariant.Name,
-                NameEng = masterVariant.NameEng,
-                CompanyId = masterVariant.CompanyId,
-
-                Values = masterVariant.Values
-                    .Where(v => usedValueIds.Contains(v.Id))
-                    .ToList()
-            };
-
-            AvailableVariants.Add(variant);
-        }
-    }
-
-
-    private void SelectVariantValue(Guid variantId, Guid valueId)
-    {
-        SelectedVariantValues[variantId] = valueId;
-
-        ResolveSku();
-    }
-
-    private void ResolveSku()
-    {
-        // if (SelectedProduct is null)
-        //     return;
-
-        var selectedValueIds = SelectedVariantValues.Values.ToList();
-        if(SelectedProduct is null)
-        {
-            MatchedSku = FilteredProducts.SelectMany(p => p.Skus).Where(x => !SelectedBrandForSkuId.HasValue
-                        || x.BrandId == SelectedBrandForSkuId)
-                .FirstOrDefault(sku =>
-                    selectedValueIds.All(selected =>
-                        sku.Variants.Any(v => v.VariantValueId == selected)));
-        }
-        else
-        {
-            
-        MatchedSku = SelectedProduct.Skus
-            .Where(x => !SelectedBrandForSkuId.HasValue
-                        || x.BrandId == SelectedBrandForSkuId)
-            .FirstOrDefault(sku =>
-                selectedValueIds.All(selected =>
-                    sku.Variants.Any(v => v.VariantValueId == selected)));
-        }
-    }
-
-    private bool IsVariantValueAvailable(Guid variantId, Guid valueId)
-    {
-        if (SelectedProduct is null)
-            return false;
-
-        var tempSelections = new Dictionary<Guid, Guid>(SelectedVariantValues)
-        {
-            [variantId] = valueId
-        };
-
-        var selectedIds = tempSelections.Values.ToList();
-
-        // return SelectedProduct.Skus.Any(sku =>
-        //     selectedIds.All(id =>
-        //         sku.Variants.Any(v => v.VariantValueId == id))
-
-        
-        // );
-
-        return SelectedProduct.Skus
-                .Where(x => !SelectedBrandForSkuId.HasValue
-                            || x.BrandId == SelectedBrandForSkuId)
-                .Any(sku =>
-                    selectedIds.All(id =>
-                        sku.Variants.Any(v => v.VariantValueId == id)));
-    }
-
-    protected override void OnInitialized()
-    {
-        SharedDataService.OnChange1 += HandleChangeAsync;
-    }
+    private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
 
     private async Task HandleChangeAsync()
     {
@@ -689,3 +451,65 @@
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }
+
+<style>
+    .pos-page .sku-card {
+        border-radius: var(--erp-radius-lg);
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+
+    .pos-page .sku-card:hover {
+        box-shadow: var(--erp-shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .sku-image-container {
+        align-items: center;
+        aspect-ratio: 4 / 3;
+        background: var(--erp-surface-muted);
+        display: flex;
+        justify-content: center;
+        overflow: hidden;
+        border-start-start-radius: var(--erp-radius-lg);
+        border-start-end-radius: var(--erp-radius-lg);
+    }
+
+    .sku-image {
+        height: 100%;
+        object-fit: contain;
+        padding: var(--erp-space-3);
+        width: 100%;
+    }
+
+    .cart-lines {
+        display: grid;
+        gap: var(--erp-space-3);
+    }
+
+    .cart-line {
+        align-items: flex-start;
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        display: flex;
+        gap: var(--erp-space-3);
+        padding: var(--erp-space-3);
+    }
+
+    .cart-actions {
+        display: grid;
+        gap: var(--erp-space-2);
+        width: 96px;
+    }
+
+    .cart-total {
+        align-items: center;
+        border-top: 1px solid var(--erp-border);
+        display: flex;
+        justify-content: space-between;
+        padding-block: var(--erp-space-2);
+    }
+
+    .cart-grand-total {
+        font-size: 1.1rem;
+    }
+</style>
