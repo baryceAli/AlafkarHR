@@ -1,0 +1,216 @@
+@layout AdminLayout
+@page "/Orders/Intakes"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Orders.Dtos
+@using SharedWithUI.Orders.Enums
+@using SharedWithUI.Permissions
+
+@inject IOrderIntakeService OrderIntakeService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+<section class="sales-page" dir="@SharedDataService.PageDirection">
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        return;
+    }
+
+    <PageHeader Title="@Text("Order Intakes", "طلبات البيع")"
+                Subtitle="@Text("Review submitted cart checkouts before converting them into sales orders.", "مراجعة طلبات الدفع قبل تحويلها إلى أوامر بيع.")"
+                Overline="@Text("Sales", "المبيعات")"
+                Icon="bi-card-checklist">
+        <Actions>
+            <a class="btn btn-outline-secondary" href="/SalesOrder/POS">
+                <i class="bi bi-receipt-cutoff"></i> @Text("POS", "نقطة البيع")
+            </a>
+        </Actions>
+    </PageHeader>
+
+    <AppCard Title="@Text("Filters", "التصفية")" CssClass="mb-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">@Text("Search", "بحث")</label>
+                <input class="form-control" @bind="searchText" placeholder="@Text("Number or customer", "الرقم أو العميل")" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">@Text("Status", "الحالة")</label>
+                <select class="form-select" @bind="statusFilter">
+                    <option value="">@Text("All statuses", "كل الحالات")</option>
+                    @foreach (var status in Enum.GetValues<OrderIntakeStatus>())
+                    {
+                        <option value="@status">@StatusText(status)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button class="btn btn-primary flex-grow-1" @onclick="LoadAsync">
+                    <i class="bi bi-search"></i> @Text("Apply", "تطبيق")
+                </button>
+                <button class="btn btn-outline-secondary" @onclick="ResetFilters">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+            </div>
+        </div>
+    </AppCard>
+
+    <AppCard Title="@Text("Intakes", "الطلبات")">
+        @if (isLoading)
+        {
+            <div class="erp-loading py-4">
+                <div class="spinner-border text-primary" role="status"></div>
+                <div class="mt-2">@Text("Loading intakes...", "جاري تحميل الطلبات...")</div>
+            </div>
+        }
+        else if (!orders.Any())
+        {
+            <EmptyState Title="@Text("No order intakes", "لا توجد طلبات")"
+                        Message="@Text("Submitted POS checkouts will appear here.", "ستظهر طلبات نقطة البيع هنا.")"
+                        Icon="bi-inboxes" />
+        }
+        else
+        {
+            <div class="erp-table-wrap">
+                <table class="table erp-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>@Text("Number", "الرقم")</th>
+                            <th>@Text("Customer", "العميل")</th>
+                            <th>@Text("Status", "الحالة")</th>
+                            <th>@Text("Payment", "الدفع")</th>
+                            <th>@Text("Total", "الإجمالي")</th>
+                            <th>@Text("Submitted", "تاريخ الإرسال")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in orders)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@order.Number</td>
+                                <td>@(order.CustomerName ?? Text("Walk-in", "عميل مباشر"))</td>
+                                <td><span class="badge rounded-pill @StatusBadge(order.Status)">@StatusText(order.Status)</span></td>
+                                <td>@(order.PaymentStatus?.ToString() ?? "-")</td>
+                                <td>@Money(order.CheckoutTotal)</td>
+                                <td>@DateText(order.SubmittedAt)</td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo($"/Orders/Intakes/{order.Id}")'>
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <button class="btn btn-outline-secondary" @onclick="PreviousPage" disabled="@(pageIndex == 0 || isLoading)">@Text("Previous", "السابق")</button>
+                <span class="text-muted">@Text($"Page {pageIndex + 1}", $"صفحة {pageIndex + 1}")</span>
+                <button class="btn btn-outline-secondary" @onclick="NextPage" disabled="@(!HasNextPage || isLoading)">@Text("Next", "التالي")</button>
+            </div>
+        }
+    </AppCard>
+</section>
+
+@code {
+    private bool CanView;
+    private bool isLoading;
+    private Guid companyId;
+    private int pageIndex;
+    private const int PageSize = 20;
+    private long totalCount;
+    private string? searchText;
+    private OrderIntakeStatus? statusFilter;
+    private List<OrderIntakeDto> orders = [];
+
+    private bool HasNextPage => (pageIndex + 1) * PageSize < totalCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        CanView = authState.User.Claims.Any(c => c.Value == PermissionList.OrderIntakePermissions.View);
+        if (!authState.User.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        companyId = Guid.Parse(authState.User.Claims.First(c => c.Type == "company_id").Value);
+        if (CanView)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await OrderIntakeService.GetByCompanyAsync(companyId, pageIndex, PageSize, statusFilter, searchText);
+        if (result.IsSuccess && result.Data is not null)
+        {
+            orders = result.Data.Data.ToList();
+            totalCount = result.Data.Count;
+        }
+        isLoading = false;
+    }
+
+    private async Task ResetFilters()
+    {
+        searchText = null;
+        statusFilter = null;
+        pageIndex = 0;
+        await LoadAsync();
+    }
+
+    private async Task PreviousPage()
+    {
+        if (pageIndex == 0)
+            return;
+        pageIndex--;
+        await LoadAsync();
+    }
+
+    private async Task NextPage()
+    {
+        if (!HasNextPage)
+            return;
+        pageIndex++;
+        await LoadAsync();
+    }
+
+    private string StatusText(OrderIntakeStatus status) => status switch
+    {
+        OrderIntakeStatus.Submitted => Text("Submitted", "مرسل"),
+        OrderIntakeStatus.Validated => Text("Validated", "تم التحقق"),
+        OrderIntakeStatus.Rejected => Text("Rejected", "مرفوض"),
+        OrderIntakeStatus.Accepted => Text("Accepted", "مقبول"),
+        OrderIntakeStatus.ConvertedToSales => Text("Converted", "محول للبيع"),
+        OrderIntakeStatus.Cancelled => Text("Cancelled", "ملغي"),
+        _ => Text("Draft", "مسودة")
+    };
+
+    private static string StatusBadge(OrderIntakeStatus status) => status switch
+    {
+        OrderIntakeStatus.Rejected or OrderIntakeStatus.Cancelled => "text-bg-danger",
+        OrderIntakeStatus.Accepted or OrderIntakeStatus.ConvertedToSales => "text-bg-success",
+        OrderIntakeStatus.Submitted or OrderIntakeStatus.Validated => "text-bg-primary",
+        _ => "text-bg-secondary"
+    };
+
+    private string DateText(DateTime? value) => value?.ToString("yyyy-MM-dd HH:mm") ?? "-";
+    private string Money(decimal value) => $"{value:N2} SAR";
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

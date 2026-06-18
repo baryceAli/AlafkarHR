@@ -29,14 +29,54 @@ public class MenuItem
 
     public static List<MenuItem> Menu = new()
     {
-        //home
         new MenuItem
         {
-            TextEn = "Home",
-            TextAr = "الرئيسية",
-            Icon = "bi-house-door",
-            Url = "/Dashboard",
-            PermissionPolicy = PermissionList.ProductPermissions.View
+            TextEn = "Sales Management",
+            TextAr = "إدارة المبيعات",
+            Icon = "bi-graph-up-arrow",
+            PermissionPolicy = PermissionList.SalesOrderPermissions.Select,
+            WorkspaceKey = NavigationMenuResolver.WorkspaceSales,
+            KeywordsEn = "sales orders order intakes dashboard pos",
+            KeywordsAr = "مبيعات أوامر طلبات لوحة نقطة بيع",
+            Children = new()
+            {
+                new MenuItem
+                {
+                    TextEn = "POS",
+                    TextAr = "نقطة بيع",
+                    Icon = "bi-cash-register",
+                    Url = "/SalesOrder/POS",
+                    PermissionPolicy = PermissionList.SalesOrderPermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspacePos,
+                    MobilePriority = 4,
+                    KeywordsEn = "pos sales checkout cashier",
+                    KeywordsAr = "نقطة بيع مبيعات كاشير"
+                },
+                new MenuItem
+                {
+                    TextEn = "Sales Dashboard",
+                    TextAr = "لوحة المبيعات",
+                    Icon = "bi-speedometer2",
+                    Url = "/Sales/Dashboard",
+                    PermissionPolicy = PermissionList.SalesOrderPermissions.ViewReports
+                },
+                new MenuItem
+                {
+                    TextEn = "Order Intakes",
+                    TextAr = "طلبات البيع",
+                    Icon = "bi-card-checklist",
+                    Url = "/Orders/Intakes",
+                    PermissionPolicy = PermissionList.OrderIntakePermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Sales Orders",
+                    TextAr = "أوامر البيع",
+                    Icon = "bi-list-check",
+                    Url = "/Sales/Orders",
+                    PermissionPolicy = PermissionList.SalesOrderPermissions.View
+                }
+            }
         },
         //Control Panel
         new MenuItem

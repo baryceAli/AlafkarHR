@@ -1,19 +1,15 @@
-<article class="erp-stat-card @ToneClass @CssClass">
-    @if (!string.IsNullOrWhiteSpace(Icon))
-    {
-        <div class="erp-stat-icon">
-            <i class="bi @Icon"></i>
-        </div>
-    }
-    <div>
-        <div class="erp-stat-label">@Title</div>
-        <div class="erp-stat-value">@Value</div>
-        @if (!string.IsNullOrWhiteSpace(Subtitle))
-        {
-            <div class="text-muted small">@Subtitle</div>
-        }
-    </div>
-</article>
+@if (OnClick.HasDelegate)
+{
+    <button type="button" class="erp-stat-card erp-stat-action @ToneClass @CssClass" @onclick="OnClick">
+        @CardContent
+    </button>
+}
+else
+{
+    <article class="erp-stat-card @ToneClass @CssClass">
+        @CardContent
+    </article>
+}
 
 @code {
     [Parameter] public string Title { get; set; } = "";
@@ -22,6 +18,24 @@
     [Parameter] public string? Icon { get; set; }
     [Parameter] public string? Tone { get; set; }
     [Parameter] public string? CssClass { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
 
     private string ToneClass => string.IsNullOrWhiteSpace(Tone) ? "" : $"erp-stat-{Tone}";
+
+    private RenderFragment CardContent => @<text>
+        @if (!string.IsNullOrWhiteSpace(Icon))
+        {
+            <div class="erp-stat-icon">
+                <i class="bi @Icon"></i>
+            </div>
+        }
+        <div>
+            <div class="erp-stat-label">@Title</div>
+            <div class="erp-stat-value">@Value</div>
+            @if (!string.IsNullOrWhiteSpace(Subtitle))
+            {
+                <div class="text-muted small">@Subtitle</div>
+            }
+        </div>
+    </text>;
 }

@@ -30,17 +30,12 @@
             @foreach (var card in Cards)
             {
                 <div class="col-12 col-sm-6 col-xl-3">
-                    <button type="button" class="erp-card w-100 text-start border-0" @onclick="() => Navigate(card.Kind)">
-                        <div class="erp-card-body">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <div>
-                                    <div class="text-muted small">@SharedDataService.SelectViewLang(card.TitleEn, card.TitleAr)</div>
-                                    <div class="fs-3 fw-semibold">@card.Count</div>
-                                </div>
-                                <i class="bi @card.Icon fs-2 text-primary"></i>
-                            </div>
-                        </div>
-                    </button>
+                    <StatsCard Title="@SharedDataService.SelectViewLang(card.TitleEn, card.TitleAr)"
+                               Value="@card.Count.ToString("N0")"
+                               Icon="@card.Icon"
+                               Tone="@card.Tone"
+                               CssClass="h-100"
+                               OnClick="@(() => Navigate(card.Kind))" />
                 </div>
             }
         </div>
@@ -53,15 +48,15 @@
     private AuthenticationState? authState;
     private bool CanView => authState?.User.Claims.Any(c => c.Value == PermissionList.PurchaseOrderPermissions.Select || c.Value == PermissionList.PurchaseRequestPermissions.Select) == true;
 
-    private IEnumerable<(ProcurementDocumentKind Kind, string TitleEn, string TitleAr, string Icon, int Count)> Cards =>
+    private IEnumerable<(ProcurementDocumentKind Kind, string TitleEn, string TitleAr, string Icon, string Tone, int Count)> Cards =>
     [
-        (ProcurementDocumentKind.PurchaseRequest, "Purchase Requests", "طلبات الشراء", "bi-card-checklist", dashboard.PurchaseRequests),
-        (ProcurementDocumentKind.RequestForQuotation, "RFQs", "طلبات عروض الأسعار", "bi-envelope-paper", dashboard.RequestsForQuotation),
-        (ProcurementDocumentKind.SupplierQuotation, "Supplier Quotations", "عروض أسعار الموردين", "bi-file-earmark-text", dashboard.SupplierQuotations),
-        (ProcurementDocumentKind.PurchaseOrder, "Purchase Orders", "أوامر الشراء", "bi-bag-check", dashboard.PurchaseOrders),
-        (ProcurementDocumentKind.GoodsReceipt, "Goods Receipts", "استلام البضائع", "bi-box-arrow-in-down", dashboard.GoodsReceipts),
-        (ProcurementDocumentKind.PurchaseReturn, "Purchase Returns", "مرتجعات الشراء", "bi-arrow-return-left", dashboard.PurchaseReturns),
-        (ProcurementDocumentKind.SupplierInvoice, "Supplier Invoices", "فواتير الموردين", "bi-receipt", dashboard.SupplierInvoices)
+        (ProcurementDocumentKind.PurchaseRequest, "Purchase Requests", "طلبات الشراء", "bi-card-checklist", "primary", dashboard.PurchaseRequests),
+        (ProcurementDocumentKind.RequestForQuotation, "RFQs", "طلبات عروض الأسعار", "bi-envelope-paper", "info", dashboard.RequestsForQuotation),
+        (ProcurementDocumentKind.SupplierQuotation, "Supplier Quotations", "عروض أسعار الموردين", "bi-file-earmark-text", "warning", dashboard.SupplierQuotations),
+        (ProcurementDocumentKind.PurchaseOrder, "Purchase Orders", "أوامر الشراء", "bi-bag-check", "success", dashboard.PurchaseOrders),
+        (ProcurementDocumentKind.GoodsReceipt, "Goods Receipts", "استلام البضائع", "bi-box-arrow-in-down", "info", dashboard.GoodsReceipts),
+        (ProcurementDocumentKind.PurchaseReturn, "Purchase Returns", "مرتجعات الشراء", "bi-arrow-return-left", "danger", dashboard.PurchaseReturns),
+        (ProcurementDocumentKind.SupplierInvoice, "Supplier Invoices", "فواتير الموردين", "bi-receipt", "primary", dashboard.SupplierInvoices)
     ];
 
     protected override async Task OnInitializedAsync()

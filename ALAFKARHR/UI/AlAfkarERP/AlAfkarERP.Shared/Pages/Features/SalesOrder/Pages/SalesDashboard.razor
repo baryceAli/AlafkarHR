@@ -1,0 +1,116 @@
+@layout AdminLayout
+@page "/Sales/Dashboard"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.Sales.Dtos
+
+@inject ISalesService SalesService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+<section class="sales-page" dir="@SharedDataService.PageDirection">
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        return;
+    }
+
+    <PageHeader Title="@Text("Sales Dashboard", "لوحة المبيعات")"
+                Subtitle="@Text("Monitor sales order volume and open/completed value.", "متابعة حجم أوامر البيع وقيمتها.")"
+                Overline="@Text("Sales", "المبيعات")"
+                Icon="bi-graph-up-arrow">
+        <Actions>
+            <a class="btn btn-outline-secondary" href="/Sales/Orders">
+                <i class="bi bi-list-check"></i> @Text("Sales Orders", "أوامر البيع")
+            </a>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <div class="erp-loading py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2">@Text("Loading dashboard...", "جاري تحميل اللوحة...")</div>
+        </div>
+    }
+    else if (dashboard is null)
+    {
+        <EmptyState Title="@Text("No dashboard data", "لا توجد بيانات")"
+                    Message="@Text("Sales dashboard data is not available right now.", "بيانات لوحة المبيعات غير متاحة حاليا.")"
+                    Icon="bi-bar-chart" />
+    }
+    else
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-md-3"><StatsCard Title="@Text("Draft", "مسودة")" Value="@dashboard.DraftOrders.ToString()" Icon="bi-pencil-square" /></div>
+            <div class="col-md-3"><StatsCard Title="@Text("Confirmed", "مؤكدة")" Value="@dashboard.ConfirmedOrders.ToString()" Icon="bi-check2-circle" /></div>
+            <div class="col-md-3"><StatsCard Title="@Text("Delivered", "مسلمة")" Value="@dashboard.DeliveredOrders.ToString()" Icon="bi-truck" /></div>
+            <div class="col-md-3"><StatsCard Title="@Text("Completed", "مكتملة")" Value="@dashboard.CompletedOrders.ToString()" Icon="bi-patch-check" /></div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <AppCard Title="@Text("Open Order Value", "قيمة الأوامر المفتوحة")">
+                    <div class="sales-value">@Money(dashboard.OpenOrderValue)</div>
+                </AppCard>
+            </div>
+            <div class="col-md-6">
+                <AppCard Title="@Text("Completed Order Value", "قيمة الأوامر المكتملة")">
+                    <div class="sales-value">@Money(dashboard.CompletedOrderValue)</div>
+                </AppCard>
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    private bool CanView;
+    private bool isLoading;
+    private Guid companyId;
+    private SalesDashboardDto? dashboard;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        CanView = authState.User.Claims.Any(c => c.Value == PermissionList.SalesOrderPermissions.ViewReports);
+        if (!authState.User.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        companyId = Guid.Parse(authState.User.Claims.First(c => c.Type == "company_id").Value);
+        if (CanView)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await SalesService.GetDashboardAsync(companyId);
+        dashboard = result.IsSuccess ? result.Data : null;
+        isLoading = false;
+    }
+
+    private string Money(decimal value) => $"{value:N2} SAR";
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
+
+<style>
+    .sales-value {
+        color: var(--erp-primary);
+        font-size: 2rem;
+        font-weight: 700;
+    }
+</style>
