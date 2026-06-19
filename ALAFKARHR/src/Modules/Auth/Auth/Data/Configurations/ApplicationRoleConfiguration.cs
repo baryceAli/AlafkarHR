@@ -15,11 +15,21 @@ public class ApplicationRoleConfiguration : IEntityTypeConfiguration<Application
         builder.HasIndex(r => new { r.CompanyId, r.DisplayName })
             .IsUnique()
             .HasDatabaseName("IX_AspNetRoles_CompanyId_DisplayName")
-            .HasFilter("[DisplayName] IS NOT NULL");
+            .HasFilter("[CompanyId] IS NOT NULL AND [DisplayName] IS NOT NULL");
+
+        builder.HasIndex(r => r.DisplayName)
+            .IsUnique()
+            .HasDatabaseName("IX_AspNetRoles_Platform_DisplayName")
+            .HasFilter("[CompanyId] IS NULL AND [DisplayName] IS NOT NULL");
 
         builder.HasIndex(r => new { r.CompanyId, r.TemplateKey })
             .IsUnique()
             .HasDatabaseName("IX_AspNetRoles_CompanyId_TemplateKey")
-            .HasFilter("[TemplateKey] IS NOT NULL");
+            .HasFilter("[CompanyId] IS NOT NULL AND [TemplateKey] IS NOT NULL");
+
+        builder.HasIndex(r => r.TemplateKey)
+            .IsUnique()
+            .HasDatabaseName("IX_AspNetRoles_Platform_TemplateKey")
+            .HasFilter("[CompanyId] IS NULL AND [TemplateKey] IS NOT NULL");
     }
 }

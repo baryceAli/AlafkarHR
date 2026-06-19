@@ -16,6 +16,8 @@ public class UnassignRoleFromUserHandler(UserManager<ApplicationUser> userManage
         var user = await userManager.FindByNameAsync(userName);
         if (user is null)
             throw new NotFoundException($"User not found: {userName}");
+        if (!user.CompanyId.HasValue)
+            throw new BadRequestException("Platform users cannot be changed from this page.");
 
         if (await IsProtectedAdmin(user))
             throw new BadRequestException("Admin role assignments cannot be changed from this page.");
@@ -42,7 +44,10 @@ public class UnassignRoleFromUserHandler(UserManager<ApplicationUser> userManage
         if (string.Equals(normalizedUserName, "admin", StringComparison.OrdinalIgnoreCase))
             return true;
 
-        var companyAdminRoleName = $"SystemAdmin-{user.CompanyId:N}";
+        if (!user.CompanyId.HasValue)
+            return true;
+
+        var companyAdminRoleName = CompanyRoleTemplates.BuildSystemAdminRoleName(user.CompanyId.Value);
         return await userManager.IsInRoleAsync(user, companyAdminRoleName);
     }
 }

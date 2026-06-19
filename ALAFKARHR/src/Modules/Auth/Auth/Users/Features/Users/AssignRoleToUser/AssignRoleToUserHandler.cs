@@ -16,6 +16,8 @@ public class AssignRoleToUserHandler(UserManager<ApplicationUser> userManager, R
         var user = await userManager.FindByNameAsync(userName);
         if (user is null)
             throw new NotFoundException($"User not found: {userName}");
+        if (!user.CompanyId.HasValue)
+            throw new BadRequestException("Platform users cannot be assigned tenant roles from this page.");
 
         if (await IsProtectedAdmin(user))
             throw new BadRequestException("Admin role assignments cannot be changed from this page.");
@@ -45,13 +47,19 @@ public class AssignRoleToUserHandler(UserManager<ApplicationUser> userManager, R
         if (string.Equals(normalizedUserName, "admin", StringComparison.OrdinalIgnoreCase))
             return true;
 
-        var companyAdminRoleName = $"SystemAdmin-{user.CompanyId:N}";
+        if (!user.CompanyId.HasValue)
+            return true;
+
+        var companyAdminRoleName = CompanyRoleTemplates.BuildSystemAdminRoleName(user.CompanyId.Value);
         return await userManager.IsInRoleAsync(user, companyAdminRoleName);
     }
 
     private static bool IsCompanyAdminRole(ApplicationUser user, string? roleName)
     {
-        var companyAdminRoleName = $"SystemAdmin-{user.CompanyId:N}";
+        if (!user.CompanyId.HasValue)
+            return false;
+
+        var companyAdminRoleName = CompanyRoleTemplates.BuildSystemAdminRoleName(user.CompanyId.Value);
         return string.Equals(roleName, companyAdminRoleName, StringComparison.OrdinalIgnoreCase);
     }
 }

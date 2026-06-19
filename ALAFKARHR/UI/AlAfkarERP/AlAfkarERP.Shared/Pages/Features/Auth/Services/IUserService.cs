@@ -8,6 +8,7 @@ public interface IUserService
     Task<ApiResult<PaginatedResult<UserDto>>> GetUsersByCompany(Guid companyId, int pageIndex, int pageSize);
     Task<ApiResult<UserDto>> GetByUserName(string userName);
     Task<ApiResult<UpdateDeleteResponseDto>> AssignRoles(UserRoleDto assignRolesToUser);
+    Task<ApiResult<UpdateDeleteResponseDto>> ResetPasswordAsync(string userName, string temporaryPassword);
 
     //Task<ApiResult<PaginatedResult<UserDto>>> GetUsersAsync(Guid companyId,int pageIndex, int pageSize);
     Task<ApiResult<UserDto>> GetUserById(Guid Id);

@@ -144,8 +144,7 @@
             return false;
         }
 
-        var hasOwnPermission = !string.IsNullOrWhiteSpace(item.PermissionPolicy)
-            && AuthState.User.Claims.Any(c => c.Value == item.PermissionPolicy);
+        var hasOwnPermission = NavigationMenuResolver.HasOwnPermission(item, AuthState.User);
 
         return hasOwnPermission || item.Children.Any(IsAuthorized);
     }

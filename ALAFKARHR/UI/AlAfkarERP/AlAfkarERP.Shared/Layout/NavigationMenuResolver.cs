@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using AlAfkarERP.Shared.Utilities;
 
 namespace AlAfkarERP.Shared.Layout;
 
@@ -287,6 +288,13 @@ public static class NavigationMenuResolver
             return null;
         }
 
+        if (workspaceKey == WorkspaceAdmin
+            && CompanyContext.IsPlatformScoped(user)
+            && CompanyContext.HasPermission(user, SharedWithUI.Permissions.PermissionList.ParentCompanyPermissions.View))
+        {
+            return "/Organization/ParentCompanies";
+        }
+
         var authorizedItems = GetAuthorizedNavigableItems(user).ToList();
         var workspace = MobileWorkspaces.FirstOrDefault(item => item.Key == workspaceKey);
         if (!string.IsNullOrWhiteSpace(workspace?.Url)
@@ -357,8 +365,7 @@ public static class NavigationMenuResolver
     }
 
     public static bool HasOwnPermission(MenuItem item, ClaimsPrincipal? user)
-        => !string.IsNullOrWhiteSpace(item.PermissionPolicy)
-           && user?.Claims.Any(claim => claim.Value == item.PermissionPolicy) == true;
+        => CompanyContext.HasPermission(user, item.PermissionPolicy);
 
     public static bool IsAuthorized(MenuItem item, ClaimsPrincipal? user)
         => HasOwnPermission(item, user) || item.Children.Any(child => IsAuthorized(child, user));
@@ -567,7 +574,7 @@ public static class NavigationMenuResolver
 
     private static void AddHubSections(MenuItem root, ClaimsPrincipal? user, string hubWorkspaceKey, List<NavigationHubSection> sections)
     {
-        if (IsText(root, "People") || IsText(root, "Operations"))
+        if (IsText(root, "People") || IsText(root, "Operations") || IsText(root, "Platform Operations"))
         {
             foreach (var child in root.Children)
             {

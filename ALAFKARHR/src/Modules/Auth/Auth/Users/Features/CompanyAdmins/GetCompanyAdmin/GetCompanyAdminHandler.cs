@@ -7,7 +7,7 @@ public class GetCompanyAdminHandler(UserManager<ApplicationUser> userManager)
 {
     public async Task<GetCompanyAdminResult> Handle(GetCompanyAdminQuery request, CancellationToken cancellationToken)
     {
-        var roleName = $"SystemAdmin-{request.CompanyId:N}";
+        var roleName = CompanyRoleTemplates.BuildSystemAdminRoleName(request.CompanyId);
         var users = await userManager.GetUsersInRoleAsync(roleName);
         var admin = users.FirstOrDefault(x => x.CompanyId == request.CompanyId)
             ?? throw new NotFoundException($"Admin user not found for company: {request.CompanyId}");

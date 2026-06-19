@@ -98,7 +98,7 @@ public static class AuthModule
             options.DefaultPolicy = authenticatedUserPolicy;
             options.FallbackPolicy = authenticatedUserPolicy;
 
-            foreach (var permissions in PermissionList.GetAll())
+            foreach (var permissions in PermissionList.GetAuthorizationPolicyPermissions())
             {
                 options.AddPolicy(permissions, policy => policy.AddRequirements(new PermissionRequirement(permissions)));
             }

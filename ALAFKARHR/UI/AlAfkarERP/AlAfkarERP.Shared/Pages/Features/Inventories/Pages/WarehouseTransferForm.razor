@@ -1,4 +1,4 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Inventory/WarehouseTransfer/Form"
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
 @using AlAfkarERP.Shared.Pages.Features.Inventories.Services
@@ -116,8 +116,11 @@
             NavigationManager.NavigateTo("/login", true);
 
         }
-        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
-
+        if (!CompanyContext.TryGetCompanyId(AuthState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
         var wareRes = await WarehouseService.GetAsync(companyId, 0, 10000);
         if (wareRes.IsSuccess)
         {

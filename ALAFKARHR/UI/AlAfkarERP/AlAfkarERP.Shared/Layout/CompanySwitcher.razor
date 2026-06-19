@@ -52,7 +52,7 @@
                "company",
                "tenant_name",
                "tenantName")
-           ?? SharedDataService.SelectViewLang("Alafkar Global HQ", "ألفكار الرئيسي");
+           ?? SharedDataService.SelectViewLang("Platform Admin", "إدارة المنصة");
 
     private string CompanyIdentifierText
     {
@@ -60,7 +60,7 @@
         {
             var id = FirstClaimValue(User, "company_id", "companyId", "CompanyId");
             return string.IsNullOrWhiteSpace(id)
-                ? SharedDataService.SelectViewLang("Current company", "الشركة الحالية")
+                ? SharedDataService.SelectViewLang("Platform context", "سياق المنصة")
                 : SharedDataService.SelectViewLang($"ID {ShortId(id)}", $"المعرف {ShortId(id)}");
         }
     }

@@ -32,9 +32,13 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             new Claim(JwtRegisteredClaimNames.Typ,user.UserType.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
             new Claim(ClaimTypes.Name, user.UserName ?? ""),
-            new Claim("company_id", user.CompanyId.ToString()),
             //new Claim("employee_id", user.EmployeeId?.ToString()??"")
         };
+
+        if (user.CompanyId.HasValue)
+        {
+            claims.Add(new Claim("company_id", user.CompanyId.Value.ToString()));
+        }
 
         // ✅ Get Roles
         var roles = await _userManager.GetRolesAsync(user);
@@ -43,16 +47,18 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         {
             claims.Add(new Claim(ClaimTypes.Role, role));
 
-            // ✅ Get Role Permissions (THIS FIXES YOUR 403)
             var roleEntity = await _roleManager.FindByNameAsync(role);
             if (roleEntity is null) continue;
-            if (roleEntity.CompanyId != user.CompanyId) continue;
+            if (!RoleMatchesUserScope(roleEntity, user)) continue;
 
             var roleClaims = await _roleManager.GetClaimsAsync(roleEntity);
 
             foreach (var rc in roleClaims)
             {
-                claims.Add(rc); // 🔥 inject Permission claims into JWT
+                if (!claims.Any(claim => claim.Type == rc.Type && claim.Value == rc.Value))
+                {
+                    claims.Add(rc);
+                }
             }
         }
 
@@ -70,4 +76,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    private static bool RoleMatchesUserScope(ApplicationRole role, ApplicationUser user)
+        => role.CompanyId == user.CompanyId;
 }

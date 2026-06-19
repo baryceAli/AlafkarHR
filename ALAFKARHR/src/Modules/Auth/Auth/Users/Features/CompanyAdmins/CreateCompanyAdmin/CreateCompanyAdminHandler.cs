@@ -1,4 +1,5 @@
 using Auth.Contracts.Features.CreateCompanyAdmin;
+using Organization.Contracts.Companies.Features.CanAddUserToCompany;
 
 namespace Auth.Users.Features.CompanyAdmins.CreateCompanyAdmin;
 
@@ -18,18 +19,26 @@ public class CreateCompanyAdminCommandValidator : AbstractValidator<CreateCompan
 public class CreateCompanyAdminHandler(
     UserManager<ApplicationUser> userManager,
     RoleManager<ApplicationRole> roleManager,
-    IOptions<OTPOptions> oTPOptions)
+    IOptions<OTPOptions> oTPOptions,
+    ISender sender)
     : ICommandHandler<CreateCompanyAdminCommand, CreateCompanyAdminResult>
 {
     public async Task<CreateCompanyAdminResult> Handle(CreateCompanyAdminCommand request, CancellationToken cancellationToken)
     {
+        if (userManager.Users.Any(x => x.CompanyId == request.CompanyId))
+        {
+            var userLimit = await sender.Send(new CanAddUserToCompanyQuery(request.CompanyId), cancellationToken);
+            if (!userLimit.CanAdd)
+                throw new Exception(userLimit.Reason ?? "User license limit has been reached");
+        }
+
         if (await userManager.FindByNameAsync(request.UserName) is not null)
             throw new Exception($"User name already exists: {request.UserName}");
 
         if (await userManager.FindByEmailAsync(request.Email) is not null)
             throw new Exception($"Email already exists: {request.Email}");
 
-        var roleName = $"SystemAdmin-{request.CompanyId:N}";
+        var roleName = CompanyRoleTemplates.BuildSystemAdminRoleName(request.CompanyId);
         var role = await roleManager.FindByNameAsync(roleName);
         if (role is null)
         {
@@ -48,18 +57,21 @@ public class CreateCompanyAdminHandler(
                 ?? throw new Exception($"Couldn't find the role: {roleName}");
         }
 
-        var roleClaims = await roleManager.GetClaimsAsync(role);
         if (string.IsNullOrWhiteSpace(role.DisplayName))
         {
             role.DisplayName = "System Admin";
             await roleManager.UpdateAsync(role);
         }
 
-        foreach (var permission in PermissionList.GetAll())
-        {
-            if (!roleClaims.Any(c => c.Type == "Permission" && c.Value == permission))
-                await roleManager.AddClaimAsync(role, new Claim("Permission", permission));
-        }
+        var permissions = request.AdminScope == CompanyAdminScope.ParentCompanyAdministration
+            ? PermissionList.GetParentCompanyAdminPermissions()
+            : PermissionList.GetTenantPermissions();
+
+        await CompanyRoleTemplates.SyncPermissionClaimsAsync(
+            roleManager,
+            role,
+            permissions,
+            removeObsolete: true);
 
         await CompanyRoleTemplates.SeedDefaultRolesAsync(roleManager, request.CompanyId);
 

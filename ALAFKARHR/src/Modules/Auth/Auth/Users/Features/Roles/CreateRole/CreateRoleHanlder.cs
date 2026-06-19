@@ -22,7 +22,9 @@ public class CreateRoleHanlder(RoleManager<ApplicationRole> roleManager)
         if (string.IsNullOrWhiteSpace(displayName))
             throw new BadRequestException("Role name is required.");
 
-        var knownPermissions = PermissionList.GetAll().ToHashSet(StringComparer.Ordinal);
+        var normalizedDisplayName = displayName.ToUpperInvariant();
+
+        var knownPermissions = PermissionList.GetTenantPermissions().ToHashSet(StringComparer.Ordinal);
         var requestedPermissions = (request.Role.Permissions ?? [])
             .Where(p => !string.IsNullOrWhiteSpace(p))
             .Select(p => p.Trim())
@@ -46,7 +48,8 @@ public class CreateRoleHanlder(RoleManager<ApplicationRole> roleManager)
 
         var duplicateDisplayName = await roleManager.Roles
             .AnyAsync(r => r.CompanyId == companyId
-                && r.DisplayName == displayName
+                && r.DisplayName != null
+                && r.DisplayName.ToUpper() == normalizedDisplayName
                 && (role == null || r.Id != role.Id), cancellationToken);
 
         if (duplicateDisplayName)

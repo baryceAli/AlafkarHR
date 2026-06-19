@@ -585,12 +585,15 @@
             NavigationManager.NavigateTo("/login", true);
 
         }
+        if (!CompanyContext.TryGetCompanyId(AuthState.User, out companyId))
 
-        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+        {
 
+            NavigationManager.NavigateTo("/Dashboard");
 
+            return;
 
-
+        }
         var brandRes = await BrandService.GetByCompanyIdAsync(companyId, 0, 10000);
         if (brandRes.IsSuccess)
         {

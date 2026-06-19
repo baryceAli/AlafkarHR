@@ -47,9 +47,12 @@ public class RefreshTokenHandler(
             throw new Exception("Token reuse detected");
         }
 
-        var accessStatus = await sender.Send(new GetCompanyAccessStatusQuery(tokenOwner.CompanyId), cancellationToken);
-        if (!accessStatus.CanLogin)
-            throw new Exception("Company is disabled");
+        if (tokenOwner.CompanyId.HasValue)
+        {
+            var accessStatus = await sender.Send(new GetCompanyAccessStatusQuery(tokenOwner.CompanyId.Value), cancellationToken);
+            if (!accessStatus.CanLogin)
+                throw new Exception("Company is disabled");
+        }
 
         var rawNewRefreshToken = RefreshTokenGenerator.Generate();
         var newRefreshTokenHash = RefreshTokenGenerator.Hash(rawNewRefreshToken);

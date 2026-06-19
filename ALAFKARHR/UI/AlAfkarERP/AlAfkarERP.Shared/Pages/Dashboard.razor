@@ -231,6 +231,7 @@
             "bi-shield-lock",
             new[]
             {
+                new DashboardLink("Tenant Companies", "الشركات الرئيسية", "Manage top-level tenant companies.", "إدارة الشركات الرئيسية في المنصة.", "bi-building-lock", "/Organization/ParentCompanies", PermissionList.ParentCompanyPermissions.View),
                 new DashboardLink("Organization", "الهيكل التنظيمي", "Manage companies, branches, and departments.", "إدارة الشركات والفروع والأقسام.", "bi-diagram-3", "/Organization/Dashboard", PermissionList.CompanyPermissions.Select),
                 new DashboardLink("Security", "الأمان", "Manage users and roles.", "إدارة المستخدمين والصلاحيات.", "bi-shield-check", "/Auth/Dashboard", PermissionList.UsersPermissions.Select),
                 new DashboardLink("System Settings", "إعدادات النظام", "Configure core ERP settings.", "ضبط إعدادات النظام الأساسية.", "bi-gear-wide-connected", "/GeneralSettings/SystemSettings", PermissionList.SystemSettingsPermissions.View),
@@ -349,7 +350,7 @@
     private bool CanView(DashboardLink link) => HasPermission(link.Permission);
 
     private bool HasPermission(string permission) =>
-        authState?.User.Claims.Any(claim => claim.Value == permission) == true;
+        CompanyContext.HasPermission(authState?.User, permission);
 
     private Guid ResolveCompanyId() =>
         Guid.TryParse(authState?.User.Claims.FirstOrDefault(claim => claim.Type == "company_id")?.Value, out var companyId)

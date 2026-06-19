@@ -12,7 +12,7 @@ public class ApplicationUser
     public bool? IsOtpConfirmed { get; set; }
     public OTPType OtpType { get; set; }
     public DateTime OtpExpiration { get; set; }
-    public Guid CompanyId { get; set; }
+    public Guid? CompanyId { get; set; }
     //public Guid? EmployeeId { get; set; }
     public IReadOnlyCollection<RefreshToken> RefreshTokens => _refreshTokens.AsReadOnly();
 
@@ -26,7 +26,7 @@ public class ApplicationUser
         string otp, 
         OTPType otpType, 
         DateTime otpExpiration,
-        Guid companyId)
+        Guid? companyId)
     {
         ArgumentException.ThrowIfNullOrEmpty(userName);
         ArgumentException.ThrowIfNullOrEmpty(email);

@@ -5,6 +5,9 @@ namespace SharedWithUI.Permissions;
 public static class PermissionList
 {
     public static List<string> GetAll()
+        => GetTenantPermissions();
+
+    public static List<string> GetTenantPermissions()
     {
         List<string> list =
         [
@@ -77,6 +80,46 @@ public static class PermissionList
         return list;
 
     }
+
+    public static List<string> GetPlatformPermissions()
+        => ParentCompanyPermissions.Permissions
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Select(p => p.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+    public static List<string> GetParentCompanyAdminPermissions()
+    {
+        List<string> list =
+        [
+            CompanyPermissions.Select,
+            CompanyPermissions.View,
+            CompanyPermissions.Edit,
+            CompanyPermissions.ViewChild,
+            CompanyPermissions.CreateChild,
+            CompanyPermissions.EditChild,
+            CompanyPermissions.DisableChild,
+            CompanyPermissions.ResetChildAdminPassword,
+            ..UsersPermissions.Permissions,
+            ..RolesPermissions.Permissions,
+            SystemSettingsPermissions.Select,
+            SystemSettingsPermissions.View,
+        ];
+
+        return list
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Select(p => p.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+    }
+
+    public static List<string> GetAuthorizationPolicyPermissions()
+        => GetTenantPermissions()
+            .Concat(GetPlatformPermissions())
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Select(p => p.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
     
 
     public static List<PermissionGroupDto> GetGroupedPermissions(List<string> permissions)
@@ -268,6 +311,31 @@ public static class PermissionList
                 $"{ResetChildAdminPassword}",
             };
 
+    }
+    public static class ParentCompanyPermissions
+    {
+        public static string GroupName { get; set; } = "Organization.ParentCompany";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string ManageLicense { get; set; } = $"{GroupName}.ManageLicense";
+        public static string Suspend { get; set; } = $"{GroupName}.Suspend";
+        public static string ResetAdminPassword { get; set; } = $"{GroupName}.ResetAdminPassword";
+
+        public static List<string> Permissions =>
+            new()
+            {
+                Select,
+                View,
+                Create,
+                Edit,
+                Delete,
+                ManageLicense,
+                Suspend,
+                ResetAdminPassword,
+            };
     }
     public static class BranchPermissions
     {

@@ -3,19 +3,17 @@
 @implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Auth.Services
-@using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Auth.Dtos
-@using SharedWithUI.Employees.Dtos
 @using SharedWithUI.Permissions
+@using System.ComponentModel.DataAnnotations
 @using System.Globalization
 @using System.Text
 
 @inject IRoleService RoleService
 @inject IUserService UserService
-@inject IEmployeeService EmployeeService
 @inject ToastService ToastService
 @inject ModalService ModalService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -25,28 +23,28 @@
 @if (AuthState is not null && !CanAccessPage)
 {
     <div class="alert alert-warning">
-        @Text("You don't have permissions to view this page", "You don't have permissions to view this page")
+        @Text("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")
     </div>
     return;
 }
 
 <div class="erp-page">
-    <PageHeader Title="@Text("Assign role to employees", "Assign role to employees")"
-                Subtitle="@Text("Manage employee role assignments without exposing user codes.", "Manage employee role assignments without exposing user codes.")"
+    <PageHeader Title="@Text("Assign roles to users", "تعيين الصلاحيات للمستخدمين")"
+                Subtitle="@Text("Manage company user role assignments and password resets.", "إدارة صلاحيات مستخدمي الشركة وإعادة تعيين كلمات المرور.")"
                 Icon="bi-person-check">
         <Actions>
             <button class="btn btn-primary"
                     @onclick="CreateNew"
-                    disabled="@(!CanCreate || isBusy)">
-                <i class="bi bi-plus-lg"></i> @Text("Create New", "Create New")
+                    disabled="@(!CanAssign || isBusy)">
+                <i class="bi bi-plus-lg"></i> @Text("Assign Role", "تعيين صلاحية")
             </button>
         </Actions>
     </PageHeader>
 
     @if (editingRow is not null)
     {
-        <AppCard CssClass="mb-3">
-            <EditForm Model="formRole" OnValidSubmit="SaveRole">
+        <AppCard CssClass="mb-3 allow-overflow">
+            <EditForm Model="assignRolesForm" OnValidSubmit="SaveRoles">
                 <DataAnnotationsValidator />
                 <ValidationSummary />
 
@@ -54,59 +52,74 @@
                     @if (isCreateMode)
                     {
                         <div class="col-lg-5">
-                            <label class="form-label">@Text("Employee", "Employee")</label>
-                            <AutoCompleteComponent TItem="EmployeeUserRolesRow"
-                                                   Items="AvailableEmployeesForCreate"
+                            <label class="form-label">@Text("User", "المستخدم")</label>
+                            <AutoCompleteComponent TItem="UserRolesRow"
+                                                   Items="AvailableUsersForCreate"
                                                    ItemText="(row => row.DisplayName)"
                                                    Value="selectedCreateRow"
-                                                   PlaceHolder="@Text("Search employees ...", "Search employees ...")"
-                                                   ValueChanged="OnCreateEmployeeChanged" />
+                                                   PlaceHolder="@Text("Search users ...", "ابحث عن المستخدمين ...")"
+                                                   ValueChanged="OnCreateUserChanged" />
                         </div>
                     }
                     else
                     {
                         <div class="col-lg-5">
-                            <label class="form-label">@Text("Employee", "Employee")</label>
+                            <label class="form-label">@Text("User", "المستخدم")</label>
                             <div class="form-control">@editingRow.DisplayName</div>
                         </div>
                     }
 
                     <div class="col-lg-5">
-                        <label class="form-label">@Text("Role", "Role")</label>
+                        <label class="form-label">@Text("Role", "الصلاحية")</label>
                         <AutoCompleteComponent TItem="RoleDto"
+                                               @key="rolePickerKey"
                                                Items="AvailableRolesForEdit"
                                                ItemText="(role => RoleDisplayName(role))"
-                                               Value="selectedRole"
-                                               PlaceHolder="@Text("Search roles ...", "Search roles ...")"
+                                               Value="rolePickerValue"
+                                               PlaceHolder="@Text("Search roles ...", "ابحث عن الصلاحيات ...")"
                                                ValueChanged="OnRoleValueChanged" />
-                        <ValidationMessage For="@(() => formRole.RoleName)" />
+                        @if (selectedRoles.Any())
+                        {
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                @foreach (var role in selectedRoles)
+                                {
+                                    <span class="badge text-bg-primary d-inline-flex align-items-center gap-2">
+                                        @RoleDisplayName(role)
+                                        <button type="button"
+                                                class="btn-close btn-close-white"
+                                                aria-label="@Text("Remove role", "إزالة الصلاحية")"
+                                                @onclick="() => RemoveSelectedRole(role)"></button>
+                                    </span>
+                                }
+                            </div>
+                        }
                     </div>
 
                     <div class="col-lg-2 d-flex gap-2">
                         <button type="submit"
                                 class="btn btn-success btn-sm"
-                                disabled="@(!CanCreate || isBusy)">
-                            <i class="bi bi-check-lg"></i> @Text("Save", "Save")
+                                disabled="@(!CanAssign || isBusy)">
+                            <i class="bi bi-check-lg"></i> @Text("Save", "حفظ")
                         </button>
                         <button type="button"
                                 class="btn btn-secondary btn-sm"
                                 @onclick="CancelEdit"
                                 disabled="@isBusy">
-                            @Text("Cancel", "Cancel")
+                            @Text("Cancel", "إلغاء")
                         </button>
                     </div>
                 </div>
 
-                @if (isCreateMode && AvailableEmployeesForCreate.Count == 0)
+                @if (isCreateMode && AvailableUsersForCreate.Count == 0)
                 {
                     <div class="text-muted small mt-3">
-                        @Text("All identifiable employees already have roles assigned.", "All identifiable employees already have roles assigned.")
+                        @Text("All editable users already have every assignable role.", "كل المستخدمين القابلين للتعديل لديهم جميع الصلاحيات المتاحة.")
                     </div>
                 }
-                else if (!AvailableRolesForEdit.Any())
+                else if (editingRow is not null && !AvailableRolesForEdit.Any() && !selectedRoles.Any())
                 {
                     <div class="text-muted small mt-3">
-                        @Text("All available roles are already assigned to this employee.", "All available roles are already assigned to this employee.")
+                        @Text("All available roles are already assigned to this user.", "كل الصلاحيات المتاحة معينة لهذا المستخدم.")
                     </div>
                 }
             </EditForm>
@@ -117,7 +130,7 @@
         <FilterBar CssClass="mb-3">
             <ChildContent>
                 <input class="form-control"
-                       placeholder="@Text("Search", "Search")"
+                       placeholder="@Text("Search", "بحث")"
                        @bind="SearchText"
                        @bind:event="oninput" />
 
@@ -139,10 +152,10 @@
                     <tr>
                         <th @onclick="ToggleSort" class="sortable">
                             <i class="@SortIcon"></i>
-                            @Text("Employee", "Employee")
+                            @Text("User", "المستخدم")
                         </th>
-                        <th>@Text("Roles", "Roles")</th>
-                        <th class="text-end">@Text("Actions", "Actions")</th>
+                        <th>@Text("Roles", "الصلاحيات")</th>
+                        <th class="text-end">@Text("Actions", "الإجراءات")</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -150,7 +163,7 @@
                     {
                         <tr>
                             <td colspan="3" class="text-center text-muted py-4">
-                                @Text("Loading role assignments ...", "Loading role assignments ...")
+                                @Text("Loading role assignments ...", "جاري تحميل الصلاحيات ...")
                             </td>
                         </tr>
                     }
@@ -158,7 +171,7 @@
                     {
                         <tr>
                             <td colspan="3" class="text-center text-muted py-4">
-                                @Text("No employee role assignments found.", "No employee role assignments found.")
+                                @Text("No user role assignments found.", "لا توجد صلاحيات مستخدمين.")
                             </td>
                         </tr>
                     }
@@ -172,7 +185,7 @@
                                     @if (row.IsProtectedAdmin)
                                     {
                                         <span class="badge text-bg-secondary mt-1">
-                                            <i class="bi bi-lock"></i> @Text("Protected admin", "Protected admin")
+                                            <i class="bi bi-lock"></i> @Text("Protected admin", "مدير محمي")
                                         </span>
                                     }
                                 </td>
@@ -183,7 +196,7 @@
                                     @if (visibleRoles.Count == 0)
                                     {
                                         <span class="text-muted small">
-                                            @(row.IsProtectedAdmin ? Text("Protected admin", "Protected admin") : Text("No roles assigned", "No roles assigned"))
+                                            @(row.IsProtectedAdmin ? Text("Protected admin", "مدير محمي") : Text("No roles assigned", "لا توجد صلاحيات"))
                                         </span>
                                     }
                                     else
@@ -199,24 +212,28 @@
                                     {
                                         <button class="btn btn-outline-warning btn-sm erp-row-action"
                                                 @onclick="() => EditRow(row)"
-                                                disabled="@(!CanCreate || isBusy || !GetUnassignedRoles(row).Any())"
-                                                title="@Text("Edit", "Edit")">
+                                                disabled="@(!CanAssign || isBusy || !GetUnassignedRoles(row).Any())"
+                                                title="@Text("Assign role", "تعيين صلاحية")">
                                             <i class="bi bi-pencil-square"></i>
                                         </button>
 
-                                        @foreach (var role in row.AssignedRoles)
-                                        {
-                                            <button class="btn btn-outline-danger btn-sm erp-row-action"
-                                                    @onclick="() => RemoveRole(row, role)"
-                                                    disabled="@(!CanDelete || isBusy)"
-                                                    title="@Text("Unassign", "Unassign")">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        }
+                                        <button class="btn btn-outline-primary btn-sm erp-row-action"
+                                                @onclick="() => OpenResetPassword(row)"
+                                                disabled="@(!CanResetPassword || isBusy)"
+                                                title="@Text("Reset password", "إعادة تعيين كلمة المرور")">
+                                            <i class="bi bi-key"></i>
+                                        </button>
+
+                                        <button class="btn btn-outline-danger btn-sm erp-row-action"
+                                                @onclick="() => OpenUnassignRoles(row)"
+                                                disabled="@(!CanUnassign || isBusy || !DisplayRoles(row).Any())"
+                                                title="@Text("Unassign roles", "إلغاء تعيين الصلاحيات")">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
                                     }
                                     else
                                     {
-                                        <span class="text-muted small">@Text("Locked", "Locked")</span>
+                                        <span class="text-muted small">@Text("Locked", "مغلق")</span>
                                     }
                                 </td>
                             </tr>
@@ -230,21 +247,100 @@
             <button class="btn btn-sm btn-secondary"
                     @onclick="PrevPage"
                     disabled="@(pageIndex == 0 || isBusy)">
-                @Text("Previous", "Previous")
+                @Text("Previous", "السابق")
             </button>
 
             <span class="text-muted small">
-                @Text("Page", "Page") @(pageIndex + 1) @Text("of", "of") @TotalPages
+                @Text("Page", "صفحة") @(pageIndex + 1) @Text("of", "من") @TotalPages
             </span>
 
             <button class="btn btn-sm btn-secondary"
                     @onclick="NextPage"
                     disabled="@(pageIndex >= TotalPages - 1 || isBusy)">
-                @Text("Next", "Next")
+                @Text("Next", "التالي")
             </button>
         </div>
     </AppCard>
 </div>
+
+@if (resetPasswordRow is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <EditForm Model="passwordReset" OnValidSubmit="ResetPasswordAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@Text("Reset password", "إعادة تعيين كلمة المرور")</h5>
+                        <button type="button" class="btn-close" aria-label="@Text("Close", "إغلاق")" @onclick="CloseResetPassword"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted">
+                            @Text($"Set a temporary password for {resetPasswordRow.DisplayName}.", $"تعيين كلمة مرور مؤقتة للمستخدم {resetPasswordRow.DisplayName}.")
+                        </p>
+                        <label class="form-label">@Text("Temporary password", "كلمة المرور المؤقتة")</label>
+                        <InputText type="password" class="form-control" @bind-Value="passwordReset.TemporaryPassword" />
+                        <ValidationMessage For="@(() => passwordReset.TemporaryPassword)" />
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseResetPassword" disabled="@isBusy">
+                            @Text("Cancel", "إلغاء")
+                        </button>
+                        <button type="submit" class="btn btn-primary" disabled="@isBusy">
+                            <i class="bi bi-key"></i> @Text("Reset", "إعادة تعيين")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (unassignRow is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Text("Unassign roles", "إلغاء تعيين الصلاحيات")</h5>
+                    <button type="button" class="btn-close" aria-label="@Text("Close", "إغلاق")" @onclick="CloseUnassignRoles"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">
+                        @Text($"Choose roles to unassign from {unassignRow.DisplayName}.", $"اختر الصلاحيات المراد إلغاء تعيينها من المستخدم {unassignRow.DisplayName}.")
+                    </p>
+
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var role in DisplayRoles(unassignRow))
+                        {
+                            var roleName = role.RoleName;
+                            <label class="form-check d-flex align-items-center gap-2">
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       checked="@selectedUnassignRoleNames.Contains(roleName)"
+                                       @onchange="args => ToggleUnassignRole(roleName, args)" />
+                                <span class="form-check-label">@RoleDisplayName(role)</span>
+                            </label>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseUnassignRoles" disabled="@isBusy">
+                        @Text("Cancel", "إلغاء")
+                    </button>
+                    <button type="button"
+                            class="btn btn-danger"
+                            @onclick="UnassignSelectedRolesAsync"
+                            disabled="@(isBusy || selectedUnassignRoleNames.Count == 0)">
+                        <i class="bi bi-trash"></i> @Text("Unassign", "إلغاء التعيين")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
 
 @code {
     private AuthenticationState? AuthState;
@@ -272,29 +368,39 @@
     }
 
     private List<UserDto> authUsers = [];
-    private List<EmployeeDto> employees = [];
     private List<RoleDto> allRoles = [];
-    private List<EmployeeUserRolesRow> userRoleRows = [];
+    private List<UserRolesRow> userRoleRows = [];
 
-    private EmployeeUserRolesRow? editingRow;
-    private EmployeeUserRolesRow? selectedCreateRow;
-    private RoleDto? selectedRole;
-    private RoleDto formRole = new();
+    private UserRolesRow? editingRow;
+    private UserRolesRow? selectedCreateRow;
+    private UserRolesRow? resetPasswordRow;
+    private UserRolesRow? unassignRow;
+    private RoleDto? rolePickerValue;
+    private AssignRolesFormModel assignRolesForm = new();
+    private PasswordResetModel passwordReset = new();
+    private List<RoleDto> selectedRoles = [];
+    private HashSet<string> selectedUnassignRoleNames = new(StringComparer.OrdinalIgnoreCase);
+    private int rolePickerKey;
 
-    private bool CanAccessPage => CanCreate;
-    private bool CanCreate => HasPermission(PermissionList.RolesPermissions.Create);
-    private bool CanDelete => HasPermission(PermissionList.RolesPermissions.Delete);
+    private bool CanAccessPage => HasPermission(PermissionList.UsersPermissions.View) && HasPermission(PermissionList.RolesPermissions.View);
+    private bool CanAssign => HasPermission(PermissionList.UsersPermissions.Create);
+    private bool CanUnassign => HasPermission(PermissionList.UsersPermissions.Delete);
+    private bool CanResetPassword => HasPermission(PermissionList.UsersPermissions.Edit);
 
-    private List<EmployeeUserRolesRow> AvailableEmployeesForCreate =>
+    private List<UserRolesRow> AvailableUsersForCreate =>
         userRoleRows
-            .Where(row => !row.IsProtectedAdmin && row.AssignedRoles.Count == 0)
+            .Where(row => !row.IsProtectedAdmin && GetUnassignedRoles(row).Any())
             .OrderBy(row => row.DisplayName)
             .ToList();
 
     private List<RoleDto> AvailableRolesForEdit =>
-        editingRow is null ? [] : GetUnassignedRoles(editingRow).ToList();
+        editingRow is null
+            ? []
+            : GetUnassignedRoles(editingRow)
+                .Where(role => !selectedRoles.Any(selected => string.Equals(selected.RoleName, role.RoleName, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
 
-    private IEnumerable<EmployeeUserRolesRow> FilteredRows =>
+    private IEnumerable<UserRolesRow> FilteredRows =>
         userRoleRows
             .Where(row =>
                 string.IsNullOrWhiteSpace(searchText) ||
@@ -303,7 +409,7 @@
             .OrderBy(row => sortAscending ? row.DisplayName : string.Empty)
             .ThenByDescending(row => sortAscending ? string.Empty : row.DisplayName);
 
-    private IEnumerable<EmployeeUserRolesRow> ProcessedRows =>
+    private IEnumerable<UserRolesRow> ProcessedRows =>
         FilteredRows
             .Skip(pageIndex * pageSize)
             .Take(pageSize);
@@ -325,7 +431,11 @@
             return;
         }
 
-        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
+        if (!CompanyContext.TryGetCompanyId(AuthState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
 
         if (!CanAccessPage)
         {
@@ -347,17 +457,7 @@
             }
             else
             {
-                ShowToast(userRes.Error?.Detail ?? Text("Unable to load users", "Unable to load users"), "error");
-            }
-
-            var employeeRes = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 10000);
-            if (employeeRes.IsSuccess)
-            {
-                employees = employeeRes.Data?.Data?.ToList() ?? [];
-            }
-            else
-            {
-                ShowToast(employeeRes.Error?.Detail ?? Text("Unable to load employees", "Unable to load employees"), "error");
+                ShowToast(userRes.Error?.Detail ?? Text("Unable to load users", "تعذر تحميل المستخدمين"), "error");
             }
 
             var roleRes = await RoleService.GetRoles(companyId, 0, 10000);
@@ -367,7 +467,7 @@
             }
             else
             {
-                ShowToast(roleRes.Error?.Detail ?? Text("Unable to load roles", "Unable to load roles"), "error");
+                ShowToast(roleRes.Error?.Detail ?? Text("Unable to load roles", "تعذر تحميل الصلاحيات"), "error");
             }
 
             await BuildUserRoleRows();
@@ -381,26 +481,10 @@
 
     private async Task BuildUserRoleRows()
     {
-        var employeeByUserName = employees
-            .Select(employee => new
-            {
-                Key = NormalizeUserNameKey(employee.Code),
-                Employee = employee
-            })
-            .Where(item => !string.IsNullOrWhiteSpace(item.Key))
-            .GroupBy(item => item.Key, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.First().Employee, StringComparer.OrdinalIgnoreCase);
-
-        var rows = new List<EmployeeUserRolesRow>();
+        var rows = new List<UserRolesRow>();
 
         foreach (var user in authUsers)
         {
-            var userKey = NormalizeUserNameKey(user.UserName);
-            if (string.IsNullOrWhiteSpace(userKey) || !employeeByUserName.TryGetValue(userKey, out var employee))
-            {
-                continue;
-            }
-
             var assignedRoles = new List<RoleDto>();
             var roleRes = await RoleService.GetRolesByUserName(user.UserName);
             if (roleRes.IsSuccess)
@@ -408,12 +492,11 @@
                 assignedRoles = roleRes.Data?.ToList() ?? [];
             }
 
-            rows.Add(new EmployeeUserRolesRow
+            rows.Add(new UserRolesRow
             {
                 User = user,
-                Employee = employee,
                 AssignedRoles = assignedRoles,
-                DisplayName = EmployeeName(employee),
+                DisplayName = UserDisplayName(user),
                 IsProtectedAdmin = IsProtectedAdmin(user, assignedRoles)
             });
         }
@@ -427,70 +510,98 @@
     {
         isCreateMode = true;
         selectedCreateRow = null;
-        selectedRole = null;
-        formRole = NewFormRole();
-        editingRow = new EmployeeUserRolesRow();
+        rolePickerValue = null;
+        selectedRoles = [];
+        rolePickerKey++;
+        editingRow = new UserRolesRow();
     }
 
-    private void EditRow(EmployeeUserRolesRow row)
+    private void EditRow(UserRolesRow row)
     {
         isCreateMode = false;
         selectedCreateRow = null;
-        selectedRole = null;
-        formRole = NewFormRole();
+        rolePickerValue = null;
+        selectedRoles = [];
+        rolePickerKey++;
         editingRow = row;
     }
 
-    private void OnCreateEmployeeChanged(EmployeeUserRolesRow row)
+    private void OnCreateUserChanged(UserRolesRow row)
     {
         selectedCreateRow = row;
         editingRow = row;
-        selectedRole = null;
-        formRole = NewFormRole();
+        rolePickerValue = null;
+        selectedRoles = [];
+        rolePickerKey++;
     }
 
-    private void OnRoleValueChanged(RoleDto role)
+    private void OnRoleValueChanged(RoleDto? role)
     {
-        selectedRole = role;
-        formRole.RoleName = role?.RoleName ?? string.Empty;
-        formRole.DisplayName = role?.DisplayName ?? string.Empty;
-        formRole.CompanyId = companyId;
-        formRole.Permissions = role?.Permissions ?? [];
+        if (role is null || string.IsNullOrWhiteSpace(role.RoleName))
+        {
+            return;
+        }
+
+        if (!selectedRoles.Any(selected => string.Equals(selected.RoleName, role.RoleName, StringComparison.OrdinalIgnoreCase)))
+        {
+            selectedRoles.Add(role);
+        }
+
+        rolePickerValue = null;
+        rolePickerKey++;
     }
 
-    private async Task SaveRole()
+    private void RemoveSelectedRole(RoleDto role)
+    {
+        selectedRoles.RemoveAll(selected => string.Equals(selected.RoleName, role.RoleName, StringComparison.OrdinalIgnoreCase));
+        rolePickerValue = null;
+        rolePickerKey++;
+    }
+
+    private async Task SaveRoles()
     {
         var targetRow = isCreateMode ? selectedCreateRow : editingRow;
         if (targetRow is null || targetRow.User is null)
         {
-            await ShowValidationModal(Text("Please select an employee to continue", "Please select an employee to continue"));
+            await ShowValidationModal(Text("Please select a user to continue", "يرجى اختيار مستخدم للمتابعة"));
             return;
         }
 
-        if (selectedRole is null || string.IsNullOrWhiteSpace(selectedRole.RoleName))
+        if (!selectedRoles.Any())
         {
-            await ShowValidationModal(Text("Please select role to continue", "Please select role to continue"));
+            await ShowValidationModal(Text("Please select at least one role to continue", "يرجى اختيار صلاحية واحدة على الأقل للمتابعة"));
             return;
         }
 
         isBusy = true;
+        var failedCount = 0;
         try
         {
-            var result = await RoleService.AssignRole(new UserRoleDto
+            foreach (var role in selectedRoles)
             {
-                UserName = targetRow.User.UserName,
-                RoleName = selectedRole.RoleName
-            });
+                var result = await RoleService.AssignRole(new UserRoleDto
+                {
+                    UserName = targetRow.User.UserName,
+                    RoleName = role.RoleName
+                });
 
-            if (result.IsSuccess)
+                if (!result.IsSuccess)
+                {
+                    failedCount++;
+                }
+            }
+
+            if (failedCount == 0)
             {
-                ShowToast(Text("Role has been assigned successfully", "Role has been assigned successfully"), "success");
+                ShowToast(Text("Roles have been assigned successfully", "تم تعيين الصلاحيات بنجاح"), "success");
                 await LoadData();
                 CancelEdit();
             }
             else
             {
-                ShowToast(result.Error?.Detail ?? Text("Error has occured, please try again later", "Error has occured, please try again later"), "error");
+                ShowToast(Text("Some roles could not be assigned. The page was refreshed with the latest assignments.", "تعذر تعيين بعض الصلاحيات. تم تحديث الصفحة بآخر التعيينات."), "error");
+                await LoadData();
+                CancelEdit();
             }
         }
         finally
@@ -499,43 +610,112 @@
         }
     }
 
-    private async Task RemoveRole(EmployeeUserRolesRow row, RoleDto role)
+    private void OpenUnassignRoles(UserRolesRow row)
     {
-        await ModalService.ShowAsync(new ModalOptions
-        {
-            Title = Text("Confirm unassign role", "Confirm unassign role"),
-            Message = Text($"Are you sure you want to unassign this role: {RoleDisplayName(role)}?", $"Are you sure you want to unassign this role: {RoleDisplayName(role)}?"),
-            ShowCancel = true,
-            OkText = Text("Yes", "Yes"),
-            CancelText = Text("No", "No"),
-            OnOk = async () =>
-            {
-                isBusy = true;
-                try
-                {
-                    var result = await RoleService.UnassignRole(new UserRoleDto
-                    {
-                        UserName = row.User.UserName,
-                        RoleName = role.RoleName
-                    });
+        unassignRow = row;
+        selectedUnassignRoleNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    }
 
-                    if (result.IsSuccess)
-                    {
-                        ShowToast(Text("Role unassigned successfully", "Role unassigned successfully"), "success");
-                        await LoadData();
-                        await InvokeAsync(StateHasChanged);
-                    }
-                    else
-                    {
-                        ShowToast(result.Error?.Detail ?? Text("Fail to unassign the role", "Fail to unassign the role"), "error");
-                    }
-                }
-                finally
+    private void CloseUnassignRoles()
+    {
+        unassignRow = null;
+        selectedUnassignRoleNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private void ToggleUnassignRole(string roleName, ChangeEventArgs args)
+    {
+        var isChecked = args.Value is bool value && value;
+        if (isChecked)
+        {
+            selectedUnassignRoleNames.Add(roleName);
+        }
+        else
+        {
+            selectedUnassignRoleNames.Remove(roleName);
+        }
+    }
+
+    private async Task UnassignSelectedRolesAsync()
+    {
+        if (unassignRow is null || selectedUnassignRoleNames.Count == 0)
+        {
+            return;
+        }
+
+        isBusy = true;
+        var failedCount = 0;
+        try
+        {
+            foreach (var roleName in selectedUnassignRoleNames.ToList())
+            {
+                var result = await RoleService.UnassignRole(new UserRoleDto
                 {
-                    isBusy = false;
+                    UserName = unassignRow.User.UserName,
+                    RoleName = roleName
+                });
+
+                if (!result.IsSuccess)
+                {
+                    failedCount++;
                 }
             }
-        });
+
+            if (failedCount == 0)
+            {
+                ShowToast(Text("Roles unassigned successfully", "تم إلغاء تعيين الصلاحيات بنجاح"), "success");
+            }
+            else
+            {
+                ShowToast(Text("Some roles could not be unassigned. The page was refreshed with the latest assignments.", "تعذر إلغاء تعيين بعض الصلاحيات. تم تحديث الصفحة بآخر التعيينات."), "error");
+            }
+
+            CloseUnassignRoles();
+            await LoadData();
+            await InvokeAsync(StateHasChanged);
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void OpenResetPassword(UserRolesRow row)
+    {
+        resetPasswordRow = row;
+        passwordReset = new PasswordResetModel();
+    }
+
+    private void CloseResetPassword()
+    {
+        resetPasswordRow = null;
+        passwordReset = new PasswordResetModel();
+    }
+
+    private async Task ResetPasswordAsync()
+    {
+        if (resetPasswordRow is null)
+        {
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            var result = await UserService.ResetPasswordAsync(resetPasswordRow.User.UserName, passwordReset.TemporaryPassword);
+            if (result.IsSuccess)
+            {
+                ShowToast(Text("Password reset successfully.", "تمت إعادة تعيين كلمة المرور بنجاح."), "success");
+                CloseResetPassword();
+            }
+            else
+            {
+                ShowToast(result.Error?.Detail ?? Text("Unable to reset password.", "تعذر إعادة تعيين كلمة المرور."), "error");
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
     }
 
     private void CancelEdit()
@@ -543,8 +723,9 @@
         isCreateMode = false;
         editingRow = null;
         selectedCreateRow = null;
-        selectedRole = null;
-        formRole = NewFormRole();
+        rolePickerValue = null;
+        selectedRoles = [];
+        rolePickerKey++;
     }
 
     private void ToggleSort()
@@ -588,7 +769,7 @@
         }
     }
 
-    private IEnumerable<RoleDto> GetUnassignedRoles(EmployeeUserRolesRow row)
+    private IEnumerable<RoleDto> GetUnassignedRoles(UserRolesRow row)
     {
         if (row.IsProtectedAdmin)
         {
@@ -605,35 +786,23 @@
             .OrderBy(RoleDisplayName);
     }
 
-    private IEnumerable<RoleDto> DisplayRoles(EmployeeUserRolesRow row)
+    private IEnumerable<RoleDto> DisplayRoles(UserRolesRow row)
         => row.AssignedRoles
             .Where(role => !IsCompanyAdminRole(role.RoleName));
-
-    private RoleDto NewFormRole()
-        => new()
-        {
-            RoleName = string.Empty,
-            DisplayName = string.Empty,
-            CompanyId = companyId,
-            Permissions = []
-        };
 
     private async Task ShowValidationModal(string message)
     {
         await ModalService.ShowAsync(new ModalOptions
         {
-            Title = Text("Assign Role", "Assign Role"),
+            Title = Text("Assign Role", "تعيين صلاحية"),
             IsError = true,
             Message = message,
             OnOk = async () => { await Task.CompletedTask; }
         });
     }
 
-    private string EmployeeName(EmployeeDto employee)
-    {
-        var localizedName = Text(employee.FullNameEng, employee.FullName).Trim();
-        return string.IsNullOrWhiteSpace(localizedName) ? Text("Employee", "Employee") : localizedName;
-    }
+    private string UserDisplayName(UserDto user)
+        => string.IsNullOrWhiteSpace(user.UserName) ? Text("User", "مستخدم") : user.UserName;
 
     private string NormalizeUserNameKey(string? value)
     {
@@ -697,7 +866,7 @@
     {
         foreach (var row in userRoleRows)
         {
-            row.DisplayName = EmployeeName(row.Employee);
+            row.DisplayName = UserDisplayName(row.User);
         }
 
         await InvokeAsync(StateHasChanged);
@@ -708,12 +877,22 @@
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 
-    private class EmployeeUserRolesRow
+    private class UserRolesRow
     {
         public UserDto User { get; set; } = new();
-        public EmployeeDto Employee { get; set; } = new();
         public List<RoleDto> AssignedRoles { get; set; } = [];
         public string DisplayName { get; set; } = string.Empty;
         public bool IsProtectedAdmin { get; set; }
+    }
+
+    private sealed class AssignRolesFormModel
+    {
+    }
+
+    private sealed class PasswordResetModel
+    {
+        [Required(ErrorMessage = "Temporary password is required")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
+        public string TemporaryPassword { get; set; } = string.Empty;
     }
 }

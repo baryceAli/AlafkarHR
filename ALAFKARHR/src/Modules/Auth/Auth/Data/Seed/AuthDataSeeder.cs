@@ -1,116 +1,233 @@
-﻿namespace Auth.Data.Seed;
+namespace Auth.Data.Seed;
 
-public class AuthDataSeeder(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager, IOptions<OTPOptions >oTPOptions)
+public class AuthDataSeeder(
+    UserManager<ApplicationUser> userManager,
+    RoleManager<ApplicationRole> roleManager,
+    IOptions<OTPOptions> oTPOptions,
+    IConfiguration configuration)
     : IDataSeeder<AuthDbContext>
 {
+    private const string PlatformAdminUserName = "Admin";
+    private const string PlatformAdminEmail = "baryce@gmail.com";
+    private const string PlatformAdminPhone = "0507804458";
+    private const string TenantAdminUserName = "alafkar.admin";
+    private const string TenantAdminEmail = "alafkar.admin@alafkarsa.com";
+    private const string TenantAdminPhone = "0500000000";
 
     public async Task SeedAllAsync(AuthDbContext dbContext)
     {
-        
-
-        
-        var role = await roleManager.FindByNameAsync("SystemUser");
-        if (role is null)
-        {
-            var result = await roleManager.CreateAsync(new ApplicationRole()
-            {
-                Name = "SystemUser",
-                DisplayName = "SystemUser",
-                CompanyId = CompanyRoleTemplates.DefaultCompanyId
-            });
-            if (result.Succeeded)
-            {
-                var addedRole = await roleManager.FindByNameAsync("SystemUser");
-                await CompanyRoleTemplates.SyncPermissionClaimsAsync(
-                    roleManager,
-                    addedRole!,
-                    PermissionList.GetAll(),
-                    removeObsolete: false);
-                //var msg = "Success";
-            }
-        }
-        else
-        {
-            if (string.IsNullOrWhiteSpace(role.DisplayName))
-            {
-                role.DisplayName = role.Name ?? "SystemUser";
-                await roleManager.UpdateAsync(role);
-            }
-
-            await CompanyRoleTemplates.SyncPermissionClaimsAsync(
-                roleManager,
-                role,
-                PermissionList.GetAll(),
-                removeObsolete: false);
-        }
-
-        role = await roleManager.FindByNameAsync("Customer");
-        if (role is null)
-        {
-            var result = await roleManager.CreateAsync(new ApplicationRole()
-            {
-                Name = "Customer",
-                DisplayName = "Customer",
-                CompanyId = CompanyRoleTemplates.DefaultCompanyId
-            });
-            if (result.Succeeded)
-            {
-            }
-        }
-
-        role = await roleManager.FindByNameAsync("Driver");
-        if (role is null)
-        {
-            var result = await roleManager.CreateAsync(new ApplicationRole()
-            {
-                Name = "Driver",
-                DisplayName = "Driver",
-                CompanyId = CompanyRoleTemplates.DefaultCompanyId
-            });
-            if (result.Succeeded)
-            {
-            }
-        }
-
+        await CompanyRoleTemplates.EnsurePlatformSystemUserRoleAsync(roleManager);
+        await EnsurePlatformCustomerRoleAsync();
+        await EnsurePlatformDriverRoleAsync();
         await CompanyRoleTemplates.SeedDefaultRolesAsync(roleManager, CompanyRoleTemplates.DefaultCompanyId);
+        await EnsurePlatformAdminAsync();
+        await EnsureDefaultTenantAdminAsync();
+    }
 
+    private async Task EnsurePlatformCustomerRoleAsync()
+    {
+        var role = await roleManager.FindByNameAsync("Customer");
+        if (role is not null)
+        {
+            return;
+        }
 
-        var user = await userManager.FindByNameAsync("admin");
+        await roleManager.CreateAsync(new ApplicationRole
+        {
+            Name = "Customer",
+            DisplayName = "Customer",
+            CompanyId = null
+        });
+    }
+
+    private async Task EnsurePlatformDriverRoleAsync()
+    {
+        var role = await roleManager.FindByNameAsync("Driver");
+        if (role is not null)
+        {
+            return;
+        }
+
+        await roleManager.CreateAsync(new ApplicationRole
+        {
+            Name = "Driver",
+            DisplayName = "Driver",
+            CompanyId = null
+        });
+    }
+
+    private async Task EnsurePlatformAdminAsync()
+    {
+        var user = await userManager.FindByNameAsync(PlatformAdminUserName);
         if (user is null)
         {
-
-            var userToRegister = ApplicationUser.Create(
+            user = ApplicationUser.Create(
                 Guid.NewGuid(),
-                "Admin", 
-                "baryce@gmail.com", 
-                "0507804458",
+                PlatformAdminUserName,
+                PlatformAdminEmail,
+                PlatformAdminPhone,
                 UserType.SystemUser,
                 GenerateOTP.Generate(oTPOptions.Value.Length),
-                                 OTPType.ConfirmEmail,
+                OTPType.ConfirmEmail,
                 DateTime.UtcNow.AddMinutes(oTPOptions.Value.ExpirationMinutes),
-                CompanyRoleTemplates.DefaultCompanyId);
-            var result = await userManager.CreateAsync(userToRegister, "Admin@123");
-            if (result.Succeeded)
+                null);
+
+            var result = await userManager.CreateAsync(user, "Admin@123");
+            if (!result.Succeeded)
             {
-                var createdUser = await userManager.FindByNameAsync("admin");
-
-
-                //await dbContext.SaveChangesAsync();
-                var otp = new Random().Next(1000, 9999).ToString();
-                createdUser!.UpdateOtp(otp,OTPType.ConfirmEmail,DateTime.UtcNow.AddMinutes(5),true);
-
-                await userManager.UpdateAsync(createdUser);
-                // send Email with OTP to userToRegister.Email
-                // probably using a background job to send the email: consider events and a background job processor like Hangfire or Quartz.NET
+                throw new BadRequestException(string.Join(", ", result.Errors.Select(e => e.Description)));
             }
+
+            user.UpdateOtp(
+                GenerateOTP.Generate(oTPOptions.Value.Length),
+                OTPType.ConfirmEmail,
+                DateTime.UtcNow.AddMinutes(oTPOptions.Value.ExpirationMinutes),
+                true);
+
+            await userManager.UpdateAsync(user);
         }
-        user = await userManager.FindByNameAsync("admin");
-        if (user != null)
+
+        if (user.CompanyId is not null)
         {
-            if (!await userManager.IsInRoleAsync(user, "SystemUser"))
+            user.CompanyId = null;
+            await userManager.UpdateAsync(user);
+        }
+
+        await RemoveTenantRolesFromPlatformAdminAsync(user);
+
+        if (!await userManager.IsInRoleAsync(user, CompanyRoleTemplates.PlatformSystemUserRoleName))
+        {
+            var result = await userManager.AddToRoleAsync(user, CompanyRoleTemplates.PlatformSystemUserRoleName);
+            if (!result.Succeeded)
             {
-                await userManager.AddToRoleAsync(user, "SystemUser");
+                throw new BadRequestException(string.Join(", ", result.Errors.Select(e => e.Description)));
             }
         }
+    }
+
+    private async Task RemoveTenantRolesFromPlatformAdminAsync(ApplicationUser user)
+    {
+        var roleNames = await userManager.GetRolesAsync(user);
+        foreach (var roleName in roleNames)
+        {
+            var role = await roleManager.FindByNameAsync(roleName);
+            if (role?.CompanyId is not null)
+            {
+                var result = await userManager.RemoveFromRoleAsync(user, roleName);
+                if (!result.Succeeded)
+                {
+                    throw new BadRequestException(string.Join(", ", result.Errors.Select(e => e.Description)));
+                }
+            }
+        }
+    }
+
+    private async Task EnsureDefaultTenantAdminAsync()
+    {
+        var companyId = CompanyRoleTemplates.DefaultCompanyId;
+        var role = await EnsureDefaultTenantAdminRoleAsync(companyId);
+
+        await CompanyRoleTemplates.SyncPermissionClaimsAsync(
+            roleManager,
+            role,
+            PermissionList.GetParentCompanyAdminPermissions(),
+            removeObsolete: true);
+
+        var tenantAdmin = await userManager.FindByNameAsync(TenantAdminUserName);
+        if (tenantAdmin is null)
+        {
+            var password = configuration["SeedUsers:AlafkarTenantAdmin:TemporaryPassword"];
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                password = "Admin@123";
+            }
+
+            tenantAdmin = ApplicationUser.Create(
+                Guid.NewGuid(),
+                TenantAdminUserName,
+                TenantAdminEmail,
+                TenantAdminPhone,
+                UserType.SystemUser,
+                GenerateOTP.Generate(oTPOptions.Value.Length),
+                OTPType.ConfirmEmail,
+                DateTime.UtcNow.AddMinutes(oTPOptions.Value.ExpirationMinutes),
+                companyId);
+
+            var result = await userManager.CreateAsync(tenantAdmin, password);
+            if (!result.Succeeded)
+            {
+                throw new BadRequestException(string.Join(", ", result.Errors.Select(e => e.Description)));
+            }
+
+            tenantAdmin.UpdateOtp(
+                GenerateOTP.Generate(oTPOptions.Value.Length),
+                OTPType.ConfirmEmail,
+                DateTime.UtcNow.AddMinutes(oTPOptions.Value.ExpirationMinutes),
+                true);
+
+            await userManager.UpdateAsync(tenantAdmin);
+        }
+        else if (tenantAdmin.CompanyId != companyId)
+        {
+            tenantAdmin.CompanyId = companyId;
+            await userManager.UpdateAsync(tenantAdmin);
+        }
+
+        if (!await userManager.IsInRoleAsync(tenantAdmin, role.Name!))
+        {
+            var result = await userManager.AddToRoleAsync(tenantAdmin, role.Name!);
+            if (!result.Succeeded)
+            {
+                throw new BadRequestException(string.Join(", ", result.Errors.Select(e => e.Description)));
+            }
+        }
+    }
+
+    private async Task<ApplicationRole> EnsureDefaultTenantAdminRoleAsync(Guid companyId)
+    {
+        var roleName = CompanyRoleTemplates.BuildSystemAdminRoleName(companyId);
+        var role = await roleManager.FindByNameAsync(roleName);
+        if (role is null)
+        {
+            role = new ApplicationRole
+            {
+                Name = roleName,
+                DisplayName = "System Admin",
+                CompanyId = companyId
+            };
+
+            var result = await roleManager.CreateAsync(role);
+            if (!result.Succeeded)
+            {
+                throw new BadRequestException(string.Join(", ", result.Errors.Select(e => e.Description)));
+            }
+
+            role = await roleManager.FindByNameAsync(roleName)
+                ?? throw new Exception($"Couldn't find the role: {roleName}");
+        }
+
+        var changed = false;
+        if (role.CompanyId != companyId)
+        {
+            role.CompanyId = companyId;
+            changed = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(role.DisplayName))
+        {
+            role.DisplayName = "System Admin";
+            changed = true;
+        }
+
+        if (changed)
+        {
+            var result = await roleManager.UpdateAsync(role);
+            if (!result.Succeeded)
+            {
+                throw new BadRequestException(string.Join(", ", result.Errors.Select(e => e.Description)));
+            }
+        }
+
+        return role;
     }
 }

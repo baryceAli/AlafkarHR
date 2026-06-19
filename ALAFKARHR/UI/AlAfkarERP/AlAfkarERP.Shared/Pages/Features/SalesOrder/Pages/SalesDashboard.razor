@@ -83,8 +83,15 @@
             NavigationManager.NavigateTo("/login", true);
             return;
         }
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
 
-        companyId = Guid.Parse(authState.User.Claims.First(c => c.Type == "company_id").Value);
+        {
+
+            NavigationManager.NavigateTo("/Dashboard");
+
+            return;
+
+        }
         if (CanView)
             await LoadAsync();
     }
