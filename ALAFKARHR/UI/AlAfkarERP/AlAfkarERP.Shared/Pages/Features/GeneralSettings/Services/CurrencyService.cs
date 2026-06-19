@@ -16,6 +16,15 @@ public class CurrencyService : BaseApiService, ICurrencyService
         _path = $"api/{_apiConfig.Version}/Settings";
     }
 
+    public async Task<ApiResult<PaginatedResult<CurrencyDto>>> GetAvailableAsync(int pageIndex, int pageSize, string searchText = "")
+    {
+        var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{_path}/currencies/available?pageIndex={pageIndex}&pageSize={pageSize}&searchText={Uri.EscapeDataString(searchText ?? string.Empty)}");
+
+        return await SendAsync<PaginatedResult<CurrencyDto>>(request, "currencyList");
+    }
+
     public async Task<ApiResult<PaginatedResult<CurrencyDto>>> GetAsync(Guid companyId, int pageIndex, int pageSize, string searchText = "")
     {
         var request = new HttpRequestMessage(

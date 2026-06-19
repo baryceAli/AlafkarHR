@@ -19,4 +19,26 @@ public class CompanyHierarchyContext(OrganizationDbContext dbContext, IHttpConte
 
         return companyId;
     }
+
+    public async Task<Guid> GetParentCompanyIdForCompanyAsync(Guid companyId, CancellationToken cancellationToken)
+    {
+        var company = await dbContext.Companies
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == companyId, cancellationToken)
+            ?? throw new NotFoundException($"Company not found: {companyId}");
+
+        return company.ParentCompanyId ?? company.Id;
+    }
+
+    public async Task<List<Guid>> GetCompanyHierarchyIdsAsync(Guid parentCompanyId, CancellationToken cancellationToken)
+    {
+        var childCompanyIds = await dbContext.Companies
+            .AsNoTracking()
+            .Where(x => x.ParentCompanyId == parentCompanyId)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        childCompanyIds.Insert(0, parentCompanyId);
+        return childCompanyIds;
+    }
 }

@@ -59,6 +59,8 @@ public class CreateCompanyHandler(OrganizationDbContext dbContext, IHttpContextA
 
             if (!parentExists)
                 throw new NotFoundException($"Parent company not found: {request.Company.ParentCompanyId.Value}");
+
+            await EnsureChildCompanyLimitAsync(request.Company.ParentCompanyId.Value, cancellationToken);
         }
 
         var company = Models.Company.Create(
@@ -101,5 +103,25 @@ public class CreateCompanyHandler(OrganizationDbContext dbContext, IHttpContextA
         }
 
         return new CreateCompanyResult(company.Adapt<CompanyDto>());
+    }
+
+    private async Task EnsureChildCompanyLimitAsync(Guid parentCompanyId, CancellationToken cancellationToken)
+    {
+        var license = await dbContext.CompanyLicenses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == parentCompanyId, cancellationToken);
+
+        if (license is null)
+            return;
+
+        if (!license.AllowsAccess(DateTime.UtcNow))
+            throw new UnauthorizedAccessException("Parent company license is not active");
+
+        var childCompaniesCount = await dbContext.Companies
+            .AsNoTracking()
+            .CountAsync(x => x.ParentCompanyId == parentCompanyId, cancellationToken);
+
+        if (childCompaniesCount >= license.MaxChildCompanies)
+            throw new InvalidOperationException("Parent company child-company license limit has been reached");
     }
 }

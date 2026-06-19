@@ -14,6 +14,7 @@ public class OrganizationDbContext:DbContext
     }
 
     public DbSet<Company> Companies => Set<Company>();
+    public DbSet<CompanyLicense> CompanyLicenses => Set<CompanyLicense>();
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<Administration> Administrations => Set<Administration>();
     public DbSet<Department> Departments => Set<Department>();
@@ -25,6 +26,7 @@ public class OrganizationDbContext:DbContext
 
         // 🔴 Soft Delete Filter
         builder.Entity<Company>().HasQueryFilter(x => !x.IsDeleted);
+        builder.Entity<CompanyLicense>().HasQueryFilter(x => !x.IsDeleted);
         builder.Entity<Branch>().HasQueryFilter(x => !x.IsDeleted);
         builder.Entity<Administration>().HasQueryFilter(x => !x.IsDeleted);
         builder.Entity<Department>().HasQueryFilter(x => !x.IsDeleted);

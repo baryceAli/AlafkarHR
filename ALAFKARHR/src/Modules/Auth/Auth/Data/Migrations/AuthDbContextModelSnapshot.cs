@@ -29,7 +29,7 @@ namespace Auth.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("CompanyId")
+                    b.Property<Guid?>("CompanyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ConcurrencyStamp")
@@ -54,20 +54,30 @@ namespace Auth.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DisplayName")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AspNetRoles_Platform_DisplayName")
+                        .HasFilter("[CompanyId] IS NULL AND [DisplayName] IS NOT NULL");
+
                     b.HasIndex("NormalizedName")
                         .IsUnique()
                         .HasDatabaseName("RoleNameIndex")
                         .HasFilter("[NormalizedName] IS NOT NULL");
 
+                    b.HasIndex("TemplateKey")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AspNetRoles_Platform_TemplateKey")
+                        .HasFilter("[CompanyId] IS NULL AND [TemplateKey] IS NOT NULL");
+
                     b.HasIndex("CompanyId", "DisplayName")
                         .IsUnique()
                         .HasDatabaseName("IX_AspNetRoles_CompanyId_DisplayName")
-                        .HasFilter("[DisplayName] IS NOT NULL");
+                        .HasFilter("[CompanyId] IS NOT NULL AND [DisplayName] IS NOT NULL");
 
                     b.HasIndex("CompanyId", "TemplateKey")
                         .IsUnique()
                         .HasDatabaseName("IX_AspNetRoles_CompanyId_TemplateKey")
-                        .HasFilter("[TemplateKey] IS NOT NULL");
+                        .HasFilter("[CompanyId] IS NOT NULL AND [TemplateKey] IS NOT NULL");
 
                     b.ToTable("AspNetRoles", "Auth");
                 });
@@ -81,7 +91,7 @@ namespace Auth.Data.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("CompanyId")
+                    b.Property<Guid?>("CompanyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ConcurrencyStamp")

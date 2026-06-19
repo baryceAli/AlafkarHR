@@ -38,11 +38,14 @@ public class LoginHandler(
                 }
             }
 
-            var accessStatus = await sender.Send(new GetCompanyAccessStatusQuery(user.CompanyId), cancellationToken);
-            if (!accessStatus.CanLogin)
+            if (user.CompanyId.HasValue)
             {
-                logger.LogWarning("Login blocked for inactive company {CompanyId}", user.CompanyId);
-                throw new Exception("Company is disabled");
+                var accessStatus = await sender.Send(new GetCompanyAccessStatusQuery(user.CompanyId.Value), cancellationToken);
+                if (!accessStatus.CanLogin)
+                {
+                    logger.LogWarning("Login blocked for inactive company {CompanyId}", user.CompanyId);
+                    throw new Exception("Company is disabled");
+                }
             }
 
             logger.LogInformation("User found. Checking password.");

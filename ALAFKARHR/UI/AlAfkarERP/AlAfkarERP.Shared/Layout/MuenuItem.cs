@@ -220,6 +220,14 @@ public class MenuItem
                 },
                 new MenuItem
                 {
+                    TextEn = "Tenant Companies",
+                    TextAr = "الشركات الرئيسية",
+                    Icon = "bi-building-lock",
+                    Url = "/Organization/ParentCompanies",
+                    PermissionPolicy = PermissionList.ParentCompanyPermissions.View
+                },
+                new MenuItem
+                {
                     TextEn = "Branches",
                     TextAr = "الفروع",
                     Icon = "bi-diagram-2",
@@ -1048,215 +1056,223 @@ public class MenuItem
             }
         },
 
-        //Fleet
+        //Platform Operations
         new MenuItem
         {
-            TextEn = "Fleet",
-            TextAr = "الأسطول",
-            Icon = "bi-truck-front",
-            PermissionPolicy = PermissionList.FleetVehiclePermissions.Select,
+            TextEn = "Platform Operations",
+            TextAr = "عمليات المنصة",
+            Icon = "bi-building-gear",
             WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
-            KeywordsEn = "admin fleet vehicles cars rented owned assignments expenses fuel oil documents renewals maintenance",
-            KeywordsAr = "إدارة أسطول مركبات سيارات مؤجرة مملوكة عهد مصروفات وقود زيت مستندات تجديد صيانة",
+            KeywordsEn = "admin platform operations fleet vehicles real estate properties maintenance assets repairs",
+            KeywordsAr = "إدارة عمليات المنصة أسطول مركبات عقارات صيانة أصول إصلاحات",
             Children = new()
             {
                 new MenuItem
                 {
-                    TextEn = "Dashboard",
-                    TextAr = "لوحة الأسطول",
-                    Icon = "bi-speedometer2",
-                    Url = "/Fleet/Dashboard",
-                    PermissionPolicy = PermissionList.FleetReportsPermissions.View,
-                },
-                new MenuItem
-                {
-                    TextEn = "Vehicles",
-                    TextAr = "المركبات",
+                    TextEn = "Fleet",
+                    TextAr = "الأسطول",
                     Icon = "bi-truck-front",
-                    Url = "/Fleet/Vehicles",
-                    PermissionPolicy = PermissionList.FleetVehiclePermissions.View,
+                    PermissionPolicy = PermissionList.FleetVehiclePermissions.Select,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                    KeywordsEn = "admin fleet vehicles cars rented owned assignments expenses fuel oil documents renewals maintenance",
+                    KeywordsAr = "إدارة أسطول مركبات سيارات مؤجرة مملوكة عهد مصروفات وقود زيت مستندات تجديد صيانة",
+                    Children = new()
+                    {
+                        new MenuItem
+                        {
+                            TextEn = "Dashboard",
+                            TextAr = "لوحة الأسطول",
+                            Icon = "bi-speedometer2",
+                            Url = "/Fleet/Dashboard",
+                            PermissionPolicy = PermissionList.FleetReportsPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Vehicles",
+                            TextAr = "المركبات",
+                            Icon = "bi-truck-front",
+                            Url = "/Fleet/Vehicles",
+                            PermissionPolicy = PermissionList.FleetVehiclePermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Assignments",
+                            TextAr = "العهد",
+                            Icon = "bi-person-vcard",
+                            Url = "/Fleet/Assignments",
+                            PermissionPolicy = PermissionList.FleetVehicleAssignmentPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Expenses",
+                            TextAr = "المصروفات",
+                            Icon = "bi-receipt",
+                            Url = "/Fleet/Expenses",
+                            PermissionPolicy = PermissionList.FleetVehicleExpensePermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Documents",
+                            TextAr = "المستندات والتجديدات",
+                            Icon = "bi-file-earmark-text",
+                            Url = "/Fleet/Documents",
+                            PermissionPolicy = PermissionList.FleetVehicleDocumentPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Service Rules",
+                            TextAr = "قواعد الصيانة",
+                            Icon = "bi-wrench-adjustable",
+                            Url = "/Fleet/ServiceRules",
+                            PermissionPolicy = PermissionList.FleetVehiclePermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Reports",
+                            TextAr = "التقارير",
+                            Icon = "bi-bar-chart-line",
+                            Url = "/Fleet/Reports",
+                            PermissionPolicy = PermissionList.FleetReportsPermissions.View,
+                        }
+                    }
                 },
                 new MenuItem
                 {
-                    TextEn = "Assignments",
-                    TextAr = "العهد",
-                    Icon = "bi-person-vcard",
-                    Url = "/Fleet/Assignments",
-                    PermissionPolicy = PermissionList.FleetVehicleAssignmentPermissions.View,
-                },
-                new MenuItem
-                {
-                    TextEn = "Expenses",
-                    TextAr = "المصروفات",
-                    Icon = "bi-receipt",
-                    Url = "/Fleet/Expenses",
-                    PermissionPolicy = PermissionList.FleetVehicleExpensePermissions.View,
-                },
-                new MenuItem
-                {
-                    TextEn = "Documents",
-                    TextAr = "المستندات والتجديدات",
-                    Icon = "bi-file-earmark-text",
-                    Url = "/Fleet/Documents",
-                    PermissionPolicy = PermissionList.FleetVehicleDocumentPermissions.View,
-                },
-                new MenuItem
-                {
-                    TextEn = "Service Rules",
-                    TextAr = "قواعد الصيانة",
-                    Icon = "bi-wrench-adjustable",
-                    Url = "/Fleet/ServiceRules",
-                    PermissionPolicy = PermissionList.FleetVehiclePermissions.View,
-                },
-                new MenuItem
-                {
-                    TextEn = "Reports",
-                    TextAr = "التقارير",
-                    Icon = "bi-bar-chart-line",
-                    Url = "/Fleet/Reports",
-                    PermissionPolicy = PermissionList.FleetReportsPermissions.View,
-                }
-            }
-        },
-
-        //Real Estate
-        new MenuItem
-        {
-            TextEn = "Real Estate",
-            TextAr = "Real Estate",
-            Icon = "bi-buildings",
-            PermissionPolicy = PermissionList.RealEstatePropertyPermissions.Select,
-            WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
-            KeywordsEn = "admin real estate properties units leases rent utilities expenses",
-            KeywordsAr = "real estate properties units leases rent utilities expenses",
-            Children = new()
-            {
-                new MenuItem
-                {
-                    TextEn = "Dashboard",
-                    TextAr = "Dashboard",
-                    Icon = "bi-speedometer2",
-                    Url = "/RealEstate/Dashboard",
-                    PermissionPolicy = PermissionList.RealEstateReportsPermissions.View,
-                },
-                new MenuItem
-                {
-                    TextEn = "Properties",
-                    TextAr = "Properties",
+                    TextEn = "Real Estate",
+                    TextAr = "Real Estate",
                     Icon = "bi-buildings",
-                    Url = "/RealEstate/Properties",
-                    PermissionPolicy = PermissionList.RealEstatePropertyPermissions.View,
+                    PermissionPolicy = PermissionList.RealEstatePropertyPermissions.Select,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                    KeywordsEn = "admin real estate properties units leases rent utilities expenses",
+                    KeywordsAr = "real estate properties units leases rent utilities expenses",
+                    Children = new()
+                    {
+                        new MenuItem
+                        {
+                            TextEn = "Dashboard",
+                            TextAr = "Dashboard",
+                            Icon = "bi-speedometer2",
+                            Url = "/RealEstate/Dashboard",
+                            PermissionPolicy = PermissionList.RealEstateReportsPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Properties",
+                            TextAr = "Properties",
+                            Icon = "bi-buildings",
+                            Url = "/RealEstate/Properties",
+                            PermissionPolicy = PermissionList.RealEstatePropertyPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Units",
+                            TextAr = "Units",
+                            Icon = "bi-door-open",
+                            Url = "/RealEstate/Units",
+                            PermissionPolicy = PermissionList.RealEstateUnitPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Owner Leases",
+                            TextAr = "Owner Leases",
+                            Icon = "bi-file-earmark-minus",
+                            Url = "/RealEstate/OwnerLeases",
+                            PermissionPolicy = PermissionList.RealEstateLeasePermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Tenant Leases",
+                            TextAr = "Tenant Leases",
+                            Icon = "bi-file-earmark-check",
+                            Url = "/RealEstate/TenantLeases",
+                            PermissionPolicy = PermissionList.RealEstateLeasePermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Rent Collections",
+                            TextAr = "Rent Collections",
+                            Icon = "bi-cash-coin",
+                            Url = "/RealEstate/Collections",
+                            PermissionPolicy = PermissionList.RealEstateInstallmentPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Utilities",
+                            TextAr = "Utilities",
+                            Icon = "bi-lightning-charge",
+                            Url = "/RealEstate/Utilities",
+                            PermissionPolicy = PermissionList.RealEstateUtilityPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Expenses",
+                            TextAr = "Expenses",
+                            Icon = "bi-receipt",
+                            Url = "/RealEstate/Expenses",
+                            PermissionPolicy = PermissionList.RealEstateExpensePermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Reports",
+                            TextAr = "Reports",
+                            Icon = "bi-bar-chart-line",
+                            Url = "/RealEstate/Reports",
+                            PermissionPolicy = PermissionList.RealEstateReportsPermissions.View,
+                        }
+                    }
                 },
                 new MenuItem
                 {
-                    TextEn = "Units",
-                    TextAr = "Units",
-                    Icon = "bi-door-open",
-                    Url = "/RealEstate/Units",
-                    PermissionPolicy = PermissionList.RealEstateUnitPermissions.View,
-                },
-                new MenuItem
-                {
-                    TextEn = "Owner Leases",
-                    TextAr = "Owner Leases",
-                    Icon = "bi-file-earmark-minus",
-                    Url = "/RealEstate/OwnerLeases",
-                    PermissionPolicy = PermissionList.RealEstateLeasePermissions.View,
-                },
-                new MenuItem
-                {
-                    TextEn = "Tenant Leases",
-                    TextAr = "Tenant Leases",
-                    Icon = "bi-file-earmark-check",
-                    Url = "/RealEstate/TenantLeases",
-                    PermissionPolicy = PermissionList.RealEstateLeasePermissions.View,
-                },
-                new MenuItem
-                {
-                    TextEn = "Rent Collections",
-                    TextAr = "Rent Collections",
-                    Icon = "bi-cash-coin",
-                    Url = "/RealEstate/Collections",
-                    PermissionPolicy = PermissionList.RealEstateInstallmentPermissions.View,
-                },
-                new MenuItem
-                {
-                    TextEn = "Utilities",
-                    TextAr = "Utilities",
-                    Icon = "bi-lightning-charge",
-                    Url = "/RealEstate/Utilities",
-                    PermissionPolicy = PermissionList.RealEstateUtilityPermissions.View,
-                },
-                new MenuItem
-                {
-                    TextEn = "Expenses",
-                    TextAr = "Expenses",
-                    Icon = "bi-receipt",
-                    Url = "/RealEstate/Expenses",
-                    PermissionPolicy = PermissionList.RealEstateExpensePermissions.View,
-                },
-                new MenuItem
-                {
-                    TextEn = "Reports",
-                    TextAr = "Reports",
-                    Icon = "bi-bar-chart-line",
-                    Url = "/RealEstate/Reports",
-                    PermissionPolicy = PermissionList.RealEstateReportsPermissions.View,
-                }
-            }
-        },
-
-        //Maintenance
-        new MenuItem
-        {
-            TextEn = "Maintenance",
-            TextAr = "الصيانة",
-            Icon = "bi-tools",
-            PermissionPolicy = PermissionList.MaintenanceWorkOrderPermissions.Select,
-            WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
-            KeywordsEn = "admin maintenance assets buildings apartments offices vehicles work orders repairs",
-            KeywordsAr = "إدارة صيانة أصول مباني شقق مكاتب مركبات أوامر عمل إصلاحات",
-            Children = new()
-            {
-                new MenuItem
-                {
-                    TextEn = "Dashboard",
-                    TextAr = "لوحة الصيانة",
-                    Icon = "bi-speedometer2",
-                    Url = "/Maintenance/Dashboard",
-                    PermissionPolicy = PermissionList.MaintenanceWorkOrderPermissions.View,
-                },
-                new MenuItem
-                {
-                    TextEn = "Assets",
-                    TextAr = "الأصول",
-                    Icon = "bi-buildings",
-                    Url = "/Maintenance/Assets",
-                    PermissionPolicy = PermissionList.MaintenanceAssetPermissions.View,
-                },
-                new MenuItem
-                {
-                    TextEn = "Work Orders",
-                    TextAr = "أوامر العمل",
-                    Icon = "bi-clipboard2-check",
-                    Url = "/Maintenance/WorkOrders",
-                    PermissionPolicy = PermissionList.MaintenanceWorkOrderPermissions.View,
-                },
-                new MenuItem
-                {
-                    TextEn = "My Requests",
-                    TextAr = "طلباتي",
-                    Icon = "bi-person-check",
-                    Url = "/Maintenance/WorkOrders/MyRequests",
-                    PermissionPolicy = PermissionList.MaintenanceWorkOrderPermissions.View,
-                },
-                new MenuItem
-                {
-                    TextEn = "Reports",
-                    TextAr = "التقارير",
-                    Icon = "bi-bar-chart-line",
-                    Url = "/Maintenance/Reports",
-                    PermissionPolicy = PermissionList.MaintenanceWorkOrderPermissions.ViewReports,
+                    TextEn = "Maintenance",
+                    TextAr = "الصيانة",
+                    Icon = "bi-tools",
+                    PermissionPolicy = PermissionList.MaintenanceWorkOrderPermissions.Select,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                    KeywordsEn = "admin maintenance assets buildings apartments offices vehicles work orders repairs",
+                    KeywordsAr = "إدارة صيانة أصول مباني شقق مكاتب مركبات أوامر عمل إصلاحات",
+                    Children = new()
+                    {
+                        new MenuItem
+                        {
+                            TextEn = "Dashboard",
+                            TextAr = "لوحة الصيانة",
+                            Icon = "bi-speedometer2",
+                            Url = "/Maintenance/Dashboard",
+                            PermissionPolicy = PermissionList.MaintenanceWorkOrderPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Assets",
+                            TextAr = "الأصول",
+                            Icon = "bi-buildings",
+                            Url = "/Maintenance/Assets",
+                            PermissionPolicy = PermissionList.MaintenanceAssetPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Work Orders",
+                            TextAr = "أوامر العمل",
+                            Icon = "bi-clipboard2-check",
+                            Url = "/Maintenance/WorkOrders",
+                            PermissionPolicy = PermissionList.MaintenanceWorkOrderPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "My Requests",
+                            TextAr = "طلباتي",
+                            Icon = "bi-person-check",
+                            Url = "/Maintenance/WorkOrders/MyRequests",
+                            PermissionPolicy = PermissionList.MaintenanceWorkOrderPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Reports",
+                            TextAr = "التقارير",
+                            Icon = "bi-bar-chart-line",
+                            Url = "/Maintenance/Reports",
+                            PermissionPolicy = PermissionList.MaintenanceWorkOrderPermissions.ViewReports,
+                        }
+                    }
                 }
             }
         },

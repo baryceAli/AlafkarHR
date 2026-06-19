@@ -1,4 +1,4 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @implements IDisposable
 @page "/Employee/Employee/Form/{Id:guid?}"
 
@@ -445,8 +445,11 @@
     {
 
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-        companyId = Guid.Parse(AuthState.User.Claims.First(c => c.Type == "company_id").Value);
-
+        if (!CompanyContext.TryGetCompanyId(AuthState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
         ResetEmployee();
         title = SharedDataService.SelectViewLang("New Employee", "موظف جديد");
         var bResponse = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);

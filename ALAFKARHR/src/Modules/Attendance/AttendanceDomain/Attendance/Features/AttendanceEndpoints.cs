@@ -18,6 +18,7 @@ using AttendanceDomain.Attendance.Features.StartSession;
 using EmployeeModule.Contracts.Employees.Features.GetEmployeeAttendanceProfile;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Exceptions;
 using Shared.Pagination;
 using SharedWithUI.Permissions;
 using System.Security.Claims;
@@ -776,8 +777,15 @@ public class AttendanceEndpoints : ICarterModule
             "upn")
             ?? throw new UnauthorizedAccessException("The signed-in user does not have a username claim that can be matched to an employee code.");
 
-        var employee = await sender.Send(new GetEmployeeAttendanceProfileByCodeQuery(userName));
-        return employee.EmployeeId;
+        try
+        {
+            var employee = await sender.Send(new GetEmployeeAttendanceProfileByCodeQuery(userName));
+            return employee.EmployeeId;
+        }
+        catch (NotFoundException ex)
+        {
+            throw new UnauthorizedAccessException("This operation requires a linked employee account.", ex);
+        }
     }
 
     private static string? FirstClaimValue(ClaimsPrincipal user, params string[] claimTypes)

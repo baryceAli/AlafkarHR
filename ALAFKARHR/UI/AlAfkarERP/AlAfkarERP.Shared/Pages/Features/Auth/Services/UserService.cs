@@ -35,6 +35,20 @@ public class UserService : BaseApiService, IUserService
         return await SendAsync<UserDto>(request, "user");
     }
 
+    public async Task<ApiResult<UpdateDeleteResponseDto>> ResetPasswordAsync(string userName, string temporaryPassword)
+    {
+        var encodedUserName = Uri.EscapeDataString(userName);
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/users/{encodedUserName}/reset-password")
+        {
+            Content = JsonContent.Create(new
+            {
+                TemporaryPassword = temporaryPassword
+            })
+        };
+
+        return await SendAsync<UpdateDeleteResponseDto>(request, null);
+    }
+
     public Task<ApiResult<UserDto>> GetUserByEmployeeId(Guid employeeId)
     {
         throw new NotImplementedException();

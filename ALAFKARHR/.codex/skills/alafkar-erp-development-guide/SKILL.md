@@ -17,9 +17,11 @@ Read this skill first, then inspect only files directly related to the request. 
 
 Before coding, list the expected files/modules to inspect or change. After coding, summarize changed files and manual test steps. Ask before large architectural changes.
 
+For every new or changed business feature, make sure the user-facing UI is updated so the feature can actually be used from the application, unless the user explicitly requests backend-only work. Backend endpoints, DTOs, permissions, services, and migrations are not complete by themselves when the feature requires user interaction. Add or update the relevant Blazor page/component, feature service/interface, menu entry, permission-gated actions, forms/tables/modals, loading/error/toast states, and localization/RTL behavior needed for the user workflow.
+
 Default repository behavior: never run the application, never open the browser, never perform visual validation, and never scan the whole repository. Inspect only files related to the task.
 
-After code changes, verify only with `dotnet build <affected project>`. Run the application, open a browser, or perform visual validation only when the prompt explicitly says: "Run and verify visually".
+After code changes, verify only with `dotnet build <affected project>`. When a feature includes or expects a UI surface, also run `dotnet build UI/AlAfkarERP/AlAfkarERP.Web/AlAfkarERP.Web.csproj`. Run the application, open a browser, or perform visual validation only when the prompt explicitly says: "Run and verify visually".
 
 ## 3. Project Architecture
 
@@ -152,7 +154,9 @@ Avoid tight coupling between modules. Use shared contracts for data crossing mod
 
 ## 22. Required Output Format for Future Codex Tasks
 
-For future development tasks, respond with: brief understanding; files/modules to inspect; minimal implementation plan; files changed; manual test checklist; assumptions or risks.
+For future development tasks, respond with: brief understanding; files/modules to inspect; minimal implementation plan; files changed; UI exposure; manual test checklist; assumptions or risks.
+
+UI exposure: describe where the user can access the feature, including route/menu/action/button/form changes, or state explicitly that the user requested backend-only work.
 
 ## 23. UI Migration Strategy
 

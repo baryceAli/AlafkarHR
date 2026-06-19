@@ -71,6 +71,12 @@ builder.Services.AddHttpClient<ICompanyService, CompanyService>(client =>
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
 
+builder.Services.AddScoped<IParentCompanyService, ParentCompanyService>();
+builder.Services.AddHttpClient<IParentCompanyService, ParentCompanyService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+
 builder.Services.AddScoped<IBranchService, BranchService>();
 builder.Services.AddHttpClient<IBranchService, BranchService>(client =>
 {

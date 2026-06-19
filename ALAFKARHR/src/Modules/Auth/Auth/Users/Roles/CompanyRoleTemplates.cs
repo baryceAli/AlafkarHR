@@ -4,10 +4,12 @@ public static class CompanyRoleTemplates
 {
     public const string ManagedClaimType = "Permission";
     public static readonly Guid DefaultCompanyId = Guid.Parse("4c3d205f-7e2b-42c2-a081-1700b229d91e");
+    public const string PlatformSystemUserRoleName = "Platform-system-user";
+    public const string PlatformSystemUserTemplateKey = "platform-system-user";
 
     public static IReadOnlyList<CompanyRoleTemplate> All { get; } =
     [
-        new("admin", "Admin", PermissionList.GetAll()),
+        new("admin", "Admin", PermissionList.GetTenantPermissions()),
         new("manager", "Manager", ManagerPermissions()),
         new("approver", "Approver", ApproverPermissions()),
         new("employee", "Employee", EmployeePermissions()),
@@ -23,7 +25,13 @@ public static class CompanyRoleTemplates
     ];
 
     public static string BuildCompanyRoleName(Guid companyId, string key)
-        => $"company:{companyId:N}:{NormalizeSlug(key)}";
+        => $"CompanyRole-{companyId:N}-{NormalizeSlug(key)}";
+
+    public static string BuildSystemAdminRoleName(Guid companyId)
+        => $"SystemAdmin-{companyId:N}";
+
+    public static string BuildPlatformRoleName(string key)
+        => $"Platform-{NormalizeSlug(key)}";
 
     public static string NormalizeSlug(string value)
     {
@@ -43,6 +51,68 @@ public static class CompanyRoleTemplates
         {
             await EnsureTemplateRoleAsync(roleManager, companyId, template);
         }
+    }
+
+    public static async Task<ApplicationRole> EnsurePlatformSystemUserRoleAsync(RoleManager<ApplicationRole> roleManager)
+    {
+        var role = await roleManager.FindByNameAsync(PlatformSystemUserRoleName)
+            ?? await roleManager.FindByNameAsync("SystemUser")
+            ?? await roleManager.Roles.FirstOrDefaultAsync(r => r.CompanyId == null && r.TemplateKey == PlatformSystemUserTemplateKey);
+
+        if (role is null)
+        {
+            role = new ApplicationRole
+            {
+                Name = PlatformSystemUserRoleName,
+                DisplayName = "SystemUser",
+                TemplateKey = PlatformSystemUserTemplateKey,
+                CompanyId = null
+            };
+
+            var createResult = await roleManager.CreateAsync(role);
+            if (!createResult.Succeeded)
+                throw new BadRequestException(string.Join(", ", createResult.Errors.Select(e => e.Description)));
+
+            role = await roleManager.FindByNameAsync(PlatformSystemUserRoleName)
+                ?? throw new Exception($"Couldn't find the role: {PlatformSystemUserRoleName}");
+        }
+        else
+        {
+            var changed = false;
+            if (!string.Equals(role.Name, PlatformSystemUserRoleName, StringComparison.Ordinal))
+            {
+                role.Name = PlatformSystemUserRoleName;
+                changed = true;
+            }
+
+            if (role.CompanyId is not null)
+            {
+                role.CompanyId = null;
+                changed = true;
+            }
+
+            if (!string.Equals(role.DisplayName, "SystemUser", StringComparison.Ordinal))
+            {
+                role.DisplayName = "SystemUser";
+                changed = true;
+            }
+
+            if (!string.Equals(role.TemplateKey, PlatformSystemUserTemplateKey, StringComparison.Ordinal))
+            {
+                role.TemplateKey = PlatformSystemUserTemplateKey;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                var updateResult = await roleManager.UpdateAsync(role);
+                if (!updateResult.Succeeded)
+                    throw new BadRequestException(string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+            }
+        }
+
+        await SyncPermissionClaimsAsync(roleManager, role, GetPlatformSystemUserPermissions(), removeObsolete: true);
+        return role;
     }
 
     public static async Task<ApplicationRole> EnsureTemplateRoleAsync(
@@ -143,7 +213,7 @@ public static class CompanyRoleTemplates
     {
         List<string> permissions =
         [
-            ..SelectView(PermissionList.GetAll()),
+            ..SelectView(PermissionList.GetTenantPermissions()),
             PermissionList.SalesOrderPermissions.ViewReports,
             PermissionList.AttendancePermissions.ViewReports,
             PermissionList.AttendancePermissions.ViewLeaveReports,
@@ -164,7 +234,7 @@ public static class CompanyRoleTemplates
 
     private static List<string> ApproverPermissions() =>
     [
-        ..SelectView(PermissionList.GetAll()),
+        ..SelectView(PermissionList.GetTenantPermissions()),
         PermissionList.AttendancePermissions.ReviewRequests,
         PermissionList.AttendancePermissions.ApproveEmergencyLeave,
         PermissionList.AttendancePermissions.ApproveMidDayPermission,
@@ -456,6 +526,11 @@ public static class CompanyRoleTemplates
         PermissionList.TaskManagementPermissions.View,
         PermissionList.TaskManagementPermissions.Comment,
     ];
+
+    public static List<string> GetPlatformSystemUserPermissions()
+        => PermissionList.GetPlatformPermissions()
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
 }
 
 public sealed record CompanyRoleTemplate(string Key, string DisplayName, IReadOnlyCollection<string> Permissions);
