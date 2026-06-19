@@ -40,13 +40,47 @@
 
     <main class="login-main">
         <div class="login-shell">
+            <aside class="login-hero" aria-label="@Text("ERP workspace overview", "نبذة عن مساحة عمل ERP")">
+                <div class="hero-brand">
+                    <span class="hero-brand-mark" aria-hidden="true">
+                        <i class="bi bi-building-check"></i>
+                    </span>
+                    <span>Alafkar ERP</span>
+                </div>
+
+                <div class="hero-content">
+                    <div class="hero-badge">
+                        <i class="bi bi-shield-check" aria-hidden="true"></i>
+                        <span>@Text("Secure enterprise access", "دخول مؤسسي آمن")</span>
+                    </div>
+
+                    <h2>@Text("Master your enterprise data with precision.", "تحكم ببيانات مؤسستك بدقة.")</h2>
+                    <p>
+                        @Text(
+                            "Access one connected workspace for HR, sales, accounting, inventory, tasks, and operational reporting.",
+                            "ادخل إلى مساحة عمل مترابطة للموارد البشرية والمبيعات والمحاسبة والمخزون والمهام والتقارير التشغيلية.")
+                    </p>
+                </div>
+
+                <div class="hero-features" aria-label="@Text("Platform highlights", "مزايا المنصة")">
+                    <div class="hero-feature">
+                        <i class="bi bi-lock" aria-hidden="true"></i>
+                        <span>@Text("Protected company and operational data", "حماية بيانات الشركة والعمليات")</span>
+                    </div>
+                    <div class="hero-feature">
+                        <i class="bi bi-cloud-check" aria-hidden="true"></i>
+                        <span>@Text("Unified cloud workspace", "مساحة عمل سحابية موحدة")</span>
+                    </div>
+                </div>
+            </aside>
+
             <div class="login-panel">
                 <div class="login-panel-inner">
-                    <div class="login-kicker">@Text("Secure ERP access", "دخول آمن للنظام")</div>
+                    <div class="login-kicker">@Text("Welcome to Alafkar ERP", "مرحباً بك في ألفكار ERP")</div>
 
                     <div class="login-panel-header">
                         <h1>@Text("Welcome back", "مرحباً بك مجدداً")</h1>
-                        <p>@Text("Sign in to manage business operations, people, inventory, customers, sales, tasks, and reporting from one workspace.", "سجل الدخول لإدارة عمليات الأعمال والأفراد والمخزون والعملاء والمبيعات والمهام والتقارير من مساحة عمل واحدة.")</p>
+                        <p>@Text("Enter your credentials to access your ERP dashboard.", "أدخل بيانات الدخول للوصول إلى لوحة تحكم ERP.")</p>
                     </div>
 
                     <EditForm Model="@login" OnValidSubmit="HandleLogin" class="login-form">
@@ -89,7 +123,7 @@
                             }
                             else
                             {
-                                <span>@Text("Login", "تسجيل الدخول")</span>
+                                <span>@Text("Sign in to Alafkar", "تسجيل الدخول إلى ألفكار")</span>
                                 <i class="bi bi-arrow-right-short" aria-hidden="true"></i>
                             }
                         </button>
@@ -101,37 +135,6 @@
                     </EditForm>
                 </div>
             </div>
-
-            <aside class="login-hero" aria-label="@Text("ERP workspace overview", "نبذة عن مساحة عمل ERP")">
-                <div class="hero-content">
-                    <div class="hero-badge">
-                        <i class="bi bi-shield-check" aria-hidden="true"></i>
-                        <span>@Text("Trusted business workspace", "مساحة عمل موثوقة")</span>
-                    </div>
-
-                    <h2>@Text("Enterprise Resource Planning", "تخطيط موارد المؤسسة")</h2>
-                    <p>
-                        @Text(
-                            "A connected workspace for operations, people, inventory, customers, sales, tasks, and reporting.",
-                            "مساحة عمل مترابطة للعمليات والأفراد والمخزون والعملاء والمبيعات والمهام والتقارير.")
-                    </p>
-                </div>
-
-                <div class="hero-features">
-                    <div class="hero-feature">
-                        <i class="bi bi-lock" aria-hidden="true"></i>
-                        <span>@Text("Protected company and operational data", "حماية بيانات الشركة والعمليات")</span>
-                    </div>
-                    <div class="hero-feature">
-                        <i class="bi bi-diagram-3" aria-hidden="true"></i>
-                        <span>@Text("Connected business workflows", "سير عمل مترابط للأعمال")</span>
-                    </div>
-                    <div class="hero-feature">
-                        <i class="bi bi-bar-chart-line" aria-hidden="true"></i>
-                        <span>@Text("Clear reporting for better decisions", "تقارير واضحة لقرارات أفضل")</span>
-                    </div>
-                </div>
-            </aside>
         </div>
     </main>
 

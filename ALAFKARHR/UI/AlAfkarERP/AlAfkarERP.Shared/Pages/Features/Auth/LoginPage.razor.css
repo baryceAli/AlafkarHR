@@ -1,6 +1,6 @@
 .login-page {
     background:
-        linear-gradient(135deg, rgba(var(--erp-primary-rgb), .08), transparent 34rem),
+        linear-gradient(135deg, color-mix(in srgb, var(--erp-primary) 10%, transparent), transparent 32rem),
         var(--erp-bg);
     color: var(--erp-text);
     display: flex;
@@ -16,7 +16,7 @@
     flex: 0 0 auto;
     justify-content: space-between;
     margin-inline: auto;
-    max-width: 1180px;
+    max-width: 1120px;
     min-height: var(--erp-topbar-height);
     padding: var(--erp-space-4) var(--erp-space-6);
     width: 100%;
@@ -26,54 +26,50 @@
     align-items: center;
     color: var(--erp-text);
     display: inline-flex;
-    font-size: .95rem;
-    font-weight: 900;
+    font-size: var(--erp-type-title-sm-size);
+    font-weight: var(--erp-type-title-sm-weight);
     gap: var(--erp-space-2);
     letter-spacing: 0;
-    line-height: 1;
+    line-height: var(--erp-type-title-sm-line);
 }
 
 .login-brand-mark {
     align-items: center;
     background: var(--erp-primary);
-    border-radius: var(--erp-radius-md);
-    box-shadow: 0 10px 24px rgba(var(--erp-primary-rgb), .22);
+    border-radius: var(--erp-radius-lg);
     color: var(--erp-primary-contrast);
     display: inline-flex;
-    font-size: .95rem;
-    height: 34px;
+    font-size: var(--erp-type-label-md-size);
+    font-weight: 700;
+    height: 36px;
     justify-content: center;
-    width: 34px;
+    width: 36px;
 }
 
 .language-switch {
     align-items: center;
-    background: color-mix(in srgb, var(--erp-surface) 88%, transparent);
+    background: var(--erp-surface);
     border: 1px solid var(--erp-border);
-    border-radius: var(--erp-radius-md);
+    border-radius: var(--erp-radius-lg);
     color: var(--erp-text-muted);
     display: inline-flex;
-    font-size: var(--erp-font-size-sm);
-    font-weight: 800;
+    font-size: var(--erp-type-label-md-size);
+    font-weight: var(--erp-type-label-md-weight);
     gap: var(--erp-space-2);
-    min-height: 42px;
+    min-height: var(--erp-control-height);
     padding: var(--erp-space-2) var(--erp-space-3);
     transition: background var(--erp-transition-fast), border-color var(--erp-transition-fast), color var(--erp-transition-fast), transform var(--erp-transition-fast);
 }
 
 .language-switch:hover,
 .language-switch:focus-visible {
-    background: var(--erp-surface);
-    border-color: rgba(var(--erp-primary-rgb), .35);
+    background: var(--erp-surface-muted);
+    border-color: color-mix(in srgb, var(--erp-primary) 36%, var(--erp-border));
     color: var(--erp-primary);
 }
 
 .language-switch:active {
     transform: scale(.98);
-}
-
-.language-switch i {
-    font-size: 1rem;
 }
 
 .login-main {
@@ -91,11 +87,144 @@
     box-shadow: var(--erp-auth-shadow);
     display: grid;
     direction: ltr;
-    grid-template-columns: minmax(0, 11fr) minmax(320px, 9fr);
+    grid-template-columns: minmax(320px, 1fr) minmax(0, 1fr);
     max-width: 1080px;
     min-height: 620px;
     overflow: hidden;
     width: 100%;
+}
+
+.login-hero {
+    background:
+        linear-gradient(145deg, color-mix(in srgb, var(--erp-primary-contrast) 18%, transparent), transparent 46%),
+        var(--erp-primary);
+    color: var(--erp-primary-contrast);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+    overflow: hidden;
+    padding: clamp(2rem, 4vw, 3rem);
+    position: relative;
+}
+
+.login-hero::before {
+    background:
+        linear-gradient(color-mix(in srgb, var(--erp-primary-contrast) 12%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--erp-primary-contrast) 12%, transparent) 1px, transparent 1px);
+    background-size: 40px 40px;
+    content: "";
+    inset: 0;
+    opacity: .55;
+    pointer-events: none;
+    position: absolute;
+}
+
+.login-hero::after {
+    background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--erp-primary-hover) 40%, transparent));
+    content: "";
+    inset-block: auto 0;
+    inset-inline: 0;
+    height: 44%;
+    pointer-events: none;
+    position: absolute;
+}
+
+.hero-brand,
+.hero-content,
+.hero-features {
+    position: relative;
+    z-index: 1;
+}
+
+.hero-brand {
+    align-items: center;
+    display: inline-flex;
+    font-size: var(--erp-type-title-sm-size);
+    font-weight: 700;
+    gap: var(--erp-space-3);
+    letter-spacing: 0;
+}
+
+.hero-brand-mark {
+    align-items: center;
+    background: var(--erp-primary-contrast);
+    border-radius: var(--erp-radius-lg);
+    color: var(--erp-primary);
+    display: inline-flex;
+    height: 40px;
+    justify-content: center;
+    width: 40px;
+}
+
+.hero-brand-mark i {
+    font-size: 1.15rem;
+}
+
+.hero-badge {
+    align-items: center;
+    background: color-mix(in srgb, var(--erp-primary-contrast) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--erp-primary-contrast) 24%, transparent);
+    border-radius: var(--erp-radius-full);
+    color: var(--erp-primary-contrast);
+    display: inline-flex;
+    font-size: var(--erp-type-label-md-size);
+    font-weight: var(--erp-type-label-md-weight);
+    gap: var(--erp-space-2);
+    margin-bottom: var(--erp-space-6);
+    min-height: var(--erp-control-height);
+    padding: var(--erp-space-2) var(--erp-space-3);
+}
+
+.hero-content h2 {
+    color: var(--erp-primary-contrast);
+    font-size: clamp(var(--erp-type-display-mobile-size), 4vw, var(--erp-type-display-lg-size));
+    font-weight: var(--erp-type-display-lg-weight);
+    letter-spacing: var(--erp-type-display-lg-tracking);
+    line-height: var(--erp-type-display-lg-line);
+    margin: 0 0 var(--erp-space-4);
+    max-width: 31rem;
+}
+
+.hero-content p {
+    color: color-mix(in srgb, var(--erp-primary-contrast) 84%, transparent);
+    font-size: var(--erp-type-body-md-size);
+    line-height: var(--erp-type-body-md-line);
+    margin: 0;
+    max-width: 28rem;
+}
+
+.hero-features {
+    display: grid;
+    gap: var(--erp-space-3);
+    margin-top: var(--erp-space-8);
+}
+
+.hero-feature {
+    align-items: center;
+    background: color-mix(in srgb, var(--erp-primary-contrast) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--erp-primary-contrast) 18%, transparent);
+    border-radius: var(--erp-radius-lg);
+    color: var(--erp-primary-contrast);
+    display: flex;
+    font-size: var(--erp-type-body-sm-size);
+    font-weight: 600;
+    gap: var(--erp-space-3);
+    min-height: 52px;
+    padding: var(--erp-space-3);
+}
+
+.hero-feature i {
+    align-items: center;
+    background: color-mix(in srgb, var(--erp-primary-contrast) 18%, transparent);
+    border-radius: var(--erp-radius-md);
+    color: var(--erp-primary-contrast);
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 1rem;
+    height: 32px;
+    justify-content: center;
+    width: 32px;
 }
 
 .login-panel {
@@ -108,35 +237,36 @@
 }
 
 .login-panel-inner {
-    max-width: 460px;
+    max-width: 430px;
     width: 100%;
 }
 
 .login-kicker {
     color: var(--erp-primary);
-    font-size: var(--erp-font-size-sm);
-    font-weight: 900;
+    font-size: var(--erp-type-label-md-size);
+    font-weight: var(--erp-type-label-md-weight);
+    line-height: var(--erp-type-label-md-line);
     margin-bottom: var(--erp-space-3);
 }
 
 .login-panel-header {
-    margin-bottom: var(--erp-space-6);
+    margin-bottom: var(--erp-space-8);
     text-align: start;
 }
 
 .login-panel-header h1 {
     color: var(--erp-text);
-    font-size: clamp(2rem, 4vw, 2.5rem);
-    font-weight: 900;
-    line-height: 1.12;
+    font-size: var(--erp-type-headline-md-size);
+    font-weight: var(--erp-type-headline-md-weight);
+    line-height: var(--erp-type-headline-md-line);
     margin: 0;
 }
 
 .login-panel-header p {
     color: var(--erp-text-muted);
-    font-size: 1rem;
-    line-height: 1.65;
-    margin: var(--erp-space-3) 0 0;
+    font-size: var(--erp-type-body-md-size);
+    line-height: var(--erp-type-body-md-line);
+    margin: var(--erp-space-2) 0 0;
 }
 
 .login-form {
@@ -151,13 +281,13 @@
 
 .form-field label,
 .label-row a {
-    font-size: var(--erp-font-size-sm);
-    font-weight: 800;
-    line-height: 1.2;
+    font-size: var(--erp-type-label-md-size);
+    font-weight: var(--erp-type-label-md-weight);
+    line-height: var(--erp-type-label-md-line);
 }
 
 .form-field label {
-    color: var(--erp-text);
+    color: var(--erp-text-muted);
 }
 
 .label-row {
@@ -188,7 +318,7 @@
 
 .input-shell > i {
     color: var(--erp-text-soft);
-    font-size: 1.15rem;
+    font-size: 1rem;
     inset-block-start: 50%;
     inset-inline-start: var(--erp-space-3);
     pointer-events: none;
@@ -200,16 +330,16 @@
 
 .login-input,
 ::deep .login-input {
-    background: var(--erp-bg-subtle);
+    background: var(--erp-surface);
     border: 1px solid var(--erp-border);
     border-radius: var(--erp-radius-lg);
     color: var(--erp-text);
-    font-size: 1rem;
-    font-weight: 500;
-    min-height: 54px;
+    font-size: var(--erp-type-body-md-size);
+    font-weight: 400;
+    min-height: 44px;
     outline: none;
-    padding: .85rem 1rem;
-    padding-inline-start: 3rem;
+    padding: var(--erp-space-3) var(--erp-space-4);
+    padding-inline-start: 44px;
     transition: background var(--erp-transition-fast), border-color var(--erp-transition-fast), box-shadow var(--erp-transition-fast);
     width: 100%;
 }
@@ -223,7 +353,7 @@
 ::deep .login-input:focus {
     background: var(--erp-surface);
     border-color: var(--erp-primary);
-    box-shadow: 0 0 0 .2rem var(--erp-focus-ring);
+    box-shadow: 0 0 0 2px var(--erp-focus-ring);
 }
 
 .input-shell:focus-within > i {
@@ -238,7 +368,7 @@
 
 .login-input.invalid:focus,
 ::deep .login-input.invalid:focus {
-    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--erp-danger) 18%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--erp-danger) 18%, transparent);
 }
 
 .login-input::placeholder,
@@ -250,7 +380,7 @@
 
 .password-shell .login-input,
 .password-shell ::deep .login-input {
-    padding-inline-end: 3rem;
+    padding-inline-end: 44px;
 }
 
 .password-toggle {
@@ -260,15 +390,15 @@
     border-radius: var(--erp-radius-md);
     color: var(--erp-text-soft);
     display: inline-flex;
-    height: 38px;
+    height: 32px;
     inset-block-start: 50%;
-    inset-inline-end: var(--erp-space-3);
+    inset-inline-end: var(--erp-space-2);
     justify-content: center;
     padding: 0;
     position: absolute;
     transform: translateY(-50%);
     transition: background var(--erp-transition-fast), color var(--erp-transition-fast);
-    width: 38px;
+    width: 32px;
     z-index: 3;
 }
 
@@ -278,26 +408,22 @@
     color: var(--erp-primary);
 }
 
-.password-toggle i {
-    font-size: 1.1rem;
-}
-
 .remember-row {
     align-items: center;
     color: var(--erp-text-muted);
     display: flex;
-    font-size: var(--erp-font-size-sm);
-    font-weight: 700;
+    font-size: var(--erp-type-body-sm-size);
+    font-weight: 500;
     gap: var(--erp-space-2);
     justify-content: flex-start;
-    margin-bottom: var(--erp-space-2);
+    margin-bottom: var(--erp-space-1);
     margin-top: calc(var(--erp-space-1) * -1);
 }
 
 .remember-row input {
     accent-color: var(--erp-primary);
-    height: 17px;
-    width: 17px;
+    height: 16px;
+    width: 16px;
 }
 
 .login-button {
@@ -305,14 +431,13 @@
     background: var(--erp-primary);
     border: 0;
     border-radius: var(--erp-radius-lg);
-    box-shadow: 0 14px 28px rgba(var(--erp-primary-rgb), .22);
     color: var(--erp-primary-contrast);
     display: inline-flex;
-    font-size: 1rem;
-    font-weight: 900;
+    font-size: var(--erp-type-title-sm-size);
+    font-weight: var(--erp-type-title-sm-weight);
     gap: var(--erp-space-2);
     justify-content: center;
-    min-height: 56px;
+    min-height: 48px;
     padding-inline: var(--erp-space-6);
     transition: background var(--erp-transition-fast), box-shadow var(--erp-transition-fast), transform var(--erp-transition-fast);
     width: 100%;
@@ -321,7 +446,7 @@
 .login-button:hover,
 .login-button:focus-visible {
     background: var(--erp-primary-hover);
-    box-shadow: 0 18px 34px rgba(var(--erp-primary-rgb), .25);
+    box-shadow: var(--erp-shadow-sm);
 }
 
 .login-button:active {
@@ -343,113 +468,19 @@
 .label-row a:focus-visible,
 .register-link a:focus-visible,
 .password-toggle:focus-visible {
-    outline: 3px solid var(--erp-focus-ring);
-    outline-offset: 3px;
+    outline: 2px solid var(--erp-focus-ring);
+    outline-offset: 2px;
 }
 
 .register-link {
     color: var(--erp-text-muted);
     display: flex;
     flex-wrap: wrap;
-    font-size: .95rem;
+    font-size: var(--erp-type-body-sm-size);
     gap: var(--erp-space-1);
     justify-content: center;
     margin: var(--erp-space-6) 0 0;
     text-align: center;
-}
-
-.login-hero {
-    background:
-        linear-gradient(145deg, rgba(var(--erp-primary-rgb), .18), transparent 42%),
-        var(--erp-sidebar-bg);
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    min-width: 0;
-    overflow: hidden;
-    padding: clamp(2rem, 4vw, 3rem);
-    position: relative;
-}
-
-.login-hero::after {
-    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, .08));
-    content: "";
-    inset-block: auto 0;
-    inset-inline: 0;
-    height: 38%;
-    pointer-events: none;
-    position: absolute;
-}
-
-.hero-content,
-.hero-features {
-    position: relative;
-    z-index: 1;
-}
-
-.hero-badge {
-    align-items: center;
-    background: rgba(255, 255, 255, .1);
-    border: 1px solid rgba(255, 255, 255, .16);
-    border-radius: 999px;
-    color: rgba(255, 255, 255, .9);
-    display: inline-flex;
-    font-size: var(--erp-font-size-sm);
-    font-weight: 800;
-    gap: var(--erp-space-2);
-    margin-bottom: var(--erp-space-6);
-    min-height: 36px;
-    padding: var(--erp-space-2) var(--erp-space-3);
-}
-
-.hero-content h2 {
-    color: #fff;
-    font-size: clamp(2rem, 4vw, 2.55rem);
-    font-weight: 900;
-    line-height: 1.16;
-    margin: 0 0 var(--erp-space-3);
-}
-
-.hero-content p {
-    color: rgba(255, 255, 255, .72);
-    font-size: 1rem;
-    line-height: 1.7;
-    margin: 0;
-    max-width: 30rem;
-}
-
-.hero-features {
-    display: grid;
-    gap: var(--erp-space-3);
-    margin-top: var(--erp-space-8);
-}
-
-.hero-feature {
-    align-items: center;
-    background: rgba(255, 255, 255, .08);
-    border: 1px solid rgba(255, 255, 255, .12);
-    border-radius: var(--erp-radius-lg);
-    color: #fff;
-    display: flex;
-    font-size: var(--erp-font-size-sm);
-    font-weight: 800;
-    gap: var(--erp-space-3);
-    min-height: 54px;
-    padding: var(--erp-space-3);
-}
-
-.hero-feature i {
-    align-items: center;
-    background: rgba(var(--erp-primary-rgb), .28);
-    border-radius: var(--erp-radius-md);
-    color: #fff;
-    display: inline-flex;
-    flex: 0 0 auto;
-    font-size: 1rem;
-    height: 32px;
-    justify-content: center;
-    width: 32px;
 }
 
 .login-footer {
@@ -460,7 +491,7 @@
     gap: var(--erp-space-3);
     justify-content: space-between;
     margin-inline: auto;
-    max-width: 1180px;
+    max-width: 1120px;
     min-height: 68px;
     padding: var(--erp-space-4) var(--erp-space-6);
     width: 100%;
@@ -475,8 +506,8 @@
 .login-footer a,
 .login-footer p {
     color: var(--erp-text-muted);
-    font-size: var(--erp-font-size-sm);
-    font-weight: 700;
+    font-size: var(--erp-type-body-sm-size);
+    font-weight: 500;
     margin: 0;
     text-decoration: none;
 }
@@ -503,7 +534,7 @@
 
 ::deep .validation-message {
     color: var(--erp-danger);
-    font-size: var(--erp-font-size-sm);
+    font-size: var(--erp-type-body-sm-size);
 }
 
 @media (max-width: 960px) {
@@ -513,7 +544,7 @@
 
     .login-shell {
         display: block;
-        max-width: 480px;
+        max-width: 500px;
         min-height: 0;
     }
 
@@ -537,16 +568,16 @@
     }
 
     .login-brand {
-        font-size: .85rem;
+        font-size: var(--erp-type-body-sm-size);
     }
 
     .login-brand-mark {
-        height: 30px;
-        width: 30px;
+        height: 32px;
+        width: 32px;
     }
 
     .language-switch {
-        min-height: 38px;
+        min-height: 34px;
         padding-inline: var(--erp-space-2);
     }
 
@@ -567,12 +598,14 @@
         margin-bottom: var(--erp-space-6);
     }
 
-    .login-panel-header h1 {
-        font-size: 2rem;
-    }
-
     .login-form {
         gap: var(--erp-space-4);
+    }
+
+    .label-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: var(--erp-space-1);
     }
 
     .login-footer {
