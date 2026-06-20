@@ -1,7 +1,8 @@
-@layout AdminLayout
+﻿@layout AdminLayout
 @page "/Contracts/Detail/{Id:guid}"
 
 @using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Contracts
 @using AlAfkarERP.Shared.Pages.Features.Contracts.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
@@ -18,31 +19,31 @@
 
 <div class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@PageTitle"
-                Subtitle="@Text("Review lifecycle, renewals, fees, payments, and attachments without editing master data.", "Review lifecycle, renewals, fees, payments, and attachments without editing master data.")"
-                Overline="@Text("Contract Detail", "Contract Detail")"
+                Subtitle="@Text("Review lifecycle, renewals, fees, payments, and attachments without editing master data.", "مراجعة دورة الحياة والتجديدات والرسوم والمدفوعات والمرفقات دون تعديل البيانات الأساسية.")"
+                Overline="@Text("Contract Detail", "تفاصيل العقد")"
                 Icon="bi-file-earmark-check">
         <Actions>
             <button class="btn btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo("/Contracts/List")'>
                 <i class="bi bi-arrow-return-left"></i>
-                @Text("Back", "Back")
+                @Text("Back", "رجوع")
             </button>
             <button class="btn btn-outline-primary" @onclick='() => NavigationManager.NavigateTo($"/Contracts/Form/{Id}")' disabled="@(!CanEdit)">
                 <i class="bi bi-pencil-square"></i>
-                @Text("Edit", "Edit")
+                @Text("Edit", "تعديل")
             </button>
         </Actions>
     </PageHeader>
 
     @if (!CanView)
     {
-        <div class="alert alert-warning">@Text("You don't have permissions to view contracts.", "You don't have permissions to view contracts.")</div>
+        <div class="alert alert-warning">@Text("You don't have permissions to view contracts.", "ليست لديك صلاحية عرض العقود.")</div>
     }
     else if (isLoading)
     {
         <AppCard>
             <div class="text-center py-5">
                 <div class="spinner-border text-primary mb-3" role="status"></div>
-                <div class="fw-semibold">@Text("Loading contract...", "Loading contract...")</div>
+                <div class="fw-semibold">@Text("Loading contract...", "جاري تحميل العقد...")</div>
             </div>
         </AppCard>
     }
@@ -50,27 +51,27 @@
     {
         <div class="row g-3 mb-3">
             <div class="col-xl-8">
-                <AppCard Title="@Text("Overview", "Overview")">
+                <AppCard Title="@Text("Overview", "نظرة عامة")">
                     <div class="row g-3">
-                        <div class="col-md-3"><div class="text-muted small">@Text("Number", "Number")</div><div class="fw-semibold">@contract.Number</div></div>
-                        <div class="col-md-5"><div class="text-muted small">@Text("Title", "Title")</div><div class="fw-semibold">@contract.Title</div></div>
-                        <div class="col-md-4"><div class="text-muted small">@Text("Type", "Type")</div><div>@contract.Type</div></div>
-                        <div class="col-md-4"><div class="text-muted small">@Text("Party", "Party")</div><div class="fw-semibold">@contract.PartyDisplayName</div><div class="text-muted small">@contract.PartyType</div></div>
-                        <div class="col-md-4"><div class="text-muted small">@Text("Period", "Period")</div><div>@contract.StartDate.ToString("yyyy-MM-dd") - @contract.EndDate.ToString("yyyy-MM-dd")</div></div>
-                        <div class="col-md-4"><div class="text-muted small">@Text("Value", "Value")</div><div>@contract.ContractValue.ToString("N2")</div></div>
-                        <div class="col-12"><div class="text-muted small">@Text("Notes", "Notes")</div><div>@(string.IsNullOrWhiteSpace(contract.Notes) ? "-" : contract.Notes)</div></div>
+                        <div class="col-md-3"><div class="text-muted small">@Text("Number", "الرقم")</div><div class="fw-semibold">@contract.Number</div></div>
+                        <div class="col-md-5"><div class="text-muted small">@Text("Title", "العنوان")</div><div class="fw-semibold">@contract.Title</div></div>
+                        <div class="col-md-4"><div class="text-muted small">@Text("Type", "النوع")</div><div>@contract.Type</div></div>
+                        <div class="col-md-4"><div class="text-muted small">@Text("Party", "الطرف")</div><div class="fw-semibold">@contract.PartyDisplayName</div><div class="text-muted small">@SharedDataService.PartyTypeLabel(contract.PartyType)</div></div>
+                        <div class="col-md-4"><div class="text-muted small">@Text("Period", "الفترة")</div><div>@contract.StartDate.ToString("yyyy-MM-dd") - @contract.EndDate.ToString("yyyy-MM-dd")</div></div>
+                        <div class="col-md-4"><div class="text-muted small">@Text("Value", "القيمة")</div><div>@contract.ContractValue.ToString("N2")</div></div>
+                        <div class="col-12"><div class="text-muted small">@Text("Notes", "ملاحظات")</div><div>@(string.IsNullOrWhiteSpace(contract.Notes) ? "-" : contract.Notes)</div></div>
                     </div>
                 </AppCard>
             </div>
             <div class="col-xl-4">
-                <AppCard Title="@Text("Lifecycle", "Lifecycle")">
-                    <div class="mb-3"><StatusChip Text="@contract.Status.ToString()" Tone="@StatusTone(contract.Status)" /></div>
+                <AppCard Title="@Text("Lifecycle", "دورة الحياة")">
+                    <div class="mb-3"><StatusChip Text="@SharedDataService.ContractStatusLabel(contract.Status)" Tone="@StatusTone(contract.Status)" /></div>
                     <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-outline-secondary btn-sm" @onclick='() => WorkflowAsync("submit-review")' disabled="@(!CanSubmitReview)">@Text("Submit review", "Submit review")</button>
-                        <button class="btn btn-outline-secondary btn-sm" @onclick='() => WorkflowAsync("sign")' disabled="@(!CanSign)">@Text("Sign", "Sign")</button>
-                        <button class="btn btn-outline-success btn-sm" @onclick='() => WorkflowAsync("activate")' disabled="@(!CanActivate)">@Text("Activate", "Activate")</button>
-                        <button class="btn btn-outline-warning btn-sm" @onclick="ProcessRenewalAsync" disabled="@(!CanRenew)">@Text("Renew", "Renew")</button>
-                        <button class="btn btn-outline-danger btn-sm" @onclick='() => WorkflowAsync("terminate")' disabled="@(!CanTerminate)">@Text("Terminate", "Terminate")</button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick='() => WorkflowAsync("submit-review")' disabled="@(!CanSubmitReview)">@Text("Submit review", "إرسال للمراجعة")</button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick='() => WorkflowAsync("sign")' disabled="@(!CanSign)">@Text("Sign", "توقيع")</button>
+                        <button class="btn btn-outline-success btn-sm" @onclick='() => WorkflowAsync("activate")' disabled="@(!CanActivate)">@Text("Activate", "تفعيل")</button>
+                        <button class="btn btn-outline-warning btn-sm" @onclick="ProcessRenewalAsync" disabled="@(!CanRenew)">@Text("Renew", "تجديد")</button>
+                        <button class="btn btn-outline-danger btn-sm" @onclick='() => WorkflowAsync("terminate")' disabled="@(!CanTerminate)">@Text("Terminate", "إنهاء")</button>
                     </div>
                 </AppCard>
             </div>
@@ -78,18 +79,18 @@
 
         <div class="row g-3">
             <div class="col-xl-6">
-                <AppCard Title="@Text("Status Timeline", "Status Timeline")">
+                <AppCard Title="@Text("Status Timeline", "سجل الحالات")">
                     <div class="erp-table-wrap">
                         <table class="table erp-table mb-0">
-                            <thead><tr><th>@Text("Action", "Action")</th><th>@Text("Status", "Status")</th><th>@Text("Date", "Date")</th></tr></thead>
+                            <thead><tr><th>@Text("Action", "الإجراء")</th><th>@Text("Status", "الحالة")</th><th>@Text("Date", "التاريخ")</th></tr></thead>
                             <tbody>
                                 @if (contract.StatusHistory.Count == 0)
                                 {
-                                    <tr><td colspan="3" class="text-center text-muted py-3">@Text("No status changes yet.", "No status changes yet.")</td></tr>
+                                    <tr><td colspan="3" class="text-center text-muted py-3">@Text("No status changes yet.", "لا توجد تغييرات حالة حتى الآن.")</td></tr>
                                 }
                                 @foreach (var item in contract.StatusHistory)
                                 {
-                                    <tr><td>@item.Action</td><td><StatusChip Text="@item.NewStatus.ToString()" Tone="@StatusTone(item.NewStatus)" /></td><td>@item.ChangedAt.ToString("yyyy-MM-dd HH:mm")</td></tr>
+                                    <tr><td>@SharedDataService.WorkflowActionLabel(item.Action)</td><td><StatusChip Text="@SharedDataService.ContractStatusLabel(item.NewStatus)" Tone="@StatusTone(item.NewStatus)" /></td><td>@item.ChangedAt.ToString("yyyy-MM-dd HH:mm")</td></tr>
                                 }
                             </tbody>
                         </table>
@@ -97,23 +98,23 @@
                 </AppCard>
             </div>
             <div class="col-xl-6">
-                <AppCard Title="@Text("Renewal History", "Renewal History")">
+                <AppCard Title="@Text("Renewal History", "سجل التجديدات")">
                     <div class="erp-table-wrap">
                         <table class="table erp-table mb-0">
-                            <thead><tr><th>@Text("Period", "Period")</th><th>@Text("Fee", "Fee")</th><th>@Text("Payment", "Payment")</th><th class="text-end">@Text("Actions", "Actions")</th></tr></thead>
+                            <thead><tr><th>@Text("Period", "الفترة")</th><th>@Text("Fee", "رسوم")</th><th>@Text("Payment", "الدفع")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                             <tbody>
                                 @if (contract.Renewals.Count == 0)
                                 {
-                                    <tr><td colspan="4" class="text-center text-muted py-3">@Text("No renewals yet.", "No renewals yet.")</td></tr>
+                                    <tr><td colspan="4" class="text-center text-muted py-3">@Text("No renewals yet.", "لا توجد تجديدات حتى الآن.")</td></tr>
                                 }
                                 @foreach (var renewal in contract.Renewals)
                                 {
                                     <tr>
                                         <td>@renewal.RenewedStartDate.ToString("yyyy-MM-dd") - @renewal.RenewedEndDate.ToString("yyyy-MM-dd")</td>
                                         <td>@renewal.FeeAmount.ToString("N2")</td>
-                                        <td><StatusChip Text="@renewal.PaymentStatus.ToString()" Tone="@PaymentTone(renewal.PaymentStatus)" /></td>
+                                        <td><StatusChip Text="@SharedDataService.PaymentStatusLabel(renewal.PaymentStatus)" Tone="@PaymentTone(renewal.PaymentStatus)" /></td>
                                         <td class="text-end">
-                                            <button class="btn btn-outline-success btn-sm" @onclick="() => RecordPaymentAsync(renewal)" disabled="@(!CanRecordPayment(renewal))">@Text("Record payment", "Record payment")</button>
+                                            <button class="btn btn-outline-success btn-sm" @onclick="() => RecordPaymentAsync(renewal)" disabled="@(!CanRecordPayment(renewal))">@Text("Record payment", "تسجيل الدفع")</button>
                                         </td>
                                     </tr>
                                 }
@@ -123,23 +124,23 @@
                 </AppCard>
             </div>
             <div class="col-12">
-                <AppCard Title="@Text("Attachments", "Attachments")">
+                <AppCard Title="@Text("Attachments", "المرفقات")">
                     <div class="d-flex flex-wrap gap-2 mb-3">
                         <InputFile OnChange="UploadAttachmentAsync" disabled="@(!CanEdit)" />
                     </div>
                     <div class="erp-table-wrap">
                         <table class="table erp-table mb-0">
-                            <thead><tr><th>@Text("File", "File")</th><th>@Text("Kind", "Kind")</th><th>@Text("Uploaded", "Uploaded")</th><th class="text-end">@Text("Actions", "Actions")</th></tr></thead>
+                            <thead><tr><th>@Text("File", "الملف")</th><th>@Text("Kind", "النوع")</th><th>@Text("Uploaded", "تاريخ الرفع")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                             <tbody>
                                 @if (contract.Attachments.Count == 0)
                                 {
-                                    <tr><td colspan="4" class="text-center text-muted py-3">@Text("No attachments yet.", "No attachments yet.")</td></tr>
+                                    <tr><td colspan="4" class="text-center text-muted py-3">@Text("No attachments yet.", "لا توجد مرفقات حتى الآن.")</td></tr>
                                 }
                                 @foreach (var file in contract.Attachments)
                                 {
                                     <tr>
                                         <td><a href="@file.FilePath" target="_blank">@file.FileName</a></td>
-                                        <td>@file.Kind</td>
+                                        <td>@SharedDataService.AttachmentKindLabel(file.Kind)</td>
                                         <td>@file.UploadedDate.ToString("yyyy-MM-dd")</td>
                                         <td class="text-end"><button class="btn btn-outline-danger btn-sm erp-row-action" @onclick="() => DeleteAttachmentAsync(file.Id)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td>
                                     </tr>
@@ -159,7 +160,7 @@
     private ContractDto contract = new();
     private AuthenticationState? authState;
     private bool isLoading = true;
-    private string PageTitle => string.IsNullOrWhiteSpace(contract.Number) ? Text("Contract Detail", "Contract Detail") : $"{contract.Number} - {contract.Title}";
+    private string PageTitle => string.IsNullOrWhiteSpace(contract.Number) ? Text("Contract Detail", "تفاصيل العقد") : $"{contract.Number} - {contract.Title}";
 
     private bool CanView => HasPermission(PermissionList.ContractPermissions.View);
     private bool CanEdit => HasPermission(PermissionList.ContractPermissions.Edit);
@@ -190,38 +191,38 @@
         if (response.IsSuccess && response.Data is not null)
             contract = response.Data;
         else
-            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load contract.", "Could not load contract."));
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load contract.", "تعذر تحميل العقد."));
         isLoading = false;
     }
 
     private async Task WorkflowAsync(string action)
     {
         var response = await ContractsService.WorkflowAsync(contract.Id, action);
-        await FinishActionAsync(response, Text("Contract status updated.", "Contract status updated."));
+        await FinishActionAsync(response, Text("Contract status updated.", "تم تحديث حالة العقد."));
     }
 
     private async Task ProcessRenewalAsync()
     {
         var response = await ContractsService.ProcessRenewalAsync(contract.Id);
-        await FinishActionAsync(response.IsSuccess ? ApiResult<string>.Success("OK") : ApiResult<string>.Failure(response.Error!), Text("Renewal processed.", "Renewal processed."));
+        await FinishActionAsync(response.IsSuccess ? ApiResult<string>.Success("OK") : ApiResult<string>.Failure(response.Error!), Text("Renewal processed.", "تمت معالجة التجديد."));
     }
 
     private async Task RecordPaymentAsync(ContractRenewalDto renewal)
     {
         var response = await ContractsService.RecordRenewalPaymentAsync(contract.Id, renewal.Id, null, renewal.FeeAmount);
-        await FinishActionAsync(response, Text("Renewal payment recorded.", "Renewal payment recorded."));
+        await FinishActionAsync(response, Text("Renewal payment recorded.", "تم تسجيل دفعة التجديد."));
     }
 
     private async Task UploadAttachmentAsync(InputFileChangeEventArgs args)
     {
         var response = await ContractsService.UploadAttachmentAsync(contract.Id, ContractAttachmentKind.SupportingDocument, args.File);
-        await FinishActionAsync(response, Text("Attachment uploaded.", "Attachment uploaded."));
+        await FinishActionAsync(response, Text("Attachment uploaded.", "تم رفع المرفق."));
     }
 
     private async Task DeleteAttachmentAsync(Guid attachmentId)
     {
         var response = await ContractsService.DeleteAttachmentAsync(contract.Id, attachmentId);
-        await FinishActionAsync(response, Text("Attachment deleted.", "Attachment deleted."));
+        await FinishActionAsync(response, Text("Attachment deleted.", "تم حذف المرفق."));
     }
 
     private async Task FinishActionAsync(ApiResult<string> response, string successMessage)
@@ -233,7 +234,7 @@
         }
         else
         {
-            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Action failed.", "Action failed."));
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Action failed.", "فشل تنفيذ الإجراء."));
         }
     }
 

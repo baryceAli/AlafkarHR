@@ -1,4 +1,4 @@
-@layout AdminLayout
+﻿@layout AdminLayout
 @page "/Payroll/AssignContract"
 @implements IDisposable
 
@@ -21,13 +21,13 @@
 @if (AuthState is not null && !CanView)
 {
     <div class="alert alert-warning">
-        @Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")
+        @Text("You don't have permissions to view this page", "ليست لديك صلاحية عرض هذه الصفحة")
     </div>
     return;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3" dir="@SharedDataService.PageDirection">
-    <h5 class="text-black mb-0">@Text("Assign Contract To Employee", "تعيين عقد للموظف")</h5>
+    <h5 class="text-black mb-0">@Text("Assign Contract To Employee", "تعيين عقد لموظف")</h5>
 </div>
 
 <div class="row g-3">
@@ -179,7 +179,7 @@
         }
         else
         {
-            ShowToast(result.Error?.Detail ?? "Unable to load assignments", "error");
+            ShowToast(result.Error?.Detail ?? Text("Unable to load assignments", "تعذر تحميل التعيينات"), "error");
         }
     }
 
@@ -204,7 +204,7 @@
             }
             else
             {
-                ShowToast(result.Error?.Detail ?? "Unable to assign contract", "error");
+                ShowToast(result.Error?.Detail ?? Text("Unable to assign contract", "تعذر تعيين العقد"), "error");
             }
         }
         finally
