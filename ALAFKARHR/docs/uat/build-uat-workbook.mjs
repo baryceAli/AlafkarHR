@@ -1,13 +1,32 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { SpreadsheetFile, Workbook } from "@oai/artifact-tool";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+async function loadArtifactTool() {
+  try {
+    return await import("@oai/artifact-tool");
+  } catch (error) {
+    const moduleRoots = (process.env.NODE_PATH ?? "").split(path.delimiter).filter(Boolean);
+    for (const moduleRoot of moduleRoots) {
+      const fallbackPath = path.join(moduleRoot, "@oai", "artifact-tool", "dist", "artifact_tool.mjs");
+      try {
+        return await import(pathToFileURL(fallbackPath).href);
+      } catch {
+        // Try the next configured module root.
+      }
+    }
+    throw error;
+  }
+}
+
+const { SpreadsheetFile, Workbook } = await loadArtifactTool();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outputPath = path.join(__dirname, "AlAfkar_ERP_UAT_Pack.xlsx");
 
 const sheets = [
   ["Summary", null],
+  ["Incremental_Checklist", "Incremental_Functionality_Test_Checklist.csv"],
   ["UAT_Master_Matrix", "UAT_Master_Matrix.csv"],
   ["UI_Coverage_Gaps", "UI_Coverage_Gaps.csv"],
   ["Role_Permission_UAT", "Role_Permission_UAT.csv"],
@@ -97,7 +116,7 @@ summary.getRange("A1:D1").format = {
 summary.getRange("A3:B7").values = [
   ["Purpose", "Manual UAT matrix proving backend functionality is represented by UI routes/actions."],
   ["Source", "Backend Carter endpoints, PermissionList, Blazor menu routes, and Blazor @page routes."],
-  ["Execution order", "Test_Data_Setup, Role_Permission_UAT, UAT_Master_Matrix, then UI_Coverage_Gaps review."],
+  ["Execution order", "Incremental_Checklist, Test_Data_Setup, Role_Permission_UAT, UAT_Master_Matrix, then UI_Coverage_Gaps review."],
   ["Generated artifact", "CSV matrices plus this workbook."],
   ["Regenerate", "powershell -NoProfile -ExecutionPolicy Bypass -File .\\docs\\uat\\generate-uat.ps1"],
 ];

@@ -12,6 +12,8 @@ This pack is generated from the repository source of truth:
 ## Files
 
 - UAT_Master_Matrix.csv: Manual execution matrix grouped by module, permission, UI route, expected behavior, negative permission case, and evidence columns.
+- Incremental_Functionality_Test_Checklist.csv: Human-ordered functionality checklist for end-to-end manual testing.
+- Incremental_Functionality_Test_Checklist.md: Readable Markdown version of the human-ordered checklist.
 - UI_Coverage_Gaps.csv: Backend endpoint coverage status: Menu reachable, In-page action reachable, Page route reachable, or Not represented in UI.
 - Role_Permission_UAT.csv: Persona-based access tests for admin, manager/approver, employee, cashier, and no-permission users.
 - Test_Data_Setup.csv: Required reusable test data before running the UAT.
@@ -33,11 +35,12 @@ This pack is generated from the repository source of truth:
 
 ## Manual Execution Rules
 
-1. Start with Test_Data_Setup.csv; create or verify all prerequisite data.
-2. Execute Role_Permission_UAT.csv first to confirm the test users are configured correctly.
-3. Execute UAT_Master_Matrix.csv by module. Fill Result, Evidence, and Notes.
-4. Review UI_Coverage_Gaps.csv; anything marked Not represented in UI is a UAT blocker until a visible UI route/action is confirmed or implemented.
-5. For every row, run the positive case, invalid input/status case where relevant, permission-denied case, and English/Arabic RTL smoke check.
+1. Start with Incremental_Functionality_Test_Checklist.csv or the Markdown checklist to follow the recommended business testing order.
+2. Use Test_Data_Setup.csv to create or verify all prerequisite data before each module group.
+3. Execute Role_Permission_UAT.csv early to confirm the test users are configured correctly.
+4. Execute UAT_Master_Matrix.csv by module. Fill Result, Evidence, and Notes.
+5. Review UI_Coverage_Gaps.csv; anything marked Not represented in UI is a UAT blocker until a visible UI route/action is confirmed or implemented.
+6. For every row, run the positive case, invalid input/status case where relevant, permission-denied case, and English/Arabic RTL smoke check.
 
 ## Regeneration
 
