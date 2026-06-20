@@ -1,4 +1,4 @@
-@layout AdminLayout
+﻿@layout AdminLayout
 @page "/Payroll/Contracts"
 @implements IDisposable
 
@@ -19,7 +19,7 @@
 @if (AuthState is not null && !CanView)
 {
     <div class="alert alert-warning">
-        @SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")
+        @SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليست لديك صلاحية عرض هذه الصفحة")
     </div>
     return;
 }
@@ -43,7 +43,7 @@
                     <InputText class="form-control" @bind-Value="editingContract.Name" />
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">@SharedDataService.SelectViewLang("English Name", "الاسم الإنجليزي")</label>
+                    <label class="form-label">@SharedDataService.SelectViewLang("English Name", "الاسم بالإنجليزية")</label>
                     <InputText class="form-control" @bind-Value="editingContract.NameEng" />
                 </div>
                 <div class="col-md-4">
@@ -51,11 +51,11 @@
                     <InputText class="form-control" @bind-Value="editingContract.Description" />
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">@SharedDataService.SelectViewLang("Tax %", "Tax %")</label>
+                    <label class="form-label">@SharedDataService.SelectViewLang("Tax %", "نسبة الضريبة %")</label>
                     <InputNumber class="form-control" @bind-Value="editingContract.TaxPercentage" />
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">@SharedDataService.SelectViewLang("Insurance %", "Insurance %")</label>
+                    <label class="form-label">@SharedDataService.SelectViewLang("Insurance %", "نسبة التأمين %")</label>
                     <InputNumber class="form-control" @bind-Value="editingContract.InsurancePercentage" />
                 </div>
             </div>
@@ -90,7 +90,7 @@
                                     @foreach (var component in AvailableComponents(item))
                                     {
                                         <option value="@component.Id">
-                                            @SharedDataService.SelectViewLang(component.NameEng, component.Name) - @component.ComponentType
+                                            @SharedDataService.SelectViewLang(component.NameEng, component.Name) - @ComponentTypeLabel(component.ComponentType)
                                         </option>
                                     }
                                 </InputSelect>
@@ -114,25 +114,25 @@
             <div class="row g-2 mb-3">
                 <div class="col-md-3">
                     <div class="border rounded p-2 bg-white">
-                        <div class="text-muted small">@SharedDataService.SelectViewLang("Basic", "Basic")</div>
+                        <div class="text-muted small">@SharedDataService.SelectViewLang("Basic", "الأساسي")</div>
                         <div class="fw-semibold">@ContractBasicTotal.ToString("N2")</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="border rounded p-2 bg-white">
-                        <div class="text-muted small">@SharedDataService.SelectViewLang("Allowances", "Allowances")</div>
+                        <div class="text-muted small">@SharedDataService.SelectViewLang("Allowances", "البدلات")</div>
                         <div class="fw-semibold text-success">@ContractAllowanceTotal.ToString("N2")</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="border rounded p-2 bg-white">
-                        <div class="text-muted small">@SharedDataService.SelectViewLang("Deductions", "Deductions")</div>
+                        <div class="text-muted small">@SharedDataService.SelectViewLang("Deductions", "الاستقطاعات")</div>
                         <div class="fw-semibold text-danger">@ContractDeductionTotal.ToString("N2")</div>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="border rounded p-2 bg-white">
-                        <div class="text-muted small">@SharedDataService.SelectViewLang("Total Salary", "Total Salary")</div>
+                        <div class="text-muted small">@SharedDataService.SelectViewLang("Total Salary", "إجمالي الراتب")</div>
                         <div class="fw-bold">@ContractTotalSalary.ToString("N2")</div>
                     </div>
                 </div>
@@ -171,10 +171,10 @@
         <thead>
             <tr>
                 <th>@SharedDataService.SelectViewLang("Contract", "العقد")</th>
-                <th>@SharedDataService.SelectViewLang("Items", "المكونات")</th>
-                <th>@SharedDataService.SelectViewLang("Tax %", "Tax %")</th>
-                <th>@SharedDataService.SelectViewLang("Insurance %", "Insurance %")</th>
-                <th>@SharedDataService.SelectViewLang("Total Salary", "Total Salary")</th>
+                <th>@SharedDataService.SelectViewLang("Items", "البنود")</th>
+                <th>@SharedDataService.SelectViewLang("Tax %", "نسبة الضريبة %")</th>
+                <th>@SharedDataService.SelectViewLang("Insurance %", "نسبة التأمين %")</th>
+                <th>@SharedDataService.SelectViewLang("Total Salary", "إجمالي الراتب")</th>
                 <th class="erp-column-width-md"></th>
             </tr>
         </thead>
@@ -269,7 +269,7 @@
         }
         else
         {
-            ShowToast(result.Error?.Detail ?? "Unable to load contracts", "error");
+            ShowToast(result.Error?.Detail ?? SharedDataService.SelectViewLang("Unable to load contracts", "تعذر تحميل العقود"), "error");
         }
     }
 
@@ -359,7 +359,7 @@
         }
         else
         {
-            ShowToast(result.Error?.Detail ?? "Unable to save contract", "error");
+            ShowToast(result.Error?.Detail ?? SharedDataService.SelectViewLang("Unable to save contract", "تعذر حفظ العقد"), "error");
         }
     }
 
@@ -382,7 +382,7 @@
         }
         else
         {
-            ShowToast(result.Error?.Detail ?? "Unable to delete contract", "error");
+            ShowToast(result.Error?.Detail ?? SharedDataService.SelectViewLang("Unable to delete contract", "تعذر حذف العقد"), "error");
         }
     }
 
@@ -419,6 +419,14 @@
 
     private ComponentType? ComponentTypeOf(Guid componentId)
         => components.FirstOrDefault(x => x.Id == componentId)?.ComponentType;
+
+    private string ComponentTypeLabel(ComponentType type) => type switch
+    {
+        ComponentType.Basic => SharedDataService.SelectViewLang("Basic", "الأساسي"),
+        ComponentType.Allowance => SharedDataService.SelectViewLang("Allowance", "بدل"),
+        ComponentType.Deduction => SharedDataService.SelectViewLang("Deduction", "استقطاع"),
+        _ => type.ToString()
+    };
 
     private bool HasPermission(string permission)
         => AuthState?.User.Claims.Any(c => c.Value == permission) == true;

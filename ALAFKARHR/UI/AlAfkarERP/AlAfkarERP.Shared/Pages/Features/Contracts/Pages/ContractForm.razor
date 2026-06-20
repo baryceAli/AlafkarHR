@@ -1,7 +1,8 @@
-@layout AdminLayout
+﻿@layout AdminLayout
 @page "/Contracts/Form"
 @page "/Contracts/Form/{Id:guid}"
 
+@using AlAfkarERP.Shared.Pages.Features.Contracts
 @using AlAfkarERP.Shared.Pages.Features.Contracts.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Contracts.Dtos
@@ -17,19 +18,19 @@
 
 <div class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@PageTitle"
-                Subtitle="@Text("Create or edit contract master data and renewal settings.", "Create or edit contract master data and renewal settings.")"
-                Overline="@Text("Contracts", "Contracts")"
+                Subtitle="@Text("Create or edit contract master data and renewal settings.", "إنشاء أو تعديل بيانات العقد وإعدادات التجديد.")"
+                Overline="@Text("Contracts", "العقود")"
                 Icon="bi-file-earmark-check">
         <Actions>
             <button class="btn btn-outline-secondary" @onclick="Back">
                 <i class="bi bi-arrow-return-left"></i>
-                @Text("Back", "Back")
+                @Text("Back", "رجوع")
             </button>
             @if (contract.Id != Guid.Empty)
             {
                 <button class="btn btn-outline-primary" @onclick='() => NavigationManager.NavigateTo($"/Contracts/Detail/{contract.Id}")'>
                     <i class="bi bi-eye"></i>
-                    @Text("Detail", "Detail")
+                    @Text("Detail", "التفاصيل")
                 </button>
             }
         </Actions>
@@ -40,7 +41,7 @@
         <AppCard>
             <div class="text-center py-5">
                 <div class="spinner-border text-primary mb-3" role="status"></div>
-                <div class="fw-semibold">@Text("Loading contract...", "Loading contract...")</div>
+                <div class="fw-semibold">@Text("Loading contract...", "جاري تحميل العقد...")</div>
             </div>
         </AppCard>
     }
@@ -48,115 +49,115 @@
     {
         <EditForm Model="contract" OnValidSubmit="SaveAsync">
             <DataAnnotationsValidator />
-            <AppCard Title="@Text("Contract Details", "Contract Details")" CssClass="mb-3 erp-form-section">
+            <AppCard Title="@Text("Contract Details", "تفاصيل العقد")" CssClass="mb-3 erp-form-section">
                 <div class="row g-3">
                     <div class="col-md-3">
-                        <label class="form-label">@Text("Number", "Number")</label>
+                        <label class="form-label">@Text("Number", "الرقم")</label>
                         <InputText class="form-control" @bind-Value="contract.Number" readonly />
                     </div>
                     <div class="col-md-5">
-                        <label class="form-label">@Text("Title", "Title")</label>
+                        <label class="form-label">@Text("Title", "العنوان")</label>
                         <InputText class="form-control" @bind-Value="contract.Title" />
                         <ValidationMessage For="() => contract.Title" />
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">@Text("English Title", "English Title")</label>
+                        <label class="form-label">@Text("English Title", "العنوان بالإنجليزية")</label>
                         <InputText class="form-control" @bind-Value="contract.TitleEng" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">@Text("Type", "Type")</label>
+                        <label class="form-label">@Text("Type", "النوع")</label>
                         <InputText class="form-control" @bind-Value="contract.Type" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">@Text("Party Type", "Party Type")</label>
-                        <InputText class="form-control" @bind-Value="contract.PartyType" placeholder="Customer, Employee, Supplier" />
+                        <label class="form-label">@Text("Party Type", "نوع الطرف")</label>
+                        <InputText class="form-control" @bind-Value="contract.PartyType" placeholder="@Text("Customer, Employee, Supplier", "عميل، موظف، مورد")" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">@Text("Party Id", "Party Id")</label>
+                        <label class="form-label">@Text("Party Id", "معرف الطرف")</label>
                         <InputText class="form-control" @bind-Value="partyIdText" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">@Text("Party Name", "Party Name")</label>
+                        <label class="form-label">@Text("Party Name", "اسم الطرف")</label>
                         <InputText class="form-control" @bind-Value="contract.PartyDisplayName" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">@Text("Start Date", "Start Date")</label>
+                        <label class="form-label">@Text("Start Date", "تاريخ البداية")</label>
                         <InputDate class="form-control" @bind-Value="contract.StartDate" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">@Text("End Date", "End Date")</label>
+                        <label class="form-label">@Text("End Date", "تاريخ الانتهاء")</label>
                         <InputDate class="form-control" @bind-Value="contract.EndDate" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">@Text("Value", "Value")</label>
+                        <label class="form-label">@Text("Value", "القيمة")</label>
                         <InputNumber class="form-control" @bind-Value="contract.ContractValue" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">@Text("Status", "Status")</label>
-                        <input class="form-control" value="@contract.Status" readonly />
+                        <label class="form-label">@Text("Status", "الحالة")</label>
+                        <input class="form-control" value="@SharedDataService.ContractStatusLabel(contract.Status)" readonly />
                     </div>
                     <div class="col-12">
-                        <label class="form-label">@Text("Notes", "Notes")</label>
+                        <label class="form-label">@Text("Notes", "ملاحظات")</label>
                         <InputTextArea class="form-control" @bind-Value="contract.Notes" />
                     </div>
                 </div>
             </AppCard>
 
-            <AppCard Title="@Text("Auto Renewal", "Auto Renewal")" CssClass="mb-3 erp-form-section">
+            <AppCard Title="@Text("Auto Renewal", "التجديد التلقائي")" CssClass="mb-3 erp-form-section">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-2">
                         <div class="form-check">
                             <InputCheckbox class="form-check-input" @bind-Value="contract.RenewalSettings.AutoRenew" />
-                            <label class="form-check-label">@Text("Auto renew", "Auto renew")</label>
+                            <label class="form-check-label">@Text("Auto renew", "تجديد تلقائي")</label>
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">@Text("Term", "Term")</label>
+                        <label class="form-label">@Text("Term", "المدة")</label>
                         <InputNumber class="form-control" @bind-Value="contract.RenewalSettings.RenewalTermValue" />
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">@Text("Unit", "Unit")</label>
+                        <label class="form-label">@Text("Unit", "الوحدة")</label>
                         <InputSelect class="form-select" @bind-Value="contract.RenewalSettings.RenewalTermUnit">
                             @foreach (var unit in Enum.GetValues<ContractTermUnit>())
                             {
-                                <option value="@unit">@unit</option>
+                                <option value="@unit">@SharedDataService.TermUnitLabel(unit)</option>
                             }
                         </InputSelect>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">@Text("Notice days", "Notice days")</label>
+                        <label class="form-label">@Text("Notice days", "أيام الإشعار")</label>
                         <InputNumber class="form-control" @bind-Value="contract.RenewalSettings.RenewalNoticeDays" />
                     </div>
                     <div class="col-md-2">
                         <div class="form-check">
                             <InputCheckbox class="form-check-input" @bind-Value="contract.RenewalSettings.RequiresRenewalFee" />
-                            <label class="form-check-label">@Text("Renewal fee", "Renewal fee")</label>
+                            <label class="form-check-label">@Text("Renewal fee", "رسوم التجديد")</label>
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">@Text("Grace days", "Grace days")</label>
+                        <label class="form-label">@Text("Grace days", "أيام السماح")</label>
                         <InputNumber class="form-control" @bind-Value="contract.RenewalSettings.PaymentGraceDays" />
                     </div>
                     @if (contract.RenewalSettings.RequiresRenewalFee)
                     {
                         <div class="col-md-3">
-                            <label class="form-label">@Text("Fee mode", "Fee mode")</label>
+                            <label class="form-label">@Text("Fee mode", "طريقة الرسوم")</label>
                             <InputSelect class="form-select" @bind-Value="contract.RenewalSettings.FeeMode">
-                                <option value="@ContractRenewalFeeMode.FixedAmount">@Text("Fixed amount", "Fixed amount")</option>
-                                <option value="@ContractRenewalFeeMode.PercentageOfContractValue">@Text("Percent of value", "Percent of value")</option>
+                                <option value="@ContractRenewalFeeMode.FixedAmount">@SharedDataService.FeeModeLabel(ContractRenewalFeeMode.FixedAmount)</option>
+                                <option value="@ContractRenewalFeeMode.PercentageOfContractValue">@SharedDataService.FeeModeLabel(ContractRenewalFeeMode.PercentageOfContractValue)</option>
                             </InputSelect>
                         </div>
                         @if (contract.RenewalSettings.FeeMode == ContractRenewalFeeMode.FixedAmount)
                         {
                             <div class="col-md-3">
-                                <label class="form-label">@Text("Fee amount", "Fee amount")</label>
+                                <label class="form-label">@Text("Fee amount", "مبلغ الرسوم")</label>
                                 <InputNumber class="form-control" @bind-Value="contract.RenewalSettings.FeeAmount" />
                             </div>
                         }
                         else
                         {
                             <div class="col-md-3">
-                                <label class="form-label">@Text("Fee percentage", "Fee percentage")</label>
+                                <label class="form-label">@Text("Fee percentage", "نسبة الرسوم")</label>
                                 <InputNumber class="form-control" @bind-Value="contract.RenewalSettings.FeePercentage" />
                             </div>
                         }
@@ -165,10 +166,10 @@
             </AppCard>
 
             <div class="d-flex justify-content-end gap-2 mb-3">
-                <button type="button" class="btn btn-outline-secondary" @onclick="Back">@Text("Cancel", "Cancel")</button>
+                <button type="button" class="btn btn-outline-secondary" @onclick="Back">@Text("Cancel", "إلغاء")</button>
                 <button type="submit" class="btn btn-primary" disabled="@(!CanSave)">
                     <i class="bi bi-check-lg"></i>
-                    @Text("Save", "Save")
+                    @Text("Save", "حفظ")
                 </button>
             </div>
         </EditForm>
@@ -186,7 +187,7 @@
     private Guid companyId;
     private string partyIdText = string.Empty;
     private bool isLoading;
-    private string PageTitle => contract.Id == Guid.Empty ? Text("New Contract", "New Contract") : $"{contract.Number} - {contract.Title}";
+    private string PageTitle => contract.Id == Guid.Empty ? Text("New Contract", "عقد جديد") : $"{contract.Number} - {contract.Title}";
     private bool CanSave => contract.Id == Guid.Empty ? HasPermission(PermissionList.ContractPermissions.Create) : HasPermission(PermissionList.ContractPermissions.Edit);
 
     protected override void OnInitialized()
@@ -211,7 +212,7 @@
             }
             else
             {
-                ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load contract.", "Could not load contract."));
+                ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load contract.", "تعذر تحميل العقد."));
             }
             isLoading = false;
         }
@@ -241,7 +242,7 @@
     {
         if (!Guid.TryParse(partyIdText, out var partyId))
         {
-            ToastService.ShowWarning(Text("Party Id must be a valid Guid.", "Party Id must be a valid Guid."));
+            ToastService.ShowWarning(Text("Party Id must be a valid Guid.", "يجب أن يكون معرف الطرف بصيغة Guid صحيحة."));
             return;
         }
 
@@ -252,11 +253,11 @@
             var createResponse = await ContractsService.CreateContractAsync(contract);
             if (!createResponse.IsSuccess)
             {
-                ToastService.ShowError(createResponse.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not save contract.", "Could not save contract."));
+                ToastService.ShowError(createResponse.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not save contract.", "تعذر حفظ العقد."));
                 return;
             }
 
-            ToastService.ShowSuccess(Text("Contract saved.", "Contract saved."));
+            ToastService.ShowSuccess(Text("Contract saved.", "تم حفظ العقد."));
             if (createResponse.Data is not null)
                 NavigationManager.NavigateTo($"/Contracts/Detail/{createResponse.Data.Id}");
             return;
@@ -265,11 +266,11 @@
         var response = await ContractsService.UpdateContractAsync(contract);
         if (!response.IsSuccess)
         {
-            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not save contract.", "Could not save contract."));
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not save contract.", "تعذر حفظ العقد."));
             return;
         }
 
-        ToastService.ShowSuccess(Text("Contract saved.", "Contract saved."));
+        ToastService.ShowSuccess(Text("Contract saved.", "تم حفظ العقد."));
         NavigationManager.NavigateTo($"/Contracts/Detail/{contract.Id}");
     }
 

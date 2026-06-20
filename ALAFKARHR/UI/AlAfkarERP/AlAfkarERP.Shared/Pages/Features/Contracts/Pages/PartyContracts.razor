@@ -1,6 +1,7 @@
-@layout AdminLayout
+﻿@layout AdminLayout
 @page "/Contracts/Party/{PartyType}/{PartyId:guid}"
 
+@using AlAfkarERP.Shared.Pages.Features.Contracts
 @using AlAfkarERP.Shared.Pages.Features.Contracts.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Contracts.Dtos
@@ -15,45 +16,45 @@
 @inject ToastService ToastService
 
 <div class="erp-page" dir="@SharedDataService.PageDirection">
-    <PageHeader Title="@Text("Party Contracts", "Party Contracts")"
+    <PageHeader Title="@Text("Party Contracts", "عقود الطرف")"
                 Subtitle="@PartySubtitle"
-                Overline="@Text("Contracts", "Contracts")"
+                Overline="@Text("Contracts", "العقود")"
                 Icon="bi-person-lines-fill">
         <Actions>
             <button class="btn btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo("/Contracts/List")'>
                 <i class="bi bi-list-check"></i>
-                @Text("All Contracts", "All Contracts")
+                @Text("All Contracts", "كل العقود")
             </button>
             <button class="btn btn-primary" @onclick="CreateLinkedContract" disabled="@(!CanCreate)">
                 <i class="bi bi-plus-lg"></i>
-                @Text("New Linked Contract", "New Linked Contract")
+                @Text("New Linked Contract", "عقد مرتبط جديد")
             </button>
         </Actions>
     </PageHeader>
 
     @if (!CanView)
     {
-        <div class="alert alert-warning">@Text("You don't have permissions to view contracts.", "You don't have permissions to view contracts.")</div>
+        <div class="alert alert-warning">@Text("You don't have permissions to view contracts.", "ليست لديك صلاحية عرض العقود.")</div>
     }
     else
     {
-        <AppCard Title="@Text("Contracts", "Contracts")">
+        <AppCard Title="@Text("Contracts", "العقود")">
             <FilterBar CssClass="mb-3">
                 <ChildContent>
                     <div class="input-group erp-search-control">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input class="form-control" placeholder="@Text("Search this party's contracts", "Search this party's contracts")" @bind="searchText" @bind:event="oninput" @onkeydown="HandleSearchKey" />
+                        <input class="form-control" placeholder="@Text("Search this party's contracts", "ابحث في عقود هذا الطرف")" @bind="searchText" @bind:event="oninput" @onkeydown="HandleSearchKey" />
                     </div>
                     <select class="form-select" @bind="status">
-                        <option value="">@Text("All statuses", "All statuses")</option>
+                        <option value="">@Text("All statuses", "كل الحالات")</option>
                         @foreach (var option in Enum.GetValues<ContractStatus>())
                         {
-                            <option value="@option">@option</option>
+                            <option value="@option">@SharedDataService.ContractStatusLabel(option)</option>
                         }
                     </select>
                 </ChildContent>
                 <Actions>
-                    <button class="btn btn-outline-secondary" @onclick="SearchAsync"><i class="bi bi-arrow-repeat"></i> @Text("Refresh", "Refresh")</button>
+                    <button class="btn btn-outline-secondary" @onclick="SearchAsync"><i class="bi bi-arrow-repeat"></i> @Text("Refresh", "تحديث")</button>
                 </Actions>
             </FilterBar>
 
@@ -61,11 +62,11 @@
                 <table class="table erp-table mb-0">
                     <thead>
                         <tr>
-                            <th>@Text("Number", "Number")</th>
-                            <th>@Text("Contract", "Contract")</th>
-                            <th>@Text("Dates", "Dates")</th>
-                            <th>@Text("Status", "Status")</th>
-                            <th class="text-end">@Text("Actions", "Actions")</th>
+                            <th>@Text("Number", "الرقم")</th>
+                            <th>@Text("Contract", "العقد")</th>
+                            <th>@Text("Dates", "التواريخ")</th>
+                            <th>@Text("Status", "الحالة")</th>
+                            <th class="text-end">@Text("Actions", "الإجراءات")</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -75,7 +76,7 @@
                         }
                         else if (contracts.Count == 0)
                         {
-                            <tr><td colspan="5" class="text-center text-muted py-4">@Text("No contracts found for this party.", "No contracts found for this party.")</td></tr>
+                            <tr><td colspan="5" class="text-center text-muted py-4">@Text("No contracts found for this party.", "لم يتم العثور على عقود لهذا الطرف.")</td></tr>
                         }
                         @foreach (var contract in contracts)
                         {
@@ -83,11 +84,11 @@
                                 <td><span class="fw-semibold">@contract.Number</span></td>
                                 <td><div class="fw-semibold">@contract.Title</div><div class="text-muted small">@contract.Type</div></td>
                                 <td>@contract.StartDate.ToString("yyyy-MM-dd") - @contract.EndDate.ToString("yyyy-MM-dd")</td>
-                                <td><StatusChip Text="@contract.Status.ToString()" Tone="@StatusTone(contract.Status)" /></td>
+                                <td><StatusChip Text="@SharedDataService.ContractStatusLabel(contract.Status)" Tone="@StatusTone(contract.Status)" /></td>
                                 <td>
                                     <div class="d-flex justify-content-end gap-2">
-                                        <button class="btn btn-outline-primary btn-sm erp-row-action" title="@Text("Open", "Open")" @onclick='() => NavigationManager.NavigateTo($"/Contracts/Detail/{contract.Id}")'><i class="bi bi-eye"></i></button>
-                                        <button class="btn btn-outline-secondary btn-sm erp-row-action" title="@Text("Edit", "Edit")" @onclick='() => NavigationManager.NavigateTo($"/Contracts/Form/{contract.Id}")' disabled="@(!CanEdit)"><i class="bi bi-pencil-square"></i></button>
+                                        <button class="btn btn-outline-primary btn-sm erp-row-action" title="@Text("Open", "فتح")" @onclick='() => NavigationManager.NavigateTo($"/Contracts/Detail/{contract.Id}")'><i class="bi bi-eye"></i></button>
+                                        <button class="btn btn-outline-secondary btn-sm erp-row-action" title="@Text("Edit", "تعديل")" @onclick='() => NavigationManager.NavigateTo($"/Contracts/Form/{contract.Id}")' disabled="@(!CanEdit)"><i class="bi bi-pencil-square"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -97,9 +98,9 @@
             </div>
 
             <div class="d-flex justify-content-end align-items-center gap-2 mt-3">
-                <button class="btn btn-sm btn-outline-secondary" @onclick="PrevPage" disabled="@(pageIndex <= 1)">@Text("Previous", "Previous")</button>
-                <span class="text-muted small">@Text("Page", "Page") @pageIndex @Text("of", "of") @TotalPages</span>
-                <button class="btn btn-sm btn-outline-secondary" @onclick="NextPage" disabled="@(pageIndex >= TotalPages)">@Text("Next", "Next")</button>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="PrevPage" disabled="@(pageIndex <= 1)">@Text("Previous", "السابق")</button>
+                <span class="text-muted small">@Text("Page", "صفحة") @pageIndex @Text("of", "من") @TotalPages</span>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="NextPage" disabled="@(pageIndex >= TotalPages)">@Text("Next", "التالي")</button>
             </div>
         </AppCard>
     }
@@ -159,7 +160,7 @@
         }
         else
         {
-            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load party contracts.", "Could not load party contracts."));
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load party contracts.", "تعذر تحميل عقود الطرف."));
         }
         isLoading = false;
     }
