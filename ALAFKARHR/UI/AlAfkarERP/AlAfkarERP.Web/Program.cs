@@ -210,6 +210,12 @@ builder.Services.AddHttpClient<IStockMovementService, StockMovementService>(clie
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
 
+builder.Services.AddScoped<IAssetInstanceService, AssetInstanceService>();
+builder.Services.AddHttpClient<IAssetInstanceService, AssetInstanceService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+
 #endregion Inventory
 
 #region Customers

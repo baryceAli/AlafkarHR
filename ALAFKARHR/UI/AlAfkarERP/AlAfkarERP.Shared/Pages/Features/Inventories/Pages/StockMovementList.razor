@@ -1,5 +1,5 @@
 @layout AdminLayout
-@page "/Inventory/Movements"
+@page "/Inventory/Movements/Legacy"
 @implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Inventories.Services
@@ -24,7 +24,7 @@
 <div class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@SharedDataService.SelectViewLang("Stock Movements", "حركات المخزون")"
                 Overline="@SharedDataService.SelectViewLang("Inventory", "المخزون")"
-                Description="@SharedDataService.SelectViewLang("Audit stock movement history by document reference and warehouse.", "مراجعة سجل حركات المخزون حسب المرجع والمستودع.")" />
+                Subtitle="@SharedDataService.SelectViewLang("Audit stock movement history by document reference and warehouse.", "مراجعة سجل حركات المخزون حسب المرجع والمستودع.")" />
 
     <div class="erp-card">
         <div class="erp-card-header d-flex justify-content-between align-items-center gap-2">

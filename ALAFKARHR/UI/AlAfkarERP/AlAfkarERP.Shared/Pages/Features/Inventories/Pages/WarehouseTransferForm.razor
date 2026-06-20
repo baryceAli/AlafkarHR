@@ -182,6 +182,7 @@
 
     protected override void OnInitialized()
     {
+        NavigationManager.NavigateTo("/Inventory/Transfers", replace: true);
         SharedDataService.OnChange1 += HandleChangeAsync;
     }
 

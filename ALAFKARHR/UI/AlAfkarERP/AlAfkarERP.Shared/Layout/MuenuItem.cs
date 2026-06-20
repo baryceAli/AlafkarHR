@@ -758,6 +758,14 @@ public class MenuItem
                         },
                         new MenuItem
                         {
+                            TextEn = "Asset Instances",
+                            TextAr = "الأصول المخزنية",
+                            Icon = "bi-hdd-rack",
+                            Url = "/Inventory/AssetInstances",
+                            PermissionPolicy = PermissionList.InventoryItemPermissions.View,
+                        },
+                        new MenuItem
+                        {
                             TextEn = "Stock Operations",
                             TextAr = "عمليات المخزون",
                             Icon = "bi-arrow-left-right",

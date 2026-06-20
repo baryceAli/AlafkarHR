@@ -13,7 +13,18 @@ public class StockMovementService : BaseApiService, IStockMovementService
         _path = $"api/{apiConfig.Version}/inventory/stock-movements";
     }
 
-    public async Task<ApiResult<PaginatedResult<StockMovementDto>>> GetAsync(Guid companyId, int pageIndex, int pageSize, string? searchText = null, Guid? warehouseId = null, Guid? productSkuId = null, Guid? batchId = null)
+    public async Task<ApiResult<PaginatedResult<StockMovementDto>>> GetAsync(
+        Guid companyId,
+        int pageIndex,
+        int pageSize,
+        string? searchText = null,
+        Guid? warehouseId = null,
+        Guid? productSkuId = null,
+        Guid? batchId = null,
+        string? sourceDocumentType = null,
+        string? referenceNumber = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null)
     {
         var query = $"pageIndex={pageIndex}&pageSize={pageSize}&searchText={Uri.EscapeDataString(searchText ?? string.Empty)}";
         if (warehouseId.HasValue)
@@ -22,6 +33,14 @@ public class StockMovementService : BaseApiService, IStockMovementService
             query += $"&productSkuId={productSkuId.Value}";
         if (batchId.HasValue)
             query += $"&batchId={batchId.Value}";
+        if (!string.IsNullOrWhiteSpace(sourceDocumentType))
+            query += $"&sourceDocumentType={Uri.EscapeDataString(sourceDocumentType)}";
+        if (!string.IsNullOrWhiteSpace(referenceNumber))
+            query += $"&referenceNumber={Uri.EscapeDataString(referenceNumber)}";
+        if (fromDate.HasValue)
+            query += $"&fromDate={Uri.EscapeDataString(fromDate.Value.ToString("O"))}";
+        if (toDate.HasValue)
+            query += $"&toDate={Uri.EscapeDataString(toDate.Value.ToString("O"))}";
 
         var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/company/{companyId}?{query}");
         return await SendAsync<PaginatedResult<StockMovementDto>>(request, "movementList");

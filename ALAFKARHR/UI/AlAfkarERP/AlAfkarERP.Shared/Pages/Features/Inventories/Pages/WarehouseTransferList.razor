@@ -1,5 +1,5 @@
 @layout AdminLayout
-@page "/Inventory/Transfers"
+@page "/Inventory/Transfers/Legacy"
 @implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Inventories.Services
@@ -26,7 +26,7 @@
 <div class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@SharedDataService.SelectViewLang("Warehouse Transfers", "تحويلات المستودعات")"
                 Overline="@SharedDataService.SelectViewLang("Inventory", "المخزون")"
-                Description="@SharedDataService.SelectViewLang("Create, ship, and cancel warehouse transfer documents.", "إنشاء وشحن وإلغاء مستندات تحويل المستودعات.")" />
+                Subtitle="@SharedDataService.SelectViewLang("Create, ship, and cancel warehouse transfer documents.", "إنشاء وشحن وإلغاء مستندات تحويل المستودعات.")" />
 
     <div class="erp-card mb-3">
         <div class="erp-card-header">

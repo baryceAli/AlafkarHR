@@ -21,6 +21,10 @@
                 <i class="bi bi-building"></i>
                 @SharedDataService.SelectViewLang("Warehouses", "المستودعات")
             </a>
+            <a class="btn btn-outline-secondary" href="/Inventory/Transfers">
+                <i class="bi bi-truck"></i>
+                @SharedDataService.SelectViewLang("Transfers", "التحويلات")
+            </a>
         </Actions>
     </PageHeader>
 
@@ -49,6 +53,33 @@
                 <a class="btn btn-outline-primary" href="/Inventory/Operations/StockIn">
                     <i class="bi bi-arrow-up-right"></i>
                     @SharedDataService.SelectViewLang("Start", "بدء")
+                </a>
+            </AppCard>
+        </div>
+        <div class="col-md-4">
+            <AppCard Title="@SharedDataService.SelectViewLang("Transfers", "التحويلات")"
+                     Subtitle="@SharedDataService.SelectViewLang("Move stock between warehouses and receive shipped items.", "نقل المخزون بين المستودعات واستلام البنود المشحونة.")">
+                <a class="btn btn-outline-primary" href="/Inventory/Transfers">
+                    <i class="bi bi-arrow-up-right"></i>
+                    @SharedDataService.SelectViewLang("Open", "فتح")
+                </a>
+            </AppCard>
+        </div>
+        <div class="col-md-4">
+            <AppCard Title="@SharedDataService.SelectViewLang("Movements", "حركات المخزون")"
+                     Subtitle="@SharedDataService.SelectViewLang("Review movement history by document, warehouse, SKU, and batch.", "مراجعة سجل الحركات حسب المستند والمستودع والمنتج والدفعة.")">
+                <a class="btn btn-outline-primary" href="/Inventory/Movements">
+                    <i class="bi bi-arrow-up-right"></i>
+                    @SharedDataService.SelectViewLang("Open", "فتح")
+                </a>
+            </AppCard>
+        </div>
+        <div class="col-md-4">
+            <AppCard Title="@SharedDataService.SelectViewLang("Asset Instances", "الأصول المخزنية")"
+                     Subtitle="@SharedDataService.SelectViewLang("Track serialized and asset-managed inventory items.", "تتبع عناصر المخزون المسلسلة والمدارة كأصول.")">
+                <a class="btn btn-outline-primary" href="/Inventory/AssetInstances">
+                    <i class="bi bi-arrow-up-right"></i>
+                    @SharedDataService.SelectViewLang("Open", "فتح")
                 </a>
             </AppCard>
         </div>

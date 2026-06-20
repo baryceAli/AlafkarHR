@@ -1,0 +1,339 @@
+@layout AdminLayout
+@page "/Inventory/Movements"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Permissions
+
+@inject IStockMovementService MovementService
+@inject IWarehouseService WarehouseService
+@inject IProductService ProductService
+@inject IBatchService BatchService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (AuthState?.User?.Identity?.IsAuthenticated == true && !AuthState.User.Claims.Any(c => c.Value == PermissionList.StockTransactionPermissions.View))
+{
+    <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")</div>
+    return;
+}
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Stock Movements", "حركات المخزون")"
+                Overline="@SharedDataService.SelectViewLang("Inventory", "المخزون")"
+                Subtitle="@SharedDataService.SelectViewLang("Audit stock movement history by document, warehouse, SKU, batch, and date.", "مراجعة سجل حركات المخزون حسب المستند والمستودع والمنتج والدفعة والتاريخ.")" />
+
+    <div class="erp-card mb-3">
+        <div class="erp-card-header">
+            <h5 class="mb-0">@SharedDataService.SelectViewLang("Filters", "الفلاتر")</h5>
+        </div>
+        <div class="erp-card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Search", "بحث")</label>
+                    <InputText class="form-control" @bind-Value="searchText" />
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Warehouse", "المستودع")</label>
+                    <InputSelect class="form-select" @bind-Value="warehouseId">
+                        <option value="">@SharedDataService.SelectViewLang("All warehouses", "كل المستودعات")</option>
+                        @foreach (var warehouse in warehouses)
+                        {
+                            <option value="@warehouse.Id">@DisplayWarehouse(warehouse)</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
+                    <InputSelect class="form-select" @bind-Value="productId" @bind-Value:after="OnProductFilterChanged">
+                        <option value="">@SharedDataService.SelectViewLang("All products", "كل المنتجات")</option>
+                        @foreach (var product in products)
+                        {
+                            <option value="@product.Id">@DisplayProduct(product)</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("SKU", "المنتج المخزني")</label>
+                    <InputSelect class="form-select" @bind-Value="productSkuId" @bind-Value:after="OnSkuFilterChanged">
+                        <option value="">@SharedDataService.SelectViewLang("All SKUs", "كل المنتجات المخزنية")</option>
+                        @foreach (var sku in filteredSkus)
+                        {
+                            <option value="@sku.Id">@DisplaySku(sku)</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Batch", "الدفعة")</label>
+                    <InputSelect class="form-select" @bind-Value="batchId">
+                        <option value="">@SharedDataService.SelectViewLang("All batches", "كل الدفعات")</option>
+                        @foreach (var batch in filteredBatches)
+                        {
+                            <option value="@batch.Id">@batch.BatchNumber</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Source Type", "نوع المصدر")</label>
+                    <InputText class="form-control" @bind-Value="sourceDocumentType" />
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Reference", "المرجع")</label>
+                    <InputText class="form-control" @bind-Value="referenceNumber" />
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("From", "من")</label>
+                    <InputDate class="form-control" @bind-Value="fromDate" />
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("To", "إلى")</label>
+                    <InputDate class="form-control" @bind-Value="toDate" />
+                </div>
+                <div class="col-lg-3 col-md-6 d-flex gap-2">
+                    <button class="btn btn-primary flex-fill" type="button" @onclick="ApplyFiltersAsync">
+                        <i class="bi bi-search"></i>
+                        @SharedDataService.SelectViewLang("Apply", "تطبيق")
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" @onclick="ClearFiltersAsync">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="erp-card">
+        <div class="erp-card-header d-flex justify-content-between align-items-center gap-2">
+            <h5 class="mb-0">@SharedDataService.SelectViewLang("Movement Ledger", "سجل الحركات")</h5>
+            <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="LoadMovementsAsync">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </div>
+        <div class="erp-card-body">
+            <div class="erp-table-wrap">
+                <table class="erp-table table">
+                    <thead>
+                        <tr>
+                            <th>@SharedDataService.SelectViewLang("Date", "التاريخ")</th>
+                            <th>@SharedDataService.SelectViewLang("Reference", "المرجع")</th>
+                            <th>@SharedDataService.SelectViewLang("Source", "المصدر")</th>
+                            <th>@SharedDataService.SelectViewLang("Warehouse", "المستودع")</th>
+                            <th>@SharedDataService.SelectViewLang("SKU", "المنتج المخزني")</th>
+                            <th>@SharedDataService.SelectViewLang("Batch", "الدفعة")</th>
+                            <th>@SharedDataService.SelectViewLang("Type", "النوع")</th>
+                            <th>@SharedDataService.SelectViewLang("Before", "قبل")</th>
+                            <th>@SharedDataService.SelectViewLang("After", "بعد")</th>
+                            <th>@SharedDataService.SelectViewLang("Reserved", "محجوز")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (movements.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="10" class="text-muted text-center py-4">@SharedDataService.SelectViewLang("No movements found", "لا توجد حركات")</td>
+                            </tr>
+                        }
+                        @foreach (var movement in movements)
+                        {
+                            <tr>
+                                <td>@movement.CreatedAt?.ToLocalTime().ToString("g")</td>
+                                <td>@movement.ReferenceNumber</td>
+                                <td>@movement.SourceDocumentType</td>
+                                <td>@DisplayWarehouseName(movement.WarehouseId)</td>
+                                <td>@DisplaySkuName(movement.ProductSkuId)</td>
+                                <td>@DisplayBatchName(movement.BatchId)</td>
+                                <td>@movement.MovementType</td>
+                                <td>@movement.QuantityBefore</td>
+                                <td>@movement.QuantityAfter</td>
+                                <td>@movement.ReservedAfter</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+                <div class="text-muted small">@SharedDataService.SelectViewLang("Page", "صفحة") @(pageIndex + 1)</div>
+                <div class="btn-group">
+                    <button class="btn btn-outline-secondary btn-sm" type="button" disabled="@(pageIndex == 0)" @onclick="PreviousPageAsync">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" type="button" disabled="@(!hasNextPage)" @onclick="NextPageAsync">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private AuthenticationState? AuthState;
+    private Guid companyId;
+    private List<StockMovementDto> movements = [];
+    private List<WarehouseDto> warehouses = [];
+    private List<ProductDto> products = [];
+    private List<ProductSkuDto> filteredSkus = [];
+    private List<BatchDto> batches = [];
+    private List<BatchDto> filteredBatches = [];
+    private Guid? warehouseId;
+    private Guid? productId;
+    private Guid? productSkuId;
+    private Guid? batchId;
+    private string? searchText;
+    private string? sourceDocumentType;
+    private string? referenceNumber;
+    private DateTime? fromDate;
+    private DateTime? toDate;
+    private int pageIndex;
+    private const int PageSize = 50;
+    private bool hasNextPage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!CompanyContext.TryGetCompanyId(AuthState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+
+        await LoadLookupsAsync();
+        await LoadMovementsAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var warehouseResult = await WarehouseService.GetAsync(companyId, 0, 10000);
+        if (warehouseResult.IsSuccess)
+            warehouses = warehouseResult.Data?.Data?.ToList() ?? [];
+
+        var productResult = await ProductService.GetByCompanyAsync(companyId, 0, 10000);
+        if (productResult.IsSuccess)
+        {
+            products = productResult.Data?.Data?.ToList() ?? [];
+            filteredSkus = products.SelectMany(p => p.Skus).ToList();
+        }
+
+        var batchResult = await BatchService.GetAsync(companyId, 0, 10000);
+        if (batchResult.IsSuccess)
+        {
+            batches = batchResult.Data?.Data?.ToList() ?? [];
+            filteredBatches = batches;
+        }
+    }
+
+    private async Task LoadMovementsAsync()
+    {
+        var result = await MovementService.GetAsync(companyId, pageIndex, PageSize, searchText, warehouseId, productSkuId, batchId, sourceDocumentType, referenceNumber, fromDate, toDate);
+        if (result.IsSuccess)
+        {
+            movements = result.Data?.Data?.ToList() ?? [];
+            hasNextPage = movements.Count == PageSize;
+        }
+        else
+        {
+            ToastService.Show(new ToastMessage { Message = SharedDataService.SelectViewLang("Could not load movements", "تعذر تحميل الحركات"), Type = "error" });
+        }
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        pageIndex = 0;
+        await LoadMovementsAsync();
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        warehouseId = null;
+        productId = null;
+        productSkuId = null;
+        batchId = null;
+        searchText = null;
+        sourceDocumentType = null;
+        referenceNumber = null;
+        fromDate = null;
+        toDate = null;
+        filteredSkus = products.SelectMany(p => p.Skus).ToList();
+        filteredBatches = batches;
+        pageIndex = 0;
+        await LoadMovementsAsync();
+    }
+
+    private void OnProductFilterChanged()
+    {
+        productSkuId = null;
+        batchId = null;
+        filteredSkus = productId.HasValue
+            ? products.FirstOrDefault(p => p.Id == productId.Value)?.Skus ?? []
+            : products.SelectMany(p => p.Skus).ToList();
+        filteredBatches = batches;
+    }
+
+    private void OnSkuFilterChanged()
+    {
+        batchId = null;
+        filteredBatches = productSkuId.HasValue
+            ? batches.Where(b => b.ProductSkuId == productSkuId.Value).ToList()
+            : batches;
+    }
+
+    private async Task PreviousPageAsync()
+    {
+        if (pageIndex == 0)
+            return;
+        pageIndex--;
+        await LoadMovementsAsync();
+    }
+
+    private async Task NextPageAsync()
+    {
+        pageIndex++;
+        await LoadMovementsAsync();
+    }
+
+    private string DisplayWarehouse(WarehouseDto warehouse) =>
+        SharedDataService.Language == "Ar" ? warehouse.Name : warehouse.NameEng;
+
+    private string DisplayProduct(ProductDto product) =>
+        SharedDataService.SelectViewLang(product.NameEng, product.Name);
+
+    private string DisplaySku(ProductSkuDto sku) =>
+        SharedDataService.SelectViewLang(sku.NameEng, sku.Name);
+
+    private string DisplayWarehouseName(Guid id)
+    {
+        var warehouse = warehouses.FirstOrDefault(w => w.Id == id);
+        return warehouse == null ? id.ToString() : DisplayWarehouse(warehouse);
+    }
+
+    private string DisplaySkuName(Guid id)
+    {
+        var sku = products.SelectMany(p => p.Skus).FirstOrDefault(s => s.Id == id);
+        return sku == null ? id.ToString() : DisplaySku(sku);
+    }
+
+    private string DisplayBatchName(Guid id) => batches.FirstOrDefault(b => b.Id == id)?.BatchNumber ?? id.ToString();
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
