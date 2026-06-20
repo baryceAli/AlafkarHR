@@ -368,40 +368,64 @@
     private async Task SaveRecentAsync(MenuItem item)
     {
         recentKeys = NavigationShellState.AddRecent(recentKeys, NavigationMenuResolver.GetStorageKey(item));
-        await JSRuntime.InvokeVoidAsync("localStorage.setItem", NavigationShellState.RecentStorageKey, NavigationShellState.SerializeKeys(recentKeys));
+        await TrySetLocalStorageItemAsync(NavigationShellState.RecentStorageKey, NavigationShellState.SerializeKeys(recentKeys));
     }
 
     private async Task ToggleCollapsedAsync()
     {
         isCollapsed = !isCollapsed;
 
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("localStorage.setItem", NavigationShellState.SidebarCollapsedStorageKey, isCollapsed ? "true" : "false");
-        }
-        catch (InvalidOperationException)
-        {
-        }
-        catch (JSException)
-        {
-        }
+        await TrySetLocalStorageItemAsync(NavigationShellState.SidebarCollapsedStorageKey, isCollapsed ? "true" : "false");
     }
 
     private async Task LoadStateAsync()
     {
+        favoriteKeys = NavigationShellState.ParseKeys(await TryGetLocalStorageItemAsync(NavigationShellState.FavoriteStorageKey));
+        recentKeys = NavigationShellState.ParseKeys(await TryGetLocalStorageItemAsync(NavigationShellState.RecentStorageKey));
+        isCollapsed = string.Equals(
+            await TryGetLocalStorageItemAsync(NavigationShellState.SidebarCollapsedStorageKey),
+            "true",
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task<string?> TryGetLocalStorageItemAsync(string key)
+    {
         try
         {
-            favoriteKeys = NavigationShellState.ParseKeys(await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.FavoriteStorageKey));
-            recentKeys = NavigationShellState.ParseKeys(await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.RecentStorageKey));
-            isCollapsed = string.Equals(
-                await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.SidebarCollapsedStorageKey),
-                "true",
-                StringComparison.OrdinalIgnoreCase);
+            return await JSRuntime.InvokeAsync<string?>("localStorage.getItem", key);
         }
         catch (InvalidOperationException)
         {
         }
+        catch (JSDisconnectedException)
+        {
+        }
         catch (JSException)
+        {
+        }
+        catch (OperationCanceledException)
+        {
+        }
+
+        return null;
+    }
+
+    private async Task TrySetLocalStorageItemAsync(string key, string value)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", key, value);
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        catch (JSException)
+        {
+        }
+        catch (OperationCanceledException)
         {
         }
     }
