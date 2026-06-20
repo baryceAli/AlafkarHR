@@ -1285,6 +1285,37 @@ public class MenuItem
             }
         },
 
+        //General Settings
+        new MenuItem
+        {
+            TextEn = "General Settings",
+            TextAr = "الإعدادات العامة",
+            Icon = "bi-gear-wide-connected",
+            PermissionPolicy = PermissionList.SystemSettingsPermissions.Select,
+            WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            KeywordsEn = "admin general settings system settings currencies configuration",
+            KeywordsAr = "إدارة إعدادات عامة إعدادات النظام عملات تهيئة",
+            Children = new()
+            {
+                new MenuItem
+                {
+                    TextEn = "System Settings",
+                    TextAr = "إعدادات النظام",
+                    Icon = "bi-gear-wide-connected",
+                    Url = "/GeneralSettings/SystemSettings",
+                    PermissionPolicy = PermissionList.SystemSettingsPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Currencies",
+                    TextAr = "العملات",
+                    Icon = "bi-currency-exchange",
+                    Url = "/GeneralSettings/Currencies",
+                    PermissionPolicy = PermissionList.SystemSettingsPermissions.View
+                }
+            }
+        },
+
         //Security Management
         new MenuItem
         {
@@ -1293,8 +1324,8 @@ public class MenuItem
             Icon = "bi-shield-lock-fill",
             PermissionPolicy = PermissionList.UsersPermissions.Select,
             WorkspaceKey = NavigationMenuResolver.WorkspaceSecurity,
-            KeywordsEn = "it security roles users permissions settings currencies",
-            KeywordsAr = "تقنية أمن أدوار مستخدمين صلاحيات إعدادات عملات",
+            KeywordsEn = "it security roles users permissions",
+            KeywordsAr = "تقنية أمن أدوار مستخدمين صلاحيات",
             Children = new()
             {
                 new MenuItem
@@ -1320,22 +1351,6 @@ public class MenuItem
                     Icon = "bi-person-gear",
                     Url = "/Auth/User/AssignRole",
                     PermissionPolicy = PermissionList.UsersPermissions.View
-                },
-                new MenuItem
-                {
-                    TextEn = "System Settings",
-                    TextAr = "إعدادات النظام",
-                    Icon = "bi-gear-wide-connected",
-                    Url = "/GeneralSettings/SystemSettings",
-                    PermissionPolicy = PermissionList.SystemSettingsPermissions.View
-                },
-                new MenuItem
-                {
-                    TextEn = "Currencies",
-                    TextAr = "العملات",
-                    Icon = "bi-currency-exchange",
-                    Url = "/GeneralSettings/Currencies",
-                    PermissionPolicy = PermissionList.SystemSettingsPermissions.View
                 }
             }
         }
