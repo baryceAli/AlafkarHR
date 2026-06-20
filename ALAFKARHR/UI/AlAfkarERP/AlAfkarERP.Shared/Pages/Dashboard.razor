@@ -256,7 +256,10 @@
             {
                 new DashboardLink("Employees", "الموظفون", "Manage employee records.", "إدارة سجلات الموظفين.", "bi-person-badge", "/Employee/Employee/List", PermissionList.EmployeePermissions.View),
                 new DashboardLink("Attendance", "الحضور", "Track attendance sessions and shifts.", "متابعة جلسات الحضور والورديات.", "bi-calendar-check", "/Attendance/Dashboard", PermissionList.AttendancePermissions.View),
-                new DashboardLink("Leave Management", "إدارة الإجازات", "Request and approve leave items.", "طلب واعتماد الإجازات.", "bi-calendar-heart", "/LeavesManagement/EmergencyLeaves", PermissionList.AttendancePermissions.RequestEmergencyLeave),
+                new DashboardLink("My Emergency Leaves", "إجازاتي الطارئة", "Submit and track emergency leave.", "طلب ومتابعة الإجازة الطارئة.", "bi-calendar-heart", "/LeavesManagement/EmergencyLeaves", PermissionList.LeavePermissions.RequestEmergencyLeave),
+                new DashboardLink("Approve Leave", "اعتماد الإجازات", "Review emergency leave requests.", "مراجعة طلبات الإجازة الطارئة.", "bi-patch-check", "/LeavesManagement/ApproveEmergencyLeaves", PermissionList.LeavePermissions.ApproveEmergencyLeave),
+                new DashboardLink("Leave Balances", "أرصدة الإجازات", "View employee leave balances.", "عرض أرصدة إجازات الموظفين.", "bi-calendar2-week", "/LeavesManagement/Balances", PermissionList.LeavePermissions.ViewLeaveBalances),
+                new DashboardLink("Leave Reports", "تقارير الإجازات", "Review leave usage reports.", "مراجعة تقارير استخدام الإجازات.", "bi-file-earmark-bar-graph", "/LeavesManagement/Reports", PermissionList.LeavePermissions.ViewLeaveReports),
                 new DashboardLink("Payroll", "الرواتب", "Generate salaries and review contracts.", "توليد الرواتب ومراجعة العقود.", "bi-cash-stack", "/Payroll/SalaryRuns", PermissionList.SalaryRunPermissions.View)
             }),
         new DashboardSection(
@@ -794,3 +797,4 @@
         }
     }
 </style>
+

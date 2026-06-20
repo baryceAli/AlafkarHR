@@ -148,34 +148,6 @@ public class GetAttendanceReportHandler(AttendanceDbContext dbContext)
             }
         }
 
-        if (MatchesCategory(request.Filter.Category, "EmergencyLeave"))
-        {
-            var leaves = dbContext.EmergencyLeaveRequests.AsNoTracking()
-                .Where(x => x.CompanyId == request.Filter.CompanyId
-                    && x.EndDate >= fromDate
-                    && x.StartDate <= toDate);
-
-            if (request.Filter.EmployeeId.HasValue)
-            {
-                leaves = leaves.Where(x => x.EmployeeId == request.Filter.EmployeeId.Value);
-            }
-
-            if (request.Filter.Status.HasValue)
-            {
-                leaves = leaves.Where(x => x.Status == request.Filter.Status.Value);
-            }
-
-            rows.AddRange(await leaves.Select(x => new AttendanceReportRowDto
-            {
-                Date = x.StartDate,
-                EmployeeId = x.EmployeeId,
-                Category = "EmergencyLeave",
-                Status = x.Status,
-                Reason = x.Reason,
-                ApproverComment = x.ApproverComment
-            }).ToListAsync(cancellationToken));
-        }
-
         if (MatchesCategory(request.Filter.Category, "MidDayPermission"))
         {
             var permissions = dbContext.MidDayPermissionRequests.AsNoTracking()

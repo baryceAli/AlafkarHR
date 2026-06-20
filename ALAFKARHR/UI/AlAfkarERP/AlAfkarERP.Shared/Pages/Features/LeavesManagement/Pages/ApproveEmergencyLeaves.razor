@@ -1,27 +1,30 @@
 @layout AdminLayout
 @page "/LeavesManagement/ApproveEmergencyLeaves"
-@page "/Attendance/ApproveEmergencyLeaves"
 @implements IDisposable
 
-@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
-@using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Leave.Dtos
 
-@inject IAttendanceService AttendanceService
+@inject ILeaveService LeaveService
+@inject IEmployeeService EmployeeService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 
 <section class="erp-page" dir="@SharedDataService.PageDirection">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
         <div>
-            <p class="text-muted mb-1">@Text("Attendance", "الحضور والانصراف")</p>
-            <h3 class="mb-1">@Text("Approve Emergency Leave", "اعتماد الاجازة الطارئة")</h3>
-            <p class="text-muted mb-0">@Text("Approve or reject emergency leave requests for employees in your department, or administration when no department scope applies.", "اعتماد أو رفض طلبات الاجازة الطارئة لموظفي القسم، أو الادارة عند عدم توفر نطاق القسم.")</p>
+            <p class="text-muted mb-1">@Text("Leave Management", "Leave Management")</p>
+            <h3 class="mb-1">@Text("Approve Emergency Leave", "Approve Emergency Leave")</h3>
+            <p class="text-muted mb-0">@Text("Review emergency leave requests in your approval scope.", "Review emergency leave requests in your approval scope.")</p>
         </div>
         <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">
-            <i class="bi bi-arrow-clockwise me-1"></i>@Text("Refresh", "تحديث")
+            <i class="bi bi-arrow-clockwise me-1"></i>@Text("Refresh", "Refresh")
         </button>
     </div>
 
@@ -33,24 +36,45 @@
     <div class="card">
         <div class="card-body">
             <div class="row g-3 align-items-end mb-3">
-                <div class="col-md-8">
-                    <label class="form-label">@Text("Approval comment", "تعليق الاعتماد")</label>
-                    <textarea class="form-control" rows="2" @bind="reviewComment" placeholder="@Text("Optional note for the employee", "ملاحظة اختيارية للموظف")"></textarea>
+                <div class="col-md-3">
+                    <label class="form-label">@Text("Status", "Status")</label>
+                    <select class="form-select" @bind="selectedStatus" @bind:after="ResetAndLoadAsync">
+                        <option value="">@Text("All statuses", "All statuses")</option>
+                        <option value="@AttendanceExceptionStatus.Pending">@Text("Pending", "Pending")</option>
+                        <option value="@AttendanceExceptionStatus.Approved">@Text("Approved", "Approved")</option>
+                        <option value="@AttendanceExceptionStatus.Rejected">@Text("Rejected", "Rejected")</option>
+                    </select>
                 </div>
-                <div class="col-md-4 text-md-end">
-                    <span class="badge text-bg-warning">@Text("Pending", "معلق"): @requests.Count</span>
+                <div class="col-md-4">
+                    <label class="form-label">@Text("Employee", "Employee")</label>
+                    <select class="form-select" @bind="selectedEmployeeId" @bind:after="ResetAndLoadAsync">
+                        <option value="@Guid.Empty">@Text("All employees", "All employees")</option>
+                        @foreach (var employee in employees)
+                        {
+                            <option value="@employee.Id">@EmployeeName(employee)</option>
+                        }
+                    </select>
                 </div>
+                <div class="col-md-5">
+                    <label class="form-label">@Text("Approval comment", "Approval comment")</label>
+                    <textarea class="form-control" rows="2" @bind="reviewComment" placeholder="@Text("Optional note for the employee", "Optional note for the employee")"></textarea>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <span class="text-muted small">@Text("Total", "Total"): @totalCount</span>
+                <span class="badge text-bg-warning">@Text("Pending in this page", "Pending in this page"): @requests.Count(x => x.Status == AttendanceExceptionStatus.Pending)</span>
             </div>
 
             @if (isBusy)
             {
-                <div class="text-muted py-4">@Text("Loading emergency leave requests...", "جاري تحميل طلبات الاجازة الطارئة...")</div>
+                <div class="text-muted py-4">@Text("Loading emergency leave requests...", "Loading emergency leave requests...")</div>
             }
             else if (requests.Count == 0)
             {
                 <div class="text-center text-muted py-5">
                     <i class="bi bi-check2-circle fs-3 d-block mb-2"></i>
-                    @Text("No pending emergency leave requests are available for your approval scope.", "لا توجد طلبات اجازة طارئة معلقة ضمن نطاق اعتمادك.")
+                    @Text("No emergency leave requests are available for the selected filters.", "No emergency leave requests are available for the selected filters.")
                 </div>
             }
             else
@@ -59,44 +83,67 @@
                     <table class="table align-middle">
                         <thead>
                             <tr>
-                                <th>@Text("Employee", "الموظف")</th>
-                                <th>@Text("Dates", "التاريخ")</th>
-                                <th>@Text("Reason", "السبب")</th>
-                                <th>@Text("Attachment", "المرفق")</th>
-                                <th class="text-end">@Text("Actions", "الاجراءات")</th>
+                                <th>@Text("Employee", "Employee")</th>
+                                <th>@Text("Dates", "Dates")</th>
+                                <th>@Text("Reason", "Reason")</th>
+                                <th>@Text("Status", "Status")</th>
+                                <th>@Text("Attachment", "Attachment")</th>
+                                <th>@Text("Comment", "Comment")</th>
+                                <th class="text-end">@Text("Actions", "Actions")</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var request in requests)
                             {
                                 <tr>
-                                    <td>@request.EmployeeId</td>
-                                    <td>@request.StartDate.ToShortDateString() - @request.EndDate.ToShortDateString()</td>
+                                    <td>@EmployeeName(request.EmployeeId)</td>
+                                    <td>@FormatDate(request.StartDate) - @FormatDate(request.EndDate)</td>
                                     <td>@request.Reason</td>
+                                    <td><span class="badge rounded-pill @StatusBadgeClass(request.Status)">@Text(request.Status.ToString(), request.Status.ToString())</span></td>
                                     <td>
                                         @if (!string.IsNullOrWhiteSpace(request.AttachmentPath))
                                         {
-                                            <a href="@request.AttachmentPath" target="_blank" rel="noopener">@Text("Open", "فتح")</a>
+                                            <a href="@request.AttachmentPath" target="_blank" rel="noopener">@Text("Open", "Open")</a>
                                         }
                                         else
                                         {
                                             <span class="text-muted">-</span>
                                         }
                                     </td>
+                                    <td>@EmptyValue(request.ApproverComment)</td>
                                     <td class="text-end">
-                                        <div class="btn-group btn-group-sm" role="group" aria-label="@Text("Approval actions", "اجراءات الاعتماد")">
-                                            <button class="btn btn-outline-success" @onclick="() => ReviewAsync(request.Id, true)" disabled="@isBusy">
-                                                @Text("Approve", "اعتماد")
-                                            </button>
-                                            <button class="btn btn-outline-danger" @onclick="() => ReviewAsync(request.Id, false)" disabled="@isBusy">
-                                                @Text("Reject", "رفض")
-                                            </button>
-                                        </div>
+                                        @if (request.Status == AttendanceExceptionStatus.Pending)
+                                        {
+                                            <div class="btn-group btn-group-sm" role="group" aria-label="@Text("Approval actions", "Approval actions")">
+                                                <button class="btn btn-outline-success" @onclick="() => ReviewAsync(request.Id, true)" disabled="@isBusy">
+                                                    @Text("Approve", "Approve")
+                                                </button>
+                                                <button class="btn btn-outline-danger" @onclick="() => ReviewAsync(request.Id, false)" disabled="@isBusy">
+                                                    @Text("Reject", "Reject")
+                                                </button>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
                                     </td>
                                 </tr>
                             }
                         </tbody>
                     </table>
+                </div>
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <span class="text-muted small">@Text("Page", "Page") @(pageIndex + 1) @Text("of", "of") @TotalPages</span>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary" @onclick="PreviousPageAsync" disabled="@(isBusy || pageIndex == 0)">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" @onclick="NextPageAsync" disabled="@(isBusy || pageIndex + 1 >= TotalPages)">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             }
         </div>
@@ -104,40 +151,62 @@
 </section>
 
 @code {
+    private const int PageSize = 10;
     private List<EmergencyLeaveRequestDto> requests = [];
+    private List<EmployeeDto> employees = [];
     private Guid companyId;
+    private Guid selectedEmployeeId;
+    private string? selectedStatus = AttendanceExceptionStatus.Pending.ToString();
     private string? reviewComment;
     private bool isBusy;
     private string? message;
     private string messageClass = "alert-info";
-
-    protected override async Task OnInitializedAsync()
-    {
-        companyId = await ResolveCompanyIdAsync();
-        await LoadAsync();
-    }
+    private int pageIndex;
+    private long totalCount;
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(totalCount / (double)PageSize));
 
     protected override void OnInitialized()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
     }
 
+    protected override async Task OnInitializedAsync()
+    {
+        companyId = await ResolveCompanyIdAsync();
+        await LoadEmployeesAsync();
+        await LoadAsync();
+    }
+
     private async Task LoadAsync()
     {
         isBusy = true;
-        var result = await AttendanceService.GetEmergencyLeavesAsync(companyId, 0, 50, AttendanceExceptionStatus.Pending);
+        Guid? employeeId = selectedEmployeeId == Guid.Empty ? null : selectedEmployeeId;
+        var result = await LeaveService.GetEmergencyLeavesAsync(companyId, pageIndex, PageSize, SelectedStatus(), employeeId);
         requests = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+        totalCount = result.IsSuccess ? result.Data?.Count ?? 0 : 0;
         if (!result.IsSuccess)
         {
-            SetMessage(result.Error?.Detail ?? Text("Unable to load emergency leave requests.", "تعذر تحميل طلبات الاجازة الطارئة."), "alert-danger");
+            SetMessage(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load emergency leave requests.", "Unable to load emergency leave requests."), "alert-danger");
         }
         isBusy = false;
+    }
+
+    private async Task LoadEmployeesAsync()
+    {
+        var result = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 5000);
+        employees = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+    }
+
+    private async Task ResetAndLoadAsync()
+    {
+        pageIndex = 0;
+        await LoadAsync();
     }
 
     private async Task ReviewAsync(Guid requestId, bool isApproved)
     {
         isBusy = true;
-        var result = await AttendanceService.ReviewEmergencyLeaveAsync(new ReviewEmergencyLeaveRequestDto
+        var result = await LeaveService.ReviewEmergencyLeaveAsync(new ReviewEmergencyLeaveRequestDto
         {
             RequestId = requestId,
             IsApproved = isApproved,
@@ -146,8 +215,8 @@
 
         SetMessage(
             result.IsSuccess
-                ? Text("Emergency leave request reviewed.", "تمت مراجعة طلب الاجازة الطارئة.")
-                : result.Error?.Detail ?? Text("Unable to review request.", "تعذر مراجعة الطلب."),
+                ? Text("Emergency leave request reviewed.", "Emergency leave request reviewed.")
+                : result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to review request.", "Unable to review request."),
             result.IsSuccess ? "alert-success" : "alert-danger");
 
         if (result.IsSuccess)
@@ -159,11 +228,52 @@
         await LoadAsync();
     }
 
+    private async Task PreviousPageAsync()
+    {
+        if (pageIndex == 0)
+        {
+            return;
+        }
+
+        pageIndex--;
+        await LoadAsync();
+    }
+
+    private async Task NextPageAsync()
+    {
+        if (pageIndex + 1 >= TotalPages)
+        {
+            return;
+        }
+
+        pageIndex++;
+        await LoadAsync();
+    }
+
+    private AttendanceExceptionStatus? SelectedStatus()
+        => Enum.TryParse<AttendanceExceptionStatus>(selectedStatus, out var status) ? status : null;
+
     private async Task<Guid> ResolveCompanyIdAsync()
     {
         var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
         return Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
     }
+
+    private string EmployeeName(Guid employeeId)
+        => employees.FirstOrDefault(x => x.Id == employeeId) is { } employee ? EmployeeName(employee) : employeeId.ToString();
+
+    private string EmployeeName(EmployeeDto employee)
+        => SharedDataService.SelectViewLang(employee.FullNameEng, employee.FullName);
+
+    private static string StatusBadgeClass(AttendanceExceptionStatus status) => status switch
+    {
+        AttendanceExceptionStatus.Approved => "text-bg-success",
+        AttendanceExceptionStatus.Rejected => "text-bg-danger",
+        _ => "text-bg-warning"
+    };
+
+    private static string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private static string FormatDate(DateTime date) => date.ToString("yyyy/MM/dd");
 
     private async Task HandleChangeAsync()
     {

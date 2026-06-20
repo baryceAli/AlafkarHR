@@ -5,6 +5,7 @@
 @using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services
 @using AlAfkarERP.Shared.Pages.Features.Payroll.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
@@ -12,11 +13,13 @@
 @using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
 @using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Leave.Dtos
 @using SharedWithUI.Payroll.Dtos
 @using SharedWithUI.Permissions
 
 @inject IEmployeeService EmployeeService
 @inject IAttendanceService AttendanceService
+@inject ILeaveService LeaveService
 @inject IPayrollService PayrollService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
@@ -197,7 +200,9 @@
 
     private bool CanViewEmployees => HasPermission(PermissionList.EmployeePermissions.View);
     private bool CanViewAttendance => HasPermission(PermissionList.AttendancePermissions.View) || HasPermission(PermissionList.AttendancePermissions.ViewReports);
-    private bool CanViewLeave => HasPermission(PermissionList.AttendancePermissions.ViewLeaveBalances) || HasPermission(PermissionList.AttendancePermissions.ViewLeaveReports);
+    private bool CanViewLeaveBalances => HasPermission(PermissionList.LeavePermissions.ViewLeaveBalances);
+    private bool CanViewLeaveReports => HasPermission(PermissionList.LeavePermissions.ViewLeaveReports);
+    private bool CanViewLeave => CanViewLeaveBalances || CanViewLeaveReports;
     private bool CanViewPayroll => HasPermission(PermissionList.PayrollContractPermissions.View) || HasPermission(PermissionList.SalaryRunPermissions.View);
 
     private string DisplayName => employee is null
@@ -357,15 +362,23 @@
         isLoadingLeave = true;
         try
         {
-            var balancesTask = AttendanceService.GetLeaveBalancesAsync(companyId, DateTime.Today.Year, Id);
-            var emergencyTask = AttendanceService.GetEmergencyLeavesAsync(companyId, 0, 5, null, Id);
-            var permissionsTask = AttendanceService.GetMidDayPermissionsAsync(companyId, 0, 5, null, Id);
+            if (CanViewLeaveBalances)
+            {
+                var balancesResult = await LeaveService.GetLeaveBalancesAsync(companyId, DateTime.Today.Year, Id);
+                leaveBalances = balancesResult.IsSuccess ? balancesResult.Data ?? [] : [];
+            }
 
-            await Task.WhenAll(balancesTask, emergencyTask, permissionsTask);
+            if (CanViewLeaveReports)
+            {
+                var emergencyResult = await LeaveService.GetEmployeeEmergencyLeavesAsync(companyId, Id, 0, 5);
+                emergencyLeaves = emergencyResult.IsSuccess ? emergencyResult.Data?.Data?.ToList() ?? [] : [];
+            }
 
-            leaveBalances = balancesTask.Result.IsSuccess ? balancesTask.Result.Data ?? [] : [];
-            emergencyLeaves = emergencyTask.Result.IsSuccess ? emergencyTask.Result.Data?.Data?.ToList() ?? [] : [];
-            midDayPermissions = permissionsTask.Result.IsSuccess ? permissionsTask.Result.Data?.Data?.ToList() ?? [] : [];
+            if (CanViewAttendance)
+            {
+                var permissionsResult = await AttendanceService.GetMidDayPermissionsAsync(companyId, 0, 5, null, Id);
+                midDayPermissions = permissionsResult.IsSuccess ? permissionsResult.Data?.Data?.ToList() ?? [] : [];
+            }
         }
         catch
         {

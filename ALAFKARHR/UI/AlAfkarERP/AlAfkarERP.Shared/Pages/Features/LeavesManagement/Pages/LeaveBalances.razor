@@ -2,14 +2,15 @@
 @page "/LeavesManagement/Balances"
 @implements IDisposable
 
-@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
-@using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Leave.Dtos
+@using SharedWithUI.Permissions
 
-@inject IAttendanceService AttendanceService
+@inject ILeaveService LeaveService
 @inject IEmployeeService EmployeeService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
@@ -17,11 +18,13 @@
 <section class="erp-page" dir="@SharedDataService.PageDirection">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
         <div>
-            <p class="text-muted mb-1">@Text("Leave Management", "إدارة الإجازات")</p>
-            <h3 class="mb-1">@Text("Employee Leave Balances", "أرصدة إجازات الموظفين")</h3>
-            <p class="text-muted mb-0">@Text("Configure annual leave days, carry-forward policy, and track available, taken, and remaining days.", "تكوين أيام الإجازة السنوية وسياسة الترحيل وتتبع الأيام المتاحة والمستخدمة والمتبقية.")</p>
+            <p class="text-muted mb-1">@Text("Leave Management", "Leave Management")</p>
+            <h3 class="mb-1">@Text("Employee Leave Balances", "Employee Leave Balances")</h3>
+            <p class="text-muted mb-0">@Text("View annual leave balances and manage entitlement configuration when permitted.", "View annual leave balances and manage entitlement configuration when permitted.")</p>
         </div>
-        <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">@Text("Refresh", "تحديث")</button>
+        <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">
+            <i class="bi bi-arrow-clockwise me-1"></i>@Text("Refresh", "Refresh")
+        </button>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(message))
@@ -33,61 +36,92 @@
         <div class="card-body">
             <div class="row g-3 align-items-end">
                 <div class="col-md-3">
-                    <label class="form-label">@Text("Year", "السنة")</label>
+                    <label class="form-label">@Text("Year", "Year")</label>
                     <input class="form-control" type="number" min="2000" max="2100" @bind="year" @bind:after="LoadBalancesAsync" />
                 </div>
                 <div class="col-md-5">
-                    <label class="form-label">@Text("Employee", "الموظف")</label>
-                    <select class="form-select" @bind="model.EmployeeId">
-                        <option value="@Guid.Empty">@Text("Select employee", "اختر الموظف")</option>
+                    <label class="form-label">@Text("Filter employee", "Filter employee")</label>
+                    <select class="form-select" @bind="selectedEmployeeId" @bind:after="LoadBalancesAsync">
+                        <option value="@Guid.Empty">@Text("All employees", "All employees")</option>
                         @foreach (var employee in employees)
                         {
                             <option value="@employee.Id">@EmployeeName(employee)</option>
                         }
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">@Text("Annual days", "الأيام السنوية")</label>
-                    <input class="form-control" type="number" step="0.5" min="0" @bind="model.AnnualLeaveDays" />
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">@Text("Max carry", "حد الترحيل")</label>
-                    <input class="form-control" type="number" step="0.5" min="0" @bind="model.MaxCarryForwardDays" disabled="@(!model.AllowCarryForward)" />
-                </div>
-                <div class="col-md-3">
-                    <div class="form-check">
-                        <input id="allowCarryForward" class="form-check-input" type="checkbox" @bind="model.AllowCarryForward" />
-                        <label class="form-check-label" for="allowCarryForward">@Text("Carry unused days to next year", "ترحيل الأيام غير المستخدمة للسنة التالية")</label>
-                    </div>
-                </div>
-                <div class="col-md-9 text-md-end">
-                    <button class="btn btn-primary" @onclick="SaveAsync" disabled="@isBusy">@Text("Save configuration", "حفظ الإعداد")</button>
-                    <button class="btn btn-outline-secondary" @onclick="ResetModel" disabled="@isBusy">@Text("New", "جديد")</button>
+                <div class="col-md-4 text-md-end">
+                    @if (!CanManageBalances)
+                    {
+                        <span class="badge text-bg-light">@Text("Read only", "Read only")</span>
+                    }
                 </div>
             </div>
         </div>
     </div>
+
+    @if (CanManageBalances)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">@Text("Employee", "Employee")</label>
+                        <select class="form-select" @bind="model.EmployeeId">
+                            <option value="@Guid.Empty">@Text("Select employee", "Select employee")</option>
+                            @foreach (var employee in employees)
+                            {
+                                <option value="@employee.Id">@EmployeeName(employee)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">@Text("Annual days", "Annual days")</label>
+                        <input class="form-control" type="number" step="0.5" min="0" @bind="model.AnnualLeaveDays" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">@Text("Max carry", "Max carry")</label>
+                        <input class="form-control" type="number" step="0.5" min="0" @bind="model.MaxCarryForwardDays" disabled="@(!model.AllowCarryForward)" />
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input id="allowCarryForward" class="form-check-input" type="checkbox" @bind="model.AllowCarryForward" />
+                            <label class="form-check-label" for="allowCarryForward">@Text("Carry unused days to next year", "Carry unused days to next year")</label>
+                        </div>
+                    </div>
+                    <div class="col-12 text-md-end">
+                        <button class="btn btn-primary" @onclick="SaveAsync" disabled="@isBusy">
+                            <i class="bi bi-save me-1"></i>@Text("Save configuration", "Save configuration")
+                        </button>
+                        <button class="btn btn-outline-secondary" @onclick="ResetModel" disabled="@isBusy">@Text("New", "New")</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 
     <div class="card">
         <div class="card-body table-responsive">
             <table class="table align-middle">
                 <thead>
                     <tr>
-                        <th>@Text("Employee", "الموظف")</th>
-                        <th>@Text("Year", "السنة")</th>
-                        <th>@Text("Annual", "سنوي")</th>
-                        <th>@Text("Carry forward", "مرحّل")</th>
-                        <th>@Text("Available", "متاح")</th>
-                        <th>@Text("Taken", "مستخدم")</th>
-                        <th>@Text("Remaining", "متبقي")</th>
-                        <th class="text-end">@Text("Actions", "الإجراءات")</th>
+                        <th>@Text("Employee", "Employee")</th>
+                        <th>@Text("Year", "Year")</th>
+                        <th>@Text("Annual", "Annual")</th>
+                        <th>@Text("Carry forward", "Carry forward")</th>
+                        <th>@Text("Available", "Available")</th>
+                        <th>@Text("Taken", "Taken")</th>
+                        <th>@Text("Remaining", "Remaining")</th>
+                        @if (CanManageBalances)
+                        {
+                            <th class="text-end">@Text("Actions", "Actions")</th>
+                        }
                     </tr>
                 </thead>
                 <tbody>
                     @if (balances.Count == 0)
                     {
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">@Text("No leave balances configured for this year.", "لا توجد أرصدة إجازات مكونة لهذه السنة.")</td>
+                            <td colspan="@(CanManageBalances ? 8 : 7)" class="text-center text-muted py-4">@Text("No leave balances configured for this filter.", "No leave balances configured for this filter.")</td>
                         </tr>
                     }
                     else
@@ -102,9 +136,12 @@
                                 <td>@FormatDays(balance.AvailableDays)</td>
                                 <td>@FormatDays(balance.TakenDays)</td>
                                 <td><span class="badge text-bg-@(balance.RemainingDays <= 0 ? "danger" : "success")">@FormatDays(balance.RemainingDays)</span></td>
-                                <td class="text-end">
-                                    <button class="btn btn-outline-primary btn-sm" @onclick="() => Edit(balance)">@Text("Edit", "تعديل")</button>
-                                </td>
+                                @if (CanManageBalances)
+                                {
+                                    <td class="text-end">
+                                        <button class="btn btn-outline-primary btn-sm" @onclick="() => Edit(balance)">@Text("Edit", "Edit")</button>
+                                    </td>
+                                }
                             </tr>
                         }
                     }
@@ -117,12 +154,15 @@
 @code {
     private int year = DateTime.Today.Year;
     private Guid companyId;
+    private Guid selectedEmployeeId;
     private bool isBusy;
     private string? message;
     private string messageClass = "alert-info";
+    private AuthenticationState? authState;
     private List<EmployeeDto> employees = [];
     private List<EmployeeLeaveBalanceDto> balances = [];
     private UpsertEmployeeLeaveBalanceDto model = NewModel();
+    private bool CanManageBalances => authState?.User.Claims.Any(c => c.Value == PermissionList.LeavePermissions.ManageLeaveBalances) == true;
 
     protected override void OnInitialized()
     {
@@ -131,6 +171,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         companyId = await ResolveCompanyIdAsync();
         model.CompanyId = companyId;
         model.Year = year;
@@ -154,28 +195,35 @@
     private async Task LoadBalancesAsync()
     {
         model.Year = year;
-        var result = await AttendanceService.GetLeaveBalancesAsync(companyId, year);
+        Guid? employeeId = selectedEmployeeId == Guid.Empty ? null : selectedEmployeeId;
+        var result = await LeaveService.GetLeaveBalancesAsync(companyId, year, employeeId);
         balances = result.IsSuccess ? result.Data ?? [] : [];
         if (!result.IsSuccess)
         {
-            SetMessage(result.Error?.Detail ?? Text("Unable to load leave balances.", "تعذر تحميل أرصدة الإجازات."), "alert-danger");
+            SetMessage(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load leave balances.", "Unable to load leave balances."), "alert-danger");
         }
     }
 
     private async Task SaveAsync()
     {
+        if (!CanManageBalances)
+        {
+            SetMessage(Text("You do not have permission to manage leave balances.", "You do not have permission to manage leave balances."), "alert-warning");
+            return;
+        }
+
         if (model.EmployeeId == Guid.Empty)
         {
-            SetMessage(Text("Please select an employee.", "يرجى اختيار موظف."), "alert-warning");
+            SetMessage(Text("Please select an employee.", "Please select an employee."), "alert-warning");
             return;
         }
 
         model.CompanyId = companyId;
         model.Year = year;
-        var result = await AttendanceService.UpsertLeaveBalanceAsync(model);
+        var result = await LeaveService.UpsertLeaveBalanceAsync(model);
         SetMessage(result.IsSuccess
-            ? Text("Leave balance saved.", "تم حفظ رصيد الإجازة.")
-            : result.Error?.Detail ?? Text("Unable to save leave balance.", "تعذر حفظ رصيد الإجازة."),
+            ? Text("Leave balance saved.", "Leave balance saved.")
+            : result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to save leave balance.", "Unable to save leave balance."),
             result.IsSuccess ? "alert-success" : "alert-danger");
 
         if (result.IsSuccess)
@@ -187,6 +235,11 @@
 
     private void Edit(EmployeeLeaveBalanceDto balance)
     {
+        if (!CanManageBalances)
+        {
+            return;
+        }
+
         model = new UpsertEmployeeLeaveBalanceDto
         {
             Id = balance.Id,

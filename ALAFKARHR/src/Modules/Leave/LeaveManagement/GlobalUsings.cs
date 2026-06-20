@@ -1,0 +1,15 @@
+global using Carter;
+global using Mapster;
+global using MediatR;
+global using Microsoft.AspNetCore.Builder;
+global using Microsoft.AspNetCore.Hosting;
+global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Routing;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Hosting;
+global using Shared.Contracts.CQRS;
+global using Shared.Exceptions;
+global using SharedWithUI.Attendance.Enums;
+global using SharedWithUI.Leave.Dtos;

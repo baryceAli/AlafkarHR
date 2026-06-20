@@ -19,9 +19,7 @@ public class AttendanceDbContext(DbContextOptions<AttendanceDbContext> options) 
     public DbSet<AttendanceConfiguration> AttendanceConfigurations => Set<AttendanceConfiguration>();
     public DbSet<AttendanceHoliday> AttendanceHolidays => Set<AttendanceHoliday>();
     public DbSet<AttendanceBreakPolicy> AttendanceBreakPolicies => Set<AttendanceBreakPolicy>();
-    public DbSet<EmergencyLeaveRequest> EmergencyLeaveRequests => Set<EmergencyLeaveRequest>();
     public DbSet<MidDayPermissionRequest> MidDayPermissionRequests => Set<MidDayPermissionRequest>();
-    public DbSet<EmployeeLeaveBalance> EmployeeLeaveBalances => Set<EmployeeLeaveBalance>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
