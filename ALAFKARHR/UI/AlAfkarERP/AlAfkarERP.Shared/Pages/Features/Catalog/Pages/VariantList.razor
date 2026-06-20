@@ -1,5 +1,6 @@
 @layout AdminLayout
 @page "/Catalog/Variant/List"
+@implements IDisposable
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
@@ -63,7 +64,7 @@
         </FilterBar>
 
     <div class="erp-table-wrap">
-            <div class="d-flex justify-content-end mb-2">
+            <div class="erp-table-toolbar">
             <TableExportActions />
         </div>
 
@@ -92,7 +93,7 @@
                                 <DataAnnotationsValidator />
                                 <ValidationSummary />
                                 @* <InputHidden @bind-Value="branch.Id"/> *@
-                                <div class="row g-3 bg-info-subtle p-3">
+                                <div class="erp-inline-editor">
 
                                     <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
@@ -113,31 +114,24 @@
                                     <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Variant Values", "القيم")</label>
                                         <div class="col-sm-10">
-                                            <div class="card bg-transparent">
-                                                <div class="card-body">
-                                                    
-                                                    @* <div class="card bg-transparent">
-                                                        <div class="card-body">
-                                                        </div>
-                                                    </div> *@
-                                                
+                                            <div class="erp-subpanel">
                                                             @foreach (var value in editingItem.Values)
                                                             {
-                                                                <div class="row mb-2 align-items-center" @key="value">
+                                                                <div class="erp-repeater-row" @key="value">
 
-                                                                    <div class="col-md-5">
+                                                                    <div>
                                                                         <InputText class="form-control"
                                                                                    placeholder="Value"
                                                                                    @bind-Value="value.Value" />
                                                                     </div>
 
-                                                                    <div class="col-md-5">
+                                                                    <div>
                                                                         <InputText class="form-control"
                                                                                    placeholder="Value (En)"
                                                                                    @bind-Value="value.ValueEng" />
                                                                     </div>
 
-                                                                    <div class="col-md-2 text-end">
+                                                                    <div class="erp-form-actions">
                                                                         <button type="button"
                                             class="btn btn-outline-danger btn-sm erp-row-action"
                                                                                 @onclick="() => RemoveVariantValue(editingItem, value)">
@@ -157,7 +151,6 @@
                                                         
                                                     
 
-                                                </div>
                                             </div>
 
                                         </div>
@@ -165,7 +158,7 @@
 
 
 
-                                    <div class="col">
+                                    <div class="erp-form-actions">
                                         <button type="submit" class="btn btn-success btn-sm">Save</button>
                                         <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
                                     </div>
@@ -185,10 +178,10 @@
                     <td>@variant.Name</td>
                     <td>@variant.NameEng</td>
                     <td>
-                        <div class="flex-row">
+                        <div class="erp-chip-row">
                             @foreach(var value in variant.Values)
                             {
-                                <span class="badge bg-primary me-1">@SharedDataService.SelectViewLang(value.ValueEng,value.Value)</span>
+                                <StatusChip Tone="primary" Text="@SharedDataService.SelectViewLang(value.ValueEng,value.Value)" />
                             }
                         </div>
                     </td>
@@ -212,7 +205,7 @@
         </tbody>
     </table>
     </div>
-    <div class="d-flex flex-wrap justify-content-end align-items-center gap-2 mt-3">
+    <div class="erp-pagination-bar">
 
         <button class="btn btn-sm btn-secondary"
                 @onclick="PrevPage"
