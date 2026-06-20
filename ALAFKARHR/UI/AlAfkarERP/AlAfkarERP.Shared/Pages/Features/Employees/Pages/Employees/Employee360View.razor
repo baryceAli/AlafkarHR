@@ -200,7 +200,9 @@
 
     private bool CanViewEmployees => HasPermission(PermissionList.EmployeePermissions.View);
     private bool CanViewAttendance => HasPermission(PermissionList.AttendancePermissions.View) || HasPermission(PermissionList.AttendancePermissions.ViewReports);
-    private bool CanViewLeave => HasPermission(PermissionList.LeavePermissions.ViewLeaveBalances) || HasPermission(PermissionList.LeavePermissions.ViewLeaveReports);
+    private bool CanViewLeaveBalances => HasPermission(PermissionList.LeavePermissions.ViewLeaveBalances);
+    private bool CanViewLeaveReports => HasPermission(PermissionList.LeavePermissions.ViewLeaveReports);
+    private bool CanViewLeave => CanViewLeaveBalances || CanViewLeaveReports;
     private bool CanViewPayroll => HasPermission(PermissionList.PayrollContractPermissions.View) || HasPermission(PermissionList.SalaryRunPermissions.View);
 
     private string DisplayName => employee is null
@@ -360,15 +362,23 @@
         isLoadingLeave = true;
         try
         {
-            var balancesTask = LeaveService.GetLeaveBalancesAsync(companyId, DateTime.Today.Year, Id);
-            var emergencyTask = LeaveService.GetEmergencyLeavesAsync(companyId, 0, 5, null, Id);
-            var permissionsTask = AttendanceService.GetMidDayPermissionsAsync(companyId, 0, 5, null, Id);
+            if (CanViewLeaveBalances)
+            {
+                var balancesResult = await LeaveService.GetLeaveBalancesAsync(companyId, DateTime.Today.Year, Id);
+                leaveBalances = balancesResult.IsSuccess ? balancesResult.Data ?? [] : [];
+            }
 
-            await Task.WhenAll(balancesTask, emergencyTask, permissionsTask);
+            if (CanViewLeaveReports)
+            {
+                var emergencyResult = await LeaveService.GetEmployeeEmergencyLeavesAsync(companyId, Id, 0, 5);
+                emergencyLeaves = emergencyResult.IsSuccess ? emergencyResult.Data?.Data?.ToList() ?? [] : [];
+            }
 
-            leaveBalances = balancesTask.Result.IsSuccess ? balancesTask.Result.Data ?? [] : [];
-            emergencyLeaves = emergencyTask.Result.IsSuccess ? emergencyTask.Result.Data?.Data?.ToList() ?? [] : [];
-            midDayPermissions = permissionsTask.Result.IsSuccess ? permissionsTask.Result.Data?.Data?.ToList() ?? [] : [];
+            if (CanViewAttendance)
+            {
+                var permissionsResult = await AttendanceService.GetMidDayPermissionsAsync(companyId, 0, 5, null, Id);
+                midDayPermissions = permissionsResult.IsSuccess ? permissionsResult.Data?.Data?.ToList() ?? [] : [];
+            }
         }
         catch
         {

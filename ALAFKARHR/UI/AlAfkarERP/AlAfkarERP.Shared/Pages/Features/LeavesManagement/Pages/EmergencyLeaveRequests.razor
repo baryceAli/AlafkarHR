@@ -2,6 +2,7 @@
 @page "/LeavesManagement/EmergencyLeaves"
 @implements IDisposable
 
+@using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
@@ -14,13 +15,15 @@
 @inject SharedDataService SharedDataService
 
 <section class="erp-page" dir="@SharedDataService.PageDirection">
-    <div class="d-flex justify-content-between align-items-start mb-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
         <div>
-            <p class="text-muted mb-1">@Text("Attendance", "الحضور والانصراف")</p>
-            <h3 class="mb-1">@Text("Emergency Leave Requests", "طلبات الاجازة الطارئة")</h3>
-            <p class="text-muted mb-0">@Text("Register and review unplanned leave that affects attendance calculations.", "تسجيل ومراجعة الاجازات الطارئة المؤثرة على الحضور.")</p>
+            <p class="text-muted mb-1">@Text("Leave Management", "Leave Management")</p>
+            <h3 class="mb-1">@Text("My Emergency Leaves", "My Emergency Leaves")</h3>
+            <p class="text-muted mb-0">@Text("Submit emergency leave requests and follow their approval status.", "Submit emergency leave requests and follow their approval status.")</p>
         </div>
-        <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">@Text("Refresh", "تحديث")</button>
+        <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">
+            <i class="bi bi-arrow-clockwise me-1"></i>@Text("Refresh", "Refresh")
+        </button>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(message))
@@ -32,15 +35,15 @@
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-3">
-                    <label class="form-label">@Text("Start", "البداية")</label>
+                    <label class="form-label">@Text("Start", "Start")</label>
                     <input class="form-control" type="date" @bind="createModel.StartDate" />
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">@Text("End", "النهاية")</label>
+                    <label class="form-label">@Text("End", "End")</label>
                     <input class="form-control" type="date" @bind="createModel.EndDate" />
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">@Text("Attachment", "مرفق")</label>
+                    <label class="form-label">@Text("Attachment", "Attachment")</label>
                     <InputFile @key="attachmentInputKey"
                                class="form-control"
                                OnChange="OnAttachmentSelected"
@@ -51,10 +54,12 @@
                     }
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
-                    <button class="btn btn-primary w-100" @onclick="CreateAsync" disabled="@isBusy">@Text("Submit", "ارسال")</button>
+                    <button class="btn btn-primary w-100" @onclick="CreateAsync" disabled="@isBusy">
+                        <i class="bi bi-send me-1"></i>@Text("Submit", "Submit")
+                    </button>
                 </div>
                 <div class="col-12">
-                    <label class="form-label">@Text("Reason", "السبب")</label>
+                    <label class="form-label">@Text("Reason", "Reason")</label>
                     <textarea class="form-control" rows="2" @bind="createModel.Reason"></textarea>
                 </div>
             </div>
@@ -62,38 +67,82 @@
     </div>
 
     <div class="card">
-        <div class="card-body table-responsive">
-            <table class="table align-middle">
-                <thead>
-                    <tr>
-                        <th>@Text("Employee", "الموظف")</th>
-                        <th>@Text("Dates", "التاريخ")</th>
-                        <th>@Text("Reason", "السبب")</th>
-                        <th>@Text("Status", "الحالة")</th>
-                        <th>@Text("Comment", "التعليق")</th>
-                        <th class="text-end">@Text("Actions", "الاجراءات")</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var request in requests)
-                    {
-                        <tr>
-                            <td>@request.EmployeeId</td>
-                            <td>@request.StartDate.ToShortDateString() - @request.EndDate.ToShortDateString()</td>
-                            <td>@request.Reason</td>
-                            <td>@request.Status</td>
-                            <td>@request.ApproverComment</td>
-                            <td class="text-end">
-                                @if (request.Status == AttendanceExceptionStatus.Pending)
-                                {
-                                    <button class="btn btn-outline-success btn-sm" @onclick="() => ReviewAsync(request.Id, true)">@Text("Approve", "اعتماد")</button>
-                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => ReviewAsync(request.Id, false)">@Text("Reject", "رفض")</button>
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+        <div class="card-body">
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">@Text("Status", "Status")</label>
+                    <select class="form-select" @bind="selectedStatus" @bind:after="ResetAndLoadAsync">
+                        <option value="">@Text("All statuses", "All statuses")</option>
+                        <option value="@AttendanceExceptionStatus.Pending">@Text("Pending", "Pending")</option>
+                        <option value="@AttendanceExceptionStatus.Approved">@Text("Approved", "Approved")</option>
+                        <option value="@AttendanceExceptionStatus.Rejected">@Text("Rejected", "Rejected")</option>
+                    </select>
+                </div>
+                <div class="col-md-8 text-md-end">
+                    <span class="text-muted small">@Text("Total", "Total"): @totalCount</span>
+                </div>
+            </div>
+
+            @if (isBusy)
+            {
+                <div class="text-muted py-4">@Text("Loading emergency leave requests...", "Loading emergency leave requests...")</div>
+            }
+            else if (requests.Count == 0)
+            {
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-calendar-heart fs-3 d-block mb-2"></i>
+                    @Text("No emergency leave requests found.", "No emergency leave requests found.")
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>@Text("Dates", "Dates")</th>
+                                <th>@Text("Reason", "Reason")</th>
+                                <th>@Text("Status", "Status")</th>
+                                <th>@Text("Attachment", "Attachment")</th>
+                                <th>@Text("Approver comment", "Approver comment")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in requests)
+                            {
+                                <tr>
+                                    <td>@FormatDate(request.StartDate) - @FormatDate(request.EndDate)</td>
+                                    <td>@request.Reason</td>
+                                    <td><span class="badge rounded-pill @StatusBadgeClass(request.Status)">@Text(request.Status.ToString(), request.Status.ToString())</span></td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(request.AttachmentPath))
+                                        {
+                                            <a href="@request.AttachmentPath" target="_blank" rel="noopener">@Text("Open", "Open")</a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>@EmptyValue(request.ApproverComment)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <span class="text-muted small">@Text("Page", "Page") @(pageIndex + 1) @Text("of", "of") @TotalPages</span>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary" @onclick="PreviousPageAsync" disabled="@(isBusy || pageIndex == 0)">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" @onclick="NextPageAsync" disabled="@(isBusy || pageIndex + 1 >= TotalPages)">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            }
         </div>
     </div>
 </section>
@@ -102,14 +151,23 @@
     private CreateEmergencyLeaveRequestDto createModel = new() { StartDate = DateTime.Today, EndDate = DateTime.Today };
     private List<EmergencyLeaveRequestDto> requests = [];
     private const long MaxAttachmentSize = 10 * 1024 * 1024;
+    private const int PageSize = 10;
     private Guid companyId;
     private IBrowserFile? selectedAttachmentFile;
     private string? selectedAttachmentName;
-    private string? reviewComment;
+    private string? selectedStatus;
     private bool isBusy;
     private string? message;
     private string messageClass = "alert-info";
     private int attachmentInputKey;
+    private int pageIndex;
+    private long totalCount;
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(totalCount / (double)PageSize));
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -118,22 +176,34 @@
         await LoadAsync();
     }
 
-    protected override void OnInitialized()
-    {
-        SharedDataService.OnChange1 += HandleChangeAsync;
-    }
-
     private async Task LoadAsync()
     {
         isBusy = true;
-        var result = await LeaveService.GetEmergencyLeavesAsync(companyId, 0, 50);
+        var result = await LeaveService.GetMyEmergencyLeavesAsync(companyId, pageIndex, PageSize, SelectedStatus());
         requests = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
-        if (!result.IsSuccess) SetMessage(result.Error?.Detail ?? Text("Unable to load emergency leave requests.", "تعذر تحميل طلبات الاجازة الطارئة."), "alert-danger");
+        totalCount = result.IsSuccess ? result.Data?.Count ?? 0 : 0;
+        if (!result.IsSuccess)
+        {
+            SetMessage(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load emergency leave requests.", "Unable to load emergency leave requests."), "alert-danger");
+        }
+
         isBusy = false;
+    }
+
+    private async Task ResetAndLoadAsync()
+    {
+        pageIndex = 0;
+        await LoadAsync();
     }
 
     private async Task CreateAsync()
     {
+        if (createModel.EndDate.Date < createModel.StartDate.Date)
+        {
+            SetMessage(Text("End date must be on or after start date.", "End date must be on or after start date."), "alert-warning");
+            return;
+        }
+
         createModel.CompanyId = companyId;
         if (selectedAttachmentFile is not null)
         {
@@ -146,7 +216,7 @@
             var uploadResult = await LeaveService.UploadEmergencyLeaveAttachmentAsync(selectedAttachmentFile);
             if (!uploadResult.IsSuccess || string.IsNullOrWhiteSpace(uploadResult.Data))
             {
-                SetMessage(uploadResult.Error?.Detail ?? Text("Unable to upload attachment.", "Unable to upload attachment."), "alert-danger");
+                SetMessage(uploadResult.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to upload attachment.", "Unable to upload attachment."), "alert-danger");
                 return;
             }
 
@@ -156,28 +226,39 @@
         var result = await LeaveService.CreateEmergencyLeaveAsync(createModel);
         if (result.IsSuccess)
         {
-            SetMessage(Text("Emergency leave submitted.", "تم ارسال الاجازة الطارئة."), "alert-success");
+            SetMessage(Text("Emergency leave submitted.", "Emergency leave submitted."), "alert-success");
             createModel = new() { CompanyId = companyId, StartDate = DateTime.Today, EndDate = DateTime.Today };
             selectedAttachmentFile = null;
             selectedAttachmentName = null;
             attachmentInputKey++;
+            pageIndex = 0;
             await LoadAsync();
         }
         else
         {
-            SetMessage(result.Error?.Detail ?? Text("Unable to submit request.", "تعذر ارسال الطلب."), "alert-danger");
+            SetMessage(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to submit request.", "Unable to submit request."), "alert-danger");
         }
     }
 
-    private async Task ReviewAsync(Guid requestId, bool isApproved)
+    private async Task PreviousPageAsync()
     {
-        var result = await LeaveService.ReviewEmergencyLeaveAsync(new ReviewEmergencyLeaveRequestDto
+        if (pageIndex == 0)
         {
-            RequestId = requestId,
-            IsApproved = isApproved,
-            ApproverComment = reviewComment
-        });
-        SetMessage(result.IsSuccess ? Text("Request reviewed.", "تمت مراجعة الطلب.") : result.Error?.Detail ?? Text("Unable to review request.", "تعذر مراجعة الطلب."), result.IsSuccess ? "alert-success" : "alert-danger");
+            return;
+        }
+
+        pageIndex--;
+        await LoadAsync();
+    }
+
+    private async Task NextPageAsync()
+    {
+        if (pageIndex + 1 >= TotalPages)
+        {
+            return;
+        }
+
+        pageIndex++;
         await LoadAsync();
     }
 
@@ -188,11 +269,24 @@
         createModel.AttachmentPath = null;
     }
 
+    private AttendanceExceptionStatus? SelectedStatus()
+        => Enum.TryParse<AttendanceExceptionStatus>(selectedStatus, out var status) ? status : null;
+
     private async Task<Guid> ResolveCompanyIdAsync()
     {
         var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
         return Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
     }
+
+    private static string StatusBadgeClass(AttendanceExceptionStatus status) => status switch
+    {
+        AttendanceExceptionStatus.Approved => "text-bg-success",
+        AttendanceExceptionStatus.Rejected => "text-bg-danger",
+        _ => "text-bg-warning"
+    };
+
+    private static string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private static string FormatDate(DateTime date) => date.ToString("yyyy/MM/dd");
 
     private async Task HandleChangeAsync()
     {

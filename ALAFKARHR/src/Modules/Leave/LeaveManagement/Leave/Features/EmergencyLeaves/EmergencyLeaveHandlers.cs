@@ -25,6 +25,12 @@ public record GetEmergencyLeaveRequestsQuery(
     Guid ReviewerEmployeeId,
     PaginationRequest PaginationRequest)
     : IQuery<GetEmergencyLeaveRequestsResult>;
+public record GetEmployeeEmergencyLeaveRequestsQuery(
+    Guid CompanyId,
+    Guid EmployeeId,
+    AttendanceExceptionStatus? Status,
+    PaginationRequest PaginationRequest)
+    : IQuery<GetEmergencyLeaveRequestsResult>;
 public record GetEmergencyLeaveRequestsResult(PaginatedResult<EmergencyLeaveRequestDto> RequestList);
 
 public class CreateEmergencyLeaveRequestValidator : AbstractValidator<CreateEmergencyLeaveRequestCommand>
@@ -400,5 +406,34 @@ public class GetEmergencyLeaveRequestsHandler(LeaveDbContext leaveDbContext, ISe
         }
 
         return reviewer.AdministrationId == employee.AdministrationId;
+    }
+}
+
+public class GetEmployeeEmergencyLeaveRequestsHandler(LeaveDbContext leaveDbContext)
+    : IQueryHandler<GetEmployeeEmergencyLeaveRequestsQuery, GetEmergencyLeaveRequestsResult>
+{
+    public async Task<GetEmergencyLeaveRequestsResult> Handle(GetEmployeeEmergencyLeaveRequestsQuery request, CancellationToken cancellationToken)
+    {
+        var query = leaveDbContext.EmergencyLeaveRequests.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId && x.EmployeeId == request.EmployeeId);
+
+        if (request.Status.HasValue)
+        {
+            query = query.Where(x => x.Status == request.Status.Value);
+        }
+
+        var total = await query.LongCountAsync(cancellationToken);
+        var rows = await query
+            .OrderByDescending(x => x.StartDate)
+            .Skip(request.PaginationRequest.PageIndex * request.PaginationRequest.PageSize)
+            .Take(request.PaginationRequest.PageSize)
+            .ProjectToType<EmergencyLeaveRequestDto>()
+            .ToListAsync(cancellationToken);
+
+        return new GetEmergencyLeaveRequestsResult(new PaginatedResult<EmergencyLeaveRequestDto>(
+            request.PaginationRequest.PageIndex,
+            request.PaginationRequest.PageSize,
+            total,
+            rows));
     }
 }

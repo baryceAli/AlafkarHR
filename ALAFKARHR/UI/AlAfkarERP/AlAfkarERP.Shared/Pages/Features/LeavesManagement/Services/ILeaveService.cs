@@ -10,6 +10,8 @@ namespace AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services;
 public interface ILeaveService
 {
     Task<ApiResult<PaginatedResult<EmergencyLeaveRequestDto>>> GetEmergencyLeavesAsync(Guid companyId, int pageIndex, int pageSize, AttendanceExceptionStatus? status = null, Guid? employeeId = null);
+    Task<ApiResult<PaginatedResult<EmergencyLeaveRequestDto>>> GetMyEmergencyLeavesAsync(Guid companyId, int pageIndex, int pageSize, AttendanceExceptionStatus? status = null);
+    Task<ApiResult<PaginatedResult<EmergencyLeaveRequestDto>>> GetEmployeeEmergencyLeavesAsync(Guid companyId, Guid employeeId, int pageIndex, int pageSize, AttendanceExceptionStatus? status = null);
     Task<ApiResult<string>> UploadEmergencyLeaveAttachmentAsync(IBrowserFile file);
     Task<ApiResult<EmergencyLeaveRequestDto>> CreateEmergencyLeaveAsync(CreateEmergencyLeaveRequestDto request);
     Task<ApiResult<EmergencyLeaveRequestDto>> ReviewEmergencyLeaveAsync(ReviewEmergencyLeaveRequestDto review);
@@ -38,6 +40,31 @@ public class LeaveService : BaseApiService, ILeaveService
         var url = $"{path}/emergency-leaves?companyId={companyId}&pageIndex={pageIndex}&pageSize={pageSize}";
         if (status.HasValue) url += $"&status={status.Value}";
         if (employeeId.HasValue) url += $"&employeeId={employeeId.Value}";
+
+        return await SendAsync<PaginatedResult<EmergencyLeaveRequestDto>>(new HttpRequestMessage(HttpMethod.Get, url), "requestList");
+    }
+
+    public async Task<ApiResult<PaginatedResult<EmergencyLeaveRequestDto>>> GetMyEmergencyLeavesAsync(
+        Guid companyId,
+        int pageIndex,
+        int pageSize,
+        AttendanceExceptionStatus? status = null)
+    {
+        var url = $"{path}/my-emergency-leaves?companyId={companyId}&pageIndex={pageIndex}&pageSize={pageSize}";
+        if (status.HasValue) url += $"&status={status.Value}";
+
+        return await SendAsync<PaginatedResult<EmergencyLeaveRequestDto>>(new HttpRequestMessage(HttpMethod.Get, url), "requestList");
+    }
+
+    public async Task<ApiResult<PaginatedResult<EmergencyLeaveRequestDto>>> GetEmployeeEmergencyLeavesAsync(
+        Guid companyId,
+        Guid employeeId,
+        int pageIndex,
+        int pageSize,
+        AttendanceExceptionStatus? status = null)
+    {
+        var url = $"{path}/employee-emergency-leaves?companyId={companyId}&employeeId={employeeId}&pageIndex={pageIndex}&pageSize={pageSize}";
+        if (status.HasValue) url += $"&status={status.Value}";
 
         return await SendAsync<PaginatedResult<EmergencyLeaveRequestDto>>(new HttpRequestMessage(HttpMethod.Get, url), "requestList");
     }

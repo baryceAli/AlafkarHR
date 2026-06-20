@@ -29,6 +29,19 @@ public class LeaveEndpoints : ICarterModule
             .WithSummary("Get emergency leave requests")
             .RequireAuthorization(PermissionList.LeavePermissions.ApproveEmergencyLeave);
 
+        group.MapGet("/my-emergency-leaves", GetMyEmergencyLeaves)
+            .WithName("GetMyLeaveEmergencyLeaveRequests")
+            .Produces<GetEmergencyLeaveRequestsResult>(StatusCodes.Status200OK)
+            .WithSummary("Get signed-in employee emergency leave requests")
+            .RequireAuthorization(PermissionList.LeavePermissions.RequestEmergencyLeave);
+
+        group.MapGet("/employee-emergency-leaves", GetEmployeeEmergencyLeaves)
+            .WithName("GetEmployeeLeaveEmergencyLeaveRequests")
+            .Produces<GetEmergencyLeaveRequestsResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Get employee emergency leave requests for leave reporting/profile views")
+            .RequireAuthorization(PermissionList.LeavePermissions.ViewLeaveReports);
+
         group.MapPost("/emergency-leaves", CreateEmergencyLeave)
             .WithName("CreateLeaveEmergencyLeaveRequest")
             .Produces<CreateEmergencyLeaveRequestResult>(StatusCodes.Status200OK)
@@ -84,6 +97,35 @@ public class LeaveEndpoints : ICarterModule
         var reviewerEmployeeId = await ResolveSignedInEmployeeIdAsync(user, sender);
 
         var result = await sender.Send(new GetEmergencyLeaveRequestsQuery(companyId, status, employeeId, reviewerEmployeeId, request));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<GetEmergencyLeaveRequestsResult>> GetMyEmergencyLeaves(
+        [FromQuery] Guid companyId,
+        [FromQuery] AttendanceExceptionStatus? status,
+        [AsParameters] PaginationRequest request,
+        ClaimsPrincipal user,
+        ISender sender)
+    {
+        var employeeId = await ResolveSignedInEmployeeIdAsync(user, sender);
+        var employee = await sender.Send(new GetEmployeeAttendanceProfileQuery(employeeId));
+        var result = await sender.Send(new GetEmployeeEmergencyLeaveRequestsQuery(employee.CompanyId, employee.EmployeeId, status, request));
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<GetEmergencyLeaveRequestsResult>> GetEmployeeEmergencyLeaves(
+        [FromQuery] Guid companyId,
+        [FromQuery] Guid employeeId,
+        [FromQuery] AttendanceExceptionStatus? status,
+        [AsParameters] PaginationRequest request,
+        ISender sender)
+    {
+        if (companyId == Guid.Empty || employeeId == Guid.Empty)
+        {
+            throw new BadRequestException("Company and employee are required.");
+        }
+
+        var result = await sender.Send(new GetEmployeeEmergencyLeaveRequestsQuery(companyId, employeeId, status, request));
         return TypedResults.Ok(result);
     }
 
