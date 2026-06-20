@@ -43,7 +43,9 @@ internal static class InventoryStockCommandMapper
             TotalCost = command.TotalCost,
             CurrencyId = command.CurrencyId,
             CompanyId = command.CompanyId,
-            Notes = command.Notes
+            Notes = command.Notes,
+            ReferenceNumber = command.ReferenceNumber ?? $"{movementType}-{command.WarehouseId:N}-{command.BatchId:N}",
+            SourceDocumentType = command.SourceDocumentType ?? "Integration"
         };
 
     public static CreateInventoryAggregateDto ToInventoryAggregateDto(this PostInventoryStockOutCommand command, MovementType movementType) =>
@@ -60,6 +62,9 @@ internal static class InventoryStockCommandMapper
             TotalCost = command.TotalCost,
             CurrencyId = command.CurrencyId,
             CompanyId = command.CompanyId,
-            Notes = command.Notes
+            Notes = command.Notes,
+            ReferenceNumber = command.ReferenceNumber ?? $"{movementType}-{command.WarehouseId:N}-{command.BatchId:N}",
+            SourceDocumentType = command.SourceDocumentType ?? "Integration",
+            ConsumeReservedQuantity = command.ConsumeReservedQuantity
         };
 }

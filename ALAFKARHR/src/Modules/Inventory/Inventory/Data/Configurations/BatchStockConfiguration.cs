@@ -15,6 +15,12 @@ public class BatchStockConfiguration : IEntityTypeConfiguration<BatchStock>
         builder.Property(x => x.Quantity).HasColumnType("decimal(18,4)").IsRequired();
         builder.Property(x => x.ReservedQuantity).HasColumnType("decimal(18,4)").IsRequired();
         builder.Property(x => x.WarehouseId).IsRequired();
+        builder.Property(x => x.RowVersion).IsRowVersion();
+
+        builder.HasIndex("InventoryAggregateId", nameof(BatchStock.BatchId), nameof(BatchStock.WarehouseId))
+               .IsUnique()
+               .HasDatabaseName("UX_BatchStock_Inventory_Batch_Warehouse")
+               .HasFilter("[InventoryAggregateId] IS NOT NULL");
 
         // Owned collection is modeled as relationship in Aggregate; leave as-is
         // Audit fields

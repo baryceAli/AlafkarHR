@@ -13,7 +13,9 @@ public record PostInventoryStockInCommand(
     decimal TotalCost,
     Guid CurrencyId,
     Guid CompanyId,
-    string? Notes) : ICommand<PostInventoryStockResult>;
+    string? Notes,
+    string? ReferenceNumber = null,
+    string? SourceDocumentType = null) : ICommand<PostInventoryStockResult>;
 
 public record PostInventoryStockOutCommand(
     Guid ProductId,
@@ -26,6 +28,9 @@ public record PostInventoryStockOutCommand(
     decimal TotalCost,
     Guid CurrencyId,
     Guid CompanyId,
-    string? Notes) : ICommand<PostInventoryStockResult>;
+    string? Notes,
+    string? ReferenceNumber = null,
+    string? SourceDocumentType = null,
+    bool ConsumeReservedQuantity = false) : ICommand<PostInventoryStockResult>;
 
 public record PostInventoryStockResult(Guid InventoryId);

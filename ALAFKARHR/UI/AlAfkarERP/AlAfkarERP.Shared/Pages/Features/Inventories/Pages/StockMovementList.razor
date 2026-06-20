@@ -1,0 +1,117 @@
+@layout AdminLayout
+@page "/Inventory/Movements"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Permissions
+
+@inject IStockMovementService MovementService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (!AuthState.User.Claims.Any(c => c.Value == PermissionList.StockTransactionPermissions.View))
+{
+    <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")</div>
+    return;
+}
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Stock Movements", "حركات المخزون")"
+                Overline="@SharedDataService.SelectViewLang("Inventory", "المخزون")"
+                Description="@SharedDataService.SelectViewLang("Audit stock movement history by document reference and warehouse.", "مراجعة سجل حركات المخزون حسب المرجع والمستودع.")" />
+
+    <div class="erp-card">
+        <div class="erp-card-header d-flex justify-content-between align-items-center gap-2">
+            <h5 class="mb-0">@SharedDataService.SelectViewLang("Movement Ledger", "سجل الحركات")</h5>
+            <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="LoadMovementsAsync">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </div>
+        <div class="erp-card-body">
+            <div class="erp-table-wrap">
+                <table class="erp-table table">
+                    <thead>
+                        <tr>
+                            <th>@SharedDataService.SelectViewLang("Date", "التاريخ")</th>
+                            <th>@SharedDataService.SelectViewLang("Reference", "المرجع")</th>
+                            <th>@SharedDataService.SelectViewLang("Source", "المصدر")</th>
+                            <th>@SharedDataService.SelectViewLang("Type", "النوع")</th>
+                            <th>@SharedDataService.SelectViewLang("Direction", "الاتجاه")</th>
+                            <th>@SharedDataService.SelectViewLang("Before", "قبل")</th>
+                            <th>@SharedDataService.SelectViewLang("After", "بعد")</th>
+                            <th>@SharedDataService.SelectViewLang("Reserved", "محجوز")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (movements.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="8" class="text-muted text-center py-4">@SharedDataService.SelectViewLang("No movements found", "لا توجد حركات")</td>
+                            </tr>
+                        }
+                        @foreach (var movement in movements)
+                        {
+                            <tr>
+                                <td>@movement.CreatedAt?.ToLocalTime().ToString("g")</td>
+                                <td>@movement.ReferenceNumber</td>
+                                <td>@movement.SourceDocumentType</td>
+                                <td>@movement.MovementType</td>
+                                <td>@movement.MovementDirection</td>
+                                <td>@movement.QuantityBefore</td>
+                                <td>@movement.QuantityAfter</td>
+                                <td>@movement.ReservedAfter</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private AuthenticationState AuthState = default!;
+    private Guid companyId;
+    private List<StockMovementDto> movements = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!CompanyContext.TryGetCompanyId(AuthState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+
+        await LoadMovementsAsync();
+    }
+
+    private async Task LoadMovementsAsync()
+    {
+        var result = await MovementService.GetAsync(companyId, 0, 50);
+        if (result.IsSuccess)
+            movements = result.Data?.Data?.ToList() ?? [];
+        else
+            ToastService.Show(new ToastMessage { Message = SharedDataService.SelectViewLang("Could not load movements", "تعذر تحميل الحركات"), Type = "error" });
+    }
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

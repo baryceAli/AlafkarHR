@@ -742,6 +742,22 @@ public class MenuItem
                         },
                         new MenuItem
                         {
+                            TextEn = "Transfers",
+                            TextAr = "التحويلات",
+                            Icon = "bi-truck",
+                            Url = "/Inventory/Transfers",
+                            PermissionPolicy = PermissionList.WarehouseTransferPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Movements",
+                            TextAr = "حركات المخزون",
+                            Icon = "bi-clock-history",
+                            Url = "/Inventory/Movements",
+                            PermissionPolicy = PermissionList.StockTransactionPermissions.View,
+                        },
+                        new MenuItem
+                        {
                             TextEn = "Stock Operations",
                             TextAr = "عمليات المخزون",
                             Icon = "bi-arrow-left-right",

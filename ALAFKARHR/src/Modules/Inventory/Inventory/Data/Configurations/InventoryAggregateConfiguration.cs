@@ -14,6 +14,11 @@ public class InventoryAggregateConfiguration : IEntityTypeConfiguration<Inventor
         builder.Property(x => x.ProductId).IsRequired();
         builder.Property(x => x.ProductSkuId).IsRequired();
         builder.Property(x => x.WarehouseId).IsRequired();
+        builder.Property(x => x.RowVersion).IsRowVersion();
+
+        builder.HasIndex(x => new { x.CompanyId, x.WarehouseId, x.ProductSkuId })
+               .IsUnique()
+               .HasDatabaseName("UX_InventoryAggregate_Company_Warehouse_Sku");
 
         // One-to-many for BatchStocks
         //builder.HasMany<BatchStock>("_batches")

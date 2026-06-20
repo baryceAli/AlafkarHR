@@ -14,9 +14,10 @@ public class WarehouseTransfer : Aggregate<Guid>
     public string TransferNumber { get; private set; }
     public Guid RequestedBy { get; private set; }
     public Guid ApprovedBy { get; private set; }
-    public string Reason { get; private set; }
+    public string? Reason { get; private set; }
     public string ReferenceNumber { get; private set; }
     public DateTime ExpectedDeliveryDate { get; private set; }
+    public Guid CompanyId { get; private set; }
 
     //    TransferNumber
     //Notes
@@ -37,17 +38,33 @@ public class WarehouseTransfer : Aggregate<Guid>
         Guid id,
         Guid sourceWarehouseId,
         Guid destinationWarehouseId,
+        Guid companyId,
+        string transferNumber,
+        string? reason,
+        string referenceNumber,
+        DateTime expectedDeliveryDate,
         string createdBy)
     {
         if (sourceWarehouseId == destinationWarehouseId)
             throw new InvalidOperationException(
                 "Source and destination cannot be the same");
+        if (companyId == Guid.Empty)
+            throw new InvalidOperationException("Company is required");
+        if (string.IsNullOrWhiteSpace(transferNumber))
+            throw new InvalidOperationException("Transfer number is required");
+        if (string.IsNullOrWhiteSpace(referenceNumber))
+            throw new InvalidOperationException("Reference number is required");
 
         return new WarehouseTransfer
         {
             Id = id,
             SourceWarehouseId = sourceWarehouseId,
             DestinationWarehouseId = destinationWarehouseId,
+            CompanyId = companyId,
+            TransferNumber = transferNumber,
+            Reason = reason,
+            ReferenceNumber = referenceNumber,
+            ExpectedDeliveryDate = expectedDeliveryDate,
             Status = TransferStatus.Pending,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
@@ -61,6 +78,8 @@ public class WarehouseTransfer : Aggregate<Guid>
         Guid batchId,
         Guid warehouseId,
         decimal quantity,
+        decimal unitCost,
+        Guid currencyId,
         decimal? receivedQuantity,
         //bool isCompleted,
         string user)
@@ -84,6 +103,8 @@ public class WarehouseTransfer : Aggregate<Guid>
             batchId,
             //warehouseId,
             quantity,
+            unitCost,
+            currencyId,
             //receivedQuantity,
             //isCompleted,
             user);

@@ -14,8 +14,10 @@ public class StockInCommandValidator : AbstractValidator<StockInCommand>
         RuleFor(x=> x.InventoryAggregate.ProductId).NotEmpty().WithMessage("Product is required");
         RuleFor(x=> x.InventoryAggregate.ProductSkuId).NotEmpty().WithMessage("Sku is required");
         RuleFor(x=> x.InventoryAggregate.WarehouseId).NotEmpty().WithMessage("Warehouse is required");
-        RuleFor(x=> x.InventoryAggregate.InitialQuantity).GreaterThanOrEqualTo(0).WithMessage("Quantity can not be negative");
+        RuleFor(x=> x.InventoryAggregate.InitialQuantity).GreaterThan(0).WithMessage("Quantity must be greater than zero");
         RuleFor(x=> x.InventoryAggregate.InitialBatchId).NotEmpty().WithMessage("Batch is required");
+        RuleFor(x => x.InventoryAggregate.ReferenceNumber).NotEmpty().MaximumLength(120).WithMessage("Reference number is required");
+        RuleFor(x => x.InventoryAggregate.SourceDocumentType).NotEmpty().MaximumLength(80).WithMessage("Source document type is required");
     }
 }
 public class StockInHandler(InventoryDbContext dbContext, ISender sender, IHttpContextAccessor httpContextAccessor)
@@ -45,7 +47,6 @@ public class StockInHandler(InventoryDbContext dbContext, ISender sender, IHttpC
 
         decimal quantityBefore = 0;
         decimal reservedBefore = 0;
-        string reference = "";
         if(inventory is null)
         {
             //create new inventory
@@ -59,8 +60,7 @@ public class StockInHandler(InventoryDbContext dbContext, ISender sender, IHttpC
                 command.InventoryAggregate.CompanyId,
                 userId);
 
-            var res = await dbContext.Inventories.AddAsync(inventory);
-            reference = res.Entity.Id.ToString();
+            await dbContext.Inventories.AddAsync(inventory, cancellationToken);
         }
         else
         {
@@ -72,7 +72,6 @@ public class StockInHandler(InventoryDbContext dbContext, ISender sender, IHttpC
                 command.InventoryAggregate.WarehouseId.Value,
                 packageQuantity.NormalizedQuantity,
                 userId));
-            reference=inventory.Id.ToString();
         }
 
 
@@ -92,8 +91,8 @@ public class StockInHandler(InventoryDbContext dbContext, ISender sender, IHttpC
             command.InventoryAggregate.UnitCost,
             command.InventoryAggregate.TotalCost,
             command.InventoryAggregate.CurrencyId!.Value,
-            reference,
-            "InventoryAggregate",
+            command.InventoryAggregate.ReferenceNumber!,
+            command.InventoryAggregate.SourceDocumentType!,
             command.InventoryAggregate.MovementType,
             MovementDirection.IN,
             userId,
@@ -102,10 +101,10 @@ public class StockInHandler(InventoryDbContext dbContext, ISender sender, IHttpC
             enteredQuantity: packageQuantity.EnteredQuantity,
             packageMultiplier: packageQuantity.PackageMultiplier,
             normalizedQuantity: packageQuantity.NormalizedQuantity);
-        await dbContext.StockMovements.AddAsync(movement);
+        await dbContext.StockMovements.AddAsync(movement, cancellationToken);
 
 
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return new StockInResult(inventory.Id);
     }

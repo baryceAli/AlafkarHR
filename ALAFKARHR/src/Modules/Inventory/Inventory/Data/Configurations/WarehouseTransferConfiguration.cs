@@ -19,6 +19,21 @@ public class WarehouseTransferConfiguration : IEntityTypeConfiguration<Warehouse
         builder.Property(x => x.DestinationWarehouseId)
             .IsRequired();
 
+        builder.Property(x => x.CompanyId)
+            .IsRequired();
+
+        builder.Property(x => x.TransferNumber)
+            .HasMaxLength(80)
+            .IsRequired();
+
+        builder.Property(x => x.ReferenceNumber)
+            .HasMaxLength(120)
+            .IsRequired();
+
+        builder.Property(x => x.Reason)
+            .HasMaxLength(500)
+            .IsRequired(false);
+
         builder.Property(x => x.Status)
             .HasConversion<int>()
             .IsRequired();
@@ -56,5 +71,9 @@ public class WarehouseTransferConfiguration : IEntityTypeConfiguration<Warehouse
         builder.HasIndex(x => x.SourceWarehouseId);
 
         builder.HasIndex(x => x.DestinationWarehouseId);
+
+        builder.HasIndex(x => new { x.CompanyId, x.TransferNumber })
+            .IsUnique()
+            .HasDatabaseName("UX_WarehouseTransfer_Company_TransferNumber");
     }
 }
