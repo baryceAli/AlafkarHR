@@ -10,7 +10,7 @@ public class CreatePriceListValidator : AbstractValidator<CreatePriceListCommand
         RuleFor(x => x.PriceList.Name).NotEmpty().WithMessage("Name is required");
         //RuleFor(x => x.PriceList.Code).NotEmpty().WithMessage("Code is required");
         RuleFor(x => x.PriceList.CompanyId).NotEmpty().WithMessage("Company is required");
-        RuleFor(x => x.PriceList.CurrencyCode).NotEmpty().WithMessage("Currency is required");
+        RuleFor(x => x.PriceList.CurrencyId).NotEmpty().WithMessage("Currency is required");
     }
 }
 
@@ -39,6 +39,7 @@ public class CreatePriceListHandler(PricingDbContext dbContext, IHttpContextAcce
             command.PriceList.Name,
             code,
             command.PriceList.CompanyId,
+            command.PriceList.CurrencyId!.Value,
             command.PriceList.CurrencyCode,
             command.PriceList.IsDefault,
             command.PriceList.EffectiveFrom,

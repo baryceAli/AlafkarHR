@@ -11,7 +11,8 @@ public class LicenseCategory : Aggregate<Guid>
     public int MaxBranches { get; private set; }
     public decimal MonthlyPrice { get; private set; }
     public decimal YearlyPrice { get; private set; }
-    public string CurrencyCode { get; private set; } = "SAR";
+    public Guid? CurrencyId { get; private set; }
+    public string? CurrencyCode { get; private set; }
     public bool IsActive { get; private set; } = true;
     public string? Notes { get; private set; }
 
@@ -28,11 +29,12 @@ public class LicenseCategory : Aggregate<Guid>
         int maxBranches,
         decimal monthlyPrice,
         decimal yearlyPrice,
-        string currencyCode,
+        Guid currencyId,
+        string? currencyCode,
         string? notes,
         string createdBy)
     {
-        Validate(key, name, maxUsers, maxChildCompanies, maxBranches, monthlyPrice, yearlyPrice, currencyCode);
+        Validate(key, name, maxUsers, maxChildCompanies, maxBranches, monthlyPrice, yearlyPrice, currencyId);
 
         return new LicenseCategory
         {
@@ -44,7 +46,8 @@ public class LicenseCategory : Aggregate<Guid>
             MaxBranches = maxBranches,
             MonthlyPrice = monthlyPrice,
             YearlyPrice = yearlyPrice,
-            CurrencyCode = currencyCode.Trim().ToUpperInvariant(),
+            CurrencyId = currencyId,
+            CurrencyCode = currencyCode?.Trim().ToUpperInvariant(),
             IsActive = true,
             Notes = notes?.Trim(),
             CreatedBy = createdBy,
@@ -60,11 +63,12 @@ public class LicenseCategory : Aggregate<Guid>
         int maxBranches,
         decimal monthlyPrice,
         decimal yearlyPrice,
-        string currencyCode,
+        Guid currencyId,
+        string? currencyCode,
         string? notes,
         string modifiedBy)
     {
-        Validate(key, name, maxUsers, maxChildCompanies, maxBranches, monthlyPrice, yearlyPrice, currencyCode);
+        Validate(key, name, maxUsers, maxChildCompanies, maxBranches, monthlyPrice, yearlyPrice, currencyId);
 
         Key = NormalizeKey(key);
         Name = name.Trim();
@@ -73,7 +77,8 @@ public class LicenseCategory : Aggregate<Guid>
         MaxBranches = maxBranches;
         MonthlyPrice = monthlyPrice;
         YearlyPrice = yearlyPrice;
-        CurrencyCode = currencyCode.Trim().ToUpperInvariant();
+        CurrencyId = currencyId;
+        CurrencyCode = currencyCode?.Trim().ToUpperInvariant();
         Notes = notes?.Trim();
         ModifiedBy = modifiedBy;
         ModifiedAt = DateTime.UtcNow;
@@ -96,7 +101,7 @@ public class LicenseCategory : Aggregate<Guid>
         int maxBranches,
         decimal monthlyPrice,
         decimal yearlyPrice,
-        string currencyCode)
+        Guid currencyId)
     {
         if (string.IsNullOrWhiteSpace(key))
             throw new ArgumentException("License category key is required", nameof(key));
@@ -112,7 +117,7 @@ public class LicenseCategory : Aggregate<Guid>
             throw new ArgumentOutOfRangeException(nameof(monthlyPrice), "Monthly price cannot be negative");
         if (yearlyPrice < 0)
             throw new ArgumentOutOfRangeException(nameof(yearlyPrice), "Yearly price cannot be negative");
-        if (string.IsNullOrWhiteSpace(currencyCode))
-            throw new ArgumentException("Currency code is required", nameof(currencyCode));
+        if (currencyId == Guid.Empty)
+            throw new ArgumentException("Currency is required", nameof(currencyId));
     }
 }

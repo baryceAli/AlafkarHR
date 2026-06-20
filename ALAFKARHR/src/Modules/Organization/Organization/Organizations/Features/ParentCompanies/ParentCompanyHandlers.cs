@@ -213,6 +213,7 @@ public class ParentCompanyQueryHandler(OrganizationDbContext dbContext, ISender 
         MaxBranches = license.EffectiveMaxBranches,
         MonthlyPrice = license.EffectiveMonthlyPrice,
         YearlyPrice = license.EffectiveYearlyPrice,
+        CurrencyId = license.EffectiveCurrencyId,
         CurrencyCode = license.EffectiveCurrencyCode,
         Notes = license.Notes
     };

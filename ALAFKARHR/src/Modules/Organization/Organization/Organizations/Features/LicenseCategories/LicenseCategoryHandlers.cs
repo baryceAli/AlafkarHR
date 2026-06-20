@@ -20,7 +20,8 @@ public class LicenseCategoryValidator : AbstractValidator<LicenseCategoryDto>
         RuleFor(x => x.MaxBranches).GreaterThanOrEqualTo(0);
         RuleFor(x => x.MonthlyPrice).GreaterThanOrEqualTo(0);
         RuleFor(x => x.YearlyPrice).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.CurrencyCode).NotEmpty().MaximumLength(3);
+        RuleFor(x => x.CurrencyId).NotEmpty();
+        RuleFor(x => x.CurrencyCode).MaximumLength(10);
         RuleFor(x => x.Notes).MaximumLength(1000);
     }
 }
@@ -69,6 +70,7 @@ public class LicenseCategoryQueryHandler(OrganizationDbContext dbContext)
         MaxBranches = category.MaxBranches,
         MonthlyPrice = category.MonthlyPrice,
         YearlyPrice = category.YearlyPrice,
+        CurrencyId = category.CurrencyId,
         CurrencyCode = category.CurrencyCode,
         IsActive = category.IsActive,
         Notes = category.Notes
@@ -96,6 +98,7 @@ public class LicenseCategoryCommandHandler(OrganizationDbContext dbContext, IHtt
             request.Category.MaxBranches,
             request.Category.MonthlyPrice,
             request.Category.YearlyPrice,
+            request.Category.CurrencyId!.Value,
             request.Category.CurrencyCode,
             request.Category.Notes,
             GetUserId());
@@ -123,6 +126,7 @@ public class LicenseCategoryCommandHandler(OrganizationDbContext dbContext, IHtt
             request.Category.MaxBranches,
             request.Category.MonthlyPrice,
             request.Category.YearlyPrice,
+            request.Category.CurrencyId!.Value,
             request.Category.CurrencyCode,
             request.Category.Notes,
             GetUserId());

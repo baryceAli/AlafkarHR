@@ -2,12 +2,15 @@
 @layout AdminLayout
 @implements IDisposable
 @using AlAfkarERP.Shared.Pages.Features.Fleet.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.JSInterop
+@using SharedWithUI.GeneralSettings.Dtos
 @using SharedWithUI.Fleet.Dtos
 @using SharedWithUI.Fleet.Enums
 @using SharedWithUI.Permissions
 @inject IFleetService FleetService
+@inject ICurrencyService CurrencyService
 @inject SharedDataService SharedDataService
 @inject IJSRuntime JSRuntime
 @inject AuthenticationStateProvider AuthStateProvider
@@ -60,7 +63,15 @@
                         </InputSelect>
                     </div>
                     <div class="col-6 col-lg-2"><label class="form-label">@Text("Amount", "المبلغ")</label><InputNumber class="form-control" @bind-Value="expenseForm.Amount" /></div>
-                    <div class="col-6 col-lg-1"><label class="form-label">@Text("Currency", "العملة")</label><InputText class="form-control" @bind-Value="expenseForm.CurrencyCode" /></div>
+                    <div class="col-12 col-lg-2">
+                        <label class="form-label">@Text("Currency", "العملة")</label>
+                        <AutoCompleteComponent TItem="CurrencyDto"
+                                               Items="currencies"
+                                               ItemText="CurrencyOptionText"
+                                               Value="CurrencyById(expenseForm.CurrencyId)"
+                                               ValueChanged="OnCurrencyChanged"
+                                               PlaceHolder="@Text("Select Currency", "اختر العملة")" />
+                    </div>
                     <div class="col-6 col-lg-2"><label class="form-label">@Text("Odometer", "العداد")</label><InputNumber class="form-control" @bind-Value="expenseForm.Odometer" /></div>
                     <div class="col-6 col-lg-2"><label class="form-label">@Text("Quantity", "الكمية")</label><InputNumber class="form-control" @bind-Value="expenseForm.Quantity" /></div>
                     <div class="col-6 col-lg-2"><label class="form-label">@Text("Unit Price", "سعر الوحدة")</label><InputNumber class="form-control" @bind-Value="expenseForm.UnitPrice" /></div>
@@ -183,6 +194,7 @@
 @code {
     private List<FleetVehicleDto> vehicles = [];
     private List<FleetVehicleExpenseDto> expenses = [];
+    private List<CurrencyDto> currencies = [];
     private UpdateFleetVehicleExpenseDto expenseForm = NewExpense();
     private Guid? editingExpenseId;
     private string? supplierIdText;
@@ -201,6 +213,7 @@
     private int pageSize = 25;
     private long totalCount;
     private bool isLoading = true;
+    private Guid companyId;
     private AuthenticationState? authState;
     private bool HasNextPage => (pageIndex + 1) * pageSize < totalCount;
 
@@ -208,8 +221,18 @@
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
         authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+            return;
+        await LoadCurrenciesAsync();
         await LoadVehiclesAsync();
         await LoadAsync();
+    }
+
+    private async Task LoadCurrenciesAsync()
+    {
+        var result = await CurrencyService.GetAsync(companyId, 0, 1000);
+        currencies = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+        ApplyDefaultCurrency(expenseForm);
     }
 
     private async Task LoadVehiclesAsync()
@@ -238,6 +261,7 @@
     private async Task SaveAsync()
     {
         ApplyLinkedIds();
+        ApplyDefaultCurrency(expenseForm);
         if (editingExpenseId.HasValue)
         {
             expenseForm.Id = editingExpenseId.Value;
@@ -265,6 +289,7 @@
             ExpenseDate = expense.ExpenseDate,
             Category = expense.Category,
             Amount = expense.Amount,
+            CurrencyId = expense.CurrencyId,
             CurrencyCode = expense.CurrencyCode,
             SupplierId = expense.SupplierId,
             VendorName = expense.VendorName,
@@ -284,6 +309,7 @@
         contractIdText = expense.ContractId?.ToString();
         procurementDocumentIdText = expense.ProcurementDocumentId?.ToString();
         paymentReferenceIdText = expense.PaymentReferenceId?.ToString();
+        ApplyDefaultCurrency(expenseForm);
     }
 
     private async Task DeleteAsync(Guid id)
@@ -305,6 +331,7 @@
     {
         editingExpenseId = null;
         expenseForm = NewExpense();
+        ApplyDefaultCurrency(expenseForm);
         supplierIdText = maintenanceWorkOrderIdText = contractIdText = procurementDocumentIdText = paymentReferenceIdText = null;
     }
 
@@ -317,7 +344,30 @@
         expenseForm.PaymentReferenceId = ParseGuid(paymentReferenceIdText);
     }
 
-    private static UpdateFleetVehicleExpenseDto NewExpense() => new() { ExpenseDate = DateTime.UtcNow.Date, Category = FleetExpenseCategory.Fuel, CurrencyCode = "SAR" };
+    private static UpdateFleetVehicleExpenseDto NewExpense() => new() { ExpenseDate = DateTime.UtcNow.Date, Category = FleetExpenseCategory.Fuel };
+    private CurrencyDto? DefaultCurrency => currencies.FirstOrDefault(c => c.IsDefault) ?? currencies.FirstOrDefault();
+    private CurrencyDto? CurrencyById(Guid? currencyId) => currencyId.HasValue ? currencies.FirstOrDefault(c => c.Id == currencyId.Value) : null;
+    private string CurrencyOptionText(CurrencyDto currency)
+    {
+        var name = Text(currency.NameEng, currency.Name);
+        return string.IsNullOrWhiteSpace(name) ? currency.Code : $"{currency.Code} - {name}";
+    }
+    private Task OnCurrencyChanged(CurrencyDto? currency)
+    {
+        expenseForm.CurrencyId = currency?.Id;
+        expenseForm.CurrencyCode = currency?.Code;
+        return Task.CompletedTask;
+    }
+    private void ApplyDefaultCurrency(UpdateFleetVehicleExpenseDto expense)
+    {
+        var currency = CurrencyById(expense.CurrencyId) ?? CurrencyByCode(expense.CurrencyCode) ?? DefaultCurrency;
+        expense.CurrencyId = currency?.Id;
+        expense.CurrencyCode = currency?.Code;
+    }
+    private CurrencyDto? CurrencyByCode(string? currencyCode)
+        => string.IsNullOrWhiteSpace(currencyCode)
+            ? null
+            : currencies.FirstOrDefault(c => string.Equals(c.Code, currencyCode, StringComparison.OrdinalIgnoreCase));
     private FleetExpenseCategory? ParseCategory() => Enum.TryParse<FleetExpenseCategory>(categoryText, out var value) ? value : null;
     private FleetExpenseApprovalStatus? ParseStatus() => Enum.TryParse<FleetExpenseApprovalStatus>(statusText, out var value) ? value : null;
     private Guid? ParseGuid(string? value) => Guid.TryParse(value, out var id) ? id : null;

@@ -207,6 +207,7 @@ public class FleetVehicleExpenseDto
     public DateTime ExpenseDate { get; set; }
     public FleetExpenseCategory Category { get; set; }
     public decimal Amount { get; set; }
+    public Guid? CurrencyId { get; set; }
     public string? CurrencyCode { get; set; }
     public Guid? SupplierId { get; set; }
     public string? VendorName { get; set; }
@@ -231,6 +232,8 @@ public class CreateFleetVehicleExpenseDto
     public DateTime ExpenseDate { get; set; } = DateTime.UtcNow.Date;
     public FleetExpenseCategory Category { get; set; } = FleetExpenseCategory.Fuel;
     public decimal Amount { get; set; }
+    [Required(ErrorMessage = "Currency is required")]
+    public Guid? CurrencyId { get; set; }
     public string? CurrencyCode { get; set; }
     public Guid? SupplierId { get; set; }
     public string? VendorName { get; set; }

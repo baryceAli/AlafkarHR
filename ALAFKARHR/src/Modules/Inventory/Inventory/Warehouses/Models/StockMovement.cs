@@ -25,7 +25,7 @@ public class StockMovement : Entity<Guid>
     public decimal ReservedAfter { get; private set; }
     public decimal UnitCost { get; set; }
     public decimal TotalCost { get; set; }
-    public Guid Currency { get; set; }
+    public Guid CurrencyId { get; set; }
 
     public string Notes { get; private set; } = string.Empty;
     public MovementDirection MovementDirection { get; private set; }
@@ -93,7 +93,7 @@ public class StockMovement : Entity<Guid>
 
             UnitCost = unitCost,
             TotalCost = totalCost,
-            Currency = currency,
+            CurrencyId = currency,
 
 
             ReferenceNumber = referenceNumber,

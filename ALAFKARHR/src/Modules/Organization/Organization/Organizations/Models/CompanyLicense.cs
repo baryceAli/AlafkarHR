@@ -25,7 +25,8 @@ public class CompanyLicense : Aggregate<Guid>
     public int EffectiveMaxBranches => LicenseCategory?.MaxBranches ?? MaxBranches;
     public decimal EffectiveMonthlyPrice => LicenseCategory?.MonthlyPrice ?? 0;
     public decimal EffectiveYearlyPrice => LicenseCategory?.YearlyPrice ?? 0;
-    public string EffectiveCurrencyCode => LicenseCategory?.CurrencyCode ?? "SAR";
+    public Guid? EffectiveCurrencyId => LicenseCategory?.CurrencyId;
+    public string? EffectiveCurrencyCode => LicenseCategory?.CurrencyCode;
 
     private CompanyLicense() { }
 

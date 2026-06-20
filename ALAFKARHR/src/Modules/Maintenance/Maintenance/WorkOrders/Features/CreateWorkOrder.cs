@@ -45,6 +45,7 @@ public class CreateMaintenanceWorkOrderHandler(
             request.WorkOrder.InternalNotes,
             request.WorkOrder.EstimatedCost,
             request.WorkOrder.ActualCost,
+            request.WorkOrder.CurrencyId,
             request.WorkOrder.CurrencyCode,
             request.WorkOrder.VendorName,
             request.WorkOrder.SupplierId);

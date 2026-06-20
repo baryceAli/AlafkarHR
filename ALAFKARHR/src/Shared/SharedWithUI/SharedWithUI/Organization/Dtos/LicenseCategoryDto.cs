@@ -10,7 +10,8 @@ public class LicenseCategoryDto
     public int MaxBranches { get; set; }
     public decimal MonthlyPrice { get; set; }
     public decimal YearlyPrice { get; set; }
-    public string CurrencyCode { get; set; } = "SAR";
+    public Guid? CurrencyId { get; set; }
+    public string? CurrencyCode { get; set; }
     public bool IsActive { get; set; } = true;
     public string? Notes { get; set; }
 }

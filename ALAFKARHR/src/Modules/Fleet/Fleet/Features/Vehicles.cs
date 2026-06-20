@@ -3,7 +3,7 @@ namespace Fleet.Features;
 public record CreateFleetVehicleRequest(CreateFleetVehicleDto Vehicle);
 public record UpdateFleetVehicleRequest(UpdateFleetVehicleDto Vehicle);
 public record UpdateFleetVehicleOdometerRequest(int Odometer);
-public record CreateEmergencyFleetMaintenanceRequest(Guid VehicleId, string Title, string Description, MaintenancePriority Priority, decimal? EstimatedCost, string? VendorName, Guid? SupplierId);
+public record CreateEmergencyFleetMaintenanceRequest(Guid VehicleId, string Title, string Description, MaintenancePriority Priority, decimal? EstimatedCost, Guid? CurrencyId, string? CurrencyCode, string? VendorName, Guid? SupplierId);
 public record CreateFleetVehicleCommand(CreateFleetVehicleDto Vehicle) : ICommand<CreateFleetVehicleResult>;
 public record UpdateFleetVehicleCommand(UpdateFleetVehicleDto Vehicle) : ICommand<FleetActionResult>;
 public record DeleteFleetVehicleCommand(Guid Id) : ICommand<FleetActionResult>;
@@ -386,6 +386,7 @@ public class GetFleetVehicleByIdHandler(FleetDbContext dbContext, MaintenanceDbC
             EstimatedCost = workOrder.EstimatedCost,
             ApprovedCost = workOrder.ApprovedCost,
             ActualCost = workOrder.ActualCost,
+            CurrencyId = workOrder.CurrencyId,
             CurrencyCode = workOrder.CurrencyCode,
             VendorName = workOrder.VendorName,
             SupplierId = workOrder.SupplierId,
@@ -423,7 +424,8 @@ public class CreateEmergencyFleetMaintenanceHandler(
             $"Vehicle {vehicle.PlateNumber}",
             request.WorkOrder.EstimatedCost,
             null,
-            null,
+            request.WorkOrder.CurrencyId,
+            request.WorkOrder.CurrencyCode,
             request.WorkOrder.VendorName,
             request.WorkOrder.SupplierId);
 

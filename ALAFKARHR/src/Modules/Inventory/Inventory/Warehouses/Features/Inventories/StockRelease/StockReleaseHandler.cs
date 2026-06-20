@@ -98,7 +98,7 @@ public class StockReleaseHandler(InventoryDbContext dbContext, ISender sender, I
             inventory.TotalReserved,
             command.InventoryAggregate.UnitCost,
             command.InventoryAggregate.TotalCost,
-            command.InventoryAggregate.Currency.Value,
+            command.InventoryAggregate.CurrencyId!.Value,
             reference,
             "InventoryAggregate",
             command.InventoryAggregate.MovementType,

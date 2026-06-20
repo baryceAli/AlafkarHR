@@ -17,6 +17,7 @@ public class CompanyLicenseDto
     public int MaxBranches { get; set; } = 10;
     public decimal MonthlyPrice { get; set; }
     public decimal YearlyPrice { get; set; }
-    public string CurrencyCode { get; set; } = "SAR";
+    public Guid? CurrencyId { get; set; }
+    public string? CurrencyCode { get; set; }
     public string? Notes { get; set; }
 }

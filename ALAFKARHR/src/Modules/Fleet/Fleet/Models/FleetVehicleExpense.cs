@@ -6,6 +6,7 @@ public class FleetVehicleExpense : Aggregate<Guid>
     public DateTime ExpenseDate { get; private set; }
     public FleetExpenseCategory Category { get; private set; }
     public decimal Amount { get; private set; }
+    public Guid? CurrencyId { get; private set; }
     public string? CurrencyCode { get; private set; }
     public Guid? SupplierId { get; private set; }
     public string? VendorName { get; private set; }
@@ -90,6 +91,7 @@ public class FleetVehicleExpense : Aggregate<Guid>
         ExpenseDate = dto.ExpenseDate;
         Category = dto.Category;
         Amount = dto.Amount;
+        CurrencyId = dto.CurrencyId;
         CurrencyCode = dto.CurrencyCode?.Trim();
         SupplierId = dto.SupplierId;
         VendorName = dto.VendorName?.Trim();
@@ -112,5 +114,7 @@ public class FleetVehicleExpense : Aggregate<Guid>
             throw new BadRequestException("Vehicle is required.");
         if (dto.Amount <= 0)
             throw new BadRequestException("Expense amount must be greater than zero.");
+        if (!dto.CurrencyId.HasValue || dto.CurrencyId.Value == Guid.Empty)
+            throw new BadRequestException("Currency is required.");
     }
 }

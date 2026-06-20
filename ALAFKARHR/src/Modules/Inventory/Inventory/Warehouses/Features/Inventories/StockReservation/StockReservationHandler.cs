@@ -98,7 +98,7 @@ public class StockReservationHandler(InventoryDbContext dbContext, ISender sende
             inventory.TotalReserved,
             command.InventoryAggregate.UnitCost,
             command.InventoryAggregate.TotalCost,
-            command.InventoryAggregate.Currency.Value,
+            command.InventoryAggregate.CurrencyId!.Value,
             reference,
             "InventoryAggregate",
             command.InventoryAggregate.MovementType,

@@ -109,6 +109,7 @@ internal static class FleetFeatureHelpers
             ExpenseDate = expense.ExpenseDate,
             Category = expense.Category,
             Amount = expense.Amount,
+            CurrencyId = expense.CurrencyId,
             CurrencyCode = expense.CurrencyCode,
             SupplierId = expense.SupplierId,
             VendorName = expense.VendorName,

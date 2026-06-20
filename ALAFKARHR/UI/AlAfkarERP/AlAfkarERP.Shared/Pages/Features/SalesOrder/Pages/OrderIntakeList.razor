@@ -3,6 +3,7 @@
 @implements IDisposable
 
 @using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using Microsoft.AspNetCore.Components.Authorization
@@ -11,6 +12,7 @@
 @using SharedWithUI.Permissions
 
 @inject IOrderIntakeService OrderIntakeService
+@inject ICurrencyService CurrencyService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
@@ -123,6 +125,7 @@
     private bool CanView;
     private bool isLoading;
     private Guid companyId;
+    private string currencyCode = string.Empty;
     private int pageIndex;
     private const int PageSize = 20;
     private long totalCount;
@@ -152,7 +155,17 @@
 
         }
         if (CanView)
+        {
+            await LoadCurrencyAsync();
             await LoadAsync();
+        }
+    }
+
+    private async Task LoadCurrencyAsync()
+    {
+        var result = await CurrencyService.GetAsync(companyId, 0, 1000);
+        var currencies = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+        currencyCode = currencies.FirstOrDefault(c => c.IsDefault)?.Code ?? currencies.FirstOrDefault()?.Code ?? string.Empty;
     }
 
     private async Task LoadAsync()
@@ -211,7 +224,7 @@
     };
 
     private string DateText(DateTime? value) => value?.ToString("yyyy-MM-dd HH:mm") ?? "-";
-    private string Money(decimal value) => $"{value:N2} SAR";
+    private string Money(decimal value) => string.IsNullOrWhiteSpace(currencyCode) ? $"{value:N2}" : $"{value:N2} {currencyCode}";
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);

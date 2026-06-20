@@ -290,7 +290,7 @@
             // Id = Guid.NewGuid(),
             CompanyId = companyId,
             InitialQuantity = 0,
-            Currency=selectedCurrency?.Id??null
+            CurrencyId=selectedCurrency?.Id??null
         };
 
 
@@ -380,7 +380,7 @@
         if (currency != null && currency.Id != Guid.Empty)
         {
             selectedCurrency = currency;
-            inventoryDto.Currency = currency.Id;
+            inventoryDto.CurrencyId = currency.Id;
         }
     }
 

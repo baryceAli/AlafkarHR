@@ -11,7 +11,8 @@ public class PriceList : Aggregate<Guid>
     public string Name { get; private set; } = string.Empty;
     public string Code { get; private set; } = string.Empty;
     public Guid CompanyId { get; private set; }
-    public string CurrencyCode { get; private set; } = "SAR";
+    public Guid? CurrencyId { get; private set; }
+    public string? CurrencyCode { get; private set; }
     public bool IsDefault { get; private set; }
     public bool IsActive { get; private set; }
     public DateTime EffectiveFrom { get; private set; }
@@ -23,7 +24,8 @@ public class PriceList : Aggregate<Guid>
         string name,
         string code,
         Guid companyId,
-        string currencyCode,
+        Guid currencyId,
+        string? currencyCode,
         bool isDefault,
         DateTime effectiveFrom,
         DateTime? effectiveTo,
@@ -31,7 +33,8 @@ public class PriceList : Aggregate<Guid>
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(code);
-        ArgumentException.ThrowIfNullOrWhiteSpace(currencyCode);
+        if (currencyId == Guid.Empty)
+            throw new ArgumentException("Currency is required.", nameof(currencyId));
 
         if (effectiveTo.HasValue && effectiveTo.Value < effectiveFrom)
             throw new Exception("EffectiveTo cannot be earlier than EffectiveFrom.");
@@ -42,6 +45,7 @@ public class PriceList : Aggregate<Guid>
             Name = name,
             Code = code,
             CompanyId = companyId,
+            CurrencyId = currencyId,
             CurrencyCode = currencyCode,
             IsDefault = isDefault,
             IsActive = true,
@@ -55,7 +59,8 @@ public class PriceList : Aggregate<Guid>
     public void Update(
         string name,
         string code,
-        string currencyCode,
+        Guid currencyId,
+        string? currencyCode,
         bool isDefault,
         bool isActive,
         DateTime effectiveFrom,
@@ -65,13 +70,15 @@ public class PriceList : Aggregate<Guid>
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(code);
-        ArgumentException.ThrowIfNullOrWhiteSpace(currencyCode);
+        if (currencyId == Guid.Empty)
+            throw new ArgumentException("Currency is required.", nameof(currencyId));
 
         if (effectiveTo.HasValue && effectiveTo.Value < effectiveFrom)
             throw new Exception("EffectiveTo cannot be earlier than EffectiveFrom.");
 
         Name = name;
         Code = code;
+        CurrencyId = currencyId;
         CurrencyCode = currencyCode;
         IsDefault = isDefault;
         IsActive = isActive;

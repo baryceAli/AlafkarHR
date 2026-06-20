@@ -18,11 +18,13 @@ public class MaintenanceWorkOrderConfiguration : IEntityTypeConfiguration<Mainte
         builder.Property(x => x.EstimatedCost).HasPrecision(18, 2);
         builder.Property(x => x.ApprovedCost).HasPrecision(18, 2);
         builder.Property(x => x.ActualCost).HasPrecision(18, 2);
+        builder.Property(x => x.CurrencyId);
         builder.Property(x => x.CurrencyCode).HasMaxLength(10);
         builder.Property(x => x.VendorName).HasMaxLength(250);
         builder.Property(x => x.CostApprovalStatus).HasConversion<string>().HasMaxLength(40);
         builder.Property(x => x.ApprovalNotes).HasMaxLength(2000);
         builder.HasIndex(x => x.AssetId);
+        builder.HasIndex(x => x.CurrencyId);
         builder.HasIndex(x => x.RequestedByUserId);
         builder.HasIndex(x => x.Status);
         builder.HasOne(x => x.Asset).WithMany().HasForeignKey(x => x.AssetId).OnDelete(DeleteBehavior.Restrict);

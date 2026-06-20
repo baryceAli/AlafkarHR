@@ -41,7 +41,7 @@ internal static class InventoryStockCommandMapper
             MovementType = movementType,
             UnitCost = command.UnitCost,
             TotalCost = command.TotalCost,
-            Currency = command.CurrencyId,
+            CurrencyId = command.CurrencyId,
             CompanyId = command.CompanyId,
             Notes = command.Notes
         };
@@ -58,7 +58,7 @@ internal static class InventoryStockCommandMapper
             MovementType = movementType,
             UnitCost = command.UnitCost,
             TotalCost = command.TotalCost,
-            Currency = command.CurrencyId,
+            CurrencyId = command.CurrencyId,
             CompanyId = command.CompanyId,
             Notes = command.Notes
         };

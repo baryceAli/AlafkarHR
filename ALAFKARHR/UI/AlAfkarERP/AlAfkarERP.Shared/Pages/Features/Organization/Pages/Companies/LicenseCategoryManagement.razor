@@ -99,8 +99,8 @@
                                     </td>
                                     <td>
                                         <div class="license-category-grid">
-                                            <span>@Text("Monthly", "شهري")</span><strong>@category.MonthlyPrice.ToString("N2") @category.CurrencyCode</strong>
-                                            <span>@Text("Yearly", "سنوي")</span><strong>@category.YearlyPrice.ToString("N2") @category.CurrencyCode</strong>
+                                            <span>@Text("Monthly", "شهري")</span><strong>@category.MonthlyPrice.ToString("N2") @CurrencyDisplay(category)</strong>
+                                            <span>@Text("Yearly", "سنوي")</span><strong>@category.YearlyPrice.ToString("N2") @CurrencyDisplay(category)</strong>
                                         </div>
                                     </td>
                                     <td>
@@ -290,7 +290,8 @@
         selectedCurrency = DefaultCurrency;
         selectedCategory = new LicenseCategoryDto
         {
-            CurrencyCode = selectedCurrency?.Code ?? string.Empty,
+            CurrencyId = selectedCurrency?.Id,
+            CurrencyCode = selectedCurrency?.Code,
             IsActive = true,
             MaxUsers = 1
         };
@@ -304,7 +305,7 @@
     {
         isCreateMode = false;
         selectedCategory = Clone(category);
-        selectedCurrency = CurrencyByCode(category.CurrencyCode);
+        selectedCurrency = CurrencyById(category.CurrencyId) ?? CurrencyByCode(category.CurrencyCode);
         currencySelectionMessage = selectedCurrency is null
             ? Text($"Saved currency code '{category.CurrencyCode}' is not available. Select a currency before saving.", $"رمز العملة المحفوظ '{category.CurrencyCode}' غير متاح. اختر عملة قبل الحفظ.")
             : null;
@@ -316,7 +317,7 @@
         if (selectedCategory is null)
             return;
 
-        if (selectedCurrency is null || string.IsNullOrWhiteSpace(selectedCategory.CurrencyCode))
+        if (selectedCurrency is null || !selectedCategory.CurrencyId.HasValue)
         {
             currencySelectionMessage = Text("Select a currency before saving.", "اختر عملة قبل الحفظ.");
             Toast("warning", currencySelectionMessage);
@@ -412,6 +413,20 @@
         return currencies.FirstOrDefault(currency => string.Equals(currency.Code, currencyCode, StringComparison.OrdinalIgnoreCase));
     }
 
+    private CurrencyDto? CurrencyById(Guid? currencyId)
+    {
+        if (!currencyId.HasValue)
+            return null;
+
+        return currencies.FirstOrDefault(currency => currency.Id == currencyId.Value);
+    }
+
+    private string CurrencyDisplay(LicenseCategoryDto category)
+        => CurrencyById(category.CurrencyId)?.Code
+           ?? CurrencyByCode(category.CurrencyCode)?.Code
+           ?? category.CurrencyCode
+           ?? "-";
+
     private string CurrencyOptionText(CurrencyDto currency)
     {
         var name = Text(currency.NameEng, currency.Name);
@@ -424,6 +439,7 @@
 
         if (selectedCategory is not null)
         {
+            selectedCategory.CurrencyId = currency?.Id;
             selectedCategory.CurrencyCode = currency?.Code ?? string.Empty;
         }
 
@@ -446,6 +462,7 @@
         MaxBranches = source.MaxBranches,
         MonthlyPrice = source.MonthlyPrice,
         YearlyPrice = source.YearlyPrice,
+        CurrencyId = source.CurrencyId,
         CurrencyCode = source.CurrencyCode,
         IsActive = source.IsActive,
         Notes = source.Notes

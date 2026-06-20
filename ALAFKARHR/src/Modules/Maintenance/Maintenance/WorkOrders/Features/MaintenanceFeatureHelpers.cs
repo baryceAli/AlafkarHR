@@ -71,6 +71,7 @@ internal static class MaintenanceFeatureHelpers
             EstimatedCost = workOrder.EstimatedCost,
             ApprovedCost = workOrder.ApprovedCost,
             ActualCost = workOrder.ActualCost,
+            CurrencyId = workOrder.CurrencyId,
             CurrencyCode = workOrder.CurrencyCode,
             VendorName = workOrder.VendorName,
             SupplierId = workOrder.SupplierId,
