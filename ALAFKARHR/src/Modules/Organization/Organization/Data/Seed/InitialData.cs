@@ -2,6 +2,63 @@
 
 public class InitialData
 {
+    public static Guid BasicLicenseCategoryId => Guid.Parse("8ae8997e-42a6-4b39-8d35-5c86fdf2f031");
+    public static Guid StandardLicenseCategoryId => Guid.Parse("65f1a088-c089-4681-a205-5f830da2a0c9");
+    public static Guid ProLicenseCategoryId => Guid.Parse("96a7b174-932b-4ef9-b680-6ad0d1deea75");
+    public static Guid AdvancedLicenseCategoryId => Guid.Parse("861b0e2e-5f63-427b-903f-1d20e9271fbd");
+
+    public static IEnumerable<LicenseCategory> LicenseCategories => new List<LicenseCategory>
+    {
+        LicenseCategory.Create(
+            BasicLicenseCategoryId,
+            "basic",
+            "Basic",
+            5,
+            1,
+            1,
+            50,
+            500,
+            "SAR",
+            "Default Basic license category.",
+            "local-seed"),
+        LicenseCategory.Create(
+            StandardLicenseCategoryId,
+            "standard",
+            "Standard",
+            25,
+            5,
+            10,
+            100,
+            1000,
+            "SAR",
+            "Default Standard license category.",
+            "local-seed"),
+        LicenseCategory.Create(
+            ProLicenseCategoryId,
+            "pro",
+            "Pro",
+            50,
+            10,
+            25,
+            200,
+            2000,
+            "SAR",
+            "Default Pro license category.",
+            "local-seed"),
+        LicenseCategory.Create(
+            AdvancedLicenseCategoryId,
+            "advanced",
+            "Advanced",
+            100,
+            25,
+            50,
+            400,
+            4000,
+            "SAR",
+            "Default Advanced license category.",
+            "local-seed")
+    };
+
     public static Company Company => Company.Create(
                         Guid.Parse("4c3d205f-7e2b-42c2-a081-1700b229d91e"),
                         null,

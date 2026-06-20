@@ -228,6 +228,14 @@ public class MenuItem
                 },
                 new MenuItem
                 {
+                    TextEn = "License Categories",
+                    TextAr = "فئات الترخيص",
+                    Icon = "bi-patch-check",
+                    Url = "/Organization/LicenseCategories",
+                    PermissionPolicy = PermissionList.ParentCompanyPermissions.View
+                },
+                new MenuItem
+                {
                     TextEn = "Branches",
                     TextAr = "الفروع",
                     Icon = "bi-diagram-2",

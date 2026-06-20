@@ -53,6 +53,12 @@ public class CompanyService : BaseApiService, ICompanyService
         return await SendAsync<PagedResult<CompanyDto>>(request, "companyList");
     }
 
+    public async Task<ApiResult<CompanyLicenseSummaryDto>> GetCurrentLicenseAsync()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/current/license");
+        return await SendAsync<CompanyLicenseSummaryDto>(request, "license");
+    }
+
     public async Task<ApiResult<CompanyDto>> GetByIdAsync(Guid Id)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/{Id}");
