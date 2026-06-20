@@ -10,6 +10,7 @@ public static class CompanyRoleTemplates
     public static IReadOnlyList<CompanyRoleTemplate> All { get; } =
     [
         new("admin", "Admin", PermissionList.GetTenantPermissions()),
+        new("all-roles", "All Roles", PermissionList.GetTenantPermissions()),
         new("manager", "Manager", ManagerPermissions()),
         new("approver", "Approver", ApproverPermissions()),
         new("employee", "Employee", EmployeePermissions()),
