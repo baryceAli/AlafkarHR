@@ -1,5 +1,6 @@
 @layout AdminLayout
 @page "/Payroll/Contracts"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Payroll.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
@@ -23,7 +24,7 @@
     return;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3" dir="@SharedDataService.PageDirection">
     <h5 class="text-black mb-0">@SharedDataService.SelectViewLang("Salary Contracts", "عقود الرواتب")</h5>
     <button class="btn btn-primary" @onclick="CreateNew" disabled="@(!CanCreate)">
         <i class="bi bi-plus-lg"></i> @SharedDataService.SelectViewLang("New Contract", "عقد جديد")
@@ -230,6 +231,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        SharedDataService.OnChange1 += HandleChangeAsync;
         AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         if (AuthState.User.Identity?.IsAuthenticated != true)
         {
@@ -423,4 +425,15 @@
 
     private void ShowToast(string message, string type)
         => ToastService.Show(new ToastMessage { Message = message, Type = type });
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+
 }

@@ -6,10 +6,12 @@
 
 @inject SharedDataService SharedDataService
 
+<div dir="@SharedDataService.PageDirection">
 <DocumentLibraryView Title="@Text("My Documents", "مستنداتي")"
                      Subtitle="@Text("Documents you created and own.", "المستندات التي أنشأتها وتملكها.")"
                      Icon="bi-person-lines-fill"
                      Scope="DocumentListScope.OwnedByMe" />
+</div>
 
 @code {
     protected override void OnInitialized()

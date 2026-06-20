@@ -6,10 +6,12 @@
 
 @inject SharedDataService SharedDataService
 
+<div dir="@SharedDataService.PageDirection">
 <DocumentLibraryView Title="@Text("Document Library", "مكتبة المستندات")"
                      Subtitle="@Text("All documents you can view, edit, or manage.", "كل المستندات التي يمكنك عرضها أو تحريرها أو إدارتها.")"
                      Icon="bi-folder2-open"
                      Scope="DocumentListScope.All" />
+</div>
 
 @code {
     protected override void OnInitialized()

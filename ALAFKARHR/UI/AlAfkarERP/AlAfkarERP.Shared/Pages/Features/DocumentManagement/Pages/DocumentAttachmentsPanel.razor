@@ -1,3 +1,4 @@
+@implements IDisposable
 @using Microsoft.AspNetCore.Components
 @using SharedWithUI.DocumentManagement.Enums
 
@@ -22,4 +23,20 @@
 
     private string PanelTitle => Title ?? SharedDataService.SelectViewLang("Attachments", "المرفقات");
     private string PanelSubtitle => Subtitle ?? SharedDataService.SelectViewLang("Documents linked to this record.", "المستندات المرتبطة بهذا السجل.");
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+
 }

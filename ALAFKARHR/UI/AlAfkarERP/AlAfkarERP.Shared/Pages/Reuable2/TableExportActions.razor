@@ -1,3 +1,4 @@
+@implements IDisposable
 @using AlAfkarERP.Shared.Utilities
 @inject IJSRuntime JSRuntime
 @inject SharedDataService SharedDataService
@@ -71,4 +72,20 @@
     {
         await JSRuntime.InvokeVoidAsync("alafkarTableExport.printNearestTable", RootElement, TableSelector, BuildMeta());
     }
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+
 }

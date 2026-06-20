@@ -7,6 +7,7 @@
 
 @inject SharedDataService SharedDataService
 
+<div dir="@SharedDataService.PageDirection">
 <DocumentLibraryView Title="@Text("Source Documents", "مستندات المصدر")"
                      Subtitle="@Text("Find documents linked to a specific ERP module record.", "البحث عن المستندات المرتبطة بسجل محدد في النظام.")"
                      Icon="bi-link-45deg"
@@ -14,6 +15,7 @@
                      InitialSourceModule="@SourceModule"
                      InitialSourceEntity="@SourceEntity"
                      InitialSourceRecordId="@SourceRecordId" />
+</div>
 
 @code {
     [SupplyParameterFromQuery] public string? SourceModule { get; set; }

@@ -6,10 +6,12 @@
 
 @inject SharedDataService SharedDataService
 
+<div dir="@SharedDataService.PageDirection">
 <DocumentLibraryView Title="@Text("Shared With Me", "مشاركة معي")"
                      Subtitle="@Text("Documents other employees invited you to access.", "المستندات التي دعاك موظفون آخرون للوصول إليها.")"
                      Icon="bi-people"
                      Scope="DocumentListScope.SharedWithMe" />
+</div>
 
 @code {
     protected override void OnInitialized()
