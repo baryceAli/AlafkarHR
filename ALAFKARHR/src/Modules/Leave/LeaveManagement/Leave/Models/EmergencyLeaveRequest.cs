@@ -1,6 +1,6 @@
 using Shared.DDD;
 
-namespace AttendanceDomain.Attendance.Models;
+namespace LeaveManagement.Leave.Models;
 
 public class EmergencyLeaveRequest : Entity<Guid>
 {

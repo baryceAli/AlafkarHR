@@ -1,10 +1,13 @@
-﻿using AttendanceDomain.Attendance.Models;
+using AttendanceDomain.Attendance.Models;
+using AttendanceDomain.Data;
 using EmployeeModule.Contracts.Employees.Features.GetEmployeeAttendanceProfile;
 using FluentValidation;
+using LeaveManagement.Data;
+using LeaveManagement.Leave.Models;
 using Shared.Pagination;
 using Shared.SaveImages;
 
-namespace AttendanceDomain.Attendance.Features.EmergencyLeaves;
+namespace LeaveManagement.Leave.Features.EmergencyLeaves;
 
 public record CreateEmergencyLeaveRequestCommand(CreateEmergencyLeaveRequestDto Request)
     : ICommand<CreateEmergencyLeaveRequestResult>;
@@ -37,7 +40,7 @@ public class CreateEmergencyLeaveRequestValidator : AbstractValidator<CreateEmer
     }
 }
 
-public class CreateEmergencyLeaveRequestHandler(AttendanceDbContext dbContext)
+public class CreateEmergencyLeaveRequestHandler(LeaveDbContext leaveDbContext, AttendanceDbContext attendanceDbContext)
     : ICommandHandler<CreateEmergencyLeaveRequestCommand, CreateEmergencyLeaveRequestResult>
 {
     public async Task<CreateEmergencyLeaveRequestResult> Handle(CreateEmergencyLeaveRequestCommand request, CancellationToken cancellationToken)
@@ -45,8 +48,8 @@ public class CreateEmergencyLeaveRequestHandler(AttendanceDbContext dbContext)
         await EnsureLeaveContainsWorkingDayAsync(request.Request.CompanyId, request.Request.StartDate, request.Request.EndDate, cancellationToken);
 
         var leave = EmergencyLeaveRequest.Create(Guid.NewGuid(), request.Request);
-        await dbContext.EmergencyLeaveRequests.AddAsync(leave, cancellationToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await leaveDbContext.EmergencyLeaveRequests.AddAsync(leave, cancellationToken);
+        await leaveDbContext.SaveChangesAsync(cancellationToken);
         return new CreateEmergencyLeaveRequestResult(leave.Adapt<EmergencyLeaveRequestDto>());
     }
 
@@ -58,11 +61,11 @@ public class CreateEmergencyLeaveRequestHandler(AttendanceDbContext dbContext)
     {
         var fromDate = UtcDateTime.Normalize(startDate).Date;
         var toDate = UtcDateTime.Normalize(endDate).Date;
-        var configuration = await dbContext.AttendanceConfigurations
+        var configuration = await attendanceDbContext.AttendanceConfigurations
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.CompanyId == companyId, cancellationToken);
         var configurationDto = configuration?.ToDto() ?? AttendanceConfiguration.DefaultDto(companyId);
-        var holidays = await dbContext.AttendanceHolidays
+        var holidays = await attendanceDbContext.AttendanceHolidays
             .AsNoTracking()
             .Where(x => x.CompanyId == companyId
                 && x.IsActive
@@ -186,12 +189,12 @@ public class UploadEmergencyLeaveAttachmentHandler(IWebHostEnvironment environme
     }
 }
 
-public class ReviewEmergencyLeaveRequestHandler(AttendanceDbContext dbContext, ISender sender)
+public class ReviewEmergencyLeaveRequestHandler(LeaveDbContext leaveDbContext, AttendanceDbContext attendanceDbContext, ISender sender)
     : ICommandHandler<ReviewEmergencyLeaveRequestCommand, ReviewEmergencyLeaveRequestResult>
 {
     public async Task<ReviewEmergencyLeaveRequestResult> Handle(ReviewEmergencyLeaveRequestCommand request, CancellationToken cancellationToken)
     {
-        var leave = await dbContext.EmergencyLeaveRequests
+        var leave = await leaveDbContext.EmergencyLeaveRequests
             .FirstOrDefaultAsync(x => x.Id == request.Review.RequestId, cancellationToken)
             ?? throw new NotFoundException("EmergencyLeaveRequest", request.Review.RequestId);
 
@@ -212,7 +215,7 @@ public class ReviewEmergencyLeaveRequestHandler(AttendanceDbContext dbContext, I
                     continue;
                 }
 
-                var balance = await dbContext.EmployeeLeaveBalances
+                var balance = await leaveDbContext.EmployeeLeaveBalances
                     .FirstOrDefaultAsync(x => x.CompanyId == leave.CompanyId
                         && x.EmployeeId == leave.EmployeeId
                         && x.Year == year, cancellationToken)
@@ -228,18 +231,18 @@ public class ReviewEmergencyLeaveRequestHandler(AttendanceDbContext dbContext, I
             leave.Reject(request.ReviewedBy, request.Review.ApproverComment);
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await leaveDbContext.SaveChangesAsync(cancellationToken);
         return new ReviewEmergencyLeaveRequestResult(leave.Adapt<EmergencyLeaveRequestDto>());
     }
 
     private async Task<decimal> CountWorkingLeaveDaysAsync(Guid companyId, DateTime startDate, DateTime endDate, CancellationToken cancellationToken)
     {
-        var configuration = await dbContext.AttendanceConfigurations
+        var configuration = await attendanceDbContext.AttendanceConfigurations
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.CompanyId == companyId, cancellationToken);
 
         var weekendDays = configuration?.ToDto().WeekendDays ?? [DayOfWeek.Friday, DayOfWeek.Saturday];
-        var holidays = await dbContext.AttendanceHolidays
+        var holidays = await attendanceDbContext.AttendanceHolidays
             .AsNoTracking()
             .Where(x => x.CompanyId == companyId
                 && x.IsActive
@@ -274,14 +277,20 @@ public class ReviewEmergencyLeaveRequestHandler(AttendanceDbContext dbContext, I
 
     private static bool RecurringHolidayMatchesYear(AttendanceHoliday holiday, DateTime date, int year)
     {
-        var start = new DateTime(year, holiday.StartDate.Month, holiday.StartDate.Day);
-        var endYear = holiday.EndDate.Month < holiday.StartDate.Month
-            || (holiday.EndDate.Month == holiday.StartDate.Month && holiday.EndDate.Day < holiday.StartDate.Day)
-                ? year + 1
-                : year;
-        var end = new DateTime(endYear, holiday.EndDate.Month, holiday.EndDate.Day);
+        var start = BuildRecurringDate(holiday.StartDate.Date, year);
+        var end = BuildRecurringDate(holiday.EndDate.Date, year);
+        if (end < start)
+        {
+            end = end.AddYears(1);
+        }
 
         return start <= date && end >= date;
+    }
+
+    private static DateTime BuildRecurringDate(DateTime date, int year)
+    {
+        var day = Math.Min(date.Day, DateTime.DaysInMonth(year, date.Month));
+        return new DateTime(year, date.Month, day);
     }
 
     private async Task EnsureReviewerCanReviewAsync(Guid reviewerEmployeeId, Guid employeeId, CancellationToken cancellationToken)
@@ -318,12 +327,12 @@ public class ReviewEmergencyLeaveRequestHandler(AttendanceDbContext dbContext, I
     }
 }
 
-public class GetEmergencyLeaveRequestsHandler(AttendanceDbContext dbContext, ISender sender)
+public class GetEmergencyLeaveRequestsHandler(LeaveDbContext leaveDbContext, ISender sender)
     : IQueryHandler<GetEmergencyLeaveRequestsQuery, GetEmergencyLeaveRequestsResult>
 {
     public async Task<GetEmergencyLeaveRequestsResult> Handle(GetEmergencyLeaveRequestsQuery request, CancellationToken cancellationToken)
     {
-        var query = dbContext.EmergencyLeaveRequests.AsNoTracking()
+        var query = leaveDbContext.EmergencyLeaveRequests.AsNoTracking()
             .Where(x => x.CompanyId == request.CompanyId);
 
         if (request.Status.HasValue)
@@ -393,4 +402,3 @@ public class GetEmergencyLeaveRequestsHandler(AttendanceDbContext dbContext, ISe
         return reviewer.AdministrationId == employee.AdministrationId;
     }
 }
-

@@ -10,6 +10,7 @@ using EmployeeModule;
 using Fleet;
 using GeneralSettings;
 using Inventory;
+using LeaveManagement;
 using Maintenance;
 using Organization;
 using Orders;
@@ -50,6 +51,7 @@ var ordersAssembly = typeof(OrdersModule).Assembly;
 var employeeAssembly = typeof(EmployeesModule).Assembly;
 var catalogAssembly = typeof(CatalogModule).Assembly;
 var inventoryAssembly = typeof(InventoryModule).Assembly;
+var leaveAssembly = typeof(LeaveModule).Assembly;
 var generalSettingsAssembly = typeof(GeneralSettingsModule).Assembly;
 var customerAssembly = typeof(CustomerModule).Assembly;
 var salesOrderAssembly=typeof(SalesOrderModule).Assembly;
@@ -75,6 +77,7 @@ builder.Services.AddCarterWithAssemblies(
                         employeeAssembly,
                         catalogAssembly,
                         inventoryAssembly,
+                        leaveAssembly,
                         generalSettingsAssembly,
                         customerAssembly,
                         salesOrderAssembly,
@@ -104,6 +107,7 @@ builder.Services.AddMediatRWithAssemblies(
                         employeeAssembly,
                         catalogAssembly,
                         inventoryAssembly,
+                        leaveAssembly,
                         generalSettingsAssembly, 
                         customerAssembly,
                         salesOrderAssembly,
@@ -137,6 +141,7 @@ builder.Services
         .AddEmployeeModule(builder.Configuration)
         .AddCatalogModule(builder.Configuration)
         .AddInventoryModule(builder.Configuration)
+        .AddLeaveModule(builder.Configuration)
         .AddGeneralSettingsModule(builder.Configuration)
         .AddCustomerModule(builder.Configuration)
         .AddSalesOrderModule(builder.Configuration)
@@ -186,6 +191,7 @@ app
     .UseEmployeeModule(app.Environment)
     .UseCatalogModule(app.Environment)
     .UseInventoryModule(app.Environment)
+    .UseLeaveModule(app.Environment)
     .UseCustomerModule(app.Environment)
     .UseSalesOrderModule(app.Environment)
     .UseSalesModule(app.Environment)

@@ -2,15 +2,15 @@
 @page "/LeavesManagement/Reports"
 @implements IDisposable
 
-@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
-@using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
 @using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Leave.Dtos
 
-@inject IAttendanceService AttendanceService
+@inject ILeaveService LeaveService
 @inject IEmployeeService EmployeeService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
@@ -150,7 +150,7 @@
         filter.EmployeeId = selectedEmployeeId == Guid.Empty ? null : selectedEmployeeId;
         filter.Status = Enum.TryParse<AttendanceExceptionStatus>(selectedStatus, out var status) ? status : null;
 
-        var result = await AttendanceService.GetLeaveReportAsync(filter);
+        var result = await LeaveService.GetLeaveReportAsync(filter);
         report = result.IsSuccess ? result.Data ?? new LeaveReportDto { Year = filter.Year } : new LeaveReportDto { Year = filter.Year };
         if (!result.IsSuccess)
         {

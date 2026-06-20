@@ -505,7 +505,7 @@ public class MenuItem
                     TextEn = "Leave Management",
                     TextAr = "إدارة الإجازات",
                     Icon = "bi-calendar-heart",
-                    PermissionPolicy = PermissionList.AttendancePermissions.RequestEmergencyLeave,
+                    PermissionPolicy = PermissionList.LeavePermissions.RequestEmergencyLeave,
                     WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
                     KeywordsEn = "leave emergency balances reports approvals",
                     KeywordsAr = "إجازات طارئة أرصدة تقارير اعتماد",
@@ -517,7 +517,7 @@ public class MenuItem
                             TextAr = "الإجازات الطارئة",
                             Icon = "bi-life-preserver",
                             Url = "/LeavesManagement/EmergencyLeaves",
-                            PermissionPolicy = PermissionList.AttendancePermissions.RequestEmergencyLeave
+                            PermissionPolicy = PermissionList.LeavePermissions.RequestEmergencyLeave
                         },
                         new MenuItem
                         {
@@ -525,7 +525,7 @@ public class MenuItem
                             TextAr = "اعتماد الإجازة الطارئة",
                             Icon = "bi-patch-check",
                             Url = "/LeavesManagement/ApproveEmergencyLeaves",
-                            PermissionPolicy = PermissionList.AttendancePermissions.ApproveEmergencyLeave
+                            PermissionPolicy = PermissionList.LeavePermissions.ApproveEmergencyLeave
                         },
                         new MenuItem
                         {
@@ -533,7 +533,7 @@ public class MenuItem
                             TextAr = "أرصدة الإجازات",
                             Icon = "bi-sliders",
                             Url = "/LeavesManagement/Balances",
-                            PermissionPolicy = PermissionList.AttendancePermissions.ViewLeaveBalances
+                            PermissionPolicy = PermissionList.LeavePermissions.ViewLeaveBalances
                         },
                         new MenuItem
                         {
@@ -541,7 +541,7 @@ public class MenuItem
                             TextAr = "تقارير الإجازات",
                             Icon = "bi-file-earmark-bar-graph",
                             Url = "/LeavesManagement/Reports",
-                            PermissionPolicy = PermissionList.AttendancePermissions.ViewLeaveReports
+                            PermissionPolicy = PermissionList.LeavePermissions.ViewLeaveReports
                         }
                     }
                 },

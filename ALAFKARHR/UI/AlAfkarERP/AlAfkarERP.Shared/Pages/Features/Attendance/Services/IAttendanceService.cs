@@ -1,5 +1,4 @@
 using AlAfkarERP.Shared.Dtos;
-using Microsoft.AspNetCore.Components.Forms;
 using SharedWithUI.Attendance.Dtos;
 using SharedWithUI.Attendance.Enums;
 
@@ -35,13 +34,6 @@ public interface IAttendanceService
     Task<ApiResult<bool>> DeleteHolidayAsync(Guid holidayId);
     Task<ApiResult<List<AttendanceBreakPolicyDto>>> GetBreakPoliciesAsync(Guid companyId);
     Task<ApiResult<AttendanceBreakPolicyDto>> UpsertBreakPolicyAsync(UpsertAttendanceBreakPolicyDto policy);
-    Task<ApiResult<PaginatedResult<EmergencyLeaveRequestDto>>> GetEmergencyLeavesAsync(Guid companyId, int pageIndex, int pageSize, AttendanceExceptionStatus? status = null, Guid? employeeId = null);
-    Task<ApiResult<string>> UploadEmergencyLeaveAttachmentAsync(IBrowserFile file);
-    Task<ApiResult<EmergencyLeaveRequestDto>> CreateEmergencyLeaveAsync(CreateEmergencyLeaveRequestDto request);
-    Task<ApiResult<EmergencyLeaveRequestDto>> ReviewEmergencyLeaveAsync(ReviewEmergencyLeaveRequestDto review);
-    Task<ApiResult<List<EmployeeLeaveBalanceDto>>> GetLeaveBalancesAsync(Guid companyId, int year, Guid? employeeId = null);
-    Task<ApiResult<EmployeeLeaveBalanceDto>> UpsertLeaveBalanceAsync(UpsertEmployeeLeaveBalanceDto balance);
-    Task<ApiResult<LeaveReportDto>> GetLeaveReportAsync(LeaveReportFilterDto filter);
     Task<ApiResult<PaginatedResult<MidDayPermissionRequestDto>>> GetMidDayPermissionsAsync(Guid companyId, int pageIndex, int pageSize, AttendanceExceptionStatus? status = null, Guid? employeeId = null);
     Task<ApiResult<MidDayPermissionRequestDto>> CreateMidDayPermissionAsync(CreateMidDayPermissionRequestDto request);
     Task<ApiResult<MidDayPermissionRequestDto>> ReviewMidDayPermissionAsync(ReviewMidDayPermissionRequestDto review);

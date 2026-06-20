@@ -1,15 +1,14 @@
 @layout AdminLayout
 @page "/LeavesManagement/ApproveEmergencyLeaves"
-@page "/Attendance/ApproveEmergencyLeaves"
 @implements IDisposable
 
-@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
-@using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
+@using SharedWithUI.Leave.Dtos
 
-@inject IAttendanceService AttendanceService
+@inject ILeaveService LeaveService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 
@@ -125,7 +124,7 @@
     private async Task LoadAsync()
     {
         isBusy = true;
-        var result = await AttendanceService.GetEmergencyLeavesAsync(companyId, 0, 50, AttendanceExceptionStatus.Pending);
+        var result = await LeaveService.GetEmergencyLeavesAsync(companyId, 0, 50, AttendanceExceptionStatus.Pending);
         requests = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
         if (!result.IsSuccess)
         {
@@ -137,7 +136,7 @@
     private async Task ReviewAsync(Guid requestId, bool isApproved)
     {
         isBusy = true;
-        var result = await AttendanceService.ReviewEmergencyLeaveAsync(new ReviewEmergencyLeaveRequestDto
+        var result = await LeaveService.ReviewEmergencyLeaveAsync(new ReviewEmergencyLeaveRequestDto
         {
             RequestId = requestId,
             IsApproved = isApproved,

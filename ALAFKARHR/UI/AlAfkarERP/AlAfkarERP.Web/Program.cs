@@ -10,6 +10,7 @@ using AlAfkarERP.Shared.Pages.Features.Employees.Services;
 using AlAfkarERP.Shared.Pages.Features.Fleet.Services;
 using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services;
 using AlAfkarERP.Shared.Pages.Features.Inventories.Services;
+using AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services;
 using AlAfkarERP.Shared.Pages.Features.Maintenance.Services;
 using AlAfkarERP.Shared.Pages.Features.Payroll.Services;
 using AlAfkarERP.Shared.Pages.Features.Procurement.Services;
@@ -256,6 +257,14 @@ builder.Services.AddHttpClient<IAttendanceService, AttendanceService>(client =>
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
 #endregion Attendance
+
+#region Leave
+builder.Services.AddScoped<ILeaveService, LeaveService>();
+builder.Services.AddHttpClient<ILeaveService, LeaveService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+#endregion Leave
 
 #region TaskManagement
 builder.Services.AddScoped<ITaskManagementService, TaskManagementService>();

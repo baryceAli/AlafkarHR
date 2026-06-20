@@ -1,16 +1,15 @@
 @layout AdminLayout
 @page "/LeavesManagement/EmergencyLeaves"
-@page "/Attendance/EmergencyLeaves"
 @implements IDisposable
 
-@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
-@using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
+@using SharedWithUI.Leave.Dtos
 
-@inject IAttendanceService AttendanceService
+@inject ILeaveService LeaveService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 
@@ -127,7 +126,7 @@
     private async Task LoadAsync()
     {
         isBusy = true;
-        var result = await AttendanceService.GetEmergencyLeavesAsync(companyId, 0, 50);
+        var result = await LeaveService.GetEmergencyLeavesAsync(companyId, 0, 50);
         requests = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
         if (!result.IsSuccess) SetMessage(result.Error?.Detail ?? Text("Unable to load emergency leave requests.", "تعذر تحميل طلبات الاجازة الطارئة."), "alert-danger");
         isBusy = false;
@@ -144,7 +143,7 @@
                 return;
             }
 
-            var uploadResult = await AttendanceService.UploadEmergencyLeaveAttachmentAsync(selectedAttachmentFile);
+            var uploadResult = await LeaveService.UploadEmergencyLeaveAttachmentAsync(selectedAttachmentFile);
             if (!uploadResult.IsSuccess || string.IsNullOrWhiteSpace(uploadResult.Data))
             {
                 SetMessage(uploadResult.Error?.Detail ?? Text("Unable to upload attachment.", "Unable to upload attachment."), "alert-danger");
@@ -154,7 +153,7 @@
             createModel.AttachmentPath = uploadResult.Data;
         }
 
-        var result = await AttendanceService.CreateEmergencyLeaveAsync(createModel);
+        var result = await LeaveService.CreateEmergencyLeaveAsync(createModel);
         if (result.IsSuccess)
         {
             SetMessage(Text("Emergency leave submitted.", "تم ارسال الاجازة الطارئة."), "alert-success");
@@ -172,7 +171,7 @@
 
     private async Task ReviewAsync(Guid requestId, bool isApproved)
     {
-        var result = await AttendanceService.ReviewEmergencyLeaveAsync(new ReviewEmergencyLeaveRequestDto
+        var result = await LeaveService.ReviewEmergencyLeaveAsync(new ReviewEmergencyLeaveRequestDto
         {
             RequestId = requestId,
             IsApproved = isApproved,

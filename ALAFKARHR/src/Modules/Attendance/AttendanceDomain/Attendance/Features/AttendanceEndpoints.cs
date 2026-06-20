@@ -3,10 +3,8 @@ using AttendanceDomain.Attendance.Features.BreakPolicies;
 using AttendanceDomain.Attendance.Features.CheckIns;
 using AttendanceDomain.Attendance.Features.EndSession;
 using AttendanceDomain.Attendance.Features.Configuration;
-using AttendanceDomain.Attendance.Features.EmergencyLeaves;
 using AttendanceDomain.Attendance.Features.Holidays;
 using AttendanceDomain.Attendance.Features.LateCheckInRequests;
-using AttendanceDomain.Attendance.Features.LeaveBalances;
 using AttendanceDomain.Attendance.Features.LocationPings;
 using AttendanceDomain.Attendance.Features.MidDayPermissions;
 using AttendanceDomain.Attendance.Features.Queries;
@@ -41,10 +39,6 @@ public record UpdateShiftRequest(ShiftDto Shift);
 public record UpsertAttendanceConfigurationRequest(UpsertAttendanceConfigurationDto Configuration);
 public record UpsertAttendanceHolidayRequest(UpsertAttendanceHolidayDto Holiday);
 public record UpsertAttendanceBreakPolicyRequest(UpsertAttendanceBreakPolicyDto Policy);
-public record CreateEmergencyLeaveRequestRequest(CreateEmergencyLeaveRequestDto Request);
-public record ReviewEmergencyLeaveRequestRequest(ReviewEmergencyLeaveRequestDto Review);
-public record UpsertEmployeeLeaveBalanceRequest(UpsertEmployeeLeaveBalanceDto Balance);
-public record GetLeaveReportRequest(LeaveReportFilterDto Filter);
 public record CreateMidDayPermissionRequestRequest(CreateMidDayPermissionRequestDto Request);
 public record ReviewMidDayPermissionRequestRequest(ReviewMidDayPermissionRequestDto Review);
 public record GetAttendanceReportRequest(AttendanceReportFilterDto Filter);
@@ -254,55 +248,6 @@ public class AttendanceEndpoints : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Create or update a break policy")
             .RequireAuthorization(PermissionList.AttendancePermissions.ManageConfiguration);
-
-        group.MapGet("/emergency-leaves", GetEmergencyLeaves)
-            .WithName("GetEmergencyLeaveRequests")
-            .Produces<GetEmergencyLeaveRequestsResult>(StatusCodes.Status200OK)
-            .WithSummary("Get emergency leave requests")
-            .RequireAuthorization(PermissionList.AttendancePermissions.ApproveEmergencyLeave);
-
-        group.MapPost("/emergency-leaves", CreateEmergencyLeave)
-            .WithName("CreateEmergencyLeaveRequest")
-            .Produces<CreateEmergencyLeaveRequestResult>(StatusCodes.Status200OK)
-            .ProducesProblem(StatusCodes.Status400BadRequest)
-            .WithSummary("Create an emergency leave request")
-            .RequireAuthorization(PermissionList.AttendancePermissions.RequestEmergencyLeave);
-
-        group.MapPost("/emergency-leaves/attachments", UploadEmergencyLeaveAttachment)
-            .WithName("UploadEmergencyLeaveAttachment")
-            .Accepts<IFormFile>("multipart/form-data")
-            .Produces<UploadEmergencyLeaveAttachmentResult>(StatusCodes.Status200OK)
-            .ProducesProblem(StatusCodes.Status400BadRequest)
-            .WithSummary("Upload an emergency leave attachment")
-            .RequireAuthorization(PermissionList.AttendancePermissions.RequestEmergencyLeave)
-            .DisableAntiforgery();
-
-        group.MapPost("/emergency-leaves/review", ReviewEmergencyLeave)
-            .WithName("ReviewEmergencyLeaveRequest")
-            .Produces<ReviewEmergencyLeaveRequestResult>(StatusCodes.Status200OK)
-            .ProducesProblem(StatusCodes.Status400BadRequest)
-            .WithSummary("Approve or reject an emergency leave request")
-            .RequireAuthorization(PermissionList.AttendancePermissions.ApproveEmergencyLeave);
-
-        group.MapGet("/leave-balances", GetEmployeeLeaveBalances)
-            .WithName("GetEmployeeLeaveBalances")
-            .Produces<GetEmployeeLeaveBalancesResult>(StatusCodes.Status200OK)
-            .WithSummary("Get employee leave balances")
-            .RequireAuthorization(PermissionList.AttendancePermissions.ViewLeaveBalances);
-
-        group.MapPost("/leave-balances", UpsertEmployeeLeaveBalance)
-            .WithName("UpsertEmployeeLeaveBalance")
-            .Produces<UpsertEmployeeLeaveBalanceResult>(StatusCodes.Status200OK)
-            .ProducesProblem(StatusCodes.Status400BadRequest)
-            .WithSummary("Create or update employee yearly leave balance")
-            .RequireAuthorization(PermissionList.AttendancePermissions.ManageLeaveBalances);
-
-        group.MapPost("/leave-reports", GetLeaveReport)
-            .WithName("GetLeaveReport")
-            .Produces<GetLeaveReportResult>(StatusCodes.Status200OK)
-            .ProducesProblem(StatusCodes.Status400BadRequest)
-            .WithSummary("Get leave balance and usage report")
-            .RequireAuthorization(PermissionList.AttendancePermissions.ViewLeaveReports);
 
         group.MapGet("/mid-day-permissions", GetMidDayPermissions)
             .WithName("GetMidDayPermissionRequests")
@@ -518,89 +463,6 @@ public class AttendanceEndpoints : ICarterModule
         ISender sender)
     {
         var result = await sender.Send(new UpsertAttendanceBreakPolicyCommand(request.Policy, user.FindFirstValue(ClaimTypes.NameIdentifier)));
-        return TypedResults.Ok(result);
-    }
-
-    private static async Task<Ok<GetEmergencyLeaveRequestsResult>> GetEmergencyLeaves(
-        [FromQuery] Guid companyId,
-        [FromQuery] AttendanceExceptionStatus? status,
-        [FromQuery] Guid? employeeId,
-        [AsParameters] PaginationRequest request,
-        ClaimsPrincipal user,
-        ISender sender)
-    {
-        var reviewerEmployeeId = await ResolveSignedInEmployeeIdAsync(user, sender);
-
-        var result = await sender.Send(new GetEmergencyLeaveRequestsQuery(companyId, status, employeeId, reviewerEmployeeId, request));
-        return TypedResults.Ok(result);
-    }
-
-    private static async Task<Ok<CreateEmergencyLeaveRequestResult>> CreateEmergencyLeave(
-        [FromBody] CreateEmergencyLeaveRequestRequest request,
-        ClaimsPrincipal user,
-        ISender sender)
-    {
-        var employeeId = await ResolveSignedInEmployeeIdAsync(user, sender);
-
-        var employee = await sender.Send(new GetEmployeeAttendanceProfileQuery(employeeId));
-        request.Request.EmployeeId = employee.EmployeeId;
-        request.Request.CompanyId = employee.CompanyId;
-
-        var result = await sender.Send(new CreateEmergencyLeaveRequestCommand(request.Request));
-        return TypedResults.Ok(result);
-    }
-
-    private static async Task<Ok<UploadEmergencyLeaveAttachmentResult>> UploadEmergencyLeaveAttachment(
-        IFormFile file,
-        ClaimsPrincipal user,
-        ISender sender)
-    {
-        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? throw new UnauthorizedAccessException("User is not authenticated");
-
-        var result = await sender.Send(new UploadEmergencyLeaveAttachmentCommand(file, userId));
-        return TypedResults.Ok(result);
-    }
-
-    private static async Task<Ok<ReviewEmergencyLeaveRequestResult>> ReviewEmergencyLeave(
-        [FromBody] ReviewEmergencyLeaveRequestRequest request,
-        ClaimsPrincipal user,
-        ISender sender)
-    {
-        var reviewedBy = user.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? throw new UnauthorizedAccessException("User is not authenticated");
-        var reviewerEmployeeId = await ResolveSignedInEmployeeIdAsync(user, sender);
-
-        var result = await sender.Send(new ReviewEmergencyLeaveRequestCommand(request.Review, reviewedBy, reviewerEmployeeId));
-        return TypedResults.Ok(result);
-    }
-
-    private static async Task<Ok<GetEmployeeLeaveBalancesResult>> GetEmployeeLeaveBalances(
-        [FromQuery] Guid companyId,
-        [FromQuery] int year,
-        [FromQuery] Guid? employeeId,
-        ISender sender)
-    {
-        var result = await sender.Send(new GetEmployeeLeaveBalancesQuery(companyId, year, employeeId));
-        return TypedResults.Ok(result);
-    }
-
-    private static async Task<Ok<UpsertEmployeeLeaveBalanceResult>> UpsertEmployeeLeaveBalance(
-        [FromBody] UpsertEmployeeLeaveBalanceRequest request,
-        ClaimsPrincipal user,
-        ISender sender)
-    {
-        var result = await sender.Send(new UpsertEmployeeLeaveBalanceCommand(
-            request.Balance,
-            user.FindFirstValue(ClaimTypes.NameIdentifier)));
-        return TypedResults.Ok(result);
-    }
-
-    private static async Task<Ok<GetLeaveReportResult>> GetLeaveReport(
-        [FromBody] GetLeaveReportRequest request,
-        ISender sender)
-    {
-        var result = await sender.Send(new GetLeaveReportQuery(request.Filter));
         return TypedResults.Ok(result);
     }
 

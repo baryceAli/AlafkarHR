@@ -1,7 +1,7 @@
-using AttendanceDomain.Attendance.Models;
+using LeaveManagement.Leave.Models;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace AttendanceDomain.Data.Configurations;
+namespace LeaveManagement.Data.Configurations;
 
 public class EmployeeLeaveBalanceConfiguration : IEntityTypeConfiguration<EmployeeLeaveBalance>
 {
