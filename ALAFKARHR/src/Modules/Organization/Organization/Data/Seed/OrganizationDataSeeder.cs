@@ -9,6 +9,8 @@ public class OrganizationDataSeeder : IDataSeeder<OrganizationDbContext>
 
     public async Task SeedAllAsync(OrganizationDbContext dbContext)
     {
+        await EnsureLicenseCategoriesAsync(dbContext);
+
         if (!await dbContext.Companies.AnyAsync())
         {
             await dbContext.Companies.AddAsync(InitialData.Company);
@@ -25,6 +27,20 @@ public class OrganizationDataSeeder : IDataSeeder<OrganizationDbContext>
 
         await EnsureParentCompanyLicensesAsync(dbContext);
         await dbContext.SaveChangesAsync();
+    }
+
+    private static async Task EnsureLicenseCategoriesAsync(OrganizationDbContext dbContext)
+    {
+        foreach (var category in InitialData.LicenseCategories)
+        {
+            var existing = await dbContext.LicenseCategories
+                .FirstOrDefaultAsync(item => item.Key == category.Key);
+
+            if (existing is null)
+            {
+                await dbContext.LicenseCategories.AddAsync(category);
+            }
+        }
     }
 
     private static async Task EnsureParentCompanyLicensesAsync(OrganizationDbContext dbContext)
@@ -55,7 +71,8 @@ public class OrganizationDataSeeder : IDataSeeder<OrganizationDbContext>
                 5,
                 10,
                 "Default local development license.",
-                SeedActor));
+                SeedActor,
+                InitialData.StandardLicenseCategoryId));
         }
     }
 }

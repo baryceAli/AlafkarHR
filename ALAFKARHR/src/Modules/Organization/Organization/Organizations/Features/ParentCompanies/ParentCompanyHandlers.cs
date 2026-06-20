@@ -37,12 +37,8 @@ public class ParentCompanyValidator : AbstractValidator<ParentCompanyDto>
         RuleFor(x => x.Code).NotEmpty();
         RuleFor(x => x.HqLocation).NotEmpty();
         RuleFor(x => x.VatNo).NotEmpty();
-        RuleFor(x => x.License.PlanKey).NotEmpty();
-        RuleFor(x => x.License.PlanName).NotEmpty();
+        RuleFor(x => x.License.LicenseCategoryId).NotEmpty();
         RuleFor(x => x.License.EndDate).GreaterThanOrEqualTo(x => x.License.StartDate);
-        RuleFor(x => x.License.MaxUsers).GreaterThan(0);
-        RuleFor(x => x.License.MaxChildCompanies).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.License.MaxBranches).GreaterThanOrEqualTo(0);
 
         if (requireAdmin)
         {
@@ -67,7 +63,11 @@ public class UpdateParentCompanyCommandValidator : AbstractValidator<UpdateParen
     public UpdateParentCompanyCommandValidator()
     {
         RuleFor(x => x.Company.Id).NotEmpty();
-        RuleFor(x => x.Company).SetValidator(new ParentCompanyValidator(false));
+        RuleFor(x => x.Company.Name).NotEmpty();
+        RuleFor(x => x.Company.NameEng).NotEmpty();
+        RuleFor(x => x.Company.Code).NotEmpty();
+        RuleFor(x => x.Company.HqLocation).NotEmpty();
+        RuleFor(x => x.Company.VatNo).NotEmpty();
     }
 }
 
@@ -76,12 +76,8 @@ public class UpdateParentCompanyLicenseCommandValidator : AbstractValidator<Upda
     public UpdateParentCompanyLicenseCommandValidator()
     {
         RuleFor(x => x.CompanyId).NotEmpty();
-        RuleFor(x => x.License.PlanKey).NotEmpty();
-        RuleFor(x => x.License.PlanName).NotEmpty();
+        RuleFor(x => x.License.LicenseCategoryId).NotEmpty();
         RuleFor(x => x.License.EndDate).GreaterThanOrEqualTo(x => x.License.StartDate);
-        RuleFor(x => x.License.MaxUsers).GreaterThan(0);
-        RuleFor(x => x.License.MaxChildCompanies).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.License.MaxBranches).GreaterThanOrEqualTo(0);
     }
 }
 
@@ -148,6 +144,7 @@ public class ParentCompanyQueryHandler(OrganizationDbContext dbContext, ISender 
 
         var license = await dbContext.CompanyLicenses
             .AsNoTracking()
+            .Include(x => x.LicenseCategory)
             .FirstOrDefaultAsync(x => x.CompanyId == company.Id, cancellationToken);
 
         var branchesCount = await dbContext.Branches
@@ -179,7 +176,7 @@ public class ParentCompanyQueryHandler(OrganizationDbContext dbContext, ISender 
     {
         var licenseDto = license is null
             ? new CompanyLicenseDto { CompanyId = company.Id, PlanKey = "legacy", PlanName = "Legacy" }
-            : license.Adapt<CompanyLicenseDto>();
+            : ToLicenseDto(license);
 
         return new ParentCompanyDto
         {
@@ -200,6 +197,25 @@ public class ParentCompanyQueryHandler(OrganizationDbContext dbContext, ISender 
             License = licenseDto
         };
     }
+
+    private static CompanyLicenseDto ToLicenseDto(CompanyLicense license) => new()
+    {
+        Id = license.Id,
+        CompanyId = license.CompanyId,
+        LicenseCategoryId = license.LicenseCategoryId,
+        Status = license.Status,
+        PlanKey = license.EffectivePlanKey,
+        PlanName = license.EffectivePlanName,
+        StartDate = license.StartDate,
+        EndDate = license.EndDate,
+        MaxUsers = license.EffectiveMaxUsers,
+        MaxChildCompanies = license.EffectiveMaxChildCompanies,
+        MaxBranches = license.EffectiveMaxBranches,
+        MonthlyPrice = license.EffectiveMonthlyPrice,
+        YearlyPrice = license.EffectiveYearlyPrice,
+        CurrencyCode = license.EffectiveCurrencyCode,
+        Notes = license.Notes
+    };
 }
 
 public class CreateParentCompanyHandler(OrganizationDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
@@ -228,7 +244,8 @@ public class CreateParentCompanyHandler(OrganizationDbContext dbContext, IHttpCo
             request.Company.TimeZone,
             userId);
 
-        var license = BuildLicense(company.Id, request.Company.License, userId);
+        var category = await GetCategoryAsync(request.Company.License.LicenseCategoryId, requireActive: true, cancellationToken);
+        var license = BuildLicense(company.Id, request.Company.License, category, userId);
         try
         {
             await dbContext.Companies.AddAsync(company, cancellationToken);
@@ -262,20 +279,36 @@ public class CreateParentCompanyHandler(OrganizationDbContext dbContext, IHttpCo
         httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? throw new UnauthorizedAccessException("User not authenticated");
 
-    private static CompanyLicense BuildLicense(Guid companyId, CompanyLicenseDto dto, string userId) =>
+    private async Task<LicenseCategory> GetCategoryAsync(Guid? categoryId, bool requireActive, CancellationToken cancellationToken)
+    {
+        if (!categoryId.HasValue)
+            throw new ArgumentException("License category is required");
+
+        var category = await dbContext.LicenseCategories
+            .FirstOrDefaultAsync(x => x.Id == categoryId.Value, cancellationToken)
+            ?? throw new NotFoundException($"License category not found: {categoryId.Value}");
+
+        if (requireActive && !category.IsActive)
+            throw new InvalidOperationException("Selected license category is not active");
+
+        return category;
+    }
+
+    private static CompanyLicense BuildLicense(Guid companyId, CompanyLicenseDto dto, LicenseCategory category, string userId) =>
         CompanyLicense.Create(
             Guid.NewGuid(),
             companyId,
             dto.Status,
-            dto.PlanKey,
-            dto.PlanName,
+            category.Key,
+            category.Name,
             dto.StartDate,
             dto.EndDate,
-            dto.MaxUsers,
-            dto.MaxChildCompanies,
-            dto.MaxBranches,
+            category.MaxUsers,
+            category.MaxChildCompanies,
+            category.MaxBranches,
             dto.Notes,
-            userId);
+            userId,
+            category.Id);
 }
 
 public class UpdateParentCompanyHandler(OrganizationDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
@@ -304,7 +337,6 @@ public class UpdateParentCompanyHandler(OrganizationDbContext dbContext, IHttpCo
             request.Company.TimeZone,
             userId);
 
-        await UpsertLicenseAsync(company.Id, request.Company.License, userId, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new UpdateParentCompanyResult(true);
     }
@@ -355,36 +387,55 @@ public class UpdateParentCompanyHandler(OrganizationDbContext dbContext, IHttpCo
     private async Task UpsertLicenseAsync(Guid companyId, CompanyLicenseDto dto, string userId, CancellationToken cancellationToken)
     {
         var license = await dbContext.CompanyLicenses.FirstOrDefaultAsync(x => x.CompanyId == companyId, cancellationToken);
+        var requireActiveCategory = license is null || license.LicenseCategoryId != dto.LicenseCategoryId;
+        var category = await GetCategoryAsync(dto.LicenseCategoryId, requireActiveCategory, cancellationToken);
         if (license is null)
         {
             license = CompanyLicense.Create(
                 Guid.NewGuid(),
                 companyId,
                 dto.Status,
-                dto.PlanKey,
-                dto.PlanName,
+                category.Key,
+                category.Name,
                 dto.StartDate,
                 dto.EndDate,
-                dto.MaxUsers,
-                dto.MaxChildCompanies,
-                dto.MaxBranches,
+                category.MaxUsers,
+                category.MaxChildCompanies,
+                category.MaxBranches,
                 dto.Notes,
-                userId);
+                userId,
+                category.Id);
             await dbContext.CompanyLicenses.AddAsync(license, cancellationToken);
             return;
         }
 
         license.Update(
             dto.Status,
-            dto.PlanKey,
-            dto.PlanName,
+            category.Key,
+            category.Name,
             dto.StartDate,
             dto.EndDate,
-            dto.MaxUsers,
-            dto.MaxChildCompanies,
-            dto.MaxBranches,
+            category.MaxUsers,
+            category.MaxChildCompanies,
+            category.MaxBranches,
             dto.Notes,
-            userId);
+            userId,
+            category.Id);
+    }
+
+    private async Task<LicenseCategory> GetCategoryAsync(Guid? categoryId, bool requireActive, CancellationToken cancellationToken)
+    {
+        if (!categoryId.HasValue)
+            throw new ArgumentException("License category is required");
+
+        var category = await dbContext.LicenseCategories
+            .FirstOrDefaultAsync(x => x.Id == categoryId.Value, cancellationToken)
+            ?? throw new NotFoundException($"License category not found: {categoryId.Value}");
+
+        if (requireActive && !category.IsActive)
+            throw new InvalidOperationException("Selected license category is not active");
+
+        return category;
     }
 
     private static string GetUserId(IHttpContextAccessor httpContextAccessor) =>

@@ -7,6 +7,8 @@ public class CompanyLicense : Aggregate<Guid>
 {
     public Guid CompanyId { get; private set; }
     public Company Company { get; private set; } = default!;
+    public Guid? LicenseCategoryId { get; private set; }
+    public LicenseCategory? LicenseCategory { get; private set; }
     public CompanyLicenseStatus Status { get; private set; }
     public string PlanKey { get; private set; } = string.Empty;
     public string PlanName { get; private set; } = string.Empty;
@@ -16,6 +18,14 @@ public class CompanyLicense : Aggregate<Guid>
     public int MaxChildCompanies { get; private set; }
     public int MaxBranches { get; private set; }
     public string? Notes { get; private set; }
+    public string EffectivePlanKey => LicenseCategory?.Key ?? PlanKey;
+    public string EffectivePlanName => LicenseCategory?.Name ?? PlanName;
+    public int EffectiveMaxUsers => LicenseCategory?.MaxUsers ?? MaxUsers;
+    public int EffectiveMaxChildCompanies => LicenseCategory?.MaxChildCompanies ?? MaxChildCompanies;
+    public int EffectiveMaxBranches => LicenseCategory?.MaxBranches ?? MaxBranches;
+    public decimal EffectiveMonthlyPrice => LicenseCategory?.MonthlyPrice ?? 0;
+    public decimal EffectiveYearlyPrice => LicenseCategory?.YearlyPrice ?? 0;
+    public string EffectiveCurrencyCode => LicenseCategory?.CurrencyCode ?? "SAR";
 
     private CompanyLicense() { }
 
@@ -31,7 +41,8 @@ public class CompanyLicense : Aggregate<Guid>
         int maxChildCompanies,
         int maxBranches,
         string? notes,
-        string createdBy)
+        string createdBy,
+        Guid? licenseCategoryId = null)
     {
         ValidateLimits(maxUsers, maxChildCompanies, maxBranches);
         if (endDate.Date < startDate.Date)
@@ -41,6 +52,7 @@ public class CompanyLicense : Aggregate<Guid>
         {
             Id = id,
             CompanyId = companyId,
+            LicenseCategoryId = licenseCategoryId,
             Status = status,
             PlanKey = planKey.Trim(),
             PlanName = planName.Trim(),
@@ -65,13 +77,15 @@ public class CompanyLicense : Aggregate<Guid>
         int maxChildCompanies,
         int maxBranches,
         string? notes,
-        string modifiedBy)
+        string modifiedBy,
+        Guid? licenseCategoryId = null)
     {
         ValidateLimits(maxUsers, maxChildCompanies, maxBranches);
         if (endDate.Date < startDate.Date)
             throw new ArgumentException("License end date must be after start date");
 
         Status = status;
+        LicenseCategoryId = licenseCategoryId;
         PlanKey = planKey.Trim();
         PlanName = planName.Trim();
         StartDate = startDate.Date;

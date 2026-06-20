@@ -11,6 +11,7 @@ public class CanAddUserToCompanyHandler(OrganizationDbContext dbContext, ICompan
         var parentCompanyId = await companyHierarchyContext.GetParentCompanyIdForCompanyAsync(request.CompanyId, cancellationToken);
         var license = await dbContext.CompanyLicenses
             .AsNoTracking()
+            .Include(x => x.LicenseCategory)
             .FirstOrDefaultAsync(x => x.CompanyId == parentCompanyId, cancellationToken);
 
         if (license is null)
@@ -21,7 +22,7 @@ public class CanAddUserToCompanyHandler(OrganizationDbContext dbContext, ICompan
 
         var hierarchyIds = await companyHierarchyContext.GetCompanyHierarchyIdsAsync(parentCompanyId, cancellationToken);
         var usersCount = await sender.Send(new CountUsersByCompanyIdsQuery(hierarchyIds), cancellationToken);
-        if (usersCount.Count >= license.MaxUsers)
+        if (usersCount.Count >= license.EffectiveMaxUsers)
             return new CanAddUserToCompanyResult(false, "Parent company user license limit has been reached");
 
         return new CanAddUserToCompanyResult(true, null);

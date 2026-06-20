@@ -74,6 +74,7 @@ public class CreateBranchHandler(OrganizationDbContext dbContext, IHttpContextAc
         var parentCompanyId = await companyHierarchyContext.GetParentCompanyIdForCompanyAsync(companyId, cancellationToken);
         var license = await dbContext.CompanyLicenses
             .AsNoTracking()
+            .Include(x => x.LicenseCategory)
             .FirstOrDefaultAsync(x => x.CompanyId == parentCompanyId, cancellationToken);
 
         if (license is null)
@@ -87,7 +88,7 @@ public class CreateBranchHandler(OrganizationDbContext dbContext, IHttpContextAc
             .AsNoTracking()
             .CountAsync(x => hierarchyIds.Contains(x.CompanyId), cancellationToken);
 
-        if (branchesCount >= license.MaxBranches)
+        if (branchesCount >= license.EffectiveMaxBranches)
             throw new InvalidOperationException("Parent company branch license limit has been reached");
     }
 }

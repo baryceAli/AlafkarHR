@@ -4,6 +4,7 @@
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Rendering
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Organization.Enums
@@ -12,6 +13,7 @@
 @implements IDisposable
 
 @inject IParentCompanyService ParentCompanyService
+@inject ILicenseCategoryService LicenseCategoryService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 @inject ToastService ToastService
@@ -127,8 +129,11 @@
                         <thead>
                             <tr>
                                 <th>@Text("Company", "الشركة")</th>
-                                <th>@Text("License", "الترخيص")</th>
-                                <th>@Text("Usage", "الاستخدام")</th>
+                                @if (CanViewPlatformLicenseData)
+                                {
+                                    <th>@Text("License", "الترخيص")</th>
+                                    <th>@Text("Usage", "الاستخدام")</th>
+                                }
                                 <th>@Text("Admin", "المدير")</th>
                                 <th>@Text("Status", "الحالة")</th>
                                 <th class="text-end">@Text("Actions", "الإجراءات")</th>
@@ -143,20 +148,24 @@
                                         <div class="text-muted small">@item.Code | @item.VatNo</div>
                                         <div class="text-muted small">@Empty(item.Email) | @Empty(item.Phone)</div>
                                     </td>
-                                    <td>
-                                        <div class="d-flex flex-wrap align-items-center gap-2">
-                                            <StatusChip Text="@LicenseStatusText(item)" Tone="@LicenseTone(item)" />
-                                            <span class="fw-semibold">@item.License.PlanName</span>
-                                        </div>
-                                        <div class="text-muted small">@item.License.StartDate.ToString("yyyy-MM-dd") - @item.License.EndDate.ToString("yyyy-MM-dd")</div>
-                                    </td>
-                                    <td>
-                                        <div class="usage-grid">
-                                            <span>@Text("Users", "المستخدمون")</span><strong>@item.UsersCount / @item.License.MaxUsers</strong>
-                                            <span>@Text("Children", "التابعة")</span><strong>@item.ChildCompaniesCount / @item.License.MaxChildCompanies</strong>
-                                            <span>@Text("Branches", "الفروع")</span><strong>@item.BranchesCount / @item.License.MaxBranches</strong>
-                                        </div>
-                                    </td>
+                                    @if (CanViewPlatformLicenseData)
+                                    {
+                                        <td>
+                                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                                <StatusChip Text="@LicenseStatusText(item)" Tone="@LicenseTone(item)" />
+                                                <span class="fw-semibold">@item.License.PlanName</span>
+                                            </div>
+                                            <div class="text-muted small">@item.License.StartDate.ToString("yyyy-MM-dd") - @item.License.EndDate.ToString("yyyy-MM-dd")</div>
+                                            <div class="text-muted small">@item.License.MonthlyPrice.ToString("N2") @item.License.CurrencyCode / @Text("month", "شهر") · @item.License.YearlyPrice.ToString("N2") @item.License.CurrencyCode / @Text("year", "سنة")</div>
+                                        </td>
+                                        <td>
+                                            <div class="usage-grid">
+                                                <span>@Text("Users", "المستخدمون")</span><strong>@item.UsersCount / @item.License.MaxUsers</strong>
+                                                <span>@Text("Children", "التابعة")</span><strong>@item.ChildCompaniesCount / @item.License.MaxChildCompanies</strong>
+                                                <span>@Text("Branches", "الفروع")</span><strong>@item.BranchesCount / @item.License.MaxBranches</strong>
+                                            </div>
+                                        </td>
+                                    }
                                     <td>
                                         <div class="fw-semibold">@Empty(item.AdminUserName)</div>
                                         <div class="text-muted small">@Empty(item.AdminEmail)</div>
@@ -169,6 +178,12 @@
                                             <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenEdit(item)" disabled="@(!CanEdit)" title="@Text("Edit", "تعديل")">
                                                 <i class="bi bi-pencil-square"></i>
                                             </button>
+                                            @if (CanManageLicense)
+                                            {
+                                                <button class="btn btn-outline-info btn-sm" @onclick="() => OpenLicense(item)" title="@Text("Manage license", "إدارة الترخيص")">
+                                                    <i class="bi bi-patch-check"></i>
+                                                </button>
+                                            }
                                             <button class="btn btn-outline-secondary btn-sm" @onclick="() => OpenResetPassword(item)" disabled="@(!CanResetPassword)" title="@Text("Reset admin password", "إعادة تعيين كلمة مرور المدير")">
                                                 <i class="bi bi-key"></i>
                                             </button>
@@ -285,8 +300,20 @@
                                 </div>
                             </div>
 
+                            @if (isCreateMode && CanViewPlatformLicenseData)
+                            {
                             <div class="col-12"><hr /><h6>@Text("License", "الترخيص")</h6></div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("License Category", "فئة الترخيص")</label>
+                                <select class="form-select" value="@selectedCompany.License.LicenseCategoryId" @onchange="OnLicenseCategoryChanged">
+                                    <option value="">@Text("Select category", "اختر الفئة")</option>
+                                    @foreach (var category in ActiveLicenseCategories)
+                                    {
+                                        <option value="@category.Id">@category.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-4">
                                 <label class="form-label">@Text("Status", "الحالة")</label>
                                 <InputSelect class="form-select" @bind-Value="selectedCompany.License.Status">
                                     <option value="@CompanyLicenseStatus.Active">@Text("Active", "نشط")</option>
@@ -294,15 +321,7 @@
                                     <option value="@CompanyLicenseStatus.Expired">@Text("Expired", "منتهي")</option>
                                 </InputSelect>
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label">@Text("Plan Key", "مفتاح الخطة")</label>
-                                <InputText class="form-control" @bind-Value="selectedCompany.License.PlanKey" />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">@Text("Plan Name", "اسم الخطة")</label>
-                                <InputText class="form-control" @bind-Value="selectedCompany.License.PlanName" />
-                            </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <label class="form-label">@Text("Start Date", "تاريخ البداية")</label>
                                 <InputDate class="form-control" @bind-Value="selectedCompany.License.StartDate" />
                             </div>
@@ -310,22 +329,14 @@
                                 <label class="form-label">@Text("End Date", "تاريخ النهاية")</label>
                                 <InputDate class="form-control" @bind-Value="selectedCompany.License.EndDate" />
                             </div>
-                            <div class="col-md-2">
-                                <label class="form-label">@Text("Max Users", "حد المستخدمين")</label>
-                                <InputNumber class="form-control" @bind-Value="selectedCompany.License.MaxUsers" />
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">@Text("Max Children", "حد الشركات")</label>
-                                <InputNumber class="form-control" @bind-Value="selectedCompany.License.MaxChildCompanies" />
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">@Text("Max Branches", "حد الفروع")</label>
-                                <InputNumber class="form-control" @bind-Value="selectedCompany.License.MaxBranches" />
+                            <div class="col-md-9">
+                                @LicenseCategoryPreview(selectedCompany.License)
                             </div>
                             <div class="col-12">
                                 <label class="form-label">@Text("Notes", "ملاحظات")</label>
                                 <InputTextArea class="form-control" @bind-Value="selectedCompany.License.Notes" />
                             </div>
+                            }
 
                             @if (isCreateMode)
                             {
@@ -357,6 +368,75 @@
                                 <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                             }
                             @Text("Save", "حفظ")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showLicenseModal && selectedCompany is not null)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <EditForm Model="selectedCompany.License" OnValidSubmit="SaveLicenseAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@Text("Manage License", "إدارة الترخيص")</h5>
+                        <button type="button" class="btn-close" @onclick="CloseLicenseModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <div class="fw-semibold">@DisplayName(selectedCompany)</div>
+                            <div class="text-muted small">@selectedCompany.Code</div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("License Category", "فئة الترخيص")</label>
+                                <select class="form-select" value="@selectedCompany.License.LicenseCategoryId" @onchange="OnLicenseCategoryChanged">
+                                    <option value="">@Text("Select category", "اختر الفئة")</option>
+                                    @foreach (var category in SelectableLicenseCategories(selectedCompany.License))
+                                    {
+                                        <option value="@category.Id">@category.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Status", "الحالة")</label>
+                                <InputSelect class="form-select" @bind-Value="selectedCompany.License.Status">
+                                    <option value="@CompanyLicenseStatus.Active">@Text("Active", "نشط")</option>
+                                    <option value="@CompanyLicenseStatus.Suspended">@Text("Suspended", "موقوف")</option>
+                                    <option value="@CompanyLicenseStatus.Expired">@Text("Expired", "منتهي")</option>
+                                </InputSelect>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Start Date", "تاريخ البداية")</label>
+                                <InputDate class="form-control" @bind-Value="selectedCompany.License.StartDate" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("End Date", "تاريخ النهاية")</label>
+                                <InputDate class="form-control" @bind-Value="selectedCompany.License.EndDate" />
+                            </div>
+                            <div class="col-12">
+                                @LicenseCategoryPreview(selectedCompany.License)
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                                <InputTextArea class="form-control" @bind-Value="selectedCompany.License.Notes" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CloseLicenseModal" disabled="@isSaving">@Text("Cancel", "إلغاء")</button>
+                        <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            }
+                            @Text("Save License", "حفظ الترخيص")
                         </button>
                     </div>
                 </EditForm>
@@ -451,6 +531,32 @@
         color: var(--erp-text-muted);
     }
 
+    .license-category-preview {
+        background: var(--erp-bg-subtle);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        display: grid;
+        gap: 0.5rem 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        padding: 0.75rem;
+    }
+
+    .license-category-preview div {
+        display: grid;
+        gap: 0.15rem;
+    }
+
+    .license-category-preview span {
+        color: var(--erp-text-muted);
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .license-category-preview strong {
+        color: var(--erp-text);
+        font-size: 0.9rem;
+    }
+
     .parent-company-map {
         background: var(--erp-bg-subtle);
         border: 1px solid var(--erp-border-strong);
@@ -508,6 +614,7 @@
 
 @code {
     private List<ParentCompanyDto> companies = [];
+    private List<LicenseCategoryDto> licenseCategories = [];
     private ParentCompanyDto? selectedCompany;
     private PasswordResetModel passwordReset = new();
     private AuthenticationState? AuthState;
@@ -519,19 +626,24 @@
     private bool isLoading = true;
     private bool isSaving;
     private bool showCompanyModal;
+    private bool showLicenseModal;
     private bool showResetPassword;
     private bool isCreateMode;
     private readonly string mapElementId = $"parent-company-location-map-{Guid.NewGuid():N}";
     private DotNetObjectReference<ParentCompanyManagement>? dotNetReference;
     private bool mapInitialized;
 
-    private bool CanView => HasPermission(PermissionList.ParentCompanyPermissions.View);
-    private bool CanCreate => HasPermission(PermissionList.ParentCompanyPermissions.Create);
-    private bool CanEdit => HasPermission(PermissionList.ParentCompanyPermissions.Edit) || HasPermission(PermissionList.ParentCompanyPermissions.ManageLicense);
-    private bool CanSuspend => HasPermission(PermissionList.ParentCompanyPermissions.Suspend);
-    private bool CanResetPassword => HasPermission(PermissionList.ParentCompanyPermissions.ResetAdminPassword);
-    private bool CanDelete => HasPermission(PermissionList.ParentCompanyPermissions.Delete);
+    private bool IsPlatformScoped => CompanyContext.IsPlatformScoped(AuthState?.User);
+    private bool CanViewPlatformLicenseData => IsPlatformScoped && HasPermission(PermissionList.ParentCompanyPermissions.View);
+    private bool CanView => IsPlatformScoped && HasPermission(PermissionList.ParentCompanyPermissions.View);
+    private bool CanCreate => IsPlatformScoped && HasPermission(PermissionList.ParentCompanyPermissions.Create);
+    private bool CanEdit => IsPlatformScoped && HasPermission(PermissionList.ParentCompanyPermissions.Edit);
+    private bool CanManageLicense => IsPlatformScoped && HasPermission(PermissionList.ParentCompanyPermissions.ManageLicense);
+    private bool CanSuspend => IsPlatformScoped && HasPermission(PermissionList.ParentCompanyPermissions.Suspend);
+    private bool CanResetPassword => IsPlatformScoped && HasPermission(PermissionList.ParentCompanyPermissions.ResetAdminPassword);
+    private bool CanDelete => IsPlatformScoped && HasPermission(PermissionList.ParentCompanyPermissions.Delete);
     private bool HasNextPage => (pageIndex + 1) * PageSize < totalCount;
+    private IEnumerable<LicenseCategoryDto> ActiveLicenseCategories => licenseCategories.Where(category => category.IsActive);
     private int ActiveCompaniesCount => companies.Count(company => company.IsActive);
     private int SuspendedCompaniesCount => companies.Count(company => !company.IsActive);
     private string ModalTitle => isCreateMode ? Text("Create Parent Company", "إنشاء شركة رئيسية") : Text("Edit Parent Company", "تعديل الشركة الرئيسية");
@@ -540,6 +652,7 @@
     {
         SharedDataService.OnChange1 += HandleLanguageChangeAsync;
         AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        await LoadLicenseCategoriesAsync();
         await LoadAsync();
     }
 
@@ -574,8 +687,8 @@
             var result = await ParentCompanyService.GetAsync(pageIndex, PageSize, searchText);
             if (result.IsSuccess && result.Data is not null)
             {
-                companies = result.Data.Items ?? [];
-                totalCount = result.Data.TotalCount;
+                companies = result.Data.Data?.ToList() ?? [];
+                totalCount = (int)result.Data.Count;
             }
             else
             {
@@ -594,6 +707,22 @@
     {
         pageIndex = 0;
         await LoadAsync();
+    }
+
+    private async Task LoadLicenseCategoriesAsync()
+    {
+        if (!CanViewPlatformLicenseData)
+            return;
+
+        var result = await LicenseCategoryService.GetAsync(includeInactive: true);
+        if (result.IsSuccess && result.Data is not null)
+        {
+            licenseCategories = result.Data;
+        }
+        else
+        {
+            Toast("warning", result.Error?.Detail ?? Text("Unable to load license categories.", "تعذر تحميل فئات الترخيص."));
+        }
     }
 
     private async Task ClearSearchAsync()
@@ -623,6 +752,9 @@
 
     private void OpenCreate()
     {
+        var defaultCategory = ActiveLicenseCategories.FirstOrDefault(category => category.Key == "standard")
+            ?? ActiveLicenseCategories.FirstOrDefault();
+
         isCreateMode = true;
         selectedCompany = new ParentCompanyDto
         {
@@ -640,6 +772,10 @@
                 MaxBranches = 10
             }
         };
+        if (defaultCategory is not null)
+        {
+            ApplyLicenseCategory(selectedCompany.License, defaultCategory);
+        }
         mapInitialized = false;
         showCompanyModal = true;
     }
@@ -652,10 +788,22 @@
         showCompanyModal = true;
     }
 
+    private void OpenLicense(ParentCompanyDto company)
+    {
+        selectedCompany = Clone(company);
+        showLicenseModal = true;
+    }
+
     private async Task SaveCompanyAsync()
     {
         if (selectedCompany is null)
             return;
+
+        if (isCreateMode && CanViewPlatformLicenseData && selectedCompany.License.LicenseCategoryId is null)
+        {
+            Toast("warning", Text("Select a license category.", "اختر فئة الترخيص."));
+            return;
+        }
 
         isSaving = true;
         try
@@ -707,6 +855,38 @@
             else
             {
                 Toast("error", result.Error?.Detail ?? Text("Unable to update status.", "تعذر تحديث الحالة."));
+            }
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task SaveLicenseAsync()
+    {
+        if (selectedCompany is null)
+            return;
+
+        if (selectedCompany.License.LicenseCategoryId is null)
+        {
+            Toast("warning", Text("Select a license category.", "اختر فئة الترخيص."));
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            var result = await ParentCompanyService.UpdateLicenseAsync(selectedCompany.Id, selectedCompany.License);
+            if (result.IsSuccess && result.Data?.IsSuccess == true)
+            {
+                Toast("success", Text("Parent company license was updated.", "تم تحديث ترخيص الشركة الرئيسية."));
+                CloseLicenseModal();
+                await LoadAsync();
+            }
+            else
+            {
+                Toast("error", result.Error?.Detail ?? Text("Unable to update license.", "تعذر تحديث الترخيص."));
             }
         }
         finally
@@ -790,6 +970,12 @@
         selectedCompany = null;
     }
 
+    private void CloseLicenseModal()
+    {
+        showLicenseModal = false;
+        selectedCompany = null;
+    }
+
     private void CloseResetPassword()
     {
         showResetPassword = false;
@@ -825,6 +1011,73 @@
         CompanyLicenseStatus.Expired => "danger",
         _ => "muted"
     };
+
+    private IEnumerable<LicenseCategoryDto> SelectableLicenseCategories(CompanyLicenseDto license)
+    {
+        return licenseCategories
+            .Where(category => category.IsActive || category.Id == license.LicenseCategoryId)
+            .OrderBy(category => category.MonthlyPrice)
+            .ThenBy(category => category.Name);
+    }
+
+    private void OnLicenseCategoryChanged(ChangeEventArgs args)
+    {
+        if (selectedCompany is null)
+            return;
+
+        if (!Guid.TryParse(args.Value?.ToString(), out var categoryId))
+        {
+            selectedCompany.License.LicenseCategoryId = null;
+            return;
+        }
+
+        var category = licenseCategories.FirstOrDefault(item => item.Id == categoryId);
+        if (category is not null)
+        {
+            ApplyLicenseCategory(selectedCompany.License, category);
+        }
+    }
+
+    private static void ApplyLicenseCategory(CompanyLicenseDto license, LicenseCategoryDto category)
+    {
+        license.LicenseCategoryId = category.Id;
+        license.PlanKey = category.Key;
+        license.PlanName = category.Name;
+        license.MaxUsers = category.MaxUsers;
+        license.MaxChildCompanies = category.MaxChildCompanies;
+        license.MaxBranches = category.MaxBranches;
+        license.MonthlyPrice = category.MonthlyPrice;
+        license.YearlyPrice = category.YearlyPrice;
+        license.CurrencyCode = category.CurrencyCode;
+    }
+
+    private RenderFragment LicenseCategoryPreview(CompanyLicenseDto license) => builder =>
+    {
+        var sequence = 0;
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "license-category-preview");
+
+        AddPreviewItem(builder, ref sequence, Text("Plan", "الخطة"), license.PlanName);
+        AddPreviewItem(builder, ref sequence, Text("Monthly", "شهري"), $"{license.MonthlyPrice:N2} {license.CurrencyCode}");
+        AddPreviewItem(builder, ref sequence, Text("Yearly", "سنوي"), $"{license.YearlyPrice:N2} {license.CurrencyCode}");
+        AddPreviewItem(builder, ref sequence, Text("Users", "المستخدمون"), license.MaxUsers.ToString());
+        AddPreviewItem(builder, ref sequence, Text("Children", "التابعة"), license.MaxChildCompanies.ToString());
+        AddPreviewItem(builder, ref sequence, Text("Branches", "الفروع"), license.MaxBranches.ToString());
+
+        builder.CloseElement();
+    };
+
+    private static void AddPreviewItem(RenderTreeBuilder builder, ref int sequence, string label, string value)
+    {
+        builder.OpenElement(sequence++, "div");
+        builder.OpenElement(sequence++, "span");
+        builder.AddContent(sequence++, label);
+        builder.CloseElement();
+        builder.OpenElement(sequence++, "strong");
+        builder.AddContent(sequence++, string.IsNullOrWhiteSpace(value) ? "-" : value);
+        builder.CloseElement();
+        builder.CloseElement();
+    }
 
     private double MapLatitude =>
         selectedCompany is not null && Math.Abs(selectedCompany.HqLatitude) > 0
@@ -920,6 +1173,7 @@
         {
             Id = source.License.Id,
             CompanyId = source.License.CompanyId,
+            LicenseCategoryId = source.License.LicenseCategoryId,
             Status = source.License.Status,
             PlanKey = source.License.PlanKey,
             PlanName = source.License.PlanName,
@@ -928,6 +1182,9 @@
             MaxUsers = source.License.MaxUsers,
             MaxChildCompanies = source.License.MaxChildCompanies,
             MaxBranches = source.License.MaxBranches,
+            MonthlyPrice = source.License.MonthlyPrice,
+            YearlyPrice = source.License.YearlyPrice,
+            CurrencyCode = source.License.CurrencyCode,
             Notes = source.License.Notes
         }
     };
