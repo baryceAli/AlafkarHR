@@ -1,3 +1,4 @@
+@implements IDisposable
 @using AlAfkarERP.Shared.Utilities
 @inject SharedDataService SharedDataService
 
@@ -31,4 +32,20 @@
     [Parameter] public EventCallback OnOpenRecent { get; set; }
     [Parameter] public EventCallback OnOpenFavorites { get; set; }
     [Parameter] public EventCallback OnOpenMore { get; set; }
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+
 }

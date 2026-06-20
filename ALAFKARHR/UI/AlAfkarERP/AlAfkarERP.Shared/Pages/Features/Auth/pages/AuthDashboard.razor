@@ -1,8 +1,32 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Auth/Dashboard"
 @using AlAfkarERP.Shared.Pages.Features.Auth.Layout
-<h3>AuthDashboard</h3>
+@implements IDisposable
+
+@inject SharedDataService SharedDataService
+
+<section class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Auth Dashboard", "???? ???? ????????")"
+                Subtitle="@Text("Manage authentication, roles, and user access from the security workspace.", "????? ????? ?????? ???????? ????? ?????????? ?? ????? ??? ??????.")"
+                Overline="@Text("Security", "??????")"
+                Icon="bi-shield-lock" />
+</section>
 
 @code {
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
 
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
 }

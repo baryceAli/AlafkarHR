@@ -12,7 +12,7 @@
 @inject SharedDataService SharedDataService
 @inject NavigationManager NavigationManager
 
-<div class="erp-page">
+<div class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("Branch Form", "نموذج الفرع")"
                 Subtitle="@Text("Create or edit branch identity, contact, and location details.", "إنشاء أو تعديل بيانات الفرع والتواصل والموقع.")"
                 Overline="@Text("Organization", "المنظمة")"

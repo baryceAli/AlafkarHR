@@ -1,3 +1,4 @@
+@implements IDisposable
 ﻿@using AlAfkarERP.Shared.Utilities
 @typeparam TItem
 @inject SharedDataService SharedDataService
@@ -212,4 +213,20 @@
             StateHasChanged();
         }
     }
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+
 }

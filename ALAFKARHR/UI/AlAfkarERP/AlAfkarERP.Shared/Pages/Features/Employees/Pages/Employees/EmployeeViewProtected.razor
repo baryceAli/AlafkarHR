@@ -1,18 +1,40 @@
 @layout AdminLayout
 @page "/Employee/Employee/view"
+@implements IDisposable
 
-<div class="card border-0 shadow-sm mx-auto mt-4 employee-public-card-sm">
+@inject SharedDataService SharedDataService
+
+<div class="card border-0 shadow-sm mx-auto mt-4 employee-public-card-sm" dir="@SharedDataService.PageDirection">
     <div class="card-body text-center">
         <div class="mb-3">
             <i class="bi bi-person-vcard fs-1 text-primary"></i>
         </div>
-        <h5 class="card-title">Employee public view</h5>
+        <h5 class="card-title">@Text("Employee public view", "????? ????? ??????")</h5>
         <p class="card-text text-muted">
-            Select an employee from the employee list to open a public employee card.
+            @Text("Select an employee from the employee list to open a public employee card.", "???? ????? ?? ????? ???????? ???? ????? ?????? ??????.")
         </p>
         <a class="btn btn-primary" href="/Employee/Employee/List">
             <i class="bi bi-arrow-left"></i>
-            Back to employees
+            @Text("Back to employees", "?????? ??? ????????")
         </a>
     </div>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

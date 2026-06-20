@@ -1,3 +1,4 @@
+@implements IDisposable
 @inject IJSRuntime JSRuntime
 @inject AlAfkarERP.Shared.Utilities.SharedDataService SharedDataService
 
@@ -57,4 +58,20 @@
         public string? ColorScheme { get; set; }
         public string? Mode { get; set; }
     }
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+
 }

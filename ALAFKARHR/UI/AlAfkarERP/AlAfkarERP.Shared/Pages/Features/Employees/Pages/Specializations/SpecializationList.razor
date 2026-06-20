@@ -1,5 +1,6 @@
 @layout AdminLayout
 @page "/Employee/Specialization/List"
+@implements IDisposable
 
 
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
@@ -246,6 +247,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        SharedDataService.OnChange1 += HandleChangeAsync;
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
         if (!CompanyContext.TryGetCompanyId(AuthState.User, out companyId))
         {
@@ -501,4 +503,15 @@
         }
     }
     #endregion Table helpers
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+
 }

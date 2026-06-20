@@ -29,8 +29,8 @@
 
 }
 
-<h3 class="text-black">@SharedDataService.SelectViewLang("Roles Management", "إدارة الصلاحيات")</h3>
-<EditForm Model="roleDto" OnValidSubmit="ApplyChanges">
+<h3 class="text-black" dir="@SharedDataService.PageDirection">@SharedDataService.SelectViewLang("Roles Management", "إدارة الصلاحيات")</h3>
+<EditForm Model="roleDto" OnValidSubmit="ApplyChanges" dir="@SharedDataService.PageDirection">
     <DataAnnotationsValidator />
     @* <ValidationSummary/> *@
     <div class="mb-3 row">

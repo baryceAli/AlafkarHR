@@ -1,11 +1,12 @@
 @layout AdminLayout
 @page "/Warehouse/Product/Dashboard"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @inject SharedDataService SharedDataService
 
-<div class="erp-page">
+<div class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@SharedDataService.SelectViewLang("Catalog Dashboard", "لوحة الكتالوج")"
                 Subtitle="@SharedDataService.SelectViewLang("A quick entry point for product setup, pricing, packages, units, brands, and variants.", "مدخل سريع لإعداد المنتجات والأسعار والعبوات والوحدات والعلامات التجارية والخيارات.")"
                 Overline="@SharedDataService.SelectViewLang("Catalog", "الكتالوج")"
@@ -42,3 +43,20 @@
         </div>
     </div>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
