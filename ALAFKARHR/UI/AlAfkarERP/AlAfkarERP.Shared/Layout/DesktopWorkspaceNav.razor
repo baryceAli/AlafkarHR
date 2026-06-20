@@ -143,7 +143,7 @@
 
     private IReadOnlyList<NavigationWorkspace> AuthorizedWorkspaces => NavigationMenuResolver.GetAuthorizedWorkspaces(AuthState?.User);
     private IEnumerable<MenuItem> AuthorizedItems => NavigationMenuResolver.GetAuthorizedNavigableItems(AuthState?.User);
-    private IEnumerable<NavigationMenuRow> WorkspaceRows => NavigationMenuResolver.GetAuthorizedWorkspaceRows(AuthState?.User, ActiveWorkspace);
+    private IEnumerable<NavigationMenuRow> WorkspaceRows => NavigationMenuResolver.GetAuthorizedWorkspacePanelRows(AuthState?.User, ActiveWorkspace);
     private IEnumerable<NavigationMenuRow> VisibleWorkspaceRows => WorkspaceRows.Where(row => IsVisibleWorkspaceRow(row) && !IsPanelExcludedItem(row.Item));
     private IEnumerable<MenuItem> FavoriteItems => ResolveKeys(favoriteKeys).Where(MatchesActiveWorkspace).Where(item => !IsPanelExcludedItem(item)).Take(5);
     private IEnumerable<MenuItem> RecentItems => ResolveKeys(recentKeys).Where(MatchesActiveWorkspace).Where(item => !IsPanelExcludedItem(item)).Take(NavigationShellState.MaxRecentItems);
@@ -195,8 +195,13 @@
         => ActiveWorkspace == NavigationMenuResolver.WorkspaceMore
            || NavigationMenuResolver.GetWorkspaceKey(item) == ActiveWorkspace;
 
-    private static bool IsPanelExcludedItem(MenuItem item)
+    private bool IsPanelExcludedItem(MenuItem item)
     {
+        if (ActiveWorkspace == NavigationMenuResolver.WorkspaceHome)
+        {
+            return false;
+        }
+
         var path = NavigationMenuResolver.NormalizePath(item.Url);
         return path == "/dashboard";
     }
@@ -288,12 +293,22 @@
     private static bool IsDirectChildRow(NavigationMenuRow parent, NavigationMenuRow candidate)
         => candidate.Depth == parent.Depth + 1
            && candidate.Path.Count > parent.Path.Count
-           && candidate.Path.Take(parent.Path.Count).SequenceEqual(parent.Path);
+           && PathsMatch(candidate.Path.Take(parent.Path.Count), parent.Path);
 
     private static bool IsSiblingRow(NavigationMenuRow row, NavigationMenuRow candidate)
         => candidate.Depth == row.Depth
-           && !ReferenceEquals(candidate.Item, row.Item)
-           && candidate.Path.Take(candidate.Path.Count - 1).SequenceEqual(row.Path.Take(row.Path.Count - 1));
+           && !KeysMatch(candidate.Item, row.Item)
+           && PathsMatch(candidate.Path.Take(candidate.Path.Count - 1), row.Path.Take(row.Path.Count - 1));
+
+    private static bool PathsMatch(IEnumerable<MenuItem> first, IEnumerable<MenuItem> second)
+        => first.Select(NavigationMenuResolver.GetStorageKey)
+            .SequenceEqual(second.Select(NavigationMenuResolver.GetStorageKey), StringComparer.OrdinalIgnoreCase);
+
+    private static bool KeysMatch(MenuItem first, MenuItem second)
+        => string.Equals(
+            NavigationMenuResolver.GetStorageKey(first),
+            NavigationMenuResolver.GetStorageKey(second),
+            StringComparison.OrdinalIgnoreCase);
 
     private void ExpandActivePath()
     {

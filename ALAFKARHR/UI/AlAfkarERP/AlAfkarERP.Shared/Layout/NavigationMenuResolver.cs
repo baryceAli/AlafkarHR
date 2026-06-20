@@ -140,7 +140,7 @@ public static class NavigationMenuResolver
             || text.Contains("Finance", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Pricing", StringComparison.OrdinalIgnoreCase))
         {
-            return WorkspaceAdmin;
+            return WorkspaceAccountingFinance;
         }
 
         if (path.StartsWith("/auth", StringComparison.OrdinalIgnoreCase)
@@ -152,8 +152,18 @@ public static class NavigationMenuResolver
         }
 
         if (path.StartsWith("/generalsettings", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/contracts", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/documentmanagement", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/fleet", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/realestate", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/maintenance", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/organization", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/taskmanagement", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Contract", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Document", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Fleet", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Real Estate", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Maintenance", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Organization", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Company", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Branch", StringComparison.OrdinalIgnoreCase)
@@ -349,6 +359,27 @@ public static class NavigationMenuResolver
         => GetAuthorizedRows(user)
             .Where(row => workspaceKey == WorkspaceMore || RowBelongsToWorkspace(row.Item, workspaceKey, user))
             .ToList();
+
+    public static IReadOnlyList<NavigationMenuRow> GetAuthorizedWorkspacePanelRows(ClaimsPrincipal? user, string workspaceKey)
+    {
+        if (workspaceKey == WorkspaceMore)
+        {
+            return GetAuthorizedWorkspaceRows(user, workspaceKey);
+        }
+
+        var rows = new List<NavigationMenuRow>();
+        var roots = GetAuthorizedTree(user);
+        foreach (var section in GetWorkspacePanelSections(roots, workspaceKey))
+        {
+            var shapedSection = FilterWorkspacePanelSection(section, workspaceKey);
+            if (shapedSection is not null)
+            {
+                AddPanelRows(shapedSection, [], 0, rows);
+            }
+        }
+
+        return rows;
+    }
 
     public static IReadOnlyList<MenuItem> GetMenuPath(MenuItem target)
     {
@@ -551,6 +582,127 @@ public static class NavigationMenuResolver
         }
     }
 
+    private static void AddPanelRows(MenuItem item, IReadOnlyList<MenuItem> ancestors, int depth, List<NavigationMenuRow> rows)
+    {
+        var path = ancestors.Concat([item]).ToList();
+        rows.Add(new NavigationMenuRow(item, depth, path));
+
+        foreach (var child in item.Children)
+        {
+            AddPanelRows(child, path, depth + 1, rows);
+        }
+    }
+
+    private static IReadOnlyList<MenuItem> GetWorkspacePanelSections(IReadOnlyList<MenuItem> roots, string workspaceKey)
+        => workspaceKey switch
+        {
+            WorkspaceHome => FindSections(roots, "Control Panel"),
+            WorkspacePos => FindSections(roots, "POS"),
+            WorkspaceSales => FindSections(roots, "Sales Management"),
+            WorkspaceHr => FindChildSections(roots, "People", "Human Resource", "Attendance", "Leave Management"),
+            WorkspacePurchasing => FindChildSections(roots, "Operations", "Supplier Management", "Procurement"),
+            WorkspaceWarehouse => FindChildSections(roots, "Operations", "Products Management", "Inventory Management"),
+            WorkspaceAccountingFinance => FindSections(roots, "Payroll", "Pricing List"),
+            WorkspaceAdmin => FindSections(roots,
+                "Organizational Structure",
+                "Contracts",
+                "Document Management",
+                "Task Management",
+                "Platform Operations",
+                "General Settings"),
+            WorkspaceSecurity => FindSections(roots, "Security Management"),
+            _ => []
+        };
+
+    private static IReadOnlyList<MenuItem> FindSections(IEnumerable<MenuItem> roots, params string[] texts)
+    {
+        var sections = new List<MenuItem>();
+        foreach (var text in texts)
+        {
+            var section = FindByText(roots, text);
+            if (section is not null)
+            {
+                sections.Add(section);
+            }
+        }
+
+        return sections;
+    }
+
+    private static IReadOnlyList<MenuItem> FindChildSections(IEnumerable<MenuItem> roots, string parentText, params string[] childTexts)
+    {
+        var parent = FindByText(roots, parentText);
+        return parent is null ? [] : FindSections(parent.Children, childTexts);
+    }
+
+    private static MenuItem? FindByText(IEnumerable<MenuItem> items, string text)
+    {
+        foreach (var item in items)
+        {
+            if (IsText(item, text))
+            {
+                return item;
+            }
+
+            var child = FindByText(item.Children, text);
+            if (child is not null)
+            {
+                return child;
+            }
+        }
+
+        return null;
+    }
+
+    private static MenuItem? FilterWorkspacePanelSection(MenuItem item, string workspaceKey)
+    {
+        var children = item.Children
+            .Select(child => FilterWorkspacePanelChild(child, workspaceKey))
+            .Where(child => child is not null)
+            .Cast<MenuItem>()
+            .ToList();
+
+        return ClonePanelItem(item, children);
+    }
+
+    private static MenuItem? FilterWorkspacePanelChild(MenuItem item, string workspaceKey)
+    {
+        var children = item.Children
+            .Select(child => FilterWorkspacePanelChild(child, workspaceKey))
+            .Where(child => child is not null)
+            .Cast<MenuItem>()
+            .ToList();
+
+        if (GetWorkspaceKey(item) != workspaceKey && children.Count == 0)
+        {
+            return null;
+        }
+
+        return ClonePanelItem(item, children);
+    }
+
+    private static MenuItem ClonePanelItem(MenuItem item, List<MenuItem> children)
+        => new()
+        {
+            TextAr = item.TextAr,
+            TextEn = item.TextEn,
+            PermissionPolicy = item.PermissionPolicy,
+            Icon = item.Icon,
+            Url = item.Url,
+            BadgeText = item.BadgeText,
+            BadgeCssClass = item.BadgeCssClass,
+            BadgeTitleEn = item.BadgeTitleEn,
+            BadgeTitleAr = item.BadgeTitleAr,
+            WorkspaceKey = item.WorkspaceKey,
+            MobilePriority = item.MobilePriority,
+            KeywordsEn = item.KeywordsEn,
+            KeywordsAr = item.KeywordsAr,
+            IsFavoriteCandidate = item.IsFavoriteCandidate,
+            Children = children,
+            IsOpen = item.IsOpen,
+            IsActive = item.IsActive
+        };
+
     private static List<MenuItem> FindPath(MenuItem current, MenuItem target)
     {
         if (ReferenceEquals(current, target) || GetStorageKey(current) == GetStorageKey(target))
@@ -591,7 +743,6 @@ public static class NavigationMenuResolver
                 AddHubSection(root, user, hubWorkspaceKey, sections);
             }
 
-            AddSecurityAdminSections(root, user, hubWorkspaceKey, sections);
             return;
         }
 
@@ -611,23 +762,6 @@ public static class NavigationMenuResolver
 
         sections.Add(new NavigationHubSection(GetStorageKey(section), section.TextEn, section.TextAr, section.Icon, hubWorkspaceKey, rows));
     }
-
-    private static void AddSecurityAdminSections(MenuItem section, ClaimsPrincipal? user, string hubWorkspaceKey, List<NavigationHubSection> sections)
-    {
-        if (hubWorkspaceKey == HubAdmin)
-        {
-            var settingsRows = GetAuthorizedRows(user, section.Children.Where(IsSettingsMenu));
-            if (settingsRows.Count > 0)
-            {
-                sections.Add(new NavigationHubSection("settings", "Settings", "\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a", "bi-gear", HubAdmin, settingsRows));
-            }
-        }
-    }
-
-    private static bool IsSettingsMenu(MenuItem item)
-        => IsText(item, "System Settings")
-           || IsText(item, "Currencies")
-           || NormalizePath(item.Url).StartsWith("/generalsettings", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsWorkspaceAvailable(NavigationWorkspace workspace, ClaimsPrincipal? user)
     {
