@@ -31,6 +31,7 @@ public static class PermissionList
             .. InventoryItemPermissions.Permissions,
             .. StockTransactionPermissions.Permissions,
             .. InventoryPermissions.Permissions,
+            .. WarehouseTransferPermissions.Permissions,
             .. BatchPermissions.Permissions,
             .. CustomerGroupPermissions.Permissions,
             .. CustomerPricingProfilePermissions.Permissions,
@@ -611,6 +612,30 @@ public static class PermissionList
                 $"{Delete}",
             };
 
+    }
+    public static class WarehouseTransferPermissions
+    {
+        public static string GroupName { get; set; } = "Inventory.WarehouseTransfer";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Ship { get; set; } = $"{GroupName}.Ship";
+        public static string Receive { get; set; } = $"{GroupName}.Receive";
+        public static string Cancel { get; set; } = $"{GroupName}.Cancel";
+
+        public static List<string> Permissions =>
+        [
+            Select,
+            View,
+            Create,
+            Edit,
+            Delete,
+            Ship,
+            Receive,
+            Cancel
+        ];
     }
     public static class BatchPermissions
     {

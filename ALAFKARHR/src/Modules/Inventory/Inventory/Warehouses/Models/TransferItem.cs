@@ -10,7 +10,9 @@ public class TransferItem:Entity<Guid>
     //public Guid WarehouseId { get; set; }
     public decimal Quantity { get; private set; }
     public decimal ReceivedQuantity { get; private set; }
-    public bool IsCompleted => Quantity >= ReceivedQuantity;
+    public decimal UnitCost { get; private set; }
+    public Guid CurrencyId { get; private set; }
+    public bool IsCompleted => ReceivedQuantity >= Quantity;
 
     public TransferItem(){}
     internal TransferItem(Guid productId,
@@ -18,6 +20,8 @@ public class TransferItem:Entity<Guid>
         Guid batchId,
         //Guid warehouseId,
         decimal quantity,
+        decimal unitCost,
+        Guid currencyId,
         //decimal receivedQuantity,
         //bool isCompleted,
         string createdBy)
@@ -30,6 +34,8 @@ public class TransferItem:Entity<Guid>
         BatchId = batchId;
         //WarehouseId = warehouseId,
         Quantity = quantity;
+        UnitCost = unitCost;
+        CurrencyId = currencyId;
         ReceivedQuantity = 0;
         //IsCompleted = receivedQuantity==quantity,
         CreatedAt = DateTime.UtcNow;
@@ -42,6 +48,8 @@ public class TransferItem:Entity<Guid>
         Guid batchId,
         //Guid warehouseId,
         decimal quantity,
+        decimal unitCost,
+        Guid currencyId,
         //decimal receivedQuantity,
         //bool isCompleted,
         string createdBy
@@ -58,6 +66,8 @@ public class TransferItem:Entity<Guid>
             BatchId = batchId,
             //WarehouseId = warehouseId,
             Quantity = quantity,
+            UnitCost = unitCost,
+            CurrencyId = currencyId,
             ReceivedQuantity =0,
             //IsCompleted = receivedQuantity==quantity,
             CreatedAt= DateTime.UtcNow,

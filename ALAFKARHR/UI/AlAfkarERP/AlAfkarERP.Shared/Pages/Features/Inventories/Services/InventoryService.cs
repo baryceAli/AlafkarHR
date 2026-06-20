@@ -46,6 +46,7 @@ public class InventoryService : BaseApiService, IInventoryService
 
     public async Task<ApiResult<CreateResponseDto>> ReserveAsync(CreateInventoryAggregateDto inventoryAggregateDto)
     {
+        EnsureAudit(inventoryAggregateDto, "InventoryReservation");
         ///api/v1/inventory/inventories/StockReservation
         var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/StockReservation")
         {
@@ -59,6 +60,7 @@ public class InventoryService : BaseApiService, IInventoryService
 
     public async Task<ApiResult<CreateResponseDto>> ReleaseAsync(CreateInventoryAggregateDto inventoryAggregateDto)
     {
+        EnsureAudit(inventoryAggregateDto, "InventoryRelease");
         var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/StockRelease")
         {
             Content = JsonContent.Create(new
@@ -71,6 +73,7 @@ public class InventoryService : BaseApiService, IInventoryService
 
     public async Task<ApiResult<CreateResponseDto>> StockAdjustmentAsync(CreateInventoryAggregateDto inventoryAggregateDto)
     {
+        EnsureAudit(inventoryAggregateDto, "InventoryAdjustment");
         ///api/v1/inventory/inventories/StockAdjustment
         var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/StockAdjustment")
         {
@@ -84,6 +87,7 @@ public class InventoryService : BaseApiService, IInventoryService
 
     public async Task<ApiResult<CreateResponseDto>> StockInAsync(CreateInventoryAggregateDto inventoryAggregateDto)
     {
+        EnsureAudit(inventoryAggregateDto, "InventoryStockIn");
         ///api/v1/inventory/inventories/StockIn
         var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/StockIn")
         {
@@ -97,6 +101,7 @@ public class InventoryService : BaseApiService, IInventoryService
 
     public async Task<ApiResult<CreateResponseDto>> StockOutAsync(CreateInventoryAggregateDto inventoryAggregateDto)
     {
+        EnsureAudit(inventoryAggregateDto, "InventoryStockOut");
         ///api/v1/inventory/inventories/StockIn
         var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/StockOut")
         {
@@ -106,5 +111,16 @@ public class InventoryService : BaseApiService, IInventoryService
             })
         };
         return await SendAsync<CreateResponseDto>(request, null);
+    }
+
+    private static void EnsureAudit(CreateInventoryAggregateDto dto, string sourceDocumentType)
+    {
+        dto.SourceDocumentType = string.IsNullOrWhiteSpace(dto.SourceDocumentType)
+            ? sourceDocumentType
+            : dto.SourceDocumentType;
+
+        dto.ReferenceNumber = string.IsNullOrWhiteSpace(dto.ReferenceNumber)
+            ? $"{sourceDocumentType}-{DateTime.UtcNow:yyyyMMddHHmmssfff}"
+            : dto.ReferenceNumber;
     }
 }

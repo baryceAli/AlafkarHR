@@ -32,6 +32,13 @@ public class TransferItemConfiguration : IEntityTypeConfiguration<TransferItem>
         builder.Property(x => x.ReceivedQuantity)
                .HasPrecision(18, 2);
 
+        builder.Property(x => x.UnitCost)
+               .IsRequired()
+               .HasPrecision(18, 4);
+
+        builder.Property(x => x.CurrencyId)
+               .IsRequired();
+
         // Indexes (optional but useful)
         builder.HasIndex(x => x.ProductId);
         builder.HasIndex(x => x.ProductSkuId);

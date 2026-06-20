@@ -97,6 +97,9 @@ public class CreateInventoryAggregateDto
 
     public Guid CompanyId { get; set; }
     public string? Notes { get; set; }
+    public string? ReferenceNumber { get; set; }
+    public string? SourceDocumentType { get; set; }
+    public bool ConsumeReservedQuantity { get; set; }
 }
 
 

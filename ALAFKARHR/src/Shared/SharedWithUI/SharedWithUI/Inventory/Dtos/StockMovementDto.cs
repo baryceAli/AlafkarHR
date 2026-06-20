@@ -5,6 +5,7 @@ namespace SharedWithUI.Inventory.Dtos;
 public record StockMovementDto
 {
 
+    public Guid Id { get; set; }
     public Guid ProductId { get; set; }
     public Guid ProductSkuId { get; set; }
     public Guid WarehouseId { get; set; }
@@ -30,6 +31,20 @@ public record StockMovementDto
 
     public string Notes { get; set; } = string.Empty;
     public MovementDirection MovementDirection { get; set; }
+    public DateTime? CreatedAt { get; set; }
+    public string? CreatedBy { get; set; }
     //public MovementCategory MovementCategory { get; set; }
 
+}
+
+public class StockMovementFilterDto
+{
+    public Guid CompanyId { get; set; }
+    public Guid? WarehouseId { get; set; }
+    public Guid? ProductSkuId { get; set; }
+    public Guid? BatchId { get; set; }
+    public string? SourceDocumentType { get; set; }
+    public string? ReferenceNumber { get; set; }
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
 }

@@ -198,6 +198,18 @@ builder.Services.AddHttpClient<IInventoryService, InventoryService>(client =>
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
 
+builder.Services.AddScoped<IWarehouseTransferService, WarehouseTransferService>();
+builder.Services.AddHttpClient<IWarehouseTransferService, WarehouseTransferService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+
+builder.Services.AddScoped<IStockMovementService, StockMovementService>();
+builder.Services.AddHttpClient<IStockMovementService, StockMovementService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+
 #endregion Inventory
 
 #region Customers

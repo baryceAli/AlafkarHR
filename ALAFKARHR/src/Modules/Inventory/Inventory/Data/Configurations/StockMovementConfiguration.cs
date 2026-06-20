@@ -18,8 +18,8 @@ public class StockMovementConfiguration : IEntityTypeConfiguration<StockMovement
         builder.Property(x => x.MovementType).IsRequired();
         builder.Property(x => x.MovementDirection).IsRequired();
         //builder.Property(x => x.MovementCategory).IsRequired();
-        builder.Property(x => x.ReferenceNumber).IsRequired();
-        builder.Property(x => x.SourceDocumentType).IsRequired();
+        builder.Property(x => x.ReferenceNumber).HasMaxLength(120).IsRequired();
+        builder.Property(x => x.SourceDocumentType).HasMaxLength(80).IsRequired();
         builder.Property(x => x.QuantityBefore).HasColumnType("decimal(18,4)").IsRequired();
         builder.Property(x => x.QuantityAfter).HasColumnType("decimal(18,4)").IsRequired();
         builder.Property(x => x.ProductPackageId).IsRequired(false);
@@ -28,6 +28,8 @@ public class StockMovementConfiguration : IEntityTypeConfiguration<StockMovement
         builder.Property(x => x.NormalizedQuantity).HasColumnType("decimal(18,4)").IsRequired();
         builder.Property(x => x.CurrencyId).IsRequired();
         builder.HasIndex(x => x.CurrencyId);
+        builder.HasIndex(x => new { x.WarehouseId, x.ProductSkuId, x.BatchId });
+        builder.HasIndex(x => new { x.SourceDocumentType, x.ReferenceNumber });
         //builder.Property(x => x.MovementDate).IsRequired();
         builder.Property(x => x.Notes).IsRequired(false);
 

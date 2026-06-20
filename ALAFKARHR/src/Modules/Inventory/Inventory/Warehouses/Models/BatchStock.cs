@@ -10,6 +10,7 @@ public class BatchStock : Entity<Guid>
     public Guid WarehouseId { get; set; }
     public decimal Quantity { get; private set; }
     public decimal ReservedQuantity { get; private set; }
+    public byte[] RowVersion { get; private set; } = [];
 
     public decimal Available => Quantity - ReservedQuantity;
 
@@ -107,9 +108,20 @@ public class BatchStock : Entity<Guid>
     public void Decrease(decimal qty, string modifiedBy)
     {
         if (qty <= 0) throw new ArgumentOutOfRangeException(nameof(qty));
-        if (qty > Quantity) throw new InvalidOperationException("Insufficient stock");
+        if (qty > Available) throw new InvalidOperationException("Insufficient available stock");
         Quantity -= qty;
-        if (ReservedQuantity > Quantity) ReservedQuantity = Quantity; // Safety
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+
+    public void ConsumeReserved(decimal qty, string modifiedBy)
+    {
+        if (qty <= 0) throw new ArgumentOutOfRangeException(nameof(qty));
+        if (qty > ReservedQuantity) throw new InvalidOperationException("Insufficient reserved stock");
+        if (qty > Quantity) throw new InvalidOperationException("Insufficient stock");
+
+        ReservedQuantity -= qty;
+        Quantity -= qty;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
     }

@@ -16,6 +16,7 @@ public class InventoryAggregate : Aggregate<Guid>
     public decimal TotalAvailable => TotalQuantity - TotalReserved;
 
     public Guid CompanyId { get; set; }
+    public byte[] RowVersion { get; private set; } = [];
     private InventoryAggregate() { }
 
     public static InventoryAggregate Create(
@@ -117,6 +118,12 @@ public class InventoryAggregate : Aggregate<Guid>
     {
         var batch = FindBatch(batchId);
         batch.Release(qty, updatedBy);
+    }
+
+    public void ConsumeReserved(Guid batchId, decimal qty, string updatedBy)
+    {
+        var batch = FindBatch(batchId);
+        batch.ConsumeReserved(qty, updatedBy);
     }
 
 

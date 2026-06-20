@@ -13,8 +13,10 @@ public class StockReservationCommandValidator : AbstractValidator<StockReservati
         RuleFor(x=> x.InventoryAggregate.ProductId).NotEmpty().WithMessage("Product is required");
         RuleFor(x=> x.InventoryAggregate.ProductSkuId).NotEmpty().WithMessage("Sku is required");
         RuleFor(x=> x.InventoryAggregate.WarehouseId).NotEmpty().WithMessage("Warehouse is required");
-        RuleFor(x=> x.InventoryAggregate.InitialQuantity).GreaterThanOrEqualTo(0).WithMessage("Quantity can not be negative");
+        RuleFor(x=> x.InventoryAggregate.InitialQuantity).GreaterThan(0).WithMessage("Quantity must be greater than zero");
         RuleFor(x=> x.InventoryAggregate.InitialBatchId).NotEmpty().WithMessage("Batch is required");
+        RuleFor(x => x.InventoryAggregate.ReferenceNumber).NotEmpty().MaximumLength(120).WithMessage("Reference number is required");
+        RuleFor(x => x.InventoryAggregate.SourceDocumentType).NotEmpty().MaximumLength(80).WithMessage("Source document type is required");
     }
 }
 public class StockReservationHandler(InventoryDbContext dbContext, ISender sender, IHttpContextAccessor httpContextAccessor)
@@ -52,7 +54,6 @@ public class StockReservationHandler(InventoryDbContext dbContext, ISender sende
 
         decimal quantityBefore = 0;
         decimal reservedBefore = 0;
-        string reference = "";
         if(inventory is null)
         {
             throw new NotFoundException($"No inventory could be found");
@@ -67,8 +68,6 @@ public class StockReservationHandler(InventoryDbContext dbContext, ISender sende
                 command.InventoryAggregate.CompanyId,
                 userId);
 
-            var res = await dbContext.Inventories.AddAsync(inventory);
-            reference = res.Entity.Id.ToString();
         }
         else
         {
@@ -79,7 +78,6 @@ public class StockReservationHandler(InventoryDbContext dbContext, ISender sende
                 command.InventoryAggregate.InitialBatchId,
                 packageQuantity.NormalizedQuantity,
                 userId);
-            reference=inventory.Id.ToString();
         }
 
 
@@ -99,8 +97,8 @@ public class StockReservationHandler(InventoryDbContext dbContext, ISender sende
             command.InventoryAggregate.UnitCost,
             command.InventoryAggregate.TotalCost,
             command.InventoryAggregate.CurrencyId!.Value,
-            reference,
-            "InventoryAggregate",
+            command.InventoryAggregate.ReferenceNumber!,
+            command.InventoryAggregate.SourceDocumentType!,
             command.InventoryAggregate.MovementType,
             MovementDirection.Reservation,
             userId,
@@ -110,10 +108,10 @@ public class StockReservationHandler(InventoryDbContext dbContext, ISender sende
             packageMultiplier: packageQuantity.PackageMultiplier,
             normalizedQuantity: packageQuantity.NormalizedQuantity);
  
-        await dbContext.StockMovements.AddAsync(movement);
+        await dbContext.StockMovements.AddAsync(movement, cancellationToken);
 
 
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return new StockReservationResult(inventory.Id);
     }

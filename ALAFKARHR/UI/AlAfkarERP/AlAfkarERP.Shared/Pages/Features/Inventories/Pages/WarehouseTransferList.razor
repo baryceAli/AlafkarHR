@@ -1,0 +1,238 @@
+@layout AdminLayout
+@page "/Inventory/Transfers"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Inventory.Enums
+@using SharedWithUI.Permissions
+
+@inject IWarehouseTransferService TransferService
+@inject IWarehouseService WarehouseService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (!AuthState.User.Claims.Any(c => c.Value == PermissionList.WarehouseTransferPermissions.View))
+{
+    <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")</div>
+    return;
+}
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Warehouse Transfers", "تحويلات المستودعات")"
+                Overline="@SharedDataService.SelectViewLang("Inventory", "المخزون")"
+                Description="@SharedDataService.SelectViewLang("Create, ship, and cancel warehouse transfer documents.", "إنشاء وشحن وإلغاء مستندات تحويل المستودعات.")" />
+
+    <div class="erp-card mb-3">
+        <div class="erp-card-header">
+            <h5 class="mb-0">@SharedDataService.SelectViewLang("New Transfer", "تحويل جديد")</h5>
+        </div>
+        <div class="erp-card-body">
+            <EditForm Model="newTransfer" OnValidSubmit="CreateTransferAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Source", "المصدر")</label>
+                        <InputSelect class="form-select" @bind-Value="newTransfer.SourceWarehouseId">
+                            <option value="@Guid.Empty">@SharedDataService.SelectViewLang("Select source", "اختر المصدر")</option>
+                            @foreach (var warehouse in warehouses)
+                            {
+                                <option value="@warehouse.Id">@DisplayWarehouse(warehouse)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Destination", "الوجهة")</label>
+                        <InputSelect class="form-select" @bind-Value="newTransfer.DestinationWarehouseId">
+                            <option value="@Guid.Empty">@SharedDataService.SelectViewLang("Select destination", "اختر الوجهة")</option>
+                            @foreach (var warehouse in warehouses)
+                            {
+                                <option value="@warehouse.Id">@DisplayWarehouse(warehouse)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Reference", "المرجع")</label>
+                        <InputText class="form-control" @bind-Value="newTransfer.ReferenceNumber" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Expected", "المتوقع")</label>
+                        <InputDate class="form-control" @bind-Value="newTransfer.ExpectedDeliveryDate" />
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-primary w-100" type="submit">
+                            <i class="bi bi-plus-lg"></i>
+                            @SharedDataService.SelectViewLang("Create", "إنشاء")
+                        </button>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Reason", "السبب")</label>
+                        <InputText class="form-control" @bind-Value="newTransfer.Reason" />
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="erp-card">
+        <div class="erp-card-header d-flex justify-content-between align-items-center gap-2">
+            <h5 class="mb-0">@SharedDataService.SelectViewLang("Transfers", "التحويلات")</h5>
+            <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="LoadTransfersAsync">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </div>
+        <div class="erp-card-body">
+            <div class="erp-table-wrap">
+                <table class="erp-table table">
+                    <thead>
+                        <tr>
+                            <th>@SharedDataService.SelectViewLang("Number", "الرقم")</th>
+                            <th>@SharedDataService.SelectViewLang("Source", "المصدر")</th>
+                            <th>@SharedDataService.SelectViewLang("Destination", "الوجهة")</th>
+                            <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
+                            <th>@SharedDataService.SelectViewLang("Expected", "المتوقع")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (transfers.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-muted text-center py-4">@SharedDataService.SelectViewLang("No transfers found", "لا توجد تحويلات")</td>
+                            </tr>
+                        }
+                        @foreach (var transfer in transfers)
+                        {
+                            <tr>
+                                <td>@transfer.TransferNumber</td>
+                                <td>@DisplayWarehouseName(transfer.SourceWarehouseName, transfer.SourceWarehouseNameEng)</td>
+                                <td>@DisplayWarehouseName(transfer.DestinationWarehouseName, transfer.DestinationWarehouseNameEng)</td>
+                                <td><span class="erp-status-chip">@transfer.Status</span></td>
+                                <td>@transfer.ExpectedDeliveryDate.ToShortDateString()</td>
+                                <td class="text-end">
+                                    @if (transfer.Status == TransferStatus.Pending)
+                                    {
+                                        <button class="btn btn-outline-primary btn-sm me-1" @onclick="() => ShipAsync(transfer.Id)">
+                                            <i class="bi bi-truck"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm" @onclick="() => CancelAsync(transfer.Id)">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private AuthenticationState AuthState = default!;
+    private Guid companyId;
+    private List<WarehouseTransferDto> transfers = [];
+    private List<WarehouseDto> warehouses = [];
+    private CreateWarehouseTransferDto newTransfer = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!CompanyContext.TryGetCompanyId(AuthState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+
+        ResetTransfer();
+        await LoadWarehousesAsync();
+        await LoadTransfersAsync();
+    }
+
+    private async Task LoadWarehousesAsync()
+    {
+        var result = await WarehouseService.GetAsync(companyId, 0, 10000);
+        if (result.IsSuccess)
+            warehouses = result.Data?.Data?.ToList() ?? [];
+    }
+
+    private async Task LoadTransfersAsync()
+    {
+        var result = await TransferService.GetAsync(companyId, 0, 50);
+        if (result.IsSuccess)
+            transfers = result.Data?.Data?.ToList() ?? [];
+    }
+
+    private async Task CreateTransferAsync()
+    {
+        newTransfer.CompanyId = companyId;
+        newTransfer.ReferenceNumber = string.IsNullOrWhiteSpace(newTransfer.ReferenceNumber)
+            ? $"TR-{DateTime.UtcNow:yyyyMMddHHmmssfff}"
+            : newTransfer.ReferenceNumber;
+        var result = await TransferService.CreateAsync(newTransfer);
+        ShowToast(result.IsSuccess, "Transfer created", "تم إنشاء التحويل");
+        if (result.IsSuccess)
+        {
+            ResetTransfer();
+            await LoadTransfersAsync();
+        }
+    }
+
+    private async Task ShipAsync(Guid transferId)
+    {
+        var result = await TransferService.ShipAsync(transferId);
+        ShowToast(result.IsSuccess, "Transfer shipped", "تم شحن التحويل");
+        await LoadTransfersAsync();
+    }
+
+    private async Task CancelAsync(Guid transferId)
+    {
+        var result = await TransferService.CancelAsync(transferId);
+        ShowToast(result.IsSuccess, "Transfer cancelled", "تم إلغاء التحويل");
+        await LoadTransfersAsync();
+    }
+
+    private void ResetTransfer()
+    {
+        newTransfer = new CreateWarehouseTransferDto
+        {
+            CompanyId = companyId,
+            ExpectedDeliveryDate = DateTime.Today
+        };
+    }
+
+    private string DisplayWarehouse(WarehouseDto warehouse) =>
+        SharedDataService.Language == "Ar" ? warehouse.Name : warehouse.NameEng;
+
+    private string DisplayWarehouseName(string? ar, string? en) =>
+        SharedDataService.Language == "Ar" ? ar ?? string.Empty : en ?? ar ?? string.Empty;
+
+    private void ShowToast(bool isSuccess, string en, string ar)
+    {
+        ToastService.Show(new ToastMessage
+        {
+            Message = SharedDataService.SelectViewLang(isSuccess ? en : "Action failed", isSuccess ? ar : "فشلت العملية"),
+            Type = isSuccess ? "success" : "error"
+        });
+    }
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
