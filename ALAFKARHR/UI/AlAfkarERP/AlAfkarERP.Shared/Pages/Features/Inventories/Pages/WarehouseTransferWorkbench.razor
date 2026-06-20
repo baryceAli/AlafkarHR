@@ -1,0 +1,576 @@
+@layout AdminLayout
+@page "/Inventory/Transfers"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Inventory.Enums
+@using SharedWithUI.Permissions
+
+@inject IWarehouseTransferService TransferService
+@inject IWarehouseService WarehouseService
+@inject IProductService ProductService
+@inject IBatchService BatchService
+@inject ICurrencyService CurrencyService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (AuthState?.User?.Identity?.IsAuthenticated == true && !Can(PermissionList.WarehouseTransferPermissions.View))
+{
+    <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")</div>
+    return;
+}
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Warehouse Transfers", "تحويلات المستودعات")"
+                Overline="@SharedDataService.SelectViewLang("Inventory", "المخزون")"
+                Subtitle="@SharedDataService.SelectViewLang("Create, ship, receive, and audit warehouse transfer documents.", "إنشاء وشحن واستلام ومراجعة مستندات تحويل المستودعات.")" />
+
+    <div class="erp-card mb-3">
+        <div class="erp-card-header">
+            <h5 class="mb-0">@SharedDataService.SelectViewLang("New Transfer", "تحويل جديد")</h5>
+        </div>
+        <div class="erp-card-body">
+            <EditForm Model="newTransfer" OnValidSubmit="CreateTransferAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Source", "المصدر")</label>
+                        <InputSelect class="form-select" @bind-Value="newTransfer.SourceWarehouseId">
+                            <option value="@Guid.Empty">@SharedDataService.SelectViewLang("Select source", "اختر المصدر")</option>
+                            @foreach (var warehouse in warehouses)
+                            {
+                                <option value="@warehouse.Id">@DisplayWarehouse(warehouse)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Destination", "الوجهة")</label>
+                        <InputSelect class="form-select" @bind-Value="newTransfer.DestinationWarehouseId">
+                            <option value="@Guid.Empty">@SharedDataService.SelectViewLang("Select destination", "اختر الوجهة")</option>
+                            @foreach (var warehouse in warehouses)
+                            {
+                                <option value="@warehouse.Id">@DisplayWarehouse(warehouse)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Reference", "المرجع")</label>
+                        <InputText class="form-control" @bind-Value="newTransfer.ReferenceNumber" />
+                    </div>
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Expected", "المتوقع")</label>
+                        <InputDate class="form-control" @bind-Value="newTransfer.ExpectedDeliveryDate" />
+                    </div>
+                    <div class="col-lg-2 col-md-6">
+                        <button class="btn btn-primary w-100" type="submit" disabled="@(!Can(PermissionList.WarehouseTransferPermissions.Create))">
+                            <i class="bi bi-plus-lg"></i>
+                            @SharedDataService.SelectViewLang("Create", "إنشاء")
+                        </button>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Reason", "السبب")</label>
+                        <InputText class="form-control" @bind-Value="newTransfer.Reason" />
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-xl-5">
+            <div class="erp-card h-100">
+                <div class="erp-card-header d-flex justify-content-between align-items-center gap-2">
+                    <h5 class="mb-0">@SharedDataService.SelectViewLang("Transfers", "التحويلات")</h5>
+                    <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="LoadTransfersAsync">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
+                <div class="erp-card-body">
+                    <div class="erp-table-wrap">
+                        <table class="erp-table table">
+                            <thead>
+                                <tr>
+                                    <th>@SharedDataService.SelectViewLang("Number", "الرقم")</th>
+                                    <th>@SharedDataService.SelectViewLang("Route", "المسار")</th>
+                                    <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (transfers.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-muted text-center py-4">@SharedDataService.SelectViewLang("No transfers found", "لا توجد تحويلات")</td>
+                                    </tr>
+                                }
+                                @foreach (var transfer in transfers)
+                                {
+                                    <tr class="@(selectedTransfer?.Id == transfer.Id ? "table-active" : null)">
+                                        <td>
+                                            <div class="fw-semibold">@transfer.TransferNumber</div>
+                                            <div class="text-muted small">@transfer.ReferenceNumber</div>
+                                        </td>
+                                        <td>
+                                            <div>@DisplayWarehouseName(transfer.SourceWarehouseName, transfer.SourceWarehouseNameEng)</div>
+                                            <div class="text-muted small">@DisplayWarehouseName(transfer.DestinationWarehouseName, transfer.DestinationWarehouseNameEng)</div>
+                                        </td>
+                                        <td><span class="erp-status-chip">@transfer.Status</span></td>
+                                        <td class="text-end">
+                                            <button class="btn btn-outline-primary btn-sm" type="button" @onclick="() => SelectTransferAsync(transfer.Id)">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-7">
+            <div class="erp-card h-100">
+                <div class="erp-card-header d-flex justify-content-between align-items-center gap-2">
+                    <h5 class="mb-0">@SharedDataService.SelectViewLang("Transfer Detail", "تفاصيل التحويل")</h5>
+                    @if (selectedTransfer?.Status == TransferStatus.Pending)
+                    {
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-outline-primary btn-sm" type="button" disabled="@(!Can(PermissionList.WarehouseTransferPermissions.Ship) || selectedTransfer.Items.Count == 0)" @onclick="() => ShipAsync(selectedTransfer.Id)">
+                                <i class="bi bi-truck"></i>
+                                @SharedDataService.SelectViewLang("Ship", "شحن")
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" type="button" disabled="@(!Can(PermissionList.WarehouseTransferPermissions.Cancel))" @onclick="() => CancelAsync(selectedTransfer.Id)">
+                                <i class="bi bi-x-lg"></i>
+                                @SharedDataService.SelectViewLang("Cancel", "إلغاء")
+                            </button>
+                        </div>
+                    }
+                </div>
+                <div class="erp-card-body">
+                    @if (selectedTransfer == null)
+                    {
+                        <div class="text-muted text-center py-5">@SharedDataService.SelectViewLang("Select a transfer to manage its items.", "اختر تحويلا لإدارة بنوده.")</div>
+                    }
+                    else
+                    {
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-4">
+                                <div class="text-muted small">@SharedDataService.SelectViewLang("Transfer", "التحويل")</div>
+                                <div class="fw-semibold">@selectedTransfer.TransferNumber</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">@SharedDataService.SelectViewLang("Expected", "المتوقع")</div>
+                                <div>@selectedTransfer.ExpectedDeliveryDate.ToShortDateString()</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-muted small">@SharedDataService.SelectViewLang("Status", "الحالة")</div>
+                                <span class="erp-status-chip">@selectedTransfer.Status</span>
+                            </div>
+                        </div>
+
+                        @if (selectedTransfer.Status == TransferStatus.Pending && Can(PermissionList.WarehouseTransferPermissions.Edit))
+                        {
+                            <EditForm Model="newItem" OnValidSubmit="AddItemAsync">
+                                <DataAnnotationsValidator />
+                                <div class="row g-2 align-items-end mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
+                                        <AutoCompleteComponent TItem="ProductDto"
+                                                               Items="products"
+                                                               Value="selectedProduct"
+                                                               ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                                               PlaceHolder="@SharedDataService.SelectViewLang("Select product","اختر منتج")"
+                                                               ValueChanged="OnProductSelected" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("SKU", "المنتج المخزني")</label>
+                                        <AutoCompleteComponent TItem="ProductSkuDto"
+                                                               Items="productSkus"
+                                                               Value="selectedProductSku"
+                                                               ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                                               PlaceHolder="@SharedDataService.SelectViewLang("Select SKU","اختر منتج مخزني")"
+                                                               ValueChanged="OnProductSkuSelected" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Batch", "الدفعة")</label>
+                                        <AutoCompleteComponent TItem="BatchDto"
+                                                               Items="filteredBatches"
+                                                               Value="selectedBatch"
+                                                               ItemText='(p=> p.BatchNumber)'
+                                                               PlaceHolder="@SharedDataService.SelectViewLang("Select batch","اختر دفعة")"
+                                                               ValueChanged="OnBatchSelected" />
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Quantity", "الكمية")</label>
+                                        <InputNumber class="form-control" @bind-Value="newItem.Quantity" />
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Unit Cost", "تكلفة الوحدة")</label>
+                                        <InputNumber class="form-control" @bind-Value="newItem.UnitCost" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Currency", "العملة")</label>
+                                        <AutoCompleteComponent TItem="CurrencyDto"
+                                                               Items="currencies"
+                                                               Value="selectedCurrency"
+                                                               ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                                               PlaceHolder="@SharedDataService.SelectViewLang("Select currency","اختر العملة")"
+                                                               ValueChanged="OnCurrencySelected" />
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button class="btn btn-primary w-100" type="submit">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </EditForm>
+                        }
+
+                        <div class="erp-table-wrap">
+                            <table class="erp-table table">
+                                <thead>
+                                    <tr>
+                                        <th>@SharedDataService.SelectViewLang("Product", "المنتج")</th>
+                                        <th>@SharedDataService.SelectViewLang("Batch", "الدفعة")</th>
+                                        <th>@SharedDataService.SelectViewLang("Qty", "الكمية")</th>
+                                        <th>@SharedDataService.SelectViewLang("Received", "المستلم")</th>
+                                        <th>@SharedDataService.SelectViewLang("Cost", "التكلفة")</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (selectedTransfer.Items.Count == 0)
+                                    {
+                                        <tr>
+                                            <td colspan="6" class="text-muted text-center py-4">@SharedDataService.SelectViewLang("No items added", "لم تتم إضافة بنود")</td>
+                                        </tr>
+                                    }
+                                    @foreach (var item in selectedTransfer.Items)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div>@DisplayProductSku(item.ProductSkuId)</div>
+                                                <div class="text-muted small">@DisplayProduct(item.ProductId)</div>
+                                            </td>
+                                            <td>@DisplayBatch(item.BatchId)</td>
+                                            <td>@item.Quantity</td>
+                                            <td>
+                                                <div>@item.ReceivedQuantity</div>
+                                                @if (CanReceive(item))
+                                                {
+                                                    <div class="input-group input-group-sm mt-1">
+                                                        <InputNumber class="form-control" @bind-Value="receiveQuantities[item.Id]" />
+                                                        <button class="btn btn-outline-success" type="button" @onclick="() => ReceiveAsync(item.Id)">
+                                                            <i class="bi bi-box-arrow-in-down"></i>
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </td>
+                                            <td>@item.TotalCost</td>
+                                            <td class="text-end">
+                                                @if (selectedTransfer.Status == TransferStatus.Pending && Can(PermissionList.WarehouseTransferPermissions.Edit))
+                                                {
+                                                    <button class="btn btn-outline-danger btn-sm" type="button" @onclick="() => RemoveItemAsync(item.Id)">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private AuthenticationState? AuthState;
+    private Guid companyId;
+    private List<WarehouseTransferDto> transfers = [];
+    private List<WarehouseDto> warehouses = [];
+    private List<ProductDto> products = [];
+    private List<ProductSkuDto> productSkus = [];
+    private List<BatchDto> batches = [];
+    private List<BatchDto> filteredBatches = [];
+    private List<CurrencyDto> currencies = [];
+    private CreateWarehouseTransferDto newTransfer = new();
+    private WarehouseTransferDto? selectedTransfer;
+    private WarehouseTransferItemInputDto newItem = new();
+    private ProductDto? selectedProduct;
+    private ProductSkuDto? selectedProductSku;
+    private BatchDto? selectedBatch;
+    private CurrencyDto? selectedCurrency;
+    private readonly Dictionary<Guid, decimal> receiveQuantities = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!CompanyContext.TryGetCompanyId(AuthState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+
+        ResetTransfer();
+        await LoadLookupsAsync();
+        await LoadTransfersAsync();
+    }
+
+    private bool Can(string permission) => AuthState?.User.Claims.Any(c => c.Value == permission) == true;
+
+    private async Task LoadLookupsAsync()
+    {
+        var warehouseResult = await WarehouseService.GetAsync(companyId, 0, 10000);
+        if (warehouseResult.IsSuccess)
+            warehouses = warehouseResult.Data?.Data?.ToList() ?? [];
+
+        var productResult = await ProductService.GetByCompanyAsync(companyId, 0, 10000);
+        if (productResult.IsSuccess)
+            products = productResult.Data?.Data?.ToList() ?? [];
+
+        var batchResult = await BatchService.GetAsync(companyId, 0, 10000);
+        if (batchResult.IsSuccess)
+            batches = batchResult.Data?.Data?.ToList() ?? [];
+
+        var currencyResult = await CurrencyService.GetAsync(companyId, 0, 10000);
+        if (currencyResult.IsSuccess)
+        {
+            currencies = currencyResult.Data?.Data?.ToList() ?? [];
+            selectedCurrency = currencies.FirstOrDefault(c => c.IsDefault);
+            newItem.CurrencyId = selectedCurrency?.Id ?? Guid.Empty;
+        }
+    }
+
+    private async Task LoadTransfersAsync()
+    {
+        var result = await TransferService.GetAsync(companyId, 0, 50);
+        if (result.IsSuccess)
+            transfers = result.Data?.Data?.ToList() ?? [];
+
+        if (selectedTransfer != null)
+            await SelectTransferAsync(selectedTransfer.Id);
+    }
+
+    private async Task SelectTransferAsync(Guid transferId)
+    {
+        var result = await TransferService.GetByIdAsync(transferId);
+        if (!result.IsSuccess)
+        {
+            ShowToast(false, "Could not load transfer", "تعذر تحميل التحويل");
+            return;
+        }
+
+        selectedTransfer = result.Data;
+        receiveQuantities.Clear();
+        foreach (var item in selectedTransfer.Items.Where(x => !x.IsCompleted))
+            receiveQuantities[item.Id] = Math.Max(0, item.Quantity - item.ReceivedQuantity);
+    }
+
+    private async Task CreateTransferAsync()
+    {
+        if (newTransfer.SourceWarehouseId == Guid.Empty || newTransfer.DestinationWarehouseId == Guid.Empty || newTransfer.SourceWarehouseId == newTransfer.DestinationWarehouseId)
+        {
+            ShowToast(false, "Select different source and destination warehouses", "اختر مستودعين مختلفين");
+            return;
+        }
+
+        newTransfer.CompanyId = companyId;
+        newTransfer.ReferenceNumber = string.IsNullOrWhiteSpace(newTransfer.ReferenceNumber)
+            ? $"TR-{DateTime.UtcNow:yyyyMMddHHmmssfff}"
+            : newTransfer.ReferenceNumber;
+
+        var result = await TransferService.CreateAsync(newTransfer);
+        ShowToast(result.IsSuccess, "Transfer created", "تم إنشاء التحويل");
+        if (result.IsSuccess)
+        {
+            ResetTransfer();
+            await LoadTransfersAsync();
+        }
+    }
+
+    private async Task AddItemAsync()
+    {
+        if (selectedTransfer == null)
+            return;
+
+        if (newItem.ProductId == Guid.Empty || newItem.ProductSkuId == Guid.Empty || newItem.BatchId == Guid.Empty || newItem.CurrencyId == Guid.Empty || newItem.Quantity <= 0)
+        {
+            ShowToast(false, "Complete transfer item details", "أكمل بيانات بند التحويل");
+            return;
+        }
+
+        var result = await TransferService.AddItemAsync(selectedTransfer.Id, newItem);
+        ShowToast(result.IsSuccess, "Item added", "تمت إضافة البند");
+        if (result.IsSuccess)
+        {
+            ResetItem();
+            await SelectTransferAsync(selectedTransfer.Id);
+            await LoadTransfersAsync();
+        }
+    }
+
+    private async Task RemoveItemAsync(Guid itemId)
+    {
+        if (selectedTransfer == null)
+            return;
+
+        var result = await TransferService.RemoveItemAsync(selectedTransfer.Id, itemId);
+        ShowToast(result.IsSuccess, "Item removed", "تم حذف البند");
+        if (result.IsSuccess)
+        {
+            await SelectTransferAsync(selectedTransfer.Id);
+            await LoadTransfersAsync();
+        }
+    }
+
+    private async Task ShipAsync(Guid transferId)
+    {
+        var result = await TransferService.ShipAsync(transferId);
+        ShowToast(result.IsSuccess, "Transfer shipped", "تم شحن التحويل");
+        await LoadTransfersAsync();
+    }
+
+    private async Task ReceiveAsync(Guid itemId)
+    {
+        if (selectedTransfer == null || !receiveQuantities.TryGetValue(itemId, out var quantity) || quantity <= 0)
+        {
+            ShowToast(false, "Enter received quantity", "أدخل الكمية المستلمة");
+            return;
+        }
+
+        var result = await TransferService.ReceiveAsync(selectedTransfer.Id, new ReceiveWarehouseTransferItemDto { ItemId = itemId, Quantity = quantity });
+        ShowToast(result.IsSuccess, "Item received", "تم استلام البند");
+        if (result.IsSuccess)
+        {
+            await SelectTransferAsync(selectedTransfer.Id);
+            await LoadTransfersAsync();
+        }
+    }
+
+    private async Task CancelAsync(Guid transferId)
+    {
+        var result = await TransferService.CancelAsync(transferId);
+        ShowToast(result.IsSuccess, "Transfer cancelled", "تم إلغاء التحويل");
+        await LoadTransfersAsync();
+    }
+
+    private void OnProductSelected(ProductDto product)
+    {
+        selectedProduct = product;
+        selectedProductSku = null;
+        selectedBatch = null;
+        productSkus = product?.Skus ?? [];
+        filteredBatches = [];
+        newItem.ProductId = product?.Id ?? Guid.Empty;
+        newItem.ProductSkuId = Guid.Empty;
+        newItem.BatchId = Guid.Empty;
+    }
+
+    private void OnProductSkuSelected(ProductSkuDto sku)
+    {
+        selectedProductSku = sku;
+        selectedBatch = null;
+        newItem.ProductSkuId = sku?.Id ?? Guid.Empty;
+        newItem.BatchId = Guid.Empty;
+        newItem.UnitCost = sku?.Price ?? 0;
+        filteredBatches = batches.Where(b => b.ProductSkuId == newItem.ProductSkuId).ToList();
+    }
+
+    private void OnBatchSelected(BatchDto batch)
+    {
+        selectedBatch = batch;
+        newItem.BatchId = batch?.Id ?? Guid.Empty;
+    }
+
+    private void OnCurrencySelected(CurrencyDto currency)
+    {
+        selectedCurrency = currency;
+        newItem.CurrencyId = currency?.Id ?? Guid.Empty;
+    }
+
+    private bool CanReceive(TransferItemDto item) =>
+        selectedTransfer != null &&
+        (selectedTransfer.Status == TransferStatus.Shipped || selectedTransfer.Status == TransferStatus.PartiallyReceived) &&
+        !item.IsCompleted &&
+        Can(PermissionList.WarehouseTransferPermissions.Receive);
+
+    private void ResetTransfer()
+    {
+        newTransfer = new CreateWarehouseTransferDto
+        {
+            CompanyId = companyId,
+            ExpectedDeliveryDate = DateTime.Today
+        };
+    }
+
+    private void ResetItem()
+    {
+        newItem = new WarehouseTransferItemInputDto
+        {
+            CurrencyId = selectedCurrency?.Id ?? Guid.Empty
+        };
+        selectedProduct = null;
+        selectedProductSku = null;
+        selectedBatch = null;
+        productSkus = [];
+        filteredBatches = [];
+    }
+
+    private string DisplayWarehouse(WarehouseDto warehouse) =>
+        SharedDataService.Language == "Ar" ? warehouse.Name : warehouse.NameEng;
+
+    private string DisplayWarehouseName(string? ar, string? en) =>
+        SharedDataService.Language == "Ar" ? ar ?? string.Empty : en ?? ar ?? string.Empty;
+
+    private string DisplayProduct(Guid id)
+    {
+        var product = products.FirstOrDefault(x => x.Id == id);
+        return product == null ? id.ToString() : SharedDataService.SelectViewLang(product.NameEng, product.Name);
+    }
+
+    private string DisplayProductSku(Guid id)
+    {
+        var sku = products.SelectMany(x => x.Skus).FirstOrDefault(x => x.Id == id);
+        return sku == null ? id.ToString() : SharedDataService.SelectViewLang(sku.NameEng, sku.Name);
+    }
+
+    private string DisplayBatch(Guid id) => batches.FirstOrDefault(x => x.Id == id)?.BatchNumber ?? id.ToString();
+
+    private void ShowToast(bool isSuccess, string en, string ar)
+    {
+        ToastService.Show(new ToastMessage
+        {
+            Message = SharedDataService.SelectViewLang(isSuccess ? en : "Action failed", isSuccess ? ar : "فشلت العملية"),
+            Type = isSuccess ? "success" : "error"
+        });
+    }
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

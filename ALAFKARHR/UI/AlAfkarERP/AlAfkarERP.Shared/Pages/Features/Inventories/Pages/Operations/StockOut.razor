@@ -243,6 +243,23 @@
                                                        ValueChanged="onCurrencyChanged" />
                             </div>
 
+                            <div class="col-md-4">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Source Type", "نوع المصدر")</label>
+                                <InputText class="form-control" @bind-Value="createInventoryAggregateDto.SourceDocumentType" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Reference", "المرجع")</label>
+                                <InputText class="form-control" @bind-Value="createInventoryAggregateDto.ReferenceNumber" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-check mt-4">
+                                    <InputCheckbox class="form-check-input" @bind-Value="createInventoryAggregateDto.ConsumeReservedQuantity" />
+                                    <label class="form-check-label">@SharedDataService.SelectViewLang("Consume reserved", "استهلاك المحجوز")</label>
+                                </div>
+                            </div>
+
                             <div class="col-md-12">
                                 <label class="form-label">@SharedDataService.SelectViewLang("Notes", "ملاحظات")</label>
                                 <InputTextArea class="form-control" rows="3" @bind-Value="createInventoryAggregateDto.Notes" />

@@ -1,0 +1,425 @@
+@layout AdminLayout
+@page "/Inventory/AssetInstances"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Inventory.Enums
+@using SharedWithUI.Permissions
+
+@inject IAssetInstanceService AssetInstanceService
+@inject IWarehouseService WarehouseService
+@inject IProductService ProductService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (AuthState?.User?.Identity?.IsAuthenticated == true && !Can(PermissionList.InventoryItemPermissions.View))
+{
+    <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")</div>
+    return;
+}
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Asset Instances", "الأصول المخزنية")"
+                Overline="@SharedDataService.SelectViewLang("Inventory", "المخزون")"
+                Subtitle="@SharedDataService.SelectViewLang("Track serialized and asset-managed inventory items.", "تتبع عناصر المخزون المسلسلة والمدارة كأصول.")" />
+
+    <div class="erp-card mb-3">
+        <div class="erp-card-header d-flex justify-content-between align-items-center gap-2">
+            <h5 class="mb-0">@SharedDataService.SelectViewLang(editModel.Id == Guid.Empty ? "New Asset Instance" : "Edit Asset Instance", editModel.Id == Guid.Empty ? "أصل مخزني جديد" : "تعديل أصل مخزني")</h5>
+            <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="ResetForm">
+                <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+        </div>
+        <div class="erp-card-body">
+            <EditForm Model="editModel" OnValidSubmit="SaveAsync">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Asset Tag", "وسم الأصل")</label>
+                        <InputText class="form-control" @bind-Value="editModel.AssetTag" />
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Serial Number", "الرقم التسلسلي")</label>
+                        <InputText class="form-control" @bind-Value="editModel.SerialNumber" />
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
+                        <AutoCompleteComponent TItem="ProductDto"
+                                               Items="products"
+                                               Value="selectedProduct"
+                                               ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                               PlaceHolder="@SharedDataService.SelectViewLang("Select product","اختر منتج")"
+                                               ValueChanged="OnProductSelected" />
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("SKU", "المنتج المخزني")</label>
+                        <AutoCompleteComponent TItem="ProductSkuDto"
+                                               Items="productSkus"
+                                               Value="selectedProductSku"
+                                               ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                               PlaceHolder="@SharedDataService.SelectViewLang("Select SKU","اختر منتج مخزني")"
+                                               ValueChanged="OnProductSkuSelected" />
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Warehouse", "المستودع")</label>
+                        <InputSelect class="form-select" @bind-Value="editModel.WarehouseId">
+                            <option value="">@SharedDataService.SelectViewLang("No warehouse", "بدون مستودع")</option>
+                            @foreach (var warehouse in warehouses)
+                            {
+                                <option value="@warehouse.Id">@DisplayWarehouse(warehouse)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Status", "الحالة")</label>
+                        <InputSelect class="form-select" @bind-Value="editModel.Status">
+                            @foreach (var status in Enum.GetValues<AssetInstanceStatus>())
+                            {
+                                <option value="@status">@status</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Purchase Date", "تاريخ الشراء")</label>
+                        <InputDate class="form-control" @bind-Value="editModel.PurchaseDate" />
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Warranty End", "نهاية الضمان")</label>
+                        <InputDate class="form-control" @bind-Value="editModel.WarrantyEndDate" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Notes", "ملاحظات")</label>
+                        <InputTextArea class="form-control" rows="2" @bind-Value="editModel.Notes" />
+                    </div>
+                    <div class="col-12 d-flex justify-content-end gap-2">
+                        <button class="btn btn-outline-secondary" type="button" @onclick="ResetForm">
+                            @SharedDataService.SelectViewLang("Cancel", "إلغاء")
+                        </button>
+                        <button class="btn btn-primary" type="submit" disabled="@(!Can(editModel.Id == Guid.Empty ? PermissionList.InventoryItemPermissions.Create : PermissionList.InventoryItemPermissions.Edit))">
+                            <i class="bi bi-check2"></i>
+                            @SharedDataService.SelectViewLang("Save", "حفظ")
+                        </button>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="erp-card">
+        <div class="erp-card-header">
+            <h5 class="mb-0">@SharedDataService.SelectViewLang("Asset Instances", "الأصول المخزنية")</h5>
+        </div>
+        <div class="erp-card-body">
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Search", "بحث")</label>
+                    <InputText class="form-control" @bind-Value="searchText" />
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Warehouse", "المستودع")</label>
+                    <InputSelect class="form-select" @bind-Value="filterWarehouseId">
+                        <option value="">@SharedDataService.SelectViewLang("All warehouses", "كل المستودعات")</option>
+                        @foreach (var warehouse in warehouses)
+                        {
+                            <option value="@warehouse.Id">@DisplayWarehouse(warehouse)</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("SKU", "المنتج المخزني")</label>
+                    <InputSelect class="form-select" @bind-Value="filterProductSkuId">
+                        <option value="">@SharedDataService.SelectViewLang("All SKUs", "كل المنتجات المخزنية")</option>
+                        @foreach (var sku in allSkus)
+                        {
+                            <option value="@sku.Id">@DisplaySku(sku)</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Status", "الحالة")</label>
+                    <InputSelect class="form-select" @bind-Value="filterStatus">
+                        <option value="">@SharedDataService.SelectViewLang("All statuses", "كل الحالات")</option>
+                        @foreach (var status in Enum.GetValues<AssetInstanceStatus>())
+                        {
+                            <option value="@status">@status</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Maintenance Asset", "أصل الصيانة")</label>
+                    <InputText class="form-control" @bind-Value="maintenanceAssetIdText" />
+                </div>
+                <div class="col-lg-3 col-md-6 d-flex gap-2">
+                    <button class="btn btn-primary flex-fill" type="button" @onclick="ApplyFiltersAsync">
+                        <i class="bi bi-search"></i>
+                        @SharedDataService.SelectViewLang("Apply", "تطبيق")
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" @onclick="ClearFiltersAsync">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="erp-table-wrap">
+                <table class="erp-table table">
+                    <thead>
+                        <tr>
+                            <th>@SharedDataService.SelectViewLang("Asset Tag", "وسم الأصل")</th>
+                            <th>@SharedDataService.SelectViewLang("Serial", "تسلسلي")</th>
+                            <th>@SharedDataService.SelectViewLang("Product", "المنتج")</th>
+                            <th>@SharedDataService.SelectViewLang("Warehouse", "المستودع")</th>
+                            <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (assetInstances.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-muted text-center py-4">@SharedDataService.SelectViewLang("No asset instances found", "لا توجد أصول مخزنية")</td>
+                            </tr>
+                        }
+                        @foreach (var asset in assetInstances)
+                        {
+                            <tr>
+                                <td>@asset.AssetTag</td>
+                                <td>@asset.SerialNumber</td>
+                                <td>
+                                    <div>@DisplaySkuName(asset.ProductSkuId)</div>
+                                    <div class="text-muted small">@DisplayProductName(asset.ProductId)</div>
+                                </td>
+                                <td>@DisplayWarehouseName(asset.WarehouseId)</td>
+                                <td><span class="erp-status-chip">@asset.Status</span></td>
+                                <td class="text-end">
+                                    <button class="btn btn-outline-primary btn-sm me-1" type="button" disabled="@(!Can(PermissionList.InventoryItemPermissions.Edit))" @onclick="() => Edit(asset)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" type="button" disabled="@(!Can(PermissionList.InventoryItemPermissions.Delete) || asset.Status == AssetInstanceStatus.Retired)" @onclick="() => RetireAsync(asset.Id)">
+                                        <i class="bi bi-archive"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private AuthenticationState? AuthState;
+    private Guid companyId;
+    private List<AssetInstanceDto> assetInstances = [];
+    private List<WarehouseDto> warehouses = [];
+    private List<ProductDto> products = [];
+    private List<ProductSkuDto> allSkus = [];
+    private List<ProductSkuDto> productSkus = [];
+    private UpdateAssetInstanceDto editModel = new();
+    private ProductDto? selectedProduct;
+    private ProductSkuDto? selectedProductSku;
+    private string? searchText;
+    private Guid? filterWarehouseId;
+    private Guid? filterProductSkuId;
+    private AssetInstanceStatus? filterStatus;
+    private string? maintenanceAssetIdText;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!CompanyContext.TryGetCompanyId(AuthState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+
+        ResetForm();
+        await LoadLookupsAsync();
+        await LoadAssetsAsync();
+    }
+
+    private bool Can(string permission) => AuthState?.User.Claims.Any(c => c.Value == permission) == true;
+
+    private async Task LoadLookupsAsync()
+    {
+        var warehouseResult = await WarehouseService.GetAsync(companyId, 0, 10000);
+        if (warehouseResult.IsSuccess)
+            warehouses = warehouseResult.Data?.Data?.ToList() ?? [];
+
+        var productResult = await ProductService.GetByCompanyAsync(companyId, 0, 10000);
+        if (productResult.IsSuccess)
+        {
+            products = productResult.Data?.Data?.ToList() ?? [];
+            allSkus = products.SelectMany(p => p.Skus).Where(s => s.IsAssetTrackable).ToList();
+        }
+    }
+
+    private async Task LoadAssetsAsync()
+    {
+        Guid? maintenanceAssetId = Guid.TryParse(maintenanceAssetIdText, out var parsed) ? parsed : null;
+        var result = await AssetInstanceService.GetAsync(0, 100, searchText, companyId, filterWarehouseId, filterProductSkuId, maintenanceAssetId, filterStatus);
+        if (result.IsSuccess)
+            assetInstances = result.Data?.Data?.ToList() ?? [];
+        else
+            ToastService.Show(new ToastMessage { Message = SharedDataService.SelectViewLang("Could not load asset instances", "تعذر تحميل الأصول المخزنية"), Type = "error" });
+    }
+
+    private async Task SaveAsync()
+    {
+        editModel.CompanyId = companyId;
+        if (editModel.Id == Guid.Empty)
+        {
+            var createModel = new CreateAssetInstanceDto
+            {
+                AssetTag = editModel.AssetTag,
+                SerialNumber = editModel.SerialNumber,
+                ProductId = editModel.ProductId,
+                ProductSkuId = editModel.ProductSkuId,
+                CompanyId = editModel.CompanyId,
+                WarehouseId = editModel.WarehouseId,
+                Status = editModel.Status,
+                PurchaseDate = editModel.PurchaseDate,
+                WarrantyEndDate = editModel.WarrantyEndDate,
+                Notes = editModel.Notes
+            };
+            var createResult = await AssetInstanceService.CreateAsync(createModel);
+            ShowToast(createResult.IsSuccess, "Asset instance created", "تم إنشاء الأصل المخزني");
+        }
+        else
+        {
+            var updateResult = await AssetInstanceService.UpdateAsync(editModel);
+            ShowToast(updateResult.IsSuccess, "Asset instance updated", "تم تحديث الأصل المخزني");
+        }
+
+        ResetForm();
+        await LoadAssetsAsync();
+    }
+
+    private void Edit(AssetInstanceDto asset)
+    {
+        editModel = new UpdateAssetInstanceDto
+        {
+            Id = asset.Id,
+            AssetTag = asset.AssetTag,
+            SerialNumber = asset.SerialNumber,
+            ProductId = asset.ProductId,
+            ProductSkuId = asset.ProductSkuId,
+            CompanyId = asset.CompanyId,
+            BranchId = asset.BranchId,
+            DepartmentId = asset.DepartmentId,
+            EmployeeId = asset.EmployeeId,
+            WarehouseId = asset.WarehouseId,
+            Status = asset.Status,
+            PurchaseDate = asset.PurchaseDate,
+            WarrantyEndDate = asset.WarrantyEndDate,
+            Notes = asset.Notes
+        };
+        selectedProduct = products.FirstOrDefault(p => p.Id == asset.ProductId);
+        productSkus = selectedProduct?.Skus.Where(s => s.IsAssetTrackable).ToList() ?? [];
+        selectedProductSku = productSkus.FirstOrDefault(s => s.Id == asset.ProductSkuId);
+    }
+
+    private async Task RetireAsync(Guid id)
+    {
+        var result = await AssetInstanceService.RetireAsync(id);
+        ShowToast(result.IsSuccess, "Asset instance retired", "تم إخراج الأصل من الخدمة");
+        await LoadAssetsAsync();
+    }
+
+    private void OnProductSelected(ProductDto product)
+    {
+        selectedProduct = product;
+        selectedProductSku = null;
+        productSkus = product?.Skus.Where(s => s.IsAssetTrackable).ToList() ?? [];
+        editModel.ProductId = product?.Id ?? Guid.Empty;
+        editModel.ProductSkuId = Guid.Empty;
+    }
+
+    private void OnProductSkuSelected(ProductSkuDto sku)
+    {
+        selectedProductSku = sku;
+        editModel.ProductSkuId = sku?.Id ?? Guid.Empty;
+    }
+
+    private async Task ApplyFiltersAsync() => await LoadAssetsAsync();
+
+    private async Task ClearFiltersAsync()
+    {
+        searchText = null;
+        filterWarehouseId = null;
+        filterProductSkuId = null;
+        filterStatus = null;
+        maintenanceAssetIdText = null;
+        await LoadAssetsAsync();
+    }
+
+    private void ResetForm()
+    {
+        editModel = new UpdateAssetInstanceDto
+        {
+            CompanyId = companyId,
+            Status = AssetInstanceStatus.Available
+        };
+        selectedProduct = null;
+        selectedProductSku = null;
+        productSkus = [];
+    }
+
+    private string DisplayWarehouse(WarehouseDto warehouse) =>
+        SharedDataService.Language == "Ar" ? warehouse.Name : warehouse.NameEng;
+
+    private string DisplayWarehouseName(Guid? id)
+    {
+        if (!id.HasValue)
+            return string.Empty;
+        var warehouse = warehouses.FirstOrDefault(w => w.Id == id.Value);
+        return warehouse == null ? id.Value.ToString() : DisplayWarehouse(warehouse);
+    }
+
+    private string DisplayProductName(Guid id)
+    {
+        var product = products.FirstOrDefault(p => p.Id == id);
+        return product == null ? id.ToString() : SharedDataService.SelectViewLang(product.NameEng, product.Name);
+    }
+
+    private string DisplaySku(ProductSkuDto sku) =>
+        SharedDataService.SelectViewLang(sku.NameEng, sku.Name);
+
+    private string DisplaySkuName(Guid id)
+    {
+        var sku = allSkus.FirstOrDefault(s => s.Id == id) ?? products.SelectMany(p => p.Skus).FirstOrDefault(s => s.Id == id);
+        return sku == null ? id.ToString() : DisplaySku(sku);
+    }
+
+    private void ShowToast(bool isSuccess, string en, string ar)
+    {
+        ToastService.Show(new ToastMessage
+        {
+            Message = SharedDataService.SelectViewLang(isSuccess ? en : "Action failed", isSuccess ? ar : "فشلت العملية"),
+            Type = isSuccess ? "success" : "error"
+        });
+    }
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
