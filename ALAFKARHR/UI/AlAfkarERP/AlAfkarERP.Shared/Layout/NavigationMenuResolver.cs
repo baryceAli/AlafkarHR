@@ -16,7 +16,7 @@ public static class NavigationMenuResolver
     public const string WorkspaceMore = "more";
     public const string WorkspacePeople = WorkspaceHr;
     public const string WorkspaceOperations = WorkspaceSales;
-    public const string WorkspaceFinancePayroll = WorkspaceAccountingFinance;
+    public const string WorkspaceFinancePayroll = WorkspaceHr;
     public const string WorkspaceInventory = WorkspaceWarehouse;
     public const string WorkspacePos = "pos";
     public const string WorkspaceProcurement = WorkspacePurchasing;
@@ -37,7 +37,7 @@ public static class NavigationMenuResolver
         new(WorkspaceSales, "Sales", "\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a", "bi-graph-up-arrow", "/Sales/Dashboard"),
         new(WorkspacePurchasing, "Purchasing", "\u0627\u0644\u0645\u0634\u062a\u0631\u064a\u0627\u062a", "bi-cart-check", "/Procurement/Dashboard"),
         new(WorkspaceWarehouse, "Warehouse", "\u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639", "bi-boxes", "/Inventory/Dashboard"),
-        new(WorkspaceAccountingFinance, "Accounting / Finance", "\u0627\u0644\u0645\u062d\u0627\u0633\u0628\u0629 / \u0627\u0644\u0645\u0627\u0644\u064a\u0629", "bi-cash-stack", "/Payroll/SalaryRuns"),
+        new(WorkspaceAccountingFinance, "Accounting / Finance", "\u0627\u0644\u0645\u062d\u0627\u0633\u0628\u0629 / \u0627\u0644\u0645\u0627\u0644\u064a\u0629", "bi-cash-stack", null),
         new(WorkspaceAdmin, "Admin", "\u0627\u0644\u0625\u062f\u0627\u0631\u0629", "bi-sliders2-vertical", "/Dashboard"),
         new(WorkspaceSecurity, "IT / Security", "\u062a\u0642\u0646\u064a\u0629 \u0648\u0623\u0645\u0627\u0646", "bi-shield-lock", "/Auth/Dashboard"),
         new(WorkspaceMore, "More", "\u0627\u0644\u0645\u0632\u064a\u062f", "bi-grid-3x3-gap", null)
@@ -132,13 +132,7 @@ public static class NavigationMenuResolver
             return WorkspacePos;
         }
 
-        if (path.StartsWith("/payroll", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/pricing", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/catalog/pricing", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Payroll", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Salary", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Finance", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Pricing", StringComparison.OrdinalIgnoreCase))
+        if (text.Contains("Finance", StringComparison.OrdinalIgnoreCase))
         {
             return WorkspaceAccountingFinance;
         }
@@ -179,25 +173,17 @@ public static class NavigationMenuResolver
         if (path.StartsWith("/employee", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/attendance", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/leavesmanagement", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/payroll", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Human Resource", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Employee", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Attendance", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Payroll", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Salary", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Loan", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Deduction", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Leave", StringComparison.OrdinalIgnoreCase))
         {
             return WorkspaceHr;
-        }
-
-        if (path.StartsWith("/payroll", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/pricing", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/catalog/pricing", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Payroll", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Salary", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Finance", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Pricing", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Loan", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Deduction", StringComparison.OrdinalIgnoreCase))
-        {
-            return WorkspaceAccountingFinance;
         }
 
         if (path == "/salesorder/pos"
@@ -229,6 +215,7 @@ public static class NavigationMenuResolver
         if (path.StartsWith("/inventory", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/inventories", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/warehouse", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/catalog/pricing", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/catalog/product", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/catalog/variant", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Inventory", StringComparison.OrdinalIgnoreCase)
@@ -599,10 +586,10 @@ public static class NavigationMenuResolver
             WorkspaceHome => FindSections(roots, "Control Panel"),
             WorkspacePos => FindSections(roots, "POS"),
             WorkspaceSales => FindSections(roots, "Sales Management"),
-            WorkspaceHr => FindChildSections(roots, "People", "Human Resource", "Attendance", "Leave Management"),
+            WorkspaceHr => FindChildSections(roots, "People", "Human Resource", "Attendance", "Leave Management", "Payroll"),
             WorkspacePurchasing => FindChildSections(roots, "Operations", "Supplier Management", "Procurement"),
             WorkspaceWarehouse => FindChildSections(roots, "Operations", "Products Management", "Inventory Management"),
-            WorkspaceAccountingFinance => FindSections(roots, "Payroll", "Pricing List"),
+            WorkspaceAccountingFinance => [],
             WorkspaceAdmin => FindSections(roots,
                 "Organizational Structure",
                 "Contracts",

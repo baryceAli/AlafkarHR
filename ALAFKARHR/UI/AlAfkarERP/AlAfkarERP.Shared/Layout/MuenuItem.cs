@@ -551,9 +551,9 @@ public class MenuItem
                     TextAr = "الرواتب",
                     Icon = "bi-cash-stack",
                     PermissionPolicy = PermissionList.SalaryRunPermissions.Select,
-                    WorkspaceKey = NavigationMenuResolver.WorkspaceAccountingFinance,
-                    KeywordsEn = "payroll salaries contracts loans deductions finance",
-                    KeywordsAr = "رواتب عقود سلف خصومات مالية",
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
+                    KeywordsEn = "hr payroll salaries contracts loans deductions",
+                    KeywordsAr = "الموارد رواتب عقود سلف خصومات",
                     Children = new()
                     {
                         new MenuItem
