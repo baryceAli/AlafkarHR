@@ -1,5 +1,4 @@
 using AlAfkarERP.Shared.Dtos;
-using AlAfkarERP.Shared.Pages.Reuable2;
 using AlAfkarERP.Shared.Services;
 using SharedWithUI.Organization.Dtos;
 using System.Net.Http.Json;
@@ -15,14 +14,14 @@ public class ParentCompanyService : BaseApiService, IParentCompanyService
         _path = $"api/{apiConfig.Version}/organization/parent-companies";
     }
 
-    public async Task<ApiResult<PagedResult<ParentCompanyDto>>> GetAsync(int pageIndex, int pageSize, string? searchText = null)
+    public async Task<ApiResult<PaginatedResult<ParentCompanyDto>>> GetAsync(int pageIndex, int pageSize, string? searchText = null)
     {
         var url = $"{_path}?PageIndex={pageIndex}&PageSize={pageSize}";
         if (!string.IsNullOrWhiteSpace(searchText))
             url += $"&SearchText={Uri.EscapeDataString(searchText)}";
 
         var request = new HttpRequestMessage(HttpMethod.Get, url);
-        return await SendAsync<PagedResult<ParentCompanyDto>>(request, "companyList");
+        return await SendAsync<PaginatedResult<ParentCompanyDto>>(request, "companyList");
     }
 
     public async Task<ApiResult<ParentCompanyDto>> GetByIdAsync(Guid id)

@@ -290,6 +290,7 @@ public static class PermissionList
         public static string Create { get; set; } = $"{GroupName}.Create";
         public static string Edit { get; set; } = $"{GroupName}.Edit";
         public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string ViewLicense { get; set; } = $"{GroupName}.ViewLicense";
         public static string ViewChild { get; set; } = $"{GroupName}.ViewChild";
         public static string CreateChild { get; set; } = $"{GroupName}.CreateChild";
         public static string EditChild { get; set; } = $"{GroupName}.EditChild";
@@ -304,6 +305,7 @@ public static class PermissionList
                 $"{Create}",
                 $"{Edit}",
                 $"{Delete}",
+                $"{ViewLicense}",
                 $"{ViewChild}",
                 $"{CreateChild}",
                 $"{EditChild}",

@@ -77,6 +77,12 @@ builder.Services.AddHttpClient<IParentCompanyService, ParentCompanyService>(clie
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
 
+builder.Services.AddScoped<ILicenseCategoryService, LicenseCategoryService>();
+builder.Services.AddHttpClient<ILicenseCategoryService, LicenseCategoryService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+
 builder.Services.AddScoped<IBranchService, BranchService>();
 builder.Services.AddHttpClient<IBranchService, BranchService>(client =>
 {

@@ -214,6 +214,7 @@ public static class CompanyRoleTemplates
         List<string> permissions =
         [
             ..SelectView(PermissionList.GetTenantPermissions()),
+            PermissionList.CompanyPermissions.ViewLicense,
             PermissionList.SalesOrderPermissions.ViewReports,
             PermissionList.AttendancePermissions.ViewReports,
             PermissionList.AttendancePermissions.ViewLeaveReports,

@@ -4,15 +4,19 @@
 
 @using AlAfkarERP.Shared.Utilities
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
+@using SharedWithUI.Organization.Dtos
+@using SharedWithUI.Organization.Enums
 @using SharedWithUI.Permissions
 @using SharedWithUI.TaskManagement.Dtos
 
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IAttendanceService AttendanceService
+@inject ICompanyService CompanyService
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 @inject ITaskManagementService TaskService
@@ -118,7 +122,43 @@
                 </AppCard>
             </div>
 
-            <div class="col-xl-4">
+            <div class="col-xl-4 dashboard-side-stack">
+                @if (CanViewCurrentLicense)
+                {
+                    <AppCard Title="@Text("Current License", "الترخيص الحالي")"
+                             Subtitle="@Text("Your company's current subscription limits.", "حدود اشتراك شركتك الحالية.")">
+                        @if (!licenseBadgeLoaded)
+                        {
+                            <div class="erp-loading py-2">
+                                <div class="spinner-border text-primary" role="status"></div>
+                            </div>
+                        }
+                        else if (currentLicense is null)
+                        {
+                            <EmptyState Title="@Text("License unavailable", "الترخيص غير متاح")"
+                                        Message="@Text("The current license summary could not be loaded.", "تعذر تحميل ملخص الترخيص الحالي.")"
+                                        Icon="bi-patch-exclamation" />
+                        }
+                        else
+                        {
+                            <div class="dashboard-license-grid">
+                                <span>@Text("Status", "الحالة")</span>
+                                <strong><StatusChip Text="@LicenseStatusText(currentLicense)" Tone="@LicenseTone(currentLicense)" /></strong>
+                                <span>@Text("Plan", "الخطة")</span>
+                                <strong>@currentLicense.PlanName</strong>
+                                <span>@Text("Valid until", "صالح حتى")</span>
+                                <strong>@currentLicense.EndDate.ToString("yyyy-MM-dd")</strong>
+                                <span>@Text("Users", "المستخدمون")</span>
+                                <strong>@FormatLimit(currentLicense.MaxUsers)</strong>
+                                <span>@Text("Child companies", "الشركات الفرعية")</span>
+                                <strong>@FormatLimit(currentLicense.MaxChildCompanies)</strong>
+                                <span>@Text("Branches", "الفروع")</span>
+                                <strong>@FormatLimit(currentLicense.MaxBranches)</strong>
+                            </div>
+                        }
+                    </AppCard>
+                }
+
                 <AppCard Title="@Text("Today", "اليوم")"
                          Subtitle="@Text("Start with the work that usually needs attention first.", "ابدأ بالأعمال التي تحتاج انتباها عادة.")"
                          CssClass="h-100">
@@ -146,10 +186,12 @@
     private AuthenticationState? authState;
     private TaskDashboardDto? taskDashboard;
     private AttendanceCheckInPreviewDto? attendancePreview;
+    private CompanyLicenseSummaryDto? currentLicense;
     private int pendingApprovalCount;
     private bool taskBadgeLoaded;
     private bool attendanceBadgeLoaded;
     private bool approvalBadgeLoaded;
+    private bool licenseBadgeLoaded;
     private bool isReady;
 
     private IReadOnlyList<DashboardLink> StatusCards => new[]
@@ -181,6 +223,15 @@
             "/Attendance/ApprovePermissionRequests",
             PermissionList.AttendancePermissions.ApproveMidDayPermission,
             "warning"),
+        new DashboardLink(
+            "Current License",
+            "الترخيص الحالي",
+            "Review your company subscription status.",
+            "راجع حالة اشتراك الشركة.",
+            "bi-patch-check",
+            "/Dashboard",
+            PermissionList.CompanyPermissions.ViewLicense,
+            "info"),
         new DashboardLink(
             "Reports",
             "التقارير",
@@ -278,6 +329,11 @@
             tasks.Add(LoadApprovalBadgeAsync());
         }
 
+        if (CanViewCurrentLicense)
+        {
+            tasks.Add(LoadLicenseBadgeAsync());
+        }
+
         await Task.WhenAll(tasks);
     }
 
@@ -347,7 +403,34 @@
         }
     }
 
-    private bool CanView(DashboardLink link) => HasPermission(link.Permission);
+    private async Task LoadLicenseBadgeAsync()
+    {
+        try
+        {
+            var response = await CompanyService.GetCurrentLicenseAsync();
+            if (response.IsSuccess)
+            {
+                currentLicense = response.Data;
+            }
+        }
+        catch
+        {
+            currentLicense = null;
+        }
+        finally
+        {
+            licenseBadgeLoaded = true;
+        }
+    }
+
+    private bool CanView(DashboardLink link) =>
+        link.Permission == PermissionList.CompanyPermissions.ViewLicense
+            ? CanViewCurrentLicense
+            : HasPermission(link.Permission);
+
+    private bool CanViewCurrentLicense =>
+        !CompanyContext.IsPlatformScoped(authState?.User)
+        && HasPermission(PermissionList.CompanyPermissions.ViewLicense);
 
     private bool HasPermission(string permission) =>
         CompanyContext.HasPermission(authState?.User, permission);
@@ -384,6 +467,15 @@
                 Text("Pending", "معلق"),
                 approvalBadgeLoaded ? pendingApprovalCount.ToString() : "--",
                 pendingApprovalCount > 0 ? "warning" : "success");
+            yield break;
+        }
+
+        if (card.Permission == PermissionList.CompanyPermissions.ViewLicense)
+        {
+            yield return new DashboardBadge(
+                Text("Status", "الحالة"),
+                licenseBadgeLoaded && currentLicense is not null ? LicenseStatusText(currentLicense) : "--",
+                currentLicense is null ? "muted" : LicenseTone(currentLicense));
         }
     }
 
@@ -411,6 +503,25 @@
 
         return new DashboardBadge(Text("Unavailable", "غير متاح"), null, "muted");
     }
+
+    private string LicenseStatusText(CompanyLicenseSummaryDto license) => license.EffectiveStatus switch
+    {
+        CompanyLicenseStatus.Active => Text("Active", "نشط"),
+        CompanyLicenseStatus.Suspended => Text("Suspended", "موقوف"),
+        CompanyLicenseStatus.Expired => Text("Expired", "منتهي"),
+        _ => Text("Unknown", "غير معروف")
+    };
+
+    private static string LicenseTone(CompanyLicenseSummaryDto license) => license.EffectiveStatus switch
+    {
+        CompanyLicenseStatus.Active => "success",
+        CompanyLicenseStatus.Suspended => "warning",
+        CompanyLicenseStatus.Expired => "danger",
+        _ => "muted"
+    };
+
+    private string FormatLimit(int value) =>
+        value > 0 ? value.ToString() : Text("Unlimited", "غير محدود");
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 
@@ -630,6 +741,32 @@
     .dashboard-priority-list {
         display: grid;
         gap: var(--erp-space-3);
+    }
+
+    .dashboard-side-stack {
+        display: grid;
+        gap: var(--erp-space-3);
+        align-content: start;
+    }
+
+    .dashboard-license-grid {
+        display: grid;
+        gap: var(--erp-space-2);
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    }
+
+    .dashboard-license-grid span {
+        color: var(--erp-text-muted);
+        font-size: var(--erp-font-size-sm, .875rem);
+    }
+
+    .dashboard-license-grid strong {
+        color: var(--erp-text);
+        font-size: var(--erp-font-size-sm, .875rem);
+        font-weight: 700;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        text-align: end;
     }
 
     .dashboard-priority-item {

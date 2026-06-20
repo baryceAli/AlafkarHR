@@ -1,12 +1,11 @@
 using AlAfkarERP.Shared.Dtos;
-using AlAfkarERP.Shared.Pages.Reuable2;
 using SharedWithUI.Organization.Dtos;
 
 namespace AlAfkarERP.Shared.Pages.Features.Company.Services;
 
 public interface IParentCompanyService
 {
-    Task<ApiResult<PagedResult<ParentCompanyDto>>> GetAsync(int pageIndex, int pageSize, string? searchText = null);
+    Task<ApiResult<PaginatedResult<ParentCompanyDto>>> GetAsync(int pageIndex, int pageSize, string? searchText = null);
     Task<ApiResult<ParentCompanyDto>> GetByIdAsync(Guid id);
     Task<ApiResult<ParentCompanyDto>> CreateAsync(ParentCompanyDto company);
     Task<ApiResult<UpdateDeleteResponseDto>> UpdateAsync(ParentCompanyDto company);

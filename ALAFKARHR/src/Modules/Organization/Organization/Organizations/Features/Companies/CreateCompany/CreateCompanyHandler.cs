@@ -109,6 +109,7 @@ public class CreateCompanyHandler(OrganizationDbContext dbContext, IHttpContextA
     {
         var license = await dbContext.CompanyLicenses
             .AsNoTracking()
+            .Include(x => x.LicenseCategory)
             .FirstOrDefaultAsync(x => x.CompanyId == parentCompanyId, cancellationToken);
 
         if (license is null)
@@ -121,7 +122,7 @@ public class CreateCompanyHandler(OrganizationDbContext dbContext, IHttpContextA
             .AsNoTracking()
             .CountAsync(x => x.ParentCompanyId == parentCompanyId, cancellationToken);
 
-        if (childCompaniesCount >= license.MaxChildCompanies)
+        if (childCompaniesCount >= license.EffectiveMaxChildCompanies)
             throw new InvalidOperationException("Parent company child-company license limit has been reached");
     }
 }

@@ -1,0 +1,453 @@
+@layout AdminLayout
+@page "/Organization/LicenseCategories"
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Organization.Dtos
+@using SharedWithUI.Permissions
+@implements IDisposable
+
+@inject ILicenseCategoryService LicenseCategoryService
+@inject ICurrencyService CurrencyService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="license-category-page erp-page" dir="@SharedDataService.PageDirection">
+    @if (!CanView)
+    {
+        <div class="alert alert-warning d-flex align-items-center gap-2">
+            <i class="bi bi-shield-lock"></i>
+            <span>@Text("You do not have permission to view license categories.", "ليس لديك صلاحية عرض فئات الترخيص.")</span>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+            <div>
+                <h3 class="mb-1">@Text("License Categories", "فئات الترخيص")</h3>
+                <div class="text-muted">@Text("Manage plan limits and currency-based prices used by parent company licenses.", "إدارة حدود الخطط والأسعار حسب العملة المستخدمة في تراخيص الشركات الرئيسية.")</div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isLoading">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    @Text("Refresh", "تحديث")
+                </button>
+                <button class="btn btn-primary" @onclick="OpenCreate" disabled="@(!CanManage)">
+                    <i class="bi bi-plus-lg"></i>
+                    @Text("Create Category", "إنشاء فئة")
+                </button>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-5 text-center">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <div class="fw-semibold">@Text("Loading license categories...", "جاري تحميل فئات الترخيص...")</div>
+                </div>
+            </div>
+        }
+        else if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-warning d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>@errorMessage</span>
+            </div>
+        }
+        else if (categories.Count == 0)
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-5 text-center text-muted">
+                    <i class="bi bi-patch-check fs-2 d-block mb-2"></i>
+                    @Text("No license categories were found.", "لم يتم العثور على فئات ترخيص.")
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@Text("Category", "الفئة")</th>
+                                <th>@Text("Limits", "الحدود")</th>
+                                <th>@Text("Pricing", "التسعير")</th>
+                                <th>@Text("Status", "الحالة")</th>
+                                <th class="text-end">@Text("Actions", "الإجراءات")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var category in categories)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">@category.Name</div>
+                                        <div class="text-muted small">@category.Key</div>
+                                    </td>
+                                    <td>
+                                        <div class="license-category-grid">
+                                            <span>@Text("Users", "المستخدمون")</span><strong>@category.MaxUsers</strong>
+                                            <span>@Text("Children", "التابعة")</span><strong>@category.MaxChildCompanies</strong>
+                                            <span>@Text("Branches", "الفروع")</span><strong>@category.MaxBranches</strong>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="license-category-grid">
+                                            <span>@Text("Monthly", "شهري")</span><strong>@category.MonthlyPrice.ToString("N2") @category.CurrencyCode</strong>
+                                            <span>@Text("Yearly", "سنوي")</span><strong>@category.YearlyPrice.ToString("N2") @category.CurrencyCode</strong>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <StatusChip Text="@(category.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))" Tone="@(category.IsActive ? "success" : "muted")" />
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group">
+                                            <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenEdit(category)" disabled="@(!CanManage)" title="@Text("Edit", "تعديل")">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            <button class="btn btn-outline-warning btn-sm" @onclick="() => ToggleStatusAsync(category)" disabled="@(!CanManage)" title="@Text("Deactivate or reactivate", "إيقاف أو إعادة تفعيل")">
+                                                <i class="bi @(category.IsActive ? "bi-slash-circle" : "bi-check2-circle")"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@if (showModal && selectedCategory is not null)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <EditForm Model="selectedCategory" OnValidSubmit="SaveAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@ModalTitle</h5>
+                        <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Key", "المفتاح")</label>
+                                <InputText class="form-control" @bind-Value="selectedCategory.Key" />
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label">@Text("Name", "الاسم")</label>
+                                <InputText class="form-control" @bind-Value="selectedCategory.Name" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Max Users", "حد المستخدمين")</label>
+                                <InputNumber class="form-control" @bind-Value="selectedCategory.MaxUsers" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Max Child Companies", "حد الشركات التابعة")</label>
+                                <InputNumber class="form-control" @bind-Value="selectedCategory.MaxChildCompanies" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Max Branches", "حد الفروع")</label>
+                                <InputNumber class="form-control" @bind-Value="selectedCategory.MaxBranches" />
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">@Text("Monthly Price", "السعر الشهري")</label>
+                                <InputNumber class="form-control" @bind-Value="selectedCategory.MonthlyPrice" />
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">@Text("Yearly Price", "السعر السنوي")</label>
+                                <InputNumber class="form-control" @bind-Value="selectedCategory.YearlyPrice" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">@Text("Currency", "العملة")</label>
+                                <AutoCompleteComponent TItem="CurrencyDto"
+                                                       Items="currencies"
+                                                       ItemText="CurrencyOptionText"
+                                                       Value="selectedCurrency"
+                                                       ValueChanged="OnCurrencyChanged"
+                                                       PlaceHolder="@CurrencyPlaceholder" />
+                                @if (!string.IsNullOrWhiteSpace(currencySelectionMessage))
+                                {
+                                    <div class="form-text text-warning">@currencySelectionMessage</div>
+                                }
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                                <InputTextArea class="form-control" @bind-Value="selectedCategory.Notes" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CloseModal" disabled="@isSaving">@Text("Cancel", "إلغاء")</button>
+                        <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            }
+                            @Text("Save", "حفظ")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .license-category-grid {
+        display: grid;
+        gap: 0.25rem 0.75rem;
+        grid-template-columns: auto auto;
+        width: max-content;
+    }
+
+    .license-category-grid span {
+        color: var(--erp-text-muted);
+    }
+</style>
+
+@code {
+    private List<LicenseCategoryDto> categories = [];
+    private List<CurrencyDto> currencies = [];
+    private LicenseCategoryDto? selectedCategory;
+    private CurrencyDto? selectedCurrency;
+    private AuthenticationState? AuthState;
+    private string? errorMessage;
+    private string? currencySelectionMessage;
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool showModal;
+    private bool isCreateMode;
+
+    private bool IsPlatformScoped => CompanyContext.IsPlatformScoped(AuthState?.User);
+    private bool CanView => IsPlatformScoped && HasPermission(PermissionList.ParentCompanyPermissions.View);
+    private bool CanManage => IsPlatformScoped && HasPermission(PermissionList.ParentCompanyPermissions.ManageLicense);
+    private string ModalTitle => isCreateMode ? Text("Create License Category", "إنشاء فئة ترخيص") : Text("Edit License Category", "تعديل فئة الترخيص");
+    private string CurrencyPlaceholder => Text("Select currency...", "اختر العملة...");
+    private CurrencyDto? DefaultCurrency => currencies.FirstOrDefault(currency => currency.IsDefault) ?? currencies.FirstOrDefault();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleLanguageChangeAsync;
+        AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (!CanView)
+        {
+            isLoading = false;
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var currencyResult = await CurrencyService.GetAvailableAsync(0, 1000);
+            if (currencyResult.IsSuccess && currencyResult.Data is not null)
+            {
+                currencies = currencyResult.Data.Data.ToList();
+            }
+            else
+            {
+                currencies = [];
+                Toast("warning", currencyResult.Error?.Detail ?? Text("Unable to load currencies.", "تعذر تحميل العملات."));
+            }
+
+            var result = await LicenseCategoryService.GetAsync(includeInactive: true);
+            if (result.IsSuccess && result.Data is not null)
+            {
+                categories = result.Data.OrderBy(category => category.MonthlyPrice).ThenBy(category => category.Name).ToList();
+            }
+            else
+            {
+                categories = [];
+                errorMessage = result.Error?.Detail ?? Text("Unable to load license categories.", "تعذر تحميل فئات الترخيص.");
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OpenCreate()
+    {
+        isCreateMode = true;
+        selectedCurrency = DefaultCurrency;
+        selectedCategory = new LicenseCategoryDto
+        {
+            CurrencyCode = selectedCurrency?.Code ?? string.Empty,
+            IsActive = true,
+            MaxUsers = 1
+        };
+        currencySelectionMessage = selectedCurrency is null
+            ? Text("Add a currency in General Settings before saving a license category.", "أضف عملة في الإعدادات العامة قبل حفظ فئة الترخيص.")
+            : null;
+        showModal = true;
+    }
+
+    private void OpenEdit(LicenseCategoryDto category)
+    {
+        isCreateMode = false;
+        selectedCategory = Clone(category);
+        selectedCurrency = CurrencyByCode(category.CurrencyCode);
+        currencySelectionMessage = selectedCurrency is null
+            ? Text($"Saved currency code '{category.CurrencyCode}' is not available. Select a currency before saving.", $"رمز العملة المحفوظ '{category.CurrencyCode}' غير متاح. اختر عملة قبل الحفظ.")
+            : null;
+        showModal = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (selectedCategory is null)
+            return;
+
+        if (selectedCurrency is null || string.IsNullOrWhiteSpace(selectedCategory.CurrencyCode))
+        {
+            currencySelectionMessage = Text("Select a currency before saving.", "اختر عملة قبل الحفظ.");
+            Toast("warning", currencySelectionMessage);
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            var isSuccess = false;
+            string? errorDetail = null;
+
+            if (isCreateMode)
+            {
+                var result = await LicenseCategoryService.CreateAsync(selectedCategory);
+                isSuccess = result.IsSuccess;
+                errorDetail = result.Error?.Detail;
+            }
+            else
+            {
+                var result = await LicenseCategoryService.UpdateAsync(selectedCategory);
+                isSuccess = result.IsSuccess && result.Data?.IsSuccess == true;
+                errorDetail = result.Error?.Detail;
+            }
+
+            if (isSuccess)
+            {
+                Toast("success", Text("License category was saved.", "تم حفظ فئة الترخيص."));
+                CloseModal();
+                await LoadAsync();
+            }
+            else
+            {
+                Toast("error", errorDetail ?? Text("Unable to save license category.", "تعذر حفظ فئة الترخيص."));
+            }
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task ToggleStatusAsync(LicenseCategoryDto category)
+    {
+        isSaving = true;
+        try
+        {
+            var result = await LicenseCategoryService.SetStatusAsync(category.Id, !category.IsActive);
+            if (result.IsSuccess && result.Data?.IsSuccess == true)
+            {
+                Toast("success", Text("License category status was updated.", "تم تحديث حالة فئة الترخيص."));
+                await LoadAsync();
+            }
+            else
+            {
+                Toast("error", result.Error?.Detail ?? Text("Unable to update status.", "تعذر تحديث الحالة."));
+            }
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        selectedCategory = null;
+        selectedCurrency = null;
+        currencySelectionMessage = null;
+    }
+
+    private bool HasPermission(string permission)
+        => CompanyContext.HasPermission(AuthState?.User, permission);
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private void Toast(string type, string message)
+    {
+        ToastService.Show(new ToastMessage { Type = type, Message = message });
+    }
+
+    private async Task HandleLanguageChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private CurrencyDto? CurrencyByCode(string? currencyCode)
+    {
+        if (string.IsNullOrWhiteSpace(currencyCode))
+            return null;
+
+        return currencies.FirstOrDefault(currency => string.Equals(currency.Code, currencyCode, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private string CurrencyOptionText(CurrencyDto currency)
+    {
+        var name = Text(currency.NameEng, currency.Name);
+        return string.IsNullOrWhiteSpace(name) ? currency.Code : $"{currency.Code} - {name}";
+    }
+
+    private Task OnCurrencyChanged(CurrencyDto? currency)
+    {
+        selectedCurrency = currency;
+
+        if (selectedCategory is not null)
+        {
+            selectedCategory.CurrencyCode = currency?.Code ?? string.Empty;
+        }
+
+        currencySelectionMessage = currency is null ? Text("Select a currency before saving.", "اختر عملة قبل الحفظ.") : null;
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleLanguageChangeAsync;
+    }
+
+    private static LicenseCategoryDto Clone(LicenseCategoryDto source) => new()
+    {
+        Id = source.Id,
+        Key = source.Key,
+        Name = source.Name,
+        MaxUsers = source.MaxUsers,
+        MaxChildCompanies = source.MaxChildCompanies,
+        MaxBranches = source.MaxBranches,
+        MonthlyPrice = source.MonthlyPrice,
+        YearlyPrice = source.YearlyPrice,
+        CurrencyCode = source.CurrencyCode,
+        IsActive = source.IsActive,
+        Notes = source.Notes
+    };
+}

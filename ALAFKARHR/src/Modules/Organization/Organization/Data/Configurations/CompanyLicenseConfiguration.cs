@@ -23,7 +23,13 @@ public class CompanyLicenseConfiguration : IEntityTypeConfiguration<CompanyLicen
             .HasForeignKey<CompanyLicense>(x => x.CompanyId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasOne(x => x.LicenseCategory)
+            .WithMany()
+            .HasForeignKey(x => x.LicenseCategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(x => x.CompanyId).IsUnique();
+        builder.HasIndex(x => x.LicenseCategoryId);
         builder.HasIndex(x => new { x.Status, x.EndDate });
     }
 }
