@@ -165,6 +165,7 @@ public class DeleteFleetVehicleServiceRuleHandler(FleetDbContext dbContext, IHtt
 public class CreateMaintenanceFromFleetServiceRuleHandler(
     FleetDbContext dbContext,
     MaintenanceDbContext maintenanceDbContext,
+    GeneralSettingsDbContext generalSettingsDbContext,
     IMaintenanceNumberGenerator numberGenerator,
     IHttpContextAccessor httpContextAccessor)
     : ICommandHandler<CreateMaintenanceFromFleetServiceRuleCommand, CreateEmergencyFleetMaintenanceResult>
@@ -177,6 +178,14 @@ public class CreateMaintenanceFromFleetServiceRuleHandler(
 
         if (!rule.Vehicle.MaintenanceAssetId.HasValue)
             throw new BadRequestException("Vehicle is not linked to a maintenance asset.");
+
+        var currency = await generalSettingsDbContext.Currencies
+            .AsNoTracking()
+            .Where(x => x.CompanyId == rule.Vehicle.CompanyId && !x.IsDeleted)
+            .OrderByDescending(x => x.IsDefault)
+            .ThenBy(x => x.Code)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new BadRequestException("No currency is configured for the vehicle company.");
 
         var number = await numberGenerator.GenerateWorkOrderNumberAsync(cancellationToken);
         var workOrder = MaintenanceWorkOrder.Create(
@@ -191,7 +200,8 @@ public class CreateMaintenanceFromFleetServiceRuleHandler(
             null,
             null,
             null,
-            null,
+            currency.Id,
+            currency.Code,
             null,
             null);
 

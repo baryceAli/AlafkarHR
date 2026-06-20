@@ -9,7 +9,8 @@ public class PriceListConfiguration : IEntityTypeConfiguration<PriceList>
         builder.Property(x => x.Id).ValueGeneratedNever();
         builder.Property(x => x.Name).IsRequired().HasMaxLength(150);
         builder.Property(x => x.Code).IsRequired().HasMaxLength(50);
-        builder.Property(x => x.CurrencyCode).IsRequired().HasMaxLength(10);
+        builder.Property(x => x.CurrencyId);
+        builder.Property(x => x.CurrencyCode).HasMaxLength(10);
         builder.Property(x => x.CompanyId).IsRequired();
         builder.Property(x => x.EffectiveFrom).IsRequired();
         builder.Property(x => x.CreatedBy).HasMaxLength(100);
@@ -23,6 +24,7 @@ public class PriceListConfiguration : IEntityTypeConfiguration<PriceList>
 
         builder.HasIndex(x => new { x.CompanyId, x.Code }).IsUnique();
         builder.HasIndex(x => new { x.CompanyId, x.IsDefault });
+        builder.HasIndex(x => x.CurrencyId);
         builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

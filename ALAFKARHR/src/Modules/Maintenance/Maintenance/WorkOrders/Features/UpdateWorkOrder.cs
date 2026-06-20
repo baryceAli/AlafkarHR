@@ -42,6 +42,7 @@ public class UpdateMaintenanceWorkOrderHandler(MaintenanceDbContext dbContext, I
             request.WorkOrder.InternalNotes,
             request.WorkOrder.EstimatedCost,
             request.WorkOrder.ActualCost,
+            request.WorkOrder.CurrencyId,
             request.WorkOrder.CurrencyCode,
             request.WorkOrder.VendorName,
             request.WorkOrder.SupplierId,

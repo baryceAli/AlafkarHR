@@ -26,7 +26,7 @@ public record StockMovementDto
     public decimal ReservedAfter { get; set; }
     public decimal UnitCost { get; set; }
     public decimal TotalCost { get; set; }
-    public Guid Currency { get; set; }
+    public Guid CurrencyId { get; set; }
 
     public string Notes { get; set; } = string.Empty;
     public MovementDirection MovementDirection { get; set; }

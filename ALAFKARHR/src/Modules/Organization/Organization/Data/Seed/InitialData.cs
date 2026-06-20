@@ -6,6 +6,7 @@ public class InitialData
     public static Guid StandardLicenseCategoryId => Guid.Parse("65f1a088-c089-4681-a205-5f830da2a0c9");
     public static Guid ProLicenseCategoryId => Guid.Parse("96a7b174-932b-4ef9-b680-6ad0d1deea75");
     public static Guid AdvancedLicenseCategoryId => Guid.Parse("861b0e2e-5f63-427b-903f-1d20e9271fbd");
+    public static Guid SarCurrencyId => Guid.Parse("71077eb6-cb32-49b1-bb41-72c1c7eeac5c");
 
     public static IEnumerable<LicenseCategory> LicenseCategories => new List<LicenseCategory>
     {
@@ -18,6 +19,7 @@ public class InitialData
             1,
             50,
             500,
+            SarCurrencyId,
             "SAR",
             "Default Basic license category.",
             "local-seed"),
@@ -30,6 +32,7 @@ public class InitialData
             10,
             100,
             1000,
+            SarCurrencyId,
             "SAR",
             "Default Standard license category.",
             "local-seed"),
@@ -42,6 +45,7 @@ public class InitialData
             25,
             200,
             2000,
+            SarCurrencyId,
             "SAR",
             "Default Pro license category.",
             "local-seed"),
@@ -54,6 +58,7 @@ public class InitialData
             50,
             400,
             4000,
+            SarCurrencyId,
             "SAR",
             "Default Advanced license category.",
             "local-seed")

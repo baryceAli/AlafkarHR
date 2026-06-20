@@ -19,6 +19,7 @@ public class MaintenanceWorkOrder : Aggregate<Guid>
     public decimal? EstimatedCost { get; private set; }
     public decimal? ApprovedCost { get; private set; }
     public decimal? ActualCost { get; private set; }
+    public Guid? CurrencyId { get; private set; }
     public string? CurrencyCode { get; private set; }
     public string? VendorName { get; private set; }
     public Guid? SupplierId { get; private set; }
@@ -48,11 +49,12 @@ public class MaintenanceWorkOrder : Aggregate<Guid>
         string? internalNotes,
         decimal? estimatedCost,
         decimal? actualCost,
+        Guid? currencyId,
         string? currencyCode,
         string? vendorName,
         Guid? supplierId)
     {
-        EnsureRequired(title, assetId);
+        EnsureRequired(title, assetId, currencyId);
 
         return new MaintenanceWorkOrder
         {
@@ -70,6 +72,7 @@ public class MaintenanceWorkOrder : Aggregate<Guid>
             InternalNotes = internalNotes?.Trim(),
             EstimatedCost = estimatedCost,
             ActualCost = actualCost,
+            CurrencyId = currencyId,
             CurrencyCode = currencyCode?.Trim(),
             VendorName = vendorName?.Trim(),
             SupplierId = supplierId,
@@ -91,12 +94,13 @@ public class MaintenanceWorkOrder : Aggregate<Guid>
         string? internalNotes,
         decimal? estimatedCost,
         decimal? actualCost,
+        Guid? currencyId,
         string? currencyCode,
         string? vendorName,
         Guid? supplierId,
         Guid modifiedByUserId)
     {
-        EnsureRequired(title, assetId);
+        EnsureRequired(title, assetId, currencyId);
 
         Title = title.Trim();
         Description = description?.Trim() ?? string.Empty;
@@ -107,6 +111,7 @@ public class MaintenanceWorkOrder : Aggregate<Guid>
         InternalNotes = internalNotes?.Trim();
         EstimatedCost = estimatedCost;
         ActualCost = actualCost;
+        CurrencyId = currencyId;
         CurrencyCode = currencyCode?.Trim();
         VendorName = vendorName?.Trim();
         SupplierId = supplierId;
@@ -165,11 +170,13 @@ public class MaintenanceWorkOrder : Aggregate<Guid>
         DeletedBy = deletedByUserId.ToString();
     }
 
-    private static void EnsureRequired(string title, Guid assetId)
+    private static void EnsureRequired(string title, Guid assetId, Guid? currencyId)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new BadRequestException("Work order title is required.");
         if (assetId == Guid.Empty)
             throw new BadRequestException("Asset is required.");
+        if (!currencyId.HasValue || currencyId.Value == Guid.Empty)
+            throw new BadRequestException("Currency is required.");
     }
 }

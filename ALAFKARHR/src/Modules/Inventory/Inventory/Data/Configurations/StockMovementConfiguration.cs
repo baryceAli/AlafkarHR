@@ -26,6 +26,8 @@ public class StockMovementConfiguration : IEntityTypeConfiguration<StockMovement
         builder.Property(x => x.EnteredQuantity).HasColumnType("decimal(18,4)").IsRequired();
         builder.Property(x => x.PackageMultiplier).HasColumnType("decimal(18,4)").HasDefaultValue(1m).IsRequired();
         builder.Property(x => x.NormalizedQuantity).HasColumnType("decimal(18,4)").IsRequired();
+        builder.Property(x => x.CurrencyId).IsRequired();
+        builder.HasIndex(x => x.CurrencyId);
         //builder.Property(x => x.MovementDate).IsRequired();
         builder.Property(x => x.Notes).IsRequired(false);
 

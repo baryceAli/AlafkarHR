@@ -45,6 +45,8 @@ public class CreateEmergencyFleetMaintenanceRequestDto
     public string Description { get; set; } = string.Empty;
     public SharedWithUI.Maintenance.Enums.MaintenancePriority Priority { get; set; } = SharedWithUI.Maintenance.Enums.MaintenancePriority.High;
     public decimal? EstimatedCost { get; set; }
+    public Guid? CurrencyId { get; set; }
+    public string? CurrencyCode { get; set; }
     public string? VendorName { get; set; }
     public Guid? SupplierId { get; set; }
 }

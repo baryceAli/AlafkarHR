@@ -1,10 +1,13 @@
 @layout AdminLayout
 @page "/Catalog/Pricing/List"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.GeneralSettings.Dtos
 @using SharedWithUI.Permissions
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using SharedWithUI.Pricing.Dtos
@@ -12,6 +15,7 @@
 
 @inject IPriceListService PriceListService
 @inject IProductService ProductService
+@inject ICurrencyService CurrencyService
 @inject ToastService ToastService
 @inject ModalService ModalService
 @inject LoadingService LoadingService
@@ -80,6 +84,7 @@
                 </th>
                 <th @onclick="() => Sort(nameof(PriceListDto.EffectiveFrom))">@SharedDataService.SelectViewLang("Effective from", "يسري من")</th>
                 <th @onclick="() => Sort(nameof(PriceListDto.EffectiveTo))">@SharedDataService.SelectViewLang("Effective to", "يسري حتى")</th>
+                <th>@SharedDataService.SelectViewLang("Currency", "العملة")</th>
                 <th @onclick="() => Sort(nameof(PriceListDto.IsDefault))">@SharedDataService.SelectViewLang("Default?", "الافتراضي؟")</th>
                 @* <th>@SharedDataService.SelectViewLang("Values", "القيم")</th> *@
                 <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
@@ -93,7 +98,7 @@
                 if (editingItem != null)
                 {
                     <tr>
-                        <td colspan="4">
+                        <td colspan="5">
                             <EditForm Model="editingItem" OnValidSubmit="() => SavePriceList(editingItem)">
                                 <DataAnnotationsValidator />
                                 <ValidationSummary />
@@ -120,6 +125,17 @@
                                         <div class="col-sm-10">
                                             <InputDate class="form-control" @bind-Value="editingItem.EffectiveTo" />
                                             <ValidationMessage For="() => editingItem.EffectiveTo" />
+                                        </div>
+                                    </div>
+                                    <div class="mb-3 row">
+                                        <label class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Currency", "العملة")</label>
+                                        <div class="col-sm-10">
+                                            <AutoCompleteComponent TItem="CurrencyDto"
+                                                                   Items="currencies"
+                                                                   ItemText="CurrencyOptionText"
+                                                                   Value="CurrencyById(editingItem.CurrencyId)"
+                                                                   ValueChanged="currency => OnPriceListCurrencySelected(editingItem, currency)"
+                                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select Currency", "اختر العملة")" />
                                         </div>
                                     </div>
                                     <div class="mb-3 row">
@@ -256,6 +272,7 @@
                     <td>@pL.Name</td>
                     <td>@pL.EffectiveFrom</td>
                     <td>@pL.EffectiveTo</td>
+                    <td>@CurrencyDisplay(pL)</td>
                     <td>@pL.IsDefault</td>
                     @* <td>
                         <div class="flex-row">
@@ -313,6 +330,7 @@
     private Guid companyId;
     private List<ProductDto> allProducts = [];
     private List<ProductDto> products = [];
+    private List<CurrencyDto> currencies = [];
     private ProductDto? selectedProduct;
     private List<ProductSkuDto> productSkus = [];
     private ProductSkuDto? selectedProductSku;
@@ -331,6 +349,8 @@
             NavigationManager.NavigateTo("/Dashboard");
             return;
         }
+        var currencyResponse = await CurrencyService.GetAsync(companyId, 0, 1000);
+        currencies = currencyResponse.IsSuccess ? currencyResponse.Data?.Data?.ToList() ?? [] : [];
         var prodRes = await ProductService.GetByCompanyAsync(companyId, 0, 10000);
         if (prodRes.IsSuccess)
         {
@@ -351,6 +371,8 @@
         {
             Id = Guid.NewGuid(),
             CompanyId = companyId,
+            CurrencyId = DefaultCurrency?.Id,
+            CurrencyCode = DefaultCurrency?.Code,
             EffectiveFrom = DateTime.UtcNow,
             EffectiveTo = DateTime.UtcNow,
             Items = []
@@ -385,6 +407,7 @@
             Random rnd = new Random();
 
             priceList.CompanyId = companyId;
+            EnsurePriceListCurrency(priceList);
 
             var bResponse = await PriceListService.CreateAsync(priceList);
             if (bResponse.IsSuccess)
@@ -410,6 +433,7 @@
         else
         {
             //Edit
+            EnsurePriceListCurrency(priceList);
 
             var bresponse = await PriceListService.UpdateAsync(priceList);
             if (bresponse.IsSuccess)
@@ -668,6 +692,36 @@
             // optional if you have UnitId
             item.UnitId = sku.UnitId;
         }
+    }
+
+    private CurrencyDto? DefaultCurrency => currencies.FirstOrDefault(c => c.IsDefault) ?? currencies.FirstOrDefault();
+
+    private CurrencyDto? CurrencyById(Guid? currencyId)
+        => currencyId.HasValue ? currencies.FirstOrDefault(c => c.Id == currencyId.Value) : null;
+
+    private string CurrencyOptionText(CurrencyDto currency)
+    {
+        var name = SharedDataService.SelectViewLang(currency.NameEng, currency.Name);
+        return string.IsNullOrWhiteSpace(name) ? currency.Code : $"{currency.Code} - {name}";
+    }
+
+    private string CurrencyDisplay(PriceListDto priceList)
+        => CurrencyById(priceList.CurrencyId) is { } currency
+            ? CurrencyOptionText(currency)
+            : priceList.CurrencyCode ?? "-";
+
+    private Task OnPriceListCurrencySelected(PriceListDto priceList, CurrencyDto? currency)
+    {
+        priceList.CurrencyId = currency?.Id;
+        priceList.CurrencyCode = currency?.Code;
+        return Task.CompletedTask;
+    }
+
+    private void EnsurePriceListCurrency(PriceListDto priceList)
+    {
+        var currency = CurrencyById(priceList.CurrencyId) ?? DefaultCurrency;
+        priceList.CurrencyId = currency?.Id;
+        priceList.CurrencyCode = currency?.Code;
     }
     protected override void OnInitialized()
     {

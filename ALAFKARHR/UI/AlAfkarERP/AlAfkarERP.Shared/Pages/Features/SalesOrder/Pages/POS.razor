@@ -19,6 +19,7 @@
 @inject IBrandService BrandService
 @inject ICartService CartService
 @inject ICompanySettingService CompanySettingService
+@inject ICurrencyService CurrencyService
 @inject ToastService ToastService
 @inject LoadingService LoadingService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -212,6 +213,7 @@
     private bool isLoading;
     private bool isCartBusy;
     private Guid companyId;
+    private string currencyCode = string.Empty;
     private Guid? defaultPosCustomerId;
     private string? userId;
     private string searchText = string.Empty;
@@ -277,12 +279,15 @@
             var categoryTask = CategoryService.GetByCompanyIdAsync(companyId, 0, 1000);
             var brandTask = BrandService.GetByCompanyIdAsync(companyId, 0, 1000);
             var settingTask = CompanySettingService.GetAsync(companyId);
-            await Task.WhenAll(productTask, categoryTask, brandTask, settingTask);
+            var currencyTask = CurrencyService.GetAsync(companyId, 0, 1000);
+            await Task.WhenAll(productTask, categoryTask, brandTask, settingTask, currencyTask);
 
             products = productTask.Result.IsSuccess ? productTask.Result.Data?.Data?.ToList() ?? [] : [];
             categories = categoryTask.Result.IsSuccess ? categoryTask.Result.Data?.Data?.ToList() ?? [] : [];
             brands = brandTask.Result.IsSuccess ? brandTask.Result.Data?.Data?.ToList() ?? [] : [];
             defaultPosCustomerId = settingTask.Result.IsSuccess ? settingTask.Result.Data?.DefaultPosCustomerId : null;
+            var currencies = currencyTask.Result.IsSuccess ? currencyTask.Result.Data?.Data?.ToList() ?? [] : [];
+            currencyCode = currencies.FirstOrDefault(c => c.IsDefault)?.Code ?? currencies.FirstOrDefault()?.Code ?? string.Empty;
         }
         finally
         {
@@ -473,7 +478,7 @@
                 ? sku.ImageUrl
                 : $"{ApiConfig.BaseURL}/Images/Products/{sku.ImageUrl}";
 
-    private string Money(decimal amount) => $"{amount:N2} SAR";
+    private string Money(decimal amount) => string.IsNullOrWhiteSpace(currencyCode) ? $"{amount:N2}" : $"{amount:N2} {currencyCode}";
 
     private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
 

@@ -44,7 +44,8 @@ public class GetCurrentCompanyLicenseHandler(
                 MaxBranches = 0,
                 MonthlyPrice = 0,
                 YearlyPrice = 0,
-                CurrencyCode = "SAR",
+                CurrencyId = null,
+                CurrencyCode = null,
                 IsExpired = false
             };
         }
@@ -65,6 +66,7 @@ public class GetCurrentCompanyLicenseHandler(
             MaxBranches = license.EffectiveMaxBranches,
             MonthlyPrice = license.EffectiveMonthlyPrice,
             YearlyPrice = license.EffectiveYearlyPrice,
+            CurrencyId = license.EffectiveCurrencyId,
             CurrencyCode = license.EffectiveCurrencyCode,
             IsExpired = isExpired
         };

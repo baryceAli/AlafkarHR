@@ -378,7 +378,7 @@
                 ProductId = inventory.ProductId,
                 ProductSkuId = inventory.ProductSkuId,
                 InitialBatchId = selectedBatch.Id,
-                Currency = selectedCurrency.Id,
+                  CurrencyId = selectedCurrency.Id,
                 InitialQuantity = 0,
                 MovementType = MovementType.ReserveAmount,
                 TotalCost = 0,
@@ -486,7 +486,7 @@
         if (currency != null && currency.Id != Guid.Empty)
         {
             selectedCurrency = currency;
-            createInventoryAggregateDto.Currency = currency.Id;
+            createInventoryAggregateDto.CurrencyId = currency.Id;
         }
     }
 

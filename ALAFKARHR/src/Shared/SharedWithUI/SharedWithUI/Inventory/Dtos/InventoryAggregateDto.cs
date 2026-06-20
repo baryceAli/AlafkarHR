@@ -86,7 +86,14 @@ public class CreateInventoryAggregateDto
     public decimal TotalCost { get; set; }
 
     [Required(ErrorMessage ="Currency is required")]
-    public Guid? Currency { get; set; }
+    public Guid? CurrencyId { get; set; }
+
+    [Obsolete("Use CurrencyId instead.")]
+    public Guid? Currency
+    {
+        get => CurrencyId;
+        set => CurrencyId = value;
+    }
 
     public Guid CompanyId { get; set; }
     public string? Notes { get; set; }

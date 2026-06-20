@@ -2,10 +2,15 @@
 @page "/Maintenance/WorkOrders/Form/{Id:guid}"
 @layout AdminLayout
 @implements IDisposable
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Pages.Features.Maintenance.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.GeneralSettings.Dtos
 @using SharedWithUI.Maintenance.Dtos
 @using SharedWithUI.Maintenance.Enums
+@inject ICurrencyService CurrencyService
 @inject IMaintenanceService MaintenanceService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 @inject NavigationManager NavigationManager
 
@@ -57,7 +62,12 @@
                     </div>
                     <div class="col-12 col-md-3">
                         <label class="form-label">@Text("Currency", "العملة")</label>
-                        <InputText class="form-control" @bind-Value="model.CurrencyCode" />
+                        <AutoCompleteComponent TItem="CurrencyDto"
+                                               Items="currencies"
+                                               ItemText="CurrencyOptionText"
+                                               Value="CurrencyById(model.CurrencyId)"
+                                               ValueChanged="OnCurrencyChanged"
+                                               PlaceHolder="@Text("Select Currency", "اختر العملة")" />
                     </div>
                     <div class="col-12 col-md-4">
                         <label class="form-label">@Text("Estimated Cost", "التكلفة التقديرية")</label>
@@ -99,13 +109,18 @@
 
     private UpdateMaintenanceWorkOrderDto model = new();
     private List<MaintenanceAssetDto> assets = [];
+    private List<CurrencyDto> currencies = [];
     private string assetIdText = string.Empty;
+    private Guid companyId;
     private bool isSaving;
     private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (CompanyContext.TryGetCompanyId(authState.User, out companyId))
+            await LoadCurrenciesAsync();
         await LoadAssetsAsync();
 
         if (Id.HasValue)
@@ -125,17 +140,26 @@
                     InternalNotes = result.Data.InternalNotes,
                     EstimatedCost = result.Data.EstimatedCost,
                     ActualCost = result.Data.ActualCost,
+                    CurrencyId = result.Data.CurrencyId,
                     CurrencyCode = result.Data.CurrencyCode,
                     VendorName = result.Data.VendorName,
                     SupplierId = result.Data.SupplierId
                 };
                 assetIdText = model.AssetId.ToString();
+                ApplyDefaultCurrency(model);
             }
         }
         else
         {
+            ApplyDefaultCurrency(model);
             ApplyQueryDefaults();
         }
+    }
+
+    private async Task LoadCurrenciesAsync()
+    {
+        var result = await CurrencyService.GetAsync(companyId, 0, 1000);
+        currencies = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
     }
 
     private async Task LoadAssetsAsync()
@@ -153,6 +177,7 @@
         }
 
         model.AssetId = assetId;
+        ApplyDefaultCurrency(model);
         isSaving = true;
         var isSuccess = false;
         string? error = null;
@@ -197,6 +222,29 @@
     }
 
     private string LocalizedName(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private CurrencyDto? DefaultCurrency => currencies.FirstOrDefault(c => c.IsDefault) ?? currencies.FirstOrDefault();
+    private CurrencyDto? CurrencyById(Guid? currencyId) => currencyId.HasValue ? currencies.FirstOrDefault(c => c.Id == currencyId.Value) : null;
+    private CurrencyDto? CurrencyByCode(string? currencyCode)
+        => string.IsNullOrWhiteSpace(currencyCode)
+            ? null
+            : currencies.FirstOrDefault(c => string.Equals(c.Code, currencyCode, StringComparison.OrdinalIgnoreCase));
+    private string CurrencyOptionText(CurrencyDto currency)
+    {
+        var name = Text(currency.NameEng, currency.Name);
+        return string.IsNullOrWhiteSpace(name) ? currency.Code : $"{currency.Code} - {name}";
+    }
+    private Task OnCurrencyChanged(CurrencyDto? currency)
+    {
+        model.CurrencyId = currency?.Id;
+        model.CurrencyCode = currency?.Code;
+        return Task.CompletedTask;
+    }
+    private void ApplyDefaultCurrency(UpdateMaintenanceWorkOrderDto workOrder)
+    {
+        var currency = CurrencyById(workOrder.CurrencyId) ?? CurrencyByCode(workOrder.CurrencyCode) ?? DefaultCurrency;
+        workOrder.CurrencyId = currency?.Id;
+        workOrder.CurrencyCode = currency?.Code;
+    }
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;

@@ -27,6 +27,7 @@ public class GetPriceListsByCompanyHandler(PricingDbContext dbContext)
                 Name = p.Name,
                 Code = p.Code,
                 CompanyId = p.CompanyId,
+                CurrencyId = p.CurrencyId,
                 CurrencyCode = p.CurrencyCode,
                 IsDefault = p.IsDefault,
                 IsActive = p.IsActive,

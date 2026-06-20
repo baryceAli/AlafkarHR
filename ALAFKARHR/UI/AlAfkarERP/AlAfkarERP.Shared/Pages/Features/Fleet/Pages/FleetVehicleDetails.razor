@@ -2,12 +2,15 @@
 @layout AdminLayout
 @implements IDisposable
 @using AlAfkarERP.Shared.Pages.Features.Fleet.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.GeneralSettings.Dtos
 @using SharedWithUI.Fleet.Dtos
 @using SharedWithUI.Fleet.Enums
 @using SharedWithUI.Maintenance.Enums
 @using SharedWithUI.Permissions
 @inject IFleetService FleetService
+@inject ICurrencyService CurrencyService
 @inject SharedDataService SharedDataService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
@@ -91,6 +94,15 @@
                         <div class="col-12 col-lg-3"><label class="form-label">@Text("Description", "الوصف")</label><input class="form-control" @bind="emergencyDescription" /></div>
                         <div class="col-6 col-lg-2"><label class="form-label">@Text("Priority", "الأولوية")</label><select class="form-select" @bind="emergencyPriority">@foreach (var value in Enum.GetValues<MaintenancePriority>()) { <option value="@value">@value</option> }</select></div>
                         <div class="col-6 col-lg-2"><label class="form-label">@Text("Estimated Cost", "التكلفة")</label><input class="form-control" type="number" @bind="emergencyCost" /></div>
+                        <div class="col-12 col-lg-2">
+                            <label class="form-label">@Text("Currency", "العملة")</label>
+                            <AutoCompleteComponent TItem="CurrencyDto"
+                                                   Items="currencies"
+                                                   ItemText="CurrencyOptionText"
+                                                   Value="selectedEmergencyCurrency"
+                                                   ValueChanged="OnEmergencyCurrencyChanged"
+                                                   PlaceHolder="@Text("Select Currency", "اختر العملة")" />
+                        </div>
                         <div class="col-12 col-lg-2 d-flex gap-2">
                             <button class="btn btn-warning" @onclick="CreateEmergencyAsync">@Text("Create", "إنشاء")</button>
                             <button class="btn btn-outline-secondary" @onclick="@(() => showEmergency = false)">@Text("Cancel", "إلغاء")</button>
@@ -260,13 +272,25 @@
     private string emergencyDescription = string.Empty;
     private MaintenancePriority emergencyPriority = MaintenancePriority.High;
     private decimal? emergencyCost;
+    private Guid companyId;
+    private List<CurrencyDto> currencies = [];
+    private CurrencyDto? selectedEmergencyCurrency;
     private AuthenticationState? authState;
 
     protected override async Task OnInitializedAsync()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
         authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (CompanyContext.TryGetCompanyId(authState.User, out companyId))
+            await LoadCurrenciesAsync();
         await LoadAsync();
+    }
+
+    private async Task LoadCurrenciesAsync()
+    {
+        var result = await CurrencyService.GetAsync(companyId, 0, 1000);
+        currencies = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+        selectedEmergencyCurrency = DefaultCurrency;
     }
 
     private async Task LoadAsync()
@@ -305,6 +329,7 @@
         emergencyDescription = string.Empty;
         emergencyPriority = MaintenancePriority.High;
         emergencyCost = null;
+        selectedEmergencyCurrency = DefaultCurrency;
         showEmergency = true;
     }
 
@@ -316,7 +341,9 @@
             Title = emergencyTitle,
             Description = emergencyDescription,
             Priority = emergencyPriority,
-            EstimatedCost = emergencyCost
+            EstimatedCost = emergencyCost,
+            CurrencyId = selectedEmergencyCurrency?.Id,
+            CurrencyCode = selectedEmergencyCurrency?.Code
         });
         errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
         showEmergency = false;
@@ -347,6 +374,17 @@
     }
 
     private string Name(FleetVehicleDto vehicle) => SharedDataService.SelectViewLang(vehicle.NameEng, vehicle.Name);
+    private CurrencyDto? DefaultCurrency => currencies.FirstOrDefault(c => c.IsDefault) ?? currencies.FirstOrDefault();
+    private string CurrencyOptionText(CurrencyDto currency)
+    {
+        var name = Text(currency.NameEng, currency.Name);
+        return string.IsNullOrWhiteSpace(name) ? currency.Code : $"{currency.Code} - {name}";
+    }
+    private Task OnEmergencyCurrencyChanged(CurrencyDto? currency)
+    {
+        selectedEmergencyCurrency = currency;
+        return Task.CompletedTask;
+    }
     private bool Can(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);

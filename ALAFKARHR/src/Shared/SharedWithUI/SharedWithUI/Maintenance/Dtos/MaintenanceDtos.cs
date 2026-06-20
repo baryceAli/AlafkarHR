@@ -95,6 +95,7 @@ public class MaintenanceWorkOrderDto
     public decimal? EstimatedCost { get; set; }
     public decimal? ApprovedCost { get; set; }
     public decimal? ActualCost { get; set; }
+    public Guid? CurrencyId { get; set; }
     public string? CurrencyCode { get; set; }
     public string? VendorName { get; set; }
     public Guid? SupplierId { get; set; }
@@ -123,6 +124,8 @@ public class CreateMaintenanceWorkOrderDto
     public string? InternalNotes { get; set; }
     public decimal? EstimatedCost { get; set; }
     public decimal? ActualCost { get; set; }
+    [Required(ErrorMessage = "Currency is required")]
+    public Guid? CurrencyId { get; set; }
     public string? CurrencyCode { get; set; }
     public string? VendorName { get; set; }
     public Guid? SupplierId { get; set; }

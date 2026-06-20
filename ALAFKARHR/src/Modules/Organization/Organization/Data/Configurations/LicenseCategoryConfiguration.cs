@@ -12,7 +12,8 @@ public class LicenseCategoryConfiguration : IEntityTypeConfiguration<LicenseCate
 
         builder.Property(x => x.Key).IsRequired().HasMaxLength(100);
         builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
-        builder.Property(x => x.CurrencyCode).IsRequired().HasMaxLength(3);
+        builder.Property(x => x.CurrencyId);
+        builder.Property(x => x.CurrencyCode).HasMaxLength(10);
         builder.Property(x => x.MonthlyPrice).HasColumnType("decimal(18,2)");
         builder.Property(x => x.YearlyPrice).HasColumnType("decimal(18,2)");
         builder.Property(x => x.Notes).HasMaxLength(1000);
@@ -22,5 +23,6 @@ public class LicenseCategoryConfiguration : IEntityTypeConfiguration<LicenseCate
 
         builder.HasIndex(x => x.Key).IsUnique();
         builder.HasIndex(x => x.IsActive);
+        builder.HasIndex(x => x.CurrencyId);
     }
 }

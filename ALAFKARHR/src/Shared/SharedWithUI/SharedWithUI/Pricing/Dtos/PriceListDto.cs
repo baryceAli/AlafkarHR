@@ -6,7 +6,8 @@ public class PriceListDto
     public string Name { get; set; } = default!;
     public string? Code { get; set; } = string.Empty;
     public Guid CompanyId { get; set; }
-    public string CurrencyCode { get; set; } = "SAR";
+    public Guid? CurrencyId { get; set; }
+    public string? CurrencyCode { get; set; }
     public bool IsDefault { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime EffectiveFrom { get; set; } = DateTime.UtcNow;

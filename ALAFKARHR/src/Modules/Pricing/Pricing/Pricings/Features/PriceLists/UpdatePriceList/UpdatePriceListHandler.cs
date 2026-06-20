@@ -29,6 +29,7 @@ public class UpdatePriceListHandler(PricingDbContext dbContext, IHttpContextAcce
         priceList.Update(
             command.PriceList.Name,
             command.PriceList.Code,
+            command.PriceList.CurrencyId!.Value,
             command.PriceList.CurrencyCode,
             command.PriceList.IsDefault,
             command.PriceList.IsActive,
