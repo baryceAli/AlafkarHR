@@ -12,8 +12,8 @@
                 Overline="@SharedDataService.SelectViewLang("Catalog", "الكتالوج")"
                 Icon="bi-grid-1x2" />
 
-    <div class="row g-3">
-        <div class="col-md-6 col-xl-4">
+    <div class="catalog-dashboard-grid">
+        <div>
             <AppCard Title="@SharedDataService.SelectViewLang("Products", "المنتجات")"
                      Subtitle="@SharedDataService.SelectViewLang("Create products and manage their SKU records.", "إنشاء المنتجات وإدارة منتجاتها المخزنية.")">
                 <a class="btn btn-outline-primary" href="/Catalog/Product/List">
@@ -21,7 +21,7 @@
                 </a>
             </AppCard>
         </div>
-        <div class="col-md-6 col-xl-4">
+        <div>
             <AppCard Title="@SharedDataService.SelectViewLang("Pricing", "التسعير")"
                      Subtitle="@SharedDataService.SelectViewLang("Maintain price lists and effective dates.", "إدارة قوائم الأسعار وتواريخ السريان.")">
                 <a class="btn btn-outline-primary" href="/Catalog/Pricing/List">
@@ -29,10 +29,10 @@
                 </a>
             </AppCard>
         </div>
-        <div class="col-md-6 col-xl-4">
+        <div>
             <AppCard Title="@SharedDataService.SelectViewLang("Setup", "الإعداد")"
                      Subtitle="@SharedDataService.SelectViewLang("Manage brands, categories, units, packages, and variants.", "إدارة العلامات التجارية والأصناف والوحدات والعبوات والخيارات.")">
-                <div class="d-flex flex-wrap gap-2">
+                <div class="catalog-quick-links">
                     <a class="btn btn-outline-primary btn-sm" href="/Warehouse/Product/Brand/List">@SharedDataService.SelectViewLang("Brands", "العلامات")</a>
                     <a class="btn btn-outline-primary btn-sm" href="/Warehouse/Product/Category/List">@SharedDataService.SelectViewLang("Categories", "الأصناف")</a>
                     <a class="btn btn-outline-primary btn-sm" href="/Warehouse/Product/Unit/List">@SharedDataService.SelectViewLang("Units", "الوحدات")</a>

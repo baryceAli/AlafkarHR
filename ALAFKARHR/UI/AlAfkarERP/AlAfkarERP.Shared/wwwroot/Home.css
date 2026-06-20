@@ -1,11 +1,13 @@
 :root {
-    --home-accent: #b7791f;
-    --home-accent-dark: #854d0e;
-    --home-accent-soft: #fff7ed;
-    --home-ink: #172033;
-    --home-muted: #64748b;
-    --home-surface: #ffffff;
-    --home-border: #e5e7eb;
+    --home-accent: var(--erp-warning);
+    --home-accent-dark: color-mix(in srgb, var(--erp-warning) 78%, var(--erp-text));
+    --home-accent-soft: color-mix(in srgb, var(--erp-warning) 12%, var(--erp-surface));
+    --home-ink: var(--erp-text);
+    --home-muted: var(--erp-text-muted);
+    --home-surface: var(--erp-surface);
+    --home-border: var(--erp-border);
+    --home-success: var(--erp-success);
+    --home-focus-ring: color-mix(in srgb, var(--erp-warning) 18%, transparent);
 }
 
 html {
@@ -26,8 +28,8 @@ a {
 .navbar-custom {
     background: color-mix(in srgb, var(--home-surface) 94%, transparent);
     backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(148, 163, 184, .22);
-    box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
+    border-bottom: 1px solid color-mix(in srgb, var(--home-border) 82%, transparent);
+    box-shadow: var(--erp-shadow-sm);
     padding: .8rem 1.5rem;
 }
 
@@ -45,7 +47,7 @@ a {
     background: var(--home-ink);
     border: 1px solid var(--home-ink);
     border-radius: var(--erp-radius-md);
-    color: #fff;
+    color: var(--erp-primary-contrast);
     font: inherit;
     font-weight: 800;
     min-height: 40px;
@@ -57,13 +59,11 @@ a {
 .landing-login-link:focus-visible {
     background: var(--home-accent-dark);
     border-color: var(--home-accent-dark);
-    box-shadow: 0 10px 22px rgba(133, 77, 14, .18);
+    box-shadow: var(--erp-shadow-sm);
 }
 
 .home-page {
-    background:
-        radial-gradient(circle at 8% 8%, rgba(37, 99, 235, .08), transparent 26rem),
-        linear-gradient(180deg, #f8fafc 0%, #fff 42%, #f8fafc 100%);
+    background: linear-gradient(180deg, var(--erp-bg) 0%, var(--home-surface) 42%, var(--erp-bg) 100%);
     color: var(--home-ink);
     margin-top: 72px;
     min-height: 100vh;
@@ -143,14 +143,14 @@ a {
 .home-primary-action {
     background: var(--home-accent);
     border: 1px solid var(--home-accent);
-    color: #fff;
+    color: var(--erp-primary-contrast);
 }
 
 .home-primary-action:hover,
 .home-primary-action:focus-visible {
     background: var(--home-accent-dark);
     border-color: var(--home-accent-dark);
-    color: #fff;
+    color: var(--erp-primary-contrast);
 }
 
 .home-secondary-action {
@@ -162,7 +162,7 @@ a {
 .home-secondary-action:hover,
 .home-secondary-action:focus-visible {
     background: var(--home-accent-soft);
-    border-color: rgba(183, 121, 31, .35);
+    border-color: color-mix(in srgb, var(--home-accent) 35%, var(--home-border));
     color: var(--home-accent-dark);
 }
 
@@ -187,8 +187,7 @@ a {
     align-items: center;
     align-self: stretch;
     border-radius: var(--erp-radius-lg);
-    background:
-        linear-gradient(135deg, rgba(255, 247, 237, .95), rgba(239, 246, 255, .86));
+    background: linear-gradient(135deg, var(--home-accent-soft), color-mix(in srgb, var(--erp-primary) 8%, var(--home-surface)));
     display: flex;
     justify-content: center;
     min-height: 210px;
@@ -198,7 +197,7 @@ a {
 
 .home-product-media img {
     display: block;
-    filter: drop-shadow(0 16px 24px rgba(15, 23, 42, .12));
+    filter: drop-shadow(0 16px 24px color-mix(in srgb, var(--erp-text) 12%, transparent));
     max-height: 215px;
     object-fit: contain;
     width: 100%;
@@ -206,9 +205,9 @@ a {
 
 .home-product-badge {
     align-items: center;
-    background: #15803d;
+    background: var(--home-success);
     border-radius: 999px;
-    color: #fff;
+    color: var(--erp-primary-contrast);
     display: inline-flex;
     font-size: .72rem;
     font-weight: 900;
@@ -250,7 +249,7 @@ a {
 .home-product-delivery {
     align-items: flex-start;
     background: var(--home-accent-soft);
-    border: 1px solid rgba(183, 121, 31, .16);
+    border: 1px solid color-mix(in srgb, var(--home-accent) 16%, var(--home-border));
     border-radius: var(--erp-radius-md);
     color: var(--home-accent-dark);
     display: flex;
@@ -376,8 +375,8 @@ a {
 
 .store-filter-field .form-control:focus,
 .store-filter-field .form-select:focus {
-    border-color: rgba(183, 121, 31, .45);
-    box-shadow: 0 0 0 .2rem rgba(183, 121, 31, .12);
+    border-color: color-mix(in srgb, var(--home-accent) 45%, var(--home-border));
+    box-shadow: 0 0 0 .2rem var(--home-focus-ring);
 }
 
 .store-filter-field .input-group-text {
@@ -448,11 +447,11 @@ a {
 }
 
 .store-range-input:focus-visible::-webkit-slider-thumb {
-    box-shadow: 0 0 0 .22rem rgba(183, 121, 31, .18);
+    box-shadow: 0 0 0 .22rem var(--home-focus-ring);
 }
 
 .store-range-input:focus-visible::-moz-range-thumb {
-    box-shadow: 0 0 0 .22rem rgba(183, 121, 31, .18);
+    box-shadow: 0 0 0 .22rem var(--home-focus-ring);
 }
 
 .store-range-input::-webkit-slider-runnable-track {
@@ -467,7 +466,7 @@ a {
     background: var(--home-surface);
     border: 3px solid var(--home-accent-dark);
     border-radius: 50%;
-    box-shadow: 0 4px 10px rgba(15, 23, 42, .14);
+    box-shadow: var(--erp-shadow-sm);
     cursor: pointer;
     height: 20px;
     margin-top: -7px;
@@ -485,7 +484,7 @@ a {
     background: var(--home-surface);
     border: 3px solid var(--home-accent-dark);
     border-radius: 50%;
-    box-shadow: 0 4px 10px rgba(15, 23, 42, .14);
+    box-shadow: var(--erp-shadow-sm);
     cursor: pointer;
     height: 20px;
     pointer-events: auto;
@@ -541,7 +540,7 @@ a {
 
 .product-card:hover,
 .product-card:focus-within {
-    border-color: rgba(183, 121, 31, .28);
+    border-color: color-mix(in srgb, var(--home-accent) 28%, var(--home-border));
     box-shadow: var(--erp-shadow-md);
     transform: translateY(-2px);
 }
@@ -549,9 +548,7 @@ a {
 .product-media {
     align-items: center;
     aspect-ratio: 16 / 11;
-    background:
-        radial-gradient(circle at 50% 38%, rgba(255, 255, 255, .86), transparent 8rem),
-        linear-gradient(135deg, #fff7ed, #f8fafc);
+    background: linear-gradient(135deg, var(--home-accent-soft), color-mix(in srgb, var(--erp-primary) 6%, var(--home-surface)));
     display: flex;
     justify-content: center;
     padding: .95rem;
@@ -561,7 +558,7 @@ a {
 .product-media img {
     border-radius: var(--erp-radius-md);
     display: block;
-    filter: drop-shadow(0 16px 22px rgba(15, 23, 42, .11));
+    filter: drop-shadow(0 16px 22px color-mix(in srgb, var(--erp-text) 11%, transparent));
     height: min(100%, 190px);
     object-fit: contain;
     width: 100%;
@@ -569,9 +566,9 @@ a {
 
 .product-badge {
     align-items: center;
-    background: #15803d;
+    background: var(--home-success);
     border-radius: 999px;
-    color: #fff;
+    color: var(--erp-primary-contrast);
     display: inline-flex;
     font-size: .74rem;
     font-weight: 900;
@@ -584,7 +581,7 @@ a {
 
 .product-category-pill {
     background: color-mix(in srgb, var(--home-surface) 92%, transparent);
-    border: 1px solid rgba(148, 163, 184, .28);
+    border: 1px solid color-mix(in srgb, var(--home-border) 78%, transparent);
     border-radius: 999px;
     color: var(--home-ink);
     font-size: .72rem;
@@ -648,7 +645,7 @@ a {
 .product-chip {
     align-items: center;
     background: var(--home-accent-soft);
-    border: 1px solid rgba(183, 121, 31, .16);
+    border: 1px solid color-mix(in srgb, var(--home-accent) 16%, var(--home-border));
     border-radius: 999px;
     color: var(--home-accent-dark);
     display: inline-flex;
@@ -672,7 +669,7 @@ a {
 .product-action {
     align-items: center;
     background: color-mix(in srgb, var(--home-accent-soft) 42%, var(--home-surface));
-    border: 1px solid rgba(183, 121, 31, .12);
+    border: 1px solid color-mix(in srgb, var(--home-accent) 12%, var(--home-border));
     border-radius: var(--erp-radius-md);
     display: flex;
     gap: .8rem;
@@ -746,7 +743,7 @@ a {
         linear-gradient(
             90deg,
             color-mix(in srgb, var(--home-border) 58%, transparent) 0%,
-            color-mix(in srgb, var(--home-surface) 80%, #fff) 45%,
+            color-mix(in srgb, var(--home-surface) 80%, var(--erp-bg)) 45%,
             color-mix(in srgb, var(--home-border) 58%, transparent) 100%
         );
     background-size: 220% 100%;

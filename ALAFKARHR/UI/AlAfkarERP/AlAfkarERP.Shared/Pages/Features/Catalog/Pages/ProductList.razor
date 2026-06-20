@@ -1,5 +1,6 @@
 @layout AdminLayout
 @page "/Catalog/Product/List"
+@implements IDisposable
 
 
 
@@ -68,7 +69,7 @@
         </FilterBar>
 
     <div class="erp-table-wrap">
-            <div class="d-flex justify-content-end mb-2">
+            <div class="erp-table-toolbar">
             <TableExportActions />
         </div>
 
@@ -99,7 +100,7 @@
                                 <DataAnnotationsValidator />
                                 <ValidationSummary />
                                 @* <InputHidden @bind-Value="branch.Id"/> *@
-                                <div class="row g-3 bg-info-subtle p-3">
+                                <div class="erp-inline-editor">
 
                                     <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
@@ -165,9 +166,9 @@
 
                                     
                                             
-                                    <div class="col">
-                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
-                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                    <div class="erp-form-actions">
+                                        <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> @SharedDataService.SelectViewLang("Save", "حفظ")</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelEdit"><i class="bi bi-x-lg"></i> @SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>
                                     </div>
                                 </div>
                             </EditForm>
@@ -212,7 +213,7 @@
         </tbody>
     </table>
     </div>
-    <div class="d-flex flex-wrap justify-content-end align-items-center gap-2 mt-3">
+    <div class="erp-pagination-bar">
 
         <button class="btn btn-sm btn-secondary"
                 @onclick="PrevPage"

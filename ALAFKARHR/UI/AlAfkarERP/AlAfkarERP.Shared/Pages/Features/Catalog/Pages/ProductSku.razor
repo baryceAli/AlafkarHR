@@ -1,6 +1,7 @@
 @layout AdminLayout
 @page "/Catalog/Product/{ProductId:guid?}/ProductSku"
 @page "/Catalog/Product/ProductSku/List"
+@implements IDisposable
 @using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
@@ -52,7 +53,7 @@
     <AppCard Title="@SharedDataService.SelectViewLang("Product Context", "سياق المنتج")"
              Subtitle="@SharedDataService.SelectViewLang("Choose the product before managing its stock keeping units.", "اختر المنتج قبل إدارة منتجاته المخزنية.")"
              CssClass="mb-3">
-    <div class="text-black">
+    <div class="erp-subpanel">
     
         @if (ProductId.HasValue && selectedProduct != null && selectedProduct.Id != Guid.Empty)
         {
@@ -100,7 +101,7 @@
         </FilterBar>
 
     <div class="erp-table-wrap">
-            <div class="d-flex justify-content-end mb-2">
+            <div class="erp-table-toolbar">
             <TableExportActions />
         </div>
 
@@ -155,7 +156,7 @@
                                 <DataAnnotationsValidator />
                                 <ValidationSummary />
                                 @* <InputHidden @bind-Value="branch.Id"/> *@
-                                <div class="row g-3 bg-info-subtle p-3">
+                                <div class="erp-inline-editor">
 
                                     <!--Brand-->
                                     <div class="mb-3 row">
@@ -178,15 +179,15 @@
                                             @SharedDataService.SelectViewLang("Packages", "العبوات")
                                         </label>
                                         <div class="col-sm-10">
-                                            <div class="d-flex flex-wrap gap-2">
+                                            <div class="erp-check-tile-group">
                                                 @foreach (var package in packages)
                                                 {
-                                                    <label class="form-check border rounded px-3 py-2 m-0">
+                                                    <label class="erp-check-tile">
                                                         <input class="form-check-input"
                                                                type="checkbox"
                                                                checked="@editingItem.Packages.Any(p => p.Id == package.Id)"
                                                                @onchange="args => ToggleSkuPackage(editingItem, package, args)" />
-                                                        <span class="form-check-label ms-2">
+                                                        <span class="form-check-label">
                                                             @SharedDataService.SelectViewLang(package.NameEng, package.Name)
                                                             <span class="text-muted">(@package.Quantity)</span>
                                                         </span>
@@ -267,8 +268,7 @@
                                                 @SharedDataService.SelectViewLang("Bundle Components", "مكونات الحزمة")
                                             </label>
                                             <div class="col-sm-10">
-                                                <div class="card bg-transparent sku-bundle-editor">
-                                                    <div class="card-body">
+                                                <div class="erp-subpanel sku-bundle-editor">
                                                         @if (editingItem.Components.Any())
                                                         {
                                                             <div class="d-flex flex-column gap-3 mb-3">
@@ -322,7 +322,6 @@
                                                             <i class="bi bi-plus"></i>
                                                             @SharedDataService.SelectViewLang("Add Component", "إضافة مكون")
                                                         </button>
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -340,7 +339,7 @@
                                                      alt="Add product image"
                                                      height="50"
                                                      width="50"
-                                                     class="card-img-top" />
+                                                     class="erp-sku-image-upload" />
 
                                             </label>
 
@@ -364,22 +363,16 @@
                                     <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Options", "الخيارات")</label>
                                         <div class="col-sm-10">
-                                            <div class="card bg-transparent">
-                                                <div class="card-body">
-                                                    
-                                                    @* <div class="card bg-transparent">
-                                                        <div class="card-body">
-                                                        </div>
-                                                    </div> *@
+                                            <div class="erp-subpanel">
                                                     @if (editingItem.Variants.Any())
                                                     {
                                                         
-                                                                <div class="d-flex justify-content-end mb-2">
+                                                                <div class="erp-table-toolbar">
             <TableExportActions />
         </div>
 
                                                         
-                                                        <table class="table table-striped">
+                                                        <table class="table erp-table mb-0">
                                                             <thead class="fw-bold">
                                                                 <tr>
                                                                     @* <td class="hiding">Id</td> *@
@@ -456,16 +449,15 @@
                                                         
                                                     
 
-                                                </div>
                                             </div>
 
                                         </div>
                                     </div>
 
 
-                                    <div class="col">
-                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
-                                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                                    <div class="erp-form-actions">
+                                        <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> @SharedDataService.SelectViewLang("Save", "حفظ")</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelEdit"><i class="bi bi-x-lg"></i> @SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>
                                     </div>
                                 </div>
                             </EditForm>
@@ -488,8 +480,7 @@
                                 ? sku.ImageUrl
                                 : $"{ApiConfig.BaseURL}/Images/Products/{sku.ImageUrl}"))"
                              alt="Add product image"
-                             width="64"
-                             height="64" />
+                             class="erp-sku-image" />
                     </td>
                     <td>@SharedDataService.SelectViewLang(sku.NameEng, sku.Name)</td>
                     <td>@SharedDataService.SelectViewLang(sku.SkuCodeEng, sku.SkuCode)</td>
@@ -499,13 +490,11 @@
                     <td>
                         @if (sku.Packages.Any())
                         {
-                            <div class="d-flex flex-wrap gap-1">
+                            <div class="erp-chip-row">
                                 @foreach (var package in sku.Packages)
                                 {
-                                    <span class="badge text-bg-light border">
-                                        @SharedDataService.SelectViewLang(package.NameEng, package.Name)
-                                        <span class="text-muted">x@package.Quantity</span>
-                                    </span>
+                                    <StatusChip Tone="muted"
+                                                Text="@($"{SharedDataService.SelectViewLang(package.NameEng, package.Name)} x{package.Quantity}")" />
                                 }
                             </div>
                         }
@@ -535,7 +524,7 @@
         </tbody>
     </table>
     </div>
-    <div class="d-flex flex-wrap justify-content-end align-items-center gap-2 mt-3">
+    <div class="erp-pagination-bar">
 
         <button class="btn btn-sm btn-secondary"
                 @onclick="PrevPage"
@@ -1254,45 +1243,3 @@
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }
-
-<style>
-    .sku-bundle-editor,
-    .sku-bundle-editor .card-body,
-    .sku-bundle-component-row,
-    .sku-bundle-component-picker {
-        overflow: visible;
-    }
-
-    .sku-bundle-component-row {
-        display: grid;
-        grid-template-columns: minmax(260px, 1fr) minmax(140px, 180px) auto;
-        gap: .75rem;
-        align-items: end;
-        padding: .75rem;
-        border: 1px solid var(--erp-border);
-        border-radius: var(--erp-radius-md);
-        background: var(--erp-surface);
-    }
-
-    .sku-bundle-component-picker,
-    .sku-bundle-component-quantity {
-        min-width: 0;
-    }
-
-    .sku-bundle-component-action {
-        display: flex;
-        justify-content: flex-end;
-        padding-bottom: .125rem;
-    }
-
-    @@media (max-width: 767.98px) {
-        .sku-bundle-component-row {
-            grid-template-columns: 1fr;
-        }
-
-        .sku-bundle-component-action {
-            justify-content: flex-start;
-            padding-bottom: 0;
-        }
-    }
-</style>
