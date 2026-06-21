@@ -2,6 +2,7 @@ namespace DocumentManagement.Documents.Features;
 
 public record UpdateDocumentRequest(UpdateDocumentDto Document);
 public record InviteDocumentCollaboratorRequest(InviteDocumentCollaboratorDto Collaborator);
+public record UpdateDocumentUploadPolicyRequest(UpdateDocumentUploadPolicyDto Policy);
 
 public class DocumentEndpoints : ICarterModule
 {
@@ -35,6 +36,42 @@ public class DocumentEndpoints : ICarterModule
         .WithName("GetDocumentById")
         .Produces<DocumentDetailDto>(StatusCodes.Status200OK)
         .RequireAuthorization();
+
+        group.MapGet("/upload-options", async (ISender sender) =>
+        {
+            var result = await sender.Send(new GetDocumentUploadOptionsQuery());
+            return Results.Ok(new { options = result.Options });
+        })
+        .WithName("GetDocumentUploadOptions")
+        .Produces<DocumentUploadOptionsDto>(StatusCodes.Status200OK)
+        .RequireAuthorization();
+
+        group.MapGet("/upload-policy", async (ISender sender) =>
+        {
+            var result = await sender.Send(new GetDocumentUploadPolicyQuery());
+            return Results.Ok(new { policy = result.Policy });
+        })
+        .WithName("GetDocumentUploadPolicy")
+        .Produces<DocumentUploadPolicyDto>(StatusCodes.Status200OK)
+        .RequireAuthorization();
+
+        group.MapGet("/upload-policy/defaults", async (ISender sender) =>
+        {
+            var result = await sender.Send(new GetDefaultDocumentUploadPolicyQuery());
+            return Results.Ok(new { policy = result.Policy });
+        })
+        .WithName("GetDefaultDocumentUploadPolicy")
+        .Produces<DocumentUploadPolicyDto>(StatusCodes.Status200OK)
+        .RequireAuthorization(PermissionList.DocumentManagementPermissions.Configure);
+
+        group.MapPut("/upload-policy", async (UpdateDocumentUploadPolicyRequest request, ISender sender) =>
+        {
+            var result = await sender.Send(new UpdateDocumentUploadPolicyCommand(request.Policy));
+            return Results.Ok(result);
+        })
+        .WithName("UpdateDocumentUploadPolicy")
+        .Produces<UpdateDocumentUploadPolicyResult>(StatusCodes.Status200OK)
+        .RequireAuthorization(PermissionList.DocumentManagementPermissions.Configure);
 
         group.MapPost("/", async ([AsParameters] CreateDocumentForm form, ISender sender) =>
         {
@@ -95,7 +132,7 @@ public class DocumentEndpoints : ICarterModule
         group.MapGet("/{id:guid}/download", async (Guid id, Guid? versionId, ISender sender) =>
         {
             var result = await sender.Send(new DownloadDocumentVersionQuery(id, versionId));
-            return Results.File(result.StoragePath, result.ContentType, result.OriginalFileName);
+            return Results.File(result.Stream, result.ContentType, result.OriginalFileName);
         })
         .WithName("DownloadDocument")
         .RequireAuthorization();
@@ -108,6 +145,15 @@ public class DocumentEndpoints : ICarterModule
         .WithName("DeleteDocument")
         .Produces<DeleteDocumentResult>(StatusCodes.Status200OK)
         .RequireAuthorization();
+
+        group.MapDelete("/{id:guid}/storage", async (Guid id, ISender sender) =>
+        {
+            var result = await sender.Send(new DeleteDocumentStorageCommand(id));
+            return Results.Ok(result);
+        })
+        .WithName("DeleteDocumentStorage")
+        .Produces<DeleteDocumentStorageResult>(StatusCodes.Status200OK)
+        .RequireAuthorization(PermissionList.DocumentManagementPermissions.Delete);
     }
 }
 

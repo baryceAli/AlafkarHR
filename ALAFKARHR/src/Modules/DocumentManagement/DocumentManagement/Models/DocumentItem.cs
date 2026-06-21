@@ -47,13 +47,22 @@ public class DocumentItem : Aggregate<Guid>
         ModifiedBy = modifiedByUserId.ToString();
     }
 
-    public DocumentVersion AddVersion(string originalFileName, string storagePath, string contentType, long fileSize, Guid uploadedByUserId)
+    public DocumentVersion AddVersion(
+        string originalFileName,
+        string storagePath,
+        string storageProvider,
+        string storageKey,
+        string contentType,
+        long fileSize,
+        Guid uploadedByUserId)
     {
         var version = DocumentVersion.Create(
             Id,
             _versions.Count == 0 ? 1 : _versions.Max(x => x.VersionNumber) + 1,
             originalFileName,
             storagePath,
+            storageProvider,
+            storageKey,
             contentType,
             fileSize,
             uploadedByUserId);

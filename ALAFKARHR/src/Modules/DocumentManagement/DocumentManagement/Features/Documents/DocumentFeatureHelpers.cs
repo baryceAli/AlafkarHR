@@ -22,6 +22,18 @@ public static class DocumentFeatureHelpers
     public static bool HasManageAll(IHttpContextAccessor httpContextAccessor) =>
         httpContextAccessor.HttpContext?.User.Claims.Any(c => c.Value == PermissionList.DocumentManagementPermissions.ManageAll) == true;
 
+    public static bool HasDelete(IHttpContextAccessor httpContextAccessor) =>
+        httpContextAccessor.HttpContext?.User.Claims.Any(c => c.Value == PermissionList.DocumentManagementPermissions.Delete) == true;
+
+    public static bool HasView(IHttpContextAccessor httpContextAccessor) =>
+        httpContextAccessor.HttpContext?.User.Claims.Any(c =>
+            c.Value == PermissionList.DocumentManagementPermissions.View
+            || c.Value == PermissionList.DocumentManagementPermissions.Select
+            || c.Value == PermissionList.DocumentManagementPermissions.ManageAll) == true;
+
+    public static bool HasConfigure(IHttpContextAccessor httpContextAccessor) =>
+        httpContextAccessor.HttpContext?.User.Claims.Any(c => c.Value == PermissionList.DocumentManagementPermissions.Configure) == true;
+
     public static IQueryable<DocumentItem> IncludeDetails(this IQueryable<DocumentItem> query) =>
         query.Include(x => x.Versions).Include(x => x.Collaborators);
 
@@ -66,7 +78,7 @@ public static class DocumentFeatureHelpers
             throw new ForbiddenException("Only the owner can share this document.");
     }
 
-    public static DocumentItemDto ToListDto(DocumentItem document, Guid currentUserId, bool manageAll)
+    public static DocumentItemDto ToListDto(DocumentItem document, Guid currentUserId, bool manageAll, bool hasDelete)
     {
         var latest = document.Versions.OrderByDescending(x => x.VersionNumber).FirstOrDefault();
         var collaborator = ActiveCollaborator(document, currentUserId);
@@ -91,13 +103,14 @@ public static class DocumentFeatureHelpers
             CanView = CanView(document, currentUserId, manageAll),
             CanWrite = CanWrite(document, currentUserId, manageAll),
             CanShare = CanShare(document, currentUserId, manageAll),
-            CanDelete = CanShare(document, currentUserId, manageAll)
+            CanDelete = CanShare(document, currentUserId, manageAll),
+            CanDeleteStorage = hasDelete && CanShare(document, currentUserId, manageAll)
         };
     }
 
-    public static DocumentDetailDto ToDetailDto(DocumentItem document, Guid currentUserId, bool manageAll)
+    public static DocumentDetailDto ToDetailDto(DocumentItem document, Guid currentUserId, bool manageAll, bool hasDelete)
     {
-        var dto = ToListDto(document, currentUserId, manageAll).Adapt<DocumentDetailDto>();
+        var dto = ToListDto(document, currentUserId, manageAll, hasDelete).Adapt<DocumentDetailDto>();
         dto.Versions = document.Versions
             .OrderByDescending(x => x.VersionNumber)
             .Select(x => new DocumentVersionDto
@@ -127,40 +140,32 @@ public static class DocumentFeatureHelpers
         return dto;
     }
 
-    public static HashSet<string> AllowedContentTypes() =>
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            "application/pdf",
-            "image/jpeg",
-            "image/png",
-            "image/webp",
-            "text/plain",
-            "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        };
-
-    public static async Task<(string StoragePath, long FileSize)> SaveVersionFileAsync(
-        IFormFile file,
-        IWebHostEnvironment environment,
-        Guid companyId,
-        Guid documentId,
-        Guid versionId,
-        CancellationToken cancellationToken)
+    public static void ValidateVersionFile(IFormFile file, DocumentUploadOptionsDto options)
     {
         if (file.Length == 0)
             throw new BadRequestException("Document file is empty.");
-        if (file.Length > 10 * 1024 * 1024)
-            throw new BadRequestException("Document file size cannot exceed 10 MB.");
-        if (!AllowedContentTypes().Contains(file.ContentType))
+
+        if (file.Length > options.MaxFileSizeBytes)
+            throw new BadRequestException($"Document file size cannot exceed {FormatFileSize(options.MaxFileSizeBytes)}.");
+
+        var extension = Path.GetExtension(file.FileName);
+        if (string.IsNullOrWhiteSpace(extension))
+            throw new BadRequestException("Document file must include an extension.");
+
+        var allowedExtensions = new HashSet<string>(options.AllowedExtensions, StringComparer.OrdinalIgnoreCase);
+        if (!allowedExtensions.Contains(extension))
+            throw new BadRequestException("Document file extension is not allowed.");
+
+        var allowedContentTypes = new HashSet<string>(options.AllowedContentTypes, StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(file.ContentType) || !allowedContentTypes.Contains(file.ContentType))
             throw new BadRequestException("Document file type is not allowed.");
-
-        var root = Path.Combine(environment.ContentRootPath, "App_Data", "DocumentManagement", companyId.ToString(), documentId.ToString(), versionId.ToString());
-        Directory.CreateDirectory(root);
-
-        var storagePath = Path.Combine(root, Path.GetFileName(file.FileName));
-        await using var stream = File.Create(storagePath);
-        await file.CopyToAsync(stream, cancellationToken);
-        return (storagePath, file.Length);
     }
+
+    public static string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024d:0.#} KB";
+        return $"{bytes / 1024d / 1024d:0.#} MB";
+    }
+
 }

@@ -1,0 +1,377 @@
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.DocumentManagement.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using SharedWithUI.DocumentManagement.Dtos
+@using SharedWithUI.DocumentManagement.Enums
+
+@inject IDocumentManagementService DocumentService
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="document-media-upload" dir="@SharedDataService.PageDirection">
+    @if (Mode == DocumentMediaUploadMode.CreateDocument)
+    {
+        <EditForm Model="@createModel" OnValidSubmit="SubmitCreate">
+            <DataAnnotationsValidator />
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">@Text("Upload type", "نوع الرفع")</label>
+                    <select class="form-select" value="@selectedPreset" @onchange="OnPresetChanged" disabled="@Busy">
+                        @foreach (var preset in UploadPresets)
+                        {
+                            <option value="@preset">@PresetText(preset)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">@Text("Title", "العنوان")</label>
+                    <input class="form-control" @bind="createModel.Title" disabled="@Busy" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@Text("File", "الملف")</label>
+                    <InputFile class="form-control" OnChange="OnFileSelected" accept="@Accept" disabled="@Busy" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">@Text("Description", "الوصف")</label>
+                    <textarea class="form-control" rows="3" @bind="createModel.Description" disabled="@Busy"></textarea>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">@Text("Source module", "الوحدة المرتبطة")</label>
+                    <input class="form-control" @bind="createModel.SourceModule" disabled="@(!CanEditSource || Busy)" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">@Text("Source entity", "الكيان المرتبط")</label>
+                    <input class="form-control" @bind="createModel.SourceEntity" disabled="@(!CanEditSource || Busy)" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">@Text("Source record id", "رقم السجل المرتبط")</label>
+                    <input class="form-control" @bind="sourceRecordIdText" disabled="@(!CanEditSource || Busy)" />
+                </div>
+                <div class="col-12">
+                    @FileSummary
+                </div>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    @Actions
+                    <button type="submit" class="btn btn-primary" disabled="@(!CanSubmitCreate)">
+                        <i class="bi bi-cloud-upload"></i> @CreateButtonLabel
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    }
+    else
+    {
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">@Text("Upload type", "نوع الرفع")</label>
+                <select class="form-select" value="@selectedPreset" @onchange="OnPresetChanged" disabled="@Busy">
+                    @foreach (var preset in UploadPresets)
+                    {
+                        <option value="@preset">@PresetText(preset)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md">
+                <label class="form-label">@Text("File", "الملف")</label>
+                <InputFile class="form-control" OnChange="OnFileSelected" accept="@Accept" disabled="@Busy" />
+            </div>
+            <div class="col-md-auto">
+                <button class="btn btn-primary" disabled="@(!CanSubmitVersion)" @onclick="SubmitVersion" title="@UploadButtonLabel">
+                    <i class="bi bi-cloud-upload"></i> @UploadButtonLabel
+                </button>
+            </div>
+            <div class="col-12">
+                @FileSummary
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public DocumentMediaUploadMode Mode { get; set; } = DocumentMediaUploadMode.CreateDocument;
+    [Parameter] public DocumentUploadPreset Preset { get; set; } = DocumentUploadPreset.All;
+    [Parameter] public Guid CompanyId { get; set; }
+    [Parameter] public Guid? DocumentId { get; set; }
+    [Parameter] public string? SourceModule { get; set; }
+    [Parameter] public string? SourceEntity { get; set; }
+    [Parameter] public Guid? SourceRecordId { get; set; }
+    [Parameter] public bool CanEditSource { get; set; } = true;
+    [Parameter] public bool IsBusy { get; set; }
+    [Parameter] public RenderFragment? Actions { get; set; }
+    [Parameter] public EventCallback<Guid> OnDocumentCreated { get; set; }
+    [Parameter] public EventCallback OnVersionUploaded { get; set; }
+    [Parameter] public string? CreateButtonText { get; set; }
+    [Parameter] public string? UploadButtonText { get; set; }
+
+    private readonly CreateDocumentDto createModel = new();
+    private DocumentUploadOptionsDto uploadOptions = DefaultUploadOptions();
+    private IBrowserFile? selectedFile;
+    private string sourceRecordIdText = string.Empty;
+    private string? validationMessage;
+    private bool internalBusy;
+    private DocumentUploadPreset selectedPreset;
+
+    private bool Busy => IsBusy || internalBusy;
+    private bool CanSubmitCreate => !Busy && selectedFile is not null && string.IsNullOrWhiteSpace(validationMessage) && !string.IsNullOrWhiteSpace(createModel.Title);
+    private bool CanSubmitVersion => !Busy && DocumentId.HasValue && selectedFile is not null && string.IsNullOrWhiteSpace(validationMessage);
+    private string Accept => string.Join(',', AllowedExtensions());
+    private string CreateButtonLabel => CreateButtonText ?? Text("Create", "إنشاء");
+    private string UploadButtonLabel => UploadButtonText ?? Text("Upload version", "رفع إصدار");
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        selectedPreset = Preset;
+        var response = await DocumentService.GetUploadOptionsAsync();
+        if (response.IsSuccess && response.Data is not null)
+            uploadOptions = response.Data;
+    }
+
+    protected override void OnParametersSet()
+    {
+        createModel.CompanyId = CompanyId;
+        if (SourceModule is not null)
+            createModel.SourceModule = SourceModule;
+        if (SourceEntity is not null)
+            createModel.SourceEntity = SourceEntity;
+        if (SourceRecordId.HasValue)
+            sourceRecordIdText = SourceRecordId.Value.ToString();
+
+        if (selectedPreset == default && Preset != default)
+            selectedPreset = Preset;
+    }
+
+    private RenderFragment FileSummary => @<div>
+        @if (selectedFile is not null)
+        {
+            <div class="small text-muted">
+                <i class="@PresetIcon"></i>
+                @selectedFile.Name - @FormatFileSize(selectedFile.Size)
+            </div>
+        }
+        <div class="small text-muted">
+            <i class="bi bi-shield-check"></i>
+            @Text("Policy", "سياسة الرفع"): @PresetText(selectedPreset)
+            <span class="mx-1">|</span>
+            @Text("Max", "الحد الأقصى"): @FormatFileSize(uploadOptions.MaxFileSizeBytes)
+        </div>
+        <div class="small text-muted">@Text("Allowed", "المسموح"): @AllowedExtensionsText</div>
+        @if (!string.IsNullOrWhiteSpace(validationMessage))
+        {
+            <div class="text-danger small">@validationMessage</div>
+        }
+    </div>;
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        validationMessage = ValidateFile(selectedFile);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnPresetChanged(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<DocumentUploadPreset>(e.Value?.ToString(), out var preset))
+            selectedPreset = preset;
+
+        if (selectedFile is not null)
+            validationMessage = ValidateFile(selectedFile);
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SubmitCreate()
+    {
+        if (!CanSubmitCreate || selectedFile is null)
+            return;
+
+        if (!ApplySourceRecordId())
+            return;
+
+        internalBusy = true;
+        var response = await DocumentService.CreateAsync(createModel, selectedFile);
+        internalBusy = false;
+
+        if (response.IsSuccess && response.Data is not null)
+        {
+            ToastService.ShowSuccess(Text("Document created.", "تم إنشاء المستند."));
+            await OnDocumentCreated.InvokeAsync(response.Data.Id);
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Document could not be created.", "تعذر إنشاء المستند."));
+        }
+    }
+
+    private async Task SubmitVersion()
+    {
+        if (!CanSubmitVersion || selectedFile is null || !DocumentId.HasValue)
+            return;
+
+        internalBusy = true;
+        var response = await DocumentService.UploadVersionAsync(DocumentId.Value, selectedFile);
+        internalBusy = false;
+
+        if (response.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Version uploaded.", "تم رفع الإصدار."));
+            selectedFile = null;
+            await OnVersionUploaded.InvokeAsync();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to upload version.", "تعذر رفع الإصدار."));
+        }
+    }
+
+    private bool ApplySourceRecordId()
+    {
+        if (string.IsNullOrWhiteSpace(sourceRecordIdText))
+        {
+            createModel.SourceRecordId = null;
+            return true;
+        }
+
+        if (Guid.TryParse(sourceRecordIdText, out var sourceRecordId))
+        {
+            createModel.SourceRecordId = sourceRecordId;
+            return true;
+        }
+
+        ToastService.ShowError(Text("Source record id must be a valid GUID.", "رقم السجل المرتبط يجب أن يكون معرف GUID صحيح."));
+        return false;
+    }
+
+    private string? ValidateFile(IBrowserFile file)
+    {
+        if (file.Size == 0)
+            return Text("File cannot be empty.", "لا يمكن أن يكون الملف فارغا.");
+        if (file.Size > uploadOptions.MaxFileSizeBytes)
+            return Text("File is larger than the configured maximum.", "الملف أكبر من الحد الأقصى المكون.");
+
+        var extension = Path.GetExtension(file.Name);
+        if (string.IsNullOrWhiteSpace(extension) || !AllowedExtensions().Contains(extension, StringComparer.OrdinalIgnoreCase))
+            return Text("This file extension is not allowed for the selected upload type.", "امتداد الملف غير مسموح لنوع الرفع المحدد.");
+
+        var contentTypes = AllowedContentTypes();
+        if (!string.IsNullOrWhiteSpace(file.ContentType) && contentTypes.Count > 0 && !contentTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
+            return Text("This file type is not allowed for the selected upload type.", "نوع الملف غير مسموح لنوع الرفع المحدد.");
+
+        return null;
+    }
+
+    private IReadOnlyCollection<string> AllowedExtensions()
+    {
+        var extensions = selectedPreset switch
+        {
+            DocumentUploadPreset.Image => [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"],
+            DocumentUploadPreset.Text => [".txt", ".csv", ".rtf"],
+            DocumentUploadPreset.Pdf => [".pdf"],
+            DocumentUploadPreset.Office => [".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"],
+            DocumentUploadPreset.Video => [".mp4", ".mpeg", ".mov", ".webm"],
+            DocumentUploadPreset.Audio => [".mp3", ".m4a", ".wav", ".webm"],
+            DocumentUploadPreset.Other => [".zip", ".bin"],
+            _ => uploadOptions.AllowedExtensions
+        };
+
+        return extensions.Where(x => uploadOptions.AllowedExtensions.Contains(x, StringComparer.OrdinalIgnoreCase)).ToList();
+    }
+
+    private IReadOnlyCollection<string> AllowedContentTypes()
+    {
+        var contentTypes = selectedPreset switch
+        {
+            DocumentUploadPreset.Image => ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"],
+            DocumentUploadPreset.Text => ["text/plain", "text/csv", "application/rtf"],
+            DocumentUploadPreset.Pdf => ["application/pdf"],
+            DocumentUploadPreset.Office => [
+                "application/msword",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "application/vnd.ms-excel",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "application/vnd.ms-powerpoint",
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation"],
+            DocumentUploadPreset.Video => ["video/mp4", "video/mpeg", "video/quicktime", "video/webm"],
+            DocumentUploadPreset.Audio => ["audio/mpeg", "audio/mp4", "audio/wav", "audio/webm"],
+            DocumentUploadPreset.Other => ["application/zip", "application/octet-stream"],
+            _ => uploadOptions.AllowedContentTypes
+        };
+
+        return contentTypes.Where(x => uploadOptions.AllowedContentTypes.Contains(x, StringComparer.OrdinalIgnoreCase)).ToList();
+    }
+
+    private string AllowedExtensionsText => string.Join(", ", AllowedExtensions());
+
+    private string PresetIcon => selectedPreset switch
+    {
+        DocumentUploadPreset.Image => "bi bi-image",
+        DocumentUploadPreset.Text => "bi bi-file-text",
+        DocumentUploadPreset.Pdf => "bi bi-file-earmark-pdf",
+        DocumentUploadPreset.Office => "bi bi-file-earmark-richtext",
+        DocumentUploadPreset.Video => "bi bi-camera-video",
+        DocumentUploadPreset.Audio => "bi bi-soundwave",
+        _ => "bi bi-paperclip"
+    };
+
+    private static string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024d:0.#} KB";
+        return $"{bytes / 1024d / 1024d:0.#} MB";
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private static IReadOnlyList<DocumentUploadPreset> UploadPresets =>
+    [
+        DocumentUploadPreset.All,
+        DocumentUploadPreset.Image,
+        DocumentUploadPreset.Text,
+        DocumentUploadPreset.Pdf,
+        DocumentUploadPreset.Office,
+        DocumentUploadPreset.Video,
+        DocumentUploadPreset.Audio,
+        DocumentUploadPreset.Other
+    ];
+
+    private string PresetText(DocumentUploadPreset preset) => preset switch
+    {
+        DocumentUploadPreset.Image => Text("Image", "صورة"),
+        DocumentUploadPreset.Text => Text("Text", "نص"),
+        DocumentUploadPreset.Pdf => Text("PDF", "PDF"),
+        DocumentUploadPreset.Office => Text("Office", "مكتب"),
+        DocumentUploadPreset.Video => Text("Video", "فيديو"),
+        DocumentUploadPreset.Audio => Text("Audio", "صوت"),
+        DocumentUploadPreset.Other => Text("Other", "أخرى"),
+        _ => Text("All media", "كل الوسائط")
+    };
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    private static DocumentUploadOptionsDto DefaultUploadOptions() => new()
+    {
+        MaxFileSizeBytes = 100 * 1024 * 1024,
+        AllowedExtensions =
+        [
+            ".pdf", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".txt", ".csv", ".rtf",
+            ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".mp4", ".mpeg", ".mov",
+            ".webm", ".mp3", ".m4a", ".wav", ".zip", ".bin"
+        ],
+        AllowedContentTypes =
+        [
+            "application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
+            "text/plain", "text/csv", "application/rtf", "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "video/mp4", "video/mpeg", "video/quicktime", "video/webm", "audio/mpeg",
+            "audio/mp4", "audio/wav", "audio/webm", "application/zip", "application/octet-stream"
+        ]
+    };
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

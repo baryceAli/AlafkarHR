@@ -13,6 +13,18 @@ public record GetDocumentsResult(PaginatedResult<DocumentItemDto> Documents);
 public record GetDocumentByIdQuery(Guid Id) : IQuery<GetDocumentByIdResult>;
 public record GetDocumentByIdResult(DocumentDetailDto Document);
 
+public record GetDocumentUploadOptionsQuery() : IQuery<GetDocumentUploadOptionsResult>;
+public record GetDocumentUploadOptionsResult(DocumentUploadOptionsDto Options);
+
+public record GetDocumentUploadPolicyQuery() : IQuery<GetDocumentUploadPolicyResult>;
+public record GetDocumentUploadPolicyResult(DocumentUploadPolicyDto Policy);
+
+public record GetDefaultDocumentUploadPolicyQuery() : IQuery<GetDefaultDocumentUploadPolicyResult>;
+public record GetDefaultDocumentUploadPolicyResult(DocumentUploadPolicyDto Policy);
+
+public record UpdateDocumentUploadPolicyCommand(UpdateDocumentUploadPolicyDto Policy) : ICommand<UpdateDocumentUploadPolicyResult>;
+public record UpdateDocumentUploadPolicyResult(DocumentUploadPolicyDto Policy);
+
 public record CreateDocumentCommand(CreateDocumentDto Document, IFormFile File) : ICommand<CreateDocumentResult>;
 public record CreateDocumentResult(Guid Id);
 
@@ -31,8 +43,11 @@ public record RemoveDocumentCollaboratorResult(bool IsSuccess);
 public record DeleteDocumentCommand(Guid Id) : ICommand<DeleteDocumentResult>;
 public record DeleteDocumentResult(bool IsSuccess);
 
+public record DeleteDocumentStorageCommand(Guid Id) : ICommand<DeleteDocumentStorageResult>;
+public record DeleteDocumentStorageResult(bool IsSuccess);
+
 public record DownloadDocumentVersionQuery(Guid Id, Guid? VersionId) : IQuery<DownloadDocumentVersionResult>;
-public record DownloadDocumentVersionResult(string StoragePath, string OriginalFileName, string ContentType);
+public record DownloadDocumentVersionResult(Stream Stream, string OriginalFileName, string ContentType);
 
 public class CreateDocumentValidator : AbstractValidator<CreateDocumentCommand>
 {
@@ -67,5 +82,15 @@ public class InviteDocumentCollaboratorValidator : AbstractValidator<InviteDocum
         RuleFor(x => x.Collaborator.UserId).NotEmpty();
         RuleFor(x => x.Collaborator.UserName).MaximumLength(256);
         RuleFor(x => x.Collaborator.AccessLevel).IsInEnum();
+    }
+}
+
+public class UpdateDocumentUploadPolicyValidator : AbstractValidator<UpdateDocumentUploadPolicyCommand>
+{
+    public UpdateDocumentUploadPolicyValidator()
+    {
+        RuleFor(x => x.Policy.MaxFileSizeBytes).GreaterThan(0);
+        RuleFor(x => x.Policy.AllowedExtensions).NotEmpty();
+        RuleFor(x => x.Policy.AllowedContentTypes).NotEmpty();
     }
 }

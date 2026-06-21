@@ -6,6 +6,8 @@ public class DocumentVersion : Entity<Guid>
     public int VersionNumber { get; private set; }
     public string OriginalFileName { get; private set; } = string.Empty;
     public string StoragePath { get; private set; } = string.Empty;
+    public string StorageProvider { get; private set; } = DocumentStorageProviders.LocalFileSystem;
+    public string? StorageKey { get; private set; }
     public string ContentType { get; private set; } = string.Empty;
     public long FileSize { get; private set; }
     public Guid UploadedByUserId { get; private set; }
@@ -15,7 +17,16 @@ public class DocumentVersion : Entity<Guid>
     {
     }
 
-    public static DocumentVersion Create(Guid documentId, int versionNumber, string originalFileName, string storagePath, string contentType, long fileSize, Guid uploadedByUserId)
+    public static DocumentVersion Create(
+        Guid documentId,
+        int versionNumber,
+        string originalFileName,
+        string storagePath,
+        string storageProvider,
+        string storageKey,
+        string contentType,
+        long fileSize,
+        Guid uploadedByUserId)
     {
         return new DocumentVersion
         {
@@ -24,6 +35,8 @@ public class DocumentVersion : Entity<Guid>
             VersionNumber = versionNumber,
             OriginalFileName = Path.GetFileName(originalFileName),
             StoragePath = storagePath,
+            StorageProvider = storageProvider,
+            StorageKey = storageKey,
             ContentType = contentType,
             FileSize = fileSize,
             UploadedByUserId = uploadedByUserId,
