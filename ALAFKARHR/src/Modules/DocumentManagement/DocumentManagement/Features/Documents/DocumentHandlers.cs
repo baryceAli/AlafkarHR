@@ -8,6 +8,7 @@ public class GetDocumentsHandler(DocumentManagementDbContext dbContext, IHttpCon
         var companyId = DocumentFeatureHelpers.CurrentCompanyId(httpContextAccessor);
         var currentUserId = DocumentFeatureHelpers.CurrentUserId(httpContextAccessor);
         var manageAll = DocumentFeatureHelpers.HasManageAll(httpContextAccessor);
+        var hasDelete = DocumentFeatureHelpers.HasDelete(httpContextAccessor);
 
         var documents = dbContext.Documents.AsNoTracking()
             .IncludeDetails()
@@ -43,7 +44,7 @@ public class GetDocumentsHandler(DocumentManagementDbContext dbContext, IHttpCon
             .Take(query.Pagination.PageSize)
             .ToListAsync(cancellationToken);
 
-        var dtos = items.Select(x => DocumentFeatureHelpers.ToListDto(x, currentUserId, manageAll)).ToList();
+        var dtos = items.Select(x => DocumentFeatureHelpers.ToListDto(x, currentUserId, manageAll, hasDelete)).ToList();
         return new GetDocumentsResult(new PaginatedResult<DocumentItemDto>(query.Pagination.PageIndex, query.Pagination.PageSize, totalCount, dtos));
     }
 }
@@ -56,6 +57,7 @@ public class GetDocumentByIdHandler(DocumentManagementDbContext dbContext, IHttp
         var companyId = DocumentFeatureHelpers.CurrentCompanyId(httpContextAccessor);
         var currentUserId = DocumentFeatureHelpers.CurrentUserId(httpContextAccessor);
         var manageAll = DocumentFeatureHelpers.HasManageAll(httpContextAccessor);
+        var hasDelete = DocumentFeatureHelpers.HasDelete(httpContextAccessor);
 
         var document = await dbContext.Documents.AsNoTracking()
             .IncludeDetails()
@@ -63,14 +65,83 @@ public class GetDocumentByIdHandler(DocumentManagementDbContext dbContext, IHttp
             ?? throw new NotFoundException($"Document not found: {query.Id}");
 
         DocumentFeatureHelpers.EnsureCanView(document, currentUserId, manageAll);
-        return new GetDocumentByIdResult(DocumentFeatureHelpers.ToDetailDto(document, currentUserId, manageAll));
+        return new GetDocumentByIdResult(DocumentFeatureHelpers.ToDetailDto(document, currentUserId, manageAll, hasDelete));
+    }
+}
+
+public class GetDocumentUploadOptionsHandler(
+    IHttpContextAccessor httpContextAccessor,
+    IDocumentUploadPolicyService uploadPolicyService)
+    : IQueryHandler<GetDocumentUploadOptionsQuery, GetDocumentUploadOptionsResult>
+{
+    public async Task<GetDocumentUploadOptionsResult> Handle(GetDocumentUploadOptionsQuery query, CancellationToken cancellationToken)
+    {
+        var companyId = DocumentFeatureHelpers.CurrentCompanyId(httpContextAccessor);
+        var policy = await uploadPolicyService.GetEffectivePolicyAsync(companyId, cancellationToken);
+        var dto = new DocumentUploadOptionsDto
+        {
+            MaxFileSizeBytes = policy.MaxFileSizeBytes,
+            AllowedContentTypes = policy.AllowedContentTypes,
+            AllowedExtensions = policy.AllowedExtensions
+        };
+
+        return new GetDocumentUploadOptionsResult(dto);
+    }
+}
+
+public class GetDocumentUploadPolicyHandler(
+    IHttpContextAccessor httpContextAccessor,
+    IDocumentUploadPolicyService uploadPolicyService)
+    : IQueryHandler<GetDocumentUploadPolicyQuery, GetDocumentUploadPolicyResult>
+{
+    public async Task<GetDocumentUploadPolicyResult> Handle(GetDocumentUploadPolicyQuery query, CancellationToken cancellationToken)
+    {
+        if (!DocumentFeatureHelpers.HasView(httpContextAccessor) && !DocumentFeatureHelpers.HasConfigure(httpContextAccessor))
+            throw new ForbiddenException("You do not have permission to view document upload policy.");
+
+        var companyId = DocumentFeatureHelpers.CurrentCompanyId(httpContextAccessor);
+        var policy = await uploadPolicyService.GetEffectivePolicyAsync(companyId, cancellationToken);
+        return new GetDocumentUploadPolicyResult(policy);
+    }
+}
+
+public class UpdateDocumentUploadPolicyHandler(
+    IHttpContextAccessor httpContextAccessor,
+    IDocumentUploadPolicyService uploadPolicyService)
+    : ICommandHandler<UpdateDocumentUploadPolicyCommand, UpdateDocumentUploadPolicyResult>
+{
+    public async Task<UpdateDocumentUploadPolicyResult> Handle(UpdateDocumentUploadPolicyCommand command, CancellationToken cancellationToken)
+    {
+        if (!DocumentFeatureHelpers.HasConfigure(httpContextAccessor))
+            throw new ForbiddenException("You do not have permission to configure document upload policy.");
+
+        var companyId = DocumentFeatureHelpers.CurrentCompanyId(httpContextAccessor);
+        var currentUserId = DocumentFeatureHelpers.CurrentUserId(httpContextAccessor);
+        var policy = await uploadPolicyService.UpsertPolicyAsync(companyId, currentUserId, command.Policy, cancellationToken);
+        return new UpdateDocumentUploadPolicyResult(policy);
+    }
+}
+
+public class GetDefaultDocumentUploadPolicyHandler(
+    IHttpContextAccessor httpContextAccessor,
+    IDocumentUploadPolicyService uploadPolicyService)
+    : IQueryHandler<GetDefaultDocumentUploadPolicyQuery, GetDefaultDocumentUploadPolicyResult>
+{
+    public Task<GetDefaultDocumentUploadPolicyResult> Handle(GetDefaultDocumentUploadPolicyQuery query, CancellationToken cancellationToken)
+    {
+        if (!DocumentFeatureHelpers.HasConfigure(httpContextAccessor))
+            throw new ForbiddenException("You do not have permission to configure document upload policy.");
+
+        var companyId = DocumentFeatureHelpers.CurrentCompanyId(httpContextAccessor);
+        return Task.FromResult(new GetDefaultDocumentUploadPolicyResult(uploadPolicyService.GetDefaultPolicy(companyId)));
     }
 }
 
 public class CreateDocumentHandler(
     DocumentManagementDbContext dbContext,
     IHttpContextAccessor httpContextAccessor,
-    IWebHostEnvironment environment)
+    IDocumentStorageProvider storageProvider,
+    IDocumentUploadPolicyService uploadPolicyService)
     : ICommandHandler<CreateDocumentCommand, CreateDocumentResult>
 {
     public async Task<CreateDocumentResult> Handle(CreateDocumentCommand command, CancellationToken cancellationToken)
@@ -82,8 +153,10 @@ public class CreateDocumentHandler(
         var currentUserId = DocumentFeatureHelpers.CurrentUserId(httpContextAccessor);
         var document = DocumentItem.Create(companyId, currentUserId, command.Document);
         var provisionalVersionId = Guid.NewGuid();
-        var savedFile = await DocumentFeatureHelpers.SaveVersionFileAsync(command.File, environment, companyId, document.Id, provisionalVersionId, cancellationToken);
-        document.AddVersion(command.File.FileName, savedFile.StoragePath, command.File.ContentType, savedFile.FileSize, currentUserId);
+        var uploadPolicy = await uploadPolicyService.GetEffectivePolicyAsync(companyId, cancellationToken);
+        DocumentFeatureHelpers.ValidateVersionFile(command.File, uploadPolicy);
+        var savedFile = await storageProvider.SaveAsync(new DocumentStorageSaveRequest(command.File, companyId, document.Id, provisionalVersionId), cancellationToken);
+        document.AddVersion(command.File.FileName, savedFile.StoragePath, savedFile.Provider, savedFile.StorageKey, command.File.ContentType, savedFile.FileSize, currentUserId);
 
         dbContext.Documents.Add(document);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -115,7 +188,8 @@ public class UpdateDocumentHandler(DocumentManagementDbContext dbContext, IHttpC
 public class UploadDocumentVersionHandler(
     DocumentManagementDbContext dbContext,
     IHttpContextAccessor httpContextAccessor,
-    IWebHostEnvironment environment)
+    IDocumentStorageProvider storageProvider,
+    IDocumentUploadPolicyService uploadPolicyService)
     : ICommandHandler<UploadDocumentVersionCommand, UploadDocumentVersionResult>
 {
     public async Task<UploadDocumentVersionResult> Handle(UploadDocumentVersionCommand command, CancellationToken cancellationToken)
@@ -130,8 +204,10 @@ public class UploadDocumentVersionHandler(
 
         DocumentFeatureHelpers.EnsureCanWrite(document, currentUserId, manageAll);
         var provisionalVersionId = Guid.NewGuid();
-        var savedFile = await DocumentFeatureHelpers.SaveVersionFileAsync(command.File, environment, companyId, document.Id, provisionalVersionId, cancellationToken);
-        var version = document.AddVersion(command.File.FileName, savedFile.StoragePath, command.File.ContentType, savedFile.FileSize, currentUserId);
+        var uploadPolicy = await uploadPolicyService.GetEffectivePolicyAsync(companyId, cancellationToken);
+        DocumentFeatureHelpers.ValidateVersionFile(command.File, uploadPolicy);
+        var savedFile = await storageProvider.SaveAsync(new DocumentStorageSaveRequest(command.File, companyId, document.Id, provisionalVersionId), cancellationToken);
+        var version = document.AddVersion(command.File.FileName, savedFile.StoragePath, savedFile.Provider, savedFile.StorageKey, command.File.ContentType, savedFile.FileSize, currentUserId);
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return new UploadDocumentVersionResult(version.Id, version.VersionNumber);
@@ -198,7 +274,41 @@ public class DeleteDocumentHandler(DocumentManagementDbContext dbContext, IHttpC
     }
 }
 
-public class DownloadDocumentVersionHandler(DocumentManagementDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class DeleteDocumentStorageHandler(
+    DocumentManagementDbContext dbContext,
+    IHttpContextAccessor httpContextAccessor,
+    IDocumentStorageProvider storageProvider)
+    : ICommandHandler<DeleteDocumentStorageCommand, DeleteDocumentStorageResult>
+{
+    public async Task<DeleteDocumentStorageResult> Handle(DeleteDocumentStorageCommand command, CancellationToken cancellationToken)
+    {
+        var companyId = DocumentFeatureHelpers.CurrentCompanyId(httpContextAccessor);
+        var currentUserId = DocumentFeatureHelpers.CurrentUserId(httpContextAccessor);
+        var manageAll = DocumentFeatureHelpers.HasManageAll(httpContextAccessor);
+
+        var document = await dbContext.Documents.IgnoreQueryFilters().IncludeDetails()
+            .FirstOrDefaultAsync(x => x.Id == command.Id && x.CompanyId == companyId, cancellationToken)
+            ?? throw new NotFoundException($"Document not found: {command.Id}");
+
+        DocumentFeatureHelpers.EnsureCanShare(document, currentUserId, manageAll);
+
+        foreach (var version in document.Versions)
+        {
+            await storageProvider.DeleteAsync(version, cancellationToken);
+        }
+
+        if (!document.IsDeleted)
+            document.Remove(currentUserId);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new DeleteDocumentStorageResult(true);
+    }
+}
+
+public class DownloadDocumentVersionHandler(
+    DocumentManagementDbContext dbContext,
+    IHttpContextAccessor httpContextAccessor,
+    IDocumentStorageProvider storageProvider)
     : IQueryHandler<DownloadDocumentVersionQuery, DownloadDocumentVersionResult>
 {
     public async Task<DownloadDocumentVersionResult> Handle(DownloadDocumentVersionQuery query, CancellationToken cancellationToken)
@@ -220,9 +330,8 @@ public class DownloadDocumentVersionHandler(DocumentManagementDbContext dbContex
 
         if (version is null)
             throw new NotFoundException("Document version not found.");
-        if (!File.Exists(version.StoragePath))
-            throw new NotFoundException("Document file not found in storage.");
 
-        return new DownloadDocumentVersionResult(version.StoragePath, version.OriginalFileName, version.ContentType);
+        var file = await storageProvider.OpenReadAsync(version, cancellationToken);
+        return new DownloadDocumentVersionResult(file.Stream, version.OriginalFileName, version.ContentType);
     }
 }

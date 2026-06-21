@@ -897,8 +897,9 @@ public static class PermissionList
         public static string Delete { get; set; } = $"{GroupName}.Delete";
         public static string Share { get; set; } = $"{GroupName}.Share";
         public static string ManageAll { get; set; } = $"{GroupName}.ManageAll";
+        public static string Configure { get; set; } = $"{GroupName}.Configure";
 
-        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Share, ManageAll];
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Share, ManageAll, Configure];
     }
 
     public static class PricingPermissions

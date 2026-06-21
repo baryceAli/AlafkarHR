@@ -1029,6 +1029,14 @@ public class MenuItem
                     Icon = "bi-link-45deg",
                     Url = "/DocumentManagement/SourceDocuments",
                     PermissionPolicy = PermissionList.DocumentManagementPermissions.View,
+                },
+                new MenuItem
+                {
+                    TextEn = "Upload Rules",
+                    TextAr = "قواعد الرفع",
+                    Icon = "bi-shield-check",
+                    Url = "/DocumentManagement/UploadPolicy",
+                    PermissionPolicy = PermissionList.DocumentManagementPermissions.Configure,
                 }
             }
         },

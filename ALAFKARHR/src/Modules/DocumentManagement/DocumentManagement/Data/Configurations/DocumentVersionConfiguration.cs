@@ -9,6 +9,11 @@ public class DocumentVersionConfiguration : IEntityTypeConfiguration<DocumentVer
 
         builder.Property(x => x.OriginalFileName).HasMaxLength(260).IsRequired();
         builder.Property(x => x.StoragePath).HasMaxLength(1000).IsRequired();
+        builder.Property(x => x.StorageProvider)
+            .HasMaxLength(100)
+            .HasDefaultValue(DocumentStorageProviders.LocalFileSystem)
+            .IsRequired();
+        builder.Property(x => x.StorageKey).HasMaxLength(1000);
         builder.Property(x => x.ContentType).HasMaxLength(200).IsRequired();
         builder.Property(x => x.CreatedBy).HasMaxLength(100);
         builder.Property(x => x.ModifiedBy).HasMaxLength(100);

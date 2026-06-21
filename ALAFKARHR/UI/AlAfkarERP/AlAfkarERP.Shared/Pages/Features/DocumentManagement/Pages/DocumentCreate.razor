@@ -1,18 +1,15 @@
-@layout AdminLayout
+﻿@layout AdminLayout
 @page "/DocumentManagement/Create"
 @implements IDisposable
 
-@using AlAfkarERP.Shared.Pages.Features.DocumentManagement.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
-@using SharedWithUI.DocumentManagement.Dtos
+@using SharedWithUI.DocumentManagement.Enums
 @using SharedWithUI.Permissions
 
-@inject IDocumentManagementService DocumentService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
-@inject ToastService ToastService
 
 <div class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("New Document", "مستند جديد")"
@@ -27,41 +24,18 @@
     else
     {
         <AppCard Title="@Text("Document information", "بيانات المستند")">
-            <EditForm Model="@document" OnValidSubmit="CreateDocument">
-                <DataAnnotationsValidator />
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">@Text("Title", "العنوان")</label>
-                        <input class="form-control" @bind="document.Title" />
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">@Text("File", "الملف")</label>
-                        <InputFile class="form-control" OnChange="OnFileSelected" />
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label">@Text("Description", "الوصف")</label>
-                        <textarea class="form-control" rows="3" @bind="document.Description"></textarea>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">@Text("Source module", "الوحدة المرتبطة")</label>
-                        <input class="form-control" @bind="document.SourceModule" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">@Text("Source entity", "الكيان المرتبط")</label>
-                        <input class="form-control" @bind="document.SourceEntity" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">@Text("Source record id", "رقم السجل المرتبط")</label>
-                        <input class="form-control" @bind="sourceRecordIdText" />
-                    </div>
-                    <div class="col-12 d-flex justify-content-end gap-2">
-                        <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">@Text("Cancel", "إلغاء")</button>
-                        <button type="submit" class="btn btn-primary" disabled="@(isSaving || selectedFile is null)">
-                            <i class="bi bi-cloud-upload"></i> @Text("Create", "إنشاء")
-                        </button>
-                    </div>
-                </div>
-            </EditForm>
+            <DocumentMediaUpload Mode="DocumentMediaUploadMode.CreateDocument"
+                                 Preset="DocumentUploadPreset.All"
+                                 CompanyId="@companyId"
+                                 SourceModule="@SourceModule"
+                                 SourceEntity="@SourceEntity"
+                                 SourceRecordId="@SourceRecordId"
+                                 OnDocumentCreated="HandleDocumentCreated"
+                                 CreateButtonText="@Text("Create", "إنشاء")">
+                <Actions>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">@Text("Cancel", "إلغاء")</button>
+                </Actions>
+            </DocumentMediaUpload>
         </AppCard>
     }
 </div>
@@ -71,11 +45,8 @@
     [SupplyParameterFromQuery] public string? SourceEntity { get; set; }
     [SupplyParameterFromQuery] public Guid? SourceRecordId { get; set; }
 
-    private CreateDocumentDto document = new();
-    private IBrowserFile? selectedFile;
-    private string sourceRecordIdText = string.Empty;
+    private Guid companyId;
     private bool CanCreate;
-    private bool isSaving;
 
     private RenderFragment HeaderActions => @<button class="btn btn-outline-secondary" @onclick="Cancel">
         <i class="bi bi-arrow-return-left"></i> @Text("Back", "رجوع")
@@ -92,48 +63,10 @@
         }
 
         CanCreate = authState.User.Claims.Any(c => c.Value == PermissionList.DocumentManagementPermissions.Create);
-        Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var companyId);
-        document.CompanyId = companyId;
+        Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId);
     }
 
-    protected override void OnParametersSet()
-    {
-        if (SourceModule is not null)
-            document.SourceModule = SourceModule;
-        if (SourceEntity is not null)
-            document.SourceEntity = SourceEntity;
-        if (SourceRecordId.HasValue)
-            sourceRecordIdText = SourceRecordId.Value.ToString();
-    }
-
-    private void OnFileSelected(InputFileChangeEventArgs e) => selectedFile = e.File;
-
-    private async Task CreateDocument()
-    {
-        if (selectedFile is null || string.IsNullOrWhiteSpace(document.Title))
-            return;
-
-        if (!string.IsNullOrWhiteSpace(sourceRecordIdText) && !Guid.TryParse(sourceRecordIdText, out _))
-        {
-            ToastService.ShowError(Text("Source record id must be a valid GUID.", "رقم السجل المرتبط يجب أن يكون معرف GUID صحيح."));
-            return;
-        }
-
-        document.SourceRecordId = Guid.TryParse(sourceRecordIdText, out var sourceRecordId) ? sourceRecordId : null;
-        isSaving = true;
-        var response = await DocumentService.CreateAsync(document, selectedFile);
-        isSaving = false;
-
-        if (response.IsSuccess)
-        {
-            ToastService.ShowSuccess(Text("Document created.", "تم إنشاء المستند."));
-            NavigationManager.NavigateTo($"/DocumentManagement/View/{response.Data?.Id}");
-        }
-        else
-        {
-            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Document could not be created.", "تعذر إنشاء المستند."));
-        }
-    }
+    private void HandleDocumentCreated(Guid id) => NavigationManager.NavigateTo($"/DocumentManagement/View/{id}");
 
     private void Cancel() => NavigationManager.NavigateTo("/DocumentManagement/List");
 

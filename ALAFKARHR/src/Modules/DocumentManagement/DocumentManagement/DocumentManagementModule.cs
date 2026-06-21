@@ -8,6 +8,17 @@ public static class DocumentManagementModule
     {
         var connectionString = configuration.GetConnectionString("Database");
         services.AddDbContext<DocumentManagementDbContext>(options => options.UseSqlServer(connectionString));
+        services.Configure<DocumentStorageOptions>(configuration.GetSection(DocumentStorageOptions.SectionName));
+        services.AddScoped<IDocumentStorageProvider>(serviceProvider =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<DocumentStorageOptions>>().Value;
+            if (!string.Equals(options.Provider, DocumentStorageProviders.LocalFileSystem, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException($"Document storage provider '{options.Provider}' is not supported by this build.");
+
+            return serviceProvider.GetRequiredService<LocalDocumentStorageProvider>();
+        });
+        services.AddScoped<LocalDocumentStorageProvider>();
+        services.AddScoped<IDocumentUploadPolicyService, DocumentUploadPolicyService>();
         services.AddHttpContextAccessor();
         return services;
     }

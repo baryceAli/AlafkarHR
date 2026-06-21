@@ -1,0 +1,312 @@
+@layout AdminLayout
+@page "/DocumentManagement/UploadPolicy"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.DocumentManagement.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.DocumentManagement.Dtos
+@using SharedWithUI.Permissions
+
+@inject IDocumentManagementService DocumentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Upload Rules", "قواعد الرفع")"
+                Subtitle="@Text("Configure document upload validation for this company.", "تهيئة قواعد التحقق من رفع المستندات لهذه الشركة.")"
+                Icon="bi-shield-check"
+                Actions="@HeaderActions" />
+
+    @if (!CanConfigure)
+    {
+        <div class="alert alert-warning">@Text("You do not have permission to configure document upload rules.", "ليس لديك صلاحية لتهيئة قواعد رفع المستندات.")</div>
+    }
+    else if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center text-muted py-4">@Text("Loading upload rules...", "جاري تحميل قواعد الرفع...")</div>
+        </AppCard>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-lg-4">
+                <AppCard Title="@Text("Storage summary", "ملخص التخزين")" CssClass="mb-3">
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <span class="text-muted">@Text("Provider", "المزود")</span>
+                        <span class="badge bg-secondary">@storageProvider</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <span class="text-muted">@Text("Policy source", "مصدر السياسة")</span>
+                        <span class="badge @(isDefaultPolicy ? "bg-info" : "bg-success")">@PolicySourceText</span>
+                    </div>
+                    <div class="small text-muted pt-3">
+                        @Text("Storage location is configured by deployment settings and is not editable here.", "موقع التخزين يتم ضبطه من إعدادات التشغيل ولا يمكن تعديله هنا.")
+                    </div>
+                </AppCard>
+            </div>
+
+            <div class="col-lg-8">
+                <AppCard Title="@Text("Validation rules", "قواعد التحقق")">
+                    @if (!string.IsNullOrWhiteSpace(validationMessage))
+                    {
+                        <div class="alert alert-warning">@validationMessage</div>
+                    }
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">@Text("Max file size (MB)", "الحد الأقصى للملف (ميجابايت)")</label>
+                            <input type="number" min="1" step="1" class="form-control" @bind="maxFileSizeMb" disabled="@isSaving" />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">@Text("Allowed extensions", "الامتدادات المسموحة")</label>
+                            <div class="input-group mb-2">
+                                <input class="form-control" placeholder=".pdf" @bind="newExtension" disabled="@isSaving" @onkeydown="HandleExtensionKey" />
+                                <button type="button" class="btn btn-outline-primary" @onclick="AddExtension" disabled="@isSaving">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var extension in allowedExtensions)
+                                {
+                                    <span class="badge text-bg-light border d-inline-flex align-items-center gap-1">
+                                        @extension
+                                        <button type="button" class="btn btn-sm p-0 border-0" title="@Text("Remove", "حذف")" @onclick="() => RemoveExtension(extension)" disabled="@isSaving">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">@Text("Allowed MIME types", "أنواع MIME المسموحة")</label>
+                            <div class="input-group mb-2">
+                                <input class="form-control" placeholder="application/pdf" @bind="newContentType" disabled="@isSaving" @onkeydown="HandleContentTypeKey" />
+                                <button type="button" class="btn btn-outline-primary" @onclick="AddContentType" disabled="@isSaving">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var contentType in allowedContentTypes)
+                                {
+                                    <span class="badge text-bg-light border d-inline-flex align-items-center gap-1">
+                                        @contentType
+                                        <button type="button" class="btn btn-sm p-0 border-0" title="@Text("Remove", "حذف")" @onclick="() => RemoveContentType(contentType)" disabled="@isSaving">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private decimal maxFileSizeMb = 100;
+    private readonly List<string> allowedExtensions = [];
+    private readonly List<string> allowedContentTypes = [];
+    private string storageProvider = "LocalFileSystem";
+    private string newExtension = string.Empty;
+    private string newContentType = string.Empty;
+    private string? validationMessage;
+    private bool isDefaultPolicy;
+    private bool isLoading;
+    private bool isSaving;
+    private bool CanConfigure;
+
+    private string PolicySourceText => isDefaultPolicy
+        ? Text("Defaults", "الافتراضية")
+        : Text("Company policy", "سياسة الشركة");
+
+    private RenderFragment HeaderActions => @<div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary" @onclick="LoadDefaults" disabled="@(!CanConfigure || isLoading || isSaving)">
+            <i class="bi bi-arrow-counterclockwise"></i> @Text("Reset to defaults", "استعادة الافتراضي")
+        </button>
+        <button class="btn btn-primary" @onclick="SavePolicy" disabled="@(!CanConfigure || isLoading || isSaving)">
+            <i class="bi bi-save"></i> @Text("Save", "حفظ")
+        </button>
+    </div>;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        CanConfigure = authState.User.Claims.Any(c => c.Value == PermissionList.DocumentManagementPermissions.Configure);
+        if (CanConfigure)
+            await LoadPolicy();
+    }
+
+    private async Task LoadPolicy()
+    {
+        isLoading = true;
+        validationMessage = null;
+        var response = await DocumentService.GetUploadPolicyAsync();
+        isLoading = false;
+
+        if (response.IsSuccess && response.Data is not null)
+            ApplyPolicy(response.Data);
+        else
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load upload rules.", "تعذر تحميل قواعد الرفع."));
+    }
+
+    private async Task LoadDefaults()
+    {
+        validationMessage = null;
+        var response = await DocumentService.GetDefaultUploadPolicyAsync();
+        if (response.IsSuccess && response.Data is not null)
+        {
+            ApplyPolicy(response.Data);
+            ToastService.ShowSuccess(Text("Default rules loaded. Save to apply them.", "تم تحميل القواعد الافتراضية. احفظها لتطبيقها."));
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load default rules.", "تعذر تحميل القواعد الافتراضية."));
+        }
+    }
+
+    private async Task SavePolicy()
+    {
+        validationMessage = ValidatePolicy();
+        if (!string.IsNullOrWhiteSpace(validationMessage))
+            return;
+
+        isSaving = true;
+        var response = await DocumentService.UpdateUploadPolicyAsync(new UpdateDocumentUploadPolicyDto
+        {
+            MaxFileSizeBytes = (long)(maxFileSizeMb * 1024 * 1024),
+            AllowedExtensions = allowedExtensions.ToList(),
+            AllowedContentTypes = allowedContentTypes.ToList()
+        });
+        isSaving = false;
+
+        if (response.IsSuccess && response.Data is not null)
+        {
+            ApplyPolicy(response.Data);
+            ToastService.ShowSuccess(Text("Upload rules saved.", "تم حفظ قواعد الرفع."));
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to save upload rules.", "تعذر حفظ قواعد الرفع."));
+        }
+    }
+
+    private void ApplyPolicy(DocumentUploadPolicyDto policy)
+    {
+        storageProvider = string.IsNullOrWhiteSpace(policy.StorageProvider) ? "LocalFileSystem" : policy.StorageProvider;
+        isDefaultPolicy = policy.IsDefault;
+        maxFileSizeMb = Math.Max(1, Math.Round(policy.MaxFileSizeBytes / 1024m / 1024m, 0));
+        allowedExtensions.Clear();
+        allowedExtensions.AddRange(NormalizeExtensions(policy.AllowedExtensions));
+        allowedContentTypes.Clear();
+        allowedContentTypes.AddRange(NormalizeContentTypes(policy.AllowedContentTypes));
+    }
+
+    private void AddExtension()
+    {
+        var value = NormalizeExtension(newExtension);
+        if (value is null)
+        {
+            validationMessage = Text("Extension must start with a dot and cannot contain path separators.", "يجب أن يبدأ الامتداد بنقطة وألا يحتوي على فواصل مسارات.");
+            return;
+        }
+
+        AddUnique(allowedExtensions, value);
+        newExtension = string.Empty;
+        validationMessage = null;
+    }
+
+    private void AddContentType()
+    {
+        var value = NormalizeContentType(newContentType);
+        if (value is null)
+        {
+            validationMessage = Text("MIME type must contain /, for example application/pdf.", "يجب أن يحتوي نوع MIME على / مثل application/pdf.");
+            return;
+        }
+
+        AddUnique(allowedContentTypes, value);
+        newContentType = string.Empty;
+        validationMessage = null;
+    }
+
+    private void RemoveExtension(string value) => allowedExtensions.Remove(value);
+
+    private void RemoveContentType(string value) => allowedContentTypes.Remove(value);
+
+    private async Task HandleExtensionKey(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+            AddExtension();
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleContentTypeKey(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+            AddContentType();
+        await Task.CompletedTask;
+    }
+
+    private string? ValidatePolicy()
+    {
+        if (maxFileSizeMb <= 0)
+            return Text("Max file size must be greater than zero.", "يجب أن يكون الحد الأقصى للملف أكبر من صفر.");
+        if (allowedExtensions.Count == 0)
+            return Text("Add at least one allowed extension.", "أضف امتدادا واحدا على الأقل.");
+        if (allowedContentTypes.Count == 0)
+            return Text("Add at least one allowed MIME type.", "أضف نوع MIME واحدا على الأقل.");
+        if (allowedExtensions.Any(x => NormalizeExtension(x) is null))
+            return Text("One or more extensions are invalid.", "يوجد امتداد واحد أو أكثر غير صحيح.");
+        if (allowedContentTypes.Any(x => NormalizeContentType(x) is null))
+            return Text("One or more MIME types are invalid.", "يوجد نوع MIME واحد أو أكثر غير صحيح.");
+        return null;
+    }
+
+    private static void AddUnique(List<string> values, string value)
+    {
+        if (!values.Contains(value, StringComparer.OrdinalIgnoreCase))
+            values.Add(value);
+    }
+
+    private static List<string> NormalizeExtensions(IEnumerable<string> values) =>
+        values.Select(NormalizeExtension).Where(x => x is not null).Select(x => x!).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+    private static List<string> NormalizeContentTypes(IEnumerable<string> values) =>
+        values.Select(NormalizeContentType).Where(x => x is not null).Select(x => x!).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+    private static string? NormalizeExtension(string? value)
+    {
+        value = value?.Trim().ToLowerInvariant();
+        return string.IsNullOrWhiteSpace(value) || !value.StartsWith('.') || value.Contains('/') || value.Contains('\\') ? null : value;
+    }
+
+    private static string? NormalizeContentType(string? value)
+    {
+        value = value?.Trim().ToLowerInvariant();
+        return string.IsNullOrWhiteSpace(value) || (value != "application/octet-stream" && !value.Contains('/')) ? null : value;
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

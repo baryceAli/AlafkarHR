@@ -39,9 +39,33 @@ public class DocumentManagementService : BaseApiService, IDocumentManagementServ
         return await SendAsync<DocumentDetailDto>(new HttpRequestMessage(HttpMethod.Get, $"{_path}/{id}"), "document");
     }
 
+    public async Task<ApiResult<DocumentUploadOptionsDto>> GetUploadOptionsAsync()
+    {
+        return await SendAsync<DocumentUploadOptionsDto>(new HttpRequestMessage(HttpMethod.Get, $"{_path}/upload-options"), "options");
+    }
+
+    public async Task<ApiResult<DocumentUploadPolicyDto>> GetUploadPolicyAsync()
+    {
+        return await SendAsync<DocumentUploadPolicyDto>(new HttpRequestMessage(HttpMethod.Get, $"{_path}/upload-policy"), "policy");
+    }
+
+    public async Task<ApiResult<DocumentUploadPolicyDto>> GetDefaultUploadPolicyAsync()
+    {
+        return await SendAsync<DocumentUploadPolicyDto>(new HttpRequestMessage(HttpMethod.Get, $"{_path}/upload-policy/defaults"), "policy");
+    }
+
+    public async Task<ApiResult<DocumentUploadPolicyDto>> UpdateUploadPolicyAsync(UpdateDocumentUploadPolicyDto policy)
+    {
+        return await SendAsync<DocumentUploadPolicyDto>(new HttpRequestMessage(HttpMethod.Put, $"{_path}/upload-policy")
+        {
+            Content = JsonContent.Create(new { Policy = policy })
+        }, "policy");
+    }
+
     public async Task<ApiResult<CreateResponseDto>> CreateAsync(CreateDocumentDto document, IBrowserFile file)
     {
-        var content = FileContent(file);
+        var uploadOptions = await GetUploadOptionsAsync();
+        var content = FileContent(file, uploadOptions.Data?.MaxFileSizeBytes);
         content.Add(new StringContent(document.CompanyId.ToString()), nameof(CreateDocumentDto.CompanyId));
         content.Add(new StringContent(document.Title ?? string.Empty), nameof(CreateDocumentDto.Title));
         if (!string.IsNullOrWhiteSpace(document.Description)) content.Add(new StringContent(document.Description), nameof(CreateDocumentDto.Description));
@@ -62,9 +86,10 @@ public class DocumentManagementService : BaseApiService, IDocumentManagementServ
 
     public async Task<ApiResult<CreateResponseDto>> UploadVersionAsync(Guid id, IBrowserFile file)
     {
+        var uploadOptions = await GetUploadOptionsAsync();
         return await SendAsync<CreateResponseDto>(new HttpRequestMessage(HttpMethod.Post, $"{_path}/{id}/versions")
         {
-            Content = FileContent(file)
+            Content = FileContent(file, uploadOptions.Data?.MaxFileSizeBytes)
         }, null);
     }
 
@@ -84,6 +109,11 @@ public class DocumentManagementService : BaseApiService, IDocumentManagementServ
     public async Task<ApiResult<UpdateDeleteResponseDto>> DeleteAsync(Guid id)
     {
         return await SendAsync<UpdateDeleteResponseDto>(new HttpRequestMessage(HttpMethod.Delete, $"{_path}/{id}"), null);
+    }
+
+    public async Task<ApiResult<UpdateDeleteResponseDto>> DeleteStorageAsync(Guid id)
+    {
+        return await SendAsync<UpdateDeleteResponseDto>(new HttpRequestMessage(HttpMethod.Delete, $"{_path}/{id}/storage"), null);
     }
 
     public async Task<ApiResult<DocumentDownloadDto>> DownloadAsync(Guid id, Guid? versionId = null)
@@ -117,10 +147,10 @@ public class DocumentManagementService : BaseApiService, IDocumentManagementServ
         }
     }
 
-    private static MultipartFormDataContent FileContent(IBrowserFile file)
+    private static MultipartFormDataContent FileContent(IBrowserFile file, long? maxAllowedSize = null)
     {
         var content = new MultipartFormDataContent();
-        var stream = new StreamContent(file.OpenReadStream(10 * 1024 * 1024));
+        var stream = new StreamContent(file.OpenReadStream(maxAllowedSize ?? 100 * 1024 * 1024));
         stream.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
         content.Add(stream, "file", file.Name);
         return content;

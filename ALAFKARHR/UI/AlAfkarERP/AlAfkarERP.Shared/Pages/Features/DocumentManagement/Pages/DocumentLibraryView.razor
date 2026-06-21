@@ -1,4 +1,4 @@
-@implements IDisposable
+﻿@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.DocumentManagement.Services
 @using AlAfkarERP.Shared.Utilities
@@ -12,6 +12,7 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 @inject ToastService ToastService
+@inject ModalService ModalService
 @inject IJSRuntime JS
 
 @if (!CanView)
@@ -83,15 +84,21 @@ else
                                 <td>@SourceText(document)</td>
                                 <td>@AccessText(document)</td>
                                 <td class="text-end">
-                                    <button class="btn btn-sm btn-outline-secondary erp-row-action" title="@Text("View", "عرض")" @onclick='() => NavigationManager.NavigateTo($"/DocumentManagement/View/{document.Id}")'>
+                                    <button class="btn btn-sm btn-outline-secondary erp-row-action" title="@Text("View", "عرض")" disabled="@IsBusy(document.Id)" @onclick='() => NavigationManager.NavigateTo($"/DocumentManagement/View/{document.Id}")'>
                                         <i class="bi bi-eye"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-primary erp-row-action" title="@Text("Download", "تنزيل")" @onclick="() => Download(document.Id)">
+                                    <button class="btn btn-sm btn-outline-primary erp-row-action" title="@Text("Download", "تنزيل")" disabled="@IsBusy(document.Id)" @onclick="() => Download(document.Id)">
                                         <i class="bi bi-download"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-danger erp-row-action" title="@Text("Archive", "أرشفة")" disabled="@(!document.CanDelete)" @onclick="() => DeleteDocument(document.Id)">
+                                    <button class="btn btn-sm btn-outline-danger erp-row-action" title="@Text("Archive metadata only", "أرشفة البيانات فقط")" disabled="@(!document.CanDelete || IsBusy(document.Id))" @onclick="() => ConfirmArchive(document)">
                                         <i class="bi bi-archive"></i>
                                     </button>
+                                    @if (document.CanDeleteStorage)
+                                    {
+                                        <button class="btn btn-sm btn-outline-danger erp-row-action" title="@Text("Delete stored files", "حذف الملفات المخزنة")" disabled="@IsBusy(document.Id)" @onclick="() => ConfirmDeleteStorage(document)">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    }
                                 </td>
                             </tr>
                         }
@@ -130,6 +137,7 @@ else
     private bool CanView;
     private bool CanCreate;
     private bool isLoading;
+    private Guid? busyDocumentId;
 
     private bool HasFixedSourceModule => !CanChangeSourceFilters && !string.IsNullOrWhiteSpace(InitialSourceModule);
     private bool HasFixedSourceEntity => !CanChangeSourceFilters && !string.IsNullOrWhiteSpace(InitialSourceEntity);
@@ -149,8 +157,14 @@ else
             return;
         }
 
-        CanView = true;
+        CanView = authState.User.Claims.Any(c =>
+            c.Value == PermissionList.DocumentManagementPermissions.View
+            || c.Value == PermissionList.DocumentManagementPermissions.Select
+            || c.Value == PermissionList.DocumentManagementPermissions.ManageAll);
         CanCreate = authState.User.Claims.Any(c => c.Value == PermissionList.DocumentManagementPermissions.Create);
+        if (!CanView)
+            return;
+
         ResetSourceFiltersFromParameters();
         await LoadDocuments();
     }
@@ -223,17 +237,79 @@ else
             ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Download failed.", "فشل التنزيل."));
     }
 
+    private bool IsBusy(Guid id) => busyDocumentId == id;
+
+    private async Task ConfirmArchive(DocumentItemDto document)
+    {
+        await ModalService.ShowAsync(new ModalOptions
+        {
+            Title = Text("Archive document", "أرشفة المستند"),
+            Message = Text("Archive metadata only? Stored files will remain in the configured storage location.", "هل تريد أرشفة البيانات فقط؟ ستبقى الملفات في موقع التخزين المكون."),
+            Details = document.Title,
+            ShowCancel = true,
+            Variant = ModalVariant.Warning,
+            OkText = Text("Archive", "أرشفة"),
+            CancelText = Text("Cancel", "إلغاء"),
+            OnOk = async () => await DeleteDocument(document.Id)
+        });
+    }
+
     private async Task DeleteDocument(Guid id)
     {
-        var response = await DocumentService.DeleteAsync(id);
-        if (response.IsSuccess)
+        busyDocumentId = id;
+        try
         {
-            ToastService.ShowSuccess(Text("Document archived.", "تمت أرشفة المستند."));
-            await LoadDocuments();
+            var response = await DocumentService.DeleteAsync(id);
+            if (response.IsSuccess)
+            {
+                ToastService.ShowSuccess(Text("Document archived.", "تمت أرشفة المستند."));
+                await LoadDocuments();
+            }
+            else
+            {
+                ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to archive document.", "تعذر أرشفة المستند."));
+            }
         }
-        else
+        finally
         {
-            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to archive document.", "تعذر أرشفة المستند."));
+            busyDocumentId = null;
+        }
+    }
+
+    private async Task ConfirmDeleteStorage(DocumentItemDto document)
+    {
+        await ModalService.ShowAsync(new ModalOptions
+        {
+            Title = Text("Delete stored files", "حذف الملفات المخزنة"),
+            Message = Text("Delete every stored version file, then archive the document metadata? This requires document delete permission.", "هل تريد حذف كل ملفات الإصدارات المخزنة ثم أرشفة بيانات المستند؟ يتطلب ذلك صلاحية حذف المستندات."),
+            Details = document.Title,
+            ShowCancel = true,
+            Variant = ModalVariant.Danger,
+            OkText = Text("Delete files", "حذف الملفات"),
+            CancelText = Text("Cancel", "إلغاء"),
+            OnOk = async () => await DeleteDocumentStorage(document.Id)
+        });
+    }
+
+    private async Task DeleteDocumentStorage(Guid id)
+    {
+        busyDocumentId = id;
+        try
+        {
+            var response = await DocumentService.DeleteStorageAsync(id);
+            if (response.IsSuccess)
+            {
+                ToastService.ShowSuccess(Text("Stored files deleted and document archived.", "تم حذف الملفات المخزنة وأرشفة المستند."));
+                await LoadDocuments();
+            }
+            else
+            {
+                ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to delete stored files.", "تعذر حذف الملفات المخزنة."));
+            }
+        }
+        finally
+        {
+            busyDocumentId = null;
         }
     }
 
