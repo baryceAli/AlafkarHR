@@ -1,6 +1,7 @@
 @layout AdminLayout
 @page "/GeneralSettings/HomePageTemplates"
 @using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Components
 @using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
@@ -76,6 +77,10 @@
                                 <strong>@TemplateName(template)</strong>
                                 <small>@TemplateDescription(template)</small>
                             </span>
+                            <span class="template-option-preview">
+                                <HomePageTemplatePreview TemplateKey="@template.Key"
+                                                         Direction="@SharedDataService.PageDirection" />
+                            </span>
                             @if (isActive)
                             {
                                 <span class="template-active-chip">@Text("Active", "نشط")</span>
@@ -96,10 +101,10 @@
                         }
                         @Text("Set Active Template", "تعيين القالب النشط")
                     </button>
-                    <button class="btn btn-outline-secondary" type="button" @onclick="PreviewPublicPage">
+                    <a class="btn btn-outline-secondary" href="/" target="_blank" rel="noopener noreferrer">
                         <i class="bi bi-box-arrow-up-right"></i>
                         @Text("Open Public Page", "فتح الصفحة العامة")
-                    </button>
+                    </a>
                 </div>
             </section>
 
@@ -317,11 +322,6 @@
         homePage.ContentItems.AddRange(savedItems);
     }
 
-    private void PreviewPublicPage()
-    {
-        NavigationManager.NavigateTo("/", forceLoad: true);
-    }
-
     private static bool IsImage(HomePageContentItemDto item)
         => string.Equals(item.ContentType, "Image", StringComparison.OrdinalIgnoreCase);
 
@@ -352,10 +352,11 @@
 
     private string TemplateIcon(string templateKey) => templateKey switch
     {
-        HomePageTemplateKeys.CorporateShowcase => "bi bi-buildings",
-        HomePageTemplateKeys.ProductHighlight => "bi bi-stars",
-        HomePageTemplateKeys.CampaignLanding => "bi bi-megaphone",
-        HomePageTemplateKeys.MinimalCatalog => "bi bi-search",
+        HomePageTemplateKeys.MinimalistLanding => "bi bi-bounding-box",
+        HomePageTemplateKeys.SoftSaasLanding => "bi bi-magic",
+        HomePageTemplateKeys.BoldEnergeticLanding => "bi bi-lightning-charge",
+        HomePageTemplateKeys.CorporateTrustLanding => "bi bi-buildings",
+        HomePageTemplateKeys.ModernDarkModeLanding => "bi bi-cpu",
         _ => "bi bi-shop"
     };
 
@@ -440,7 +441,9 @@
         display: grid;
         gap: var(--erp-space-3);
         grid-template-columns: auto 1fr;
-        min-block-size: 132px;
+        min-block-size: 300px;
+        min-inline-size: 0;
+        overflow: hidden;
         padding: var(--erp-space-4);
         position: relative;
         text-align: start;
@@ -470,11 +473,20 @@
 
     .template-option-copy strong {
         font-size: var(--erp-font-size-md);
+        overflow-wrap: anywhere;
     }
 
     .template-option-copy small {
         color: var(--erp-text-muted);
         line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+
+    .template-option-preview {
+        display: block;
+        grid-column: 1 / -1;
+        inline-size: 100%;
+        min-inline-size: 0;
     }
 
     .template-active-chip {
@@ -563,5 +575,21 @@
         inline-size: min(240px, 100%);
         object-fit: contain;
         padding: var(--erp-space-2);
+    }
+
+    @@media (max-width: 575.98px) {
+        .template-picker-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .template-option {
+            grid-template-columns: minmax(0, 1fr);
+            min-block-size: 0;
+        }
+
+        .template-active-chip {
+            justify-self: start;
+            position: static;
+        }
     }
 </style>

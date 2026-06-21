@@ -181,14 +181,18 @@ internal static class HomePageTemplateStore
         string userId,
         CancellationToken cancellationToken)
     {
-        var selectionExists = await dbContext.HomePageTemplateSelections
-            .AnyAsync(x => x.CompanyId == companyId, cancellationToken);
+        var selection = await dbContext.HomePageTemplateSelections
+            .FirstOrDefaultAsync(x => x.CompanyId == companyId, cancellationToken);
 
-        if (!selectionExists)
+        if (selection is null)
         {
             await dbContext.HomePageTemplateSelections.AddAsync(
                 HomePageTemplateSelection.Create(Guid.NewGuid(), companyId, HomePageTemplateKeys.CurrentStorefront, userId),
                 cancellationToken);
+        }
+        else if (!HomePageTemplateKeys.IsValid(selection.ActiveTemplateKey))
+        {
+            selection.SetActiveTemplate(HomePageTemplateKeys.CurrentStorefront, userId);
         }
 
         foreach (var templateKey in HomePageTemplateKeys.All)
@@ -215,10 +219,11 @@ internal static class HomePageTemplateStore
         CancellationToken cancellationToken)
         => templateKey switch
         {
-            HomePageTemplateKeys.CorporateShowcase => await QueryContent<CorporateShowcaseHomePageContent>(dbContext, companyId, templateKey, cancellationToken),
-            HomePageTemplateKeys.ProductHighlight => await QueryContent<ProductHighlightHomePageContent>(dbContext, companyId, templateKey, cancellationToken),
-            HomePageTemplateKeys.CampaignLanding => await QueryContent<CampaignLandingHomePageContent>(dbContext, companyId, templateKey, cancellationToken),
-            HomePageTemplateKeys.MinimalCatalog => await QueryContent<MinimalCatalogHomePageContent>(dbContext, companyId, templateKey, cancellationToken),
+            HomePageTemplateKeys.MinimalistLanding => await QueryContent<MinimalistLandingHomePageContent>(dbContext, companyId, templateKey, cancellationToken),
+            HomePageTemplateKeys.SoftSaasLanding => await QueryContent<SoftSaasLandingHomePageContent>(dbContext, companyId, templateKey, cancellationToken),
+            HomePageTemplateKeys.BoldEnergeticLanding => await QueryContent<BoldEnergeticLandingHomePageContent>(dbContext, companyId, templateKey, cancellationToken),
+            HomePageTemplateKeys.CorporateTrustLanding => await QueryContent<CorporateTrustLandingHomePageContent>(dbContext, companyId, templateKey, cancellationToken),
+            HomePageTemplateKeys.ModernDarkModeLanding => await QueryContent<ModernDarkModeLandingHomePageContent>(dbContext, companyId, templateKey, cancellationToken),
             _ => await QueryContent<CurrentStorefrontHomePageContent>(dbContext, companyId, templateKey, cancellationToken)
         };
 
@@ -235,17 +240,20 @@ internal static class HomePageTemplateStore
     {
         switch (templateKey)
         {
-            case HomePageTemplateKeys.CorporateShowcase:
-                await UpdateContentSetAsync<CorporateShowcaseHomePageContent>(dbContext, companyId, templateKey, contentItems, userId, cancellationToken);
+            case HomePageTemplateKeys.MinimalistLanding:
+                await UpdateContentSetAsync<MinimalistLandingHomePageContent>(dbContext, companyId, templateKey, contentItems, userId, cancellationToken);
                 break;
-            case HomePageTemplateKeys.ProductHighlight:
-                await UpdateContentSetAsync<ProductHighlightHomePageContent>(dbContext, companyId, templateKey, contentItems, userId, cancellationToken);
+            case HomePageTemplateKeys.SoftSaasLanding:
+                await UpdateContentSetAsync<SoftSaasLandingHomePageContent>(dbContext, companyId, templateKey, contentItems, userId, cancellationToken);
                 break;
-            case HomePageTemplateKeys.CampaignLanding:
-                await UpdateContentSetAsync<CampaignLandingHomePageContent>(dbContext, companyId, templateKey, contentItems, userId, cancellationToken);
+            case HomePageTemplateKeys.BoldEnergeticLanding:
+                await UpdateContentSetAsync<BoldEnergeticLandingHomePageContent>(dbContext, companyId, templateKey, contentItems, userId, cancellationToken);
                 break;
-            case HomePageTemplateKeys.MinimalCatalog:
-                await UpdateContentSetAsync<MinimalCatalogHomePageContent>(dbContext, companyId, templateKey, contentItems, userId, cancellationToken);
+            case HomePageTemplateKeys.CorporateTrustLanding:
+                await UpdateContentSetAsync<CorporateTrustLandingHomePageContent>(dbContext, companyId, templateKey, contentItems, userId, cancellationToken);
+                break;
+            case HomePageTemplateKeys.ModernDarkModeLanding:
+                await UpdateContentSetAsync<ModernDarkModeLandingHomePageContent>(dbContext, companyId, templateKey, contentItems, userId, cancellationToken);
                 break;
             default:
                 await UpdateContentSetAsync<CurrentStorefrontHomePageContent>(dbContext, companyId, templateKey, contentItems, userId, cancellationToken);
@@ -336,10 +344,11 @@ internal static class HomePageTemplateStore
     private static HomePageTemplateContent CreateContent(string templateKey, HomePageContentSeed seed, string createdBy)
         => templateKey switch
         {
-            HomePageTemplateKeys.CorporateShowcase => CorporateShowcaseHomePageContent.Create(seed, createdBy),
-            HomePageTemplateKeys.ProductHighlight => ProductHighlightHomePageContent.Create(seed, createdBy),
-            HomePageTemplateKeys.CampaignLanding => CampaignLandingHomePageContent.Create(seed, createdBy),
-            HomePageTemplateKeys.MinimalCatalog => MinimalCatalogHomePageContent.Create(seed, createdBy),
+            HomePageTemplateKeys.MinimalistLanding => MinimalistLandingHomePageContent.Create(seed, createdBy),
+            HomePageTemplateKeys.SoftSaasLanding => SoftSaasLandingHomePageContent.Create(seed, createdBy),
+            HomePageTemplateKeys.BoldEnergeticLanding => BoldEnergeticLandingHomePageContent.Create(seed, createdBy),
+            HomePageTemplateKeys.CorporateTrustLanding => CorporateTrustLandingHomePageContent.Create(seed, createdBy),
+            HomePageTemplateKeys.ModernDarkModeLanding => ModernDarkModeLandingHomePageContent.Create(seed, createdBy),
             _ => CurrentStorefrontHomePageContent.Create(seed, createdBy)
         };
 

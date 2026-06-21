@@ -17,47 +17,61 @@ public static class HomePageTemplateDefaults
         },
         new()
         {
-            Key = HomePageTemplateKeys.CorporateShowcase,
-            NameEn = "Corporate Showcase",
-            NameAr = "واجهة الشركة",
-            DescriptionEn = "A company-first homepage for services, trust points, and operations.",
-            DescriptionAr = "صفحة تركز على الشركة والخدمات ونقاط الثقة والتشغيل."
+            Key = HomePageTemplateKeys.MinimalistLanding,
+            NameEn = "Minimalist Landing",
+            NameAr = "صفحة مبسطة",
+            DescriptionEn = "A high-contrast, structured landing page based on the uploaded minimalist design.",
+            DescriptionAr = "صفحة عالية التباين ومنظمة مستندة إلى التصميم المبسط المرفوع."
         },
         new()
         {
-            Key = HomePageTemplateKeys.ProductHighlight,
-            NameEn = "Product Highlight",
-            NameAr = "إبراز المنتجات",
-            DescriptionEn = "A visual product-led layout with strong catalog entry points.",
-            DescriptionAr = "تصميم بصري يبرز المنتجات مع مداخل واضحة للكتالوج."
+            Key = HomePageTemplateKeys.SoftSaasLanding,
+            NameEn = "Soft SaaS Landing",
+            NameAr = "صفحة ساس ناعمة",
+            DescriptionEn = "A friendly rounded landing page based on the uploaded soft SaaS design.",
+            DescriptionAr = "صفحة ودودة بحواف ناعمة مستندة إلى تصميم الساس الناعم المرفوع."
         },
         new()
         {
-            Key = HomePageTemplateKeys.CampaignLanding,
-            NameEn = "Campaign Landing",
-            NameAr = "صفحة الحملات",
-            DescriptionEn = "A seasonal campaign layout for offers, initiatives, and fast calls to action.",
-            DescriptionAr = "تصميم للحملات الموسمية والعروض والمبادرات ودعوات الإجراء السريعة."
+            Key = HomePageTemplateKeys.BoldEnergeticLanding,
+            NameEn = "Bold Energetic Landing",
+            NameAr = "صفحة جريئة وحيوية",
+            DescriptionEn = "A vibrant, high-motion landing page based on the uploaded bold energetic design.",
+            DescriptionAr = "صفحة حيوية وغنية بالحركة مستندة إلى التصميم الجريء المرفوع."
         },
         new()
         {
-            Key = HomePageTemplateKeys.MinimalCatalog,
-            NameEn = "Minimal Catalog",
-            NameAr = "كتالوج مختصر",
-            DescriptionEn = "A compact homepage focused on search, filtering, and browsing products.",
-            DescriptionAr = "صفحة مختصرة تركز على البحث والتصفية واستعراض المنتجات."
+            Key = HomePageTemplateKeys.CorporateTrustLanding,
+            NameEn = "Corporate Trust Landing",
+            NameAr = "صفحة الثقة المؤسسية",
+            DescriptionEn = "A precise enterprise landing page based on the uploaded corporate trust design.",
+            DescriptionAr = "صفحة مؤسسية دقيقة مستندة إلى تصميم الثقة المؤسسية المرفوع."
+        },
+        new()
+        {
+            Key = HomePageTemplateKeys.ModernDarkModeLanding,
+            NameEn = "Modern Dark Mode Landing",
+            NameAr = "صفحة داكنة حديثة",
+            DescriptionEn = "A neon glass dark landing page based on the uploaded modern dark mode design.",
+            DescriptionAr = "صفحة داكنة بزجاجية مضيئة مستندة إلى التصميم الداكن الحديث المرفوع."
         }
     ];
 
     public static List<HomePageContentSeed> GetDefaultContent(Guid companyId, string templateKey)
-        => templateKey switch
+    {
+        var content = templateKey switch
         {
-            HomePageTemplateKeys.CorporateShowcase => CorporateShowcase(companyId),
-            HomePageTemplateKeys.ProductHighlight => ProductHighlight(companyId),
-            HomePageTemplateKeys.CampaignLanding => CampaignLanding(companyId),
-            HomePageTemplateKeys.MinimalCatalog => MinimalCatalog(companyId),
+            HomePageTemplateKeys.MinimalistLanding => MinimalistLanding(companyId),
+            HomePageTemplateKeys.SoftSaasLanding => SoftSaasLanding(companyId),
+            HomePageTemplateKeys.BoldEnergeticLanding => BoldEnergeticLanding(companyId),
+            HomePageTemplateKeys.CorporateTrustLanding => CorporateTrustLanding(companyId),
+            HomePageTemplateKeys.ModernDarkModeLanding => ModernDarkModeLanding(companyId),
             _ => CurrentStorefront(companyId)
         };
+
+        AddTemplateChrome(companyId, templateKey, content);
+        return content;
+    }
 
     private static List<HomePageContentSeed> CurrentStorefront(Guid companyId) =>
     [
@@ -84,7 +98,7 @@ public static class HomePageTemplateDefaults
         Text(companyId, "Products", "Subtitle", "Filter available catalog products and review price, brand, package, and category details before moving into the ERP workflow.", "صف المنتجات المتاحة في الكتالوج وراجع السعر والعلامة والتغليف والصنف قبل الانتقال إلى سير عمل النظام.", 210)
     ];
 
-    private static List<HomePageContentSeed> CorporateShowcase(Guid companyId) =>
+    private static List<HomePageContentSeed> MinimalistLanding(Guid companyId) =>
     [
         Text(companyId, "Hero", "Eyebrow", "Operational catering partner", "شريك تشغيل الإعاشة", 10),
         Text(companyId, "Hero", "Title", "Reliable meal operations for teams, campaigns, and field sites.", "تشغيل موثوق للوجبات للفرق والحملات والمواقع الميدانية.", 20),
@@ -109,7 +123,7 @@ public static class HomePageTemplateDefaults
         Text(companyId, "Products", "Subtitle", "Search, filter, and compare product details from the tenant catalog.", "ابحث وصف وقارن تفاصيل المنتجات من كتالوج الشركة.", 210)
     ];
 
-    private static List<HomePageContentSeed> ProductHighlight(Guid companyId) =>
+    private static List<HomePageContentSeed> SoftSaasLanding(Guid companyId) =>
     [
         Text(companyId, "Hero", "Eyebrow", "Featured products", "منتجات مميزة", 10),
         Text(companyId, "Hero", "Title", "Put your best meal packages at the front of the store.", "ضع أفضل باقات الوجبات في واجهة المتجر.", 20),
@@ -134,7 +148,7 @@ public static class HomePageTemplateDefaults
         Text(companyId, "Products", "Subtitle", "Use filters to narrow the catalog to the products customers need.", "استخدم الفلاتر لتضييق الكتالوج إلى المنتجات التي يحتاجها العملاء.", 210)
     ];
 
-    private static List<HomePageContentSeed> CampaignLanding(Guid companyId) =>
+    private static List<HomePageContentSeed> BoldEnergeticLanding(Guid companyId) =>
     [
         Text(companyId, "Hero", "Eyebrow", "Seasonal campaign", "حملة موسمية", 10),
         Text(companyId, "Hero", "Title", "Launch focused meal campaigns with editable public content.", "أطلق حملات وجبات مركزة بمحتوى عام قابل للتعديل.", 20),
@@ -159,7 +173,7 @@ public static class HomePageTemplateDefaults
         Text(companyId, "Products", "Subtitle", "Filter the tenant catalog to match campaign needs and budgets.", "صف كتالوج الشركة بما يناسب احتياجات الحملة وميزانيتها.", 210)
     ];
 
-    private static List<HomePageContentSeed> MinimalCatalog(Guid companyId) =>
+    private static List<HomePageContentSeed> CorporateTrustLanding(Guid companyId) =>
     [
         Text(companyId, "Hero", "Eyebrow", "Fast catalog", "كتالوج سريع", 10),
         Text(companyId, "Hero", "Title", "Search, filter, and choose products faster.", "ابحث وصف واختر المنتجات بسرعة أكبر.", 20),
@@ -184,9 +198,80 @@ public static class HomePageTemplateDefaults
         Text(companyId, "Products", "Subtitle", "Use search and filters to find the right product quickly.", "استخدم البحث والفلاتر للعثور على المنتج المناسب بسرعة.", 210)
     ];
 
+    private static List<HomePageContentSeed> ModernDarkModeLanding(Guid companyId) =>
+    [
+        Text(companyId, "Hero", "Eyebrow", "Version 5.0 is Live", "الإصدار 5.0 متاح الآن", 10),
+        Text(companyId, "Hero", "Title", "Next-gen workflow orchestration.", "تنسيق سير عمل من الجيل التالي.", 20),
+        Text(companyId, "Hero", "Subtitle", "A dark, glassy template for technology-forward brands with luminous calls to action.", "قالب داكن وزجاجي للعلامات التقنية مع دعوات إجراء مضيئة.", 30),
+        Text(companyId, "Hero", "PrimaryButtonText", "Get Started", "ابدأ الآن", 40),
+        Text(companyId, "Hero", "PrimaryButtonUrl", "#pricing", "#pricing", 50),
+        Text(companyId, "Hero", "SecondaryButtonText", "Explore Platform", "استكشف المنصة", 60),
+        Text(companyId, "Hero", "SecondaryButtonUrl", "#features", "#features", 70),
+        Image(companyId, "Hero", "HeroImage", "https://lh3.googleusercontent.com/aida-public/AB6AXuAjeYOzP3890pCOKWLFb2A65_3QDzsc5ynJdh_zw4YUEdcrpugDJJZ2pjMzZwYVo_NUrL-GQKBLJhqfXhK9t8S2lgyfH3ooo-6Khknb3s_WG3RPPMQVrrptfouTlKj_ozcGUsAoKfgOM6M_zAfurFmEe1_39Tdr5tCv0loBZy3zAyMumxe_0r4FgLuHeLL2VGIBcW4Y3Z5ZNsc1VcyvNHBPFbWc0grxNfYwLOB9PinFduR1XH0DmCe8qBAZXH-4_GV9WgbMNPxcj6-T", "Dark futuristic dashboard", "لوحة داكنة مستقبلية", 80),
+        Text(companyId, "Hero", "Badge", "Neon glass", "زجاج مضيء", 90),
+        Text(companyId, "Hero", "CardTitle", "Autonomous workflows that adapt to teams.", "سير عمل ذاتي يتكيف مع الفرق.", 100),
+        Text(companyId, "Hero", "CardSubtitle", "Visualize complex operations in a precise dark-mode experience.", "اعرض العمليات المعقدة في تجربة داكنة دقيقة.", 110),
+        Text(companyId, "Hero", "DeliveryNote", "Built for high-stress operational environments.", "مصمم للبيئات التشغيلية عالية الضغط.", 120),
+        Text(companyId, "Feature1", "Title", "Autonomous Workflows", "سير عمل ذاتي", 130),
+        Text(companyId, "Feature1", "Text", "AI-driven task orchestration that learns from team behavior.", "تنسيق مهام مدعوم بالذكاء يتعلم من سلوك الفريق.", 140),
+        Text(companyId, "Feature2", "Title", "Instant Insights", "رؤى فورية", 150),
+        Text(companyId, "Feature2", "Text", "Visualize complex datasets in milliseconds.", "اعرض البيانات المعقدة خلال لحظات.", 160),
+        Text(companyId, "Feature3", "Title", "Quantum Shield", "درع متقدم", 170),
+        Text(companyId, "Feature3", "Text", "End-to-end encryption for every data byte.", "تشفير شامل لكل جزء من البيانات.", 180),
+        Text(companyId, "Products", "Kicker", "Platform", "المنصة", 190),
+        Text(companyId, "Products", "Title", "Deploy a next-generation public experience.", "انشر تجربة عامة من الجيل التالي.", 200),
+        Text(companyId, "Products", "Subtitle", "Use this template when the brand needs a premium, dark, technology-forward presence.", "استخدم هذا القالب عندما تحتاج العلامة إلى حضور تقني داكن وفاخر.", 210)
+    ];
+
     private static HomePageContentSeed Text(Guid companyId, string section, string field, string en, string ar, int sortOrder)
         => new(companyId, section, field, "Text", en, ar, string.Empty, string.Empty, string.Empty, sortOrder, true);
 
     private static HomePageContentSeed Image(Guid companyId, string section, string field, string imagePath, string altEn, string altAr, int sortOrder)
         => new(companyId, section, field, "Image", string.Empty, string.Empty, imagePath, altEn, altAr, sortOrder, true);
+
+    private static void AddTemplateChrome(Guid companyId, string templateKey, List<HomePageContentSeed> content)
+    {
+        var brand = templateKey switch
+        {
+            HomePageTemplateKeys.MinimalistLanding => "Minimal",
+            HomePageTemplateKeys.SoftSaasLanding => "FlowSpace",
+            HomePageTemplateKeys.BoldEnergeticLanding => "Pulse",
+            HomePageTemplateKeys.CorporateTrustLanding => "TrustCo",
+            HomePageTemplateKeys.ModernDarkModeLanding => "Nexus",
+            _ => "ALAFKAR"
+        };
+
+        content.AddRange(
+        [
+            Text(companyId, "Nav", "Brand", brand, brand, 300),
+            Text(companyId, "Nav", "LoginText", "Login", "Login", 310)
+        ]);
+
+        if (templateKey == HomePageTemplateKeys.CurrentStorefront)
+            return;
+
+        content.AddRange(
+        [
+            Text(companyId, "Nav", "Link1", "Features", "Features", 320),
+            Text(companyId, "Nav", "Link1Url", "#features", "#features", 330),
+            Text(companyId, "Nav", "Link2", "Solutions", "Solutions", 340),
+            Text(companyId, "Nav", "Link2Url", "#solutions", "#solutions", 350),
+            Text(companyId, "Nav", "Link3", "Pricing", "Pricing", 360),
+            Text(companyId, "Nav", "Link3Url", "#pricing", "#pricing", 370),
+            Text(companyId, "Nav", "CtaText", "Get Started", "Get Started", 380),
+            Text(companyId, "Nav", "CtaUrl", "#cta", "#cta", 390),
+            Text(companyId, "Stat1", "Value", "99.9%", "99.9%", 400),
+            Text(companyId, "Stat1", "Label", "Uptime", "Uptime", 410),
+            Text(companyId, "Stat2", "Value", "24/7", "24/7", 420),
+            Text(companyId, "Stat2", "Label", "Support", "Support", 430),
+            Text(companyId, "Stat3", "Value", "5x", "5x", 440),
+            Text(companyId, "Stat3", "Label", "Faster launch", "Faster launch", 450),
+            Text(companyId, "Cta", "Title", "Ready to launch your homepage?", "Ready to launch your homepage?", 460),
+            Text(companyId, "Cta", "Text", "Tune every visible section from tenant settings and publish the active template instantly.", "Tune every visible section from tenant settings and publish the active template instantly.", 470),
+            Text(companyId, "Cta", "ButtonText", "Get Started", "Get Started", 480),
+            Text(companyId, "Cta", "ButtonUrl", "#", "#", 490),
+            Text(companyId, "Footer", "Text", "A configurable tenant homepage.", "A configurable tenant homepage.", 500),
+            Text(companyId, "Footer", "Copyright", "© 2026 Alafkar. All rights reserved.", "© 2026 Alafkar. All rights reserved.", 510)
+        ]);
+    }
 }

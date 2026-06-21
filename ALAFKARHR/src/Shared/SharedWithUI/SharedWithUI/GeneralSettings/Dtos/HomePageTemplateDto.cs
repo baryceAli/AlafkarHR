@@ -5,18 +5,20 @@ namespace SharedWithUI.GeneralSettings.Dtos;
 public static class HomePageTemplateKeys
 {
     public const string CurrentStorefront = "CurrentStorefront";
-    public const string CorporateShowcase = "CorporateShowcase";
-    public const string ProductHighlight = "ProductHighlight";
-    public const string CampaignLanding = "CampaignLanding";
-    public const string MinimalCatalog = "MinimalCatalog";
+    public const string MinimalistLanding = "MinimalistLanding";
+    public const string SoftSaasLanding = "SoftSaasLanding";
+    public const string BoldEnergeticLanding = "BoldEnergeticLanding";
+    public const string CorporateTrustLanding = "CorporateTrustLanding";
+    public const string ModernDarkModeLanding = "ModernDarkModeLanding";
 
     public static readonly string[] All =
     [
         CurrentStorefront,
-        CorporateShowcase,
-        ProductHighlight,
-        CampaignLanding,
-        MinimalCatalog
+        MinimalistLanding,
+        SoftSaasLanding,
+        BoldEnergeticLanding,
+        CorporateTrustLanding,
+        ModernDarkModeLanding
     ];
 
     public static bool IsValid(string? key)

@@ -17,10 +17,11 @@ public class GeneralSettingsDbContext:DbContext
     public DbSet<CompanySetting> CompanySettings => Set<CompanySetting>();
     public DbSet<HomePageTemplateSelection> HomePageTemplateSelections => Set<HomePageTemplateSelection>();
     public DbSet<CurrentStorefrontHomePageContent> CurrentStorefrontHomePageContents => Set<CurrentStorefrontHomePageContent>();
-    public DbSet<CorporateShowcaseHomePageContent> CorporateShowcaseHomePageContents => Set<CorporateShowcaseHomePageContent>();
-    public DbSet<ProductHighlightHomePageContent> ProductHighlightHomePageContents => Set<ProductHighlightHomePageContent>();
-    public DbSet<CampaignLandingHomePageContent> CampaignLandingHomePageContents => Set<CampaignLandingHomePageContent>();
-    public DbSet<MinimalCatalogHomePageContent> MinimalCatalogHomePageContents => Set<MinimalCatalogHomePageContent>();
+    public DbSet<MinimalistLandingHomePageContent> MinimalistLandingHomePageContents => Set<MinimalistLandingHomePageContent>();
+    public DbSet<SoftSaasLandingHomePageContent> SoftSaasLandingHomePageContents => Set<SoftSaasLandingHomePageContent>();
+    public DbSet<BoldEnergeticLandingHomePageContent> BoldEnergeticLandingHomePageContents => Set<BoldEnergeticLandingHomePageContent>();
+    public DbSet<CorporateTrustLandingHomePageContent> CorporateTrustLandingHomePageContents => Set<CorporateTrustLandingHomePageContent>();
+    public DbSet<ModernDarkModeLandingHomePageContent> ModernDarkModeLandingHomePageContents => Set<ModernDarkModeLandingHomePageContent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -61,10 +62,11 @@ public class GeneralSettingsDbContext:DbContext
             builder.Property(x => x.AltTextAr).HasMaxLength(300).IsRequired();
         });
         ConfigureHomePageContent<CurrentStorefrontHomePageContent>(modelBuilder, "CurrentStorefrontHomePageContents");
-        ConfigureHomePageContent<CorporateShowcaseHomePageContent>(modelBuilder, "CorporateShowcaseHomePageContents");
-        ConfigureHomePageContent<ProductHighlightHomePageContent>(modelBuilder, "ProductHighlightHomePageContents");
-        ConfigureHomePageContent<CampaignLandingHomePageContent>(modelBuilder, "CampaignLandingHomePageContents");
-        ConfigureHomePageContent<MinimalCatalogHomePageContent>(modelBuilder, "MinimalCatalogHomePageContents");
+        ConfigureHomePageContent<MinimalistLandingHomePageContent>(modelBuilder, "MinimalistLandingHomePageContents");
+        ConfigureHomePageContent<SoftSaasLandingHomePageContent>(modelBuilder, "SoftSaasLandingHomePageContents");
+        ConfigureHomePageContent<BoldEnergeticLandingHomePageContent>(modelBuilder, "BoldEnergeticLandingHomePageContents");
+        ConfigureHomePageContent<CorporateTrustLandingHomePageContent>(modelBuilder, "CorporateTrustLandingHomePageContents");
+        ConfigureHomePageContent<ModernDarkModeLandingHomePageContent>(modelBuilder, "ModernDarkModeLandingHomePageContents");
     }
 
     private static void ConfigureHomePageContent<TEntity>(ModelBuilder modelBuilder, string tableName)
