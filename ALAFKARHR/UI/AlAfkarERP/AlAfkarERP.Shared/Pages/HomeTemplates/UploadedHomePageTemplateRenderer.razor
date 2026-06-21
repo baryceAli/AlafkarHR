@@ -1,0 +1,301 @@
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Utilities
+@using SharedWithUI.GeneralSettings.Dtos
+
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+<div class="uploaded-landing uploaded-landing-@TemplateKey.ToLowerInvariant()" dir="@SharedDataService.PageDirection">
+    @switch (TemplateKey)
+    {
+        case HomePageTemplateKeys.MinimalistLanding:
+            @MinimalistLanding()
+            break;
+        case HomePageTemplateKeys.SoftSaasLanding:
+            @SoftSaasLanding()
+            break;
+        case HomePageTemplateKeys.BoldEnergeticLanding:
+            @BoldEnergeticLanding()
+            break;
+        case HomePageTemplateKeys.CorporateTrustLanding:
+            @CorporateTrustLanding()
+            break;
+        case HomePageTemplateKeys.ModernDarkModeLanding:
+            @ModernDarkModeLanding()
+            break;
+    }
+</div>
+
+@code {
+    [Parameter] public HomePageTemplateDto? HomePage { get; set; }
+
+    private static readonly string[] FeatureSections = ["Feature1", "Feature2", "Feature3"];
+    private static readonly string[] StatSections = ["Stat1", "Stat2", "Stat3", "Stat4"];
+
+    private IEnumerable<HomePageContentItemDto> Items => HomePage?.ContentItems ?? [];
+    private string TemplateKey => HomePageTemplateKeys.IsValid(HomePage?.ActiveTemplateKey) ? HomePage!.ActiveTemplateKey : HomePageTemplateKeys.MinimalistLanding;
+
+    private RenderFragment MinimalistLanding() => @<text>
+        @Nav()
+        <section class="u-hero u-minimal-hero">
+            <div class="u-container u-split">
+                <div class="u-copy">
+                    <span class="u-eyebrow boxed">@Text("Hero", "Eyebrow", "Efficiency Reimagined")</span>
+                    <h1>@Text("Hero", "Title", "The modern OS for high-growth teams.")</h1>
+                    <p>@Text("Hero", "Subtitle", "Eliminate the friction of disconnected tools. Streamline centralizes your workflow, data, and communication into one high-performance canvas designed for speed.")</p>
+                    @Actions("Start Free Trial", "View Demo")
+                    <div class="u-logo-row"><span>Trusted by</span><strong>QUANTUM</strong><strong>NEXUS</strong><strong>VERTEX</strong></div>
+                </div>
+                <div class="u-minimal-visual">
+                    <img src="@Image("Hero", "HeroImage")" alt="@Alt("Hero", "HeroImage")" />
+                </div>
+            </div>
+        </section>
+        <section id="features" class="u-section white">
+            <div class="u-container">
+                <div class="u-minimal-heading"><h2>@Text("Products", "Title", "Core Capabilities")</h2><span></span></div>
+                <div class="u-minimal-bento">
+                    @Feature("Feature1", "bi bi-graph-up-arrow", "wide")
+                    @Feature("Feature2", "bi bi-lock", "")
+                    @Feature("Feature3", "bi bi-lightning-charge", "")
+                    <article class="u-card wide media">
+                        <img src="@Image("Hero", "HeroImage")" alt="@Alt("Hero", "HeroImage")" />
+                        <div><h3>@Text("Hero", "CardTitle", "Deep Integrations")</h3><p>@Text("Hero", "CardSubtitle", "Connect your entire stack with native integrations and a robust API.")</p></div>
+                    </article>
+                </div>
+            </div>
+        </section>
+        @Stats("dark")
+        @Quote()
+        @Pricing("minimal")
+        @Footer()
+    </text>;
+
+    private RenderFragment SoftSaasLanding() => @<text>
+        @Nav()
+        <section class="u-hero u-soft-hero">
+            <div class="u-container u-split">
+                <div class="u-copy soft">
+                    <span class="u-eyebrow pill"><i class="bi bi-stars"></i>@Text("Hero", "Eyebrow", "NEW: AI-POWERED WORKFLOWS")</span>
+                    <h1>@Text("Hero", "Title", "Productivity that feels like magic.")</h1>
+                    <p>@Text("Hero", "Subtitle", "Stop juggling tabs and start finishing tasks. Streamline brings your team's tools together in a beautifully simple workspace designed for focus.")</p>
+                    @Actions("Start for Free", "Book a Demo")
+                    <div class="u-avatar-row"><span></span><span></span><span></span><p>Joined by <strong>12k+ teams</strong> this month</p></div>
+                </div>
+                <div class="u-soft-visual">
+                    <div class="shell"><img src="@Image("Hero", "HeroImage")" alt="@Alt("Hero", "HeroImage")" /></div>
+                    <div class="bubble top"><i class="bi bi-check2-circle"></i></div>
+                    <div class="bubble bottom"><i class="bi bi-graph-up"></i><strong>+42%</strong></div>
+                </div>
+            </div>
+        </section>
+        <section id="features" class="u-section white">
+            <div class="u-container">
+                @Heading("Everything you need, nothing you don't.", "Powerful features packaged in a friendly, intuitive interface.")
+                <div class="u-soft-bento">
+                    <article class="u-soft-card large">@FeatureBody("Feature1", "Unified Hub", "Sync everything in real-time")</article>
+                    <article class="u-soft-card tall">@FeatureBody("Feature2", "Bank-grade Security", "Your data is encrypted and protected with the highest standards.")</article>
+                    <article class="u-soft-card blue">@FeatureBody("Feature3", "Insightful Analytics", "Gain deep insights into how your team spends time.")</article>
+                    <article class="u-soft-card wide">@FeatureBody("Hero", "Automate the Mundane", "Set up workflows to handle repetitive tasks without lifting a finger.")</article>
+                </div>
+            </div>
+        </section>
+        @Testimonials("soft")
+        @Cta("Ready to streamline your world?")
+        @Footer()
+    </text>;
+
+    private RenderFragment BoldEnergeticLanding() => @<text>
+        @Nav()
+        <section class="u-hero u-energy-hero">
+            <div class="u-container u-split">
+                <div class="u-copy">
+                    <span class="u-eyebrow pill lively"><i class="bi bi-lightning-charge"></i>@Text("Hero", "Eyebrow", "v3.0 Now Live")</span>
+                    <h1>@Text("Hero", "Title", "Build Faster Than Thought.")</h1>
+                    <p>@Text("Hero", "Subtitle", "The ultimate workflow accelerator for modern teams. Streamline your entire product cycle with high-impact visuals and automated deployments.")</p>
+                    @Actions("Start Building Free", "View Demo")
+                    <div class="u-logo-row energetic"><span>Trusted by</span><strong>TECHLO</strong><strong>QUARK</strong><strong>VORTEX</strong></div>
+                </div>
+                <div class="u-energy-visual">
+                    <img src="@Image("Hero", "HeroImage")" alt="@Alt("Hero", "HeroImage")" />
+                    <div class="growth"><i class="bi bi-trending-up"></i><span>+142% Today</span></div>
+                </div>
+            </div>
+        </section>
+        <section id="features" class="u-section">
+            <div class="u-container">
+                @Heading("Powerful by Design", "Everything you need to scale from a single idea to a global enterprise.")
+                <div class="u-energy-grid">
+                    <article class="u-energy-card large">@FeatureBody("Feature1", "Turbo-Charged Analytics", "Experience data visualization that moves as fast as your business.")</article>
+                    <article class="u-energy-card tall">@FeatureBody("Feature2", "Unified Ecosystem", "Connect all your tools in one high-impact control center.")</article>
+                    <article class="u-energy-card full">@FeatureBody("Feature3", "Security that scales with your ambition", "Bank-grade encryption meets developer-friendly APIs.")</article>
+                </div>
+            </div>
+        </section>
+        @Testimonials("energy")
+        @Pricing("energy")
+        @Footer()
+    </text>;
+
+    private RenderFragment CorporateTrustLanding() => @<text>
+        @Nav()
+        <section class="u-hero u-corporate-hero">
+            <div class="u-container u-split">
+                <div class="u-copy">
+                    <span class="u-eyebrow boxed">@Text("Hero", "Eyebrow", "Enterprise-Ready Infrastructure")</span>
+                    <h1>@Text("Hero", "Title", "Institutional Grade Efficiency.")</h1>
+                    <p>@Text("Hero", "Subtitle", "Architected for scale, reliability, and security. Streamline provides the robust framework necessary for global enterprises to manage complex workflows.")</p>
+                    @Actions("Request Demo", "Technical Whitepaper")
+                </div>
+                <div class="u-corporate-visual">
+                    <img src="@Image("Hero", "HeroImage")" alt="@Alt("Hero", "HeroImage")" />
+                    <div class="sla"><i class="bi bi-shield-check"></i><strong>99.99%</strong><span>Uptime SLA Guaranteed</span></div>
+                </div>
+            </div>
+        </section>
+        @Stats("corporate")
+        <section id="features" class="u-section corporate-bg">
+            <div class="u-container">
+                @Heading("A Unified Ecosystem for Scale", "We bridge legacy reliability and modern agility for sustainable enterprise growth.")
+                <div class="u-corporate-grid">
+                    <article class="u-corporate-card wide">@FeatureBody("Feature1", "Advanced Security Governance", "Implement granular permission controls, SSO integration, and real-time audit logging.")</article>
+                    <article class="u-corporate-card dark">@FeatureBody("Feature2", "Global Network Mesh", "Ultra-low latency connectivity with local data residency compliance.")</article>
+                    <article class="u-corporate-card">@FeatureBody("Feature3", "Dedicated Support", "White-glove account management and global technical assistance.")</article>
+                </div>
+            </div>
+        </section>
+        @Cta("Ready to Modernize Your Enterprise?")
+        @Footer()
+    </text>;
+
+    private RenderFragment ModernDarkModeLanding() => @<text>
+        @Nav()
+        <section class="u-hero u-dark-hero">
+            <div class="u-container u-split">
+                <div class="u-copy">
+                    <span class="u-eyebrow glass"><span></span>@Text("Hero", "Eyebrow", "Version 5.0 is Live")</span>
+                    <h1>@Text("Hero", "Title", "Next-Gen Workflow Orchestration.")</h1>
+                    <p>@Text("Hero", "Subtitle", "Empower your team with a futuristic command center designed for high-stakes execution.")</p>
+                    @Actions("Start Building", "View Demo")
+                    <div class="u-dark-icons"><i class="bi bi-cloud"></i><i class="bi bi-database"></i><i class="bi bi-terminal"></i><i class="bi bi-code-slash"></i></div>
+                </div>
+                <div class="u-dark-visual">
+                    <div class="glow"></div>
+                    <div class="frame"><img src="@Image("Hero", "HeroImage")" alt="@Alt("Hero", "HeroImage")" /><div class="dots"><span></span><span></span><span></span></div></div>
+                </div>
+            </div>
+        </section>
+        <section id="features" class="u-section u-dark-section">
+            <div class="u-container">
+                @Heading("Precision Engineered Features", "Built for scale with the stability of infrastructure and the agility of a startup.")
+                <div class="u-dark-bento">
+                    <article class="u-dark-card large">@FeatureBody("Feature1", "Autonomous Workflows", "AI-driven task orchestration that learns from your team's patterns.")</article>
+                    <article class="u-dark-card">@FeatureBody("Feature2", "Instant Insights", "Visualize complex datasets in milliseconds.")</article>
+                    <article class="u-dark-card stat"><strong>99.9%</strong><span>Uptime Guaranteed</span></article>
+                    <article class="u-dark-card">@FeatureBody("Feature3", "Quantum Shield", "End-to-end encryption for every data byte.")</article>
+                </div>
+            </div>
+        </section>
+        @Stats("dark")
+        @Cta("Ready to Streamline?")
+        @Footer()
+    </text>;
+
+    private RenderFragment Nav() => @<nav class="u-nav">
+        <div class="u-container inner">
+            <a class="brand" href="/"><i class="@TemplateIcon"></i><span>@Text("Nav", "Brand", "Streamline")</span></a>
+            <div class="links"><a href="#features">@Text("Nav", "Link1", "Features")</a><a href="#solutions">@Text("Nav", "Link2", "Solutions")</a><a href="#testimonials">@Text("Nav", "Link3", "Testimonials")</a><a href="#pricing">Pricing</a></div>
+            <div class="actions"><a href="/login">@Text("Nav", "LoginText", "Login")</a><a class="primary" href="@Text("Nav", "CtaUrl", "#cta")">@Text("Nav", "CtaText", "Get Started")</a></div>
+        </div>
+    </nav>;
+
+    private RenderFragment Actions(string primary, string secondary) => @<div class="u-actions">
+        <a class="primary" href="@Text("Hero", "PrimaryButtonUrl", "#cta")">@Text("Hero", "PrimaryButtonText", primary)</a>
+        <a class="secondary" href="@Text("Hero", "SecondaryButtonUrl", "#features")">@Text("Hero", "SecondaryButtonText", secondary)</a>
+    </div>;
+
+    private RenderFragment Heading(string title, string description) => @<div class="u-heading"><h2>@Text("Products", "Title", title)</h2><p>@Text("Products", "Subtitle", description)</p></div>;
+
+    private RenderFragment Feature(string section, string icon, string css) => @<article class="u-card @css"><i class="@icon"></i><h3>@Text(section, "Title", section)</h3><p>@Text(section, "Text", "Editable feature text.")</p></article>;
+
+    private RenderFragment FeatureBody(string section, string title, string text) => @<text><i class="@FeatureIcon(section)"></i><h3>@Text(section, "Title", title)</h3><p>@Text(section, "Text", text)</p></text>;
+
+    private RenderFragment Stats(string style) => @<section class="u-stats @style"><div class="u-container grid">
+        @foreach (var stat in StatSections)
+        {
+            <div><strong>@Text(stat, "Value", stat == "Stat1" ? "99%" : stat == "Stat2" ? "40%" : stat == "Stat3" ? "12k+" : "24/7")</strong><span>@Text(stat, "Label", stat == "Stat1" ? "Uptime SLA" : stat == "Stat2" ? "Faster Delivery" : stat == "Stat3" ? "Active Teams" : "Global Support")</span></div>
+        }
+    </div></section>;
+
+    private RenderFragment Quote() => @<section id="testimonials" class="u-section u-quote"><div class="u-container"><i class="bi bi-quote"></i><blockquote>"@Text("Cta", "Text", "Streamline didn't just change our workflow; it shifted how we think about product development.")"</blockquote><strong>Marcus Chen</strong><span>CTO at Nova Dynamics</span></div></section>;
+
+    private RenderFragment Testimonials(string style) => @<section id="testimonials" class="u-section u-testimonials @style"><div class="u-container">@Heading("Loved by Teams", "See why teams choose Streamline to power their operations.")<div class="grid"><article><p>"Beautiful, fast, and clear."</p><strong>Sarah Jenkins</strong></article><article><p>"The best decision for our engineering culture."</p><strong>David Chen</strong></article><article><p>"Complex data is finally intuitive."</p><strong>Elena Rodriguez</strong></article></div></div></section>;
+
+    private RenderFragment Pricing(string style) => @<section id="pricing" class="u-section u-pricing @style"><div class="u-container">@Heading("Transparent Pricing", "Simple plans for every stage of growth.")<div class="grid"><article><h3>Core</h3><strong>$29</strong><p>Up to 10 users</p><a href="#cta">Select Plan</a></article><article class="featured"><span>Most Popular</span><h3>Growth</h3><strong>$89</strong><p>Unlimited users and priority support</p><a href="#cta">Select Plan</a></article><article><h3>Scale</h3><strong>Custom</strong><p>Enterprise security and API access</p><a href="#cta">Contact Sales</a></article></div></div></section>;
+
+    private RenderFragment Cta(string fallbackTitle) => @<section id="cta" class="u-section"><div class="u-container"><div class="u-cta"><h2>@Text("Cta", "Title", fallbackTitle)</h2><p>@Text("Cta", "Text", "Tune every visible section from tenant settings and publish the active template instantly.")</p><a href="@Text("Cta", "ButtonUrl", "#")">@Text("Cta", "ButtonText", "Get Started")</a></div></div></section>;
+
+    private RenderFragment Footer() => @<footer class="u-footer"><div class="u-container grid"><div><strong>@Text("Nav", "Brand", "Streamline")</strong><p>@Text("Footer", "Text", "A configurable tenant homepage.")</p></div><div><h4>Product</h4><a href="#features">Features</a><a href="#pricing">Pricing</a></div><div><h4>Legal</h4><a href="#">Privacy Policy</a><a href="#">Terms of Service</a></div><div><h4>Connect</h4><a href="#">Contact Us</a><a href="#">Support</a></div></div><div class="u-container bottom">@Text("Footer", "Copyright", "© 2026 Alafkar. All rights reserved.")</div></footer>;
+
+    private string TemplateIcon => TemplateKey switch
+    {
+        HomePageTemplateKeys.MinimalistLanding => "bi bi-bounding-box",
+        HomePageTemplateKeys.SoftSaasLanding => "bi bi-magic",
+        HomePageTemplateKeys.BoldEnergeticLanding => "bi bi-lightning-charge",
+        HomePageTemplateKeys.CorporateTrustLanding => "bi bi-buildings",
+        HomePageTemplateKeys.ModernDarkModeLanding => "bi bi-cpu",
+        _ => "bi bi-shop"
+    };
+
+    private string FeatureIcon(string section) => TemplateKey switch
+    {
+        HomePageTemplateKeys.BoldEnergeticLanding => section == "Feature1" ? "bi bi-speedometer2" : section == "Feature2" ? "bi bi-hdd-network" : "bi bi-shield-lock",
+        HomePageTemplateKeys.CorporateTrustLanding => section == "Feature1" ? "bi bi-shield-check" : section == "Feature2" ? "bi bi-globe2" : "bi bi-headset",
+        HomePageTemplateKeys.ModernDarkModeLanding => section == "Feature1" ? "bi bi-stars" : section == "Feature2" ? "bi bi-graph-up" : "bi bi-lock",
+        HomePageTemplateKeys.SoftSaasLanding => section == "Feature1" ? "bi bi-kanban" : section == "Feature2" ? "bi bi-patch-check" : "bi bi-bar-chart",
+        _ => section == "Feature1" ? "bi bi-insights" : section == "Feature2" ? "bi bi-lock" : "bi bi-lightning"
+    };
+
+    private string Text(string sectionKey, string fieldKey, string fallback = "")
+    {
+        var item = Find(sectionKey, fieldKey);
+        if (item is null || !item.IsVisible)
+            return fallback;
+
+        var text = SharedDataService.SelectViewLang(item.TextEn ?? "", item.TextAr ?? "");
+        return string.IsNullOrWhiteSpace(text) ? fallback : text;
+    }
+
+    private string Alt(string sectionKey, string fieldKey)
+    {
+        var item = Find(sectionKey, fieldKey);
+        var text = SharedDataService.SelectViewLang(item?.AltTextEn ?? "", item?.AltTextAr ?? "");
+        return string.IsNullOrWhiteSpace(text) ? "Home page image" : text;
+    }
+
+    private string Image(string sectionKey, string fieldKey)
+    {
+        var item = Find(sectionKey, fieldKey);
+        var image = item?.ImageUrl;
+        if (string.IsNullOrWhiteSpace(image))
+            image = item?.ImagePath;
+
+        if (string.IsNullOrWhiteSpace(image))
+            return "_content/AlAfkarERP.Shared/images/Meals/alkaramSingleMeal.png";
+
+        if (image.StartsWith("_content/", StringComparison.OrdinalIgnoreCase)
+            || image.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+            || Uri.TryCreate(image, UriKind.Absolute, out _))
+        {
+            return image;
+        }
+
+        return $"{ApiConfig.BaseURL}{image}";
+    }
+
+    private HomePageContentItemDto? Find(string sectionKey, string fieldKey)
+        => Items.FirstOrDefault(x =>
+            x.TemplateKey == TemplateKey &&
+            string.Equals(x.SectionKey, sectionKey, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(x.FieldKey, fieldKey, StringComparison.OrdinalIgnoreCase));
+}

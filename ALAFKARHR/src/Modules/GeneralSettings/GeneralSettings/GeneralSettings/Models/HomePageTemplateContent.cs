@@ -85,57 +85,71 @@ public class CurrentStorefrontHomePageContent : HomePageTemplateContent
     }
 }
 
-public class CorporateShowcaseHomePageContent : HomePageTemplateContent
+public class MinimalistLandingHomePageContent : HomePageTemplateContent
 {
-    private CorporateShowcaseHomePageContent()
+    private MinimalistLandingHomePageContent()
     {
     }
 
-    public static CorporateShowcaseHomePageContent Create(HomePageContentSeed seed, string createdBy)
+    public static MinimalistLandingHomePageContent Create(HomePageContentSeed seed, string createdBy)
     {
-        var content = new CorporateShowcaseHomePageContent();
+        var content = new MinimalistLandingHomePageContent();
         content.InitializeFromSeed(seed, createdBy);
         return content;
     }
 }
 
-public class ProductHighlightHomePageContent : HomePageTemplateContent
+public class SoftSaasLandingHomePageContent : HomePageTemplateContent
 {
-    private ProductHighlightHomePageContent()
+    private SoftSaasLandingHomePageContent()
     {
     }
 
-    public static ProductHighlightHomePageContent Create(HomePageContentSeed seed, string createdBy)
+    public static SoftSaasLandingHomePageContent Create(HomePageContentSeed seed, string createdBy)
     {
-        var content = new ProductHighlightHomePageContent();
+        var content = new SoftSaasLandingHomePageContent();
         content.InitializeFromSeed(seed, createdBy);
         return content;
     }
 }
 
-public class CampaignLandingHomePageContent : HomePageTemplateContent
+public class BoldEnergeticLandingHomePageContent : HomePageTemplateContent
 {
-    private CampaignLandingHomePageContent()
+    private BoldEnergeticLandingHomePageContent()
     {
     }
 
-    public static CampaignLandingHomePageContent Create(HomePageContentSeed seed, string createdBy)
+    public static BoldEnergeticLandingHomePageContent Create(HomePageContentSeed seed, string createdBy)
     {
-        var content = new CampaignLandingHomePageContent();
+        var content = new BoldEnergeticLandingHomePageContent();
         content.InitializeFromSeed(seed, createdBy);
         return content;
     }
 }
 
-public class MinimalCatalogHomePageContent : HomePageTemplateContent
+public class CorporateTrustLandingHomePageContent : HomePageTemplateContent
 {
-    private MinimalCatalogHomePageContent()
+    private CorporateTrustLandingHomePageContent()
     {
     }
 
-    public static MinimalCatalogHomePageContent Create(HomePageContentSeed seed, string createdBy)
+    public static CorporateTrustLandingHomePageContent Create(HomePageContentSeed seed, string createdBy)
     {
-        var content = new MinimalCatalogHomePageContent();
+        var content = new CorporateTrustLandingHomePageContent();
+        content.InitializeFromSeed(seed, createdBy);
+        return content;
+    }
+}
+
+public class ModernDarkModeLandingHomePageContent : HomePageTemplateContent
+{
+    private ModernDarkModeLandingHomePageContent()
+    {
+    }
+
+    public static ModernDarkModeLandingHomePageContent Create(HomePageContentSeed seed, string createdBy)
+    {
+        var content = new ModernDarkModeLandingHomePageContent();
         content.InitializeFromSeed(seed, createdBy);
         return content;
     }

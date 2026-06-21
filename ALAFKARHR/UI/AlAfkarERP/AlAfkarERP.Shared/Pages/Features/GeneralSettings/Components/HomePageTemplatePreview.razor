@@ -1,4 +1,4 @@
-@namespace AlAfkarERP.Shared.Pages.Features.GeneralSettings.Components
+﻿@namespace AlAfkarERP.Shared.Pages.Features.GeneralSettings.Components
 
 <div class="homepage-template-preview homepage-template-preview-@TemplateKey.ToLowerInvariant()" dir="@Direction" aria-hidden="true">
     <div class="template-preview-topbar">
@@ -9,8 +9,8 @@
 
     @switch (TemplateKey)
     {
-        case "CorporateShowcase":
-            <div class="template-preview-body corporate">
+        case "MinimalistLanding":
+            <div class="template-preview-body minimalist">
                 <div class="preview-copy">
                     <span class="preview-kicker"></span>
                     <strong></strong>
@@ -18,7 +18,7 @@
                     <span class="short"></span>
                 </div>
                 <div class="preview-panel">
-                    <i class="bi bi-buildings"></i>
+                    <i class="bi bi-bounding-box"></i>
                 </div>
                 <div class="preview-metric-row">
                     <span></span>
@@ -27,10 +27,10 @@
                 </div>
             </div>
             break;
-        case "ProductHighlight":
-            <div class="template-preview-body product-focus">
+        case "SoftSaasLanding":
+            <div class="template-preview-body soft-saas">
                 <div class="preview-large-product">
-                    <i class="bi bi-box-seam"></i>
+                    <i class="bi bi-magic"></i>
                 </div>
                 <div class="preview-copy">
                     <span class="preview-kicker"></span>
@@ -44,21 +44,21 @@
                 </div>
             </div>
             break;
-        case "CampaignLanding":
-            <div class="template-preview-body campaign">
+        case "BoldEnergeticLanding":
+            <div class="template-preview-body energetic">
                 <div class="preview-offer">
-                    <i class="bi bi-megaphone"></i>
+                    <i class="bi bi-lightning-charge"></i>
                 </div>
                 <div class="preview-copy">
                     <span class="preview-kicker"></span>
                     <strong></strong>
                     <span></span>
-                    <button type="button" tabindex="-1"></button>
+                    <span class="preview-button"></span>
                 </div>
             </div>
             break;
-        case "MinimalCatalog":
-            <div class="template-preview-body minimal">
+        case "CorporateTrustLanding":
+            <div class="template-preview-body corporate">
                 <div class="preview-search"></div>
                 <div class="preview-compact-grid">
                     <span></span>
@@ -67,6 +67,19 @@
                     <span></span>
                     <span></span>
                     <span></span>
+                </div>
+            </div>
+            break;
+        case "ModernDarkModeLanding":
+            <div class="template-preview-body dark-mode">
+                <div class="preview-offer">
+                    <i class="bi bi-cpu"></i>
+                </div>
+                <div class="preview-copy">
+                    <span class="preview-kicker"></span>
+                    <strong></strong>
+                    <span></span>
+                    <span class="preview-button"></span>
                 </div>
             </div>
             break;
@@ -103,9 +116,11 @@
         border: 1px solid var(--erp-border);
         border-radius: var(--erp-radius-lg);
         block-size: 164px;
+        box-sizing: border-box;
         display: grid;
         grid-template-rows: 24px 1fr;
         inline-size: 100%;
+        min-inline-size: 0;
         overflow: hidden;
     }
 
@@ -128,7 +143,9 @@
     .template-preview-body {
         display: grid;
         gap: var(--erp-space-2);
+        min-block-size: 0;
         min-inline-size: 0;
+        overflow: hidden;
         padding: var(--erp-space-3);
     }
 
@@ -155,7 +172,9 @@
         align-content: center;
         display: grid;
         gap: 6px;
+        min-block-size: 0;
         min-inline-size: 0;
+        overflow: hidden;
     }
 
     .preview-copy span,
@@ -164,7 +183,7 @@
     .preview-product-row span,
     .preview-metric-row span,
     .preview-compact-grid span,
-    .preview-copy button {
+    .preview-copy .preview-button {
         background: color-mix(in srgb, var(--erp-text-muted) 22%, var(--erp-surface));
         border: 0;
         border-radius: var(--erp-radius-sm);
@@ -192,7 +211,7 @@
         inline-size: 52%;
     }
 
-    .preview-copy button {
+    .preview-copy .preview-button {
         background: var(--erp-primary);
         block-size: 18px;
         inline-size: 54px;
@@ -211,6 +230,8 @@
         display: flex;
         justify-content: center;
         min-block-size: 0;
+        min-inline-size: 0;
+        overflow: hidden;
     }
 
     .preview-product-card i,
@@ -226,6 +247,7 @@
         gap: var(--erp-space-2);
         grid-column: 1 / -1;
         grid-template-columns: repeat(3, minmax(0, 1fr));
+        min-inline-size: 0;
     }
 
     .preview-product-row span,
@@ -255,24 +277,59 @@
         display: grid;
         gap: var(--erp-space-2);
         grid-template-columns: repeat(3, minmax(0, 1fr));
+        min-inline-size: 0;
+        overflow: hidden;
     }
 
     .preview-compact-grid span {
         min-block-size: 34px;
     }
 
-    .homepage-template-preview-campaignlanding {
+    .homepage-template-preview-boldenergeticlanding {
         background:
             linear-gradient(135deg, color-mix(in srgb, var(--erp-warning) 13%, var(--erp-surface)) 0%, var(--erp-surface) 72%);
     }
 
-    .homepage-template-preview-minimalcatalog {
+    .homepage-template-preview-minimalistlanding {
         background: var(--erp-surface);
+    }
+
+    .homepage-template-preview-softsaaslanding {
+        background:
+            linear-gradient(135deg, color-mix(in srgb, var(--erp-info) 12%, var(--erp-surface)) 0%, var(--erp-surface) 72%);
+    }
+
+    .homepage-template-preview-corporatetrustlanding {
+        background:
+            linear-gradient(180deg, color-mix(in srgb, var(--erp-primary) 9%, var(--erp-surface)) 0%, var(--erp-surface) 100%);
+    }
+
+    .homepage-template-preview-moderndarkmodelanding {
+        background: color-mix(in srgb, var(--erp-text) 88%, var(--erp-primary));
+        border-color: color-mix(in srgb, var(--erp-primary) 40%, var(--erp-border));
+    }
+
+    .homepage-template-preview-moderndarkmodelanding .template-preview-topbar,
+    .homepage-template-preview-moderndarkmodelanding .preview-copy span,
+    .homepage-template-preview-moderndarkmodelanding .preview-copy strong,
+    .homepage-template-preview-moderndarkmodelanding .preview-offer {
+        border-color: color-mix(in srgb, var(--erp-primary) 44%, transparent);
     }
 
     @@media (max-width: 575.98px) {
         .homepage-template-preview {
             block-size: 150px;
+        }
+
+        .template-preview-body.storefront,
+        .template-preview-body.corporate,
+        .template-preview-body.product-focus,
+        .template-preview-body.campaign {
+            grid-template-columns: minmax(0, 1fr) 64px;
+        }
+
+        .template-preview-body {
+            padding: var(--erp-space-2);
         }
     }
 </style>

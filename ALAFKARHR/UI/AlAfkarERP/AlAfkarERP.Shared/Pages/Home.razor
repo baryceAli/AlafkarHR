@@ -1,4 +1,4 @@
-@layout LandingPageLayout
+@layout BlankLayout
 @page "/"
 @implements IDisposable
 @using AlAfkarERP.Shared.Dtos
@@ -17,7 +17,7 @@
 
 <PageTitle>ALAFKAR Store</PageTitle>
 
-<main class="home-page" dir="@SharedDataService.PageDirection">
+<main class="home-page @(IsCurrentStorefront ? "home-page-current" : "home-page-template-only")" dir="@SharedDataService.PageDirection">
     <HomePageTemplateRenderer HomePage="homePage" />
 
     <section class="home-hero">
@@ -434,6 +434,9 @@
     private long totalProductCount;
     private Guid? authenticatedCustomerId;
     private HomePageTemplateDto? homePage;
+    private bool IsCurrentStorefront => homePage?.ActiveTemplateKey is null
+        || homePage.ActiveTemplateKey == HomePageTemplateKeys.CurrentStorefront
+        || !HomePageTemplateKeys.IsValid(homePage.ActiveTemplateKey);
 
     private int TotalPages => totalProductCount <= 0
         ? 1
@@ -474,8 +477,15 @@
     {
         await LoadHomePageTemplateAsync();
         await ResolveAuthenticatedCustomerAsync();
-        await LoadFilterMetadataAsync();
-        await LoadProductSkusAsync();
+        if (IsCurrentStorefront)
+        {
+            await LoadFilterMetadataAsync();
+            await LoadProductSkusAsync();
+        }
+        else
+        {
+            isLoadingProducts = false;
+        }
     }
 
     private async Task LoadHomePageTemplateAsync()
