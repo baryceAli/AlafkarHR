@@ -19,7 +19,7 @@ public class GetTaskDashboardHandler(TaskManagementDbContext dbContext, IHttpCon
         query = request.Scope.ToLowerInvariant() switch
         {
             "mine" => query.Where(x => x.AssignedToUser == userId.ToString() || x.AssignedToUser == userName),
-            "department" when request.DepartmentId.HasValue => query.Where(x => x.DepartmentId == request.DepartmentId.Value),
+            "department" when request.DepartmentId.HasValue => query.Where(x => x.DepartmentId.HasValue && x.DepartmentId.Value == request.DepartmentId.Value),
             _ => TaskFeatureHelpers.ApplyVisibility(query, httpContextAccessor, userId, request.DepartmentId)
         };
 
@@ -48,10 +48,11 @@ public class GetTaskDashboardHandler(TaskManagementDbContext dbContext, IHttpCon
                 })
                 .ToList(),
             DepartmentPerformanceRanking = tasks
+                .Where(x => x.DepartmentId.HasValue)
                 .GroupBy(x => x.DepartmentId)
                 .Select(g => new DepartmentPerformanceDto
                 {
-                    DepartmentId = g.Key,
+                    DepartmentId = g.Key!.Value,
                     TotalTasks = g.Count(),
                     CompletedTasks = g.Count(x => x.Status == TaskWorkflowStatus.Completed),
                     OverdueTasks = g.Count(x => x.Status == TaskWorkflowStatus.Overdue || (x.DueDate.Date < today && x.Status != TaskWorkflowStatus.Completed && x.Status != TaskWorkflowStatus.Cancelled)),

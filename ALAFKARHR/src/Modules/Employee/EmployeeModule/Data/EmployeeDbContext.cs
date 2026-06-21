@@ -17,6 +17,8 @@ public class EmployeeDbContext:DbContext
     public DbSet<Position> Positions => Set<Position>();
     public DbSet<AcademicInstitution> AcademicInstitutions => Set<AcademicInstitution>();
     public DbSet<Specialization> Specializations => Set<Specialization>();
+    public DbSet<EmployeeTeam> EmployeeTeams => Set<EmployeeTeam>();
+    public DbSet<EmployeeTeamMember> EmployeeTeamMembers => Set<EmployeeTeamMember>();
     protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.HasDefaultSchema("Employee");

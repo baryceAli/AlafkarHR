@@ -76,10 +76,12 @@ public class GetDepartmentPerformanceReportHandler(TaskManagementDbContext dbCon
     {
         var today = DateTime.UtcNow.Date;
         var tasks = await GetTaskSummaryReportHandler.BuildReportQuery(dbContext, httpContextAccessor, request.Filter).ToListAsync(cancellationToken);
-        var report = tasks.GroupBy(x => x.DepartmentId)
+        var report = tasks
+            .Where(x => x.DepartmentId.HasValue)
+            .GroupBy(x => x.DepartmentId)
             .Select(g => new DepartmentPerformanceDto
             {
-                DepartmentId = g.Key,
+                DepartmentId = g.Key!.Value,
                 TotalTasks = g.Count(),
                 CompletedTasks = g.Count(x => x.Status == TaskWorkflowStatus.Completed),
                 OverdueTasks = g.Count(x => x.Status == TaskWorkflowStatus.Overdue || (x.DueDate.Date < today && x.Status != TaskWorkflowStatus.Completed && x.Status != TaskWorkflowStatus.Cancelled)),

@@ -19,7 +19,7 @@ public class TaskItemDto
     public Guid CreatedByUserId { get; set; }
     public string AssignedToUser { get; set; } = string.Empty;
     public Guid AssignedByUserId { get; set; }
-    public Guid DepartmentId { get; set; }
+    public Guid? DepartmentId { get; set; }
     public bool IsRecurring { get; set; }
     public TaskRecurrenceFrequency RecurrenceFrequency { get; set; } = TaskRecurrenceFrequency.None;
     public int RecurrenceInterval { get; set; } = 1;
@@ -46,7 +46,7 @@ public class CreateTaskItemDto
     public DateTime? StartDate { get; set; }
     public DateTime DueDate { get; set; } = DateTime.UtcNow.Date;
     public string AssignedToUser { get; set; }
-    public Guid DepartmentId { get; set; }
+    public Guid? DepartmentId { get; set; }
     public bool IsRecurring { get; set; }
     public TaskRecurrenceFrequency RecurrenceFrequency { get; set; } = TaskRecurrenceFrequency.None;
     public int RecurrenceInterval { get; set; } = 1;
@@ -65,7 +65,7 @@ public class UpdateTaskItemDto
     public TaskPriority Priority { get; set; } = TaskPriority.Normal;
     public DateTime? StartDate { get; set; }
     public DateTime DueDate { get; set; } = DateTime.UtcNow.Date;
-    public Guid DepartmentId { get; set; }
+    public Guid? DepartmentId { get; set; }
     public bool IsRecurring { get; set; }
     public TaskRecurrenceFrequency RecurrenceFrequency { get; set; } = TaskRecurrenceFrequency.None;
     public int RecurrenceInterval { get; set; } = 1;
@@ -78,7 +78,7 @@ public class UpdateTaskItemDto
 public class AssignTaskDto
 {
     public string AssignedToUser { get; set; }
-    public Guid DepartmentId { get; set; }
+    public Guid? DepartmentId { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime DueDate { get; set; } = DateTime.UtcNow.Date;
 }

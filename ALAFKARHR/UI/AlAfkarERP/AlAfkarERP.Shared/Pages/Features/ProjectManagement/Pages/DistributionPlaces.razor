@@ -1,0 +1,172 @@
+@page "/ProjectManagement/DistributionPlaces"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.ProjectManagement.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.JSInterop
+@using SharedWithUI.ProjectManagement.Dtos
+@inject IProjectManagementService ProjectManagementService
+@inject SharedDataService SharedDataService
+@inject ApiConfig ApiConfig
+@inject IJSRuntime JSRuntime
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Distribution Places", "مواقع التوزيع")" Subtitle="@Text("Reusable places with map coordinates for customer meal distribution.", "مواقع قابلة لإعادة الاستخدام مع إحداثيات الخريطة لتوزيع وجبات العملاء.")" Icon="bi-geo-alt" />
+
+    <article class="erp-card mb-3">
+        <div class="erp-card-header"><strong>@(place.Id == Guid.Empty ? Text("New Place", "موقع جديد") : Text("Edit Place", "تعديل موقع"))</strong></div>
+        <div class="erp-card-body">
+            <EditForm Model="place" OnValidSubmit="SaveAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="place.Name" /></div>
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("English Name", "الاسم الإنجليزي")</label><InputText class="form-control" @bind-Value="place.NameEng" /></div>
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("City/Area", "المدينة/الحي")</label><InputText class="form-control" @bind-Value="place.City" /></div>
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("Contact Name", "Contact Name")</label><InputText class="form-control" @bind-Value="place.ContactName" /></div>
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("Contact Phone", "هاتف التواصل")</label><InputText class="form-control" @bind-Value="place.ContactPhone" /></div>
+                    <div class="col-12 col-md-3 d-flex align-items-end"><label class="form-check mb-2"><InputCheckbox class="form-check-input" @bind-Value="place.IsActive" /> <span class="form-check-label">@Text("Active", "Active")</span></label></div>
+                    <div class="col-12"><label class="form-label">@Text("Address", "العنوان")</label><InputText class="form-control" @bind-Value="place.Address" /></div>
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("Latitude", "خط العرض")</label><InputNumber class="form-control" @bind-Value="place.Latitude" /></div>
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("Longitude", "خط الطول")</label><InputNumber class="form-control" @bind-Value="place.Longitude" /></div>
+                    <div class="col-12 col-md-3 d-flex align-items-end"><button class="btn btn-outline-secondary" type="button" @onclick="UseCurrentLocationAsync"><i class="bi bi-crosshair"></i> @Text("Current Location", "الموقع الحالي")</button></div>
+                    <div class="col-12"><div id="@mapElementId" class="project-location-map"></div></div>
+                </div>
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                    <button class="btn btn-outline-secondary" type="button" @onclick="Reset">@Text("Clear", "مسح")</button>
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> @Text("Save", "حفظ")</button>
+                </div>
+            </EditForm>
+        </div>
+    </article>
+
+    <article class="erp-card">
+        <div class="erp-card-body">
+            @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-12 col-md-4"><label class="form-label">@Text("Search", "بحث")</label><input class="form-control" @bind="searchText" /></div>
+                <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadAsync"><i class="bi bi-search"></i> @Text("Filter", "تصفية")</button></div>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead><tr><th>@Text("Place", "Place")</th><th>@Text("City", "City")</th><th>@Text("Coordinates", "Coordinates")</th><th>@Text("Contact", "Contact")</th><th>@Text("Status", "Status")</th><th class="text-end">@Text("Actions", "Actions")</th></tr></thead>
+                    <tbody>@foreach (var item in places) { <tr><td>@item.Name</td><td>@item.City</td><td>@item.Latitude, @item.Longitude</td><td>@item.ContactName @item.ContactPhone</td><td>@(item.IsActive ? Text("Active", "Active") : Text("Inactive", "Inactive"))</td><td class="text-end"><button class="btn btn-sm btn-outline-primary" @onclick="@(() => Edit(item))"><i class="bi bi-pencil"></i></button></td></tr> }</tbody>
+                </table>
+            </div>
+        </div>
+    </article>
+</main>
+
+@code {
+    private readonly string mapElementId = $"project-place-map-{Guid.NewGuid():N}";
+    private DotNetObjectReference<DistributionPlaces>? dotNetReference;
+    private List<DistributionPlaceDto> places = [];
+    private DistributionPlaceDto place = NewPlace();
+    private string? searchText;
+    private string? errorMessage;
+    private bool mapReady;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (mapReady) return;
+        dotNetReference ??= DotNetObjectReference.Create(this);
+        await JSRuntime.InvokeVoidAsync("alafkarLocationPicker.init", mapElementId, (double)(place.Latitude ?? 24.7136m), (double)(place.Longitude ?? 46.6753m), 12, dotNetReference);
+        mapReady = true;
+    }
+
+    private async Task LoadAsync()
+    {
+        var companyId = ApiConfig.CompanyId == Guid.Empty ? (Guid?)null : ApiConfig.CompanyId;
+        var result = await ProjectManagementService.GetPlacesAsync(1, 500, companyId, searchText);
+        places = result.Data?.Data.ToList() ?? [];
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+    }
+
+    private async Task SaveAsync()
+    {
+        place.CompanyId = ApiConfig.CompanyId;
+        if (place.Id == Guid.Empty)
+        {
+            var createResult = await ProjectManagementService.CreatePlaceAsync(place);
+            errorMessage = createResult.IsSuccess ? null : createResult.Error?.GetDisplayMessage(SharedDataService.Language);
+            if (createResult.IsSuccess) { Reset(); await LoadAsync(); }
+            return;
+        }
+
+        var updateResult = await ProjectManagementService.UpdatePlaceAsync(place);
+        errorMessage = updateResult.IsSuccess ? null : updateResult.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (updateResult.IsSuccess) { Reset(); await LoadAsync(); }
+    }
+
+    private async Task UseCurrentLocationAsync()
+    {
+        if (mapReady) await JSRuntime.InvokeAsync<bool>("alafkarLocationPicker.useCurrentLocation", mapElementId);
+    }
+
+    [JSInvokable]
+    public Task OnMapLocationSelected(double latitude, double longitude)
+    {
+        place.Latitude = (decimal)Math.Round(latitude, 6);
+        place.Longitude = (decimal)Math.Round(longitude, 6);
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async void Edit(DistributionPlaceDto item)
+    {
+        place = new DistributionPlaceDto { Id = item.Id, CompanyId = item.CompanyId, Name = item.Name, NameEng = item.NameEng, Address = item.Address, City = item.City, Latitude = item.Latitude, Longitude = item.Longitude, ContactName = item.ContactName, ContactPhone = item.ContactPhone, IsActive = item.IsActive };
+        if (mapReady) await JSRuntime.InvokeVoidAsync("alafkarLocationPicker.setCenter", mapElementId, (double)(place.Latitude ?? 24.7136m), (double)(place.Longitude ?? 46.6753m), false);
+        StateHasChanged();
+    }
+
+    private void Reset() => place = NewPlace();
+    private static DistributionPlaceDto NewPlace() => new() { IsActive = true, Latitude = 24.7136m, Longitude = 46.6753m };
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() { SharedDataService.OnChange1 -= HandleChangeAsync; dotNetReference?.Dispose(); }
+}
+
+<style>
+    .project-location-map {
+        block-size: 320px;
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
+        inline-size: 100%;
+        overflow: hidden;
+    }
+
+    .location-picker-map {
+        cursor: grab;
+        position: relative;
+        touch-action: none;
+    }
+
+    .location-picker-map.is-dragging {
+        cursor: grabbing;
+    }
+
+    .location-picker-tile {
+        block-size: 256px;
+        inline-size: 256px;
+        position: absolute;
+        user-select: none;
+    }
+
+    .location-picker-marker {
+        color: var(--erp-danger);
+        font-size: 2rem;
+        inset-block-start: 50%;
+        inset-inline-start: 50%;
+        line-height: 1;
+        pointer-events: none;
+        position: absolute;
+        transform: translate(-50%, -100%);
+        z-index: 2;
+    }
+</style>

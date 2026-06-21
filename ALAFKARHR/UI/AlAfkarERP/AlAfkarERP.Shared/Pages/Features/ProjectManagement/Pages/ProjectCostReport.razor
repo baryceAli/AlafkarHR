@@ -1,0 +1,55 @@
+@page "/ProjectManagement/Reports/Costs"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.ProjectManagement.Services
+@using AlAfkarERP.Shared.Utilities
+@using SharedWithUI.ProjectManagement.Dtos
+@inject IProjectManagementService ProjectManagementService
+@inject SharedDataService SharedDataService
+@inject ApiConfig ApiConfig
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Project Cost Report", "تقرير تكلفة المشاريع")" Subtitle="@Text("Planned and actual cost, variance, and cost per meal.", "التكلفة المخططة والفعلية والفرق وتكلفة الوجبة.")" Icon="bi-cash-stack" />
+    <article class="erp-card mb-3">
+        <div class="erp-card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-6"><label class="form-label">@Text("Project", "المشروع")</label><select class="form-select" @bind="projectIdText"><option value="">@Text("Select project", "اختر المشروع")</option>@foreach (var project in projects) { <option value="@project.Id">@project.ProjectNumber - @project.Name</option> }</select></div>
+                <div class="col-12 col-md-2"><button class="btn btn-primary w-100" @onclick="LoadBudgetAsync"><i class="bi bi-search"></i> @Text("Run", "تشغيل")</button></div>
+            </div>
+        </div>
+    </article>
+    @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
+    <div class="row g-3">
+        <div class="col-12 col-md-3"><StatsCard Title="@Text("Planned Cost", "تكلفة مخططة")" Value="@budget.TotalPlannedCost.ToString("N2")" Icon="bi-cash" /></div>
+        <div class="col-12 col-md-3"><StatsCard Title="@Text("Actual Cost", "تكلفة فعلية")" Value="@budget.TotalActualCost.ToString("N2")" Icon="bi-receipt" /></div>
+        <div class="col-12 col-md-3"><StatsCard Title="@Text("Variance", "الفرق")" Value="@budget.CostVariance.ToString("N2")" Icon="bi-graph-up" /></div>
+        <div class="col-12 col-md-3"><StatsCard Title="@Text("Cost/Meal", "تكلفة الوجبة")" Value="@budget.CostPerMeal.ToString("N2")" Icon="bi-calculator" /></div>
+    </div>
+</main>
+
+@code {
+    private List<ProjectDto> projects = [];
+    private ProjectBudgetSummaryDto budget = new();
+    private string projectIdText = string.Empty;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var companyId = ApiConfig.CompanyId == Guid.Empty ? (Guid?)null : ApiConfig.CompanyId;
+        projects = (await ProjectManagementService.GetProjectsAsync(1, 500, companyId)).Data?.Data.ToList() ?? [];
+    }
+
+    private async Task LoadBudgetAsync()
+    {
+        if (!Guid.TryParse(projectIdText, out var projectId)) return;
+        var result = await ProjectManagementService.GetBudgetSummaryAsync(projectId);
+        budget = result.Data ?? new();
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

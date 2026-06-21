@@ -85,6 +85,10 @@ List pages should use a clear page header, filter/search area, responsive table 
 
 Form pages should use a page header, card/section grouping, `EditForm`, validation messages, save/cancel actions, loading state, toast messages, existing localization helpers, and existing service methods. Do not change DTOs or service calls unless required by the task.
 
+When a form references an existing entity, use the appropriate selector/search/autocomplete component or existing lookup pattern for that entity instead of a plain text field. For example, employee references must use an employee selector. When a form supports selecting multiple existing entities, use a selector with checkboxes rather than comma-separated text, repeated plain text inputs, or free-form entry.
+
+When a create/add/assign/action form or modal is opened, initialize any entity selector/search/autocomplete to an empty state so it visibly displays no selected value. Reset both the bound ID/model value and the selector display text or selected item. For edit flows, initialize selectors from the existing entity value instead of blanking them. Apply this only where applicable to entity-reference selectors; do not force-reset static dropdowns, filters that should preserve the user's search state, or fields where a preselected value is intentional.
+
 ## 13. Modal Rules
 
 Use the existing `ModalService`/`AppModal` pattern. Keep header/body/footer spacing consistent, actions clear, RTL/LTR support intact, and modal CSS reusable.

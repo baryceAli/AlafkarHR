@@ -14,6 +14,7 @@ using AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services;
 using AlAfkarERP.Shared.Pages.Features.Maintenance.Services;
 using AlAfkarERP.Shared.Pages.Features.Payroll.Services;
 using AlAfkarERP.Shared.Pages.Features.Procurement.Services;
+using AlAfkarERP.Shared.Pages.Features.ProjectManagement.Services;
 using AlAfkarERP.Shared.Pages.Features.RealEstate.Services;
 using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services;
 using AlAfkarERP.Shared.Pages.Features.Suppliers.Services;
@@ -111,6 +112,11 @@ builder.Services.AddHttpClient<IEmployeeService, EmployeeService>(client =>
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
 
+builder.Services.AddScoped<IEmployeeTeamService, EmployeeTeamService>();
+builder.Services.AddHttpClient<IEmployeeTeamService, EmployeeTeamService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
 
 builder.Services.AddScoped<IPositionService, PositionService>();
 builder.Services.AddHttpClient<IPositionService, PositionService>(client =>
@@ -331,6 +337,14 @@ builder.Services.AddHttpClient<IProcurementService, ProcurementService>(client =
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
 #endregion Procurement
+
+#region ProjectManagement
+builder.Services.AddScoped<IProjectManagementService, ProjectManagementService>();
+builder.Services.AddHttpClient<IProjectManagementService, ProjectManagementService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+#endregion ProjectManagement
 
 #region Contracts
 builder.Services.AddScoped<IContractsService, ContractsService>();

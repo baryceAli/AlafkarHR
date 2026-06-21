@@ -1,0 +1,1753 @@
+﻿@page "/ProjectManagement/Projects/{Id:guid}"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.ProjectManagement.Services
+@using AlAfkarERP.Shared.Pages.Features.Customers.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
+@using AlAfkarERP.Shared.Utilities
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Catalog.Enums
+@using SharedWithUI.TaskManagement.Dtos
+@using SharedWithUI.Customers.Dtos
+@using SharedWithUI.Customers.Enums
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Employees.Enums
+@using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Organization.Dtos
+@using SharedWithUI.TaskManagement.Enums
+@using SharedWithUI.ProjectManagement.Dtos
+@using SharedWithUI.ProjectManagement.Enums
+@inject IProjectManagementService ProjectManagementService
+@inject IEmployeeTeamService EmployeeTeamService
+@inject IProductService ProductService
+@inject ICustomerService CustomerService
+@inject ICustomerGroupService CustomerGroupService
+@inject IEmployeeService EmployeeService
+@inject IBranchService BranchService
+@inject IDepartmentService DepartmentService
+@inject ICurrencyService CurrencyService
+@inject IWarehouseService WarehouseService
+@inject IBatchService BatchService
+@inject ITaskManagementService TaskManagementService
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ApiConfig ApiConfig
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@project.Name" Subtitle="@project.ProjectNumber" Icon="bi-kanban" />
+
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <button class="btn btn-outline-secondary btn-sm" @onclick="@(() => ChangeStatusAsync(ProjectStatus.Planned))" disabled="@(project.Status == ProjectStatus.Planned)"><i class="bi bi-calendar-check"></i> @Text("Plan", "Plan")</button>
+        <button class="btn btn-outline-info btn-sm" @onclick="@(() => ChangeStatusAsync(ProjectStatus.Active))" disabled="@(project.Status == ProjectStatus.Active)"><i class="bi bi-play"></i> @Text("Activate", "Activate")</button>
+        <button class="btn btn-outline-warning btn-sm" @onclick="@(() => ChangeStatusAsync(ProjectStatus.OnHold))" disabled="@(project.Status == ProjectStatus.OnHold)"><i class="bi bi-pause"></i> @Text("Hold", "Hold")</button>
+        <button class="btn btn-outline-success btn-sm" @onclick="@(() => ChangeStatusAsync(ProjectStatus.Completed))" disabled="@(project.Status == ProjectStatus.Completed)"><i class="bi bi-check2"></i> @Text("Complete", "Complete")</button>
+        <button class="btn btn-outline-danger btn-sm" @onclick="@(() => ChangeStatusAsync(ProjectStatus.Cancelled))" disabled="@(project.Status == ProjectStatus.Cancelled)"><i class="bi bi-x-circle"></i> @Text("Cancel", "Cancel")</button>
+        <button class="btn btn-outline-danger btn-sm" @onclick="DeleteProjectAsync"><i class="bi bi-trash"></i> @Text("Delete", "Delete")</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
+
+    <article class="erp-card mb-3">
+        <div class="erp-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <strong>@Text("Project Details", "Project Details")</strong>
+            <StatusChip Text="@project.Status.ToString()" Tone="@StatusTone(project.Status)" />
+        </div>
+        <div class="erp-card-body">
+            <EditForm Model="editingProject" OnValidSubmit="UpdateProjectAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("Name", "Name")</label><InputText class="form-control" @bind-Value="editingProject.Name" /><ValidationMessage For="@(() => editingProject.Name)" /></div>
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("English Name", "English Name")</label><InputText class="form-control" @bind-Value="editingProject.NameEng" /></div>
+                    <div class="col-12 col-md-2"><label class="form-label">@Text("Type", "Type")</label><InputSelect class="form-select" @bind-Value="editingProject.Type">@foreach (var type in Enum.GetValues<ProjectType>()) { <option value="@type">@ProjectTypeLabel(type)</option> }</InputSelect></div>
+                    <div class="col-12 col-md-2"><label class="form-label">@Text("Planned Start", "Planned Start")</label><InputDate class="form-control" @bind-Value="editingProject.PlannedStartDate" /></div>
+                    <div class="col-12 col-md-2"><label class="form-label">@Text("Planned End", "Planned End")</label><InputDate class="form-control" @bind-Value="editingProject.PlannedEndDate" /></div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Manager", "مدير المشروع")</label>
+                        <AutoCompleteComponent TItem="EmployeeDto"
+                                               Items="employees"
+                                               ItemText="EmployeeDisplay"
+                                               Value="selectedManager"
+                                               ValueChanged="OnManagerChanged"
+                                               PlaceHolder="@Text("Search employee", "ابحث عن موظف")" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Branch", "الفرع")</label>
+                        <AutoCompleteComponent TItem="BranchDto"
+                                               Items="branches"
+                                               ItemText="BranchDisplay"
+                                               Value="selectedBranch"
+                                               ValueChanged="OnBranchChanged"
+                                               PlaceHolder="@Text("Select branch", "اختر الفرع")" />
+                    </div>
+                    <div class="col-12 col-md-2"><label class="form-label">@Text("Actual Start", "Actual Start")</label><InputDate class="form-control" @bind-Value="editingProject.ActualStartDate" /></div>
+                    <div class="col-12 col-md-2"><label class="form-label">@Text("Actual End", "Actual End")</label><InputDate class="form-control" @bind-Value="editingProject.ActualEndDate" /></div>
+                    <div class="col-12 col-md-7"><label class="form-label">@Text("Notes", "Notes")</label><InputText class="form-control" @bind-Value="editingProject.Notes" /></div>
+                    <div class="col-12 d-flex justify-content-end"><button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @Text("Save Details", "Save Details")</button></div>
+                </div>
+            </EditForm>
+        </div>
+    </article>
+
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        @foreach (var tab in tabs)
+        {
+            <button class="btn @(activeTab == tab ? "btn-primary" : "btn-outline-secondary")" @onclick="@(() => activeTab = tab)">@TabLabel(tab)</button>
+        }
+    </div>
+
+    @if (activeTab == "Overview")
+    {
+        <article class="erp-card">
+            <div class="erp-card-body">
+                <div class="row g-3">
+                    <div class="col-12 col-md-3"><StatsCard Title="@Text("Status", "الحالة")" Value="@project.Status.ToString()" Icon="bi-activity" /></div>
+                    <div class="col-12 col-md-3"><StatsCard Title="@Text("Customers", "العملاء")" Value="@project.Customers.Count.ToString("N0")" Icon="bi-people" /></div>
+                    <div class="col-12 col-md-3"><StatsCard Title="@Text("Deliverables", "المخرجات")" Value="@project.Deliverables.Count.ToString("N0")" Icon="bi-box-seam" /></div>
+                    <div class="col-12 col-md-3"><StatsCard Title="@Text("Cost", "التكلفة")" Value="@project.TotalActualCost.ToString("N2")" Icon="bi-cash-stack" /></div>
+                </div>
+            </div>
+        </article>
+    }
+    else if (activeTab == "Customers")
+    {
+        <article class="erp-card mb-3"><div class="erp-card-body">
+            <EditForm Model="customer" OnValidSubmit="SaveCustomerAsync"><div class="row g-3 align-items-end">
+                <div class="col-12 col-lg-3">
+                    <label class="form-label">@Text("Customer Selector", "اختيار العميل")</label>
+                    <AutoCompleteComponent TItem="CustomerDto"
+                                           Items="AvailableCustomers"
+                                           ItemText="CustomerDisplay"
+                                           Value="selectedCustomer"
+                                           ValueChanged="OnCustomerChanged"
+                                           ActionText="@Text("Add new Customer", "إضافة عميل جديد")"
+                                           ActionIcon="bi-plus-lg"
+                                           OnActionSelected="OpenNewCustomerModal"
+                                           PlaceHolder="@Text("Search customer", "ابحث عن عميل")" />
+                </div>
+                <div class="col-6 col-lg-2"><label class="form-label">@Text("Calculated Qty", "الكمية المحتسبة")</label><input class="form-control" value="@DraftCalculatedQuantity.ToString("N0")" readonly /></div>
+                <div class="col-6 col-lg-2"><label class="form-label">@Text("Contracted Amount", "المبلغ المتعاقد عليه")</label><InputNumber class="form-control" @bind-Value="customer.ContractedAmount" /></div>
+                <div class="col-12 col-lg-3"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="customer.Notes" /></div>
+                <div class="col-12 col-lg-5">
+                    <label class="form-label">@Text("Product / Combo SKU", "الصنف أو الحزمة")</label>
+                    <AutoCompleteComponent TItem="ProductSkuDto"
+                                           Items="AvailableProductSkus"
+                                           ItemText="ProductSkuDisplay"
+                                           Value="selectedProductSku"
+                                           ValueChanged="OnProductSkuChanged"
+                                           PlaceHolder="@Text("Search SKU", "ابحث عن صنف")" />
+                </div>
+                <div class="col-6 col-lg-2"><label class="form-label">@Text("SKU Qty", "كمية الصنف")</label><InputNumber class="form-control" @bind-Value="customerProductPlan.Quantity" /></div>
+                <div class="col-12 col-lg-3"><label class="form-label">@Text("SKU Notes", "ملاحظات الصنف")</label><InputText class="form-control" @bind-Value="customerProductPlan.Notes" /></div>
+                <div class="col-12 col-lg-2"><button class="btn btn-outline-secondary w-100" type="button" @onclick="AddCustomerProductPlanDraft"><i class="bi bi-plus"></i> @Text("Add SKU", "إضافة صنف")</button></div>
+                <div class="col-12 d-flex justify-content-end"><button class="btn btn-primary" type="submit"><i class="bi bi-plus"></i> @Text("Add Customer", "إضافة عميل")</button></div>
+            </div></EditForm>
+            <div class="row g-3 mt-1">
+                <div class="col-12 col-md-4">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted small">@Text("Calculated Quantity", "الكمية المحتسبة")</div>
+                        <div class="fw-semibold">@DraftCalculatedQuantity.ToString("N0")</div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted small">@Text("Actual Amount", "المبلغ الفعلي")</div>
+                        <div class="fw-semibold">@DraftActualAmount.ToString("N2")</div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="border rounded p-3 h-100">
+                        <div class="text-muted small">@Text("Difference", "الفرق")</div>
+                        <div class="fw-semibold">@DraftAmountDifference.ToString("N2")</div>
+                    </div>
+                </div>
+            </div>
+            @if (customer.ProductPlans.Any())
+            {
+                <div class="erp-table-wrap mt-3">
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>@Text("SKU", "الصنف")</th><th>@Text("Type", "النوع")</th><th>@Text("Quantity", "الكمية")</th><th>@Text("Unit Price", "سعر الوحدة")</th><th>@Text("Line Amount", "مبلغ السطر")</th><th>@Text("Notes", "ملاحظات")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                        <tbody>
+                            @foreach (var plan in customer.ProductPlans)
+                            {
+                                <tr>
+                                    <td>@PlanDisplay(plan)</td>
+                                    <td>@PlanType(plan)</td>
+                                    @if (editingProductPlan == plan)
+                                    {
+                                        <td><InputNumber class="form-control form-control-sm" @bind-Value="editingProductPlanQuantity" /></td>
+                                        <td>@ProductPlanUnitPrice(plan).ToString("N2")</td>
+                                        <td>@(ProductPlanUnitPrice(plan) * editingProductPlanQuantity).ToString("N2")</td>
+                                        <td><InputText class="form-control form-control-sm" @bind-Value="editingProductPlanNotes" /></td>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" type="button" @onclick="SaveCustomerProductPlanDraftEdit"><i class="bi bi-check2"></i></button>
+                                                <button class="btn btn-outline-secondary" type="button" @onclick="CancelCustomerProductPlanDraftEdit"><i class="bi bi-x"></i></button>
+                                            </div>
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td>@plan.Quantity.ToString("N0")</td>
+                                        <td>@ProductPlanUnitPrice(plan).ToString("N2")</td>
+                                        <td>@ProductPlanLineAmount(plan).ToString("N2")</td>
+                                        <td>@plan.Notes</td>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" type="button" @onclick="@(() => EditCustomerProductPlanDraft(plan))"><i class="bi bi-pencil"></i></button>
+                                                <button class="btn btn-outline-danger" type="button" @onclick="@(() => RemoveCustomerProductPlanDraft(plan))"><i class="bi bi-x"></i></button>
+                                            </div>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div></article>
+        <article class="erp-card mb-3"><div class="erp-card-header"><strong>@Text("Add SKU Plan To Existing Customer", "إضافة صنف لعميل موجود")</strong></div><div class="erp-card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-lg-3"><label class="form-label">@Text("Project Customer", "عميل المشروع")</label><select class="form-select" @bind="productPlanCustomerIdText"><option value="">@Text("Select", "اختر")</option>@foreach (var item in project.Customers) { <option value="@item.Id">@item.CustomerName</option> }</select></div>
+                <div class="col-12 col-lg-5">
+                    <label class="form-label">@Text("Product / Combo SKU", "الصنف أو الحزمة")</label>
+                    <AutoCompleteComponent TItem="ProductSkuDto"
+                                           Items="productSkus"
+                                           ItemText="ProductSkuDisplay"
+                                           Value="selectedExistingProductSku"
+                                           ValueChanged="OnExistingProductSkuChanged"
+                                           PlaceHolder="@Text("Search SKU", "ابحث عن صنف")" />
+                </div>
+                <div class="col-6 col-lg-2"><label class="form-label">@Text("Quantity", "الكمية")</label><InputNumber class="form-control" @bind-Value="existingCustomerProductPlan.Quantity" /></div>
+                <div class="col-12 col-lg-2"><button class="btn btn-outline-primary w-100" type="button" @onclick="SaveExistingCustomerProductPlanAsync"><i class="bi bi-plus"></i> @Text("Add SKU", "إضافة صنف")</button></div>
+                <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="existingCustomerProductPlan.Notes" /></div>
+            </div>
+        </div></article>
+        @Table(project.Customers.Select(x => new[] { x.CustomerName, x.ContractedQuantity.ToString("N0"), x.ContractedAmount.ToString("N2"), ProductPlanSummary(x.ProductPlans) }), Text("Customer", "العميل"), Text("Quantity", "الكمية"), Text("Amount", "المبلغ"), Text("Products", "الأصناف"))
+    }
+    else if (activeTab == "Deliverables")
+    {
+        <article class="erp-card mb-3"><div class="erp-card-body">
+            <EditForm Model="deliverable" OnValidSubmit="SaveDeliverableAsync"><div class="row g-3 align-items-end">
+                <div class="col-12 col-md-4">
+                    <label class="form-label">@Text("Product / Combo SKU", "الصنف أو الحزمة")</label>
+                    <AutoCompleteComponent TItem="ProductSkuDto"
+                                           Items="productSkus"
+                                           ItemText="ProductSkuDisplay"
+                                           Value="selectedDeliverableSku"
+                                           ValueChanged="OnDeliverableSkuChanged"
+                                           PlaceHolder="@Text("Search SKU", "ابحث عن صنف")" />
+                </div>
+                <div class="col-12 col-md-3"><label class="form-label">@Text("Meal Name", "اسم الوجبة")</label><InputText class="form-control" @bind-Value="deliverable.ProductSkuName" /></div>
+                <div class="col-12 col-md-2"><label class="form-label">@Text("Handling", "التعامل")</label><InputSelect class="form-select" @bind-Value="deliverable.HandlingType">@foreach (var type in Enum.GetValues<MealHandlingType>()) { <option value="@type">@type</option> }</InputSelect></div>
+                <div class="col-12 col-md-2"><label class="form-label">@Text("Planned Qty", "الكمية المخططة")</label><InputNumber class="form-control" @bind-Value="deliverable.PlannedQuantity" /></div>
+                <div class="col-12 col-md-2"><label class="form-label">@Text("Ordered Qty", "كمية الطلب")</label><InputNumber class="form-control" @bind-Value="deliverable.OrderedQuantity" /></div>
+                <div class="col-12 col-md-1"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-plus"></i></button></div>
+            </div></EditForm>
+        </div></article>
+        <div class="erp-table-wrap"><table class="table align-middle"><thead><tr><th>@Text("Meal", "الوجبة")</th><th>@Text("Handling", "التعامل")</th><th>@Text("Planned", "مخطط")</th><th>@Text("Produced", "منتج")</th><th></th></tr></thead><tbody>
+            @foreach (var item in project.Deliverables)
+            {
+                <tr><td>@item.ProductSkuName</td><td>@item.HandlingType</td><td>@item.PlannedQuantity.ToString("N0")</td><td>@item.ProducedQuantity.ToString("N0")</td><td class="text-end"><button class="btn btn-sm btn-outline-secondary" @onclick="@(() => GenerateRequirementsAsync(item.Id))">@Text("Generate Materials", "توليد المواد")</button></td></tr>
+            }
+        </tbody></table></div>
+    }
+    else if (activeTab == "Team & Resources")
+    {
+        <article class="erp-card mb-3"><div class="erp-card-body">
+            <EditForm Model="resource" OnValidSubmit="SaveResourceAsync"><div class="row g-3 align-items-end">
+                <div class="col-12 col-md-2"><label class="form-label">@Text("Type", "Type")</label><select class="form-select" value="@resource.ResourceType" @onchange="OnResourceTypeChanged">@foreach (var type in Enum.GetValues<ProjectResourceType>()) { <option value="@type">@type</option> }</select></div>
+                <div class="col-12 col-md-2"><label class="form-label">@Text("Reference", "المرجع")</label><select class="form-select" value="@resourceReferenceIdText" @onchange="OnResourceReferenceChanged"><option value="">@Text("None", "بدون")</option>@foreach (var item in ResourceReferenceOptions()) { <option value="@item.Id">@item.Name</option> }</select></div>
+                @if (resource.ResourceType == ProjectResourceType.Team)
+                {
+                    <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" type="button" @onclick="OpenProjectTeamModal"><i class="bi bi-people"></i> @Text("New Team", "فريق جديد")</button></div>
+                }
+                <div class="col-12 col-md-3"><label class="form-label">@Text("Name", "Name")</label><InputText class="form-control" @bind-Value="resource.Name" /></div>
+                <div class="col-6 col-md-1"><label class="form-label">@Text("Plan Qty", "Plan Qty")</label><InputNumber class="form-control" @bind-Value="resource.PlannedQuantity" /></div>
+                <div class="col-6 col-md-1"><label class="form-label">@Text("Plan Rate", "Plan Rate")</label><InputNumber class="form-control" @bind-Value="resource.PlannedRate" /></div>
+                <div class="col-6 col-md-1"><label class="form-label">@Text("Actual Qty", "Actual Qty")</label><InputNumber class="form-control" @bind-Value="resource.ActualQuantity" /></div>
+                <div class="col-6 col-md-1"><label class="form-label">@Text("Actual Rate", "Actual Rate")</label><InputNumber class="form-control" @bind-Value="resource.ActualRate" /></div>
+                <div class="col-12 col-md-2">
+                    <label class="form-label">@Text("Currency", "العملة")</label>
+                    <AutoCompleteComponent TItem="CurrencyDto"
+                                           Items="currencies"
+                                           ItemText="CurrencyDisplay"
+                                           Value="selectedResourceCurrency"
+                                           ValueChanged="OnResourceCurrencyChanged"
+                                           PlaceHolder="@Text("Select currency", "اختر العملة")" />
+                </div>
+                <div class="col-12"><label class="form-label">@Text("Notes", "Notes")</label><InputText class="form-control" @bind-Value="resource.Notes" /></div>
+                <div class="col-12 col-md-2"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-plus"></i> @Text("Add", "Add")</button></div>
+            </div></EditForm>
+        </div></article>
+        @Table(project.Resources.Select(x => new[] { x.ResourceType.ToString(), x.Name, x.PlannedCost.ToString("N2"), x.ActualCost.ToString("N2"), x.Notes ?? "" }), Text("Type", "Type"), Text("Name", "Name"), Text("Planned", "Planned"), Text("Actual", "Actual"), Text("Notes", "Notes"))
+    }
+    else if (activeTab == "Materials")
+    {
+        <article class="erp-card mb-3"><div class="erp-card-body">
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-outline-primary btn-sm" @onclick="RefreshMaterialsAsync"><i class="bi bi-arrow-clockwise"></i> @Text("Refresh Requirements", "Refresh Requirements")</button>
+                @foreach (var item in project.Deliverables)
+                {
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="@(() => GenerateRequirementsAsync(item.Id))"><i class="bi bi-arrow-repeat"></i> @Text("Regenerate", "Regenerate") @item.ProductSkuName</button>
+                }
+            </div>
+        </div></article>
+        @Table(project.MaterialRequirements.Select(x => new[] { x.ComponentSkuName, x.RequiredQuantity.ToString("N4"), x.ReservedQuantity.ToString("N4"), x.IssuedQuantity.ToString("N4"), x.ConsumedQuantity.ToString("N4"), x.ReturnedQuantity.ToString("N4"), x.VarianceQuantity.ToString("N4") }), Text("Component", "Component"), Text("Required", "Required"), Text("Reserved", "Reserved"), Text("Issued", "Issued"), Text("Consumed", "Consumed"), Text("Returned", "Returned"), Text("Variance", "Variance"))
+    }
+    else if (activeTab == "Preparation/Packaging")
+    {
+        <article class="erp-card mb-3"><div class="erp-card-header"><strong>@Text("New Handoff", "New Handoff")</strong></div><div class="erp-card-body">
+            <EditForm Model="handoff" OnValidSubmit="PostHandoffAsync"><div class="row g-3 align-items-end">
+                <div class="col-12 col-md-2"><label class="form-label">@Text("Type", "Type")</label><InputSelect class="form-select" @bind-Value="handoff.HandoffType">@foreach (var type in Enum.GetValues<ProjectHandoffType>()) { <option value="@type">@type</option> }</InputSelect></div>
+                <div class="col-12 col-md-2"><label class="form-label">@Text("Date", "Date")</label><InputDate class="form-control" @bind-Value="handoff.HandoffDate" /></div>
+                <div class="col-12 col-md-4"><label class="form-label">@Text("Notes", "Notes")</label><InputText class="form-control" @bind-Value="handoff.Notes" /></div>
+                <div class="col-12 col-md-2"><label class="form-label d-block">@Text("Consume Reserved", "Consume Reserved")</label><InputCheckbox class="form-check-input" @bind-Value="handoff.ConsumeReservedQuantity" /></div>
+                <div class="col-12 col-md-2"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-box-arrow-in-down"></i> @Text("Post", "Post")</button></div>
+            </div></EditForm>
+            <div class="row g-2 align-items-end mt-3">
+                <div class="col-12 col-md-3"><label class="form-label">@Text("Allocation", "Allocation")</label><select class="form-select" @bind="handoffLineAllocationIdText"><option value="">@Text("None", "None")</option>@foreach (var item in ProjectAllocations()) { <option value="@item.Id">@item.DistributionDate.ToShortDateString() - @item.CustomerName - @item.DeliverableName</option> }</select></div>
+                <div class="col-12 col-md-3"><label class="form-label">@Text("Deliverable", "Deliverable")</label><select class="form-select" @onchange="OnHandoffDeliverableChanged"><option value="">@Text("Select", "Select")</option>@foreach (var item in project.Deliverables) { <option value="@item.Id">@item.ProductSkuName</option> }</select></div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">@Text("Product / Combo SKU", "الصنف أو الحزمة")</label>
+                    <AutoCompleteComponent TItem="ProductSkuDto"
+                                           Items="productSkus"
+                                           ItemText="ProductSkuDisplay"
+                                           Value="selectedHandoffSku"
+                                           ValueChanged="OnHandoffSkuChanged"
+                                           PlaceHolder="@Text("Search SKU", "ابحث عن صنف")" />
+                </div>
+                <div class="col-12 col-md-2"><label class="form-label">@Text("Item", "Item")</label><InputText class="form-control" @bind-Value="handoffLine.ItemName" /></div>
+                <div class="col-6 col-md-1"><label class="form-label">@Text("Qty", "Qty")</label><InputNumber class="form-control" @bind-Value="handoffLine.Quantity" /></div>
+                <div class="col-6 col-md-1"><label class="form-label">@Text("Cost", "Cost")</label><InputNumber class="form-control" @bind-Value="handoffLine.UnitCost" /></div>
+                <div class="col-12 col-md-2">
+                    <label class="form-label">@Text("Warehouse", "المستودع")</label>
+                    <AutoCompleteComponent TItem="WarehouseDto"
+                                           Items="warehouses"
+                                           ItemText="WarehouseDisplay"
+                                           Value="selectedHandoffWarehouse"
+                                           ValueChanged="OnHandoffWarehouseChanged"
+                                           PlaceHolder="@Text("Select warehouse", "اختر المستودع")" />
+                </div>
+                <div class="col-12 col-md-2">
+                    <label class="form-label">@Text("Batch", "التشغيلة")</label>
+                    <AutoCompleteComponent TItem="BatchDto"
+                                           Items="batches"
+                                           ItemText="BatchDisplay"
+                                           Value="selectedHandoffBatch"
+                                           ValueChanged="OnHandoffBatchChanged"
+                                           PlaceHolder="@Text("Select batch", "اختر التشغيلة")" />
+                </div>
+                <div class="col-12 col-md-2">
+                    <label class="form-label">@Text("Currency", "العملة")</label>
+                    <AutoCompleteComponent TItem="CurrencyDto"
+                                           Items="currencies"
+                                           ItemText="CurrencyDisplay"
+                                           Value="selectedHandoffCurrency"
+                                           ValueChanged="OnHandoffCurrencyChanged"
+                                           PlaceHolder="@Text("Select currency", "اختر العملة")" />
+                </div>
+                <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" type="button" @onclick="AddHandoffLine">@Text("Add Line", "Add Line")</button></div>
+            </div>
+            @Table(handoff.Lines.Select(x => new[] { x.ItemName, x.Quantity.ToString("N4"), x.UnitCost.ToString("N4"), x.TotalCost.ToString("N4") }), Text("Item", "Item"), Text("Qty", "Qty"), Text("Cost", "Cost"), Text("Total", "Total"))
+        </div></article>
+        @Table(project.Handoffs.Select(x => new[] { x.HandoffDate.ToShortDateString(), x.HandoffType.ToString(), x.ReferenceNumber ?? "", x.Lines.Count.ToString("N0"), x.Lines.Sum(l => l.TotalCost).ToString("N2") }), Text("Date", "Date"), Text("Type", "Type"), Text("Reference", "Reference"), Text("Lines", "Lines"), Text("Cost", "Cost"))
+    }
+    else if (activeTab == "Distribution")
+    {
+        <div class="mb-3"><button class="btn btn-outline-primary" @onclick='() => NavigationManager.NavigateTo("/ProjectManagement/DistributionSchedule")'><i class="bi bi-calendar-event"></i> @Text("Open Schedule", "Open Schedule")</button></div>
+        @Table(project.DistributionSchedules.SelectMany(x => x.Allocations).OrderBy(x => x.DistributionDate).Select(x => new[] { x.DistributionDate.ToShortDateString(), x.CustomerName, x.PlaceName, x.DeliverableName, x.PlannedQuantity.ToString("N0"), x.ShippedQuantity.ToString("N0"), x.DeliveredQuantity.ToString("N0"), x.ActualQuantity.ToString("N0"), x.VarianceQuantity.ToString("N0") }), Text("Date", "Date"), Text("Customer", "Customer"), Text("Place", "Place"), Text("Meal", "Meal"), Text("Planned", "Planned"), Text("Shipped", "Shipped"), Text("Delivered", "Delivered"), Text("Actual", "Actual"), Text("Variance", "Variance"))
+    }
+    else if (activeTab == "Tasks")
+    {
+        <article class="erp-card mb-3"><div class="erp-card-header"><strong>@Text("Create / Link Task", "Create / Link Task")</strong></div><div class="erp-card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-4"><label class="form-label">@Text("Title", "Title")</label><InputText class="form-control" @bind-Value="taskLink.Title" /></div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">@Text("Assigned To", "Assigned To")</label>
+                    <AutoCompleteComponent TItem="EmployeeDto"
+                                           Items="ProjectTaskAssignees"
+                                           ItemText="EmployeeSearchText"
+                                           Value="selectedTaskEmployee"
+                                           ValueChanged="OnTaskEmployeeChanged"
+                                           PlaceHolder="@Text("Select project employee", "اختر موظف المشروع")" />
+                </div>
+                <div class="col-12 col-md-4 d-flex gap-2">
+                    <button class="btn btn-primary flex-fill" @onclick="CreateTaskFromProjectAsync"><i class="bi bi-plus-lg"></i> @Text("Create Task", "Create Task")</button>
+                    <button class="btn btn-outline-primary flex-fill" @onclick="OpenExistingTaskModal"><i class="bi bi-link-45deg"></i> @Text("Link Existing", "Link Existing")</button>
+                </div>
+                <div class="col-12"><label class="form-label">@Text("Description", "Description")</label><InputText class="form-control" @bind-Value="taskLink.Notes" /></div>
+                @if (!ProjectTaskAssignees.Any())
+                {
+                    <div class="col-12"><div class="alert alert-warning mb-0">@Text("Add or select a project team resource before assigning a project task.", "أضف أو اختر فريق مشروع كمورد قبل إسناد مهمة المشروع.")</div></div>
+                }
+            </div>
+        </div></article>
+        <div class="erp-table-wrap"><table class="table align-middle"><thead><tr><th>@Text("Title", "Title")</th><th>@Text("Task No.", "Task No.")</th><th class="text-end">@Text("Open", "Open")</th></tr></thead><tbody>
+            @foreach (var item in project.TaskLinks)
+            {
+                <tr><td>@item.Title</td><td>@item.TaskNumber</td><td class="text-end">@if (item.TaskId.HasValue) { <button class="btn btn-sm btn-outline-primary" @onclick="@(() => NavigationManager.NavigateTo($"/TaskManagement/View/{item.TaskId}"))"><i class="bi bi-box-arrow-up-right"></i></button> }</td></tr>
+            }
+        </tbody></table></div>
+    }
+    else if (activeTab == "Timeline")
+    {
+        @Table(TimelineRows(), Text("Date", "Date"), Text("Event", "Event"), Text("Details", "Details"))
+    }
+    else if (activeTab == "Budget")
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-lg-6"><article class="erp-card"><div class="erp-card-header"><strong>@Text("Resource", "مورد")</strong></div><div class="erp-card-body"><EditForm Model="resource" OnValidSubmit="SaveResourceAsync"><div class="row g-2">
+                <div class="col-12 col-md-4"><select class="form-select" value="@resource.ResourceType" @onchange="OnResourceTypeChanged">@foreach (var type in Enum.GetValues<ProjectResourceType>()) { <option value="@type">@type</option> }</select></div>
+                <div class="col-12 col-md-4"><select class="form-select" value="@resourceReferenceIdText" @onchange="OnResourceReferenceChanged"><option value="">@Text("No reference", "بدون مرجع")</option>@foreach (var item in ResourceReferenceOptions()) { <option value="@item.Id">@item.Name</option> }</select></div>
+                @if (resource.ResourceType == ProjectResourceType.Team)
+                {
+                    <div class="col-12 col-md-4"><button class="btn btn-outline-primary w-100" type="button" @onclick="OpenProjectTeamModal"><i class="bi bi-people"></i> @Text("New Project Team", "فريق مشروع جديد")</button></div>
+                }
+                <div class="col-12 col-md-4"><InputText class="form-control" placeholder="@Text("Name", "الاسم")" @bind-Value="resource.Name" /></div>
+                <div class="col-6 col-md-3"><InputNumber class="form-control" @bind-Value="resource.PlannedQuantity" /></div>
+                <div class="col-6 col-md-3"><InputNumber class="form-control" @bind-Value="resource.PlannedRate" /></div>
+                <div class="col-6 col-md-3"><InputNumber class="form-control" @bind-Value="resource.ActualQuantity" /></div>
+                <div class="col-6 col-md-3"><InputNumber class="form-control" @bind-Value="resource.ActualRate" /></div>
+                <div class="col-12 col-md-4">
+                    <AutoCompleteComponent TItem="CurrencyDto"
+                                           Items="currencies"
+                                           ItemText="CurrencyDisplay"
+                                           Value="selectedResourceCurrency"
+                                           ValueChanged="OnResourceCurrencyChanged"
+                                           PlaceHolder="@Text("Select currency", "اختر العملة")" />
+                </div>
+                <div class="col-12 col-md-8"><InputText class="form-control" placeholder="@Text("Notes", "Notes")" @bind-Value="resource.Notes" /></div>
+                <div class="col-12"><button class="btn btn-primary btn-sm" type="submit">@Text("Add Resource", "إضافة مورد")</button></div>
+            </div></EditForm></div></article></div>
+            <div class="col-12 col-lg-6"><article class="erp-card"><div class="erp-card-header"><strong>@Text("Expense", "مصروف")</strong></div><div class="erp-card-body"><EditForm Model="expense" OnValidSubmit="SaveExpenseAsync"><div class="row g-2">
+                <div class="col-12 col-md-4"><InputSelect class="form-select" @bind-Value="expense.Category">@foreach (var category in Enum.GetValues<ProjectExpenseCategory>()) { <option value="@category">@category</option> }</InputSelect></div>
+                <div class="col-12 col-md-4"><InputDate class="form-control" @bind-Value="expense.ExpenseDate" /></div>
+                <div class="col-12 col-md-4"><InputText class="form-control" placeholder="@Text("Description", "الوصف")" @bind-Value="expense.Description" /></div>
+                <div class="col-6 col-md-3"><InputNumber class="form-control" @bind-Value="expense.PlannedAmount" /></div>
+                <div class="col-6 col-md-3"><InputNumber class="form-control" @bind-Value="expense.ActualAmount" /></div>
+                <div class="col-12 col-md-3">
+                    <AutoCompleteComponent TItem="CurrencyDto"
+                                           Items="currencies"
+                                           ItemText="CurrencyDisplay"
+                                           Value="selectedExpenseCurrency"
+                                           ValueChanged="OnExpenseCurrencyChanged"
+                                           PlaceHolder="@Text("Select currency", "اختر العملة")" />
+                </div>
+                <div class="col-12 col-md-3"><InputText class="form-control" placeholder="@Text("Notes", "Notes")" @bind-Value="expense.Notes" /></div>
+                <div class="col-12"><button class="btn btn-primary btn-sm" type="submit">@Text("Add", "إضافة")</button></div>
+            </div></EditForm></div></article></div>
+        </div>
+        <div class="row g-3">
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Planned", "مخطط")" Value="@budget.TotalPlannedCost.ToString("N2")" Icon="bi-cash" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Actual", "فعلي")" Value="@budget.TotalActualCost.ToString("N2")" Icon="bi-receipt" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Variance", "الفرق")" Value="@budget.CostVariance.ToString("N2")" Icon="bi-graph-up" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Cost/Meal", "تكلفة الوجبة")" Value="@budget.CostPerMeal.ToString("N2")" Icon="bi-calculator" /></div>
+        </div>
+    }
+</main>
+
+@if (showNewCustomerModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" dir="@SharedDataService.PageDirection">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <EditForm Model="newCustomer" OnValidSubmit="SaveNewCustomerAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <div>
+                            <h5 class="modal-title">@Text("Add new Customer", "إضافة عميل جديد")</h5>
+                            <div class="text-muted small">@Text("Create a customer record, then continue adding project quantities and products.", "أنشئ سجل عميل ثم تابع إضافة كميات وأصناف المشروع.")</div>
+                        </div>
+                        <button type="button" class="btn-close" aria-label="Close" @onclick="CloseNewCustomerModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (!string.IsNullOrWhiteSpace(newCustomerError))
+                        {
+                            <div class="alert alert-danger">@newCustomerError</div>
+                        }
+
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">@Text("Name", "الاسم")</label>
+                                <InputText class="form-control" @bind-Value="newCustomer.Name" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">@Text("Customer Code", "رقم العميل")</label>
+                                <InputText class="form-control" @bind-Value="newCustomer.CustomerCode" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">@Text("Commercial Name", "الاسم التجاري")</label>
+                                <InputText class="form-control" @bind-Value="newCustomer.CommercialName" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">@Text("Customer Group", "فئة العميل")</label>
+                                <AutoCompleteComponent TItem="CustomerGroupDto"
+                                                       Items="customerGroups"
+                                                       ItemText="CustomerGroupDisplay"
+                                                       Value="selectedNewCustomerGroup"
+                                                       ValueChanged="OnNewCustomerGroupChanged"
+                                                       PlaceHolder="@Text("Select customer group", "اختر فئة العميل")" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@Text("VAT Number", "الرقم الضريبي")</label>
+                                <InputText class="form-control" @bind-Value="newCustomer.VatNumber" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@Text("Commercial Registration", "السجل التجاري")</label>
+                                <InputText class="form-control" @bind-Value="newCustomer.CommercialRegistrationNumber" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@Text("Credit Limit", "حد الائتمان")</label>
+                                <InputNumber class="form-control" @bind-Value="newCustomer.CreditLimit" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@Text("Status", "الحالة")</label>
+                                <InputSelect class="form-select" @bind-Value="newCustomer.Status">
+                                    @foreach (var status in Enum.GetValues<CustomerStatus>())
+                                    {
+                                        <option value="@status">@status</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@Text("Payment Term", "شروط الدفع")</label>
+                                <InputSelect class="form-select" @bind-Value="newCustomer.PaymentTerm">
+                                    @foreach (var term in Enum.GetValues<PaymentTermType>())
+                                    {
+                                        <option value="@term">@term</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@Text("Credit Status", "حالة الائتمان")</label>
+                                <InputSelect class="form-select" @bind-Value="newCustomer.CreditStatus">
+                                    @foreach (var creditStatus in Enum.GetValues<CreditStatus>())
+                                    {
+                                        <option value="@creditStatus">@creditStatus</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                                <InputTextArea class="form-control" rows="2" @bind-Value="newCustomer.Notes" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CloseNewCustomerModal" disabled="@isSavingNewCustomer">@Text("Cancel", "إلغاء")</button>
+                        <button type="submit" class="btn btn-primary" disabled="@isSavingNewCustomer">
+                            <i class="bi bi-check2"></i>
+                            @(isSavingNewCustomer ? Text("Saving...", "جاري الحفظ...") : Text("Save Customer", "حفظ العميل"))
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showProjectTeamModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" dir="@SharedDataService.PageDirection">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <EditForm Model="newProjectTeam" OnValidSubmit="SaveProjectTeamAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <div>
+                            <h5 class="modal-title">@Text("Create Project Team", "إنشاء فريق مشروع")</h5>
+                            <div class="text-muted small">@Text("Project teams are reusable in future projects.", "فرق المشاريع قابلة لإعادة الاستخدام في المشاريع القادمة.")</div>
+                        </div>
+                        <button type="button" class="btn-close" aria-label="Close" @onclick="CloseProjectTeamModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (!string.IsNullOrWhiteSpace(projectTeamError))
+                        {
+                            <div class="alert alert-danger">@projectTeamError</div>
+                        }
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6"><label class="form-label">@Text("Team Name", "اسم الفريق")</label><InputText class="form-control" @bind-Value="newProjectTeam.Name" /><ValidationMessage For="@(() => newProjectTeam.Name)" /></div>
+                            <div class="col-12 col-md-6"><label class="form-label">@Text("English Name", "الاسم بالإنجليزية")</label><InputText class="form-control" @bind-Value="newProjectTeam.NameEng" /></div>
+                            <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="newProjectTeam.Notes" /></div>
+                            <div class="col-12">
+                                <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+                                    <strong>@Text("Members", "الأعضاء")</strong>
+                                    <span class="text-muted small">@Text("Selected", "المحدد"): @newProjectTeamEmployeeIds.Count</span>
+                                </div>
+                                <input class="form-control mb-2" @bind="projectTeamEmployeeSearchText" @bind:event="oninput" placeholder="@Text("Search employees", "ابحث عن موظفين")" />
+                                <div class="erp-table-wrap project-team-member-list">
+                                    <table class="table align-middle mb-0">
+                                        <thead><tr><th></th><th>@Text("Employee", "الموظف")</th><th>@Text("Employee No.", "رقم الموظف")</th></tr></thead>
+                                        <tbody>
+                                            @foreach (var employee in FilteredProjectTeamEmployees)
+                                            {
+                                                <tr>
+                                                    <td><input class="form-check-input" type="checkbox" checked="@newProjectTeamEmployeeIds.Contains(employee.Id)" @onchange="args => ToggleProjectTeamEmployee(employee.Id, args)" /></td>
+                                                    <td>@EmployeeDisplay(employee)</td>
+                                                    <td>@employee.EmployeeNo</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CloseProjectTeamModal" disabled="@isSavingProjectTeam">@Text("Cancel", "إلغاء")</button>
+                        <button type="submit" class="btn btn-primary" disabled="@isSavingProjectTeam"><i class="bi bi-save"></i> @Text("Save Team", "حفظ الفريق")</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showExistingTaskModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" dir="@SharedDataService.PageDirection">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title">@Text("Link Existing Task", "ربط مهمة موجودة")</h5>
+                        <div class="text-muted small">@Text("Select a visible task to link it with this project.", "اختر مهمة ظاهرة لربطها بهذا المشروع.")</div>
+                    </div>
+                    <button type="button" class="btn-close" aria-label="Close" @onclick="CloseExistingTaskModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 align-items-end mb-3">
+                        <div class="col-12 col-md-9">
+                            <label class="form-label">@Text("Search", "بحث")</label>
+                            <input class="form-control" @bind="existingTaskSearchText" @bind:event="oninput" placeholder="@Text("Search by task no. or title", "ابحث برقم المهمة أو العنوان")" />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <button type="button" class="btn btn-outline-primary w-100" @onclick="LoadExistingTasksAsync" disabled="@isLoadingExistingTasks">
+                                <i class="bi bi-search"></i>
+                                @(isLoadingExistingTasks ? Text("Loading...", "جاري التحميل...") : Text("Search", "بحث"))
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="erp-table-wrap">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>@Text("Task No.", "رقم المهمة")</th>
+                                    <th>@Text("Title", "العنوان")</th>
+                                    <th>@Text("Assigned To", "مسندة إلى")</th>
+                                    <th>@Text("Status", "الحالة")</th>
+                                    <th>@Text("Due Date", "تاريخ الاستحقاق")</th>
+                                    <th class="text-end">@Text("Select", "اختيار")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (isLoadingExistingTasks)
+                                {
+                                    <tr><td colspan="6" class="text-center text-muted py-4">@Text("Loading tasks...", "جاري تحميل المهام...")</td></tr>
+                                }
+                                else if (!AvailableExistingTasks.Any())
+                                {
+                                    <tr><td colspan="6" class="text-center text-muted py-4">@Text("No available tasks found.", "لم يتم العثور على مهام متاحة.")</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var task in AvailableExistingTasks)
+                                    {
+                                        <tr>
+                                            <td>@task.TaskNumber</td>
+                                            <td>@task.Title</td>
+                                            <td>@task.AssignedToUser</td>
+                                            <td>@task.Status</td>
+                                            <td>@task.DueDate.ToShortDateString()</td>
+                                            <td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => SelectExistingTaskAsync(task)"><i class="bi bi-check2"></i></button></td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="CloseExistingTaskModal" disabled="@isLinkingExistingTask">@Text("Cancel", "إلغاء")</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .project-team-member-list {
+        max-height: 320px;
+        overflow: auto;
+    }
+</style>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private ProjectDto project = new();
+    private ProjectDto editingProject = new();
+    private ProjectCustomerDto customer = new();
+    private List<CustomerDto> customers = [];
+    private List<CustomerGroupDto> customerGroups = [];
+    private List<EmployeeDto> employees = [];
+    private List<EmployeeTeamDto> projectTeams = [];
+    private List<BranchDto> branches = [];
+    private List<DepartmentDto> departments = [];
+    private List<CurrencyDto> currencies = [];
+    private List<WarehouseDto> warehouses = [];
+    private List<BatchDto> batches = [];
+    private List<ProductSkuDto> productSkus = [];
+    private CustomerDto? selectedCustomer;
+    private CustomerGroupDto? selectedNewCustomerGroup;
+    private EmployeeDto? selectedManager;
+    private BranchDto? selectedBranch;
+    private ProductSkuDto? selectedProductSku;
+    private ProductSkuDto? selectedExistingProductSku;
+    private ProductSkuDto? selectedDeliverableSku;
+    private ProductSkuDto? selectedHandoffSku;
+    private CurrencyDto? selectedResourceCurrency;
+    private CurrencyDto? selectedExpenseCurrency;
+    private CurrencyDto? selectedHandoffCurrency;
+    private WarehouseDto? selectedHandoffWarehouse;
+    private BatchDto? selectedHandoffBatch;
+    private EmployeeDto? selectedTaskEmployee;
+    private ProjectCustomerProductPlanDto customerProductPlan = NewProductPlan();
+    private ProjectCustomerProductPlanDto existingCustomerProductPlan = NewProductPlan();
+    private ProjectCustomerProductPlanDto? editingProductPlan;
+    private decimal editingProductPlanQuantity = 1;
+    private string? editingProductPlanNotes;
+    private string productPlanCustomerIdText = string.Empty;
+    private ProjectDeliverableDto deliverable = new() { HandlingType = MealHandlingType.Hot, PlannedQuantity = 1, OrderedQuantity = 1 };
+    private ProjectResourceDto resource = new() { PlannedQuantity = 1 };
+    private ProjectExpenseDto expense = new();
+    private ProjectBudgetSummaryDto budget = new();
+    private CustomerDto newCustomer = NewCustomer();
+    private EmployeeTeamDto newProjectTeam = new();
+    private HashSet<Guid> newProjectTeamEmployeeIds = [];
+    private string branchIdText = string.Empty;
+    private string sourceOrderIdText = string.Empty;
+    private string deliverableSkuIdText = string.Empty;
+    private string resourceReferenceIdText = string.Empty;
+    private string resourceCurrencyIdText = string.Empty;
+    private string expenseCurrencyIdText = string.Empty;
+    private string activeTab = "Overview";
+    private ProjectHandoffDto handoff = new() { HandoffDate = DateTime.UtcNow.Date, HandoffType = ProjectHandoffType.MaterialIssueToPreparation };
+    private ProjectHandoffLineDto handoffLine = new() { Quantity = 1 };
+    private ProjectTaskLinkDto taskLink = new();
+    private string handoffLineSkuIdText = string.Empty;
+    private string handoffLineAllocationIdText = string.Empty;
+    private string handoffLineProductIdText = string.Empty;
+    private string handoffLinePackageIdText = string.Empty;
+    private string handoffLineWarehouseIdText = string.Empty;
+    private string handoffLineBatchIdText = string.Empty;
+    private string handoffLineCurrencyIdText = string.Empty;
+    private string existingTaskSearchText = string.Empty;
+    private string projectTeamEmployeeSearchText = string.Empty;
+    private readonly string[] tabs = ["Overview", "Customers", "Team & Resources", "Deliverables", "Materials", "Preparation/Packaging", "Distribution", "Budget", "Tasks", "Timeline"];
+    private string? errorMessage;
+    private string? newCustomerError;
+    private string? projectTeamError;
+    private bool showNewCustomerModal;
+    private bool showProjectTeamModal;
+    private bool showExistingTaskModal;
+    private bool isSavingNewCustomer;
+    private bool isSavingProjectTeam;
+    private bool isLoadingExistingTasks;
+    private bool isLinkingExistingTask;
+    private List<TaskItemDto> existingTasks = [];
+    private List<CustomerDto> AvailableCustomers => customers
+        .Where(item => !project.Customers.Any(projectCustomer => projectCustomer.CustomerId == item.Id))
+        .ToList();
+    private List<ProductSkuDto> AvailableProductSkus => productSkus
+        .Where(sku => !customer.ProductPlans.Any(plan => plan.ProductSkuId == sku.Id))
+        .ToList();
+    private decimal DraftCalculatedQuantity => customer.ProductPlans.Sum(plan => plan.Quantity);
+    private decimal DraftActualAmount => ProductPlansActualAmount(customer.ProductPlans);
+    private decimal DraftAmountDifference => customer.ContractedAmount - DraftActualAmount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadLookupsAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        if (ApiConfig.CompanyId == Guid.Empty) return;
+
+        var customerResult = await CustomerService.GetByCompany(ApiConfig.CompanyId, 0, 1000);
+        if (customerResult.IsSuccess)
+            customers = customerResult.Data?.Data.ToList() ?? [];
+
+        var customerGroupResult = await CustomerGroupService.GetByCompanyAsync(ApiConfig.CompanyId, 0, 1000);
+        if (customerGroupResult.IsSuccess)
+            customerGroups = customerGroupResult.Data?.Data.ToList() ?? [];
+
+        var employeeResult = await EmployeeService.GetByCompanyIdAsync(ApiConfig.CompanyId, 0, 1000);
+        if (employeeResult.IsSuccess)
+            employees = employeeResult.Data?.Data.ToList() ?? [];
+
+        await LoadProjectTeamsAsync();
+
+        var branchResult = await BranchService.GetByCompanyIdAsync(ApiConfig.CompanyId, 0, 1000);
+        if (branchResult.IsSuccess)
+            branches = branchResult.Data?.Data.ToList() ?? [];
+
+        var departmentResult = await DepartmentService.GetAsync(0, 1000);
+        if (departmentResult.IsSuccess)
+            departments = departmentResult.Data?.Data.ToList() ?? [];
+
+        var currencyResult = await CurrencyService.GetAsync(ApiConfig.CompanyId, 0, 1000);
+        if (currencyResult.IsSuccess)
+            currencies = currencyResult.Data?.Data.ToList() ?? [];
+
+        var warehouseResult = await WarehouseService.GetAsync(ApiConfig.CompanyId, 0, 1000);
+        if (warehouseResult.IsSuccess)
+            warehouses = warehouseResult.Data?.Data.ToList() ?? [];
+
+        var batchResult = await BatchService.GetAsync(ApiConfig.CompanyId, 0, 1000);
+        if (batchResult.IsSuccess)
+            batches = batchResult.Data?.Data.ToList() ?? [];
+
+        var skuResult = await ProductService.GetPublicStoreProductSkusAsync(new PublicStoreProductSkuRequest { PageIndex = 0, PageSize = 500 });
+        if (skuResult.IsSuccess)
+            productSkus = skuResult.Data?.Data.ToList() ?? [];
+    }
+
+    private async Task LoadCustomersAsync()
+    {
+        var customerResult = await CustomerService.GetByCompany(ApiConfig.CompanyId, 0, 1000);
+        if (customerResult.IsSuccess)
+            customers = customerResult.Data?.Data.ToList() ?? [];
+    }
+
+    private async Task LoadProjectTeamsAsync()
+    {
+        var result = await EmployeeTeamService.GetProjectTeamsAsync(ApiConfig.CompanyId);
+        if (result.IsSuccess)
+            projectTeams = result.Data?.Data.ToList() ?? [];
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await ProjectManagementService.GetProjectByIdAsync(Id);
+        project = result.Data ?? new();
+        editingProject = CloneProject(project);
+        branchIdText = project.BranchId?.ToString() ?? string.Empty;
+        sourceOrderIdText = project.SourceOrderId?.ToString() ?? string.Empty;
+        selectedManager = employees.FirstOrDefault(item => EmployeeDisplay(item) == project.ManagerName || item.FullName == project.ManagerName || item.FullNameEng == project.ManagerName);
+        selectedBranch = project.BranchId.HasValue ? branches.FirstOrDefault(item => item.Id == project.BranchId.Value) : null;
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        var budgetResult = await ProjectManagementService.GetBudgetSummaryAsync(Id);
+        budget = budgetResult.Data ?? new();
+    }
+
+    private async Task UpdateProjectAsync()
+    {
+        editingProject.Id = Id;
+        editingProject.BranchId = ParseGuid(branchIdText);
+        editingProject.SourceOrderId = ParseGuid(sourceOrderIdText);
+        var result = await ProjectManagementService.UpdateProjectAsync(editingProject);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) await LoadAsync();
+    }
+
+    private async Task SaveCustomerAsync()
+    {
+        if (!customer.CustomerId.HasValue || selectedCustomer is null || string.IsNullOrWhiteSpace(customer.CustomerName))
+        {
+            errorMessage = Text("Customer selection is required.", "اختيار العميل مطلوب.");
+            return;
+        }
+
+        if (project.Customers.Any(x => x.CustomerId == customer.CustomerId))
+        {
+            errorMessage = Text("This customer has already been added.", "تمت إضافة هذا العميل مسبقاً.");
+            return;
+        }
+
+        customer.ContractedQuantity = DraftCalculatedQuantity;
+        customer.CustomerName = customer.CustomerName.Trim();
+        var result = await ProjectManagementService.CreateCustomerAsync(Id, customer);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess)
+        {
+            ResetCustomerDraft();
+            await LoadAsync();
+        }
+    }
+
+    private Task OnCustomerChanged(CustomerDto? selected)
+    {
+        selectedCustomer = selected;
+        if (selected is null)
+        {
+            customer.CustomerId = null;
+            customer.CustomerName = string.Empty;
+            customer.CustomerNameEng = null;
+        }
+        else
+        {
+            customer.CustomerId = selected.Id;
+            customer.CustomerName = selected.Name;
+            customer.CustomerNameEng = null;
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task OnNewCustomerGroupChanged(CustomerGroupDto? customerGroup)
+    {
+        selectedNewCustomerGroup = customerGroup;
+        newCustomer.CustomerGroupId = customerGroup?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnManagerChanged(EmployeeDto? employee)
+    {
+        selectedManager = employee;
+        editingProject.ManagerName = employee is null ? null : EmployeeDisplay(employee);
+        editingProject.ManagerUserId = null;
+        return Task.CompletedTask;
+    }
+
+    private Task OnBranchChanged(BranchDto? branch)
+    {
+        selectedBranch = branch;
+        branchIdText = branch?.Id.ToString() ?? string.Empty;
+        editingProject.BranchId = branch?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnProductSkuChanged(ProductSkuDto? sku)
+    {
+        selectedProductSku = sku;
+        ApplySkuToPlan(customerProductPlan, sku);
+        return Task.CompletedTask;
+    }
+
+    private Task OnExistingProductSkuChanged(ProductSkuDto? sku)
+    {
+        selectedExistingProductSku = sku;
+        ApplySkuToPlan(existingCustomerProductPlan, sku);
+        return Task.CompletedTask;
+    }
+
+    private void AddCustomerProductPlanDraft()
+    {
+        if (!ValidateProductPlan(customerProductPlan))
+            return;
+
+        if (customer.ProductPlans.Any(x => x.ProductSkuId == customerProductPlan.ProductSkuId))
+        {
+            errorMessage = Text("This SKU has already been added.", "تمت إضافة هذا الصنف مسبقاً.");
+            return;
+        }
+
+        customer.ProductPlans.Add(CloneProductPlan(customerProductPlan));
+        customerProductPlan = NewProductPlan();
+        selectedProductSku = null;
+        errorMessage = null;
+    }
+
+    private void RemoveCustomerProductPlanDraft(ProjectCustomerProductPlanDto plan)
+    {
+        if (editingProductPlan == plan)
+            CancelCustomerProductPlanDraftEdit();
+
+        customer.ProductPlans.Remove(plan);
+    }
+
+    private void EditCustomerProductPlanDraft(ProjectCustomerProductPlanDto plan)
+    {
+        editingProductPlan = plan;
+        editingProductPlanQuantity = plan.Quantity;
+        editingProductPlanNotes = plan.Notes;
+    }
+
+    private void SaveCustomerProductPlanDraftEdit()
+    {
+        if (editingProductPlan is null)
+            return;
+
+        if (editingProductPlanQuantity <= 0)
+        {
+            errorMessage = Text("SKU quantity must be greater than zero.", "يجب أن تكون كمية الصنف أكبر من صفر.");
+            return;
+        }
+
+        editingProductPlan.Quantity = editingProductPlanQuantity;
+        editingProductPlan.Notes = editingProductPlanNotes;
+        CancelCustomerProductPlanDraftEdit();
+        errorMessage = null;
+    }
+
+    private void CancelCustomerProductPlanDraftEdit()
+    {
+        editingProductPlan = null;
+        editingProductPlanQuantity = 1;
+        editingProductPlanNotes = null;
+    }
+
+    private async Task SaveExistingCustomerProductPlanAsync()
+    {
+        if (!Guid.TryParse(productPlanCustomerIdText, out var projectCustomerId))
+        {
+            errorMessage = Text("Project customer is required.", "عميل المشروع مطلوب.");
+            return;
+        }
+
+        if (!ValidateProductPlan(existingCustomerProductPlan))
+            return;
+
+        var result = await ProjectManagementService.CreateCustomerProductPlanAsync(Id, projectCustomerId, existingCustomerProductPlan);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess)
+        {
+            existingCustomerProductPlan = NewProductPlan();
+            selectedExistingProductSku = null;
+            productPlanCustomerIdText = string.Empty;
+            await LoadAsync();
+        }
+    }
+
+    private string EmployeeDisplay(EmployeeDto employee) => SharedDataService.Language == "Ar" ? employee.FullName : employee.FullNameEng;
+    private static string CustomerDisplay(CustomerDto customer) => string.IsNullOrWhiteSpace(customer.CustomerCode) ? customer.Name : $"{customer.Name} ({customer.CustomerCode})";
+    private string CustomerGroupDisplay(CustomerGroupDto customerGroup)
+    {
+        var name = SharedDataService.Language == "Ar" ? customerGroup.Name : customerGroup.NameEng;
+        return string.IsNullOrWhiteSpace(name) ? customerGroup.Name ?? customerGroup.NameEng ?? string.Empty : name;
+    }
+    private string BranchDisplay(BranchDto branch)
+    {
+        var name = SharedDataService.Language == "Ar" ? branch.Name : branch.NameEng;
+        return string.IsNullOrWhiteSpace(branch.Code) ? name : $"{name} ({branch.Code})";
+    }
+    private string DepartmentDisplay(DepartmentDto department)
+    {
+        var name = SharedDataService.Language == "Ar" ? department.Name : department.NameEng;
+        return string.IsNullOrWhiteSpace(department.Code) ? name : $"{name} ({department.Code})";
+    }
+    private string CurrencyDisplay(CurrencyDto currency)
+    {
+        var name = SharedDataService.Language == "Ar" ? currency.Name : currency.NameEng;
+        return string.IsNullOrWhiteSpace(currency.Code) ? name : $"{currency.Code} - {name}";
+    }
+    private string WarehouseDisplay(WarehouseDto warehouse)
+    {
+        var name = SharedDataService.Language == "Ar" ? warehouse.Name : warehouse.NameEng;
+        return string.IsNullOrWhiteSpace(warehouse.Location) ? name : $"{name} - {warehouse.Location}";
+    }
+    private string BatchDisplay(BatchDto batch)
+    {
+        var skuName = SharedDataService.Language == "Ar" ? batch.SkuName : batch.SkuNameEng;
+        return string.IsNullOrWhiteSpace(skuName) ? batch.BatchNumber : $"{batch.BatchNumber} - {skuName}";
+    }
+
+    private async Task SaveDeliverableAsync()
+    {
+        if (deliverable.ProductSkuId == Guid.Empty) { errorMessage = Text("Product SKU is required.", "الصنف مطلوب."); return; }
+        var result = await ProjectManagementService.CreateDeliverableAsync(Id, deliverable);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) { deliverable = new() { HandlingType = MealHandlingType.Hot, PlannedQuantity = 1, OrderedQuantity = 1 }; deliverableSkuIdText = string.Empty; selectedDeliverableSku = null; await LoadAsync(); }
+    }
+
+    private Task OnDeliverableSkuChanged(ProductSkuDto? sku)
+    {
+        selectedDeliverableSku = sku;
+        if (sku is null)
+        {
+            deliverable.ProductSkuId = Guid.Empty;
+            deliverable.ProductId = null;
+            deliverable.ProductSkuName = string.Empty;
+            deliverable.ProductSkuNameEng = null;
+            deliverableSkuIdText = string.Empty;
+            return Task.CompletedTask;
+        }
+
+        deliverable.ProductSkuId = sku.Id;
+        deliverable.ProductId = sku.ProductId == Guid.Empty ? null : sku.ProductId;
+        deliverable.ProductSkuName = sku.Name ?? sku.SkuCode ?? Text("SKU", "صنف");
+        deliverable.ProductSkuNameEng = sku.NameEng;
+        deliverableSkuIdText = sku.Id.ToString();
+        return Task.CompletedTask;
+    }
+
+    private async Task GenerateRequirementsAsync(Guid deliverableId)
+    {
+        var result = await ProjectManagementService.GenerateMaterialRequirementsAsync(Id, deliverableId);
+        errorMessage = result.IsSuccess ? Text("Material requirements generated.", "تم توليد احتياجات المواد.") : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) await RefreshMaterialsAsync();
+    }
+
+    private async Task RefreshMaterialsAsync()
+    {
+        var result = await ProjectManagementService.GetMaterialRequirementsAsync(Id);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) project.MaterialRequirements = result.Data ?? [];
+    }
+
+    private void OnResourceTypeChanged(ChangeEventArgs args)
+    {
+        if (Enum.TryParse<ProjectResourceType>(args.Value?.ToString(), out var type))
+        {
+            resource.ResourceType = type;
+            resource.ReferenceId = null;
+            resourceReferenceIdText = string.Empty;
+        }
+    }
+
+    private void OnResourceReferenceChanged(ChangeEventArgs args)
+    {
+        resourceReferenceIdText = args.Value?.ToString() ?? string.Empty;
+        resource.ReferenceId = ParseGuid(resourceReferenceIdText);
+
+        if (!resource.ReferenceId.HasValue)
+            return;
+
+        var name = resource.ResourceType switch
+        {
+            ProjectResourceType.Employee => employees.FirstOrDefault(x => x.Id == resource.ReferenceId.Value) is { } employee ? EmployeeDisplay(employee) : null,
+            ProjectResourceType.Team => projectTeams.FirstOrDefault(x => x.Id == resource.ReferenceId.Value) is { } team ? TeamDisplay(team) : null,
+            ProjectResourceType.Warehouse => warehouses.FirstOrDefault(x => x.Id == resource.ReferenceId.Value) is { } warehouse ? WarehouseDisplay(warehouse) : null,
+            _ => null
+        };
+
+        if (!string.IsNullOrWhiteSpace(name))
+            resource.Name = name;
+    }
+
+    private async Task SaveResourceAsync()
+    {
+        resource.ReferenceId = ParseGuid(resourceReferenceIdText);
+        resource.CurrencyId = ParseGuid(resourceCurrencyIdText);
+        var result = await ProjectManagementService.CreateResourceAsync(Id, resource);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) { resource = new() { PlannedQuantity = 1 }; resourceReferenceIdText = string.Empty; resourceCurrencyIdText = string.Empty; selectedResourceCurrency = null; await LoadAsync(); }
+    }
+
+    private async Task SaveExpenseAsync()
+    {
+        expense.CurrencyId = ParseGuid(expenseCurrencyIdText);
+        var result = await ProjectManagementService.CreateExpenseAsync(Id, expense);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) { expense = new(); expenseCurrencyIdText = string.Empty; selectedExpenseCurrency = null; await LoadAsync(); }
+    }
+
+    private async Task ChangeStatusAsync(ProjectStatus status)
+    {
+        var result = await ProjectManagementService.ChangeProjectStatusAsync(Id, status);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) await LoadAsync();
+    }
+
+    private async Task DeleteProjectAsync()
+    {
+        var result = await ProjectManagementService.DeleteProjectAsync(Id);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) NavigationManager.NavigateTo("/ProjectManagement/Projects");
+    }
+
+    private void AddHandoffLine()
+    {
+        if (!Guid.TryParse(handoffLineSkuIdText, out var skuId)) { errorMessage = Text("SKU Id is required.", "SKU Id is required."); return; }
+        handoffLine.AllocationId = ParseGuid(handoffLineAllocationIdText);
+        handoffLine.ProductId = ParseGuid(handoffLineProductIdText);
+        handoffLine.ProductSkuId = skuId;
+        handoffLine.ProductPackageId = ParseGuid(handoffLinePackageIdText);
+        if (Guid.TryParse(handoffLineWarehouseIdText, out var warehouseId)) handoffLine.WarehouseId = warehouseId;
+        if (Guid.TryParse(handoffLineBatchIdText, out var batchId)) handoffLine.BatchId = batchId;
+        handoffLine.CurrencyId = ParseGuid(handoffLineCurrencyIdText);
+        handoffLine.TotalCost = handoffLine.Quantity * handoffLine.UnitCost;
+        handoff.Lines.Add(handoffLine);
+        handoffLine = new() { Quantity = 1 };
+        handoffLineAllocationIdText = string.Empty;
+        handoffLineSkuIdText = string.Empty;
+        handoffLineProductIdText = string.Empty;
+        handoffLinePackageIdText = string.Empty;
+        handoffLineWarehouseIdText = string.Empty;
+        handoffLineBatchIdText = string.Empty;
+        handoffLineCurrencyIdText = string.Empty;
+        selectedHandoffSku = null;
+        selectedHandoffWarehouse = null;
+        selectedHandoffBatch = null;
+        selectedHandoffCurrency = null;
+    }
+
+    private async Task PostHandoffAsync()
+    {
+        handoff.ProjectId = Id;
+        handoff.ReferenceNumber = null;
+        var result = await ProjectManagementService.PostHandoffAsync(Id, handoff);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) { handoff = new() { HandoffDate = DateTime.UtcNow.Date, HandoffType = ProjectHandoffType.MaterialIssueToPreparation }; await LoadAsync(); }
+    }
+
+    private void OnHandoffDeliverableChanged(ChangeEventArgs args)
+    {
+        var deliverableIdText = args.Value?.ToString();
+        if (!Guid.TryParse(deliverableIdText, out var deliverableId)) return;
+        var selectedDeliverable = project.Deliverables.FirstOrDefault(x => x.Id == deliverableId);
+        if (selectedDeliverable is null) return;
+        handoffLine.ProductSkuId = selectedDeliverable.ProductSkuId;
+        handoffLineSkuIdText = selectedDeliverable.ProductSkuId.ToString();
+        handoffLine.ProductId = selectedDeliverable.ProductId;
+        handoffLineProductIdText = selectedDeliverable.ProductId?.ToString() ?? string.Empty;
+        handoffLine.ItemName = selectedDeliverable.ProductSkuName;
+        selectedHandoffSku = productSkus.FirstOrDefault(x => x.Id == selectedDeliverable.ProductSkuId);
+        if (handoffLine.Quantity <= 0) handoffLine.Quantity = selectedDeliverable.PlannedQuantity;
+    }
+
+    private async Task LinkTaskAsync(ProjectTaskLinkDto link)
+    {
+        link.ProjectId = Id;
+        var result = await ProjectManagementService.CreateTaskLinkAsync(Id, link);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess)
+        {
+            ResetTaskDraft();
+            await LoadAsync();
+        }
+    }
+
+    private async Task CreateTaskFromProjectAsync()
+    {
+        if (string.IsNullOrWhiteSpace(taskLink.Title))
+        {
+            errorMessage = Text("Task title is required.", "عنوان المهمة مطلوب.");
+            return;
+        }
+
+        if (!ProjectTaskAssignees.Any())
+        {
+            errorMessage = Text("Add or select a project team resource before assigning a project task.", "أضف أو اختر فريق مشروع كمورد قبل إسناد مهمة المشروع.");
+            return;
+        }
+
+        if (selectedTaskEmployee is null)
+        {
+            errorMessage = Text("Assigned employee is required.", "الموظف المسند إليه مطلوب.");
+            return;
+        }
+
+        var result = await TaskManagementService.CreateAsync(new CreateTaskItemDto
+        {
+            Title = taskLink.Title,
+            Description = taskLink.Notes ?? $"Project {project.ProjectNumber}",
+            DueDate = project.PlannedEndDate,
+            AssignedToUser = selectedTaskEmployee.Code,
+            DepartmentId = selectedTaskEmployee.DepartmentId,
+            Priority = TaskPriority.Normal
+        });
+
+        if (!result.IsSuccess || result.Data is null)
+        {
+            errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language);
+            return;
+        }
+
+        var createdTaskResult = await TaskManagementService.GetByIdAsync(result.Data.Id);
+        var createdTask = createdTaskResult.Data;
+        await LinkTaskAsync(new ProjectTaskLinkDto
+        {
+            TaskId = result.Data.Id,
+            TaskNumber = createdTask?.TaskNumber,
+            Title = createdTask?.Title ?? taskLink.Title,
+            Notes = taskLink.Notes
+        });
+    }
+
+    private Task OnResourceCurrencyChanged(CurrencyDto? currency)
+    {
+        selectedResourceCurrency = currency;
+        resourceCurrencyIdText = currency?.Id.ToString() ?? string.Empty;
+        resource.CurrencyId = currency?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnExpenseCurrencyChanged(CurrencyDto? currency)
+    {
+        selectedExpenseCurrency = currency;
+        expenseCurrencyIdText = currency?.Id.ToString() ?? string.Empty;
+        expense.CurrencyId = currency?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnHandoffCurrencyChanged(CurrencyDto? currency)
+    {
+        selectedHandoffCurrency = currency;
+        handoffLineCurrencyIdText = currency?.Id.ToString() ?? string.Empty;
+        handoffLine.CurrencyId = currency?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnHandoffWarehouseChanged(WarehouseDto? warehouse)
+    {
+        selectedHandoffWarehouse = warehouse;
+        handoffLineWarehouseIdText = warehouse?.Id.ToString() ?? string.Empty;
+        handoffLine.WarehouseId = warehouse?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnHandoffBatchChanged(BatchDto? batch)
+    {
+        selectedHandoffBatch = batch;
+        handoffLineBatchIdText = batch?.Id.ToString() ?? string.Empty;
+        handoffLine.BatchId = batch?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnTaskEmployeeChanged(EmployeeDto? employee)
+    {
+        selectedTaskEmployee = employee;
+        return Task.CompletedTask;
+    }
+
+    private async Task OpenExistingTaskModal()
+    {
+        existingTaskSearchText = string.Empty;
+        existingTasks = [];
+        showExistingTaskModal = true;
+        await LoadExistingTasksAsync();
+    }
+
+    private void CloseExistingTaskModal()
+    {
+        if (isLinkingExistingTask)
+            return;
+
+        showExistingTaskModal = false;
+        existingTaskSearchText = string.Empty;
+        existingTasks = [];
+    }
+
+    private async Task LoadExistingTasksAsync()
+    {
+        isLoadingExistingTasks = true;
+        var result = await TaskManagementService.GetAsync(0, 100, existingTaskSearchText);
+        existingTasks = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+        if (!result.IsSuccess)
+            errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language);
+        isLoadingExistingTasks = false;
+    }
+
+    private async Task SelectExistingTaskAsync(TaskItemDto task)
+    {
+        isLinkingExistingTask = true;
+        await LinkTaskAsync(new ProjectTaskLinkDto
+        {
+            TaskId = task.Id,
+            TaskNumber = task.TaskNumber,
+            Title = task.Title
+        });
+        isLinkingExistingTask = false;
+        showExistingTaskModal = false;
+        existingTaskSearchText = string.Empty;
+        existingTasks = [];
+    }
+
+    private void ResetTaskDraft()
+    {
+        taskLink = new();
+        selectedTaskEmployee = null;
+    }
+
+    private Task OnHandoffSkuChanged(ProductSkuDto? sku)
+    {
+        selectedHandoffSku = sku;
+        if (sku is null)
+        {
+            handoffLine.ProductSkuId = Guid.Empty;
+            handoffLine.ProductId = null;
+            handoffLine.ProductPackageId = null;
+            handoffLine.ItemName = string.Empty;
+            handoffLineSkuIdText = string.Empty;
+            handoffLineProductIdText = string.Empty;
+            handoffLinePackageIdText = string.Empty;
+            return Task.CompletedTask;
+        }
+
+        handoffLine.ProductSkuId = sku.Id;
+        handoffLine.ProductId = sku.ProductId == Guid.Empty ? null : sku.ProductId;
+        handoffLine.ProductPackageId = sku.PackageId;
+        handoffLine.ItemName = sku.Name ?? sku.SkuCode ?? Text("SKU", "صنف");
+        handoffLineSkuIdText = sku.Id.ToString();
+        handoffLineProductIdText = handoffLine.ProductId?.ToString() ?? string.Empty;
+        handoffLinePackageIdText = handoffLine.ProductPackageId?.ToString() ?? string.Empty;
+        return Task.CompletedTask;
+    }
+
+    private void OpenNewCustomerModal()
+    {
+        newCustomer = NewCustomer();
+        newCustomer.CompanyId = ApiConfig.CompanyId;
+        selectedNewCustomerGroup = null;
+        newCustomerError = null;
+        showNewCustomerModal = true;
+    }
+
+    private void CloseNewCustomerModal()
+    {
+        if (isSavingNewCustomer)
+            return;
+
+        showNewCustomerModal = false;
+        newCustomer = NewCustomer();
+        selectedNewCustomerGroup = null;
+        newCustomerError = null;
+    }
+
+    private void OpenProjectTeamModal()
+    {
+        newProjectTeam = new()
+        {
+            CompanyId = ApiConfig.CompanyId,
+            Category = EmployeeTeamCategory.Projects,
+            IsActive = true,
+            CreatedForProjectId = Id
+        };
+        newProjectTeamEmployeeIds = [];
+        projectTeamEmployeeSearchText = string.Empty;
+        projectTeamError = null;
+        showProjectTeamModal = true;
+    }
+
+    private void CloseProjectTeamModal()
+    {
+        if (isSavingProjectTeam)
+            return;
+
+        showProjectTeamModal = false;
+        newProjectTeam = new();
+        newProjectTeamEmployeeIds = [];
+        projectTeamEmployeeSearchText = string.Empty;
+        projectTeamError = null;
+    }
+
+    private async Task SaveProjectTeamAsync()
+    {
+        projectTeamError = ValidateProjectTeam();
+        if (!string.IsNullOrWhiteSpace(projectTeamError))
+            return;
+
+        isSavingProjectTeam = true;
+        newProjectTeam.CompanyId = ApiConfig.CompanyId;
+        newProjectTeam.Category = EmployeeTeamCategory.Projects;
+        newProjectTeam.IsActive = true;
+        newProjectTeam.CreatedForProjectId = Id;
+        newProjectTeam.Members = newProjectTeamEmployeeIds.Select(employeeId => new EmployeeTeamMemberDto { EmployeeId = employeeId }).ToList();
+
+        var result = await EmployeeTeamService.CreateProjectTeamAsync(newProjectTeam);
+        isSavingProjectTeam = false;
+
+        if (!result.IsSuccess || result.Data is null)
+        {
+            projectTeamError = result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Team save failed.", "فشل حفظ الفريق.");
+            return;
+        }
+
+        await LoadProjectTeamsAsync();
+        var createdTeam = projectTeams.FirstOrDefault(x => x.Id == result.Data.Id) ?? result.Data;
+        resource.ResourceType = ProjectResourceType.Team;
+        resource.ReferenceId = createdTeam.Id;
+        resourceReferenceIdText = createdTeam.Id.ToString();
+        resource.Name = TeamDisplay(createdTeam);
+        CloseProjectTeamModal();
+        errorMessage = null;
+    }
+
+    private string? ValidateProjectTeam()
+    {
+        if (ApiConfig.CompanyId == Guid.Empty)
+            return Text("Company is required.", "الشركة مطلوبة.");
+
+        if (string.IsNullOrWhiteSpace(newProjectTeam.Name))
+            return Text("Team name is required.", "اسم الفريق مطلوب.");
+
+        if (newProjectTeamEmployeeIds.Count == 0)
+            return Text("Select at least one employee.", "اختر موظفاً واحداً على الأقل.");
+
+        return null;
+    }
+
+    private void ToggleProjectTeamEmployee(Guid employeeId, ChangeEventArgs args)
+    {
+        var isChecked = args.Value is bool value && value;
+        if (isChecked) newProjectTeamEmployeeIds.Add(employeeId);
+        else newProjectTeamEmployeeIds.Remove(employeeId);
+    }
+
+    private async Task SaveNewCustomerAsync()
+    {
+        newCustomerError = ValidateNewCustomer();
+        if (!string.IsNullOrWhiteSpace(newCustomerError))
+            return;
+
+        isSavingNewCustomer = true;
+        newCustomer.CompanyId = ApiConfig.CompanyId;
+        NormalizeCustomer(newCustomer);
+
+        var result = await CustomerService.CreateAsync(newCustomer);
+        isSavingNewCustomer = false;
+
+        if (!result.IsSuccess || result.Data is null)
+        {
+            newCustomerError = result.Error?.GetDisplayMessage(SharedDataService.Language)
+                ?? Text("Customer save failed.", "فشل حفظ العميل.");
+            return;
+        }
+
+        await LoadCustomersAsync();
+        var createdCustomer = customers.FirstOrDefault(x => x.Id == result.Data.Id);
+        if (createdCustomer is null)
+        {
+            var createdResult = await CustomerService.GetByIdAsync(result.Data.Id);
+            if (createdResult.IsSuccess)
+                createdCustomer = createdResult.Data;
+        }
+
+        if (createdCustomer is not null)
+        {
+            selectedCustomer = createdCustomer;
+            customer.CustomerId = createdCustomer.Id;
+            customer.CustomerName = createdCustomer.Name;
+            customer.CustomerNameEng = null;
+        }
+
+        showNewCustomerModal = false;
+        newCustomer = NewCustomer();
+        selectedNewCustomerGroup = null;
+        newCustomerError = null;
+        errorMessage = null;
+    }
+
+    private void ResetCustomerDraft()
+    {
+        customer = new();
+        customerProductPlan = NewProductPlan();
+        selectedCustomer = null;
+        selectedProductSku = null;
+        CancelCustomerProductPlanDraftEdit();
+    }
+
+    private string? ValidateNewCustomer()
+    {
+        if (ApiConfig.CompanyId == Guid.Empty)
+            return Text("Company is required.", "الشركة مطلوبة.");
+
+        if (string.IsNullOrWhiteSpace(newCustomer.Name))
+            return Text("Customer name is required.", "اسم العميل مطلوب.");
+
+        return null;
+    }
+
+    private static CustomerDto NormalizeCustomer(CustomerDto customer)
+    {
+        customer.Name = customer.Name?.Trim() ?? string.Empty;
+        customer.CustomerCode = NormalizeText(customer.CustomerCode);
+        customer.CommercialName = NormalizeText(customer.CommercialName);
+        customer.VatNumber = NormalizeText(customer.VatNumber);
+        customer.CommercialRegistrationNumber = NormalizeText(customer.CommercialRegistrationNumber);
+        customer.CreditHoldReason = NormalizeText(customer.CreditHoldReason);
+        customer.Notes = NormalizeText(customer.Notes);
+        customer.Addresses ??= [];
+        customer.Contacts ??= [];
+        return customer;
+    }
+
+    private IEnumerable<string[]> TimelineRows()
+    {
+        var rows = new List<(DateTime Date, string Event, string Details)>
+        {
+            (project.PlannedStartDate, Text("Planned Start", "Planned Start"), project.ProjectNumber),
+            (project.PlannedEndDate, Text("Planned End", "Planned End"), project.ProjectNumber)
+        };
+        rows.AddRange(project.DistributionSchedules.Select(x => (x.DistributionDate, Text("Distribution Day", "Distribution Day"), $"{x.Allocations.Count} allocations")));
+        rows.AddRange(project.Handoffs.Select(x => (x.HandoffDate, x.HandoffType.ToString(), x.ReferenceNumber ?? "")));
+        rows.AddRange(project.Expenses.Select(x => (x.ExpenseDate, Text("Expense", "Expense"), x.Description)));
+        return rows.OrderBy(x => x.Date).Select(x => new[] { x.Date.ToShortDateString(), x.Event, x.Details });
+    }
+
+    private RenderFragment Table(IEnumerable<string[]> rows, params string[] headers) => @<div class="erp-table-wrap"><table class="table align-middle"><thead><tr>@foreach (var header in headers) { <th>@header</th> }</tr></thead><tbody>@foreach (var row in rows) { <tr>@foreach (var cell in row) { <td>@cell</td> }</tr> }</tbody></table></div>;
+    private string TabLabel(string tab) => tab switch { "Overview" => Text("Overview", "نظرة عامة"), "Customers" => Text("Customers", "العملاء"), "Deliverables" => Text("Deliverables", "المخرجات"), "Budget" => Text("Budget", "الميزانية"), _ => tab };
+    private IEnumerable<ProjectDistributionAllocationDto> ProjectAllocations() => project.DistributionSchedules.SelectMany(x => x.Allocations).OrderBy(x => x.DistributionDate);
+    private IEnumerable<LookupOption> ResourceReferenceOptions() => resource.ResourceType switch
+    {
+        ProjectResourceType.Employee => employees.Select(item => new LookupOption(item.Id, EmployeeDisplay(item))),
+        ProjectResourceType.Team => projectTeams.Select(item => new LookupOption(item.Id, TeamDisplay(item))),
+        ProjectResourceType.Warehouse => warehouses.Select(item => new LookupOption(item.Id, WarehouseDisplay(item))),
+        _ => []
+    };
+    private IEnumerable<EmployeeDto> FilteredProjectTeamEmployees => employees
+        .Where(employee => string.IsNullOrWhiteSpace(projectTeamEmployeeSearchText)
+            || EmployeeDisplay(employee).Contains(projectTeamEmployeeSearchText, StringComparison.OrdinalIgnoreCase)
+            || (employee.EmployeeNo?.Contains(projectTeamEmployeeSearchText, StringComparison.OrdinalIgnoreCase) ?? false))
+        .OrderBy(employee => EmployeeDisplay(employee));
+    private List<EmployeeDto> ProjectTaskAssignees => project.Resources
+        .Where(resource => resource.ResourceType == ProjectResourceType.Team && resource.ReferenceId.HasValue)
+        .Select(resource => projectTeams.FirstOrDefault(team => team.Id == resource.ReferenceId!.Value))
+        .Where(team => team is not null)
+        .SelectMany(team => team!.Members)
+        .GroupBy(member => member.EmployeeId)
+        .Select(group => employees.FirstOrDefault(employee => employee.Id == group.Key))
+        .Where(employee => employee is not null)
+        .Select(employee => employee!)
+        .OrderBy(EmployeeDisplay)
+        .ToList();
+    private IEnumerable<TaskItemDto> AvailableExistingTasks => existingTasks
+        .Where(task => !project.TaskLinks.Any(link => link.TaskId == task.Id))
+        .Where(task => string.IsNullOrWhiteSpace(existingTaskSearchText)
+            || task.TaskNumber.Contains(existingTaskSearchText, StringComparison.OrdinalIgnoreCase)
+            || task.Title.Contains(existingTaskSearchText, StringComparison.OrdinalIgnoreCase))
+        .OrderByDescending(task => task.CreatedDate);
+    private string EmployeeSearchText(EmployeeDto employee)
+        => $"{EmployeeDisplay(employee)} | {employee.Code} | {employee.EmployeeNo} | {employee.Email}";
+    private static Guid? ParseGuid(string value) => Guid.TryParse(value, out var id) ? id : null;
+    private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    private static string StatusTone(ProjectStatus status) => status switch { ProjectStatus.Completed => "success", ProjectStatus.Active => "info", ProjectStatus.Cancelled => "danger", ProjectStatus.OnHold => "warning", ProjectStatus.Planned => "primary", _ => "muted" };
+    private static ProjectCustomerProductPlanDto NewProductPlan() => new() { Quantity = 1 };
+    private static CustomerDto NewCustomer() => new()
+    {
+        Id = Guid.NewGuid(),
+        Name = string.Empty,
+        Status = CustomerStatus.Active,
+        PaymentTerm = PaymentTermType.Cash,
+        CreditStatus = CreditStatus.Good,
+        Addresses = [],
+        Contacts = []
+    };
+    private string ProjectTypeLabel(ProjectType type) => type switch
+    {
+        ProjectType.FoodPreparationDistribution => Text("Food Preparation Distribution", "تجهيز وتوزيع الوجبات"),
+        ProjectType.General => Text("General", "عام"),
+        _ => type.ToString()
+    };
+    private string ProductSkuDisplay(ProductSkuDto sku)
+    {
+        var name = SharedDataService.Language == "Ar" ? sku.Name : sku.NameEng;
+        if (string.IsNullOrWhiteSpace(name)) name = sku.Name ?? sku.NameEng ?? sku.SkuCode;
+        var type = sku.ProductionType == SkuProductionType.CompositeBundle ? Text("Combo", "حزمة") : Text("SKU", "صنف");
+        return string.IsNullOrWhiteSpace(sku.SkuCode) ? $"{name} - {type}" : $"{name} ({sku.SkuCode}) - {type}";
+    }
+    private void ApplySkuToPlan(ProjectCustomerProductPlanDto plan, ProductSkuDto? sku)
+    {
+        if (sku is null)
+        {
+            plan.ProductSkuId = Guid.Empty;
+            plan.ProductId = null;
+            plan.ProductSkuName = string.Empty;
+            plan.ProductSkuNameEng = null;
+            plan.SkuCode = null;
+            plan.SkuCodeEng = null;
+            plan.ProductPackageId = null;
+            plan.PackageName = null;
+            plan.PackageNameEng = null;
+            return;
+        }
+
+        plan.ProductSkuId = sku.Id;
+        plan.ProductId = sku.ProductId == Guid.Empty ? null : sku.ProductId;
+        plan.ProductSkuName = sku.Name ?? sku.SkuCode ?? Text("SKU", "صنف");
+        plan.ProductSkuNameEng = sku.NameEng;
+        plan.SkuCode = sku.SkuCode;
+        plan.SkuCodeEng = sku.SkuCodeEng;
+        plan.ProductPackageId = sku.PackageId;
+        plan.PackageName = sku.PackageName;
+        plan.PackageNameEng = sku.PackageNameEng;
+    }
+    private bool ValidateProductPlan(ProjectCustomerProductPlanDto plan)
+    {
+        if (plan.ProductSkuId == Guid.Empty)
+        {
+            errorMessage = Text("Product SKU is required.", "الصنف مطلوب.");
+            return false;
+        }
+
+        if (plan.Quantity <= 0)
+        {
+            errorMessage = Text("SKU quantity must be greater than zero.", "يجب أن تكون كمية الصنف أكبر من صفر.");
+            return false;
+        }
+
+        return true;
+    }
+    private string PlanDisplay(ProjectCustomerProductPlanDto plan)
+    {
+        var name = SharedDataService.Language == "Ar" ? plan.ProductSkuName : plan.ProductSkuNameEng;
+        if (string.IsNullOrWhiteSpace(name)) name = plan.ProductSkuName;
+        return string.IsNullOrWhiteSpace(plan.SkuCode) ? name : $"{name} ({plan.SkuCode})";
+    }
+    private string PlanType(ProjectCustomerProductPlanDto plan)
+    {
+        var sku = productSkus.FirstOrDefault(x => x.Id == plan.ProductSkuId);
+        return sku?.ProductionType == SkuProductionType.CompositeBundle ? Text("Combo", "حزمة") : Text("SKU", "صنف");
+    }
+    private string ProductPlanSummary(IEnumerable<ProjectCustomerProductPlanDto> plans) => string.Join(", ", plans.Select(x => $"{PlanDisplay(x)} x {x.Quantity:N0}"));
+    private string TeamDisplay(EmployeeTeamDto team)
+    {
+        var name = SharedDataService.Language == "Ar" ? team.Name : team.NameEng;
+        return string.IsNullOrWhiteSpace(name) ? team.Name : name;
+    }
+    private decimal ProductPlanUnitPrice(ProjectCustomerProductPlanDto plan)
+    {
+        var sku = productSkus.FirstOrDefault(x => x.Id == plan.ProductSkuId);
+        return sku?.Price ?? 0m;
+    }
+    private decimal ProductPlanLineAmount(ProjectCustomerProductPlanDto plan) => plan.Quantity * ProductPlanUnitPrice(plan);
+    private decimal ProductPlansActualAmount(IEnumerable<ProjectCustomerProductPlanDto> plans) => plans.Sum(ProductPlanLineAmount);
+    private static ProjectCustomerProductPlanDto CloneProductPlan(ProjectCustomerProductPlanDto source) => new()
+    {
+        ProductSkuId = source.ProductSkuId,
+        ProductId = source.ProductId,
+        ProductSkuName = source.ProductSkuName,
+        ProductSkuNameEng = source.ProductSkuNameEng,
+        SkuCode = source.SkuCode,
+        SkuCodeEng = source.SkuCodeEng,
+        ProductPackageId = source.ProductPackageId,
+        PackageName = source.PackageName,
+        PackageNameEng = source.PackageNameEng,
+        Quantity = source.Quantity,
+        Notes = source.Notes
+    };
+    private static ProjectDto CloneProject(ProjectDto source) => new()
+    {
+        Id = source.Id,
+        ProjectNumber = source.ProjectNumber,
+        Name = source.Name,
+        NameEng = source.NameEng,
+        CompanyId = source.CompanyId,
+        BranchId = source.BranchId,
+        Type = source.Type,
+        Status = source.Status,
+        ManagerUserId = source.ManagerUserId,
+        ManagerName = source.ManagerName,
+        SourceOrderId = source.SourceOrderId,
+        SourceOrderNumber = source.SourceOrderNumber,
+        SourceOrderType = source.SourceOrderType,
+        PlannedStartDate = source.PlannedStartDate,
+        PlannedEndDate = source.PlannedEndDate,
+        ActualStartDate = source.ActualStartDate,
+        ActualEndDate = source.ActualEndDate,
+        Notes = source.Notes
+    };
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+
+    private sealed record LookupOption(Guid Id, string Name);
+}
+
+
+

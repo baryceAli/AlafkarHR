@@ -301,6 +301,14 @@ public class MenuItem
                         },
                         new MenuItem
                         {
+                            TextEn = "Teams",
+                            TextAr = "الفرق",
+                            Icon = "bi-people",
+                            Url = "/Employee/Teams",
+                            PermissionPolicy = PermissionList.TeamPermissions.View
+                        },
+                        new MenuItem
+                        {
                             TextEn = "Positions",
                             TextAr = "المسميات الوظيفية",
                             Icon = "bi-briefcase-fill",
@@ -1021,6 +1029,102 @@ public class MenuItem
                     Icon = "bi-link-45deg",
                     Url = "/DocumentManagement/SourceDocuments",
                     PermissionPolicy = PermissionList.DocumentManagementPermissions.View,
+                }
+            }
+        },
+
+        //Project Management
+        new MenuItem
+        {
+            TextEn = "Project Management",
+            TextAr = "إدارة المشاريع",
+            Icon = "bi-diagram-3",
+            PermissionPolicy = PermissionList.ProjectManagementPermissions.Select,
+            WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            KeywordsEn = "projects meals distribution customers locations budget resources",
+            KeywordsAr = "مشاريع وجبات توزيع عملاء مواقع ميزانية موارد",
+            Children = new()
+            {
+                new MenuItem
+                {
+                    TextEn = "Dashboard",
+                    TextAr = "لوحة المشاريع",
+                    Icon = "bi-speedometer2",
+                    Url = "/ProjectManagement/Dashboard",
+                    PermissionPolicy = PermissionList.ProjectManagementPermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                },
+                new MenuItem
+                {
+                    TextEn = "Projects",
+                    TextAr = "المشاريع",
+                    Icon = "bi-kanban",
+                    Url = "/ProjectManagement/Projects",
+                    PermissionPolicy = PermissionList.ProjectManagementPermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                },
+                new MenuItem
+                {
+                    TextEn = "Distribution Places",
+                    TextAr = "مواقع التوزيع",
+                    Icon = "bi-geo-alt",
+                    Url = "/ProjectManagement/DistributionPlaces",
+                    PermissionPolicy = PermissionList.ProjectManagementPermissions.Distribution,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                },
+                new MenuItem
+                {
+                    TextEn = "Distribution Schedule",
+                    TextAr = "جدول التوزيع",
+                    Icon = "bi-calendar-event",
+                    Url = "/ProjectManagement/DistributionSchedule",
+                    PermissionPolicy = PermissionList.ProjectManagementPermissions.Distribution,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                },
+                new MenuItem
+                {
+                    TextEn = "Customer Distribution Report",
+                    TextAr = "تقرير توزيع العملاء",
+                    Icon = "bi-bar-chart",
+                    Url = "/ProjectManagement/Reports/CustomerDistribution",
+                    PermissionPolicy = PermissionList.ProjectManagementPermissions.ViewReports,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                },
+                new MenuItem
+                {
+                    TextEn = "Place Distribution Report",
+                    TextAr = "تقرير توزيع المواقع",
+                    Icon = "bi-geo-alt",
+                    Url = "/ProjectManagement/Reports/PlaceDistribution",
+                    PermissionPolicy = PermissionList.ProjectManagementPermissions.ViewReports,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                },
+                new MenuItem
+                {
+                    TextEn = "Daily Distribution Report",
+                    TextAr = "تقرير التوزيع اليومي",
+                    Icon = "bi-calendar-day",
+                    Url = "/ProjectManagement/Reports/DailyDistribution",
+                    PermissionPolicy = PermissionList.ProjectManagementPermissions.ViewReports,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                },
+                new MenuItem
+                {
+                    TextEn = "Planned Product Demand",
+                    TextAr = "الطلب المخطط للمنتجات",
+                    Icon = "bi-graph-up-arrow",
+                    Url = "/ProjectManagement/Reports/PlannedProductDemand",
+                    PermissionPolicy = PermissionList.ProjectManagementPermissions.ViewReports,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                },
+                new MenuItem
+                {
+                    TextEn = "Project Cost Report",
+                    TextAr = "تقرير تكلفة المشاريع",
+                    Icon = "bi-cash-stack",
+                    Url = "/ProjectManagement/Reports/Costs",
+                    PermissionPolicy = PermissionList.ProjectManagementPermissions.ViewReports,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
                 }
             }
         },

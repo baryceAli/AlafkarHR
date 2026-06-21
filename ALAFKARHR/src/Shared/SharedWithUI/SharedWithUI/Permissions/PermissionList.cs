@@ -16,6 +16,7 @@ public static class PermissionList
             ..AcademicInistitutionPermissions.Permissions,
             ..SpecializationPermissions.Permissions,
             ..EmployeePermissions.Permissions,
+            ..TeamPermissions.Permissions,
             ..PositionPermissions.Permissions,
             ..CompanyPermissions.Permissions,
             ..BranchPermissions.Permissions,
@@ -60,6 +61,7 @@ public static class PermissionList
             .. AttendancePermissions.Permissions,
             .. LeavePermissions.Permissions,
             .. TaskManagementPermissions.Permissions,
+            .. ProjectManagementPermissions.Permissions,
             .. MaintenanceAssetPermissions.Permissions,
             .. MaintenanceWorkOrderPermissions.Permissions,
             .. RealEstatePropertyPermissions.Permissions,
@@ -201,6 +203,27 @@ public static class PermissionList
     {
 
         public static string GroupName { get; set; } = "Employees.Employee";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+            };
+
+    }
+    public static class TeamPermissions
+    {
+
+        public static string GroupName { get; set; } = "Employees.Team";
         public static string Select { get; set; } = $"{GroupName}.Select";
         public static string View { get; set; } = $"{GroupName}.View";
         public static string Create { get; set; } = $"{GroupName}.Create";
@@ -1137,6 +1160,39 @@ public static class PermissionList
                 $"{Close}",
                 $"{ViewReports}",
                 $"{ManageAllTasks}",
+            };
+    }
+
+    public static class ProjectManagementPermissions
+    {
+
+        public static string GroupName { get; set; } = "ProjectManagement.Project";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Plan { get; set; } = $"{GroupName}.Plan";
+        public static string Inventory { get; set; } = $"{GroupName}.Inventory";
+        public static string Distribution { get; set; } = $"{GroupName}.Distribution";
+        public static string Tasks { get; set; } = $"{GroupName}.Tasks";
+        public static string Budget { get; set; } = $"{GroupName}.Budget";
+        public static string ViewReports { get; set; } = $"{GroupName}.ViewReports";
+
+        public static List<string> Permissions =>
+            new List<string>
+            {
+                $"{Select}",
+                $"{View}",
+                $"{Create}",
+                $"{Edit}",
+                $"{Delete}",
+                $"{Plan}",
+                $"{Inventory}",
+                $"{Distribution}",
+                $"{Tasks}",
+                $"{Budget}",
+                $"{ViewReports}",
             };
     }
 

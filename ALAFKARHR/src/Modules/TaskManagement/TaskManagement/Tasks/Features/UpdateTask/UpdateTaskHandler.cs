@@ -12,7 +12,6 @@ public class UpdateTaskCommandValidator : AbstractValidator<UpdateTaskCommand>
         RuleFor(x => x.Task.Id).NotEmpty();
         RuleFor(x => x.Task.Title).NotEmpty().MaximumLength(250);
         RuleFor(x => x.Task.Description).MaximumLength(4000);
-        RuleFor(x => x.Task.DepartmentId).NotEmpty();
         RuleFor(x => x.Task.RecurrenceInterval).GreaterThan(0);
         RuleFor(x => x.Task.RecurrenceFrequency).NotEqual(TaskRecurrenceFrequency.None).When(x => x.Task.IsRecurring);
         RuleFor(x => x.Task.RecurrenceEndDate).NotNull().When(x => x.Task.IsRecurring && x.Task.RecurrenceEndType == TaskRecurrenceEndType.OnDate);

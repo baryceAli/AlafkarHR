@@ -216,6 +216,7 @@
             return;
         }
 
+        await ActiveWorkspaceChanged.InvokeAsync(NavigationMenuResolver.GetWorkspaceKey(item));
         await SaveRecentAsync(item);
         NavigationManager.NavigateTo(item.Url!);
     }

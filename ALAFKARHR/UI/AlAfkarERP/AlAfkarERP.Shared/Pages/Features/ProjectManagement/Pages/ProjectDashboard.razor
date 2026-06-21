@@ -1,0 +1,45 @@
+@page "/ProjectManagement/Dashboard"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.ProjectManagement.Services
+@using AlAfkarERP.Shared.Utilities
+@inject IProjectManagementService ProjectManagementService
+@inject SharedDataService SharedDataService
+@inject ApiConfig ApiConfig
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Project Dashboard", "لوحة المشاريع")" Subtitle="@Text("Meal projects, distribution schedules, and cost position.", "مشاريع الوجبات وجداول التوزيع وموقف التكلفة.")" Icon="bi-kanban" />
+
+    <div class="row g-3">
+        <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Active Projects", "المشاريع النشطة")" Value="@dashboard.ActiveProjects.ToString("N0")" Icon="bi-kanban" /></div>
+        <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Scheduled Days", "أيام مجدولة")" Value="@dashboard.ScheduledDistributions.ToString("N0")" Icon="bi-calendar-event" /></div>
+        <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Planned Meals", "وجبات مخططة")" Value="@dashboard.PlannedMeals.ToString("N0")" Icon="bi-box-seam" /></div>
+        <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Actual Meals", "وجبات فعلية")" Value="@dashboard.ActualMeals.ToString("N0")" Icon="bi-check2-circle" /></div>
+        <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Planned Cost", "تكلفة مخططة")" Value="@dashboard.PlannedCost.ToString("N2")" Icon="bi-cash-stack" /></div>
+        <div class="col-12 col-md-4 col-xl-2"><StatsCard Title="@Text("Actual Cost", "تكلفة فعلية")" Value="@dashboard.ActualCost.ToString("N2")" Icon="bi-receipt" /></div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger mt-3">@errorMessage</div>
+    }
+</main>
+
+@code {
+    private ProjectDashboardDto dashboard = new();
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var companyId = ApiConfig.CompanyId == Guid.Empty ? (Guid?)null : ApiConfig.CompanyId;
+        var result = await ProjectManagementService.GetDashboardAsync(companyId);
+        dashboard = result.Data ?? new();
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

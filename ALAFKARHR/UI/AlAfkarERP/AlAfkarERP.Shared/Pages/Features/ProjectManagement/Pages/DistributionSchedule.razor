@@ -1,0 +1,166 @@
+@page "/ProjectManagement/DistributionSchedule"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.ProjectManagement.Services
+@using AlAfkarERP.Shared.Utilities
+@using SharedWithUI.ProjectManagement.Dtos
+@using SharedWithUI.ProjectManagement.Enums
+@inject IProjectManagementService ProjectManagementService
+@inject SharedDataService SharedDataService
+@inject ApiConfig ApiConfig
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Distribution Schedule", "جدول التوزيع")" Subtitle="@Text("Plan customer allocations by date, place, and meal.", "تخطيط حصص العملاء حسب التاريخ والموقع والوجبة.")" Icon="bi-calendar-event" />
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
+
+    <article class="erp-card mb-3">
+        <div class="erp-card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-4"><label class="form-label">@Text("Project", "Project")</label><select class="form-select" @bind="projectIdText" @bind:after="LoadProjectAsync"><option value="">@Text("Select project", "Select project")</option>@foreach (var item in projects) { <option value="@item.Id">@item.ProjectNumber - @item.Name</option> }</select></div>
+                <div class="col-12 col-md-2"><label class="form-label">@Text("Distribution Date", "Distribution Date")</label><InputDate class="form-control" @bind-Value="schedule.DistributionDate" /></div>
+                <div class="col-6 col-md-1"><label class="form-label">@Text("Start", "Start")</label><input class="form-control" type="time" value="@windowStartText" @onchange="e => windowStartText = e.Value?.ToString() ?? string.Empty" /></div>
+                <div class="col-6 col-md-1"><label class="form-label">@Text("End", "End")</label><input class="form-control" type="time" value="@windowEndText" @onchange="e => windowEndText = e.Value?.ToString() ?? string.Empty" /></div>
+                <div class="col-12 col-md-2"><label class="form-label">@Text("Status", "Status")</label><InputSelect class="form-select" @bind-Value="schedule.Status">@foreach (var status in Enum.GetValues<DistributionStatus>()) { <option value="@status">@status</option> }</InputSelect></div>
+                <div class="col-12 col-md-2"><button class="btn btn-primary w-100" @onclick="CreateScheduleAsync" disabled="@(!SelectedProjectId.HasValue)"><i class="bi bi-plus"></i> @Text("Create Day", "Create Day")</button></div>
+                <div class="col-12"><label class="form-label">@Text("Schedule Notes", "Schedule Notes")</label><InputText class="form-control" @bind-Value="schedule.Notes" /></div>
+            </div>
+        </div>
+    </article>
+
+    @if (project.Id != Guid.Empty)
+    {
+        <article class="erp-card mb-3">
+            <div class="erp-card-header"><strong>@Text("New Allocation", "حصة جديدة")</strong></div>
+            <div class="erp-card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-2"><label class="form-label">@Text("Schedule", "اليوم")</label><select class="form-select" @bind="scheduleIdText"><option value="">@Text("Select", "اختر")</option>@foreach (var item in project.DistributionSchedules.OrderBy(x => x.DistributionDate)) { <option value="@item.Id">@item.DistributionDate.ToShortDateString()</option> }</select></div>
+                    <div class="col-12 col-md-2"><label class="form-label">@Text("Customer", "العميل")</label><select class="form-select" @bind="allocationCustomerIdText"><option value="">@Text("Select", "اختر")</option>@foreach (var item in project.Customers) { <option value="@item.Id">@item.CustomerName</option> }</select></div>
+                    <div class="col-12 col-md-2"><label class="form-label">@Text("Meal", "الوجبة")</label><select class="form-select" @bind="allocationDeliverableIdText"><option value="">@Text("Select", "اختر")</option>@foreach (var item in project.Deliverables) { <option value="@item.Id">@item.ProductSkuName</option> }</select></div>
+                    <div class="col-12 col-md-2"><label class="form-label">@Text("Place", "الموقع")</label><select class="form-select" @bind="allocationPlaceIdText"><option value="">@Text("Select", "اختر")</option>@foreach (var item in places) { <option value="@item.Id">@item.Name</option> }</select></div>
+                    <div class="col-12 col-md-2"><label class="form-label">@Text("Planned Qty", "كمية مخططة")</label><InputNumber class="form-control" @bind-Value="allocation.PlannedQuantity" /></div>
+                    <div class="col-12 col-md-4"><label class="form-label">@Text("Allocation Notes", "Allocation Notes")</label><InputText class="form-control" @bind-Value="allocation.Notes" /></div>
+                    <div class="col-12 col-md-2"><button class="btn btn-primary w-100" @onclick="CreateAllocationAsync"><i class="bi bi-plus"></i> @Text("Add", "إضافة")</button></div>
+                </div>
+            </div>
+        </article>
+
+        <article class="erp-card">
+            <div class="erp-card-body">
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead><tr><th>@Text("Date", "Date")</th><th>@Text("Customer", "Customer")</th><th>@Text("Place", "Place")</th><th>@Text("Meal", "Meal")</th><th>@Text("Planned", "Planned")</th><th>@Text("Actual", "Actual")</th><th>@Text("Variance", "Variance")</th><th>@Text("Notes", "Notes")</th><th class="text-end">@Text("Record", "Record")</th></tr></thead>
+                        <tbody>
+                            @foreach (var item in project.DistributionSchedules.SelectMany(x => x.Allocations).OrderBy(x => x.DistributionDate).ThenBy(x => x.PlaceName))
+                            {
+                                <tr>
+                                    <td>@item.DistributionDate.ToShortDateString()</td>
+                                    <td>@item.CustomerName</td>
+                                    <td>@item.PlaceName</td>
+                                    <td>@item.DeliverableName</td>
+                                    <td>@item.PlannedQuantity.ToString("N0")</td>
+                                    <td>@item.ActualQuantity.ToString("N0")</td>
+                                    <td>@item.VarianceQuantity.ToString("N0")</td>
+                                    <td>@item.Notes</td>
+                                    <td class="text-end"><button class="btn btn-sm btn-outline-primary" @onclick="@(() => BeginActual(item))"><i class="bi bi-pencil"></i></button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </article>
+    }
+
+    @if (actualAllocation.Id != Guid.Empty)
+    {
+        <article class="erp-card mt-3">
+            <div class="erp-card-header"><strong>@Text("Record Actual Distribution", "تسجيل التوزيع الفعلي")</strong></div>
+            <div class="erp-card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("Shipped", "مشحون")</label><InputNumber class="form-control" @bind-Value="actualAllocation.ShippedQuantity" /></div>
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("Delivered", "مسلم")</label><InputNumber class="form-control" @bind-Value="actualAllocation.DeliveredQuantity" /></div>
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("Actual", "فعلي")</label><InputNumber class="form-control" @bind-Value="actualAllocation.ActualQuantity" /></div>
+                    <div class="col-12 col-md-9"><label class="form-label">@Text("Actual Notes", "Actual Notes")</label><InputText class="form-control" @bind-Value="actualAllocation.Notes" /></div>
+                    <div class="col-12 col-md-3"><button class="btn btn-primary w-100" @onclick="SaveActualAsync">@Text("Save Actuals", "حفظ الفعلي")</button></div>
+                </div>
+            </div>
+        </article>
+    }
+</main>
+
+@code {
+    private List<ProjectDto> projects = [];
+    private List<DistributionPlaceDto> places = [];
+    private ProjectDto project = new();
+    private ProjectDistributionScheduleDto schedule = new() { DistributionDate = DateTime.UtcNow.Date };
+    private ProjectDistributionAllocationDto allocation = new() { PlannedQuantity = 1 };
+    private ProjectDistributionAllocationDto actualAllocation = new();
+    private string projectIdText = string.Empty;
+    private string scheduleIdText = string.Empty;
+    private string allocationCustomerIdText = string.Empty;
+    private string allocationDeliverableIdText = string.Empty;
+    private string allocationPlaceIdText = string.Empty;
+    private string windowStartText = string.Empty;
+    private string windowEndText = string.Empty;
+    private string? errorMessage;
+    private Guid? SelectedProjectId => Guid.TryParse(projectIdText, out var id) ? id : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var companyId = ApiConfig.CompanyId == Guid.Empty ? (Guid?)null : ApiConfig.CompanyId;
+        projects = (await ProjectManagementService.GetProjectsAsync(1, 500, companyId)).Data?.Data.ToList() ?? [];
+        places = (await ProjectManagementService.GetPlacesAsync(1, 500, companyId)).Data?.Data.ToList() ?? [];
+    }
+
+    private async Task LoadProjectAsync()
+    {
+        if (!SelectedProjectId.HasValue) { project = new(); return; }
+        var result = await ProjectManagementService.GetProjectByIdAsync(SelectedProjectId.Value);
+        project = result.Data ?? new();
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+    }
+
+    private async Task CreateScheduleAsync()
+    {
+        if (!SelectedProjectId.HasValue) return;
+        schedule.WindowStart = TimeOnly.TryParse(windowStartText, out var windowStart) ? windowStart : null;
+        schedule.WindowEnd = TimeOnly.TryParse(windowEndText, out var windowEnd) ? windowEnd : null;
+        var result = await ProjectManagementService.CreateScheduleAsync(SelectedProjectId.Value, schedule);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) { schedule = new() { DistributionDate = DateTime.UtcNow.Date }; windowStartText = string.Empty; windowEndText = string.Empty; await LoadProjectAsync(); }
+    }
+
+    private async Task CreateAllocationAsync()
+    {
+        if (!SelectedProjectId.HasValue || !Guid.TryParse(scheduleIdText, out var scheduleId) || !Guid.TryParse(allocationCustomerIdText, out var customerId) || !Guid.TryParse(allocationDeliverableIdText, out var deliverableId) || !Guid.TryParse(allocationPlaceIdText, out var placeId))
+        {
+            errorMessage = Text("Project, schedule, customer, meal, and place are required.", "المشروع واليوم والعميل والوجبة والموقع مطلوبة.");
+            return;
+        }
+        allocation.ProjectCustomerId = customerId;
+        allocation.DeliverableId = deliverableId;
+        allocation.DistributionPlaceId = placeId;
+        var result = await ProjectManagementService.CreateAllocationAsync(SelectedProjectId.Value, scheduleId, allocation);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) { allocation = new() { PlannedQuantity = 1 }; await LoadProjectAsync(); }
+    }
+
+    private void BeginActual(ProjectDistributionAllocationDto item)
+    {
+        actualAllocation = new ProjectDistributionAllocationDto { Id = item.Id, ShippedQuantity = item.ShippedQuantity, DeliveredQuantity = item.DeliveredQuantity, ActualQuantity = item.ActualQuantity == 0 ? item.PlannedQuantity : item.ActualQuantity, Notes = item.Notes };
+    }
+
+    private async Task SaveActualAsync()
+    {
+        var result = await ProjectManagementService.RecordAllocationActualsAsync(actualAllocation.Id, actualAllocation.ShippedQuantity, actualAllocation.DeliveredQuantity, actualAllocation.ActualQuantity, actualAllocation.Notes);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) { actualAllocation = new(); await LoadProjectAsync(); }
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

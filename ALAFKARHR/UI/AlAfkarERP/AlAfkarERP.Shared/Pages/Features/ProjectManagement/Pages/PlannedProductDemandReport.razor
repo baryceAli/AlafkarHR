@@ -1,0 +1,163 @@
+@page "/ProjectManagement/Reports/PlannedProductDemand"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.ProjectManagement.Services
+@using AlAfkarERP.Shared.Utilities
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.ProjectManagement.Dtos
+@using SharedWithUI.ProjectManagement.Enums
+@inject IProjectManagementService ProjectManagementService
+@inject IProductService ProductService
+@inject SharedDataService SharedDataService
+@inject ApiConfig ApiConfig
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Planned Product Demand", "الطلب المخطط للمنتجات")" Subtitle="@Text("Upcoming planned product quantities from project timelines before execution orders are created.", "كميات المنتجات المخططة القادمة من جداول المشاريع قبل إنشاء أوامر التنفيذ.")" Icon="bi-graph-up-arrow" />
+
+    <article class="erp-card mb-3">
+        <div class="erp-card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-3"><label class="form-label">@Text("Project", "المشروع")</label><select class="form-select" @bind="projectIdText" @bind:after="LoadProjectFiltersAsync"><option value="">@Text("All", "الكل")</option>@foreach (var project in projects) { <option value="@project.Id">@project.ProjectNumber - @project.Name</option> }</select></div>
+                <div class="col-12 col-md-3"><label class="form-label">@Text("Customer", "العميل")</label><select class="form-select" @bind="customerIdText"><option value="">@Text("All", "الكل")</option>@foreach (var customer in selectedProject.Customers) { <option value="@customer.Id">@customer.CustomerName</option> }</select></div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">@Text("Product / Combo SKU", "الصنف أو الحزمة")</label>
+                    <AutoCompleteComponent TItem="ProductSkuDto"
+                                           Items="productSkus"
+                                           ItemText="ProductSkuDisplay"
+                                           Value="selectedProductSku"
+                                           ValueChanged="OnProductSkuChanged"
+                                           PlaceHolder="@Text("All SKUs", "كل الأصناف")" />
+                </div>
+                <div class="col-12 col-md-2"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="fromDate" /></div>
+                <div class="col-12 col-md-2"><label class="form-label">@Text("To", "إلى")</label><InputDate class="form-control" @bind-Value="toDate" /></div>
+                <div class="col-12 col-md-2"><label class="form-label">@Text("Group By", "تجميع حسب")</label><InputSelect class="form-select" @bind-Value="groupBy">@foreach (var item in Enum.GetValues<ProjectReportGroupBy>()) { <option value="@item">@GroupByLabel(item)</option> }</InputSelect></div>
+                <div class="col-12 col-md-2"><button class="btn btn-primary w-100" @onclick="LoadReportAsync"><i class="bi bi-search"></i> @Text("Run", "تشغيل")</button></div>
+                @if (selectedProductSku is not null)
+                {
+                    <div class="col-12 col-md-2"><button class="btn btn-outline-secondary w-100" @onclick="ClearSkuFilter"><i class="bi bi-x"></i> @Text("Clear SKU", "مسح الصنف")</button></div>
+                }
+            </div>
+        </div>
+    </article>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
+
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-md-4"><StatsCard Title="@Text("Planned Quantity", "الكمية المخططة")" Value="@report.Sum(x => x.PlannedQuantity).ToString("N0")" Icon="bi-box-seam" /></div>
+        <div class="col-12 col-md-4"><StatsCard Title="@Text("SKU Lines", "أسطر الأصناف")" Value="@report.Count.ToString("N0")" Icon="bi-upc-scan" /></div>
+        <div class="col-12 col-md-4"><StatsCard Title="@Text("Customers", "العملاء")" Value="@report.Select(x => x.ProjectCustomerId).Distinct().Count().ToString("N0")" Icon="bi-people" /></div>
+    </div>
+
+    <article class="erp-card">
+        <div class="erp-card-body table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>@Text("Period", "الفترة")</th>
+                        <th>@Text("Project", "المشروع")</th>
+                        <th>@Text("Customer", "العميل")</th>
+                        <th>@Text("SKU", "الصنف")</th>
+                        <th>@Text("Planned Qty", "الكمية المخططة")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in report)
+                    {
+                        <tr>
+                            <td>@row.PeriodKey</td>
+                            <td>@row.ProjectName</td>
+                            <td>@row.CustomerName</td>
+                            <td>@DemandSkuDisplay(row)</td>
+                            <td>@row.PlannedQuantity.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </article>
+</main>
+
+@code {
+    private List<ProjectDto> projects = [];
+    private List<ProductSkuDto> productSkus = [];
+    private ProjectDto selectedProject = new();
+    private ProductSkuDto? selectedProductSku;
+    private List<PlannedProductDemandRowDto> report = [];
+    private string projectIdText = string.Empty;
+    private string customerIdText = string.Empty;
+    private string productSkuIdText = string.Empty;
+    private DateTime? fromDate = DateTime.UtcNow.Date;
+    private DateTime? toDate = DateTime.UtcNow.Date.AddDays(30);
+    private ProjectReportGroupBy groupBy = ProjectReportGroupBy.Day;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var companyId = CompanyId();
+        projects = (await ProjectManagementService.GetProjectsAsync(1, 500, companyId)).Data?.Data.ToList() ?? [];
+        productSkus = (await ProductService.GetPublicStoreProductSkusAsync(new PublicStoreProductSkuRequest { PageIndex = 0, PageSize = 500 })).Data?.Data.ToList() ?? [];
+        await LoadReportAsync();
+    }
+
+    private async Task LoadProjectFiltersAsync()
+    {
+        customerIdText = string.Empty;
+        selectedProject = new();
+        if (Guid.TryParse(projectIdText, out var projectId))
+        {
+            var result = await ProjectManagementService.GetProjectByIdAsync(projectId);
+            selectedProject = result.Data ?? new();
+            errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        await LoadReportAsync();
+    }
+
+    private Task OnProductSkuChanged(ProductSkuDto? sku)
+    {
+        selectedProductSku = sku;
+        productSkuIdText = sku?.Id.ToString() ?? string.Empty;
+        return Task.CompletedTask;
+    }
+
+    private void ClearSkuFilter()
+    {
+        selectedProductSku = null;
+        productSkuIdText = string.Empty;
+    }
+
+    private async Task LoadReportAsync()
+    {
+        var result = await ProjectManagementService.GetPlannedProductDemandReportAsync(CompanyId(), ParseGuid(projectIdText), ParseGuid(customerIdText), ParseGuid(productSkuIdText), fromDate, toDate, groupBy);
+        report = result.Data ?? [];
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+    }
+
+    private Guid? CompanyId() => ApiConfig.CompanyId == Guid.Empty ? null : ApiConfig.CompanyId;
+    private static Guid? ParseGuid(string value) => Guid.TryParse(value, out var id) ? id : null;
+    private string ProductSkuDisplay(ProductSkuDto sku)
+    {
+        var name = SharedDataService.Language == "Ar" ? sku.Name : sku.NameEng;
+        if (string.IsNullOrWhiteSpace(name)) name = sku.Name ?? sku.NameEng ?? sku.SkuCode;
+        return string.IsNullOrWhiteSpace(sku.SkuCode) ? name : $"{name} ({sku.SkuCode})";
+    }
+    private string DemandSkuDisplay(PlannedProductDemandRowDto row)
+    {
+        var name = SharedDataService.Language == "Ar" ? row.ProductSkuName : row.ProductSkuNameEng;
+        if (string.IsNullOrWhiteSpace(name)) name = row.ProductSkuName;
+        return string.IsNullOrWhiteSpace(row.SkuCode) ? name : $"{name} ({row.SkuCode})";
+    }
+    private string GroupByLabel(ProjectReportGroupBy item) => item switch
+    {
+        ProjectReportGroupBy.Day => Text("Day", "يوم"),
+        ProjectReportGroupBy.Week => Text("Week", "أسبوع"),
+        ProjectReportGroupBy.Month => Text("Month", "شهر"),
+        ProjectReportGroupBy.Range => Text("Range", "نطاق"),
+        _ => item.ToString()
+    };
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

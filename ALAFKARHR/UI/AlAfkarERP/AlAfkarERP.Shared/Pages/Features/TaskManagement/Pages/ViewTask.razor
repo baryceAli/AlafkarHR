@@ -2,17 +2,23 @@
 @page "/TaskManagement/View/{Id:guid}"
 @implements IDisposable
 
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 @using SharedWithUI.TaskManagement.Dtos
 @using SharedWithUI.TaskManagement.Enums
 @using TaskWorkflowStatus = SharedWithUI.TaskManagement.Enums.TaskStatus
 
 @inject ITaskManagementService TaskService
+@inject IEmployeeService EmployeeService
+@inject IDepartmentService DepartmentService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ToastService ToastService
 @inject NavigationManager NavigationManager
@@ -234,12 +240,22 @@
                 {
                     <AppCard Title="@Text("Reassign", "إعادة الإسناد")" CssClass="mb-3">
                         <div class="mb-2">
-                            <label class="form-label">@Text("Assigned user code", "رمز الموظف المسند إليه")</label>
-                            <input class="form-control" @bind="assignment.AssignedToUser" />
+                            <label class="form-label">@Text("Assigned Employee", "الموظف المسند إليه")</label>
+                            <AutoCompleteComponent TItem="EmployeeDto"
+                                                   Items="employees"
+                                                   ItemText="EmployeeSearchText"
+                                                   Value="selectedAssignmentEmployee"
+                                                   PlaceHolder="@Text("Search employee by name, code, number, or email", "ابحث عن الموظف بالاسم أو الكود أو الرقم أو البريد")"
+                                                   ValueChanged="OnAssignmentEmployeeSelected" />
                         </div>
                         <div class="mb-2">
-                            <label class="form-label">@Text("Department Id", "معرف القسم")</label>
-                            <input class="form-control" @bind="assignmentDepartmentText" dir="ltr" />
+                            <label class="form-label">@Text("Department", "القسم")</label>
+                            <AutoCompleteComponent TItem="DepartmentDto"
+                                                   Items="departments"
+                                                   ItemText="DepartmentSearchText"
+                                                   Value="selectedAssignmentDepartment"
+                                                   PlaceHolder="@Text("Search department by name or code", "ابحث عن القسم بالاسم أو الكود")"
+                                                   ValueChanged="OnAssignmentDepartmentSelected" />
                         </div>
                         <div class="row g-2">
                             <div class="col-6">
@@ -317,7 +333,11 @@
     private string editActionExpectedText = string.Empty;
     private Guid? togglingActionId;
     private AssignTaskDto assignment = new();
-    private string assignmentDepartmentText = string.Empty;
+    private Guid companyId;
+    private List<EmployeeDto> employees = [];
+    private List<DepartmentDto> departments = [];
+    private EmployeeDto? selectedAssignmentEmployee;
+    private DepartmentDto? selectedAssignmentDepartment;
     private IBrowserFile? selectedAttachment;
     private bool isLoading = true;
     private bool isSavingAction;
@@ -343,12 +363,27 @@
     private async Task LoadPermissions()
     {
         var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId);
         CanView = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.View);
         CanEdit = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Edit);
         CanClose = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Close);
         CanComment = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Comment);
         CanAssign = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Assign);
         CanDelete = authState.User.Claims.Any(c => c.Value == PermissionList.TaskManagementPermissions.Delete);
+    }
+
+    private async Task LoadReferenceDataAsync()
+    {
+        if (companyId != Guid.Empty)
+        {
+            var employeesResult = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 5000);
+            if (employeesResult.IsSuccess)
+                employees = employeesResult.Data?.Data.ToList() ?? [];
+        }
+
+        var departmentsResult = await DepartmentService.GetAsync(0, 5000);
+        if (departmentsResult.IsSuccess)
+            departments = departmentsResult.Data?.Data.ToList() ?? [];
     }
 
     private async Task LoadTask()
@@ -360,6 +395,9 @@
         }
 
         isLoading = true;
+        if (CanAssign && (employees.Count == 0 || departments.Count == 0))
+            await LoadReferenceDataAsync();
+
         var response = await TaskService.GetByIdAsync(Id);
         if (response.IsSuccess && response.Data is not null)
         {
@@ -373,7 +411,8 @@
                 StartDate = task.StartDate,
                 DueDate = task.DueDate
             };
-            assignmentDepartmentText = task.DepartmentId.ToString();
+            selectedAssignmentEmployee = FindEmployeeByAssignedUser(task.AssignedToUser);
+            selectedAssignmentDepartment = departments.FirstOrDefault(d => d.Id == task.DepartmentId);
             if (!CanChangeToStatus(selectedStatus))
             {
                 selectedStatus = CanClose ? TaskWorkflowStatus.Completed : task.Status;
@@ -537,13 +576,14 @@
 
     private async Task AssignTask()
     {
-        if (!Guid.TryParse(assignmentDepartmentText, out var departmentId))
+        if (selectedAssignmentEmployee is null || selectedAssignmentDepartment is null)
         {
-            ToastService.Show(new ToastMessage { Message = Text("Department must be a valid id.", "يجب أن يكون معرف القسم صحيحا."), Type = "error" });
+            ToastService.Show(new ToastMessage { Message = Text("Assigned user and department must be selected.", "يجب اختيار الموظف والقسم."), Type = "error" });
             return;
         }
 
-        assignment.DepartmentId = departmentId;
+        assignment.AssignedToUser = selectedAssignmentEmployee.Code.ToString();
+        assignment.DepartmentId = selectedAssignmentDepartment.Id;
         var response = await TaskService.AssignAsync(Id, assignment);
         await HandleMutationResponse(response.IsSuccess, response.Error?.Detail, Text("Unable to save assignment.", "تعذر حفظ الإسناد."));
     }
@@ -590,6 +630,47 @@
     }
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private Task OnAssignmentEmployeeSelected(EmployeeDto? employee)
+    {
+        selectedAssignmentEmployee = employee;
+        assignment.AssignedToUser = employee?.Code.ToString() ?? string.Empty;
+        return Task.CompletedTask;
+    }
+
+    private Task OnAssignmentDepartmentSelected(DepartmentDto? department)
+    {
+        selectedAssignmentDepartment = department;
+        assignment.DepartmentId = department?.Id ?? Guid.Empty;
+        return Task.CompletedTask;
+    }
+
+    private EmployeeDto? FindEmployeeByAssignedUser(string? assignedToUser)
+    {
+        if (string.IsNullOrWhiteSpace(assignedToUser))
+            return null;
+
+        return employees.FirstOrDefault(employee =>
+            string.Equals(employee.Code.ToString(), assignedToUser, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(employee.Id.ToString(), assignedToUser, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(employee.EmployeeNo, assignedToUser, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(employee.Email, assignedToUser, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private string EmployeeName(EmployeeDto employee)
+    {
+        var name = SharedDataService.SelectViewLang(employee.FullNameEng, employee.FullName);
+        return !string.IsNullOrWhiteSpace(name) ? name : employee.Id.ToString()[..8];
+    }
+
+    private string DepartmentName(DepartmentDto department)
+    {
+        var name = SharedDataService.SelectViewLang(department.NameEng, department.Name);
+        return !string.IsNullOrWhiteSpace(name) ? name : department.Id.ToString()[..8];
+    }
+
+    private string EmployeeSearchText(EmployeeDto employee) => $"{EmployeeName(employee)} | {employee.Code} | {employee.EmployeeNo} | {employee.Email}";
+    private string DepartmentSearchText(DepartmentDto department) => $"{DepartmentName(department)} | {department.Code}";
 
     private bool CanChangeToStatus(TaskWorkflowStatus status)
     {

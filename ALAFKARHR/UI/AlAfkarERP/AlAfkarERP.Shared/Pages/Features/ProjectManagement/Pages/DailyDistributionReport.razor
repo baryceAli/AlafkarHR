@@ -1,0 +1,61 @@
+@page "/ProjectManagement/Reports/DailyDistribution"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.ProjectManagement.Services
+@using AlAfkarERP.Shared.Utilities
+@using SharedWithUI.ProjectManagement.Dtos
+@inject IProjectManagementService ProjectManagementService
+@inject SharedDataService SharedDataService
+@inject ApiConfig ApiConfig
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Daily Distribution Report", "Daily Distribution Report")" Subtitle="@Text("All projects, customers, places, and meals for one day.", "All projects, customers, places, and meals for one day.")" Icon="bi-calendar-day" />
+    <article class="erp-card mb-3"><div class="erp-card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-4"><label class="form-label">@Text("Project", "Project")</label><select class="form-select" @bind="projectIdText"><option value="">@Text("All", "All")</option>@foreach (var item in projects) { <option value="@item.Id">@item.ProjectNumber - @item.Name</option> }</select></div>
+            <div class="col-12 col-md-3"><label class="form-label">@Text("Date", "Date")</label><InputDate class="form-control" @bind-Value="reportDate" /></div>
+            <div class="col-12 col-md-2"><button class="btn btn-primary w-100" @onclick="LoadReportAsync"><i class="bi bi-search"></i> @Text("Run", "Run")</button></div>
+        </div>
+    </div></article>
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-md-3"><StatsCard Title="@Text("Planned", "Planned")" Value="@report.Sum(x => x.PlannedQuantity).ToString("N0")" Icon="bi-box-seam" /></div>
+        <div class="col-12 col-md-3"><StatsCard Title="@Text("Shipped", "Shipped")" Value="@report.Sum(x => x.ShippedQuantity).ToString("N0")" Icon="bi-truck" /></div>
+        <div class="col-12 col-md-3"><StatsCard Title="@Text("Delivered", "Delivered")" Value="@report.Sum(x => x.DeliveredQuantity).ToString("N0")" Icon="bi-check2-circle" /></div>
+        <div class="col-12 col-md-3"><StatsCard Title="@Text("Variance", "Variance")" Value="@report.Sum(x => x.VarianceQuantity).ToString("N0")" Icon="bi-graph-up" /></div>
+    </div>
+    <article class="erp-card"><div class="erp-card-body table-responsive">
+        @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
+        <table class="table align-middle"><thead><tr><th>@Text("Project", "Project")</th><th>@Text("Place", "Place")</th><th>@Text("Customer", "Customer")</th><th>@Text("Meal", "Meal")</th><th>@Text("Planned", "Planned")</th><th>@Text("Shipped", "Shipped")</th><th>@Text("Delivered", "Delivered")</th><th>@Text("Actual", "Actual")</th><th>@Text("Variance", "Variance")</th></tr></thead><tbody>
+            @foreach (var row in report) { <tr><td>@row.ProjectName</td><td>@row.PlaceName</td><td>@row.CustomerName</td><td>@row.DeliverableName</td><td>@row.PlannedQuantity.ToString("N0")</td><td>@row.ShippedQuantity.ToString("N0")</td><td>@row.DeliveredQuantity.ToString("N0")</td><td>@row.ActualQuantity.ToString("N0")</td><td>@row.VarianceQuantity.ToString("N0")</td></tr> }
+        </tbody></table>
+    </div></article>
+</main>
+
+@code {
+    private List<ProjectDto> projects = [];
+    private List<ProjectDistributionReportRowDto> report = [];
+    private string projectIdText = string.Empty;
+    private DateTime reportDate = DateTime.UtcNow.Date;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        projects = (await ProjectManagementService.GetProjectsAsync(1, 500, CompanyId())).Data?.Data.ToList() ?? [];
+        await LoadReportAsync();
+    }
+
+    private async Task LoadReportAsync()
+    {
+        var result = await ProjectManagementService.GetDailyDistributionReportAsync(CompanyId(), ParseGuid(projectIdText), reportDate);
+        report = result.Data ?? [];
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+    }
+
+    private Guid? CompanyId() => ApiConfig.CompanyId == Guid.Empty ? null : ApiConfig.CompanyId;
+    private static Guid? ParseGuid(string value) => Guid.TryParse(value, out var id) ? id : null;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

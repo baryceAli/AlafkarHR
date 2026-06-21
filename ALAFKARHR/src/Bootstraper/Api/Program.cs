@@ -18,6 +18,7 @@ using Payroll;
 using Payments;
 using Pricing;
 using Procurement;
+using ProjectManagement;
 using RealEstate;
 using Sales;
 using SalesOrder;
@@ -59,6 +60,7 @@ var supplierAssembly =typeof(SupplierModule).Assembly;
 var paymentsAssembly = typeof(PaymentsModule).Assembly;
 var pricingAssembly = typeof(PricingModule).Assembly;
 var procurementAssembly = typeof(ProcurementModule).Assembly;
+var projectManagementAssembly = typeof(ProjectManagementModule).Assembly;
 var realEstateAssembly = typeof(RealEstateModule).Assembly;
 var salesAssembly = typeof(SalesModule).Assembly;
 var payrollAssembly = typeof(PayrollModule).Assembly;
@@ -85,6 +87,7 @@ builder.Services.AddCarterWithAssemblies(
                         paymentsAssembly,
                         pricingAssembly,
                         procurementAssembly,
+                        projectManagementAssembly,
                         realEstateAssembly,
                         salesAssembly,
                         payrollAssembly,
@@ -115,6 +118,7 @@ builder.Services.AddMediatRWithAssemblies(
                         paymentsAssembly,
                         pricingAssembly,
                         procurementAssembly,
+                        projectManagementAssembly,
                         realEstateAssembly,
                         salesAssembly,
                         payrollAssembly,
@@ -150,6 +154,7 @@ builder.Services
         .AddPaymentsModule(builder.Configuration)
         .AddPricingModule(builder.Configuration)
         .AddProcurementModule(builder.Configuration)
+        .AddProjectManagementModule(builder.Configuration)
         .AddRealEstateModule(builder.Configuration)
         .AddPayrollModule(builder.Configuration)
         .AddTaskManagementModule(builder.Configuration)
@@ -199,6 +204,7 @@ app
     .UsePaymentsModule(app.Environment)
     .UsePricingModule(app.Environment)
     .UseProcurementModule(app.Environment)
+    .UseProjectManagementModule(app.Environment)
     .UseRealEstateModule(app.Environment)
     .UsePayrollModule(app.Environment)
     .UseTaskManagementModule(app.Environment)

@@ -4,12 +4,20 @@
 @implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Organization.Dtos
 
 @inject IAttendanceService AttendanceService
+@inject IAdministrationService AdministrationService
+@inject IDepartmentService DepartmentService
+@inject IEmployeeService EmployeeService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 
@@ -40,16 +48,31 @@
                     <input class="form-control" type="date" @bind="filter.ToDate" />
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">@Text("Employee Id", "معرف الموظف")</label>
-                    <input class="form-control" @bind="employeeIdText" />
+                    <label class="form-label">@Text("Employee", "الموظف")</label>
+                    <AutoCompleteComponent TItem="EmployeeDto"
+                                           Items="employees"
+                                           ItemText="EmployeeSearchText"
+                                           Value="selectedEmployee"
+                                           PlaceHolder="@Text("Search employee by name, code, number, or email", "ابحث عن الموظف بالاسم أو الكود أو الرقم أو البريد")"
+                                           ValueChanged="OnEmployeeSelected" />
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">@Text("Department Id", "معرف القسم")</label>
-                    <input class="form-control" @bind="departmentIdText" />
+                    <label class="form-label">@Text("Department", "القسم")</label>
+                    <AutoCompleteComponent TItem="DepartmentDto"
+                                           Items="departments"
+                                           ItemText="DepartmentSearchText"
+                                           Value="selectedDepartment"
+                                           PlaceHolder="@Text("Search department by name or code", "ابحث عن القسم بالاسم أو الكود")"
+                                           ValueChanged="OnDepartmentSelected" />
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">@Text("Administration Id", "معرف الادارة")</label>
-                    <input class="form-control" @bind="administrationIdText" />
+                    <label class="form-label">@Text("Administration", "الإدارة")</label>
+                    <AutoCompleteComponent TItem="AdministrationDto"
+                                           Items="administrations"
+                                           ItemText="AdministrationSearchText"
+                                           Value="selectedAdministration"
+                                           PlaceHolder="@Text("Search administration by name or code", "ابحث عن الإدارة بالاسم أو الكود")"
+                                           ValueChanged="OnAdministrationSelected" />
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">@Text("Status", "الحالة")</label>
@@ -163,9 +186,12 @@
     };
     private AttendanceReportDto report = new();
     private Guid companyId;
-    private string? employeeIdText;
-    private string? departmentIdText;
-    private string? administrationIdText;
+    private List<EmployeeDto> employees = [];
+    private List<DepartmentDto> departments = [];
+    private List<AdministrationDto> administrations = [];
+    private EmployeeDto? selectedEmployee;
+    private DepartmentDto? selectedDepartment;
+    private AdministrationDto? selectedAdministration;
     private bool isBusy;
     private string? message;
     private string messageClass = "alert-info";
@@ -192,6 +218,7 @@
         companyId = await ResolveCompanyIdAsync();
         filter.CompanyId = companyId;
         filter.Category = NormalizeCategory(ReportCategory);
+        await LoadReferenceDataAsync();
         await LoadReportAsync();
     }
 
@@ -217,9 +244,6 @@
     {
         isBusy = true;
         filter.CompanyId = companyId;
-        filter.EmployeeId = Guid.TryParse(employeeIdText, out var employeeId) ? employeeId : null;
-        filter.DepartmentId = Guid.TryParse(departmentIdText, out var departmentId) ? departmentId : null;
-        filter.AdministrationId = Guid.TryParse(administrationIdText, out var administrationId) ? administrationId : null;
         var result = await AttendanceService.GetReportAsync(filter);
         if (result.IsSuccess)
         {
@@ -255,6 +279,67 @@
         var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
         return Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
     }
+
+    private async Task LoadReferenceDataAsync()
+    {
+        if (companyId == Guid.Empty)
+            return;
+
+        var employeesResult = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 5000);
+        if (employeesResult.IsSuccess)
+            employees = employeesResult.Data?.Data.ToList() ?? [];
+
+        var departmentsResult = await DepartmentService.GetAsync(0, 5000);
+        if (departmentsResult.IsSuccess)
+            departments = departmentsResult.Data?.Data.ToList() ?? [];
+
+        var administrationsResult = await AdministrationService.GetAsync(0, 5000);
+        if (administrationsResult.IsSuccess)
+            administrations = administrationsResult.Data?.Data.ToList() ?? [];
+    }
+
+    private Task OnEmployeeSelected(EmployeeDto? employee)
+    {
+        selectedEmployee = employee;
+        filter.EmployeeId = employee?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnDepartmentSelected(DepartmentDto? department)
+    {
+        selectedDepartment = department;
+        filter.DepartmentId = department?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnAdministrationSelected(AdministrationDto? administration)
+    {
+        selectedAdministration = administration;
+        filter.AdministrationId = administration?.Id;
+        return Task.CompletedTask;
+    }
+
+    private string EmployeeName(EmployeeDto employee)
+    {
+        var name = SharedDataService.SelectViewLang(employee.FullNameEng, employee.FullName);
+        return !string.IsNullOrWhiteSpace(name) ? name : employee.Id.ToString()[..8];
+    }
+
+    private string DepartmentName(DepartmentDto department)
+    {
+        var name = SharedDataService.SelectViewLang(department.NameEng, department.Name);
+        return !string.IsNullOrWhiteSpace(name) ? name : department.Id.ToString()[..8];
+    }
+
+    private string AdministrationName(AdministrationDto administration)
+    {
+        var name = SharedDataService.SelectViewLang(administration.NameEng, administration.Name);
+        return !string.IsNullOrWhiteSpace(name) ? name : administration.Id.ToString()[..8];
+    }
+
+    private string EmployeeSearchText(EmployeeDto employee) => $"{EmployeeName(employee)} | {employee.Code} | {employee.EmployeeNo} | {employee.Email}";
+    private string DepartmentSearchText(DepartmentDto department) => $"{DepartmentName(department)} | {department.Code}";
+    private string AdministrationSearchText(AdministrationDto administration) => $"{AdministrationName(administration)} | {administration.Code}";
 
     private static string FormatRange(DateTime? start, DateTime? end)
         => start.HasValue || end.HasValue ? $"{FormatDateTime(start)} - {FormatDateTime(end)}" : "-";

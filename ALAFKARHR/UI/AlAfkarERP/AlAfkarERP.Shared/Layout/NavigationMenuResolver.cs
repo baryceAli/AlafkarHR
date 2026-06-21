@@ -152,6 +152,7 @@ public static class NavigationMenuResolver
             || path.StartsWith("/realestate", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/maintenance", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/organization", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/projectmanagement", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/taskmanagement", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Contract", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Document", StringComparison.OrdinalIgnoreCase)
@@ -231,11 +232,29 @@ public static class NavigationMenuResolver
     }
 
     public static string ResolveActiveWorkspace(string currentUri, string baseUri)
+        => ResolveActiveWorkspace(currentUri, baseUri, null);
+
+    public static string ResolveActiveWorkspace(string currentUri, string baseUri, string? preferredWorkspaceKey)
     {
         var currentPath = NormalizePath(ToRelativePath(currentUri, baseUri));
         if (currentPath == "/" || currentPath == "/dashboard")
         {
             return WorkspaceHome;
+        }
+
+        if (TryResolveExactWorkspaceMatch(currentPath, preferredWorkspaceKey, out var preferredWorkspace))
+        {
+            return preferredWorkspace;
+        }
+
+        if (currentPath.StartsWith("/projectmanagement", StringComparison.OrdinalIgnoreCase))
+        {
+            return WorkspaceAdmin;
+        }
+
+        if (TryResolveExplicitExactWorkspaceMatch(currentPath, out var exactWorkspace))
+        {
+            return exactWorkspace;
         }
 
         var activePath = GetActivePath(currentUri, baseUri);
@@ -594,6 +613,7 @@ public static class NavigationMenuResolver
                 "Organizational Structure",
                 "Contracts",
                 "Document Management",
+                "Project Management",
                 "Task Management",
                 "Platform Operations",
                 "General Settings"),
@@ -791,6 +811,47 @@ public static class NavigationMenuResolver
 
     private static bool IsText(MenuItem item, string text)
         => item.TextEn.Equals(text, StringComparison.OrdinalIgnoreCase);
+
+    private static bool TryResolveExactWorkspaceMatch(string currentPath, string? preferredWorkspaceKey, out string workspaceKey)
+    {
+        workspaceKey = string.Empty;
+        if (string.IsNullOrWhiteSpace(preferredWorkspaceKey))
+        {
+            return false;
+        }
+
+        var match = Flatten(MenuItem.Menu)
+            .FirstOrDefault(item =>
+                !string.IsNullOrWhiteSpace(item.Url)
+                && NormalizePath(item.Url) == currentPath
+                && string.Equals(GetWorkspaceKey(item), preferredWorkspaceKey, StringComparison.OrdinalIgnoreCase));
+
+        if (match is null)
+        {
+            return false;
+        }
+
+        workspaceKey = GetWorkspaceKey(match);
+        return true;
+    }
+
+    private static bool TryResolveExplicitExactWorkspaceMatch(string currentPath, out string workspaceKey)
+    {
+        workspaceKey = string.Empty;
+        var match = Flatten(MenuItem.Menu)
+            .FirstOrDefault(item =>
+                !string.IsNullOrWhiteSpace(item.Url)
+                && !string.IsNullOrWhiteSpace(item.WorkspaceKey)
+                && NormalizePath(item.Url) == currentPath);
+
+        if (match is null)
+        {
+            return false;
+        }
+
+        workspaceKey = GetWorkspaceKey(match);
+        return true;
+    }
 }
 
 public sealed record NavigationWorkspace(string Key, string TextEn, string TextAr, string Icon, string? Url);

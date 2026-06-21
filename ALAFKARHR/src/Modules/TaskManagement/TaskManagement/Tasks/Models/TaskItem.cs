@@ -13,7 +13,7 @@ public class TaskItem : Aggregate<Guid>
     public decimal ProgressPercentage { get; private set; }
     public string AssignedToUser { get; private set; } = string.Empty;
     public Guid AssignedByUserId { get; private set; }
-    public Guid DepartmentId { get; private set; }
+    public Guid? DepartmentId { get; private set; }
     public bool IsRecurring { get; private set; }
     public TaskRecurrenceFrequency RecurrenceFrequency { get; private set; }
     public int RecurrenceInterval { get; private set; } = 1;
@@ -37,7 +37,7 @@ public class TaskItem : Aggregate<Guid>
     }
 
     public static TaskItem Create(string taskNumber, string title, string description, TaskPriority priority, DateTime? startDate,
-        DateTime dueDate, Guid createdByUserId, string assignedToUser, Guid assignedByUserId, Guid departmentId,
+        DateTime dueDate, Guid createdByUserId, string assignedToUser, Guid assignedByUserId, Guid? departmentId,
         bool isRecurring, DateTime? reminderDate, TaskRecurrenceFrequency recurrenceFrequency = TaskRecurrenceFrequency.None,
         int recurrenceInterval = 1, TaskRecurrenceEndType recurrenceEndType = TaskRecurrenceEndType.Never,
         DateTime? recurrenceEndDate = null, int? recurrenceMaxOccurrences = null, Guid? parentTaskId = null)
@@ -73,7 +73,7 @@ public class TaskItem : Aggregate<Guid>
     }
 
     public void Update(string title, string description, TaskPriority priority, DateTime? startDate, DateTime dueDate,
-        Guid departmentId, bool isRecurring, DateTime? reminderDate, Guid modifiedByUserId,
+        Guid? departmentId, bool isRecurring, DateTime? reminderDate, Guid modifiedByUserId,
         TaskRecurrenceFrequency recurrenceFrequency = TaskRecurrenceFrequency.None, int recurrenceInterval = 1,
         TaskRecurrenceEndType recurrenceEndType = TaskRecurrenceEndType.Never, DateTime? recurrenceEndDate = null,
         int? recurrenceMaxOccurrences = null)
@@ -103,7 +103,7 @@ public class TaskItem : Aggregate<Guid>
         ModifiedBy = modifiedByUserId.ToString();
     }
 
-    public void Assign(string assignedToUser, Guid assignedByUserId, Guid departmentId, DateTime? startDate, DateTime dueDate)
+    public void Assign(string assignedToUser, Guid assignedByUserId, Guid? departmentId, DateTime? startDate, DateTime dueDate)
     {
         ValidateDates(startDate, dueDate);
 

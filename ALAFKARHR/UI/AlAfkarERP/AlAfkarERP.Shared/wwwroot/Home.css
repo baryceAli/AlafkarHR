@@ -1158,3 +1158,329 @@ a {
         width: auto;
     }
 }
+
+/* Public storefront redesign final cascade */
+:root {
+    --home-accent: var(--erp-primary);
+    --home-accent-dark: color-mix(in srgb, var(--erp-primary) 82%, var(--erp-text));
+    --home-accent-soft: color-mix(in srgb, var(--erp-primary) 9%, var(--erp-surface));
+    --home-food-accent: var(--erp-warning);
+    --home-food-soft: color-mix(in srgb, var(--erp-warning) 12%, var(--erp-surface));
+    --home-ink: var(--erp-text);
+    --home-muted: var(--erp-text-muted);
+    --home-surface: var(--erp-surface);
+    --home-border: var(--erp-border);
+    --home-success: var(--erp-success);
+    --home-focus-ring: var(--erp-focus-ring);
+}
+
+.home-page {
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--erp-primary) 7%, var(--erp-bg)) 0%, var(--erp-bg) 38%, var(--erp-surface) 100%);
+}
+
+.home-hero {
+    padding-block: clamp(2rem, 5vw, 4rem) clamp(1.5rem, 4vw, 3rem);
+}
+
+.home-hero-grid > .home-hero-content:not(.home-hero-content-v2),
+.home-hero-grid > .home-hero-visual:not(.home-hero-visual-v2),
+.home-service-strip .home-service-grid:not(.home-service-grid-v2),
+.store-heading > div:not(.store-heading-copy),
+.store-heading > p {
+    display: none;
+}
+
+.home-hero-content-v2 {
+    display: grid;
+    gap: var(--erp-space-4);
+}
+
+.home-eyebrow,
+.store-kicker,
+.home-product-kicker {
+    color: var(--home-accent-dark);
+    letter-spacing: 0;
+}
+
+.home-eyebrow i,
+.store-kicker i,
+.home-product-kicker i {
+    color: var(--home-food-accent);
+}
+
+.home-eyebrow::before,
+.store-kicker::before {
+    display: none;
+}
+
+.home-hero h1 {
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 800;
+    letter-spacing: 0;
+    line-height: 1.18;
+    max-width: 720px;
+}
+
+.home-hero p {
+    font-size: 1rem;
+    line-height: 1.8;
+    margin: 0;
+}
+
+.home-hero-actions {
+    margin-top: 0;
+}
+
+.home-primary-action,
+.home-secondary-action {
+    border-radius: var(--erp-radius-md);
+    font-weight: 700;
+    min-height: 40px;
+    padding: .55rem .95rem;
+}
+
+.home-primary-action {
+    background: var(--erp-primary);
+    border-color: var(--erp-primary);
+}
+
+.home-primary-action:hover,
+.home-primary-action:focus-visible {
+    background: color-mix(in srgb, var(--erp-primary) 86%, var(--erp-text));
+    border-color: color-mix(in srgb, var(--erp-primary) 86%, var(--erp-text));
+}
+
+.home-secondary-action {
+    background: var(--home-surface);
+    border-color: var(--home-border);
+    color: var(--home-ink);
+}
+
+.home-secondary-action:hover,
+.home-secondary-action:focus-visible {
+    background: var(--home-accent-soft);
+    border-color: color-mix(in srgb, var(--erp-primary) 24%, var(--home-border));
+    color: var(--home-accent-dark);
+}
+
+.home-product-tray {
+    border-radius: var(--erp-radius-lg);
+    box-shadow: var(--erp-shadow-md);
+    grid-template-columns: minmax(150px, .82fr) minmax(0, 1fr);
+}
+
+.home-product-media,
+.product-media {
+    background:
+        linear-gradient(135deg, var(--home-accent-soft), var(--home-food-soft));
+}
+
+.home-product-badge,
+.product-badge {
+    background: var(--erp-success);
+    font-weight: 700;
+}
+
+.home-product-delivery,
+.product-chip,
+.product-action {
+    background: var(--home-accent-soft);
+    border-color: color-mix(in srgb, var(--erp-primary) 16%, var(--home-border));
+    color: var(--home-accent-dark);
+}
+
+.home-service-strip {
+    padding-block: 0 clamp(2rem, 5vw, 3.5rem);
+}
+
+.home-service-grid-v2 {
+    display: grid;
+}
+
+.home-service-item {
+    border-radius: var(--erp-radius-md);
+    box-shadow: var(--erp-shadow-sm);
+    min-height: 112px;
+    padding: var(--erp-space-4);
+}
+
+.home-service-item i {
+    background: var(--home-accent-soft);
+    color: var(--home-accent-dark);
+}
+
+.home-service-item strong {
+    font-weight: 700;
+}
+
+.home-service-item span {
+    font-size: .875rem;
+    line-height: 1.55;
+}
+
+.store-section {
+    padding-block: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+.store-heading {
+    align-items: start;
+    margin-bottom: var(--erp-space-4);
+}
+
+.store-heading-copy {
+    display: grid;
+    gap: var(--erp-space-2);
+    max-width: 920px;
+}
+
+.store-heading-copy p {
+    color: var(--home-muted);
+    line-height: 1.7;
+    margin: 0;
+    max-width: 680px;
+}
+
+.store-heading h2 {
+    font-size: clamp(1.6rem, 3vw, 2.25rem);
+    font-weight: 800;
+}
+
+.store-toolbar {
+    background: color-mix(in srgb, var(--home-surface) 96%, transparent);
+    border-radius: var(--erp-radius-lg);
+    box-shadow: var(--erp-shadow-sm);
+    position: sticky;
+    top: 76px;
+    z-index: 4;
+}
+
+.store-filter-field span {
+    color: var(--home-muted);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+
+.store-filter-field .form-control,
+.store-filter-field .form-select,
+.store-filter-field .input-group-text {
+    border-radius: var(--erp-radius-md);
+    min-height: 38px;
+}
+
+.store-filter-field .input-group > .input-group-text {
+    border-end-end-radius: 0;
+    border-start-end-radius: 0;
+}
+
+.store-filter-field .input-group > .form-control {
+    border-end-start-radius: 0;
+    border-start-start-radius: 0;
+}
+
+.store-filter-field .input-group-text {
+    background: var(--home-accent-soft);
+    color: var(--home-accent-dark);
+}
+
+.store-filter-field .form-control:focus,
+.store-filter-field .form-select:focus {
+    border-color: var(--erp-primary);
+    box-shadow: 0 0 0 .2rem var(--home-focus-ring);
+}
+
+.store-range-control::after {
+    background: var(--erp-primary);
+}
+
+.store-range-input::-webkit-slider-thumb {
+    border-color: var(--erp-primary);
+}
+
+.store-range-input::-moz-range-thumb {
+    border-color: var(--erp-primary);
+}
+
+.store-results-summary {
+    color: var(--home-muted);
+    font-weight: 700;
+}
+
+.product-grid {
+    gap: var(--erp-space-4);
+}
+
+.product-card {
+    border-radius: var(--erp-radius-lg);
+    box-shadow: var(--erp-shadow-sm);
+}
+
+.product-card:hover,
+.product-card:focus-within {
+    border-color: color-mix(in srgb, var(--erp-primary) 28%, var(--home-border));
+}
+
+.product-kicker {
+    color: var(--home-accent-dark);
+    font-weight: 700;
+}
+
+.product-body h3 {
+    font-weight: 800;
+}
+
+.product-category-pill {
+    border-color: color-mix(in srgb, var(--erp-primary) 18%, var(--home-border));
+}
+
+.product-price strong {
+    color: var(--home-accent-dark);
+}
+
+.product-buy-action {
+    min-width: 82px;
+}
+
+.product-state {
+    border-radius: var(--erp-radius-lg);
+}
+
+.product-state .spinner-border,
+.product-state .bi {
+    color: var(--erp-primary);
+}
+
+.store-pagination .bi-chevron-right,
+.store-pagination .bi-chevron-left {
+    transform: none;
+}
+
+[dir="rtl"] .store-pagination .bi-chevron-right,
+[dir="rtl"] .store-pagination .bi-chevron-left {
+    transform: rotate(180deg);
+}
+
+@media (max-width: 991.98px) {
+    .store-toolbar {
+        position: static;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .home-hero-content-v2 {
+        gap: var(--erp-space-3);
+    }
+
+    .home-product-tray {
+        grid-template-columns: 1fr;
+    }
+
+    .store-toolbar {
+        border-radius: var(--erp-radius-md);
+    }
+
+    .product-card {
+        min-height: 132px;
+    }
+}

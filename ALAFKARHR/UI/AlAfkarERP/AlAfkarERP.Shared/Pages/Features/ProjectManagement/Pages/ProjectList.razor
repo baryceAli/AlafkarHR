@@ -1,0 +1,889 @@
+﻿@page "/ProjectManagement/Projects"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Customers.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.ProjectManagement.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Catalog.Enums
+@using SharedWithUI.Customers.Dtos
+@using SharedWithUI.Customers.Enums
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.ProjectManagement.Dtos
+@using SharedWithUI.ProjectManagement.Enums
+@inject IProductService ProductService
+@inject ICustomerService CustomerService
+@inject ICustomerGroupService CustomerGroupService
+@inject IEmployeeService EmployeeService
+@inject IProjectManagementService ProjectManagementService
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ApiConfig ApiConfig
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Projects", "المشاريع")" Subtitle="@Text("Create and manage meal preparation and distribution projects.", "إنشاء وإدارة مشاريع تجهيز وتوزيع الوجبات.")" Icon="bi-kanban" />
+
+    <article class="erp-card mb-3">
+        <div class="erp-card-header"><strong>@Text("New Project", "مشروع جديد")</strong></div>
+        <div class="erp-card-body">
+            <EditForm Model="editingProject" OnValidSubmit="SaveProjectAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="editingProject.Name" /><ValidationMessage For="@(() => editingProject.Name)" /></div>
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("English Name", "الاسم الإنجليزي")</label><InputText class="form-control" @bind-Value="editingProject.NameEng" /></div>
+                    <div class="col-12 col-md-2"><label class="form-label">@Text("Type", "النوع")</label><InputSelect class="form-select" @bind-Value="editingProject.Type">@foreach (var type in Enum.GetValues<ProjectType>()) { <option value="@type">@ProjectTypeLabel(type)</option> }</InputSelect></div>
+                    <div class="col-12 col-md-2"><label class="form-label">@Text("Start", "البداية")</label><InputDate class="form-control" @bind-Value="editingProject.PlannedStartDate" /></div>
+                    <div class="col-12 col-md-2"><label class="form-label">@Text("End", "النهاية")</label><InputDate class="form-control" @bind-Value="editingProject.PlannedEndDate" /></div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Manager", "مدير المشروع")</label>
+                        <AutoCompleteComponent TItem="EmployeeDto"
+                                               Items="employees"
+                                               ItemText="EmployeeDisplay"
+                                               Value="selectedManager"
+                                               ValueChanged="OnManagerChanged"
+                                               PlaceHolder="@Text("Search employee", "ابحث عن موظف")" />
+                    </div>
+                    <div class="col-12 col-md-6"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="editingProject.Notes" /></div>
+                </div>
+
+                <div class="border-top mt-3 pt-3">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <strong>@Text("Project Customers", "عملاء المشروع")</strong>
+                        <span class="text-muted small">@Text("Select a customer and products to calculate quantity and amount variance.", "اختر العميل والأصناف لاحتساب الكمية وفرق المبلغ.")</span>
+                    </div>
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 col-lg-3">
+                            <label class="form-label">@Text("Customer Selector", "اختيار العميل")</label>
+                            <AutoCompleteComponent TItem="CustomerDto"
+                                                   Items="AvailableCustomers"
+                                                   ItemText="CustomerDisplay"
+                                                   Value="selectedCustomer"
+                                                   ValueChanged="OnCustomerChanged"
+                                                   ActionText="@Text("Add new Customer", "إضافة عميل جديد")"
+                                                   ActionIcon="bi-plus-lg"
+                                                   OnActionSelected="OpenNewCustomerModal"
+                                                   PlaceHolder="@Text("Search customer", "ابحث عن عميل")" />
+                        </div>
+                        <div class="col-6 col-lg-2"><label class="form-label">@Text("Contracted Amount", "المبلغ المتعاقد عليه")</label><InputNumber class="form-control" @bind-Value="draftCustomer.ContractedAmount" /></div>
+                        <div class="col-12 col-lg-2"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="draftCustomer.Notes" /></div>
+                    </div>
+                    <div class="row g-3 align-items-end mt-1">
+                        <div class="col-12 col-lg-5">
+                            <label class="form-label">@Text("Product / Combo SKU", "الصنف أو الحزمة")</label>
+                            <AutoCompleteComponent TItem="ProductSkuDto"
+                                                   Items="AvailableProductSkus"
+                                                   ItemText="ProductSkuDisplay"
+                                                   Value="selectedProductSku"
+                                                   ValueChanged="OnProductSkuChanged"
+                                                   PlaceHolder="@Text("Search SKU", "ابحث عن صنف")" />
+                        </div>
+                        <div class="col-6 col-lg-2"><label class="form-label">@Text("SKU Qty", "كمية الصنف")</label><InputNumber class="form-control" @bind-Value="draftProductPlan.Quantity" /></div>
+                        <div class="col-12 col-lg-3"><label class="form-label">@Text("SKU Notes", "ملاحظات الصنف")</label><InputText class="form-control" @bind-Value="draftProductPlan.Notes" /></div>
+                        <div class="col-12 col-lg-2"><button class="btn btn-outline-secondary w-100" type="button" @onclick="AddDraftProductPlan"><i class="bi bi-plus"></i> @Text("Add SKU", "إضافة صنف")</button></div>
+                        <div class="col-12 d-flex justify-content-end">
+                            <button class="btn btn-outline-primary" type="button" @onclick="AddDraftCustomer"><i class="bi bi-plus"></i> @Text("Add Customer", "إضافة عميل")</button>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-1">
+                        <div class="col-12 col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">@Text("Calculated Quantity", "الكمية المحتسبة")</div>
+                                <div class="fw-semibold">@DraftCalculatedQuantity.ToString("N0")</div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">@Text("Actual Amount", "المبلغ الفعلي")</div>
+                                <div class="fw-semibold">@DraftActualAmount.ToString("N2")</div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-muted small">@Text("Difference", "الفرق")</div>
+                                <div class="fw-semibold">@DraftAmountDifference.ToString("N2")</div>
+                            </div>
+                        </div>
+                    </div>
+                    @if (draftCustomer.ProductPlans.Any())
+                    {
+                        <div class="erp-table-wrap mt-3">
+                            <table class="table align-middle mb-0">
+                                <thead><tr><th>@Text("SKU", "الصنف")</th><th>@Text("Type", "النوع")</th><th>@Text("Quantity", "الكمية")</th><th>@Text("Unit Price", "سعر الوحدة")</th><th>@Text("Line Amount", "مبلغ السطر")</th><th>@Text("Notes", "ملاحظات")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                                <tbody>
+                                    @foreach (var plan in draftCustomer.ProductPlans)
+                                    {
+                                        <tr>
+                                            <td>@PlanDisplay(plan)</td>
+                                            <td>@PlanType(plan)</td>
+                                            @if (editingProductPlan == plan)
+                                            {
+                                                <td><InputNumber class="form-control form-control-sm" @bind-Value="editingProductPlanQuantity" /></td>
+                                                <td>@ProductPlanUnitPrice(plan).ToString("N2")</td>
+                                                <td>@(ProductPlanUnitPrice(plan) * editingProductPlanQuantity).ToString("N2")</td>
+                                                <td><InputText class="form-control form-control-sm" @bind-Value="editingProductPlanNotes" /></td>
+                                                <td class="text-end">
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button class="btn btn-outline-primary" type="button" @onclick="SaveDraftProductPlanEdit"><i class="bi bi-check2"></i></button>
+                                                        <button class="btn btn-outline-secondary" type="button" @onclick="CancelDraftProductPlanEdit"><i class="bi bi-x"></i></button>
+                                                    </div>
+                                                </td>
+                                            }
+                                            else
+                                            {
+                                                <td>@plan.Quantity.ToString("N0")</td>
+                                                <td>@ProductPlanUnitPrice(plan).ToString("N2")</td>
+                                                <td>@ProductPlanLineAmount(plan).ToString("N2")</td>
+                                                <td>@plan.Notes</td>
+                                                <td class="text-end">
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button class="btn btn-outline-primary" type="button" @onclick="@(() => EditDraftProductPlan(plan))"><i class="bi bi-pencil"></i></button>
+                                                        <button class="btn btn-outline-danger" type="button" @onclick="@(() => RemoveDraftProductPlan(plan))"><i class="bi bi-x"></i></button>
+                                                    </div>
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    @if (projectCustomers.Any())
+                    {
+                        <div class="erp-table-wrap mt-3">
+                            <table class="table align-middle mb-0">
+                                <thead><tr><th>@Text("Customer", "العميل")</th><th>@Text("Quantity", "الكمية")</th><th>@Text("Contracted Amount", "المبلغ المتعاقد عليه")</th><th>@Text("Actual Amount", "المبلغ الفعلي")</th><th>@Text("Difference", "الفرق")</th><th>@Text("Products", "الأصناف")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                                <tbody>
+                                    @foreach (var item in projectCustomers)
+                                    {
+                                        <tr>
+                                            <td>@item.CustomerName</td>
+                                            <td>@item.ContractedQuantity.ToString("N0")</td>
+                                            <td>@item.ContractedAmount.ToString("N2")</td>
+                                            <td>@ProductPlansActualAmount(item.ProductPlans).ToString("N2")</td>
+                                            <td>@CustomerAmountDifference(item).ToString("N2")</td>
+                                            <td>@ProductPlanSummary(item.ProductPlans)</td>
+                                            <td class="text-end"><button class="btn btn-sm btn-outline-danger" type="button" @onclick="@(() => RemoveDraftCustomer(item))"><i class="bi bi-x"></i></button></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+
+                <div class="d-flex justify-content-end mt-3">
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> @Text("Save", "حفظ")</button>
+                </div>
+            </EditForm>
+        </div>
+    </article>
+
+    <article class="erp-card">
+        <div class="erp-card-body">
+            @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-12 col-md-4"><label class="form-label">@Text("Search", "بحث")</label><input class="form-control" @bind="searchText" /></div>
+                <div class="col-12 col-md-3"><label class="form-label">@Text("Status", "الحالة")</label><select class="form-select" @bind="statusText"><option value="">@Text("All", "الكل")</option>@foreach (var status in Enum.GetValues<ProjectStatus>()) { <option value="@status">@status</option> }</select></div>
+                <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadProjectsAsync"><i class="bi bi-search"></i> @Text("Filter", "تصفية")</button></div>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead><tr><th>@Text("Number", "الرقم")</th><th>@Text("Project", "المشروع")</th><th>@Text("Manager", "المدير")</th><th>@Text("Dates", "التواريخ")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                    <tbody>
+                        @foreach (var project in projects)
+                        {
+                            <tr>
+                                <td>@project.ProjectNumber</td>
+                                <td>@project.Name</td>
+                                <td>@project.ManagerName</td>
+                                <td>@project.PlannedStartDate.ToShortDateString() - @project.PlannedEndDate.ToShortDateString()</td>
+                                <td><StatusChip Text="@project.Status.ToString()" Tone="@StatusTone(project.Status)" /></td>
+                                <td class="text-end"><button class="btn btn-sm btn-outline-primary" @onclick="@(() => NavigationManager.NavigateTo($"/ProjectManagement/Projects/{project.Id}"))"><i class="bi bi-eye"></i></button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </article>
+</main>
+
+@if (showNewCustomerModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" dir="@SharedDataService.PageDirection">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <EditForm Model="newCustomer" OnValidSubmit="SaveNewCustomerAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <div>
+                            <h5 class="modal-title">@Text("Add new Customer", "إضافة عميل جديد")</h5>
+                            <div class="text-muted small">@Text("Create a customer record, then continue adding project quantities and products.", "أنشئ سجل عميل ثم تابع إضافة كميات وأصناف المشروع.")</div>
+                        </div>
+                        <button type="button" class="btn-close" aria-label="Close" @onclick="CloseNewCustomerModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (!string.IsNullOrWhiteSpace(newCustomerError))
+                        {
+                            <div class="alert alert-danger">@newCustomerError</div>
+                        }
+
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@Text("Name", "الاسم")</label>
+                                <InputText class="form-control" @bind-Value="newCustomer.Name" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@Text("Customer Code", "رقم العميل")</label>
+                                <InputText class="form-control" @bind-Value="newCustomer.CustomerCode" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@Text("Commercial Name", "الاسم التجاري")</label>
+                                <InputText class="form-control" @bind-Value="newCustomer.CommercialName" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@Text("VAT Number", "الرقم الضريبي")</label>
+                                <InputText class="form-control" @bind-Value="newCustomer.VatNumber" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@Text("Commercial Registration", "السجل التجاري")</label>
+                                <InputText class="form-control" @bind-Value="newCustomer.CommercialRegistrationNumber" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@Text("Customer Group", "فئة العميل")</label>
+                                <AutoCompleteComponent TItem="CustomerGroupDto"
+                                                       Items="customerGroups"
+                                                       ItemText="CustomerGroupDisplay"
+                                                       Value="selectedNewCustomerGroup"
+                                                       ValueChanged="OnNewCustomerGroupChanged"
+                                                       PlaceHolder="@Text("Select customer group", "اختر فئة العميل")" />
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">@Text("Status", "الحالة")</label>
+                                <InputSelect class="form-select" @bind-Value="newCustomer.Status">
+                                    @foreach (var status in Enum.GetValues<CustomerStatus>())
+                                    {
+                                        <option value="@status">@status</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">@Text("Payment Term", "شروط الدفع")</label>
+                                <InputSelect class="form-select" @bind-Value="newCustomer.PaymentTerm">
+                                    @foreach (var term in Enum.GetValues<PaymentTermType>())
+                                    {
+                                        <option value="@term">@term</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">@Text("Credit Status", "حالة الائتمان")</label>
+                                <InputSelect class="form-select" @bind-Value="newCustomer.CreditStatus">
+                                    @foreach (var creditStatus in Enum.GetValues<CreditStatus>())
+                                    {
+                                        <option value="@creditStatus">@creditStatus</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">@Text("Credit Limit", "حد الائتمان")</label>
+                                <InputNumber class="form-control" @bind-Value="newCustomer.CreditLimit" />
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">@Text("Available Credit", "الائتمان المتاح")</label>
+                                <InputNumber class="form-control" @bind-Value="newCustomer.AvailableCredit" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">@Text("Credit Hold Reason", "سبب إيقاف الائتمان")</label>
+                                <InputText class="form-control" @bind-Value="newCustomer.CreditHoldReason" />
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <div class="form-check mt-4">
+                                    <InputCheckbox class="form-check-input" @bind-Value="newCustomer.IsTaxExempt" />
+                                    <label class="form-check-label">@Text("Tax Exempt", "معفى من الضريبة")</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                                <InputTextArea class="form-control" rows="2" @bind-Value="newCustomer.Notes" />
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                            <h6 class="mb-0">@Text("Addresses", "العناوين")</h6>
+                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddNewCustomerAddress">
+                                <i class="bi bi-plus"></i> @Text("Add Address", "إضافة عنوان")
+                            </button>
+                        </div>
+                        @if (!newCustomer.Addresses.Any())
+                        {
+                            <div class="text-muted small mb-3">@Text("No addresses added.", "لا توجد عناوين.")</div>
+                        }
+                        @foreach (var address in newCustomer.Addresses)
+                        {
+                            <div class="border rounded p-3 mb-2">
+                                <div class="row g-2">
+                                    <div class="col-12 col-md-3"><label class="form-label">@Text("Title", "العنوان")</label><InputText class="form-control" @bind-Value="address.Title" /></div>
+                                    <div class="col-12 col-md-5"><label class="form-label">@Text("Address Line 1", "العنوان 1")</label><InputText class="form-control" @bind-Value="address.AddressLine1" /></div>
+                                    <div class="col-12 col-md-4"><label class="form-label">@Text("Address Line 2", "العنوان 2")</label><InputText class="form-control" @bind-Value="address.AddressLine2" /></div>
+                                    <div class="col-12 col-md-3"><label class="form-label">@Text("City", "المدينة")</label><InputText class="form-control" @bind-Value="address.City" /></div>
+                                    <div class="col-12 col-md-3"><label class="form-label">@Text("State", "المنطقة")</label><InputText class="form-control" @bind-Value="address.State" /></div>
+                                    <div class="col-12 col-md-3"><label class="form-label">@Text("Country", "الدولة")</label><InputText class="form-control" @bind-Value="address.Country" /></div>
+                                    <div class="col-12 col-md-3"><label class="form-label">@Text("Postal Code", "الرمز البريدي")</label><InputText class="form-control" @bind-Value="address.PostalCode" /></div>
+                                    <div class="col-12 col-md-3"><label class="form-label">@Text("Longitude", "خط الطول")</label><InputNumber class="form-control" @bind-Value="address.Longitude" /></div>
+                                    <div class="col-12 col-md-3"><label class="form-label">@Text("Latitude", "خط العرض")</label><InputNumber class="form-control" @bind-Value="address.Latitude" /></div>
+                                    <div class="col-12 col-md-4 d-flex align-items-end gap-3">
+                                        <div class="form-check">
+                                            <InputCheckbox class="form-check-input" @bind-Value="address.IsDefaultBilling" />
+                                            <label class="form-check-label">@Text("Default Billing", "فوترة افتراضي")</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <InputCheckbox class="form-check-input" @bind-Value="address.IsDefaultShipping" />
+                                            <label class="form-check-label">@Text("Default Shipping", "شحن افتراضي")</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-2 d-flex align-items-end justify-content-end">
+                                        <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => RemoveNewCustomerAddress(address)">
+                                            <i class="bi bi-x"></i> @Text("Remove", "حذف")
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <hr />
+
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                            <h6 class="mb-0">@Text("Contacts", "جهات الاتصال")</h6>
+                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddNewCustomerContact">
+                                <i class="bi bi-plus"></i> @Text("Add Contact", "إضافة جهة اتصال")
+                            </button>
+                        </div>
+                        @if (!newCustomer.Contacts.Any())
+                        {
+                            <div class="text-muted small mb-3">@Text("No contacts added.", "لا توجد جهات اتصال.")</div>
+                        }
+                        @foreach (var contact in newCustomer.Contacts)
+                        {
+                            <div class="border rounded p-3 mb-2">
+                                <div class="row g-2">
+                                    <div class="col-12 col-md-3"><label class="form-label">@Text("Full Name", "الاسم الكامل")</label><InputText class="form-control" @bind-Value="contact.FullName" /></div>
+                                    <div class="col-12 col-md-3"><label class="form-label">@Text("Job Title", "المسمى الوظيفي")</label><InputText class="form-control" @bind-Value="contact.JobTitle" /></div>
+                                    <div class="col-12 col-md-3"><label class="form-label">@Text("Email", "البريد الإلكتروني")</label><InputText class="form-control" @bind-Value="contact.Email" /></div>
+                                    <div class="col-12 col-md-3"><label class="form-label">@Text("Phone", "الهاتف")</label><InputText class="form-control" @bind-Value="contact.PhoneNumber" /></div>
+                                    <div class="col-12 d-flex justify-content-between align-items-center">
+                                        <div class="form-check">
+                                            <InputCheckbox class="form-check-input" @bind-Value="contact.IsPrimaryContact" />
+                                            <label class="form-check-label">@Text("Primary Contact", "جهة الاتصال الرئيسية")</label>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => RemoveNewCustomerContact(contact)">
+                                            <i class="bi bi-x"></i> @Text("Remove", "حذف")
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CloseNewCustomerModal" disabled="@isSavingNewCustomer">@Text("Cancel", "إلغاء")</button>
+                        <button type="submit" class="btn btn-primary" disabled="@isSavingNewCustomer">
+                            <i class="bi bi-check2"></i>
+                            @(isSavingNewCustomer ? Text("Saving...", "جاري الحفظ...") : Text("Save Customer", "حفظ العميل"))
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ProjectDto> projects = [];
+    private List<EmployeeDto> employees = [];
+    private List<CustomerDto> customers = [];
+    private List<CustomerGroupDto> customerGroups = [];
+    private List<ProductSkuDto> productSkus = [];
+    private List<ProjectCustomerDto> projectCustomers = [];
+    private ProjectDto editingProject = NewProject();
+    private ProjectCustomerDto draftCustomer = new();
+    private ProjectCustomerProductPlanDto draftProductPlan = NewProductPlan();
+    private CustomerDto newCustomer = NewCustomer();
+    private EmployeeDto? selectedManager;
+    private CustomerDto? selectedCustomer;
+    private CustomerGroupDto? selectedNewCustomerGroup;
+    private ProductSkuDto? selectedProductSku;
+    private string? searchText;
+    private string statusText = string.Empty;
+    private string? errorMessage;
+    private string? newCustomerError;
+    private bool showNewCustomerModal;
+    private bool isSavingNewCustomer;
+    private ProjectCustomerProductPlanDto? editingProductPlan;
+    private decimal editingProductPlanQuantity = 1;
+    private string? editingProductPlanNotes;
+    private List<CustomerDto> AvailableCustomers => customers
+        .Where(customer => !projectCustomers.Any(projectCustomer => projectCustomer.CustomerId == customer.Id))
+        .ToList();
+    private List<ProductSkuDto> AvailableProductSkus => productSkus
+        .Where(sku => !draftCustomer.ProductPlans.Any(plan => plan.ProductSkuId == sku.Id))
+        .ToList();
+    private decimal DraftCalculatedQuantity => draftCustomer.ProductPlans.Sum(plan => plan.Quantity);
+    private decimal DraftActualAmount => ProductPlansActualAmount(draftCustomer.ProductPlans);
+    private decimal DraftAmountDifference => draftCustomer.ContractedAmount - DraftActualAmount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadLookupsAsync();
+        await LoadProjectsAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        if (ApiConfig.CompanyId == Guid.Empty) return;
+
+        var employeeResult = await EmployeeService.GetByCompanyIdAsync(ApiConfig.CompanyId, 0, 1000);
+        if (employeeResult.IsSuccess)
+            employees = employeeResult.Data?.Data.ToList() ?? [];
+
+        await LoadCustomersAsync();
+
+        var customerGroupResult = await CustomerGroupService.GetByCompanyAsync(ApiConfig.CompanyId, 0, 1000);
+        if (customerGroupResult.IsSuccess)
+            customerGroups = customerGroupResult.Data?.Data.ToList() ?? [];
+
+        var skuResult = await ProductService.GetPublicStoreProductSkusAsync(new PublicStoreProductSkuRequest { PageIndex = 0, PageSize = 500 });
+        if (skuResult.IsSuccess)
+            productSkus = skuResult.Data?.Data.ToList() ?? [];
+    }
+
+    private async Task LoadCustomersAsync()
+    {
+        var customerResult = await CustomerService.GetByCompany(ApiConfig.CompanyId, 0, 1000);
+        if (customerResult.IsSuccess)
+            customers = customerResult.Data?.Data.ToList() ?? [];
+    }
+
+    private async Task LoadProjectsAsync()
+    {
+        var companyId = ApiConfig.CompanyId == Guid.Empty ? (Guid?)null : ApiConfig.CompanyId;
+        var status = Enum.TryParse<ProjectStatus>(statusText, out var parsed) ? parsed : (ProjectStatus?)null;
+        var result = await ProjectManagementService.GetProjectsAsync(0, 500, companyId, searchText, status);
+        projects = result.Data?.Data.ToList() ?? [];
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+    }
+
+    private async Task SaveProjectAsync()
+    {
+        editingProject.CompanyId = ApiConfig.CompanyId;
+        var result = await ProjectManagementService.CreateProjectAsync(editingProject);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+
+        if (!result.IsSuccess || result.Data is null)
+            return;
+
+        foreach (var projectCustomer in projectCustomers)
+        {
+            var customerResult = await ProjectManagementService.CreateCustomerAsync(result.Data.Id, projectCustomer);
+            if (!customerResult.IsSuccess)
+            {
+                errorMessage = customerResult.Error?.GetDisplayMessage(SharedDataService.Language);
+                return;
+            }
+        }
+
+        editingProject = NewProject();
+        selectedManager = null;
+        selectedCustomer = null;
+        selectedProductSku = null;
+        draftCustomer = new();
+        draftProductPlan = NewProductPlan();
+        CancelDraftProductPlanEdit();
+        projectCustomers = [];
+        await LoadProjectsAsync();
+    }
+
+    private Task OnManagerChanged(EmployeeDto? employee)
+    {
+        selectedManager = employee;
+        editingProject.ManagerName = employee is null ? null : EmployeeDisplay(employee);
+        editingProject.ManagerUserId = null;
+        return Task.CompletedTask;
+    }
+
+    private Task OnCustomerChanged(CustomerDto? customer)
+    {
+        selectedCustomer = customer;
+        if (customer is null)
+        {
+            draftCustomer.CustomerId = null;
+            draftCustomer.CustomerName = string.Empty;
+            draftCustomer.CustomerNameEng = null;
+        }
+        else
+        {
+            ApplySelectedCustomer(customer);
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task OnNewCustomerGroupChanged(CustomerGroupDto? customerGroup)
+    {
+        selectedNewCustomerGroup = customerGroup;
+        newCustomer.CustomerGroupId = customerGroup?.Id;
+        return Task.CompletedTask;
+    }
+
+    private void OpenNewCustomerModal()
+    {
+        newCustomer = NewCustomer();
+        newCustomer.CompanyId = ApiConfig.CompanyId;
+        selectedNewCustomerGroup = null;
+        newCustomerError = null;
+        showNewCustomerModal = true;
+    }
+
+    private void CloseNewCustomerModal()
+    {
+        if (isSavingNewCustomer)
+            return;
+
+        showNewCustomerModal = false;
+        newCustomer = NewCustomer();
+        selectedNewCustomerGroup = null;
+        newCustomerError = null;
+    }
+
+    private async Task SaveNewCustomerAsync()
+    {
+        newCustomerError = ValidateNewCustomer();
+        if (!string.IsNullOrWhiteSpace(newCustomerError))
+            return;
+
+        isSavingNewCustomer = true;
+        newCustomer.CompanyId = ApiConfig.CompanyId;
+        NormalizeCustomer(newCustomer);
+
+        var result = await CustomerService.CreateAsync(newCustomer);
+        isSavingNewCustomer = false;
+
+        if (!result.IsSuccess || result.Data is null)
+        {
+            newCustomerError = result.Error?.GetDisplayMessage(SharedDataService.Language)
+                ?? Text("Customer save failed.", "فشل حفظ العميل.");
+            return;
+        }
+
+        await LoadCustomersAsync();
+        var createdCustomer = customers.FirstOrDefault(x => x.Id == result.Data.Id);
+        if (createdCustomer is null)
+        {
+            var createdResult = await CustomerService.GetByIdAsync(result.Data.Id);
+            if (createdResult.IsSuccess)
+                createdCustomer = createdResult.Data;
+        }
+
+        if (createdCustomer is not null)
+        {
+            selectedCustomer = createdCustomer;
+            ApplySelectedCustomer(createdCustomer);
+        }
+
+        showNewCustomerModal = false;
+        newCustomer = NewCustomer();
+        selectedNewCustomerGroup = null;
+        newCustomerError = null;
+        errorMessage = null;
+    }
+
+    private void ApplySelectedCustomer(CustomerDto customer)
+    {
+        draftCustomer.CustomerId = customer.Id;
+        draftCustomer.CustomerName = customer.Name;
+        draftCustomer.CustomerNameEng = null;
+    }
+
+    private Task OnProductSkuChanged(ProductSkuDto? sku)
+    {
+        selectedProductSku = sku;
+        if (sku is not null)
+        {
+            draftProductPlan.ProductSkuId = sku.Id;
+            draftProductPlan.ProductId = sku.ProductId == Guid.Empty ? null : sku.ProductId;
+            draftProductPlan.ProductSkuName = sku.Name ?? sku.SkuCode ?? Text("SKU", "صنف");
+            draftProductPlan.ProductSkuNameEng = sku.NameEng;
+            draftProductPlan.SkuCode = sku.SkuCode;
+            draftProductPlan.SkuCodeEng = sku.SkuCodeEng;
+            draftProductPlan.ProductPackageId = sku.PackageId;
+            draftProductPlan.PackageName = sku.PackageName;
+            draftProductPlan.PackageNameEng = sku.PackageNameEng;
+        }
+        return Task.CompletedTask;
+    }
+
+    private void AddDraftProductPlan()
+    {
+        if (draftProductPlan.ProductSkuId == Guid.Empty)
+        {
+            errorMessage = Text("Product SKU is required.", "الصنف مطلوب.");
+            return;
+        }
+
+        if (draftProductPlan.Quantity <= 0)
+        {
+            errorMessage = Text("SKU quantity must be greater than zero.", "يجب أن تكون كمية الصنف أكبر من صفر.");
+            return;
+        }
+
+        if (draftCustomer.ProductPlans.Any(x => x.ProductSkuId == draftProductPlan.ProductSkuId))
+        {
+            errorMessage = Text("This SKU has already been added.", "تمت إضافة هذا الصنف مسبقاً.");
+            return;
+        }
+
+        draftCustomer.ProductPlans.Add(CloneProductPlan(draftProductPlan));
+        selectedProductSku = null;
+        draftProductPlan = NewProductPlan();
+        errorMessage = null;
+    }
+
+    private void AddDraftCustomer()
+    {
+        if (!draftCustomer.CustomerId.HasValue || selectedCustomer is null)
+        {
+            errorMessage = Text("Customer selection is required.", "اختيار العميل مطلوب.");
+            return;
+        }
+
+        if (draftCustomer.CustomerId.HasValue && projectCustomers.Any(x => x.CustomerId == draftCustomer.CustomerId))
+        {
+            errorMessage = Text("This customer has already been added.", "تمت إضافة هذا العميل مسبقاً.");
+            return;
+        }
+
+        draftCustomer.ContractedQuantity = DraftCalculatedQuantity;
+        projectCustomers.Add(new ProjectCustomerDto
+        {
+            CustomerId = draftCustomer.CustomerId,
+            CustomerName = draftCustomer.CustomerName.Trim(),
+            CustomerNameEng = draftCustomer.CustomerNameEng,
+            ContractedQuantity = draftCustomer.ContractedQuantity,
+            ContractedAmount = draftCustomer.ContractedAmount,
+            Notes = draftCustomer.Notes,
+            ProductPlans = draftCustomer.ProductPlans.Select(CloneProductPlan).ToList()
+        });
+        selectedCustomer = null;
+        selectedProductSku = null;
+        draftCustomer = new();
+        draftProductPlan = NewProductPlan();
+        CancelDraftProductPlanEdit();
+        errorMessage = null;
+    }
+
+    private void EditDraftProductPlan(ProjectCustomerProductPlanDto productPlan)
+    {
+        editingProductPlan = productPlan;
+        editingProductPlanQuantity = productPlan.Quantity;
+        editingProductPlanNotes = productPlan.Notes;
+    }
+
+    private void SaveDraftProductPlanEdit()
+    {
+        if (editingProductPlan is null)
+            return;
+
+        if (editingProductPlanQuantity <= 0)
+        {
+            errorMessage = Text("SKU quantity must be greater than zero.", "يجب أن تكون كمية الصنف أكبر من صفر.");
+            return;
+        }
+
+        editingProductPlan.Quantity = editingProductPlanQuantity;
+        editingProductPlan.Notes = editingProductPlanNotes;
+        CancelDraftProductPlanEdit();
+        errorMessage = null;
+    }
+
+    private void CancelDraftProductPlanEdit()
+    {
+        editingProductPlan = null;
+        editingProductPlanQuantity = 1;
+        editingProductPlanNotes = null;
+    }
+
+    private void RemoveDraftProductPlan(ProjectCustomerProductPlanDto productPlan)
+    {
+        if (editingProductPlan == productPlan)
+            CancelDraftProductPlanEdit();
+
+        draftCustomer.ProductPlans.Remove(productPlan);
+    }
+    private void RemoveDraftCustomer(ProjectCustomerDto customer) => projectCustomers.Remove(customer);
+    private static ProjectDto NewProject() => new() { PlannedStartDate = DateTime.UtcNow.Date, PlannedEndDate = DateTime.UtcNow.Date, Type = ProjectType.FoodPreparationDistribution };
+    private static ProjectCustomerProductPlanDto NewProductPlan() => new() { Quantity = 1 };
+    private static CustomerDto NewCustomer() => new()
+    {
+        Id = Guid.NewGuid(),
+        Name = string.Empty,
+        Status = CustomerStatus.Active,
+        PaymentTerm = PaymentTermType.Cash,
+        CreditStatus = CreditStatus.Good,
+        Addresses = [],
+        Contacts = []
+    };
+    private static AddressDto NewAddress() => new()
+    {
+        Id = Guid.NewGuid(),
+        Title = string.Empty,
+        AddressLine1 = string.Empty,
+        City = string.Empty,
+        State = string.Empty,
+        Country = string.Empty,
+        PostalCode = string.Empty
+    };
+    private static ContactDto NewContact() => new()
+    {
+        Id = Guid.NewGuid(),
+        FullName = string.Empty
+    };
+    private void AddNewCustomerAddress() => newCustomer.Addresses.Add(NewAddress());
+    private void RemoveNewCustomerAddress(AddressDto address) => newCustomer.Addresses.Remove(address);
+    private void AddNewCustomerContact() => newCustomer.Contacts.Add(NewContact());
+    private void RemoveNewCustomerContact(ContactDto contact) => newCustomer.Contacts.Remove(contact);
+
+    private string? ValidateNewCustomer()
+    {
+        if (ApiConfig.CompanyId == Guid.Empty)
+            return Text("Company is required.", "الشركة مطلوبة.");
+
+        if (string.IsNullOrWhiteSpace(newCustomer.Name))
+            return Text("Customer name is required.", "اسم العميل مطلوب.");
+
+        if (newCustomer.Addresses.Count(x => x.IsDefaultBilling) > 1)
+            return Text("Only one default billing address is allowed.", "يسمح بعنوان فوترة افتراضي واحد فقط.");
+
+        if (newCustomer.Addresses.Count(x => x.IsDefaultShipping) > 1)
+            return Text("Only one default shipping address is allowed.", "يسمح بعنوان شحن افتراضي واحد فقط.");
+
+        foreach (var address in newCustomer.Addresses)
+        {
+            if (string.IsNullOrWhiteSpace(address.Title)
+                || string.IsNullOrWhiteSpace(address.AddressLine1)
+                || string.IsNullOrWhiteSpace(address.City)
+                || string.IsNullOrWhiteSpace(address.State)
+                || string.IsNullOrWhiteSpace(address.Country))
+            {
+                return Text("Address title, line 1, city, state, and country are required for every address.", "العنوان، العنوان 1، المدينة، المنطقة، والدولة مطلوبة لكل عنوان.");
+            }
+        }
+
+        if (newCustomer.Contacts.Count(x => x.IsPrimaryContact) > 1)
+            return Text("Only one primary contact is allowed.", "يسمح بجهة اتصال رئيسية واحدة فقط.");
+
+        if (newCustomer.Contacts.Any(x => string.IsNullOrWhiteSpace(x.FullName)))
+            return Text("Contact full name is required for every contact.", "الاسم الكامل مطلوب لكل جهة اتصال.");
+
+        return null;
+    }
+
+    private static CustomerDto NormalizeCustomer(CustomerDto customer)
+    {
+        customer.Name = customer.Name?.Trim() ?? string.Empty;
+        customer.CustomerCode = NormalizeText(customer.CustomerCode);
+        customer.CommercialName = NormalizeText(customer.CommercialName);
+        customer.VatNumber = NormalizeText(customer.VatNumber);
+        customer.CommercialRegistrationNumber = NormalizeText(customer.CommercialRegistrationNumber);
+        customer.CreditHoldReason = NormalizeText(customer.CreditHoldReason);
+        customer.Notes = NormalizeText(customer.Notes);
+        customer.Addresses ??= [];
+        customer.Contacts ??= [];
+
+        foreach (var address in customer.Addresses)
+        {
+            address.Title = address.Title?.Trim() ?? string.Empty;
+            address.AddressLine1 = address.AddressLine1?.Trim() ?? string.Empty;
+            address.AddressLine2 = NormalizeText(address.AddressLine2);
+            address.City = address.City?.Trim() ?? string.Empty;
+            address.State = address.State?.Trim() ?? string.Empty;
+            address.Country = address.Country?.Trim() ?? string.Empty;
+            address.PostalCode = address.PostalCode?.Trim() ?? string.Empty;
+        }
+
+        foreach (var contact in customer.Contacts)
+        {
+            contact.FullName = contact.FullName?.Trim() ?? string.Empty;
+            contact.JobTitle = NormalizeText(contact.JobTitle);
+            contact.Email = NormalizeText(contact.Email);
+            contact.PhoneNumber = NormalizeText(contact.PhoneNumber);
+        }
+
+        return customer;
+    }
+
+    private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    private static string StatusTone(ProjectStatus status) => status switch { ProjectStatus.Completed => "success", ProjectStatus.Active => "info", ProjectStatus.Cancelled => "danger", ProjectStatus.OnHold => "warning", _ => "muted" };
+    private string EmployeeDisplay(EmployeeDto employee) => SharedDataService.Language == "Ar" ? employee.FullName : employee.FullNameEng;
+    private static string CustomerDisplay(CustomerDto customer) => string.IsNullOrWhiteSpace(customer.CustomerCode) ? customer.Name : $"{customer.Name} ({customer.CustomerCode})";
+    private string CustomerGroupDisplay(CustomerGroupDto customerGroup)
+    {
+        var name = SharedDataService.Language == "Ar" ? customerGroup.Name : customerGroup.NameEng;
+        return string.IsNullOrWhiteSpace(name) ? customerGroup.Name ?? customerGroup.NameEng ?? string.Empty : name;
+    }
+    private string ProductSkuDisplay(ProductSkuDto sku)
+    {
+        var name = SharedDataService.Language == "Ar" ? sku.Name : sku.NameEng;
+        if (string.IsNullOrWhiteSpace(name)) name = sku.Name ?? sku.NameEng ?? sku.SkuCode;
+        var type = sku.ProductionType == SkuProductionType.CompositeBundle ? Text("Combo", "حزمة") : Text("SKU", "صنف");
+        return string.IsNullOrWhiteSpace(sku.SkuCode) ? $"{name} - {type}" : $"{name} ({sku.SkuCode}) - {type}";
+    }
+    private string ProjectTypeLabel(ProjectType type) => type switch
+    {
+        ProjectType.FoodPreparationDistribution => Text("Food Preparation Distribution", "تجهيز وتوزيع الوجبات"),
+        ProjectType.General => Text("General", "عام"),
+        _ => type.ToString()
+    };
+    private string PlanDisplay(ProjectCustomerProductPlanDto plan)
+    {
+        var name = SharedDataService.Language == "Ar" ? plan.ProductSkuName : plan.ProductSkuNameEng;
+        if (string.IsNullOrWhiteSpace(name)) name = plan.ProductSkuName;
+        return string.IsNullOrWhiteSpace(plan.SkuCode) ? name : $"{name} ({plan.SkuCode})";
+    }
+    private string PlanType(ProjectCustomerProductPlanDto plan)
+    {
+        var sku = productSkus.FirstOrDefault(x => x.Id == plan.ProductSkuId);
+        return sku?.ProductionType == SkuProductionType.CompositeBundle ? Text("Combo", "حزمة") : Text("SKU", "صنف");
+    }
+    private decimal ProductPlanUnitPrice(ProjectCustomerProductPlanDto plan)
+    {
+        var sku = productSkus.FirstOrDefault(x => x.Id == plan.ProductSkuId);
+        return sku?.Price ?? 0m;
+    }
+    private decimal ProductPlanLineAmount(ProjectCustomerProductPlanDto plan) => plan.Quantity * ProductPlanUnitPrice(plan);
+    private decimal ProductPlansActualAmount(IEnumerable<ProjectCustomerProductPlanDto> plans) => plans.Sum(ProductPlanLineAmount);
+    private decimal CustomerAmountDifference(ProjectCustomerDto customer) => customer.ContractedAmount - ProductPlansActualAmount(customer.ProductPlans);
+    private string ProductPlanSummary(IEnumerable<ProjectCustomerProductPlanDto> plans) => string.Join(", ", plans.Select(x => $"{PlanDisplay(x)} x {x.Quantity:N0}"));
+    private static ProjectCustomerProductPlanDto CloneProductPlan(ProjectCustomerProductPlanDto source) => new()
+    {
+        ProductSkuId = source.ProductSkuId,
+        ProductId = source.ProductId,
+        ProductSkuName = source.ProductSkuName,
+        ProductSkuNameEng = source.ProductSkuNameEng,
+        SkuCode = source.SkuCode,
+        SkuCodeEng = source.SkuCodeEng,
+        ProductPackageId = source.ProductPackageId,
+        PackageName = source.PackageName,
+        PackageNameEng = source.PackageNameEng,
+        Quantity = source.Quantity,
+        Notes = source.Notes
+    };
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

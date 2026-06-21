@@ -19,9 +19,34 @@ public class AuthDataSeeder(
         await CompanyRoleTemplates.EnsurePlatformSystemUserRoleAsync(roleManager);
         await EnsurePlatformCustomerRoleAsync();
         await EnsurePlatformDriverRoleAsync();
-        await CompanyRoleTemplates.SeedDefaultRolesAsync(roleManager, CompanyRoleTemplates.DefaultCompanyId);
+        await SyncTenantTemplateRolesAsync(dbContext);
         await EnsurePlatformAdminAsync();
         await EnsureDefaultTenantAdminAsync();
+    }
+
+    private async Task SyncTenantTemplateRolesAsync(AuthDbContext dbContext)
+    {
+        var userCompanyIds = await dbContext.Users
+            .AsNoTracking()
+            .Where(user => user.CompanyId.HasValue)
+            .Select(user => user.CompanyId!.Value)
+            .ToListAsync();
+
+        var roleCompanyIds = await roleManager.Roles
+            .AsNoTracking()
+            .Where(role => role.CompanyId.HasValue)
+            .Select(role => role.CompanyId!.Value)
+            .ToListAsync();
+
+        var companyIds = userCompanyIds
+            .Concat(roleCompanyIds)
+            .Append(CompanyRoleTemplates.DefaultCompanyId)
+            .Distinct();
+
+        foreach (var companyId in companyIds)
+        {
+            await CompanyRoleTemplates.SeedDefaultRolesAsync(roleManager, companyId);
+        }
     }
 
     private async Task EnsurePlatformCustomerRoleAsync()

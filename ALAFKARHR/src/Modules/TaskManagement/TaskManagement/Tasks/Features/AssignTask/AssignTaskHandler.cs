@@ -11,7 +11,6 @@ public class AssignTaskCommandValidator : AbstractValidator<AssignTaskCommand>
     {
         RuleFor(x => x.Id).NotEmpty();
         RuleFor(x => x.Assignment.AssignedToUser).NotEmpty();
-        RuleFor(x => x.Assignment.DepartmentId).NotEmpty();
         RuleFor(x => x.Assignment.DueDate).Must((command, dueDate) => !command.Assignment.StartDate.HasValue || dueDate.Date >= command.Assignment.StartDate.Value.Date)
             .WithMessage("Due date cannot be before start date.");
     }
@@ -24,7 +23,6 @@ public class AssignTaskHandler(TaskManagementDbContext dbContext, IHttpContextAc
     {
         var userId = TaskFeatureHelpers.GetCurrentUserId(httpContextAccessor);
         await TaskFeatureHelpers.EnsureAssignedUserExistsAsync(sender, command.Assignment.AssignedToUser, cancellationToken);
-        TaskFeatureHelpers.EnsureDepartment(command.Assignment.DepartmentId);
 
         var task = await dbContext.TaskItems.FirstOrDefaultAsync(x => x.Id == command.Id && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException($"Task not found: {command.Id}");

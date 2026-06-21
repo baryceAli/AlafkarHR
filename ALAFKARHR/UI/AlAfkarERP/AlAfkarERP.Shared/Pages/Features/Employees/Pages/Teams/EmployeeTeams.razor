@@ -1,0 +1,306 @@
+@page "/Employee/Teams"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Employees.Enums
+@inject IEmployeeTeamService EmployeeTeamService
+@inject IEmployeeService EmployeeService
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Teams", "الفرق")" Subtitle="@Text("Create employee teams for projects and business functions.", "إنشاء فرق الموظفين للمشاريع ووظائف العمل.")" Icon="bi-people" />
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    <article class="erp-card mb-3">
+        <div class="erp-card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-4">
+                    <label class="form-label">@Text("Search", "بحث")</label>
+                    <input class="form-control" @bind="searchText" @bind:event="oninput" placeholder="@Text("Search teams", "ابحث في الفرق")" />
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">@Text("Category", "الفئة")</label>
+                    <select class="form-select" @bind="categoryFilterText">
+                        <option value="">@Text("All", "الكل")</option>
+                        @foreach (var category in Enum.GetValues<EmployeeTeamCategory>())
+                        {
+                            <option value="@category">@CategoryLabel(category)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-12 col-md-2">
+                    <label class="form-label">@Text("Status", "الحالة")</label>
+                    <select class="form-select" @bind="activeFilterText">
+                        <option value="">@Text("All", "الكل")</option>
+                        <option value="true">@Text("Active", "نشط")</option>
+                        <option value="false">@Text("Inactive", "غير نشط")</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-1">
+                    <button class="btn btn-outline-primary w-100" type="button" @onclick="LoadTeamsAsync"><i class="bi bi-search"></i></button>
+                </div>
+                <div class="col-6 col-md-2">
+                    <button class="btn btn-primary w-100" type="button" @onclick="CreateNew"><i class="bi bi-plus-lg"></i> @Text("New", "جديد")</button>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    @if (isEditing)
+    {
+        <article class="erp-card mb-3">
+            <div class="erp-card-header"><strong>@(editingTeam.Id == Guid.Empty ? Text("New Team", "فريق جديد") : Text("Edit Team", "تعديل الفريق"))</strong></div>
+            <div class="erp-card-body">
+                <EditForm Model="editingTeam" OnValidSubmit="SaveTeamAsync">
+                    <DataAnnotationsValidator />
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="editingTeam.Name" /><ValidationMessage For="@(() => editingTeam.Name)" /></div>
+                        <div class="col-12 col-md-4"><label class="form-label">@Text("English Name", "الاسم بالإنجليزية")</label><InputText class="form-control" @bind-Value="editingTeam.NameEng" /></div>
+                        <div class="col-12 col-md-2"><label class="form-label">@Text("Category", "الفئة")</label><InputSelect class="form-select" @bind-Value="editingTeam.Category">@foreach (var category in Enum.GetValues<EmployeeTeamCategory>()) { <option value="@category">@CategoryLabel(category)</option> }</InputSelect></div>
+                        <div class="col-12 col-md-2 d-flex align-items-end"><label class="form-check mb-2"><InputCheckbox class="form-check-input" @bind-Value="editingTeam.IsActive" /> <span class="form-check-label">@Text("Active", "نشط")</span></label></div>
+                        <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="editingTeam.Notes" /></div>
+                    </div>
+
+                    <div class="mt-4">
+                        <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+                            <strong>@Text("Members", "الأعضاء")</strong>
+                            <span class="text-muted small">@Text("Selected", "المحدد"): @selectedEmployeeIds.Count</span>
+                        </div>
+                        <input class="form-control mb-2" @bind="employeeSearchText" @bind:event="oninput" placeholder="@Text("Search employees", "ابحث عن موظفين")" />
+                        <div class="erp-table-wrap employee-team-member-list">
+                            <table class="table align-middle mb-0">
+                                <thead><tr><th></th><th>@Text("Employee", "الموظف")</th><th>@Text("Employee No.", "رقم الموظف")</th></tr></thead>
+                                <tbody>
+                                    @foreach (var employee in FilteredEmployees)
+                                    {
+                                        <tr>
+                                            <td><input class="form-check-input" type="checkbox" checked="@selectedEmployeeIds.Contains(employee.Id)" @onchange="args => ToggleEmployee(employee.Id, args)" /></td>
+                                            <td>@EmployeeDisplay(employee)</td>
+                                            <td>@employee.EmployeeNo</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <button class="btn btn-outline-secondary" type="button" @onclick="CancelEdit">@Text("Cancel", "إلغاء")</button>
+                        <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @Text("Save", "حفظ")</button>
+                    </div>
+                </EditForm>
+            </div>
+        </article>
+    }
+
+    <article class="erp-card">
+        <div class="erp-table-wrap">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>@Text("Name", "الاسم")</th><th>@Text("Category", "الفئة")</th><th>@Text("Members", "الأعضاء")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                <tbody>
+                    @foreach (var team in teams)
+                    {
+                        <tr>
+                            <td><div class="fw-semibold">@TeamDisplay(team)</div><div class="text-muted small">@team.Notes</div></td>
+                            <td>@CategoryLabel(team.Category)</td>
+                            <td>@team.MemberCount.ToString("N0")</td>
+                            <td><StatusChip Text="@(team.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))" Tone="@(team.IsActive ? "success" : "muted")" /></td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" type="button" @onclick="@(() => EditTeam(team))"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn btn-outline-danger" type="button" @onclick="@(() => DeleteTeamAsync(team.Id))"><i class="bi bi-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @if (!teams.Any())
+                    {
+                        <tr><td colspan="5" class="text-center text-muted py-4">@Text("No teams found.", "لا توجد فرق.")</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </article>
+</main>
+
+<style>
+    .employee-team-member-list {
+        max-height: 320px;
+        overflow: auto;
+    }
+</style>
+
+@code {
+    private List<EmployeeTeamDto> teams = [];
+    private List<EmployeeDto> employees = [];
+    private EmployeeTeamDto editingTeam = NewTeam();
+    private HashSet<Guid> selectedEmployeeIds = [];
+    private string searchText = string.Empty;
+    private string employeeSearchText = string.Empty;
+    private string categoryFilterText = string.Empty;
+    private string activeFilterText = "true";
+    private string? errorMessage;
+    private bool isEditing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadEmployeesAsync();
+        await LoadTeamsAsync();
+    }
+
+    private async Task LoadEmployeesAsync()
+    {
+        if (ApiConfig.CompanyId == Guid.Empty) return;
+        var result = await EmployeeService.GetByCompanyIdAsync(ApiConfig.CompanyId, 0, 1000);
+        if (result.IsSuccess) employees = result.Data?.Data.ToList() ?? [];
+    }
+
+    private async Task LoadTeamsAsync()
+    {
+        if (ApiConfig.CompanyId == Guid.Empty) return;
+        var result = await EmployeeTeamService.GetAsync(ApiConfig.CompanyId, 0, 1000, searchText, ParseCategoryFilter(), ParseActiveFilter());
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) teams = result.Data?.Data.ToList() ?? [];
+    }
+
+    private void CreateNew()
+    {
+        editingTeam = NewTeam();
+        selectedEmployeeIds = [];
+        employeeSearchText = string.Empty;
+        isEditing = true;
+    }
+
+    private void EditTeam(EmployeeTeamDto team)
+    {
+        editingTeam = CloneTeam(team);
+        selectedEmployeeIds = editingTeam.Members.Select(x => x.EmployeeId).ToHashSet();
+        employeeSearchText = string.Empty;
+        isEditing = true;
+    }
+
+    private void CancelEdit()
+    {
+        editingTeam = NewTeam();
+        selectedEmployeeIds = [];
+        isEditing = false;
+    }
+
+    private async Task SaveTeamAsync()
+    {
+        editingTeam.CompanyId = ApiConfig.CompanyId;
+        editingTeam.Members = selectedEmployeeIds.Select(id => new EmployeeTeamMemberDto { EmployeeId = id }).ToList();
+        if (editingTeam.Members.Count == 0)
+        {
+            errorMessage = Text("Select at least one employee.", "اختر موظفاً واحداً على الأقل.");
+            return;
+        }
+
+        var isSuccess = false;
+        if (editingTeam.Id == Guid.Empty)
+        {
+            var createResult = await EmployeeTeamService.CreateAsync(editingTeam);
+            isSuccess = createResult.IsSuccess;
+            errorMessage = createResult.IsSuccess ? null : createResult.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+        else
+        {
+            var updateResult = await EmployeeTeamService.UpdateAsync(editingTeam);
+            isSuccess = updateResult.IsSuccess;
+            errorMessage = updateResult.IsSuccess ? null : updateResult.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+
+        if (isSuccess)
+        {
+            CancelEdit();
+            await LoadTeamsAsync();
+        }
+    }
+
+    private async Task DeleteTeamAsync(Guid id)
+    {
+        var result = await EmployeeTeamService.DeleteAsync(id);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) await LoadTeamsAsync();
+    }
+
+    private void ToggleEmployee(Guid employeeId, ChangeEventArgs args)
+    {
+        var isChecked = args.Value is bool value && value;
+        if (isChecked) selectedEmployeeIds.Add(employeeId);
+        else selectedEmployeeIds.Remove(employeeId);
+    }
+
+    private IEnumerable<EmployeeDto> FilteredEmployees => employees
+        .Where(employee => string.IsNullOrWhiteSpace(employeeSearchText)
+            || EmployeeDisplay(employee).Contains(employeeSearchText, StringComparison.OrdinalIgnoreCase)
+            || (employee.EmployeeNo?.Contains(employeeSearchText, StringComparison.OrdinalIgnoreCase) ?? false))
+        .OrderBy(employee => EmployeeDisplay(employee));
+
+    private EmployeeTeamCategory? ParseCategoryFilter()
+        => Enum.TryParse<EmployeeTeamCategory>(categoryFilterText, out var category) ? category : null;
+
+    private bool? ParseActiveFilter()
+        => bool.TryParse(activeFilterText, out var active) ? active : null;
+
+    private string EmployeeDisplay(EmployeeDto employee)
+    {
+        var name = SharedDataService.Language == "Ar" ? employee.FullName : employee.FullNameEng;
+        if (string.IsNullOrWhiteSpace(name)) name = employee.FullName;
+        return string.IsNullOrWhiteSpace(employee.EmployeeNo) ? name : $"{name} ({employee.EmployeeNo})";
+    }
+
+    private string TeamDisplay(EmployeeTeamDto team)
+    {
+        var name = SharedDataService.Language == "Ar" ? team.Name : team.NameEng;
+        return string.IsNullOrWhiteSpace(name) ? team.Name : name;
+    }
+
+    private string CategoryLabel(EmployeeTeamCategory category) => category switch
+    {
+        EmployeeTeamCategory.Projects => Text("Projects", "المشاريع"),
+        EmployeeTeamCategory.Sales => Text("Sales", "المبيعات"),
+        EmployeeTeamCategory.Marketing => Text("Marketing", "التسويق"),
+        EmployeeTeamCategory.Media => Text("Media", "الإعلام"),
+        EmployeeTeamCategory.Procurement => Text("Procurement", "المشتريات"),
+        EmployeeTeamCategory.Operations => Text("Operations", "العمليات"),
+        _ => Text("Other", "أخرى")
+    };
+
+    private static EmployeeTeamDto NewTeam() => new() { IsActive = true, Category = EmployeeTeamCategory.Projects };
+
+    private static EmployeeTeamDto CloneTeam(EmployeeTeamDto team) => new()
+    {
+        Id = team.Id,
+        CompanyId = team.CompanyId,
+        Name = team.Name,
+        NameEng = team.NameEng,
+        Category = team.Category,
+        IsActive = team.IsActive,
+        Notes = team.Notes,
+        CreatedForProjectId = team.CreatedForProjectId,
+        Members = team.Members.Select(member => new EmployeeTeamMemberDto
+        {
+            Id = member.Id,
+            TeamId = member.TeamId,
+            EmployeeId = member.EmployeeId,
+            EmployeeName = member.EmployeeName,
+            EmployeeNameEng = member.EmployeeNameEng,
+            EmployeeNo = member.EmployeeNo
+        }).ToList()
+    };
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

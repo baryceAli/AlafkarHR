@@ -114,18 +114,10 @@
 
     private async Task<string> LoadActiveWorkspaceAsync()
     {
-        var routeWorkspace = NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri);
-        if (routeWorkspace != NavigationMenuResolver.WorkspaceHome)
-        {
-            return routeWorkspace;
-        }
-
         try
         {
             var stored = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.ActiveWorkspaceStorageKey);
-            return !string.IsNullOrWhiteSpace(stored)
-                ? stored
-                : routeWorkspace;
+            return NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri, stored);
         }
         catch (InvalidOperationException)
         {
@@ -134,7 +126,7 @@
         {
         }
 
-        return routeWorkspace;
+        return NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri);
     }
 
     private async Task SetActiveWorkspaceAsync(string workspaceKey)
@@ -208,7 +200,7 @@
 
     private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
     {
-        activeWorkspace = NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri);
+        activeWorkspace = NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri, activeWorkspace);
         _ = InvokeAsync(StateHasChanged);
     }
 

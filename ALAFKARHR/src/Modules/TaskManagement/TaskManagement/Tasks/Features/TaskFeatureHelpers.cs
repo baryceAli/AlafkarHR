@@ -54,7 +54,7 @@ internal static class TaskFeatureHelpers
             return query;
 
         if (HasPermission(httpContextAccessor, PermissionList.TaskManagementPermissions.ViewReports) && departmentId.HasValue)
-            return query.Where(x => x.DepartmentId == departmentId.Value);
+            return query.Where(x => x.DepartmentId.HasValue && x.DepartmentId.Value == departmentId.Value);
 
         return query.Where(x =>
             x.AssignedToUser == currentUserId.ToString() ||
@@ -72,7 +72,7 @@ internal static class TaskFeatureHelpers
         if (!string.IsNullOrWhiteSpace(filter.AssignedToUser))
             query = query.Where(x => x.AssignedToUser == filter.AssignedToUser);
         if (filter.DepartmentId.HasValue)
-            query = query.Where(x => x.DepartmentId == filter.DepartmentId.Value);
+            query = query.Where(x => x.DepartmentId.HasValue && x.DepartmentId.Value == filter.DepartmentId.Value);
         if (filter.Priority.HasValue)
             query = query.Where(x => x.Priority == filter.Priority.Value);
         if (filter.Status.HasValue)
@@ -162,9 +162,4 @@ internal static class TaskFeatureHelpers
         await sender.Send(new GetByUserNameQuery(userCode), cancellationToken);
     }
 
-    public static void EnsureDepartment(Guid departmentId)
-    {
-        if (departmentId == Guid.Empty)
-            throw new BadRequestException("Department is required.");
-    }
 }

@@ -13,7 +13,6 @@ public class CreateTaskCommandValidator : AbstractValidator<CreateTaskCommand>
         RuleFor(x => x.Task.Title).NotEmpty().MaximumLength(250);
         RuleFor(x => x.Task.Description).MaximumLength(4000);
         RuleFor(x => x.Task.AssignedToUser).NotEmpty();
-        RuleFor(x => x.Task.DepartmentId).NotEmpty();
         RuleFor(x => x.Task.RecurrenceInterval).GreaterThan(0);
         RuleFor(x => x.Task.RecurrenceFrequency).NotEqual(TaskRecurrenceFrequency.None).When(x => x.Task.IsRecurring);
         RuleFor(x => x.Task.RecurrenceEndDate).NotNull().When(x => x.Task.IsRecurring && x.Task.RecurrenceEndType == TaskRecurrenceEndType.OnDate);
@@ -45,7 +44,6 @@ public class CreateTaskHandler(
         var currentUserId = TaskFeatureHelpers.GetCurrentUserId(httpContextAccessor);
         var currentUserName = TaskFeatureHelpers.GetCurrentUserName(httpContextAccessor);
         await TaskFeatureHelpers.EnsureAssignedUserExistsAsync(sender, command.Task.AssignedToUser, cancellationToken);
-        TaskFeatureHelpers.EnsureDepartment(command.Task.DepartmentId);
 
         var taskNumber = await taskNumberGenerator.GenerateAsync(cancellationToken);
         var task = TaskItem.Create(taskNumber, command.Task.Title, command.Task.Description, command.Task.Priority,
