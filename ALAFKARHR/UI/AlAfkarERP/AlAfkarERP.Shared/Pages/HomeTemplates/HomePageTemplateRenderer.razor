@@ -1,0 +1,169 @@
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Utilities
+@using SharedWithUI.GeneralSettings.Dtos
+
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+@if (HomePage is not null)
+{
+    <section class="@HeroClass">
+        <div class="container">
+            <div class="home-template-grid">
+                <div class="home-hero-content home-hero-content-v2">
+                    <span class="home-eyebrow">
+                        <i class="@HeroIcon"></i>
+                        @Text("Hero", "Eyebrow")
+                    </span>
+                    <h1>@Text("Hero", "Title")</h1>
+                    <p>@Text("Hero", "Subtitle")</p>
+                    <div class="home-hero-actions">
+                        <a class="btn home-primary-action" href="@Text("Hero", "PrimaryButtonUrl", "#products")">
+                            <i class="bi bi-bag-check"></i>
+                            @Text("Hero", "PrimaryButtonText")
+                        </a>
+                        <a class="btn home-secondary-action" href="@Text("Hero", "SecondaryButtonUrl", "/login")">
+                            <i class="bi bi-box-arrow-in-left"></i>
+                            @Text("Hero", "SecondaryButtonText")
+                        </a>
+                    </div>
+                </div>
+
+                <div class="home-hero-visual home-hero-visual-v2" aria-label="@Alt("Hero", "HeroImage")">
+                    <div class="home-product-tray">
+                        <div class="home-product-media">
+                            <span class="home-product-badge">
+                                <i class="bi bi-check2-circle"></i>
+                                @Text("Hero", "Badge")
+                            </span>
+                            <img alt="@Alt("Hero", "HeroImage")" src="@Image("Hero", "HeroImage")" />
+                        </div>
+                        <div class="home-product-content">
+                            <span class="home-product-kicker">
+                                <i class="@CardIcon"></i>
+                                @ActiveTemplateName
+                            </span>
+                            <strong>@Text("Hero", "CardTitle")</strong>
+                            <p>@Text("Hero", "CardSubtitle")</p>
+                            <div class="home-product-delivery">
+                                <i class="bi bi-truck"></i>
+                                <span>@Text("Hero", "DeliveryNote")</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="@FeatureClass" aria-label="@SharedDataService.SelectViewLang("Service highlights", "مزايا الخدمة")">
+        <div class="container">
+            <div class="home-service-grid home-service-grid-v2">
+                @foreach (var feature in FeatureSections)
+                {
+                    <div class="home-service-item">
+                        <i class="@FeatureIcon(feature)"></i>
+                        <div>
+                            <strong>@Text(feature, "Title")</strong>
+                            <span>@Text(feature, "Text")</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter] public HomePageTemplateDto? HomePage { get; set; }
+
+    private static readonly string[] FeatureSections = ["Feature1", "Feature2", "Feature3"];
+
+    private IEnumerable<HomePageContentItemDto> Items => HomePage?.ContentItems ?? [];
+
+    private string TemplateKey => HomePage?.ActiveTemplateKey ?? HomePageTemplateKeys.CurrentStorefront;
+
+    private string HeroClass => $"home-hero home-template-hero home-template-{TemplateKey.ToLowerInvariant()}";
+
+    private string FeatureClass => $"home-service-strip home-template-features home-template-{TemplateKey.ToLowerInvariant()}-features";
+
+    private string HeroIcon => TemplateKey switch
+    {
+        HomePageTemplateKeys.CorporateShowcase => "bi bi-buildings",
+        HomePageTemplateKeys.ProductHighlight => "bi bi-stars",
+        HomePageTemplateKeys.CampaignLanding => "bi bi-megaphone",
+        HomePageTemplateKeys.MinimalCatalog => "bi bi-search",
+        _ => "bi bi-stars"
+    };
+
+    private string CardIcon => TemplateKey switch
+    {
+        HomePageTemplateKeys.CorporateShowcase => "bi bi-shield-check",
+        HomePageTemplateKeys.ProductHighlight => "bi bi-box-seam",
+        HomePageTemplateKeys.CampaignLanding => "bi bi-calendar-event",
+        HomePageTemplateKeys.MinimalCatalog => "bi bi-grid-3x3-gap",
+        _ => "bi bi-cup-hot"
+    };
+
+    private string ActiveTemplateName
+    {
+        get
+        {
+            var template = HomePage?.Templates.FirstOrDefault(x => x.Key == TemplateKey);
+            return SharedDataService.SelectViewLang(template?.NameEn ?? "Storefront", template?.NameAr ?? "المتجر");
+        }
+    }
+
+    private string FeatureIcon(string section) => section switch
+    {
+        "Feature1" when TemplateKey == HomePageTemplateKeys.CampaignLanding => "bi bi-megaphone",
+        "Feature2" when TemplateKey == HomePageTemplateKeys.CampaignLanding => "bi bi-lightning-charge",
+        "Feature3" when TemplateKey == HomePageTemplateKeys.CampaignLanding => "bi bi-image",
+        "Feature1" when TemplateKey == HomePageTemplateKeys.MinimalCatalog => "bi bi-search",
+        "Feature2" when TemplateKey == HomePageTemplateKeys.MinimalCatalog => "bi bi-layout-text-sidebar",
+        "Feature3" when TemplateKey == HomePageTemplateKeys.MinimalCatalog => "bi bi-grid",
+        "Feature1" => "bi bi-calendar2-check",
+        "Feature2" => "bi bi-filter-circle",
+        _ => "bi bi-shield-check"
+    };
+
+    private string Text(string sectionKey, string fieldKey, string fallback = "")
+    {
+        var item = Find(sectionKey, fieldKey);
+        if (item is null || !item.IsVisible)
+            return fallback;
+
+        var text = SharedDataService.SelectViewLang(item.TextEn ?? "", item.TextAr ?? "");
+        return string.IsNullOrWhiteSpace(text) ? fallback : text;
+    }
+
+    private string Alt(string sectionKey, string fieldKey)
+    {
+        var item = Find(sectionKey, fieldKey);
+        var text = SharedDataService.SelectViewLang(item?.AltTextEn ?? "", item?.AltTextAr ?? "");
+        return string.IsNullOrWhiteSpace(text) ? Text(sectionKey, fieldKey, "Home page image") : text;
+    }
+
+    private string Image(string sectionKey, string fieldKey)
+    {
+        var item = Find(sectionKey, fieldKey);
+        var image = item?.ImageUrl;
+        if (string.IsNullOrWhiteSpace(image))
+            image = item?.ImagePath;
+
+        if (string.IsNullOrWhiteSpace(image))
+            return "_content/AlAfkarERP.Shared/images/Meals/alkaramSingleMeal.png";
+
+        if (image.StartsWith("_content/", StringComparison.OrdinalIgnoreCase) || Uri.TryCreate(image, UriKind.Absolute, out _))
+            return image;
+
+        return $"{ApiConfig.BaseURL}{image}";
+    }
+
+    private HomePageContentItemDto? Find(string sectionKey, string fieldKey)
+        => Items.FirstOrDefault(x =>
+            x.TemplateKey == TemplateKey &&
+            string.Equals(x.SectionKey, sectionKey, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(x.FieldKey, fieldKey, StringComparison.OrdinalIgnoreCase));
+}
+
