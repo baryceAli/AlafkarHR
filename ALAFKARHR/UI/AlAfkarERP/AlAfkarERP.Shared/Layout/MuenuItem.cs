@@ -1463,7 +1463,7 @@ public class MenuItem
                 {
                     TextEn = "Home Page Templates",
                     TextAr = "قوالب الصفحة الرئيسية",
-                    Icon = "bi-window-stack",
+                    Icon = "bi-window",
                     Url = "/GeneralSettings/HomePageTemplates",
                     PermissionPolicy = PermissionList.SystemSettingsPermissions.View
                 },

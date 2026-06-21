@@ -273,6 +273,12 @@ builder.Services.AddHttpClient<ICompanySettingService, CompanySettingService>(cl
 {
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
+
+builder.Services.AddScoped<IHomePageTemplateService, HomePageTemplateService>();
+builder.Services.AddHttpClient<IHomePageTemplateService, HomePageTemplateService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
 #endregion GeneralSettings
 
 #region Attendance

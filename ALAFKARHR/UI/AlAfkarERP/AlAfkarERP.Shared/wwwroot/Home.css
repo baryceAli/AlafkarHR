@@ -1484,3 +1484,90 @@ a {
         min-height: 132px;
     }
 }
+
+/* Tenant homepage templates */
+.home-page:has(.home-template-hero) > .home-hero:not(.home-template-hero),
+.home-page:has(.home-template-features) > .home-service-strip:not(.home-template-features) {
+    display: none;
+}
+
+.home-template-grid {
+    align-items: center;
+    display: grid;
+    gap: clamp(1.5rem, 4vw, 3rem);
+    grid-template-columns: minmax(0, 1.02fr) minmax(320px, .78fr);
+}
+
+.home-template-corporateshowcase {
+    background: color-mix(in srgb, var(--erp-primary) 6%, var(--erp-bg));
+}
+
+.home-template-corporateshowcase .home-product-tray {
+    grid-template-columns: 1fr;
+}
+
+.home-template-corporateshowcase .home-product-media {
+    min-height: 260px;
+}
+
+.home-template-producthighlight .home-template-grid {
+    grid-template-columns: minmax(320px, .85fr) minmax(0, 1.05fr);
+}
+
+.home-template-producthighlight .home-hero-content {
+    order: 2;
+}
+
+.home-template-producthighlight .home-hero-visual {
+    order: 1;
+}
+
+.home-template-producthighlight .home-product-media img {
+    max-height: 270px;
+}
+
+.home-template-campaignlanding {
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--erp-warning) 10%, var(--erp-bg)), var(--erp-bg));
+}
+
+.home-template-campaignlanding .home-primary-action {
+    background: var(--erp-warning);
+    border-color: var(--erp-warning);
+    color: var(--erp-text);
+}
+
+.home-template-campaignlanding .home-product-badge,
+.home-template-campaignlanding .product-badge {
+    background: var(--erp-warning);
+    color: var(--erp-text);
+}
+
+.home-template-minimalcatalog {
+    padding-block-end: var(--erp-space-3);
+}
+
+.home-template-minimalcatalog .home-template-grid {
+    grid-template-columns: 1fr;
+}
+
+.home-template-minimalcatalog .home-hero-content {
+    max-inline-size: 860px;
+}
+
+.home-template-minimalcatalog .home-hero-visual,
+.home-template-minimalcatalog-features {
+    display: none;
+}
+
+@media (max-width: 991.98px) {
+    .home-template-grid,
+    .home-template-producthighlight .home-template-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .home-template-producthighlight .home-hero-content,
+    .home-template-producthighlight .home-hero-visual {
+        order: initial;
+    }
+}
