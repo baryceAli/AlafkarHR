@@ -12,6 +12,7 @@ using GeneralSettings;
 using Inventory;
 using LeaveManagement;
 using Maintenance;
+using MediaCenter;
 using Organization;
 using Orders;
 using Payroll;
@@ -66,6 +67,7 @@ var salesAssembly = typeof(SalesModule).Assembly;
 var payrollAssembly = typeof(PayrollModule).Assembly;
 var taskManagementAssembly = typeof(TaskManagementModule).Assembly;
 var maintenanceAssembly = typeof(MaintenanceModule).Assembly;
+var mediaCenterAssembly = typeof(MediaCenterModule).Assembly;
 var fleetAssembly = typeof(FleetModule).Assembly;
 
 builder.Services.AddCarterWithAssemblies(
@@ -93,6 +95,7 @@ builder.Services.AddCarterWithAssemblies(
                         payrollAssembly,
                         taskManagementAssembly,
                         maintenanceAssembly,
+                        mediaCenterAssembly,
                         fleetAssembly
                         );
 //catalogAssembly,
@@ -124,6 +127,7 @@ builder.Services.AddMediatRWithAssemblies(
                         payrollAssembly,
                         taskManagementAssembly,
                         maintenanceAssembly,
+                        mediaCenterAssembly,
                         fleetAssembly
                         );
 //catalogAssembly,
@@ -159,6 +163,7 @@ builder.Services
         .AddPayrollModule(builder.Configuration)
         .AddTaskManagementModule(builder.Configuration)
         .AddMaintenanceModule(builder.Configuration)
+        .AddMediaCenterModule(builder.Configuration)
         .AddFleetModule(builder.Configuration);
 #endregion
 
@@ -209,6 +214,7 @@ app
     .UsePayrollModule(app.Environment)
     .UseTaskManagementModule(app.Environment)
     .UseMaintenanceModule(app.Environment)
+    .UseMediaCenterModule(app.Environment)
     .UseFleetModule(app.Environment);
 
 // Configure the HTTP request pipeline.

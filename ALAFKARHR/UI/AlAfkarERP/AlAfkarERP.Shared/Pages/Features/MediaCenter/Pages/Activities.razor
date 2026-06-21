@@ -1,0 +1,283 @@
+﻿@page "/MediaCenter/Activities"
+@layout AdminLayout
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Customers.Services
+@using AlAfkarERP.Shared.Pages.Features.MediaCenter.Services
+@using AlAfkarERP.Shared.Pages.Features.ProjectManagement.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Customers.Dtos
+@using SharedWithUI.MediaCenter.Dtos
+@using SharedWithUI.MediaCenter.Enums
+@using SharedWithUI.Permissions
+@using SharedWithUI.ProjectManagement.Dtos
+
+@inject IMediaCenterService MediaCenterService
+@inject IProjectManagementService ProjectManagementService
+@inject ICustomerService CustomerService
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+@inject NavigationManager NavigationManager
+@inject ApiConfig ApiConfig
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Media Center", "المركز الإعلامي")"
+                Subtitle="@Text("Search company activity media by project, day, place, customer, allocation, and media type.", "ابحث في وسائط أنشطة الشركة حسب المشروع واليوم والموقع والعميل والتخصيص ونوع الوسائط.")"
+                Icon="bi-images">
+        <Actions>
+            @if (CanManageTypes)
+            {
+                <button class="btn btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo("/MediaCenter/ActivityTypes"))">
+                    <i class="bi bi-tags"></i> @Text("Types", "الأنواع")
+                </button>
+            }
+            @if (CanCreate)
+            {
+                <button class="btn btn-primary" @onclick="NewActivity">
+                    <i class="bi bi-plus-lg"></i> @Text("New activity", "نشاط جديد")
+                </button>
+            }
+        </Actions>
+    </PageHeader>
+
+    <AppCard>
+        <FilterBar>
+            <input class="form-control erp-search-control" placeholder="@Text("Search media, project, customer, place", "بحث في الوسائط أو المشروع أو العميل أو الموقع")" @bind="filter.SearchText" />
+            <select class="form-select" @bind="filter.ActivityTypeId"><option value="">@Text("All types", "كل الأنواع")</option>@foreach (var type in activityTypes) { <option value="@type.Id">@DisplayName(type.Name, type.NameEng)</option> }</select>
+            <select class="form-select" value="@filter.ProjectId" @onchange="OnFilterProjectChanged"><option value="">@Text("All projects", "كل المشاريع")</option>@foreach (var project in projects) { <option value="@project.Id">@DisplayName(project.Name, project.NameEng)</option> }</select>
+            <select class="form-select" @bind="filter.PlaceId"><option value="">@Text("All places", "كل المواقع")</option>@foreach (var place in places) { <option value="@place.Id">@DisplayName(place.Name, place.NameEng)</option> }</select>
+            <select class="form-select" @bind="filter.CustomerId"><option value="">@Text("All customers", "كل العملاء")</option>@foreach (var customer in customers) { <option value="@customer.Id">@customer.Name</option> }</select>
+            <select class="form-select" @bind="filter.ProjectCustomerId" disabled="@(selectedFilterProject is null)"><option value="">@Text("All project customers", "كل عملاء المشروع")</option>@foreach (var customer in ProjectCustomers(selectedFilterProject)) { <option value="@customer.Id">@customer.CustomerName</option> }</select>
+            <select class="form-select" @bind="filter.AllocationId" disabled="@(selectedFilterProject is null)"><option value="">@Text("All allocations", "كل التخصيصات")</option>@foreach (var allocation in ProjectAllocations(selectedFilterProject)) { <option value="@allocation.Id">@AllocationLabel(allocation)</option> }</select>
+            <InputDate class="form-control" @bind-Value="filter.FromDate" />
+            <InputDate class="form-control" @bind-Value="filter.ToDate" />
+            <select class="form-select" @bind="filter.MediaKind">@foreach (var kind in Enum.GetValues<MediaKind>()) { <option value="@kind">@MediaKindText(kind)</option> }</select>
+            <button class="btn btn-outline-secondary" @onclick="SearchAsync"><i class="bi bi-search"></i> @Text("Filter", "تصفية")</button>
+        </FilterBar>
+    </AppCard>
+
+    @if (editing is not null && (editing.Id == Guid.Empty ? CanCreate : CanEdit))
+    {
+        <AppCard Title="@Text(editing.Id == Guid.Empty ? "Create media activity" : "Edit media activity", editing.Id == Guid.Empty ? "إنشاء نشاط إعلامي" : "تعديل النشاط الإعلامي")" CssClass="mt-3">
+            <EditForm Model="@editing" OnValidSubmit="SaveActivityAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-md-3"><label class="form-label">@Text("Activity type", "نوع النشاط")</label><select class="form-select" @bind="editing.ActivityTypeId"><option value="">@Text("Select type", "اختر النوع")</option>@foreach (var type in activityTypes) { <option value="@type.Id">@DisplayName(type.Name, type.NameEng)</option> }</select></div>
+                    <div class="col-md-5"><label class="form-label">@Text("Title", "العنوان")</label><InputText class="form-control" @bind-Value="editing.Title" /><ValidationMessage For="@(() => editing.Title)" /></div>
+                    <div class="col-md-4"><label class="form-label">@Text("English title", "العنوان الإنجليزي")</label><InputText class="form-control" @bind-Value="editing.TitleEng" /></div>
+                    <div class="col-md-3"><label class="form-label">@Text("Activity date", "تاريخ النشاط")</label><InputDate class="form-control" @bind-Value="editing.ActivityDate" /></div>
+                    <div class="col-md-3"><label class="form-label">@Text("Activity time", "وقت النشاط")</label><input type="time" class="form-control" value="@activityTimeText" @onchange="OnActivityTimeChanged" /></div>
+                    <div class="col-md-3"><label class="form-label">@Text("Project", "المشروع")</label><select class="form-select" value="@editing.ProjectId" @onchange="OnProjectChanged"><option value="">@Text("No project", "بدون مشروع")</option>@foreach (var project in projects) { <option value="@project.Id">@DisplayName(project.Name, project.NameEng)</option> }</select></div>
+                    <div class="col-md-3"><label class="form-label">@Text("Distribution place", "موقع التوزيع")</label><select class="form-select" value="@editing.DistributionPlaceId" @onchange="OnPlaceChanged"><option value="">@Text("No linked place", "بدون موقع مرتبط")</option>@foreach (var place in places) { <option value="@place.Id">@DisplayName(place.Name, place.NameEng)</option> }</select></div>
+                    <div class="col-md-4"><label class="form-label">@Text("Free-text location", "موقع حر")</label><InputText class="form-control" @bind-Value="editing.FreeTextLocation" /></div>
+                    <div class="col-md-4"><label class="form-label">@Text("Add customer", "إضافة عميل")</label><div class="input-group"><select class="form-select" @bind="selectedCustomerId"><option value="">@Text("Select customer", "اختر العميل")</option>@foreach (var customer in customers) { <option value="@customer.Id">@customer.Name</option> }</select><button type="button" class="btn btn-outline-secondary" @onclick="AddCustomer"><i class="bi bi-plus"></i></button></div></div>
+                    <div class="col-md-4"><label class="form-label">@Text("Add project customer", "إضافة عميل مشروع")</label><div class="input-group"><select class="form-select" @bind="selectedProjectCustomerId" disabled="@(selectedEditProject is null)"><option value="">@Text("Select project customer", "اختر عميل المشروع")</option>@foreach (var customer in ProjectCustomers(selectedEditProject)) { <option value="@customer.Id">@customer.CustomerName</option> }</select><button type="button" class="btn btn-outline-secondary" @onclick="AddProjectCustomer" disabled="@(selectedEditProject is null)"><i class="bi bi-plus"></i></button></div></div>
+                    <div class="col-md-8"><label class="form-label">@Text("Add distribution allocation", "إضافة تخصيص توزيع")</label><div class="input-group"><select class="form-select" @bind="selectedAllocationId" disabled="@(selectedEditProject is null)"><option value="">@Text("Select allocation", "اختر التخصيص")</option>@foreach (var allocation in ProjectAllocations(selectedEditProject)) { <option value="@allocation.Id">@AllocationLabel(allocation)</option> }</select><button type="button" class="btn btn-outline-secondary" @onclick="AddAllocation" disabled="@(selectedEditProject is null)"><i class="bi bi-plus"></i></button></div></div>
+                    <div class="col-12"><div class="d-flex flex-wrap gap-2">@foreach (var customer in editing.Customers) { <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => RemoveCustomer(customer)"><i class="bi bi-x"></i> @(customer.CustomerName ?? customer.ProjectCustomerName)</button> } @foreach (var allocation in editing.Allocations) { <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => RemoveAllocation(allocation)"><i class="bi bi-x"></i> @AllocationLabel(allocation)</button> }</div></div>
+                    <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputTextArea class="form-control" rows="3" @bind-Value="editing.Notes" /></div>
+                    <div class="col-12 d-flex justify-content-end gap-2"><button type="button" class="btn btn-outline-secondary" @onclick="CancelEdit">@Text("Cancel", "إلغاء")</button><button type="submit" class="btn btn-primary" disabled="@busy"><i class="bi bi-check2"></i> @Text("Save", "حفظ")</button></div>
+                </div>
+            </EditForm>
+        </AppCard>
+    }
+
+    <AppCard Title="@Text("Activities", "الأنشطة")" CssClass="mt-3">
+        @if (busy) { <AppLoader /> }
+        else if (!activities.Any()) { <EmptyState Title="@Text("No media activities", "لا توجد أنشطة إعلامية")" Message="@Text("Create the first activity or adjust the filters.", "أنشئ أول نشاط أو عدل عوامل التصفية.")" /> }
+        else
+        {
+            <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Activity", "النشاط")</th><th>@Text("Date", "التاريخ")</th><th>@Text("Project", "المشروع")</th><th>@Text("Location", "الموقع")</th><th>@Text("Customers", "العملاء")</th><th>@Text("Allocations", "التخصيصات")</th><th>@Text("Media", "الوسائط")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead><tbody>@foreach (var item in activities) { <tr><td><div class="fw-semibold">@DisplayName(item.Title, item.TitleEng)</div><div class="text-muted small">@DisplayName(item.ActivityTypeName, item.ActivityTypeNameEng)</div></td><td>@DateTimeText(item.ActivityDate, item.ActivityTime)</td><td>@item.ProjectName</td><td>@(item.PlaceName ?? item.FreeTextLocation)</td><td>@string.Join(", ", item.Customers.Select(c => c.CustomerName ?? c.ProjectCustomerName).Where(x => !string.IsNullOrWhiteSpace(x)))</td><td>@string.Join(" | ", item.Allocations.Select(AllocationLabel))</td><td><StatusChip Text="@item.MediaCount.ToString()" Tone="info" Icon="bi-paperclip" /></td><td class="text-end"><button class="btn btn-sm btn-outline-secondary" @onclick="() => OpenActivity(item.Id)" title="@Text("Open", "فتح")"><i class="bi bi-box-arrow-up-right"></i></button>@if (CanEdit) { <button class="btn btn-sm btn-outline-secondary" @onclick="() => EditAsync(item)" title="@Text("Edit", "تعديل")"><i class="bi bi-pencil"></i></button> } @if (CanDelete) { <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteActivityAsync(item.Id)" title="@Text("Delete", "حذف")"><i class="bi bi-trash"></i></button> }</td></tr> }</tbody></table></div>
+            <div class="d-flex justify-content-between align-items-center mt-3"><span class="text-muted small">@Text("Total", "الإجمالي"): @totalCount</span><div class="btn-group"><button class="btn btn-outline-secondary btn-sm" disabled="@(filter.PageIndex == 0)" @onclick="PreviousPage"><i class="bi bi-chevron-left"></i></button><button class="btn btn-outline-secondary btn-sm" disabled="@(!HasNextPage)" @onclick="NextPage"><i class="bi bi-chevron-right"></i></button></div></div>
+        }
+    </AppCard>
+</div>
+
+@code {
+    private readonly List<MediaActivityDto> activities = [];
+    private readonly List<MediaActivityTypeDto> activityTypes = [];
+    private readonly List<ProjectDto> projects = [];
+    private readonly List<DistributionPlaceDto> places = [];
+    private readonly List<CustomerDto> customers = [];
+    private readonly MediaActivityFilter filter = new() { PageSize = 20, MediaKind = MediaKind.All };
+    private SaveMediaActivityDto? editing;
+    private ProjectDto? selectedEditProject;
+    private ProjectDto? selectedFilterProject;
+    private AuthenticationState? authState;
+    private Guid? selectedCustomerId;
+    private Guid? selectedProjectCustomerId;
+    private Guid? selectedAllocationId;
+    private string? activityTimeText;
+    private long totalCount;
+    private bool busy;
+
+    private bool CanCreate => HasPermission(PermissionList.MediaCenterPermissions.Create);
+    private bool CanEdit => HasPermission(PermissionList.MediaCenterPermissions.Edit);
+    private bool CanDelete => HasPermission(PermissionList.MediaCenterPermissions.Delete);
+    private bool CanManageTypes => HasPermission(PermissionList.MediaCenterPermissions.ManageTypes);
+    private bool HasNextPage => ((filter.PageIndex + 1) * filter.PageSize) < totalCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        await LoadLookupsAsync();
+        await LoadActivitiesAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var companyId = CompanyId();
+        var typeResponse = await MediaCenterService.GetActivityTypesAsync(0, 500, companyId);
+        if (typeResponse.IsSuccess && typeResponse.Data is not null) activityTypes.AddRange(typeResponse.Data.Data);
+        var projectResponse = await ProjectManagementService.GetProjectsAsync(0, 500, companyId);
+        if (projectResponse.IsSuccess && projectResponse.Data is not null) projects.AddRange(projectResponse.Data.Data);
+        var placeResponse = await ProjectManagementService.GetPlacesAsync(0, 500, companyId);
+        if (placeResponse.IsSuccess && placeResponse.Data is not null) places.AddRange(placeResponse.Data.Data);
+        if (ApiConfig.CompanyId != Guid.Empty)
+        {
+            var customerResponse = await CustomerService.GetByCompany(ApiConfig.CompanyId, 0, 500);
+            if (customerResponse.IsSuccess && customerResponse.Data is not null) customers.AddRange(customerResponse.Data.Data);
+        }
+    }
+
+    private async Task SearchAsync() { filter.PageIndex = 0; await LoadActivitiesAsync(); }
+
+    private async Task LoadActivitiesAsync()
+    {
+        busy = true;
+        filter.CompanyId = CompanyId();
+        var response = await MediaCenterService.GetActivitiesAsync(filter);
+        activities.Clear();
+        if (response.IsSuccess && response.Data is not null) { activities.AddRange(response.Data.Data); totalCount = response.Data.Count; }
+        else ToastService.ShowError(Error(response, Text("Unable to load media activities.", "تعذر تحميل الأنشطة الإعلامية.")));
+        busy = false;
+    }
+
+    private void NewActivity()
+    {
+        if (!CanCreate) return;
+        editing = new SaveMediaActivityDto { CompanyId = ApiConfig.CompanyId, ActivityDate = DateTime.UtcNow.Date, ActivityTypeId = activityTypes.FirstOrDefault()?.Id ?? Guid.Empty };
+        selectedEditProject = null; selectedCustomerId = null; selectedProjectCustomerId = null; selectedAllocationId = null; activityTimeText = null;
+    }
+
+    private async Task EditAsync(MediaActivityDto item)
+    {
+        if (!CanEdit) return;
+        editing = new SaveMediaActivityDto
+        {
+            Id = item.Id, CompanyId = item.CompanyId, ActivityTypeId = item.ActivityTypeId, Title = item.Title, TitleEng = item.TitleEng,
+            ActivityDate = item.ActivityDate, ActivityTime = item.ActivityTime, ProjectId = item.ProjectId, ProjectName = item.ProjectName,
+            DistributionPlaceId = item.DistributionPlaceId, PlaceName = item.PlaceName, FreeTextLocation = item.FreeTextLocation, Notes = item.Notes,
+            Customers = item.Customers.Select(c => new MediaActivityCustomerDto { CustomerId = c.CustomerId, CustomerName = c.CustomerName, CustomerNameEng = c.CustomerNameEng, ProjectCustomerId = c.ProjectCustomerId, ProjectCustomerName = c.ProjectCustomerName }).ToList(),
+            Allocations = item.Allocations.Select(a => new MediaActivityAllocationDto { ProjectDistributionAllocationId = a.ProjectDistributionAllocationId, DistributionDate = a.DistributionDate == default ? item.ActivityDate : a.DistributionDate, ProjectCustomerId = a.ProjectCustomerId, CustomerName = a.CustomerName, DeliverableId = a.DeliverableId, DeliverableName = a.DeliverableName, DistributionPlaceId = a.DistributionPlaceId, PlaceName = a.PlaceName }).ToList()
+        };
+        activityTimeText = item.ActivityTime?.ToString("HH:mm");
+        selectedEditProject = item.ProjectId.HasValue ? await LoadProjectAsync(item.ProjectId.Value) : null;
+    }
+
+    private void CancelEdit() => editing = null;
+    private void OpenActivity(Guid id) => NavigationManager.NavigateTo($"/MediaCenter/Activities/{id}");
+
+    private async Task SaveActivityAsync()
+    {
+        if (editing is null || (editing.Id == Guid.Empty && !CanCreate) || (editing.Id != Guid.Empty && !CanEdit)) return;
+        editing.CompanyId = ApiConfig.CompanyId; editing.ActivityTime = ParseTime(activityTimeText); ApplyLinkedNames();
+        busy = true;
+        var success = editing.Id == Guid.Empty ? (await MediaCenterService.CreateActivityAsync(editing)).IsSuccess : (await MediaCenterService.UpdateActivityAsync(editing)).IsSuccess;
+        busy = false;
+        if (success) { ToastService.ShowSuccess(Text("Media activity saved.", "تم حفظ النشاط الإعلامي.")); editing = null; await LoadActivitiesAsync(); }
+        else ToastService.ShowError(Text("Unable to save media activity.", "تعذر حفظ النشاط الإعلامي."));
+    }
+
+    private async Task DeleteActivityAsync(Guid id)
+    {
+        if (!CanDelete) return;
+        var response = await MediaCenterService.DeleteActivityAsync(id);
+        if (response.IsSuccess) { ToastService.ShowSuccess(Text("Media activity deleted.", "تم حذف النشاط الإعلامي.")); await LoadActivitiesAsync(); }
+        else ToastService.ShowError(Error(response, Text("Unable to delete media activity.", "تعذر حذف النشاط الإعلامي.")));
+    }
+
+    private async Task OnFilterProjectChanged(ChangeEventArgs args)
+    {
+        filter.ProjectId = ParseGuid(args.Value?.ToString()); filter.ProjectCustomerId = null; filter.AllocationId = null;
+        selectedFilterProject = filter.ProjectId.HasValue ? await LoadProjectAsync(filter.ProjectId.Value) : null;
+    }
+
+    private async Task OnProjectChanged(ChangeEventArgs args)
+    {
+        if (editing is null) return;
+        editing.ProjectId = ParseGuid(args.Value?.ToString()); editing.ProjectName = projects.FirstOrDefault(x => x.Id == editing.ProjectId) is { } project ? DisplayName(project.Name, project.NameEng) : null;
+        selectedEditProject = editing.ProjectId.HasValue ? await LoadProjectAsync(editing.ProjectId.Value) : null;
+        selectedProjectCustomerId = null; selectedAllocationId = null;
+    }
+
+    private void OnPlaceChanged(ChangeEventArgs args)
+    {
+        if (editing is null) return;
+        editing.DistributionPlaceId = ParseGuid(args.Value?.ToString()); editing.PlaceName = places.FirstOrDefault(x => x.Id == editing.DistributionPlaceId) is { } place ? DisplayName(place.Name, place.NameEng) : null;
+    }
+
+    private void AddCustomer()
+    {
+        if (editing is null || !selectedCustomerId.HasValue || editing.Customers.Any(x => x.CustomerId == selectedCustomerId)) return;
+        var customer = customers.FirstOrDefault(x => x.Id == selectedCustomerId); if (customer is null) return;
+        editing.Customers.Add(new MediaActivityCustomerDto { CustomerId = customer.Id, CustomerName = customer.Name }); selectedCustomerId = null;
+    }
+
+    private void AddProjectCustomer()
+    {
+        if (editing is null || !selectedProjectCustomerId.HasValue || editing.Customers.Any(x => x.ProjectCustomerId == selectedProjectCustomerId)) return;
+        var customer = ProjectCustomers(selectedEditProject).FirstOrDefault(x => x.Id == selectedProjectCustomerId); if (customer is null) return;
+        editing.Customers.Add(new MediaActivityCustomerDto { CustomerId = customer.CustomerId, CustomerName = customer.CustomerName, CustomerNameEng = customer.CustomerNameEng, ProjectCustomerId = customer.Id, ProjectCustomerName = customer.CustomerName }); selectedProjectCustomerId = null;
+    }
+
+    private void RemoveCustomer(MediaActivityCustomerDto customer) => editing?.Customers.Remove(customer);
+
+    private void AddAllocation()
+    {
+        if (editing is null || !selectedAllocationId.HasValue) return;
+        var allocation = ProjectAllocations(selectedEditProject).FirstOrDefault(x => x.Id == selectedAllocationId); if (allocation is null || editing.Allocations.Any(x => x.ProjectDistributionAllocationId == allocation.Id)) return;
+        editing.Allocations.Add(new MediaActivityAllocationDto { ProjectDistributionAllocationId = allocation.Id, DistributionDate = allocation.DistributionDate, ProjectCustomerId = allocation.ProjectCustomerId, CustomerName = allocation.CustomerName, DeliverableId = allocation.DeliverableId, DeliverableName = allocation.DeliverableName, DistributionPlaceId = allocation.DistributionPlaceId, PlaceName = allocation.PlaceName });
+        if (!editing.DistributionPlaceId.HasValue) { editing.DistributionPlaceId = allocation.DistributionPlaceId; editing.PlaceName = allocation.PlaceName; }
+        if (editing.ProjectId is null || editing.ProjectId == Guid.Empty) { editing.ProjectId = allocation.ProjectId; }
+        selectedAllocationId = null;
+    }
+
+    private void RemoveAllocation(MediaActivityAllocationDto allocation) => editing?.Allocations.Remove(allocation);
+
+    private void ApplyLinkedNames()
+    {
+        if (editing is null) return;
+        if (projects.FirstOrDefault(x => x.Id == editing.ProjectId) is { } project) editing.ProjectName = DisplayName(project.Name, project.NameEng);
+        if (places.FirstOrDefault(x => x.Id == editing.DistributionPlaceId) is { } place) editing.PlaceName = DisplayName(place.Name, place.NameEng);
+    }
+
+    private async Task<ProjectDto?> LoadProjectAsync(Guid id)
+    {
+        var response = await ProjectManagementService.GetProjectByIdAsync(id);
+        return response.IsSuccess ? response.Data : null;
+    }
+
+    private async Task PreviousPage() { if (filter.PageIndex == 0) return; filter.PageIndex--; await LoadActivitiesAsync(); }
+    private async Task NextPage() { if (!HasNextPage) return; filter.PageIndex++; await LoadActivitiesAsync(); }
+
+    private IEnumerable<ProjectCustomerDto> ProjectCustomers(ProjectDto? project) => project?.Customers ?? [];
+    private IEnumerable<ProjectDistributionAllocationDto> ProjectAllocations(ProjectDto? project) => project is null ? [] : project.DistributionSchedules.SelectMany(x => x.Allocations).OrderBy(x => x.DistributionDate).ThenBy(x => x.PlaceName);
+    private string AllocationLabel(ProjectDistributionAllocationDto item) => $"{item.DistributionDate:yyyy-MM-dd} - {item.PlaceName} - {item.CustomerName} - {item.DeliverableName}";
+    private string AllocationLabel(MediaActivityAllocationDto item) => $"{item.DistributionDate:yyyy-MM-dd} - {item.PlaceName} - {item.CustomerName} - {item.DeliverableName}";
+    private string DateTimeText(DateTime date, TimeOnly? time) => time.HasValue ? $"{date:yyyy-MM-dd} {time:HH:mm}" : date.ToString("yyyy-MM-dd");
+    private static TimeOnly? ParseTime(string? value) => TimeOnly.TryParse(value, out var time) ? time : null;
+    private void OnActivityTimeChanged(ChangeEventArgs args) => activityTimeText = args.Value?.ToString();
+    private Guid? ParseGuid(string? value) => Guid.TryParse(value, out var id) ? id : null;
+    private bool HasPermission(string permission) => CompanyContext.HasPermission(authState?.User, permission);
+    private Guid? CompanyId() => ApiConfig.CompanyId == Guid.Empty ? null : ApiConfig.CompanyId;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string DisplayName(string name, string? nameEng) => SharedDataService.Language == "ar" ? name : string.IsNullOrWhiteSpace(nameEng) ? name : nameEng;
+    private string MediaKindText(MediaKind kind) => kind switch { MediaKind.Image => Text("Images", "صور"), MediaKind.Video => Text("Videos", "فيديو"), MediaKind.Audio => Text("Audio", "صوت"), MediaKind.Document => Text("Documents", "مستندات"), MediaKind.Other => Text("Other", "أخرى"), _ => Text("All media", "كل الوسائط") };
+    private static string Error<T>(ApiResult<T> result, string fallback) => result.Error?.Title ?? fallback;
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

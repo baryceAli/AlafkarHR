@@ -12,6 +12,7 @@ using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services;
 using AlAfkarERP.Shared.Pages.Features.Inventories.Services;
 using AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services;
 using AlAfkarERP.Shared.Pages.Features.Maintenance.Services;
+using AlAfkarERP.Shared.Pages.Features.MediaCenter.Services;
 using AlAfkarERP.Shared.Pages.Features.Payroll.Services;
 using AlAfkarERP.Shared.Pages.Features.Procurement.Services;
 using AlAfkarERP.Shared.Pages.Features.ProjectManagement.Services;
@@ -305,6 +306,14 @@ builder.Services.AddHttpClient<IMaintenanceService, MaintenanceService>(client =
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
 #endregion Maintenance
+
+#region MediaCenter
+builder.Services.AddScoped<IMediaCenterService, MediaCenterService>();
+builder.Services.AddHttpClient<IMediaCenterService, MediaCenterService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+#endregion MediaCenter
 
 #region RealEstate
 builder.Services.AddScoped<IRealEstateService, RealEstateService>();

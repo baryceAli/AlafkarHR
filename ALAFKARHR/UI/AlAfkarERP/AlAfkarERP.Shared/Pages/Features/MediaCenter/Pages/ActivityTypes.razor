@@ -1,0 +1,160 @@
+﻿@page "/MediaCenter/ActivityTypes"
+@layout AdminLayout
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.MediaCenter.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.MediaCenter.Dtos
+@using SharedWithUI.Permissions
+
+@inject IMediaCenterService MediaCenterService
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+@inject ApiConfig ApiConfig
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Media Activity Types", "أنواع أنشطة المركز الإعلامي")"
+                Subtitle="@Text("Configure reusable categories for company activity coverage.", "إعداد تصنيفات قابلة لإعادة الاستخدام لتغطية أنشطة الشركة.")"
+                Icon="bi-tags">
+        <Actions>
+            @if (CanManageTypes)
+            {
+                <button class="btn btn-primary" @onclick="NewType">
+                    <i class="bi bi-plus-lg"></i> @Text("New type", "نوع جديد")
+                </button>
+            }
+        </Actions>
+    </PageHeader>
+
+    <AppCard>
+        <FilterBar>
+            <input class="form-control erp-search-control" placeholder="@Text("Search types", "بحث في الأنواع")" @bind="searchText" />
+            <button class="btn btn-outline-secondary" @onclick="SearchAsync">
+                <i class="bi bi-search"></i> @Text("Search", "بحث")
+            </button>
+        </FilterBar>
+    </AppCard>
+
+    @if (editing is not null && CanManageTypes)
+    {
+        <AppCard Title="@Text(editing.Id == Guid.Empty ? "Create activity type" : "Edit activity type", editing.Id == Guid.Empty ? "إنشاء نوع نشاط" : "تعديل نوع النشاط")" CssClass="mt-3">
+            <EditForm Model="@editing" OnValidSubmit="SaveAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-md-4"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="editing.Name" /><ValidationMessage For="@(() => editing.Name)" /></div>
+                    <div class="col-md-4"><label class="form-label">@Text("English name", "الاسم الإنجليزي")</label><InputText class="form-control" @bind-Value="editing.NameEng" /></div>
+                    <div class="col-md-4 d-flex align-items-end"><label class="form-check"><InputCheckbox class="form-check-input" @bind-Value="editing.IsActive" /><span class="form-check-label">@Text("Active", "نشط")</span></label></div>
+                    <div class="col-12"><label class="form-label">@Text("Description", "الوصف")</label><InputTextArea class="form-control" rows="2" @bind-Value="editing.Description" /></div>
+                    <div class="col-12 d-flex justify-content-end gap-2"><button type="button" class="btn btn-outline-secondary" @onclick="CancelEdit">@Text("Cancel", "إلغاء")</button><button type="submit" class="btn btn-primary" disabled="@busy"><i class="bi bi-check2"></i> @Text("Save", "حفظ")</button></div>
+                </div>
+            </EditForm>
+        </AppCard>
+    }
+
+    <AppCard Title="@Text("Types", "الأنواع")" CssClass="mt-3">
+        @if (busy) { <AppLoader /> }
+        else if (!types.Any()) { <EmptyState Title="@Text("No activity types", "لا توجد أنواع أنشطة")" /> }
+        else
+        {
+            <div class="erp-table-wrap">
+                <table class="table erp-table align-middle">
+                    <thead><tr><th>@Text("Name", "الاسم")</th><th>@Text("Description", "الوصف")</th><th>@Text("Status", "الحالة")</th>@if (CanManageTypes) { <th class="text-end">@Text("Actions", "الإجراءات")</th> }</tr></thead>
+                    <tbody>
+                        @foreach (var item in types)
+                        {
+                            <tr>
+                                <td><div class="fw-semibold">@DisplayName(item.Name, item.NameEng)</div><div class="text-muted small">@item.NameEng</div></td>
+                                <td>@item.Description</td>
+                                <td><StatusChip Text="@(item.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))" Tone="@(item.IsActive ? "success" : "muted")" /></td>
+                                @if (CanManageTypes)
+                                {
+                                    <td class="text-end"><button class="btn btn-sm btn-outline-secondary" @onclick="() => Edit(item)" title="@Text("Edit", "تعديل")"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(item.Id)" title="@Text("Delete", "حذف")"><i class="bi bi-trash"></i></button></td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-3"><span class="text-muted small">@Text("Total", "الإجمالي"): @totalCount</span><div class="btn-group"><button class="btn btn-outline-secondary btn-sm" disabled="@(pageIndex == 0)" @onclick="PreviousPage"><i class="bi bi-chevron-left"></i></button><button class="btn btn-outline-secondary btn-sm" disabled="@(!HasNextPage)" @onclick="NextPage"><i class="bi bi-chevron-right"></i></button></div></div>
+        }
+    </AppCard>
+</div>
+
+@code {
+    private readonly List<MediaActivityTypeDto> types = [];
+    private MediaActivityTypeDto? editing;
+    private AuthenticationState? authState;
+    private string? searchText;
+    private int pageIndex;
+    private const int PageSize = 20;
+    private long totalCount;
+    private bool busy;
+
+    private bool CanManageTypes => HasPermission(PermissionList.MediaCenterPermissions.ManageTypes);
+    private bool HasNextPage => ((pageIndex + 1) * PageSize) < totalCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        await LoadAsync();
+    }
+
+    private async Task SearchAsync() { pageIndex = 0; await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        busy = true;
+        var response = await MediaCenterService.GetActivityTypesAsync(pageIndex, PageSize, CompanyId(), searchText, false);
+        types.Clear();
+        if (response.IsSuccess && response.Data is not null) { types.AddRange(response.Data.Data); totalCount = response.Data.Count; }
+        else ToastService.ShowError(Error(response, Text("Unable to load activity types.", "تعذر تحميل أنواع الأنشطة.")));
+        busy = false;
+    }
+
+    private void NewType()
+    {
+        if (!CanManageTypes) return;
+        editing = new MediaActivityTypeDto { CompanyId = ApiConfig.CompanyId, IsActive = true };
+    }
+
+    private void Edit(MediaActivityTypeDto item)
+    {
+        if (!CanManageTypes) return;
+        editing = new MediaActivityTypeDto { Id = item.Id, CompanyId = item.CompanyId, Name = item.Name, NameEng = item.NameEng, Description = item.Description, IsActive = item.IsActive };
+    }
+
+    private void CancelEdit() => editing = null;
+
+    private async Task SaveAsync()
+    {
+        if (editing is null || !CanManageTypes) return;
+        editing.CompanyId = ApiConfig.CompanyId;
+        busy = true;
+        var success = editing.Id == Guid.Empty ? (await MediaCenterService.CreateActivityTypeAsync(editing)).IsSuccess : (await MediaCenterService.UpdateActivityTypeAsync(editing)).IsSuccess;
+        busy = false;
+        if (success) { ToastService.ShowSuccess(Text("Activity type saved.", "تم حفظ نوع النشاط.")); editing = null; await LoadAsync(); }
+        else ToastService.ShowError(Text("Unable to save activity type.", "تعذر حفظ نوع النشاط."));
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        if (!CanManageTypes) return;
+        var response = await MediaCenterService.DeleteActivityTypeAsync(id);
+        if (response.IsSuccess) { ToastService.ShowSuccess(Text("Activity type deleted.", "تم حذف نوع النشاط.")); await LoadAsync(); }
+        else ToastService.ShowError(Error(response, Text("Unable to delete activity type.", "تعذر حذف نوع النشاط.")));
+    }
+
+    private async Task PreviousPage() { if (pageIndex == 0) return; pageIndex--; await LoadAsync(); }
+    private async Task NextPage() { if (!HasNextPage) return; pageIndex++; await LoadAsync(); }
+    private bool HasPermission(string permission) => CompanyContext.HasPermission(authState?.User, permission);
+    private Guid? CompanyId() => ApiConfig.CompanyId == Guid.Empty ? null : ApiConfig.CompanyId;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string DisplayName(string name, string? nameEng) => SharedDataService.Language == "ar" ? name : string.IsNullOrWhiteSpace(nameEng) ? name : nameEng;
+    private static string Error<T>(ApiResult<T> result, string fallback) => result.Error?.Title ?? fallback;
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

@@ -46,6 +46,7 @@ public static class PermissionList
             .. ContractTemplatePermissions.Permissions,
             .. ContractRenewalPermissions.Permissions,
             .. DocumentManagementPermissions.Permissions,
+            .. MediaCenterPermissions.Permissions,
             .. SalesOrderPermissions.Permissions,
             .. PurchaseRequestPermissions.Permissions,
             .. RequestForQuotationPermissions.Permissions,
@@ -99,6 +100,7 @@ public static class PermissionList
             CompanyPermissions.Select,
             CompanyPermissions.View,
             CompanyPermissions.Edit,
+            CompanyPermissions.ViewLicense,
             CompanyPermissions.ViewChild,
             CompanyPermissions.CreateChild,
             CompanyPermissions.EditChild,
@@ -108,6 +110,7 @@ public static class PermissionList
             ..RolesPermissions.Permissions,
             SystemSettingsPermissions.Select,
             SystemSettingsPermissions.View,
+            SystemSettingsPermissions.Edit,
         ];
 
         return list
@@ -900,6 +903,20 @@ public static class PermissionList
         public static string Configure { get; set; } = $"{GroupName}.Configure";
 
         public static List<string> Permissions => [Select, View, Create, Edit, Delete, Share, ManageAll, Configure];
+    }
+
+    public static class MediaCenterPermissions
+    {
+        public static string GroupName { get; set; } = "MediaCenter.Activity";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Upload { get; set; } = $"{GroupName}.Upload";
+        public static string ManageTypes { get; set; } = $"{GroupName}.ManageTypes";
+
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Upload, ManageTypes];
     }
 
     public static class PricingPermissions

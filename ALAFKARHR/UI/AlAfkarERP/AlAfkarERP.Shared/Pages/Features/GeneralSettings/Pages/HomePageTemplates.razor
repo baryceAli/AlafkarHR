@@ -1,0 +1,323 @@
+@layout AdminLayout
+@page "/GeneralSettings/HomePageTemplates"
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@implements IDisposable
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="homepage-templates-page erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Home Page Templates", "قوالب الصفحة الرئيسية")"
+                Subtitle="@Text("Compare the available public storefront layouts before choosing which one to configure for this tenant.", "قارن تخطيطات واجهة المتجر المتاحة قبل اختيار القالب الذي سيتم ضبطه لهذا المستأجر.")"
+                Overline="@Text("General Settings", "الإعدادات العامة")"
+                Icon="bi-window-stack">
+        <Actions>
+            <button type="button" class="btn btn-outline-secondary" @onclick="RefreshAsync" disabled="@isLoading">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="py-5 text-center">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="fw-semibold">@Text("Loading templates...", "جاري تحميل القوالب...")</div>
+            </div>
+        </AppCard>
+    }
+    else if (!CanView)
+    {
+        <div class="alert alert-warning d-flex align-items-center gap-2">
+            <i class="bi bi-shield-lock"></i>
+            <span>@Text("You don't have permissions to view home page templates.", "ليس لديك الصلاحية لعرض قوالب الصفحة الرئيسية.")</span>
+        </div>
+    }
+    else
+    {
+        <div class="homepage-template-grid">
+            @foreach (var template in templates)
+            {
+                var isSelected = selectedTemplateKey == template.Key;
+                var isActive = activeTemplateKey == template.Key;
+
+                <article class="homepage-template-card @(isSelected ? "is-selected" : "") @(isActive ? "is-active" : "")">
+                    <div class="template-card-header">
+                        <div class="template-card-title">
+                            <span class="template-card-icon"><i class="bi @template.Icon"></i></span>
+                            <div>
+                                <h2>@Text(template.NameEn, template.NameAr)</h2>
+                                <p>@Text(template.DescriptionEn, template.DescriptionAr)</p>
+                            </div>
+                        </div>
+                        @if (isActive)
+                        {
+                            <span class="erp-status-chip erp-status-chip-success">
+                                @Text("Active", "نشط")
+                            </span>
+                        }
+                    </div>
+
+                    <HomePageTemplatePreview TemplateKey="@template.Key"
+                                             Direction="@SharedDataService.PageDirection" />
+
+                    <div class="template-card-footer">
+                        <button type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                @onclick="() => SelectTemplate(template.Key)">
+                            <i class="bi bi-eye"></i>
+                            @Text("Select", "اختيار")
+                        </button>
+                        <button type="button"
+                                class="btn btn-primary btn-sm"
+                                disabled="@(!CanEdit || isActive)"
+                                @onclick="() => SetActiveTemplate(template.Key)">
+                            <i class="bi bi-check2-circle"></i>
+                            @Text("Set Active", "تعيين كنشط")
+                        </button>
+                        <button type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                disabled="@(!CanEdit)"
+                                @onclick="() => EditTemplate(template.Key)">
+                            <i class="bi bi-pencil-square"></i>
+                            @Text("Edit", "تعديل")
+                        </button>
+                    </div>
+                </article>
+            }
+        </div>
+
+        <AppCard CssClass="mt-4"
+                 Title="@Text("Selected Template", "القالب المحدد")"
+                 Subtitle="@Text("The preview cards are visual-only in this source tree. They are ready to connect to the homepage template service when it is available.", "بطاقات المعاينة مرئية فقط في هذه النسخة من المصدر، وهي جاهزة للربط بخدمة قوالب الصفحة الرئيسية عند توفرها.")">
+            <div class="selected-template-summary">
+                <span class="template-card-icon"><i class="bi @SelectedTemplate.Icon"></i></span>
+                <div>
+                    <strong>@Text(SelectedTemplate.NameEn, SelectedTemplate.NameAr)</strong>
+                    <span>@Text(SelectedTemplate.DescriptionEn, SelectedTemplate.DescriptionAr)</span>
+                </div>
+            </div>
+        </AppCard>
+    }
+</div>
+
+@code {
+    private readonly List<HomePageTemplateOption> templates =
+    [
+        new("CurrentStorefront", "Current Storefront", "واجهة المتجر الحالية", "Current catalog-first layout with hero, service highlights, and product browsing.", "التخطيط الحالي الذي يركز على الكتالوج مع البطل ومزايا الخدمة وتصفح المنتجات.", "bi-shop"),
+        new("CorporateShowcase", "Corporate Showcase", "عرض الشركة", "Company-first layout for services, credibility, and operational strengths.", "تخطيط يبرز الشركة والخدمات ونقاط القوة التشغيلية.", "bi-buildings"),
+        new("ProductHighlight", "Product Highlight", "إبراز المنتجات", "Large visual product and category focus for richer storefront browsing.", "تركيز بصري أكبر على المنتجات والتصنيفات لتصفح أوضح.", "bi-box-seam"),
+        new("CampaignLanding", "Campaign Landing", "صفحة الحملة", "Seasonal offer layout with a stronger campaign message and call to action.", "تخطيط للعروض الموسمية برسالة حملة ودعوة إجراء أوضح.", "bi-megaphone"),
+        new("MinimalCatalog", "Minimal Catalog", "كتالوج مبسط", "Compact storefront layout optimized for fast product scanning.", "تخطيط متجر مختصر مخصص لتصفح المنتجات بسرعة.", "bi-grid-3x3-gap")
+    ];
+
+    private AuthenticationState? authState;
+    private bool isLoading = true;
+    private string activeTemplateKey = "CurrentStorefront";
+    private string selectedTemplateKey = "CurrentStorefront";
+
+    private bool CanView => authState?.User.Claims.Any(c => c.Value == PermissionList.SystemSettingsPermissions.View) == true;
+    private bool CanEdit => authState?.User.Claims.Any(c => c.Value == PermissionList.SystemSettingsPermissions.Edit) == true;
+
+    private HomePageTemplateOption SelectedTemplate =>
+        templates.FirstOrDefault(t => t.Key == selectedTemplateKey) ?? templates[0];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleLanguageChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+        if (authState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        isLoading = false;
+    }
+
+    private Task RefreshAsync()
+    {
+        selectedTemplateKey = activeTemplateKey;
+        ToastService.ShowSuccess(Text("Template previews refreshed.", "تم تحديث معاينات القوالب."));
+        return Task.CompletedTask;
+    }
+
+    private void SelectTemplate(string templateKey)
+    {
+        selectedTemplateKey = templateKey;
+    }
+
+    private void SetActiveTemplate(string templateKey)
+    {
+        if (!CanEdit)
+        {
+            return;
+        }
+
+        activeTemplateKey = templateKey;
+        selectedTemplateKey = templateKey;
+        ToastService.ShowSuccess(Text("Active template updated for this preview page.", "تم تحديث القالب النشط في صفحة المعاينة."));
+    }
+
+    private void EditTemplate(string templateKey)
+    {
+        selectedTemplateKey = templateKey;
+        ToastService.Show(new ToastMessage
+        {
+            Message = Text("Template editing will use the homepage template content service when it is available.", "سيستخدم تعديل القالب خدمة محتوى قوالب الصفحة الرئيسية عند توفرها."),
+            Type = "info"
+        });
+    }
+
+    private async Task HandleLanguageChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleLanguageChangeAsync;
+    }
+
+    private sealed record HomePageTemplateOption(
+        string Key,
+        string NameEn,
+        string NameAr,
+        string DescriptionEn,
+        string DescriptionAr,
+        string Icon);
+}
+
+<style>
+    .homepage-templates-page {
+        margin-inline: auto;
+        max-inline-size: 1280px;
+    }
+
+    .homepage-template-grid {
+        display: grid;
+        gap: var(--erp-space-4);
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .homepage-template-card {
+        background: var(--erp-surface);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
+        box-shadow: var(--erp-shadow-sm);
+        display: grid;
+        gap: var(--erp-space-4);
+        min-inline-size: 0;
+        padding: var(--erp-space-4);
+        transition: border-color var(--erp-transition-fast), box-shadow var(--erp-transition-fast);
+    }
+
+    .homepage-template-card.is-selected {
+        border-color: color-mix(in srgb, var(--erp-primary) 52%, var(--erp-border));
+        outline: 2px solid var(--erp-focus-ring);
+        outline-offset: 0;
+    }
+
+    .template-card-header {
+        align-items: flex-start;
+        display: flex;
+        gap: var(--erp-space-3);
+        justify-content: space-between;
+        min-block-size: 76px;
+    }
+
+    .template-card-title {
+        align-items: flex-start;
+        display: flex;
+        gap: var(--erp-space-3);
+        min-inline-size: 0;
+    }
+
+    .template-card-icon {
+        align-items: center;
+        background: var(--erp-primary-soft);
+        border-radius: var(--erp-radius-md);
+        color: var(--erp-primary);
+        display: inline-flex;
+        flex: 0 0 auto;
+        font-size: 1rem;
+        block-size: 36px;
+        inline-size: 36px;
+        justify-content: center;
+    }
+
+    .template-card-title h2 {
+        color: var(--erp-text);
+        font-size: var(--erp-font-size-lg);
+        font-weight: 700;
+        line-height: 1.35;
+        margin: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .template-card-title p {
+        color: var(--erp-text-muted);
+        font-size: var(--erp-font-size-sm);
+        line-height: 1.55;
+        margin: var(--erp-space-1) 0 0;
+    }
+
+    .template-card-footer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--erp-space-2);
+    }
+
+    .template-card-footer .btn {
+        align-items: center;
+        display: inline-flex;
+        gap: var(--erp-space-1);
+    }
+
+    .selected-template-summary {
+        align-items: center;
+        display: flex;
+        gap: var(--erp-space-3);
+    }
+
+    .selected-template-summary div {
+        display: grid;
+        gap: var(--erp-space-1);
+        min-inline-size: 0;
+    }
+
+    .selected-template-summary strong {
+        color: var(--erp-text);
+        font-weight: 700;
+    }
+
+    .selected-template-summary span {
+        color: var(--erp-text-muted);
+        font-size: var(--erp-font-size-sm);
+    }
+
+    @@media (max-width: 575.98px) {
+        .homepage-template-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .template-card-header,
+        .template-card-footer {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .template-card-footer .btn {
+            justify-content: center;
+        }
+    }
+</style>
