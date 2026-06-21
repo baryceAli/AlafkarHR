@@ -1091,6 +1091,24 @@ public class MenuItem
                 },
                 new MenuItem
                 {
+                    TextEn = "Media Center",
+                    TextAr = "المركز الإعلامي",
+                    Icon = "bi-images",
+                    Url = "/MediaCenter/Activities",
+                    PermissionPolicy = PermissionList.MediaCenterPermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                },
+                new MenuItem
+                {
+                    TextEn = "Media Activity Types",
+                    TextAr = "أنواع الأنشطة الإعلامية",
+                    Icon = "bi-tags",
+                    Url = "/MediaCenter/ActivityTypes",
+                    PermissionPolicy = PermissionList.MediaCenterPermissions.ManageTypes,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                },
+                new MenuItem
+                {
                     TextEn = "Customer Distribution Report",
                     TextAr = "تقرير توزيع العملاء",
                     Icon = "bi-bar-chart",
