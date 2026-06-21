@@ -1443,6 +1443,14 @@ public class MenuItem
                 },
                 new MenuItem
                 {
+                    TextEn = "Home Page Templates",
+                    TextAr = "قوالب الصفحة الرئيسية",
+                    Icon = "bi-window",
+                    Url = "/GeneralSettings/HomePageTemplates",
+                    PermissionPolicy = PermissionList.SystemSettingsPermissions.View
+                },
+                new MenuItem
+                {
                     TextEn = "Currencies",
                     TextAr = "العملات",
                     Icon = "bi-currency-exchange",

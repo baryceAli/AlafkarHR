@@ -1,0 +1,567 @@
+@layout AdminLayout
+@page "/GeneralSettings/HomePageTemplates"
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Permissions
+@implements IDisposable
+
+@inject IHomePageTemplateService HomePageTemplateService
+@inject ApiConfig ApiConfig
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="homepage-template-admin erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Home Page Templates", "قوالب الصفحة الرئيسية")"
+                Subtitle="@Text("Choose the active public homepage template and edit tenant-visible text and images.", "اختر قالب الصفحة الرئيسية العام وعدل النصوص والصور الظاهرة للمستأجر.")"
+                Overline="@Text("General Settings", "الإعدادات العامة")"
+                Icon="bi-window">
+        <Actions>
+            <button class="btn btn-outline-primary" type="button" @onclick="LoadAsync" disabled="@isLoading">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    <AppPageMessage Message="@pageMessage"
+                    Type="@pageMessageType"
+                    Direction="@SharedDataService.PageDirection"
+                    OnDismiss="ClearPageMessage" />
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="py-5 text-center">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="fw-semibold">@Text("Loading homepage templates...", "جاري تحميل قوالب الصفحة الرئيسية...")</div>
+            </div>
+        </AppCard>
+    }
+    else if (!CanView)
+    {
+        <div class="alert alert-warning d-flex align-items-center gap-2">
+            <i class="bi bi-shield-lock"></i>
+            <span>@Text("You don't have permissions to view homepage templates.", "ليس لديك صلاحية عرض قوالب الصفحة الرئيسية.")</span>
+        </div>
+    }
+    else if (homePage is null)
+    {
+        <AppPageMessage Message="@Text("No homepage template data was loaded.", "لم يتم تحميل بيانات قوالب الصفحة الرئيسية.")"
+                        Type="warning"
+                        Direction="@SharedDataService.PageDirection"
+                        Dismissible="false" />
+    }
+    else
+    {
+        <div class="template-admin-layout">
+            <section class="template-picker-panel">
+                <div class="template-picker-grid">
+                    @foreach (var template in homePage.Templates)
+                    {
+                        var isSelected = template.Key == selectedTemplateKey;
+                        var isActive = template.Key == homePage.ActiveTemplateKey;
+
+                        <button type="button"
+                                class="template-option @(isSelected ? "is-selected" : "") @(isActive ? "is-active" : "")"
+                                @onclick="() => SelectTemplate(template.Key)">
+                            <span class="template-option-icon"><i class="@TemplateIcon(template.Key)"></i></span>
+                            <span class="template-option-copy">
+                                <strong>@TemplateName(template)</strong>
+                                <small>@TemplateDescription(template)</small>
+                            </span>
+                            @if (isActive)
+                            {
+                                <span class="template-active-chip">@Text("Active", "نشط")</span>
+                            }
+                        </button>
+                    }
+                </div>
+
+                <div class="template-actions">
+                    <button class="btn btn-primary" type="button" @onclick="SaveActiveTemplateAsync" disabled="@(!CanEdit || selectedTemplateKey == homePage.ActiveTemplateKey || isSavingActive)">
+                        @if (isSavingActive)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-check2-circle"></i>
+                        }
+                        @Text("Set Active Template", "تعيين القالب النشط")
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" @onclick="PreviewPublicPage">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                        @Text("Open Public Page", "فتح الصفحة العامة")
+                    </button>
+                </div>
+            </section>
+
+            <section class="template-editor-panel">
+                <div class="template-editor-header">
+                    <div>
+                        <h4>@Text("Editable Content", "المحتوى القابل للتعديل")</h4>
+                        <p>@Text("Update visible text and image fields for the selected template.", "حدث النصوص والصور الظاهرة للقالب المحدد.")</p>
+                    </div>
+                    <button class="btn btn-primary" type="button" @onclick="SaveContentAsync" disabled="@(!CanEdit || isSavingContent)">
+                        @if (isSavingContent)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-save"></i>
+                        }
+                        @Text("Save Content", "حفظ المحتوى")
+                    </button>
+                </div>
+
+                @foreach (var group in SelectedContent.GroupBy(x => x.SectionKey).OrderBy(x => x.Min(i => i.SortOrder)))
+                {
+                    <AppCard CssClass="template-section-card">
+                        <div class="template-section-title">
+                            <i class="bi bi-layers"></i>
+                            <span>@SectionName(group.Key)</span>
+                        </div>
+
+                        <div class="template-field-grid">
+                            @foreach (var item in group.OrderBy(x => x.SortOrder))
+                            {
+                                <div class="template-field">
+                                    <div class="template-field-label">
+                                        <span>@FieldName(item.FieldKey)</span>
+                                        <label class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" @bind="item.IsVisible" disabled="@(!CanEdit)" />
+                                            <span class="form-check-label">@Text("Visible", "ظاهر")</span>
+                                        </label>
+                                    </div>
+
+                                    @if (IsImage(item))
+                                    {
+                                        <div class="template-image-editor">
+                                            <img src="@ImagePreview(item)" alt="@AltText(item)" />
+                                            <InputFile OnChange="args => OnImageSelectedAsync(args, item)" disabled="@(!CanEdit)" />
+                                        </div>
+                                        <div class="row g-2 mt-2">
+                                            <div class="col-md-6">
+                                                <label class="form-label">@Text("Alt Text (English)", "النص البديل (إنجليزي)")</label>
+                                                <InputText class="form-control" @bind-Value="item.AltTextEn" disabled="@(!CanEdit)" />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">@Text("Alt Text (Arabic)", "النص البديل (عربي)")</label>
+                                                <InputText class="form-control" @bind-Value="item.AltTextAr" disabled="@(!CanEdit)" />
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="row g-2">
+                                            <div class="col-md-6">
+                                                <label class="form-label">@Text("English", "إنجليزي")</label>
+                                                <InputTextArea class="form-control" @bind-Value="item.TextEn" rows="3" disabled="@(!CanEdit)" />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">@Text("Arabic", "عربي")</label>
+                                                <InputTextArea class="form-control" @bind-Value="item.TextAr" rows="3" disabled="@(!CanEdit)" />
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </AppCard>
+                }
+            </section>
+        </div>
+    }
+</div>
+
+@code {
+    private AuthenticationState? AuthState;
+    private HomePageTemplateDto? homePage;
+    private string selectedTemplateKey = HomePageTemplateKeys.CurrentStorefront;
+    private Guid companyId;
+    private bool isLoading = true;
+    private bool isSavingActive;
+    private bool isSavingContent;
+    private string? pageMessage;
+    private string pageMessageType = "warning";
+
+    private bool CanView => AuthState?.User.Claims.Any(c => c.Value == PermissionList.SystemSettingsPermissions.View) == true;
+    private bool CanEdit => AuthState?.User.Claims.Any(c => c.Value == PermissionList.SystemSettingsPermissions.Edit) == true;
+
+    private List<HomePageContentItemDto> SelectedContent => homePage?.ContentItems
+        .Where(x => x.TemplateKey == selectedTemplateKey)
+        .OrderBy(x => x.SortOrder)
+        .ToList() ?? [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleLanguageChangeAsync;
+
+        AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!Guid.TryParse(AuthState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId))
+        {
+            ShowPageError(Text("No company is assigned to the current user.", "لا توجد شركة مرتبطة بالمستخدم الحالي."));
+            isLoading = false;
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        ClearPageMessage();
+
+        if (!CanView)
+        {
+            isLoading = false;
+            return;
+        }
+
+        var response = await HomePageTemplateService.GetAdminAsync(companyId);
+        if (response.IsSuccess && response.Data is not null)
+        {
+            homePage = response.Data;
+            selectedTemplateKey = homePage.ActiveTemplateKey;
+        }
+        else
+        {
+            ShowPageError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load homepage templates.", "تعذر تحميل قوالب الصفحة الرئيسية."));
+        }
+
+        isLoading = false;
+    }
+
+    private void SelectTemplate(string templateKey)
+    {
+        selectedTemplateKey = templateKey;
+    }
+
+    private async Task SaveActiveTemplateAsync()
+    {
+        if (!CanEdit || homePage is null)
+            return;
+
+        isSavingActive = true;
+        var response = await HomePageTemplateService.UpdateActiveTemplateAsync(companyId, selectedTemplateKey);
+        if (response.IsSuccess && response.Data is not null)
+        {
+            homePage.ActiveTemplateKey = response.Data.ActiveTemplateKey;
+            ToastService.ShowSuccess(Text("Active homepage template updated.", "تم تحديث قالب الصفحة الرئيسية النشط."));
+        }
+        else
+        {
+            ShowPageError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to update active template.", "تعذر تحديث القالب النشط."));
+        }
+
+        isSavingActive = false;
+    }
+
+    private async Task SaveContentAsync()
+    {
+        if (!CanEdit || homePage is null)
+            return;
+
+        isSavingContent = true;
+        var selectedItems = SelectedContent;
+        var response = await HomePageTemplateService.UpdateContentAsync(companyId, selectedTemplateKey, selectedItems);
+        if (response.IsSuccess && response.Data is not null)
+        {
+            ReplaceSelectedContent(response.Data.ContentItems);
+            ToastService.ShowSuccess(Text("Homepage content saved.", "تم حفظ محتوى الصفحة الرئيسية."));
+        }
+        else
+        {
+            ShowPageError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to save homepage content.", "تعذر حفظ محتوى الصفحة الرئيسية."));
+        }
+
+        isSavingContent = false;
+    }
+
+    private async Task OnImageSelectedAsync(InputFileChangeEventArgs e, HomePageContentItemDto item)
+    {
+        var file = e.File;
+        if (file is null)
+            return;
+
+        using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+        using var memory = new MemoryStream();
+        await stream.CopyToAsync(memory);
+
+        var base64 = Convert.ToBase64String(memory.ToArray());
+        item.ImagePath = $"data:{file.ContentType};base64,{base64}";
+        item.ImageUrl = item.ImagePath;
+    }
+
+    private void ReplaceSelectedContent(List<HomePageContentItemDto> savedItems)
+    {
+        if (homePage is null)
+            return;
+
+        homePage.ContentItems.RemoveAll(x => x.TemplateKey == selectedTemplateKey);
+        homePage.ContentItems.AddRange(savedItems);
+    }
+
+    private void PreviewPublicPage()
+    {
+        NavigationManager.NavigateTo("/", forceLoad: true);
+    }
+
+    private static bool IsImage(HomePageContentItemDto item)
+        => string.Equals(item.ContentType, "Image", StringComparison.OrdinalIgnoreCase);
+
+    private string ImagePreview(HomePageContentItemDto item)
+    {
+        var image = !string.IsNullOrWhiteSpace(item.ImageUrl) ? item.ImageUrl : item.ImagePath;
+        if (string.IsNullOrWhiteSpace(image))
+            return "_content/AlAfkarERP.Shared/images/Meals/alkaramSingleMeal.png";
+
+        if (image.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+            || image.StartsWith("_content/", StringComparison.OrdinalIgnoreCase)
+            || Uri.TryCreate(image, UriKind.Absolute, out _))
+        {
+            return image;
+        }
+
+        return $"{ApiConfig.BaseURL}{image}";
+    }
+
+    private string AltText(HomePageContentItemDto item)
+        => SharedDataService.SelectViewLang(item.AltTextEn ?? "", item.AltTextAr ?? "");
+
+    private string TemplateName(HomePageTemplateSummaryDto template)
+        => SharedDataService.SelectViewLang(template.NameEn, template.NameAr);
+
+    private string TemplateDescription(HomePageTemplateSummaryDto template)
+        => SharedDataService.SelectViewLang(template.DescriptionEn, template.DescriptionAr);
+
+    private string TemplateIcon(string templateKey) => templateKey switch
+    {
+        HomePageTemplateKeys.CorporateShowcase => "bi bi-buildings",
+        HomePageTemplateKeys.ProductHighlight => "bi bi-stars",
+        HomePageTemplateKeys.CampaignLanding => "bi bi-megaphone",
+        HomePageTemplateKeys.MinimalCatalog => "bi bi-search",
+        _ => "bi bi-shop"
+    };
+
+    private string SectionName(string sectionKey) => sectionKey switch
+    {
+        "Hero" => Text("Hero", "الواجهة الرئيسية"),
+        "Feature1" => Text("Feature 1", "الميزة 1"),
+        "Feature2" => Text("Feature 2", "الميزة 2"),
+        "Feature3" => Text("Feature 3", "الميزة 3"),
+        "Products" => Text("Products", "المنتجات"),
+        _ => sectionKey
+    };
+
+    private string FieldName(string fieldKey) => fieldKey switch
+    {
+        "PrimaryButtonText" => Text("Primary Button Text", "نص الزر الرئيسي"),
+        "PrimaryButtonUrl" => Text("Primary Button URL", "رابط الزر الرئيسي"),
+        "SecondaryButtonText" => Text("Secondary Button Text", "نص الزر الثانوي"),
+        "SecondaryButtonUrl" => Text("Secondary Button URL", "رابط الزر الثانوي"),
+        "HeroImage" => Text("Hero Image", "صورة الواجهة"),
+        "CardTitle" => Text("Card Title", "عنوان البطاقة"),
+        "CardSubtitle" => Text("Card Subtitle", "وصف البطاقة"),
+        "DeliveryNote" => Text("Delivery Note", "ملاحظة التوصيل"),
+        _ => fieldKey
+    };
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private void ShowPageError(string message)
+    {
+        pageMessage = message;
+        pageMessageType = "error";
+        ToastService.ShowError(message);
+    }
+
+    private void ClearPageMessage()
+    {
+        pageMessage = null;
+        pageMessageType = "warning";
+    }
+
+    private async Task HandleLanguageChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleLanguageChangeAsync;
+    }
+}
+
+<style>
+    .homepage-template-admin {
+        margin-inline: auto;
+        max-inline-size: 1320px;
+    }
+
+    .template-admin-layout {
+        display: grid;
+        gap: var(--erp-space-4);
+    }
+
+    .template-picker-panel,
+    .template-editor-panel {
+        display: grid;
+        gap: var(--erp-space-4);
+    }
+
+    .template-picker-grid {
+        display: grid;
+        gap: var(--erp-space-3);
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .template-option {
+        align-items: flex-start;
+        background: var(--erp-surface);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
+        color: var(--erp-text);
+        display: grid;
+        gap: var(--erp-space-3);
+        grid-template-columns: auto 1fr;
+        min-block-size: 132px;
+        padding: var(--erp-space-4);
+        position: relative;
+        text-align: start;
+    }
+
+    .template-option.is-selected {
+        border-color: var(--erp-primary);
+        box-shadow: 0 0 0 2px var(--erp-focus-ring);
+    }
+
+    .template-option-icon {
+        align-items: center;
+        background: var(--erp-primary-soft);
+        block-size: 40px;
+        border-radius: var(--erp-radius-md);
+        color: var(--erp-primary);
+        display: inline-flex;
+        inline-size: 40px;
+        justify-content: center;
+    }
+
+    .template-option-copy {
+        display: grid;
+        gap: var(--erp-space-1);
+        min-inline-size: 0;
+    }
+
+    .template-option-copy strong {
+        font-size: var(--erp-font-size-md);
+    }
+
+    .template-option-copy small {
+        color: var(--erp-text-muted);
+        line-height: 1.5;
+    }
+
+    .template-active-chip {
+        background: var(--erp-success-soft);
+        border: 1px solid color-mix(in srgb, var(--erp-success) 28%, var(--erp-border));
+        border-radius: 999px;
+        color: var(--erp-success);
+        font-size: var(--erp-font-size-xs);
+        font-weight: 700;
+        inset-block-start: var(--erp-space-3);
+        inset-inline-end: var(--erp-space-3);
+        padding: 2px 8px;
+        position: absolute;
+    }
+
+    .template-actions,
+    .template-editor-header {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--erp-space-2);
+        justify-content: space-between;
+    }
+
+    .template-editor-header h4,
+    .template-editor-header p {
+        margin: 0;
+    }
+
+    .template-editor-header p {
+        color: var(--erp-text-muted);
+    }
+
+    .template-section-card {
+        margin-block-end: var(--erp-space-4);
+    }
+
+    .template-section-title {
+        align-items: center;
+        color: var(--erp-text);
+        display: flex;
+        font-weight: 700;
+        gap: var(--erp-space-2);
+        margin-block-end: var(--erp-space-3);
+    }
+
+    .template-field-grid {
+        display: grid;
+        gap: var(--erp-space-3);
+    }
+
+    .template-field {
+        border-block-start: 1px solid var(--erp-border);
+        padding-block-start: var(--erp-space-3);
+    }
+
+    .template-field:first-child {
+        border-block-start: 0;
+        padding-block-start: 0;
+    }
+
+    .template-field-label {
+        align-items: center;
+        display: flex;
+        gap: var(--erp-space-2);
+        justify-content: space-between;
+        margin-block-end: var(--erp-space-2);
+    }
+
+    .template-field-label > span {
+        font-weight: 700;
+    }
+
+    .template-image-editor {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--erp-space-3);
+    }
+
+    .template-image-editor img {
+        aspect-ratio: 16 / 10;
+        background: var(--erp-surface-muted);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        inline-size: min(240px, 100%);
+        object-fit: contain;
+        padding: var(--erp-space-2);
+    }
+</style>

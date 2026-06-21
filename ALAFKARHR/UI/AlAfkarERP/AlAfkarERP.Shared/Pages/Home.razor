@@ -3,10 +3,14 @@
 @implements IDisposable
 @using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.HomeTemplates
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.GeneralSettings.Dtos
 @inject IProductService ProductService
+@inject IHomePageTemplateService HomePageTemplateService
 @inject ApiConfig ApiConfig
 @inject SharedDataService SharedDataService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -14,6 +18,8 @@
 <PageTitle>ALAFKAR Store</PageTitle>
 
 <main class="home-page" dir="@SharedDataService.PageDirection">
+    <HomePageTemplateRenderer HomePage="homePage" />
+
     <section class="home-hero">
         <div class="container">
             <div class="home-hero-grid">
@@ -171,13 +177,13 @@
                 <div class="store-heading-copy">
                     <span class="store-kicker">
                         <i class="bi bi-grid-3x3-gap"></i>
-                        @Text("Product menu", "قائمة المنتجات")
+                        @TemplateText("Products", "Kicker", Text("Product menu", "قائمة المنتجات"))
                     </span>
-                    <h2>@Text("Choose the right meal package.", "اختر باقة الوجبات المناسبة.")</h2>
+                    <h2>@TemplateText("Products", "Title", Text("Choose the right meal package.", "اختر باقة الوجبات المناسبة."))</h2>
                     <p>
-                        @Text(
+                        @TemplateText("Products", "Subtitle", Text(
                             "Filter available catalog products and review price, brand, package, and category details before moving into the ERP workflow.",
-                            "صف المنتجات المتاحة في الكتالوج وراجع السعر والعلامة والتغليف والصنف قبل الانتقال إلى سير عمل النظام.")
+                            "صف المنتجات المتاحة في الكتالوج وراجع السعر والعلامة والتغليف والصنف قبل الانتقال إلى سير عمل النظام."))
                     </p>
                 </div>
 
@@ -427,6 +433,7 @@
     private const int PageSize = 6;
     private long totalProductCount;
     private Guid? authenticatedCustomerId;
+    private HomePageTemplateDto? homePage;
 
     private int TotalPages => totalProductCount <= 0
         ? 1
@@ -465,9 +472,22 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadHomePageTemplateAsync();
         await ResolveAuthenticatedCustomerAsync();
         await LoadFilterMetadataAsync();
         await LoadProductSkusAsync();
+    }
+
+    private async Task LoadHomePageTemplateAsync()
+    {
+        if (ApiConfig.CompanyId == Guid.Empty)
+            return;
+
+        var response = await HomePageTemplateService.GetPublicAsync(ApiConfig.CompanyId);
+        if (response.IsSuccess && response.Data is not null)
+        {
+            homePage = response.Data;
+        }
     }
 
     private async Task ResolveAuthenticatedCustomerAsync()
@@ -752,6 +772,20 @@
 
     private string Text(string? en, string? ar)
         => SharedDataService.SelectViewLang(en ?? "", ar ?? "");
+
+    private string TemplateText(string sectionKey, string fieldKey, string fallback)
+    {
+        var item = homePage?.ContentItems.FirstOrDefault(x =>
+            x.TemplateKey == homePage.ActiveTemplateKey &&
+            string.Equals(x.SectionKey, sectionKey, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(x.FieldKey, fieldKey, StringComparison.OrdinalIgnoreCase));
+
+        if (item is null || !item.IsVisible)
+            return fallback;
+
+        var text = SharedDataService.SelectViewLang(item.TextEn ?? "", item.TextAr ?? "");
+        return string.IsNullOrWhiteSpace(text) ? fallback : text;
+    }
 
     public void Dispose()
     {

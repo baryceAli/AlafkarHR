@@ -99,6 +99,7 @@ public static class PermissionList
             CompanyPermissions.Select,
             CompanyPermissions.View,
             CompanyPermissions.Edit,
+            CompanyPermissions.ViewLicense,
             CompanyPermissions.ViewChild,
             CompanyPermissions.CreateChild,
             CompanyPermissions.EditChild,
@@ -108,6 +109,7 @@ public static class PermissionList
             ..RolesPermissions.Permissions,
             SystemSettingsPermissions.Select,
             SystemSettingsPermissions.View,
+            SystemSettingsPermissions.Edit,
         ];
 
         return list
