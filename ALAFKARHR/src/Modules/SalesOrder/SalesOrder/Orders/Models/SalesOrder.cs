@@ -20,10 +20,20 @@ public class SalesOrder : Aggregate<Guid>
     public Guid? SourceQuotationId { get; private set; }
     public string? SalespersonId { get; private set; }
     public SalesInvoicingPolicy InvoicingPolicy { get; private set; } = SalesInvoicingPolicy.InvoiceDeliveredQuantity;
+    public SalesOrderSourceType SourceType { get; private set; } = SalesOrderSourceType.Manual;
+    public Guid? SourceDocumentId { get; private set; }
+    public string? SourceDocumentNumber { get; private set; }
+    public Guid? PaymentId { get; private set; }
+    public Guid? AccountingDocumentId { get; private set; }
+    public Guid? ZatcaEInvoiceId { get; private set; }
 
     public SalesOrderStatus Status { get; private set; }
 
     public DateTime OrderDate { get; private set; }
+    public DateTime? DeliveryDate { get; private set; }
+    public string? CustomerPurchaseOrderNumber { get; private set; }
+    public string? Notes { get; private set; }
+    public string? Terms { get; private set; }
 
     public decimal Subtotal { get; private set; }
 
@@ -61,7 +71,15 @@ public class SalesOrder : Aggregate<Guid>
         string createdBy,
         string? salespersonId = null,
         Guid? sourceQuotationId = null,
-        SalesInvoicingPolicy invoicingPolicy = SalesInvoicingPolicy.InvoiceDeliveredQuantity)
+        SalesInvoicingPolicy invoicingPolicy = SalesInvoicingPolicy.InvoiceDeliveredQuantity,
+        SalesOrderSourceType sourceType = SalesOrderSourceType.Manual,
+        Guid? sourceDocumentId = null,
+        string? sourceDocumentNumber = null,
+        Guid? paymentId = null,
+        DateTime? deliveryDate = null,
+        string? customerPurchaseOrderNumber = null,
+        string? notes = null,
+        string? terms = null)
     {
         return new SalesOrder
         {
@@ -75,6 +93,14 @@ public class SalesOrder : Aggregate<Guid>
             SalespersonId = salespersonId ?? createdBy,
             SourceQuotationId = sourceQuotationId,
             InvoicingPolicy = invoicingPolicy,
+            SourceType = sourceType,
+            SourceDocumentId = sourceDocumentId,
+            SourceDocumentNumber = sourceDocumentNumber,
+            PaymentId = paymentId,
+            DeliveryDate = deliveryDate,
+            CustomerPurchaseOrderNumber = customerPurchaseOrderNumber,
+            Notes = notes,
+            Terms = terms,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
@@ -142,6 +168,13 @@ public class SalesOrder : Aggregate<Guid>
     {
         EnsureDraft();
         PriceListId = priceListId;
+    }
+
+    public void LinkAccounting(Guid accountingDocumentId, Guid? zatcaEInvoiceId)
+    {
+        AccountingDocumentId = accountingDocumentId;
+        ZatcaEInvoiceId = zatcaEInvoiceId;
+        ModifiedAt = DateTime.UtcNow;
     }
 
     public void Confirm()

@@ -126,6 +126,9 @@ public class SalesQuotationActionHandler(SalesOrderDbContext dbContext, IHttpCon
                     CouponCode = quotation.CouponCode,
                     SalespersonId = quotation.SalespersonId,
                     SourceQuotationId = quotation.Id,
+                    SourceType = SalesOrderSourceType.QuotationConversion,
+                    SourceDocumentId = quotation.Id,
+                    SourceDocumentNumber = quotation.Number,
                     CompanyId = quotation.CompanyId,
                     Lines = orderDto.Lines.Select(x => new SalesOrderLineDto
                     {

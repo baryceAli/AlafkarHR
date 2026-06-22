@@ -124,9 +124,16 @@
                 {
                     <div class="alert alert-success">
                         <div class="fw-semibold">@Text("Checkout completed", "تم إكمال الدفع")</div>
-                        <div>@Text("Order intake", "طلب البيع"): @checkoutResult.Number</div>
+                        <div>@Text("Sales order", "أمر بيع"): @(checkoutResult.SalesOrderNumber ?? checkoutResult.Number)</div>
                         <div>@Text("Total", "الإجمالي"): @Money(checkoutResult.CheckoutTotal)</div>
-                        <a class="btn btn-sm btn-outline-success mt-2" href="@($"/Orders/Intakes/{checkoutResult.OrderIntakeId}")">@Text("View intake", "عرض الطلب")</a>
+                        @if (checkoutResult.SalesOrderId.HasValue)
+                        {
+                            <a class="btn btn-sm btn-outline-success mt-2" href="@($"/Sales/Orders/{checkoutResult.SalesOrderId}")">@Text("View sales order", "عرض أمر البيع")</a>
+                        }
+                        else if (checkoutResult.OrderIntakeId.HasValue)
+                        {
+                            <a class="btn btn-sm btn-outline-success mt-2" href="@($"/Orders/Intakes/{checkoutResult.OrderIntakeId}")">@Text("View intake", "عرض الطلب")</a>
+                        }
                     </div>
                 }
 

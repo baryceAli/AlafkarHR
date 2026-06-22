@@ -9,9 +9,11 @@ namespace AlAfkarERP.Shared.Pages.Features.SalesOrder.Services;
 public class SalesService : BaseApiService, ISalesService
 {
     private readonly string _path;
+    private readonly string _apiVersion;
 
     public SalesService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
+        _apiVersion = apiConfig.Version;
         _path = $"api/{apiConfig.Version}/sales";
     }
 
@@ -31,6 +33,15 @@ public class SalesService : BaseApiService, ISalesService
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/orders/{id}");
         return await SendAsync<SalesOrderDto>(request, "salesOrder");
+    }
+
+    public async Task<ApiResult<CreateManualSalesOrderResponseDto>> CreateManualOrderAsync(CreateManualSalesOrderDto order)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiVersion}/SalesOrders/manual")
+        {
+            Content = JsonContent.Create(new { SalesOrder = order })
+        };
+        return await SendAsync<CreateManualSalesOrderResponseDto>(request, null);
     }
 
     public async Task<ApiResult<PaginatedResult<SalesQuotationDto>>> GetQuotationsByCompanyAsync(Guid companyId, int pageIndex, int pageSize)

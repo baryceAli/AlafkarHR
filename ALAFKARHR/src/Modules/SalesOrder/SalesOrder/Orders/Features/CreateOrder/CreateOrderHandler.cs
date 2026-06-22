@@ -22,7 +22,15 @@ public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
             user,
             request.SalesOrder.SalespersonId,
             request.SalesOrder.SourceQuotationId,
-            request.SalesOrder.InvoicingPolicy);
+            request.SalesOrder.InvoicingPolicy,
+            request.SalesOrder.SourceType,
+            request.SalesOrder.SourceDocumentId,
+            request.SalesOrder.SourceDocumentNumber,
+            request.SalesOrder.PaymentId,
+            request.SalesOrder.DeliveryDate,
+            request.SalesOrder.CustomerPurchaseOrderNumber,
+            request.SalesOrder.Notes,
+            request.SalesOrder.Terms);
 
         if (request.SalesOrder.Lines.Any())
         {

@@ -9,6 +9,7 @@ public interface ISalesService
     Task<ApiResult<SalesDashboardDto>> GetDashboardAsync(Guid companyId);
     Task<ApiResult<PaginatedResult<SalesOrderDto>>> GetOrdersByCompanyAsync(Guid companyId, int pageIndex, int pageSize);
     Task<ApiResult<SalesOrderDto>> GetOrderByIdAsync(Guid id);
+    Task<ApiResult<CreateManualSalesOrderResponseDto>> CreateManualOrderAsync(CreateManualSalesOrderDto order);
     Task<ApiResult<PaginatedResult<SalesQuotationDto>>> GetQuotationsByCompanyAsync(Guid companyId, int pageIndex, int pageSize);
     Task<ApiResult<SalesQuotationDto>> GetQuotationByIdAsync(Guid id);
     Task<ApiResult<Guid>> CreateQuotationAsync(SalesQuotationDto quotation);
@@ -29,4 +30,10 @@ public interface ISalesService
     Task<ApiResult<bool>> CancelReturnAsync(Guid id);
     Task<ApiResult<SalesSettingsDto>> GetSettingsAsync(Guid companyId);
     Task<ApiResult<bool>> UpdateSettingsAsync(SalesSettingsDto settings);
+}
+
+public class CreateManualSalesOrderResponseDto
+{
+    public Guid Id { get; set; }
+    public string Number { get; set; } = string.Empty;
 }
