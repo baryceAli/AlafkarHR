@@ -19,7 +19,10 @@ public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
             request.SalesOrder.CustomerId,
             request.SalesOrder.PriceListId,
             request.SalesOrder.CompanyId,
-            user);
+            user,
+            request.SalesOrder.SalespersonId,
+            request.SalesOrder.SourceQuotationId,
+            request.SalesOrder.InvoicingPolicy);
 
         if (request.SalesOrder.Lines.Any())
         {
@@ -46,7 +49,7 @@ public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
                 if (!request.SalesOrder.PriceListId.HasValue && resolvedPrice.Price.PriceListId.HasValue)
                     order.ApplyResolvedPriceList(resolvedPrice.Price.PriceListId);
 
-                order.AddLine(line.ProductId,
+                var orderLine = order.AddLine(line.ProductId,
                     line.ProductSkuId,
                     line.ProductName,
                     line.ProductNameEng,
@@ -58,6 +61,23 @@ public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
                     resolvedPrice.Price.TaxRate,
                     line.Notes,
                     user);
+
+                orderLine.ApplyPricingSnapshot(
+                    resolvedPrice.Price.PriceSource,
+                    resolvedPrice.Price.SourceId,
+                    resolvedPrice.Price.SourceUnitPrice,
+                    resolvedPrice.Price.PromotionUnitPrice,
+                    resolvedPrice.Price.BulkDiscountRate,
+                    resolvedPrice.Price.BulkDiscountAmount,
+                    resolvedPrice.Price.CustomerDiscountRate,
+                    resolvedPrice.Price.CustomerDiscountAmount,
+                    resolvedPrice.Price.CouponCode,
+                    resolvedPrice.Price.CouponStatus,
+                    resolvedPrice.Price.CouponDiscountType,
+                    resolvedPrice.Price.CouponDiscountValue,
+                    resolvedPrice.Price.CouponDiscountAmount,
+                    resolvedPrice.Price.TaxableAmount,
+                    resolvedPrice.Price.FinalUnitAmount);
             }
         }
 

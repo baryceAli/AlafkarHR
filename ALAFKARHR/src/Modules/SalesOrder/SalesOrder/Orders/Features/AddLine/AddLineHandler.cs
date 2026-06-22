@@ -39,7 +39,7 @@ public class AddLineHandler(SalesOrderDbContext dbContext, IHttpContextAccessor 
                 if (!salesOrder.PriceListId.HasValue && resolvedPrice.Price.PriceListId.HasValue)
                     salesOrder.ApplyResolvedPriceList(resolvedPrice.Price.PriceListId);
 
-                salesOrder.AddLine(
+                var orderLine = salesOrder.AddLine(
                     command.SalesOrderLine.ProductId,
                     command.SalesOrderLine.ProductSkuId,
                     command.SalesOrderLine.ProductName,
@@ -52,6 +52,23 @@ public class AddLineHandler(SalesOrderDbContext dbContext, IHttpContextAccessor 
                     resolvedPrice.Price.TaxRate,
                     command.SalesOrderLine.Notes,
                     user);
+
+                orderLine.ApplyPricingSnapshot(
+                    resolvedPrice.Price.PriceSource,
+                    resolvedPrice.Price.SourceId,
+                    resolvedPrice.Price.SourceUnitPrice,
+                    resolvedPrice.Price.PromotionUnitPrice,
+                    resolvedPrice.Price.BulkDiscountRate,
+                    resolvedPrice.Price.BulkDiscountAmount,
+                    resolvedPrice.Price.CustomerDiscountRate,
+                    resolvedPrice.Price.CustomerDiscountAmount,
+                    resolvedPrice.Price.CouponCode,
+                    resolvedPrice.Price.CouponStatus,
+                    resolvedPrice.Price.CouponDiscountType,
+                    resolvedPrice.Price.CouponDiscountValue,
+                    resolvedPrice.Price.CouponDiscountAmount,
+                    resolvedPrice.Price.TaxableAmount,
+                    resolvedPrice.Price.FinalUnitAmount);
             //}
         //}
 

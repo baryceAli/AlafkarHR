@@ -25,6 +25,7 @@ public class SalesOrderLine : Entity<Guid>
     public decimal DeliveredQuantity { get; private set; }
 
     public decimal InvoicedQuantity { get; private set; }
+    public decimal ReturnedQuantity { get; private set; }
 
     public decimal UnitPrice { get; private set; }
     public Guid UnitOfMeasureId { get; private set; }
@@ -40,6 +41,24 @@ public class SalesOrderLine : Entity<Guid>
         (Quantity * UnitPrice) - DiscountAmount;
 
     public string? Notes { get; private set; }
+    public string? PriceSource { get; private set; }
+    public Guid? PriceSourceId { get; private set; }
+    public decimal? SourceUnitPrice { get; private set; }
+    public decimal? PromotionUnitPrice { get; private set; }
+    public decimal BulkDiscountRate { get; private set; }
+    public decimal BulkDiscountAmount { get; private set; }
+    public decimal CustomerDiscountRate { get; private set; }
+    public decimal CustomerDiscountAmount { get; private set; }
+    public string? CouponCode { get; private set; }
+    public string? CouponStatus { get; private set; }
+    public string? CouponDiscountType { get; private set; }
+    public decimal? CouponDiscountValue { get; private set; }
+    public decimal CouponDiscountAmount { get; private set; }
+    public decimal TaxableAmount { get; private set; }
+    public decimal FinalUnitAmount { get; private set; }
+    public bool IsManualPriceOverride { get; private set; }
+    public string? PriceOverrideBy { get; private set; }
+    public DateTime? PriceOverrideAt { get; private set; }
     public decimal TotalAmount =>
         NetAmount + TaxAmount;
 
@@ -157,6 +176,16 @@ public class SalesOrderLine : Entity<Guid>
 
         InvoicedQuantity += quantity;
     }
+    internal void Return(decimal quantity)
+    {
+        if (quantity <= 0)
+            throw new Exception("Invalid quantity.");
+
+        if (ReturnedQuantity + quantity > DeliveredQuantity)
+            throw new Exception("Cannot return more than delivered quantity.");
+
+        ReturnedQuantity += quantity;
+    }
     internal void ChangeQuantity(decimal quantity)
     {
         if (quantity <= 0)
@@ -186,5 +215,46 @@ public class SalesOrderLine : Entity<Guid>
         if (taxRate < 0 || taxRate > 100)
             throw new Exception("Invalid tax rate.");
         TaxRate = taxRate;
+    }
+
+    internal void ApplyPricingSnapshot(
+        string? priceSource,
+        Guid? priceSourceId,
+        decimal? sourceUnitPrice,
+        decimal? promotionUnitPrice,
+        decimal bulkDiscountRate,
+        decimal bulkDiscountAmount,
+        decimal customerDiscountRate,
+        decimal customerDiscountAmount,
+        string? couponCode,
+        string? couponStatus,
+        string? couponDiscountType,
+        decimal? couponDiscountValue,
+        decimal couponDiscountAmount,
+        decimal taxableAmount,
+        decimal finalUnitAmount)
+    {
+        PriceSource = priceSource;
+        PriceSourceId = priceSourceId;
+        SourceUnitPrice = sourceUnitPrice;
+        PromotionUnitPrice = promotionUnitPrice;
+        BulkDiscountRate = bulkDiscountRate;
+        BulkDiscountAmount = bulkDiscountAmount;
+        CustomerDiscountRate = customerDiscountRate;
+        CustomerDiscountAmount = customerDiscountAmount;
+        CouponCode = couponCode;
+        CouponStatus = couponStatus;
+        CouponDiscountType = couponDiscountType;
+        CouponDiscountValue = couponDiscountValue;
+        CouponDiscountAmount = couponDiscountAmount;
+        TaxableAmount = taxableAmount;
+        FinalUnitAmount = finalUnitAmount;
+    }
+
+    internal void MarkManualPriceOverride(string userId)
+    {
+        IsManualPriceOverride = true;
+        PriceOverrideBy = userId;
+        PriceOverrideAt = DateTime.UtcNow;
     }
 }

@@ -1,0 +1,157 @@
+@layout AdminLayout
+@page "/Sales/Returns"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.SalesOrder.Dtos
+@using SharedWithUI.SalesOrder.Enums
+
+@inject ISalesService SalesService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<section class="sales-page" dir="@SharedDataService.PageDirection">
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        return;
+    }
+
+    <PageHeader Title="@Text("Sales Returns", "مرتجعات المبيعات")"
+                Subtitle="@Text("Post customer returns and optional credit notes.", "ترحيل مرتجعات العملاء وإشعارات الدائن عند الحاجة.")"
+                Overline="@Text("Sales", "المبيعات")"
+                Icon="bi-arrow-counterclockwise" />
+
+    <AppCard Title="@Text("Returns", "المرتجعات")">
+        @if (isLoading)
+        {
+            <div class="erp-loading py-4"><div class="spinner-border text-primary" role="status"></div></div>
+        }
+        else if (!returns.Any())
+        {
+            <EmptyState Title="@Text("No returns", "لا توجد مرتجعات")"
+                        Message="@Text("Customer returns will appear here.", "ستظهر مرتجعات العملاء هنا.")"
+                        Icon="bi-arrow-counterclockwise" />
+        }
+        else
+        {
+            <div class="erp-table-wrap">
+                <table class="table erp-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>@Text("Number", "الرقم")</th>
+                            <th>@Text("Status", "الحالة")</th>
+                            <th>@Text("Date", "التاريخ")</th>
+                            <th>@Text("Credit note", "إشعار دائن")</th>
+                            <th>@Text("Total", "الإجمالي")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var salesReturn in returns)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@salesReturn.Number</td>
+                                <td><span class="badge rounded-pill @StatusBadge(salesReturn.Status)">@salesReturn.Status</span></td>
+                                <td>@salesReturn.ReturnDate.ToString("yyyy-MM-dd")</td>
+                                <td>@(salesReturn.CreateCreditNote ? Text("Yes", "نعم") : Text("No", "لا"))</td>
+                                <td>@salesReturn.TotalAmount.ToString("N2")</td>
+                                <td class="text-end">
+                                    @if (salesReturn.Status == SalesReturnStatus.Draft && CanPost)
+                                    {
+                                        <button class="btn btn-sm btn-primary" @onclick="() => PostAsync(salesReturn.Id)">
+                                            <i class="bi bi-check2-circle"></i> @Text("Post", "ترحيل")
+                                        </button>
+                                    }
+                                    @if (salesReturn.Status == SalesReturnStatus.Draft && CanCancel)
+                                    {
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => CancelAsync(salesReturn.Id)">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </AppCard>
+</section>
+
+@code {
+    private bool CanView;
+    private bool CanPost;
+    private bool CanCancel;
+    private bool isLoading;
+    private Guid companyId;
+    private List<SalesReturnDto> returns = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var permissions = authState.User.Claims.Select(c => c.Value).ToHashSet();
+        CanView = permissions.Contains(PermissionList.SalesReturnPermissions.View);
+        CanPost = permissions.Contains(PermissionList.SalesReturnPermissions.Post);
+        CanCancel = permissions.Contains(PermissionList.SalesReturnPermissions.Cancel);
+        if (!authState.User.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+        if (CanView)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await SalesService.GetReturnsByCompanyAsync(companyId, 0, 50);
+        returns = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+        isLoading = false;
+    }
+
+    private async Task PostAsync(Guid id)
+    {
+        var result = await SalesService.PostReturnAsync(id);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Return posted.", "تم ترحيل المرتجع."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to post return.", "تعذر ترحيل المرتجع."));
+        }
+    }
+
+    private async Task CancelAsync(Guid id)
+    {
+        var result = await SalesService.CancelReturnAsync(id);
+        if (result.IsSuccess)
+            await LoadAsync();
+        else
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to cancel return.", "تعذر إلغاء المرتجع."));
+    }
+
+    private static string StatusBadge(SalesReturnStatus status) => status switch
+    {
+        SalesReturnStatus.Posted => "text-bg-success",
+        SalesReturnStatus.Cancelled => "text-bg-danger",
+        _ => "text-bg-secondary"
+    };
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

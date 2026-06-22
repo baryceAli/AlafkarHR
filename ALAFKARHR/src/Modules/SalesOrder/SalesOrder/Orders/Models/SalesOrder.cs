@@ -17,6 +17,9 @@ public class SalesOrder : Aggregate<Guid>
     public Guid CustomerId { get; private set; }
 
     public Guid? PriceListId { get; private set; }
+    public Guid? SourceQuotationId { get; private set; }
+    public string? SalespersonId { get; private set; }
+    public SalesInvoicingPolicy InvoicingPolicy { get; private set; } = SalesInvoicingPolicy.InvoiceDeliveredQuantity;
 
     public SalesOrderStatus Status { get; private set; }
 
@@ -55,7 +58,10 @@ public class SalesOrder : Aggregate<Guid>
         Guid customerId,
         Guid? priceListId,
         Guid companyId,
-        string createdBy)
+        string createdBy,
+        string? salespersonId = null,
+        Guid? sourceQuotationId = null,
+        SalesInvoicingPolicy invoicingPolicy = SalesInvoicingPolicy.InvoiceDeliveredQuantity)
     {
         return new SalesOrder
         {
@@ -66,6 +72,9 @@ public class SalesOrder : Aggregate<Guid>
             Status = SalesOrderStatus.Draft,
             OrderDate = DateTime.UtcNow,
             CompanyId = companyId,
+            SalespersonId = salespersonId ?? createdBy,
+            SourceQuotationId = sourceQuotationId,
+            InvoicingPolicy = invoicingPolicy,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
@@ -156,7 +165,10 @@ public class SalesOrder : Aggregate<Guid>
         if (Status == SalesOrderStatus.Cancelled)
             throw new Exception("Order cancelled.");
 
-        if (Status != SalesOrderStatus.Invoiced)
+        if (Status != SalesOrderStatus.Confirmed &&
+            Status != SalesOrderStatus.Invoiced &&
+            Status != SalesOrderStatus.PartiallyInvoiced &&
+            Status != SalesOrderStatus.PartiallyDelivered)
             throw new Exception("Order cannot be delivered.");
 
         if (deliveredLines.Any())
@@ -202,6 +214,10 @@ public class SalesOrder : Aggregate<Guid>
             foreach (var l in deliveredLines)
             {
                 var line = GetLine(l.Key);
+                if (InvoicingPolicy == SalesInvoicingPolicy.InvoiceDeliveredQuantity &&
+                    line.InvoicedQuantity + l.Value > line.DeliveredQuantity)
+                    throw new Exception("Cannot invoice more than delivered quantity.");
+
                 line.Invoice(l.Value);
 
             }
@@ -245,7 +261,7 @@ public class SalesOrder : Aggregate<Guid>
         //        reason));
     }
 
-    public void AddLine(
+    public SalesOrderLine AddLine(
         //int lineNumber,
         Guid productId,
         Guid skuId,
@@ -282,6 +298,7 @@ public class SalesOrder : Aggregate<Guid>
         _lines.Add(line);
 
         RecalculateTotals();
+        return line;
     }
     public void RemoveLine(Guid lineId)
     {
@@ -362,6 +379,21 @@ public class SalesOrder : Aggregate<Guid>
         //throw new DomainException("Line not found.");
 
         return line;
+    }
+
+    public void Return(Dictionary<Guid, decimal> returnedLines)
+    {
+        if (Status == SalesOrderStatus.Cancelled)
+            throw new Exception("Cancelled order.");
+
+        if (returnedLines.Any())
+        {
+            foreach (var l in returnedLines)
+            {
+                var line = GetLine(l.Key);
+                line.Return(l.Value);
+            }
+        }
     }
 }
 

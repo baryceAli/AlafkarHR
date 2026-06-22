@@ -1,0 +1,158 @@
+@layout AdminLayout
+@page "/Sales/DeliveryNotes"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.SalesOrder.Dtos
+@using SharedWithUI.SalesOrder.Enums
+
+@inject ISalesService SalesService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<section class="sales-page" dir="@SharedDataService.PageDirection">
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        return;
+    }
+
+    <PageHeader Title="@Text("Delivery Notes", "إشعارات التسليم")"
+                Subtitle="@Text("Post sales deliveries and track warehouse shipment documents.", "ترحيل تسليمات المبيعات ومتابعة مستندات الشحن.")"
+                Overline="@Text("Sales", "المبيعات")"
+                Icon="bi-truck" />
+
+    <AppCard Title="@Text("Delivery Notes", "إشعارات التسليم")">
+        @if (isLoading)
+        {
+            <div class="erp-loading py-4"><div class="spinner-border text-primary" role="status"></div></div>
+        }
+        else if (!deliveryNotes.Any())
+        {
+            <EmptyState Title="@Text("No delivery notes", "لا توجد إشعارات تسليم")"
+                        Message="@Text("Delivery notes created from sales orders will appear here.", "ستظهر إشعارات التسليم المنشأة من أوامر البيع هنا.")"
+                        Icon="bi-truck" />
+        }
+        else
+        {
+            <div class="erp-table-wrap">
+                <table class="table erp-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>@Text("Number", "الرقم")</th>
+                            <th>@Text("Sales order", "أمر البيع")</th>
+                            <th>@Text("Status", "الحالة")</th>
+                            <th>@Text("Delivery date", "تاريخ التسليم")</th>
+                            <th>@Text("Lines", "الأصناف")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var note in deliveryNotes)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@note.Number</td>
+                                <td>@(note.SalesOrderNumber ?? note.SalesOrderId.ToString())</td>
+                                <td><span class="badge rounded-pill @StatusBadge(note.Status)">@note.Status</span></td>
+                                <td>@note.DeliveryDate.ToString("yyyy-MM-dd")</td>
+                                <td>@note.Lines.Count</td>
+                                <td class="text-end">
+                                    @if (note.Status == SalesDeliveryNoteStatus.Draft && CanPost)
+                                    {
+                                        <button class="btn btn-sm btn-primary" @onclick="() => PostAsync(note.Id)">
+                                            <i class="bi bi-check2-circle"></i> @Text("Post", "ترحيل")
+                                        </button>
+                                    }
+                                    @if (note.Status == SalesDeliveryNoteStatus.Draft && CanCancel)
+                                    {
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => CancelAsync(note.Id)">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </AppCard>
+</section>
+
+@code {
+    private bool CanView;
+    private bool CanPost;
+    private bool CanCancel;
+    private bool isLoading;
+    private Guid companyId;
+    private List<SalesDeliveryNoteDto> deliveryNotes = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var permissions = authState.User.Claims.Select(c => c.Value).ToHashSet();
+        CanView = permissions.Contains(PermissionList.SalesDeliveryNotePermissions.View);
+        CanPost = permissions.Contains(PermissionList.SalesDeliveryNotePermissions.Post);
+        CanCancel = permissions.Contains(PermissionList.SalesDeliveryNotePermissions.Cancel);
+        if (!authState.User.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+        if (CanView)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await SalesService.GetDeliveryNotesByCompanyAsync(companyId, 0, 50);
+        deliveryNotes = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+        isLoading = false;
+    }
+
+    private async Task PostAsync(Guid id)
+    {
+        var result = await SalesService.PostDeliveryNoteAsync(id);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Delivery note posted.", "تم ترحيل إشعار التسليم."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to post delivery note.", "تعذر ترحيل إشعار التسليم."));
+        }
+    }
+
+    private async Task CancelAsync(Guid id)
+    {
+        var result = await SalesService.CancelDeliveryNoteAsync(id);
+        if (result.IsSuccess)
+            await LoadAsync();
+        else
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to cancel delivery note.", "تعذر إلغاء إشعار التسليم."));
+    }
+
+    private static string StatusBadge(SalesDeliveryNoteStatus status) => status switch
+    {
+        SalesDeliveryNoteStatus.Delivered or SalesDeliveryNoteStatus.PartiallyDelivered => "text-bg-success",
+        SalesDeliveryNoteStatus.Submitted => "text-bg-primary",
+        SalesDeliveryNoteStatus.Cancelled => "text-bg-danger",
+        _ => "text-bg-secondary"
+    };
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

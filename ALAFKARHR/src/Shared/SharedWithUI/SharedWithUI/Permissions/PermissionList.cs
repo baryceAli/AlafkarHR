@@ -48,6 +48,11 @@ public static class PermissionList
             .. DocumentManagementPermissions.Permissions,
             .. MediaCenterPermissions.Permissions,
             .. SalesOrderPermissions.Permissions,
+            .. SalesQuotationPermissions.Permissions,
+            .. SalesDeliveryNotePermissions.Permissions,
+            .. SalesReturnPermissions.Permissions,
+            .. SalesReportPermissions.Permissions,
+            .. SalesPriceOverridePermissions.Permissions,
             .. PurchaseRequestPermissions.Permissions,
             .. RequestForQuotationPermissions.Permissions,
             .. SupplierQuotationPermissions.Permissions,
@@ -796,6 +801,77 @@ public static class PermissionList
                 $"{Return}",
                 $"{ViewReports}",
             };
+    }
+
+    public static class SalesQuotationPermissions
+    {
+        public static string GroupName { get; set; } = "Sales.Quotation";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Send { get; set; } = $"{GroupName}.Send";
+        public static string Accept { get; set; } = $"{GroupName}.Accept";
+        public static string Reject { get; set; } = $"{GroupName}.Reject";
+        public static string Convert { get; set; } = $"{GroupName}.Convert";
+        public static string Cancel { get; set; } = $"{GroupName}.Cancel";
+
+        public static List<string> Permissions =>
+        [
+            Select, View, Create, Edit, Delete, Send, Accept, Reject, Convert, Cancel
+        ];
+    }
+
+    public static class SalesDeliveryNotePermissions
+    {
+        public static string GroupName { get; set; } = "Sales.DeliveryNote";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Post { get; set; } = $"{GroupName}.Post";
+        public static string Cancel { get; set; } = $"{GroupName}.Cancel";
+
+        public static List<string> Permissions =>
+        [
+            Select, View, Create, Edit, Post, Cancel
+        ];
+    }
+
+    public static class SalesReturnPermissions
+    {
+        public static string GroupName { get; set; } = "Sales.Return";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Post { get; set; } = $"{GroupName}.Post";
+        public static string Cancel { get; set; } = $"{GroupName}.Cancel";
+        public static string Credit { get; set; } = $"{GroupName}.Credit";
+
+        public static List<string> Permissions =>
+        [
+            Select, View, Create, Edit, Post, Cancel, Credit
+        ];
+    }
+
+    public static class SalesReportPermissions
+    {
+        public static string GroupName { get; set; } = "Sales.Report";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Export { get; set; } = $"{GroupName}.Export";
+
+        public static List<string> Permissions => [View, Export];
+    }
+
+    public static class SalesPriceOverridePermissions
+    {
+        public static string GroupName { get; set; } = "Sales.PriceOverride";
+        public static string Apply { get; set; } = $"{GroupName}.Apply";
+        public static string Manage { get; set; } = $"{GroupName}.Manage";
+
+        public static List<string> Permissions => [Apply, Manage];
     }
 
     public static class CartPermissions

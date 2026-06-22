@@ -11,6 +11,8 @@ public class SalesOrderDto
 
     public Guid? PriceListId { get; set; }
     public string? CouponCode { get; set; }
+    public string? SalespersonId { get; set; }
+    public Guid? SourceQuotationId { get; set; }
 
     public SalesOrderStatus Status { get; set; }
 
@@ -41,5 +43,6 @@ public class SalesOrderDto
     public DateTime? CompletedAt { get; set; }
 
     public Guid CompanyId { get; set; }
+    public SalesInvoicingPolicy InvoicingPolicy { get; set; } = SalesInvoicingPolicy.InvoiceDeliveredQuantity;
 
 }
