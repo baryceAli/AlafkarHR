@@ -1515,7 +1515,10 @@ public static class PermissionList
         public static string View { get; set; } = $"{GroupName}.View";
         public static string Create { get; set; } = $"{GroupName}.Create";
         public static string Close { get; set; } = $"{GroupName}.Close";
-        public static List<string> Permissions => [View, Create, Close];
+        public static string Lock { get; set; } = $"{GroupName}.Lock";
+        public static string Reopen { get; set; } = $"{GroupName}.Reopen";
+        public static string YearEndClose { get; set; } = $"{GroupName}.YearEndClose";
+        public static List<string> Permissions => [View, Create, Close, Lock, Reopen, YearEndClose];
     }
 
     public static class TaxCodePermissions

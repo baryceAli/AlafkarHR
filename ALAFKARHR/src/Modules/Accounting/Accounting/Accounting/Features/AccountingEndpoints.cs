@@ -68,6 +68,22 @@ public class AccountingEndpoints : ICarterModule
             Results.Created($"{baseRoute}/fiscal-periods", await sender.Send(new CreateFiscalPeriodCommand(period))))
             .RequireAuthorization(PermissionList.FiscalPeriodPermissions.Create);
 
+        app.MapPost($"{baseRoute}/fiscal-periods/{{id:guid}}/close", async (Guid id, ISender sender) =>
+            Results.Ok(await sender.Send(new CloseFiscalPeriodCommand(id))))
+            .RequireAuthorization(PermissionList.FiscalPeriodPermissions.Close);
+
+        app.MapPost($"{baseRoute}/fiscal-periods/{{id:guid}}/lock", async (Guid id, ISender sender) =>
+            Results.Ok(await sender.Send(new LockFiscalPeriodCommand(id))))
+            .RequireAuthorization(PermissionList.FiscalPeriodPermissions.Lock);
+
+        app.MapPost($"{baseRoute}/fiscal-periods/{{id:guid}}/reopen", async (Guid id, ISender sender) =>
+            Results.Ok(await sender.Send(new ReopenFiscalPeriodCommand(id))))
+            .RequireAuthorization(PermissionList.FiscalPeriodPermissions.Reopen);
+
+        app.MapPost($"{baseRoute}/fiscal-periods/{{id:guid}}/year-end-close", async (Guid id, ISender sender) =>
+            Results.Ok(await sender.Send(new YearEndCloseFiscalPeriodCommand(id))))
+            .RequireAuthorization(PermissionList.FiscalPeriodPermissions.YearEndClose);
+
         app.MapGet($"{baseRoute}/tax-codes", async (Guid companyId, ISender sender) =>
             Results.Ok(await sender.Send(new GetTaxCodesQuery(companyId))))
             .RequireAuthorization(PermissionList.TaxCodePermissions.View);

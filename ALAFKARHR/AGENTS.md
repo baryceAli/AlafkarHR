@@ -13,3 +13,7 @@ Before UI, theme, layout, or visual design work, also read and follow:
 This applies to Blazor pages, layouts, sidebar/topbar, auth/public/POS/employee views, reusable components, theme tokens, RTL/LTR behavior, status chips, tables, forms, dashboards, and visual-style cleanup.
 
 Keep work focused: inspect only task-relevant files, reuse existing project patterns, avoid unrelated refactoring, and preserve current business logic, routes, DTOs, permissions, services, APIs, and localization unless the user explicitly asks to change them.
+
+When asked to compare any project functionality, workflow, module, or design against ERPNext, use the official ERPNext documentation at `https://docs.frappe.io/erpnext/` and relevant child links as the source of truth for ERPNext behavior, terminology, and feature details.
+
+When asked to compare any project functionality, workflow, module, or design against Odoo, use the official Odoo 19.0 documentation at `https://www.odoo.com/documentation/19.0/` and relevant child links as the source of truth for Odoo behavior, terminology, and feature details.

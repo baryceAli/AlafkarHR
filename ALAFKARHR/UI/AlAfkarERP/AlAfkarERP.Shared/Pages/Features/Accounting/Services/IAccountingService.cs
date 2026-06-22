@@ -19,6 +19,10 @@ public interface IAccountingService
     Task<ApiResult<Guid>> SaveAccountAsync(AccountDto account);
     Task<ApiResult<List<FiscalPeriodDto>>> GetFiscalPeriodsAsync(Guid companyId);
     Task<ApiResult<Guid>> CreateFiscalPeriodAsync(FiscalPeriodDto period);
+    Task<ApiResult<Guid>> CloseFiscalPeriodAsync(Guid id);
+    Task<ApiResult<Guid>> LockFiscalPeriodAsync(Guid id);
+    Task<ApiResult<Guid>> ReopenFiscalPeriodAsync(Guid id);
+    Task<ApiResult<Guid>> YearEndCloseFiscalPeriodAsync(Guid id);
     Task<ApiResult<List<TaxCodeDto>>> GetTaxCodesAsync(Guid companyId);
     Task<ApiResult<Guid>> CreateTaxCodeAsync(TaxCodeDto taxCode);
     Task<ApiResult<List<PostingProfileDto>>> GetPostingProfilesAsync(Guid companyId);

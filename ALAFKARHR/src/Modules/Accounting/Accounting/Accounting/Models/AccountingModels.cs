@@ -160,7 +160,33 @@ public class FiscalPeriod : Aggregate<Guid>
 
     public void Close(string userId)
     {
+        if (Status == FiscalPeriodStatus.Locked)
+            throw new BadRequestException("Locked fiscal periods must be reopened before closing.");
+
+        if (Status == FiscalPeriodStatus.Closed)
+            return;
+
         Status = FiscalPeriodStatus.Closed;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+
+    public void Lock(string userId)
+    {
+        if (Status == FiscalPeriodStatus.Locked)
+            return;
+
+        Status = FiscalPeriodStatus.Locked;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+
+    public void Reopen(string userId)
+    {
+        if (Status == FiscalPeriodStatus.Open)
+            return;
+
+        Status = FiscalPeriodStatus.Open;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = userId;
     }
