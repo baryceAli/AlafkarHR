@@ -1,0 +1,83 @@
+@layout AdminLayout
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Chart of Accounts", "دليل الحسابات")"
+                Subtitle="@SharedDataService.SelectViewLang("Company-scoped ledger accounts used by posting profiles and journals.", "حسابات دفتر الأستاذ المستخدمة في التوجيهات والقيود.")"
+                Overline="@SharedDataService.SelectViewLang("Accounting", "المحاسبة")"
+                Icon="bi-diagram-3" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <AppCard>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>@SharedDataService.SelectViewLang("Code", "الكود")</th>
+                            <th>@SharedDataService.SelectViewLang("Name", "الاسم")</th>
+                            <th>@SharedDataService.SelectViewLang("Type", "النوع")</th>
+                            <th>@SharedDataService.SelectViewLang("Balance", "الطبيعة")</th>
+                            <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var account in accounts)
+                        {
+                            <tr>
+                                <td><strong>@account.Code</strong></td>
+                                <td>@SharedDataService.SelectViewLang(account.NameEng, account.Name)</td>
+                                <td>@account.Type</td>
+                                <td>@account.NormalBalance</td>
+                                <td><span class="badge text-bg-@(account.IsActive ? "success" : "secondary")">@SharedDataService.SelectViewLang(account.IsActive ? "Active" : "Inactive", account.IsActive ? "نشط" : "غير نشط")</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (!accounts.Any())
+            {
+                <div class="text-muted py-4 text-center">@SharedDataService.SelectViewLang("No accounts found.", "لا توجد حسابات.")</div>
+            }
+        </AppCard>
+    }
+</div>
+
+@code {
+    private List<AccountDto> accounts = [];
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private bool CanView => authState?.User.Claims.Any(c => c.Value == PermissionList.AccountPermissions.View) == true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var claim = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+        Guid.TryParse(claim, out companyId);
+
+        if (companyId != Guid.Empty)
+        {
+            var result = await AccountingService.GetAccountsAsync(companyId, 1, 50, null);
+            if (result.IsSuccess && result.Data is not null)
+                accounts = result.Data.Data.ToList();
+        }
+    }
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

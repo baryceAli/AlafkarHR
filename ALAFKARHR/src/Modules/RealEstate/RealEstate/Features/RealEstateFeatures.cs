@@ -492,6 +492,21 @@ public class RealEstateHandlers(RealEstateDbContext dbContext, ISender sender, I
             installment.AllocatePayment(request.Payment.PaymentReferenceId, request.Payment.PaymentDate, request.Payment.Reference, allocation.Amount, request.Payment.Notes, CurrentUserId());
         }
         await dbContext.SaveChangesAsync(cancellationToken);
+        var paidAmount = request.Payment.Allocations.Sum(x => x.Amount);
+        if (paidAmount > 0)
+        {
+            await sender.Send(new RecordAccountingReceiptCommand(
+                lease.CompanyId,
+                lease.BranchId,
+                lease.PartyId,
+                lease.PartyDisplayName,
+                "RealEstate",
+                request.Payment.PaymentReferenceId,
+                request.Payment.Reference ?? lease.Number,
+                paidAmount,
+                false,
+                request.Payment.PaymentDate), cancellationToken);
+        }
         return new BoolResult(true);
     }
 
@@ -529,6 +544,7 @@ public class RealEstateHandlers(RealEstateDbContext dbContext, ISender sender, I
         var expense = PropertyExpense.Create(request.Expense, CurrentUserId());
         dbContext.PropertyExpenses.Add(expense);
         await dbContext.SaveChangesAsync(cancellationToken);
+        await PostPropertyExpenseAccountingAsync(expense, cancellationToken);
         return new IdResult(expense.Id);
     }
 
@@ -616,6 +632,7 @@ public class RealEstateHandlers(RealEstateDbContext dbContext, ISender sender, I
         var bill = UtilityBill.Create(request.UtilityBill, CurrentUserId());
         dbContext.UtilityBills.Add(bill);
         await dbContext.SaveChangesAsync(cancellationToken);
+        await PostUtilityBillAccountingAsync(bill, account, cancellationToken);
         return new IdResult(bill.Id);
     }
 
@@ -648,6 +665,9 @@ public class RealEstateHandlers(RealEstateDbContext dbContext, ISender sender, I
             ?? throw new NotFoundException($"Utility bill not found: {request.Id}");
         bill.MarkPaid(CurrentUserId());
         await dbContext.SaveChangesAsync(cancellationToken);
+        var account = await dbContext.UtilityAccounts.AsNoTracking().FirstOrDefaultAsync(x => x.Id == bill.UtilityAccountId && !x.IsDeleted, cancellationToken)
+            ?? throw new NotFoundException($"Utility account not found: {bill.UtilityAccountId}");
+        await PostUtilityBillPaymentAccountingAsync(bill, account, cancellationToken);
         return new BoolResult(true);
     }
 
@@ -832,6 +852,95 @@ public class RealEstateHandlers(RealEstateDbContext dbContext, ISender sender, I
     {
         var exists = await dbContext.Properties.AnyAsync(x => x.Id == propertyId && !x.IsDeleted, cancellationToken);
         if (!exists) throw new NotFoundException($"Property not found: {propertyId}");
+    }
+
+    private async Task PostPropertyExpenseAccountingAsync(PropertyExpense expense, CancellationToken cancellationToken)
+    {
+        var document = new AccountingDocumentDto
+        {
+            CompanyId = expense.CompanyId,
+            Type = AccountingDocumentType.SupplierInvoice,
+            DocumentDate = expense.ExpenseDate,
+            PartyId = expense.SupplierId,
+            PartyName = expense.SupplierName,
+            SourceModule = "RealEstate",
+            SourceDocumentId = expense.Id,
+            SourceDocumentNumber = expense.SourceDocumentNumber ?? $"EXP-{expense.Id:N}"[..16],
+            Lines =
+            [
+                new AccountingDocumentLineDto
+                {
+                    Description = expense.Category.ToString(),
+                    Quantity = 1,
+                    UnitPrice = expense.Amount,
+                    NetAmount = expense.Amount,
+                    TaxAmount = expense.TaxAmount,
+                    TotalAmount = expense.TotalAmount
+                }
+            ]
+        };
+
+        var created = await sender.Send(new CreateAccountingDocumentCommand(document), cancellationToken);
+        await sender.Send(new PostAccountingDocumentCommand(created.Id), cancellationToken);
+    }
+
+    private async Task PostUtilityBillAccountingAsync(UtilityBill bill, UtilityAccount account, CancellationToken cancellationToken)
+    {
+        var document = new AccountingDocumentDto
+        {
+            CompanyId = account.CompanyId,
+            Type = AccountingDocumentType.SupplierInvoice,
+            DocumentDate = bill.BillDate,
+            PartyId = account.SupplierId,
+            PartyName = account.ProviderName,
+            SourceModule = "RealEstate",
+            SourceDocumentId = bill.Id,
+            SourceDocumentNumber = bill.Reference ?? $"UTIL-{bill.Id:N}"[..17],
+            Lines =
+            [
+                new AccountingDocumentLineDto
+                {
+                    Description = $"{account.ServiceType} utility bill",
+                    Quantity = 1,
+                    UnitPrice = bill.Amount,
+                    NetAmount = bill.Amount,
+                    TaxAmount = bill.TaxAmount,
+                    TotalAmount = bill.TotalAmount
+                }
+            ]
+        };
+
+        var created = await sender.Send(new CreateAccountingDocumentCommand(document), cancellationToken);
+        await sender.Send(new PostAccountingDocumentCommand(created.Id), cancellationToken);
+    }
+
+    private async Task PostUtilityBillPaymentAccountingAsync(UtilityBill bill, UtilityAccount account, CancellationToken cancellationToken)
+    {
+        var document = new AccountingDocumentDto
+        {
+            CompanyId = account.CompanyId,
+            Type = AccountingDocumentType.SupplierPayment,
+            DocumentDate = DateTime.UtcNow,
+            PartyId = account.SupplierId,
+            PartyName = account.ProviderName,
+            SourceModule = "RealEstate",
+            SourceDocumentId = bill.Id,
+            SourceDocumentNumber = bill.Reference ?? $"UTIL-PAY-{bill.Id:N}"[..21],
+            Lines =
+            [
+                new AccountingDocumentLineDto
+                {
+                    Description = $"{account.ServiceType} utility payment",
+                    Quantity = 1,
+                    UnitPrice = bill.TotalAmount,
+                    NetAmount = bill.TotalAmount,
+                    TotalAmount = bill.TotalAmount
+                }
+            ]
+        };
+
+        var created = await sender.Send(new CreateAccountingDocumentCommand(document), cancellationToken);
+        await sender.Send(new PostAccountingDocumentCommand(created.Id), cancellationToken);
     }
 
     private async Task UpsertMaintenanceAssetAsync(Property property, CancellationToken cancellationToken) =>

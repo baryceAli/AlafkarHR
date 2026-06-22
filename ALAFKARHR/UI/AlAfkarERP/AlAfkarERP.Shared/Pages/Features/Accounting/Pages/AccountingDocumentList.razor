@@ -1,0 +1,97 @@
+@layout AdminLayout
+
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Pages
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Accounting.Enums
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang(AccountingUi.DocumentTitle(FilterType), AccountingUi.DocumentTitleAr(FilterType))"
+                Subtitle="@SharedDataService.SelectViewLang("Posted and draft financial source documents.", "المستندات المالية المسودة والمرحلة.")"
+                Overline="@SharedDataService.SelectViewLang("Accounting", "المحاسبة")"
+                Icon="bi-receipt" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <AppCard>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>@SharedDataService.SelectViewLang("Number", "الرقم")</th>
+                            <th>@SharedDataService.SelectViewLang("Type", "النوع")</th>
+                            <th>@SharedDataService.SelectViewLang("Date", "التاريخ")</th>
+                            <th>@SharedDataService.SelectViewLang("Party", "الطرف")</th>
+                            <th>@SharedDataService.SelectViewLang("Total", "الإجمالي")</th>
+                            <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var document in documents)
+                        {
+                            <tr>
+                                <td><strong>@document.Number</strong></td>
+                                <td>@document.Type</td>
+                                <td>@document.DocumentDate.ToString("yyyy-MM-dd")</td>
+                                <td>@document.PartyName</td>
+                                <td>@document.TotalAmount.ToString("N2")</td>
+                                <td><span class="badge text-bg-secondary">@document.Status</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (!documents.Any())
+            {
+                <div class="text-muted py-4 text-center">@SharedDataService.SelectViewLang("No accounting documents found.", "لا توجد مستندات محاسبية.")</div>
+            }
+        </AppCard>
+    }
+</div>
+
+@code {
+    private List<AccountingDocumentDto> documents = [];
+    private AuthenticationState? authState;
+    private Guid? companyId;
+    private bool CanView => authState?.User.Claims.Any(c => c.Value == PermissionList.AccountingDocumentPermissions.View) == true;
+
+    private AccountingDocumentType? FilterType
+    {
+        get
+        {
+            var path = NavigationManager.Uri.ToLowerInvariant();
+            if (path.Contains("salesinvoices")) return AccountingDocumentType.SalesInvoice;
+            if (path.Contains("purchaseinvoices")) return AccountingDocumentType.SupplierInvoice;
+            if (path.Contains("receiptspayments")) return null;
+            return null;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var claim = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+        if (Guid.TryParse(claim, out var parsedCompanyId))
+            companyId = parsedCompanyId;
+
+        var result = await AccountingService.GetDocumentsAsync(FilterType, companyId, 1, 50, null);
+        if (result.IsSuccess && result.Data is not null)
+            documents = result.Data.Data.ToList();
+    }
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

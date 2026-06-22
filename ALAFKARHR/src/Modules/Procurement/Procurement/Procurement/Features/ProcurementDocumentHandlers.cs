@@ -282,6 +282,9 @@ public class ChangeProcurementDocumentStatusHandler(ProcurementDbContext dbConte
         if (command.Kind == ProcurementDocumentKind.PurchaseReturn && status == PostedDocumentStatus.Posted.ToString())
             await PostPurchaseReturnAsync(document, cancellationToken);
 
+        if (command.Kind == ProcurementDocumentKind.SupplierInvoice && status == SupplierInvoiceStatus.Posted.ToString())
+            await PostSupplierInvoiceAccountingAsync(document, cancellationToken);
+
         document.ChangeStatus(status, userId);
 
         if (command.Kind == ProcurementDocumentKind.GoodsReceipt && status == PostedDocumentStatus.Posted.ToString())
@@ -335,6 +338,74 @@ public class ChangeProcurementDocumentStatusHandler(ProcurementDbContext dbConte
                 document.CompanyId,
                 $"Purchase return {document.Number}"), cancellationToken);
         }
+
+        await PostPurchaseReturnAccountingAsync(document, cancellationToken);
+    }
+
+    private async Task PostSupplierInvoiceAccountingAsync(ProcurementDocument document, CancellationToken cancellationToken)
+    {
+        var accountingDocument = new AccountingDocumentDto
+        {
+            CompanyId = document.CompanyId,
+            BranchId = document.BranchId,
+            Type = AccountingDocumentType.SupplierInvoice,
+            DocumentDate = document.DocumentDate,
+            PartyId = document.SupplierId,
+            PartyName = document.SupplierName,
+            CurrencyId = document.CurrencyId,
+            SourceModule = "Procurement",
+            SourceDocumentId = document.Id,
+            SourceDocumentNumber = document.Number,
+            Lines = document.Lines.Select(line => new AccountingDocumentLineDto
+            {
+                Description = string.IsNullOrWhiteSpace(line.ProductNameEng) ? line.ProductName : line.ProductNameEng,
+                ProductId = line.ProductId,
+                ProductSkuId = line.ProductSkuId,
+                Quantity = line.Quantity,
+                UnitPrice = line.UnitCost,
+                DiscountAmount = (line.Quantity * line.UnitCost) * line.DiscountRate / 100m,
+                TaxRate = line.TaxRate,
+                NetAmount = line.NetAmount,
+                TaxAmount = line.TaxAmount,
+                TotalAmount = line.TotalAmount
+            }).ToList()
+        };
+
+        var created = await sender.Send(new CreateAccountingDocumentCommand(accountingDocument), cancellationToken);
+        await sender.Send(new PostAccountingDocumentCommand(created.Id), cancellationToken);
+    }
+
+    private async Task PostPurchaseReturnAccountingAsync(ProcurementDocument document, CancellationToken cancellationToken)
+    {
+        var accountingDocument = new AccountingDocumentDto
+        {
+            CompanyId = document.CompanyId,
+            BranchId = document.BranchId,
+            Type = AccountingDocumentType.SupplierCreditNote,
+            DocumentDate = document.DocumentDate,
+            PartyId = document.SupplierId,
+            PartyName = document.SupplierName,
+            CurrencyId = document.CurrencyId,
+            SourceModule = "Procurement",
+            SourceDocumentId = document.Id,
+            SourceDocumentNumber = document.Number,
+            Lines = document.Lines.Select(line => new AccountingDocumentLineDto
+            {
+                Description = string.IsNullOrWhiteSpace(line.ProductNameEng) ? line.ProductName : line.ProductNameEng,
+                ProductId = line.ProductId,
+                ProductSkuId = line.ProductSkuId,
+                Quantity = line.Quantity,
+                UnitPrice = line.UnitCost,
+                DiscountAmount = (line.Quantity * line.UnitCost) * line.DiscountRate / 100m,
+                TaxRate = line.TaxRate,
+                NetAmount = line.NetAmount,
+                TaxAmount = line.TaxAmount,
+                TotalAmount = line.TotalAmount
+            }).ToList()
+        };
+
+        var created = await sender.Send(new CreateAccountingDocumentCommand(accountingDocument), cancellationToken);
+        await sender.Send(new PostAccountingDocumentCommand(created.Id), cancellationToken);
     }
 
     private async Task<decimal> ResolveInventoryPackageEnteredQuantityAsync(ProcurementDocumentLine line, CancellationToken cancellationToken)

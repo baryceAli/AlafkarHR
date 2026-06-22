@@ -1,3 +1,4 @@
+global using Accounting.Contracts.Accounting.Features;
 global using Carter;
 global using Catalog.Contracts.Products.Features.GetProductById;
 global using FluentValidation;
@@ -20,6 +21,8 @@ global using Shared.DDD;
 global using Shared.Exceptions;
 global using Shared.Pagination;
 global using SharedWithUI.Permissions;
+global using SharedWithUI.Accounting.Dtos;
+global using SharedWithUI.Accounting.Enums;
 global using SharedWithUI.Procurement.Dtos;
 global using SharedWithUI.Procurement.Enums;
 global using System.Security.Claims;

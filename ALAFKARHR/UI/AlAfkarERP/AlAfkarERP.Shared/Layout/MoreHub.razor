@@ -308,7 +308,7 @@
 
         var rowKey = NavigationMenuResolver.GetStorageKey(row.Item);
         return NavigationMenuResolver
-            .GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri)
+            .GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri, ActiveWorkspace)
             .Any(item => string.Equals(NavigationMenuResolver.GetStorageKey(item), rowKey, StringComparison.OrdinalIgnoreCase));
     }
     private string PathLabel(NavigationMenuRow row)
@@ -333,11 +333,11 @@
                 NavigationMenuResolver.WorkspaceAccountingFinance => NavigationMenuResolver.HubAccountingFinance,
                 NavigationMenuResolver.WorkspaceAdmin => NavigationMenuResolver.HubAdmin,
                 NavigationMenuResolver.WorkspaceSecurity => NavigationMenuResolver.HubSecurity,
-                _ => NavigationMenuResolver.ResolveHubWorkspaceKey(NavigationManager.Uri, NavigationManager.BaseUri)
+                _ => NavigationMenuResolver.ResolveHubWorkspaceKey(NavigationManager.Uri, NavigationManager.BaseUri, ActiveWorkspace)
             };
         }
 
-        return NavigationMenuResolver.ResolveHubWorkspaceKey(NavigationManager.Uri, NavigationManager.BaseUri);
+        return NavigationMenuResolver.ResolveHubWorkspaceKey(NavigationManager.Uri, NavigationManager.BaseUri, ActiveWorkspace);
     }
     private void SelectHubWorkspace(string workspaceKey)
     {

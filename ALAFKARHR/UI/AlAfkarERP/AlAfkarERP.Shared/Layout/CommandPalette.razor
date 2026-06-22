@@ -53,6 +53,7 @@
 @code {
     [Parameter] public bool IsOpen { get; set; }
     [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter] public string ActiveWorkspace { get; set; } = NavigationMenuResolver.WorkspaceHome;
     [Parameter] public AuthenticationState? AuthState { get; set; }
     [Parameter] public EventCallback<MenuItem> OnNavigate { get; set; }
 
@@ -88,7 +89,7 @@
             return true;
         }
 
-        var path = NavigationMenuResolver.GetMenuPath(item);
+        var path = NavigationMenuResolver.GetMenuPath(item, ActiveWorkspace);
         var haystack = string.Join(" ", item.TextEn, item.TextAr, item.Url, item.KeywordsEn, item.KeywordsAr, string.Join(" ", path.Select(p => $"{p.TextEn} {p.TextAr}")));
         return Normalize(haystack).Contains(term);
     }
@@ -117,7 +118,7 @@
 
     private string PathLabel(MenuItem item)
     {
-        var path = NavigationMenuResolver.GetMenuPath(item);
+        var path = NavigationMenuResolver.GetMenuPath(item, ActiveWorkspace);
         return path.Count > 0
             ? string.Join(" / ", path.Select(Label))
             : item.Url ?? "";

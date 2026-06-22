@@ -1,0 +1,102 @@
+@layout AdminLayout
+
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("ZATCA Submissions", "إرسالات زاتكا")"
+                Subtitle="@SharedDataService.SelectViewLang("Generated e-invoices, hashes, QR payloads, and submission state.", "الفواتير الإلكترونية والهاش والرمز وحالة الإرسال.")"
+                Overline="@SharedDataService.SelectViewLang("Accounting", "المحاسبة")"
+                Icon="bi-cloud-arrow-up" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <AppCard>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>@SharedDataService.SelectViewLang("Invoice", "الفاتورة")</th>
+                            <th>@SharedDataService.SelectViewLang("Type", "النوع")</th>
+                            <th>@SharedDataService.SelectViewLang("ICV", "ICV")</th>
+                            <th>@SharedDataService.SelectViewLang("Hash", "الهاش")</th>
+                            <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var invoice in invoices)
+                        {
+                            <tr>
+                                <td><strong>@invoice.InvoiceNumber</strong></td>
+                                <td>@invoice.InvoiceType</td>
+                                <td>@invoice.Icv</td>
+                                <td class="text-truncate" style="max-width: 220px">@invoice.InvoiceHash</td>
+                                <td><span class="badge text-bg-secondary">@invoice.SubmissionStatus</span></td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => SubmitAsync(invoice.Id)">
+                                        <i class="bi bi-send"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </AppCard>
+    }
+</div>
+
+@code {
+    private List<EInvoiceDto> invoices = [];
+    private AuthenticationState? authState;
+    private Guid? companyId;
+    private bool CanView => authState?.User.Claims.Any(c => c.Value == PermissionList.ZatcaEInvoicePermissions.View) == true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var claim = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+        if (Guid.TryParse(claim, out var parsedCompanyId))
+            companyId = parsedCompanyId;
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await AccountingService.GetEInvoicesAsync(companyId, null, 1, 50);
+        if (result.IsSuccess && result.Data is not null)
+            invoices = result.Data.Data.ToList();
+    }
+
+    private async Task SubmitAsync(Guid id)
+    {
+        var result = await AccountingService.SubmitEInvoiceAsync(id);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(SharedDataService.SelectViewLang("Submission queued.", "تمت إضافة الإرسال للقائمة."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Submission failed.", "فشل الإرسال."));
+        }
+    }
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

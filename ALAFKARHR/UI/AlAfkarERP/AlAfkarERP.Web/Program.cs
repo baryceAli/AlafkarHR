@@ -1,4 +1,5 @@
 using AlAfkarERP.Shared.Dtos;
+using AlAfkarERP.Shared.Pages.Features.Accounting.Services;
 using AlAfkarERP.Shared.Pages.Features.Auth.Services;
 using AlAfkarERP.Shared.Pages.Features.Attendance.Services;
 using AlAfkarERP.Shared.Pages.Features.Catalog.Services;
@@ -47,6 +48,12 @@ builder.Services.AddScoped<SearchModalService>();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
+
+builder.Services.AddScoped<IAccountingService, AccountingService>();
+builder.Services.AddHttpClient<IAccountingService, AccountingService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddHttpClient("AlAfkarERP", client =>

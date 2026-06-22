@@ -1,0 +1,93 @@
+@layout AdminLayout
+
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Accounting", "المحاسبة")"
+                Subtitle="@SharedDataService.SelectViewLang("General ledger, tax documents, and ZATCA e-invoice readiness.", "دفتر الأستاذ والمستندات الضريبية وجاهزية الفوترة الإلكترونية.")"
+                Overline="@SharedDataService.SelectViewLang("Finance", "المالية")"
+                Icon="bi-calculator" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-12 col-sm-6 col-xl-3">
+                <StatsCard Title="@SharedDataService.SelectViewLang("Accounts", "الحسابات")" Value="@dashboard.Accounts.ToString("N0")" Icon="bi-diagram-3" Tone="primary" CssClass="h-100" OnClick="@(() => NavigationManager.NavigateTo("/Accounting/Accounts"))" />
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <StatsCard Title="@SharedDataService.SelectViewLang("Open Periods", "الفترات المفتوحة")" Value="@dashboard.OpenPeriods.ToString("N0")" Icon="bi-calendar2-week" Tone="info" CssClass="h-100" />
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <StatsCard Title="@SharedDataService.SelectViewLang("Posted Documents", "المستندات المرحلة")" Value="@dashboard.PostedDocuments.ToString("N0")" Icon="bi-journal-check" Tone="success" CssClass="h-100" OnClick="@(() => NavigationManager.NavigateTo("/Accounting/Documents"))" />
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <StatsCard Title="@SharedDataService.SelectViewLang("ZATCA Pending", "بانتظار زاتكا")" Value="@dashboard.PendingZatcaSubmissions.ToString("N0")" Icon="bi-cloud-arrow-up" Tone="warning" CssClass="h-100" OnClick="@(() => NavigationManager.NavigateTo("/Accounting/Zatca/Submissions"))" />
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-12 col-lg-6">
+                <AppCard CssClass="h-100">
+                    <h2 class="h5 mb-3">@SharedDataService.SelectViewLang("VAT Position", "موقف ضريبة القيمة المضافة")</h2>
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span>@SharedDataService.SelectViewLang("Output VAT", "ضريبة المخرجات")</span>
+                        <strong>@dashboard.OutputVat.ToString("N2")</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-2">
+                        <span>@SharedDataService.SelectViewLang("Input VAT", "ضريبة المدخلات")</span>
+                        <strong>@dashboard.InputVat.ToString("N2")</strong>
+                    </div>
+                </AppCard>
+            </div>
+            <div class="col-12 col-lg-6">
+                <AppCard CssClass="h-100">
+                    <h2 class="h5 mb-3">@SharedDataService.SelectViewLang("Compliance Queue", "قائمة الامتثال")</h2>
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span>@SharedDataService.SelectViewLang("Pending submissions", "طلبات بانتظار الإرسال")</span>
+                        <strong>@dashboard.PendingZatcaSubmissions.ToString("N0")</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-2">
+                        <span>@SharedDataService.SelectViewLang("Failed submissions", "طلبات فاشلة")</span>
+                        <strong>@dashboard.FailedZatcaSubmissions.ToString("N0")</strong>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private AccountingDashboardDto dashboard = new();
+    private AuthenticationState? authState;
+    private Guid? companyId;
+    private bool CanView => authState?.User.Claims.Any(c => c.Value == PermissionList.AccountingDashboardPermissions.View) == true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var claim = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+        if (Guid.TryParse(claim, out var parsedCompanyId))
+            companyId = parsedCompanyId;
+
+        var result = await AccountingService.GetDashboardAsync(companyId);
+        if (result.IsSuccess && result.Data is not null)
+            dashboard = result.Data;
+    }
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

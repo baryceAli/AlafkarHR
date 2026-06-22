@@ -1,0 +1,326 @@
+@layout AdminLayout
+@page "/Accounting/BankCashAccounts"
+
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@T("Bank & Cash Accounts", "الحسابات البنكية والنقدية")"
+                Subtitle="@T("Configure company payment accounts, linked ledgers, and journals.", "إعداد حسابات الدفع للشركة وربطها بحسابات الأستاذ واليوميات.")"
+                Overline="@T("Accounting Setup", "إعدادات المحاسبة")"
+                Icon="bi-bank" />
+
+    @if (!CanViewBank && !CanViewCash)
+    {
+        <div class="alert alert-warning">@T("You don't have permissions to view this page", "ليس لديك صلاحية عرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @if (CanViewBank)
+            {
+                <div class="col-12">
+                    <AppCard>
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                            <h2 class="h5 mb-0">@T("Bank Accounts", "الحسابات البنكية")</h2>
+                            @if (CanCreateBank)
+                            {
+                                <button class="btn btn-primary" type="button" @onclick="OpenBank"><i class="bi bi-plus-lg"></i> @T("Add Bank", "إضافة بنك")</button>
+                            }
+                        </div>
+                        <div class="erp-table-wrap">
+                            <table class="table align-middle erp-table">
+                                <thead>
+                                    <tr>
+                                        <th>@T("Name", "الاسم")</th>
+                                        <th>@T("Bank", "البنك")</th>
+                                        <th>@T("IBAN / Account", "الآيبان / الحساب")</th>
+                                        <th>@T("Currency", "العملة")</th>
+                                        <th>@T("Ledger", "الأستاذ")</th>
+                                        <th>@T("Default", "افتراضي")</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var bank in bankAccounts)
+                                    {
+                                        <tr>
+                                            <td><strong>@bank.DisplayName</strong></td>
+                                            <td>@bank.BankName</td>
+                                            <td>@(bank.Iban ?? bank.AccountNumber)</td>
+                                            <td>@bank.CurrencyCode</td>
+                                            <td>@AccountLabel(bank.LedgerAccountId)</td>
+                                            <td><StatusChip Text="@T(bank.IsDefault ? "Default" : "Specific", bank.IsDefault ? "افتراضي" : "مخصص")" Tone="@(bank.IsDefault ? "success" : "muted")" /></td>
+                                            <td class="text-end">
+                                                @if (CanEditBank)
+                                                {
+                                                    <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="() => EditBank(bank)"><i class="bi bi-pencil"></i></button>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (!bankAccounts.Any())
+                        {
+                            <div class="text-muted py-4 text-center">@T("No bank accounts configured.", "لا توجد حسابات بنكية مهيأة.")</div>
+                        }
+                    </AppCard>
+                </div>
+            }
+
+            @if (CanViewCash)
+            {
+                <div class="col-12">
+                    <AppCard>
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                            <h2 class="h5 mb-0">@T("Cash Accounts", "الحسابات النقدية")</h2>
+                            @if (CanCreateCash)
+                            {
+                                <button class="btn btn-primary" type="button" @onclick="OpenCash"><i class="bi bi-plus-lg"></i> @T("Add Cash", "إضافة نقدية")</button>
+                            }
+                        </div>
+                        <div class="erp-table-wrap">
+                            <table class="table align-middle erp-table">
+                                <thead>
+                                    <tr>
+                                        <th>@T("Name", "الاسم")</th>
+                                        <th>@T("Currency", "العملة")</th>
+                                        <th>@T("Ledger", "الأستاذ")</th>
+                                        <th>@T("Default", "افتراضي")</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var cash in cashAccounts)
+                                    {
+                                        <tr>
+                                            <td><strong>@cash.DisplayName</strong></td>
+                                            <td>@cash.CurrencyCode</td>
+                                            <td>@AccountLabel(cash.LedgerAccountId)</td>
+                                            <td><StatusChip Text="@T(cash.IsDefault ? "Default" : "Specific", cash.IsDefault ? "افتراضي" : "مخصص")" Tone="@(cash.IsDefault ? "success" : "muted")" /></td>
+                                            <td class="text-end">
+                                                @if (CanEditCash)
+                                                {
+                                                    <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="() => EditCash(cash)"><i class="bi bi-pencil"></i></button>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (!cashAccounts.Any())
+                        {
+                            <div class="text-muted py-4 text-center">@T("No cash accounts configured.", "لا توجد حسابات نقدية مهيأة.")</div>
+                        }
+                    </AppCard>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (editingBank is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <EditForm Model="@editingBank" OnValidSubmit="SaveBankAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@T("Bank Account", "حساب بنكي")</h5>
+                        <button class="btn-close" type="button" @onclick="CloseBank"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6"><label class="form-label">@T("Display Name", "اسم العرض")</label><InputText class="form-control" @bind-Value="editingBank.DisplayName" /></div>
+                            <div class="col-12 col-md-6"><label class="form-label">@T("Bank Name", "اسم البنك")</label><InputText class="form-control" @bind-Value="editingBank.BankName" /></div>
+                            <div class="col-12 col-md-6"><label class="form-label">@T("Account Number", "رقم الحساب")</label><InputText class="form-control" @bind-Value="editingBank.AccountNumber" /></div>
+                            <div class="col-12 col-md-6"><label class="form-label">@T("IBAN", "الآيبان")</label><InputText class="form-control" @bind-Value="editingBank.Iban" /></div>
+                            <div class="col-12 col-md-4"><label class="form-label">@T("Branch Code", "رمز الفرع")</label><InputText class="form-control" @bind-Value="editingBank.BranchCode" /></div>
+                            <div class="col-12 col-md-4"><label class="form-label">@T("SWIFT", "سويفت")</label><InputText class="form-control" @bind-Value="editingBank.Swift" /></div>
+                            <div class="col-12 col-md-4"><label class="form-label">@T("Currency", "العملة")</label><InputText class="form-control" @bind-Value="editingBank.CurrencyCode" /></div>
+                            <div class="col-12">
+                                <label class="form-label">@T("Linked Ledger Account", "حساب الأستاذ المرتبط")</label>
+                                <select class="form-select" @bind="editingBank.LedgerAccountId" disabled="@editingBank.CreateLinkedLedger">
+                                    <option value="">@T("Create automatically", "إنشاء تلقائي")</option>
+                                    @foreach (var account in accounts)
+                                    {
+                                        <option value="@account.Id">@AccountLabel(account.Id)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6"><div class="form-check"><InputCheckbox class="form-check-input" @bind-Value="editingBank.CreateLinkedLedger" /><label class="form-check-label">@T("Create linked ledger automatically", "إنشاء حساب الأستاذ تلقائيا")</label></div></div>
+                            <div class="col-12 col-md-3"><div class="form-check"><InputCheckbox class="form-check-input" @bind-Value="editingBank.IsDefault" /><label class="form-check-label">@T("Default", "افتراضي")</label></div></div>
+                            <div class="col-12 col-md-3"><div class="form-check"><InputCheckbox class="form-check-input" @bind-Value="editingBank.IsActive" /><label class="form-check-label">@T("Active", "نشط")</label></div></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" type="button" @onclick="CloseBank">@T("Cancel", "إلغاء")</button>
+                        <button class="btn btn-primary" type="submit" disabled="@saving"><i class="bi bi-save"></i> @T("Save", "حفظ")</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (editingCash is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <EditForm Model="@editingCash" OnValidSubmit="SaveCashAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@T("Cash Account", "حساب نقدي")</h5>
+                        <button class="btn-close" type="button" @onclick="CloseCash"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12"><label class="form-label">@T("Display Name", "اسم العرض")</label><InputText class="form-control" @bind-Value="editingCash.DisplayName" /></div>
+                            <div class="col-12 col-md-6"><label class="form-label">@T("Currency", "العملة")</label><InputText class="form-control" @bind-Value="editingCash.CurrencyCode" /></div>
+                            <div class="col-12">
+                                <label class="form-label">@T("Linked Ledger Account", "حساب الأستاذ المرتبط")</label>
+                                <select class="form-select" @bind="editingCash.LedgerAccountId" disabled="@editingCash.CreateLinkedLedger">
+                                    <option value="">@T("Create automatically", "إنشاء تلقائي")</option>
+                                    @foreach (var account in accounts)
+                                    {
+                                        <option value="@account.Id">@AccountLabel(account.Id)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-12"><div class="form-check"><InputCheckbox class="form-check-input" @bind-Value="editingCash.CreateLinkedLedger" /><label class="form-check-label">@T("Create linked ledger automatically", "إنشاء حساب الأستاذ تلقائيا")</label></div></div>
+                            <div class="col-12 col-md-6"><div class="form-check"><InputCheckbox class="form-check-input" @bind-Value="editingCash.IsDefault" /><label class="form-check-label">@T("Default", "افتراضي")</label></div></div>
+                            <div class="col-12 col-md-6"><div class="form-check"><InputCheckbox class="form-check-input" @bind-Value="editingCash.IsActive" /><label class="form-check-label">@T("Active", "نشط")</label></div></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" type="button" @onclick="CloseCash">@T("Cancel", "إلغاء")</button>
+                        <button class="btn btn-primary" type="submit" disabled="@saving"><i class="bi bi-save"></i> @T("Save", "حفظ")</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private List<BankAccountDto> bankAccounts = [];
+    private List<CashAccountDto> cashAccounts = [];
+    private List<AccountDto> accounts = [];
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private bool saving;
+    private BankAccountDto? editingBank;
+    private CashAccountDto? editingCash;
+    private bool CanViewBank => HasPermission(PermissionList.BankAccountPermissions.View);
+    private bool CanCreateBank => HasPermission(PermissionList.BankAccountPermissions.Create);
+    private bool CanEditBank => HasPermission(PermissionList.BankAccountPermissions.Edit);
+    private bool CanViewCash => HasPermission(PermissionList.CashAccountPermissions.View);
+    private bool CanCreateCash => HasPermission(PermissionList.CashAccountPermissions.Create);
+    private bool CanEditCash => HasPermission(PermissionList.CashAccountPermissions.Edit);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (companyId == Guid.Empty)
+            return;
+        var accountResult = await AccountingService.GetAccountsAsync(companyId, 1, 500, null);
+        if (accountResult.IsSuccess && accountResult.Data is not null)
+            accounts = accountResult.Data.Data.Where(x => x.IsActive && x.IsPostingAccount).ToList();
+        if (CanViewBank)
+        {
+            var bankResult = await AccountingService.GetBankAccountsAsync(companyId);
+            if (bankResult.IsSuccess && bankResult.Data is not null)
+                bankAccounts = bankResult.Data;
+        }
+        if (CanViewCash)
+        {
+            var cashResult = await AccountingService.GetCashAccountsAsync(companyId);
+            if (cashResult.IsSuccess && cashResult.Data is not null)
+                cashAccounts = cashResult.Data;
+        }
+    }
+
+    private void OpenBank() => editingBank = new BankAccountDto { CompanyId = companyId, DisplayName = T("Main Bank", "البنك الرئيسي"), BankName = string.Empty, CurrencyCode = "SAR", CreateLinkedLedger = true, IsDefault = !bankAccounts.Any(), IsActive = true };
+    private void EditBank(BankAccountDto bank) => editingBank = new BankAccountDto { Id = bank.Id, CompanyId = bank.CompanyId, DisplayName = bank.DisplayName, BankName = bank.BankName, AccountNumber = bank.AccountNumber, Iban = bank.Iban, BranchCode = bank.BranchCode, Swift = bank.Swift, CurrencyCode = bank.CurrencyCode, LedgerAccountId = bank.LedgerAccountId, JournalId = bank.JournalId, CreateLinkedLedger = false, IsDefault = bank.IsDefault, IsActive = bank.IsActive };
+    private void CloseBank() => editingBank = null;
+    private void OpenCash() => editingCash = new CashAccountDto { CompanyId = companyId, DisplayName = T("Main Cash", "الصندوق الرئيسي"), CurrencyCode = "SAR", CreateLinkedLedger = true, IsDefault = !cashAccounts.Any(), IsActive = true };
+    private void EditCash(CashAccountDto cash) => editingCash = new CashAccountDto { Id = cash.Id, CompanyId = cash.CompanyId, DisplayName = cash.DisplayName, CurrencyCode = cash.CurrencyCode, LedgerAccountId = cash.LedgerAccountId, JournalId = cash.JournalId, CreateLinkedLedger = false, IsDefault = cash.IsDefault, IsActive = cash.IsActive };
+    private void CloseCash() => editingCash = null;
+
+    private async Task SaveBankAsync()
+    {
+        if (editingBank is null)
+            return;
+        saving = true;
+        editingBank.CompanyId = companyId;
+        if (editingBank.CreateLinkedLedger)
+            editingBank.LedgerAccountId = null;
+        var result = await AccountingService.SaveBankAccountAsync(editingBank);
+        saving = false;
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Bank account saved.", "تم حفظ الحساب البنكي."));
+            editingBank = null;
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not save bank account.", "تعذر حفظ الحساب البنكي."));
+        }
+    }
+
+    private async Task SaveCashAsync()
+    {
+        if (editingCash is null)
+            return;
+        saving = true;
+        editingCash.CompanyId = companyId;
+        if (editingCash.CreateLinkedLedger)
+            editingCash.LedgerAccountId = null;
+        var result = await AccountingService.SaveCashAccountAsync(editingCash);
+        saving = false;
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Cash account saved.", "تم حفظ الحساب النقدي."));
+            editingCash = null;
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not save cash account.", "تعذر حفظ الحساب النقدي."));
+        }
+    }
+
+    private string AccountLabel(Guid? id)
+    {
+        var account = accounts.FirstOrDefault(x => x.Id == id);
+        return account is null ? "-" : $"{account.Code} - {T(account.NameEng, account.Name)}";
+    }
+
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

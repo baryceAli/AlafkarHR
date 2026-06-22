@@ -47,6 +47,7 @@
                                  SearchText="@SearchText"
                                  IsFiltering="@IsFiltering"
                                  IsCollapsed="@IsCollapsed"
+                                 ActiveWorkspace="@ActiveWorkspace"
                                  ParentPath="@CurrentPath"
                                  OnLeafSelected="OnLeafSelected"
                                  OnOpenStateChanged="OnOpenStateChanged" />
@@ -89,6 +90,7 @@
     [Parameter] public string SearchText { get; set; } = "";
     [Parameter] public bool IsFiltering { get; set; }
     [Parameter] public bool IsCollapsed { get; set; }
+    [Parameter] public string ActiveWorkspace { get; set; } = NavigationMenuResolver.WorkspaceHome;
     [Parameter] public IReadOnlyList<MenuItem> ParentPath { get; set; } = Array.Empty<MenuItem>();
     [Parameter] public EventCallback OnLeafSelected { get; set; }
     [Parameter] public EventCallback OnOpenStateChanged { get; set; }
@@ -103,7 +105,7 @@
     private string LeafClass => IsActive ? "sidebar-link sidebar-leaf is-active" : "sidebar-link sidebar-leaf";
     private bool HasVisibleChildren => VisibleChildren.Any();
     private bool ShouldShowChildren => HasVisibleChildren && !IsCollapsed && (Item.IsOpen || IsFiltering);
-    private bool IsParentActive => HasVisibleChildren && (IsUrlWithinActivePath(Item.Url) || Item.Children.Any(IsMatch));
+    private bool IsParentActive => HasVisibleChildren && (IsUrlWithinActivePath(Item.Url) || IsInResolvedActivePath(Item) || Item.Children.Any(IsMatch));
     private bool IsActive => IsUrlExactActive(Item.Url);
 
     private List<MenuItem> VisibleChildren
@@ -317,7 +319,15 @@
             return true;
         }
 
-        return item.Children.Any(IsMatch);
+        return IsInResolvedActivePath(item) || item.Children.Any(IsMatch);
+    }
+
+    private bool IsInResolvedActivePath(MenuItem item)
+    {
+        var itemKey = NavigationMenuResolver.GetStorageKey(item);
+        return NavigationMenuResolver
+            .GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri, ActiveWorkspace)
+            .Any(activeItem => string.Equals(NavigationMenuResolver.GetStorageKey(activeItem), itemKey, StringComparison.OrdinalIgnoreCase));
     }
 
     private bool IsUrlExactActive(string? url)
@@ -358,7 +368,7 @@
 
     private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
     {
-        foreach (var item in NavigationMenuResolver.GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri))
+        foreach (var item in NavigationMenuResolver.GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri, ActiveWorkspace))
         {
             item.IsOpen = true;
         }

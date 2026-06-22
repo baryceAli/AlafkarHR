@@ -1,0 +1,177 @@
+@layout AdminLayout
+@page "/Accounting/Zatca/Submissions"
+
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Accounting.Enums
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@T("ZATCA Submissions", "إرسالات زاتكا")"
+                Subtitle="@T("Generated e-invoices, hashes, QR payloads, XML, and submission state.", "الفواتير الإلكترونية والهاش والرمز وملف XML وحالة الإرسال.")"
+                Overline="@T("Accounting", "المحاسبة")"
+                Icon="bi-cloud-arrow-up" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@T("You don't have permissions to view this page", "ليس لديك صلاحية عرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <AppCard>
+            <div class="d-flex justify-content-end mb-3">
+                <InputSelect class="form-select w-auto" @bind-Value="selectedStatus" @bind-Value:after="LoadAsync">
+                    <option value="">@T("All statuses", "كل الحالات")</option>
+                    @foreach (var status in Enum.GetValues<ZatcaSubmissionStatus>())
+                    {
+                        <option value="@status">@status</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="erp-table-wrap">
+                <table class="table align-middle erp-table">
+                    <thead>
+                        <tr>
+                            <th>@T("Invoice", "الفاتورة")</th>
+                            <th>@T("Type", "النوع")</th>
+                            <th>@T("ICV", "ICV")</th>
+                            <th>@T("UUID", "UUID")</th>
+                            <th>@T("Hash", "الهاش")</th>
+                            <th>@T("Status", "الحالة")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var invoice in invoices)
+                        {
+                            <tr>
+                                <td><strong>@invoice.InvoiceNumber</strong></td>
+                                <td>@invoice.InvoiceType</td>
+                                <td>@invoice.Icv</td>
+                                <td><code>@invoice.Uuid</code></td>
+                                <td class="text-truncate">@Short(invoice.InvoiceHash)</td>
+                                <td><StatusChip Text="@invoice.SubmissionStatus.ToString()" Tone="@SubmissionTone(invoice.SubmissionStatus)" /></td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary" type="button" @onclick="() => selectedInvoice = invoice"><i class="bi bi-eye"></i></button>
+                                        @if (CanSubmit && IsSubmitEligible(invoice))
+                                        {
+                                            <button class="btn btn-outline-primary" type="button" @onclick="() => SubmitAsync(invoice.Id)"><i class="bi bi-send"></i></button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (!invoices.Any())
+            {
+                <div class="text-muted py-4 text-center">@T("No ZATCA invoices found.", "لا توجد فواتير زاتكا.")</div>
+            }
+        </AppCard>
+    }
+</div>
+
+@if (selectedInvoice is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@selectedInvoice.InvoiceNumber</h5>
+                    <button class="btn-close" type="button" @onclick="() => selectedInvoice = null"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-lg-4"><strong>@T("UUID", "UUID"):</strong> <code>@selectedInvoice.Uuid</code></div>
+                        <div class="col-12 col-lg-4"><strong>@T("ICV", "ICV"):</strong> @selectedInvoice.Icv</div>
+                        <div class="col-12 col-lg-4"><strong>@T("Status", "الحالة"):</strong> <StatusChip Text="@selectedInvoice.SubmissionStatus.ToString()" Tone="@SubmissionTone(selectedInvoice.SubmissionStatus)" /></div>
+                    </div>
+                    <label class="form-label">@T("Previous Hash", "الهاش السابق")</label>
+                    <textarea class="form-control mb-3" rows="2" readonly>@selectedInvoice.PreviousInvoiceHash</textarea>
+                    <label class="form-label">@T("Invoice Hash", "هاش الفاتورة")</label>
+                    <textarea class="form-control mb-3" rows="2" readonly>@selectedInvoice.InvoiceHash</textarea>
+                    <label class="form-label">@T("QR Payload", "بيانات رمز QR")</label>
+                    <textarea class="form-control mb-3" rows="3" readonly>@selectedInvoice.QrPayload</textarea>
+                    <label class="form-label">@T("XML Payload", "ملف XML")</label>
+                    <textarea class="form-control" rows="10" readonly>@selectedInvoice.XmlPayload</textarea>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" type="button" @onclick="() => selectedInvoice = null">@T("Close", "إغلاق")</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private List<EInvoiceDto> invoices = [];
+    private EInvoiceDto? selectedInvoice;
+    private AuthenticationState? authState;
+    private Guid? companyId;
+    private ZatcaSubmissionStatus? selectedStatus;
+    private bool CanView => HasPermission(PermissionList.ZatcaEInvoicePermissions.View);
+    private bool CanSubmit => HasPermission(PermissionList.ZatcaEInvoicePermissions.Submit);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var parsedCompanyId))
+            companyId = parsedCompanyId;
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (!CanView)
+            return;
+
+        var result = await AccountingService.GetEInvoicesAsync(companyId, selectedStatus, 1, 100);
+        if (result.IsSuccess && result.Data is not null)
+            invoices = result.Data.Data.ToList();
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load ZATCA invoices.", "تعذر تحميل فواتير زاتكا."));
+    }
+
+    private async Task SubmitAsync(Guid id)
+    {
+        var result = await AccountingService.SubmitEInvoiceAsync(id);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Submission queued.", "تمت إضافة الإرسال للقائمة."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Submission failed.", "فشل الإرسال."));
+        }
+    }
+
+    private static bool IsSubmitEligible(EInvoiceDto invoice) =>
+        invoice.SubmissionStatus is ZatcaSubmissionStatus.Pending or ZatcaSubmissionStatus.Failed or ZatcaSubmissionStatus.RetryScheduled;
+
+    private static string SubmissionTone(ZatcaSubmissionStatus status) => status switch
+    {
+        ZatcaSubmissionStatus.Cleared or ZatcaSubmissionStatus.Reported => "success",
+        ZatcaSubmissionStatus.Pending or ZatcaSubmissionStatus.RetryScheduled => "warning",
+        ZatcaSubmissionStatus.Failed => "danger",
+        _ => "muted"
+    };
+
+    private static string Short(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Length <= 18 ? value : $"{value[..18]}...";
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

@@ -1,0 +1,416 @@
+@layout AdminLayout
+@page "/Accounting/Setup"
+
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Accounting.Enums
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@T("Accounting Setup", "إعداد المحاسبة")"
+                Subtitle="@T("Apply the Saudi SME template to create minimum accounts, taxes, posting profiles, journals, and a fiscal period.", "تطبيق قالب سعودي لإنشاء الحد الأدنى من الحسابات والضرائب وتوجيهات الترحيل واليوميات والفترة المالية.")"
+                Overline="@T("Accounting", "المحاسبة")"
+                Icon="bi-magic" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@T("You don't have permissions to view this page", "ليس لديك صلاحية عرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-12">
+                <AppCard>
+                    <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
+                        <div>
+                            <h2 class="h5 mb-2">@T("Available Templates", "القوالب المتاحة")</h2>
+                            <p class="text-muted mb-0">@T("Apply a system, shared, or private accounting setup template.", "طبّق قالب إعداد محاسبي نظامي أو مشترك أو خاص.")</p>
+                        </div>
+                        @if (CanManageTemplates)
+                        {
+                            <button class="btn btn-outline-secondary align-self-start" type="button" @onclick="@(() => NavigationManager.NavigateTo("/Accounting/Templates"))">
+                                <i class="bi bi-journal-richtext"></i>
+                                @T("Manage Templates", "إدارة القوالب")
+                            </button>
+                        }
+                    </div>
+                    <div class="erp-table-wrap">
+                        <table class="table erp-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>@T("Template", "القالب")</th>
+                                    <th>@T("Scope", "النطاق")</th>
+                                    <th>@T("Accounts", "الحسابات")</th>
+                                    <th>@T("Taxes", "الضرائب")</th>
+                                    <th>@T("Profiles", "التوجيهات")</th>
+                                    <th class="text-end">@T("Action", "الإجراء")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (templates.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-muted">@T("No templates available.", "لا توجد قوالب متاحة.")</td>
+                                    </tr>
+                                }
+                                @foreach (var template in templates)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">@T(template.Name, string.IsNullOrWhiteSpace(template.NameAr) ? template.Name : template.NameAr)</div>
+                                            <div class="text-muted small">@template.Code</div>
+                                        </td>
+                                        <td><StatusChip Text="@TemplateScope(template)" Tone="@(template.IsSystem ? "primary" : template.Visibility == AccountingTemplateVisibility.Shared ? "info" : "muted")" /></td>
+                                        <td>@template.AccountsCount</td>
+                                        <td>@template.TaxCodesCount</td>
+                                        <td>@template.PostingProfilesCount</td>
+                                        <td class="text-end">
+                                            @if (CanApplyTemplate)
+                                            {
+                                                <button class="btn btn-sm btn-primary" type="button" disabled="@applying" @onclick="() => ApplyAsync(template)">
+                                                    <i class="bi bi-magic"></i>
+                                                    @T("Apply", "تطبيق")
+                                                </button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+            <div class="col-12 col-xl-8">
+                <AppCard CssClass="h-100">
+                    <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                        <div>
+                            <h2 class="h5 mb-2">@T("Saudi SME Accounting Template", "قالب الحسابات السعودي")</h2>
+                            <p class="text-muted mb-0">@T("Creates a simple Odoo/ERPNext-style setup that is ready for sales, purchases, receipts, payments, VAT, and ZATCA preparation.", "ينشئ إعدادا بسيطا شبيها بأودو وERPNext وجاهزا للمبيعات والمشتريات والمقبوضات والمدفوعات والضريبة والتحضير لزاتكا.")</p>
+                        </div>
+                        @if (CanApply)
+                        {
+                            <button class="btn btn-primary align-self-start" type="button" disabled="@applying" @onclick="ApplyAsync">
+                                <i class="bi bi-magic"></i>
+                                @T("Apply Saudi SME Template", "تطبيق القالب السعودي")
+                            </button>
+                        }
+                    </div>
+
+                    @if (lastApplyResult is not null)
+                    {
+                        <div class="alert alert-success mt-3 mb-0">
+                            @T("Template applied.", "تم تطبيق القالب.")
+                            @T("Accounts", "الحسابات"): @lastApplyResult.AccountsCreated,
+                            @T("Taxes", "الضرائب"): @lastApplyResult.TaxCodesCreated,
+                            @T("Profiles", "التوجيهات"): @lastApplyResult.PostingProfilesCreated,
+                            @T("Journals", "اليوميات"): @lastApplyResult.JournalsCreated,
+                            @T("Periods", "الفترات"): @lastApplyResult.FiscalPeriodsCreated
+                        </div>
+                    }
+                </AppCard>
+            </div>
+            <div class="col-12 col-xl-4">
+                <AppCard CssClass="h-100">
+                    <h2 class="h5 mb-3">@T("Readiness", "الجاهزية")</h2>
+                    @if (status is null)
+                    {
+                        <div class="text-muted">@T("Loading setup status...", "جاري تحميل حالة الإعداد...")</div>
+                    }
+                    else
+                    {
+                        @Checklist(T("Chart of accounts", "دليل الحسابات"), status.ChartExists && status.MinimumAccountsMissing == 0)
+                        @Checklist(T("Default VAT taxes", "ضرائب القيمة المضافة"), status.DefaultTaxCodesExist)
+                        @Checklist(T("Company defaults", "الإعدادات الافتراضية للشركة"), status.CompanyDefaultsComplete)
+                        @Checklist(T("Default bank account", "الحساب البنكي الافتراضي"), status.DefaultBankAccountExists)
+                        @Checklist(T("Default cash account", "الحساب النقدي الافتراضي"), status.DefaultCashAccountExists)
+                        @Checklist(T("Posting profiles", "توجيهات الترحيل"), status.PostingProfilesExist)
+                        @Checklist(T("Journals", "اليوميات"), status.JournalsExist)
+                        @Checklist(T("Open fiscal period", "فترة مالية مفتوحة"), status.FiscalPeriodExists)
+                        @Checklist(T("ZATCA settings", "إعدادات زاتكا"), status.ZatcaSettingsComplete)
+                        <div class="mt-3">
+                            <StatusChip Text="@(status.ReadyToPost ? T("Ready to post invoices", "جاهز لترحيل الفواتير") : T("Setup incomplete", "الإعداد غير مكتمل"))"
+                                        Tone="@(status.ReadyToPost ? "success" : "warning")" />
+                        </div>
+                    }
+                </AppCard>
+            </div>
+        </div>
+        <div class="row g-3 mt-1">
+            <div class="col-12">
+                <AppCard>
+                    <div class="d-flex flex-column flex-lg-row justify-content-between gap-2 mb-3">
+                        <div>
+                            <h2 class="h5 mb-1">@T("Configuration Hub", "مركز الإعداد")</h2>
+                            <div class="text-muted small">@T("Complete each company-scoped accounting setup area.", "استكمل كل قسم من إعدادات المحاسبة الخاصة بالشركة.")</div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            @HubLink("/Accounting/BankCashAccounts", "Bank & Cash", "البنك والنقدية", "bi-bank")
+                            @HubLink("/Accounting/Accounts", "Chart", "الدليل", "bi-diagram-3")
+                            @HubLink("/Accounting/TaxCodes", "Taxes", "الضرائب", "bi-percent")
+                            @HubLink("/Accounting/PostingProfiles", "Profiles", "التوجيهات", "bi-diagram-2")
+                            @HubLink("/Accounting/FiscalPeriods", "Periods", "الفترات", "bi-calendar2-week")
+                            @HubLink("/Accounting/Zatca/Settings", "ZATCA", "زاتكا", "bi-shield-check")
+                        </div>
+                    </div>
+                </AppCard>
+            </div>
+
+            @if (CanViewSettings)
+            {
+                <div class="col-12">
+                    <AppCard>
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                            <h2 class="h5 mb-0">@T("Company Defaults", "الإعدادات الافتراضية للشركة")</h2>
+                            @if (CanEditSettings)
+                            {
+                                <button class="btn btn-primary" type="button" disabled="@savingSettings" @onclick="SaveSettingsAsync"><i class="bi bi-save"></i> @T("Save Defaults", "حفظ الإعدادات")</button>
+                            }
+                        </div>
+                        <div class="row g-3">
+                            @SettingSelect("Receivable", "الذمم المدينة", nameof(settings.ReceivableAccountId), settings.ReceivableAccountId)
+                            @SettingSelect("Payable", "الذمم الدائنة", nameof(settings.PayableAccountId), settings.PayableAccountId)
+                            @SettingSelect("Revenue", "الإيرادات", nameof(settings.RevenueAccountId), settings.RevenueAccountId)
+                            @SettingSelect("Expense", "المصروفات", nameof(settings.ExpenseAccountId), settings.ExpenseAccountId)
+                            @SettingSelect("COGS", "تكلفة البضاعة", nameof(settings.CogsAccountId), settings.CogsAccountId)
+                            @SettingSelect("Inventory", "المخزون", nameof(settings.InventoryAccountId), settings.InventoryAccountId)
+                            @SettingSelect("Input VAT", "ضريبة المدخلات", nameof(settings.InputVatAccountId), settings.InputVatAccountId)
+                            @SettingSelect("Output VAT", "ضريبة المخرجات", nameof(settings.OutputVatAccountId), settings.OutputVatAccountId)
+                            @SettingSelect("VAT Settlement", "تسوية الضريبة", nameof(settings.VatSettlementAccountId), settings.VatSettlementAccountId)
+                            @SettingSelect("Default Cash", "النقدية الافتراضية", nameof(settings.CashAccountId), settings.CashAccountId)
+                            @SettingSelect("Default Bank", "البنك الافتراضي", nameof(settings.BankAccountId), settings.BankAccountId)
+                            @SettingSelect("Rounding", "فروقات التقريب", nameof(settings.RoundingAccountId), settings.RoundingAccountId)
+                            @SettingSelect("Suspense", "الحساب المعلق", nameof(settings.SuspenseAccountId), settings.SuspenseAccountId)
+                            @SettingSelect("Retained Earnings", "الأرباح المبقاة", nameof(settings.RetainedEarningsAccountId), settings.RetainedEarningsAccountId)
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">@T("Fiscal Start Month", "شهر بداية السنة")</label>
+                                <InputNumber class="form-control" @bind-Value="settings.FiscalYearStartMonth" />
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">@T("Fiscal Start Day", "يوم بداية السنة")</label>
+                                <InputNumber class="form-control" @bind-Value="settings.FiscalYearStartDay" />
+                            </div>
+                        </div>
+                    </AppCard>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private AccountingSetupStatusDto? status;
+    private CompanyAccountingSettingsDto settings = new();
+    private List<AccountingTemplateDto> templates = [];
+    private List<AccountDto> accounts = [];
+    private ApplyAccountingTemplateResultDto? lastApplyResult;
+    private bool applying;
+    private bool savingSettings;
+    private bool CanView => HasPermission(PermissionList.AccountingDashboardPermissions.View);
+    private bool CanApply => HasPermission(PermissionList.AccountingTemplatePermissions.Apply);
+    private bool CanApplyTemplate => CanApply;
+    private bool CanManageTemplates => HasPermission(PermissionList.AccountingTemplatePermissions.View);
+    private bool CanViewSettings => HasPermission(PermissionList.AccountingSettingsPermissions.View);
+    private bool CanEditSettings => HasPermission(PermissionList.AccountingSettingsPermissions.Edit);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId);
+        await LoadTemplatesAsync();
+        await LoadStatusAsync();
+        await LoadConfigurationAsync();
+    }
+
+    private async Task LoadTemplatesAsync()
+    {
+        if (companyId == Guid.Empty || !CanManageTemplates)
+            return;
+
+        var result = await AccountingService.GetTemplatesAsync(companyId);
+        if (result.IsSuccess)
+            templates = result.Data ?? [];
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load templates.", "تعذر تحميل القوالب."));
+    }
+
+    private async Task LoadStatusAsync()
+    {
+        if (companyId == Guid.Empty || !CanView)
+            return;
+
+        var result = await AccountingService.GetSetupStatusAsync(companyId);
+        if (result.IsSuccess)
+            status = result.Data;
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load setup status.", "تعذر تحميل حالة الإعداد."));
+    }
+
+    private async Task LoadConfigurationAsync()
+    {
+        var accountResult = await AccountingService.GetAccountsAsync(companyId, 1, 500, null);
+        if (accountResult.IsSuccess && accountResult.Data is not null)
+            accounts = accountResult.Data.Data.Where(x => x.IsActive && x.IsPostingAccount).ToList();
+
+        if (CanViewSettings)
+        {
+            var settingsResult = await AccountingService.GetCompanyAccountingSettingsAsync(companyId);
+            settings = settingsResult.IsSuccess && settingsResult.Data is not null
+                ? settingsResult.Data
+                : new CompanyAccountingSettingsDto { CompanyId = companyId };
+        }
+    }
+
+    private async Task ApplyAsync()
+    {
+        await ApplyAsync(new AccountingTemplateDto
+        {
+            Code = "SA_SME",
+            Name = "Saudi SME Chart of Accounts",
+            IsSystem = true
+        });
+    }
+
+    private async Task ApplyAsync(AccountingTemplateDto template)
+    {
+        applying = true;
+        var result = await AccountingService.ApplyTemplateAsync(new ApplyAccountingTemplateDto
+        {
+            CompanyId = companyId,
+            TemplateId = template.Id == Guid.Empty ? null : template.Id,
+            TemplateCode = template.Code,
+            FiscalYearStart = new DateTime(DateTime.UtcNow.Year, 1, 1),
+            CreateDefaultJournals = true
+        });
+        applying = false;
+
+        if (result.IsSuccess)
+        {
+            lastApplyResult = result.Data;
+            ToastService.ShowSuccess(T("Accounting template applied.", "تم تطبيق قالب المحاسبة."));
+            await LoadStatusAsync();
+            await LoadTemplatesAsync();
+            await LoadConfigurationAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not apply template.", "تعذر تطبيق القالب."));
+        }
+    }
+
+    private string TemplateScope(AccountingTemplateDto template)
+    {
+        if (template.IsSystem)
+            return T("System", "نظامي");
+        return template.Visibility == AccountingTemplateVisibility.Shared ? T("Shared", "مشترك") : T("Private", "خاص");
+    }
+
+    private RenderFragment Checklist(string label, bool ok) => builder =>
+    {
+        var sequence = 0;
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "d-flex align-items-center justify-content-between border-bottom py-2");
+        builder.AddContent(sequence++, label);
+        builder.OpenComponent<StatusChip>(sequence++);
+        builder.AddAttribute(sequence++, "Text", ok ? T("Ready", "جاهز") : T("Missing", "ناقص"));
+        builder.AddAttribute(sequence++, "Tone", ok ? "success" : "warning");
+        builder.CloseComponent();
+        builder.CloseElement();
+    };
+
+    private RenderFragment HubLink(string url, string en, string ar, string icon) => builder =>
+    {
+        var sequence = 0;
+        builder.OpenElement(sequence++, "a");
+        builder.AddAttribute(sequence++, "class", "btn btn-outline-secondary btn-sm");
+        builder.AddAttribute(sequence++, "href", url);
+        builder.OpenElement(sequence++, "i");
+        builder.AddAttribute(sequence++, "class", $"bi {icon}");
+        builder.CloseElement();
+        builder.AddContent(sequence++, $" {T(en, ar)}");
+        builder.CloseElement();
+    };
+
+    private RenderFragment SettingSelect(string en, string ar, string property, Guid? value) => builder =>
+    {
+        var sequence = 0;
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "col-12 col-md-6 col-xl-3");
+        builder.OpenElement(sequence++, "label");
+        builder.AddAttribute(sequence++, "class", "form-label");
+        builder.AddContent(sequence++, T(en, ar));
+        builder.CloseElement();
+        builder.OpenElement(sequence++, "select");
+        builder.AddAttribute(sequence++, "class", "form-select");
+        builder.AddAttribute(sequence++, "value", value?.ToString() ?? string.Empty);
+        builder.AddAttribute(sequence++, "onchange", EventCallback.Factory.Create<ChangeEventArgs>(this, e => SetSetting(property, e.Value?.ToString())));
+        builder.OpenElement(sequence++, "option");
+        builder.AddAttribute(sequence++, "value", string.Empty);
+        builder.AddContent(sequence++, T("Select account", "اختر حسابا"));
+        builder.CloseElement();
+        foreach (var account in accounts)
+        {
+            builder.OpenElement(sequence++, "option");
+            builder.AddAttribute(sequence++, "value", account.Id);
+            builder.AddContent(sequence++, $"{account.Code} - {T(account.NameEng, account.Name)}");
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private void SetSetting(string property, string? value)
+    {
+        Guid? id = Guid.TryParse(value, out var parsed) ? parsed : null;
+        switch (property)
+        {
+            case nameof(settings.ReceivableAccountId): settings.ReceivableAccountId = id; break;
+            case nameof(settings.PayableAccountId): settings.PayableAccountId = id; break;
+            case nameof(settings.RevenueAccountId): settings.RevenueAccountId = id; break;
+            case nameof(settings.ExpenseAccountId): settings.ExpenseAccountId = id; break;
+            case nameof(settings.CogsAccountId): settings.CogsAccountId = id; break;
+            case nameof(settings.InventoryAccountId): settings.InventoryAccountId = id; break;
+            case nameof(settings.InputVatAccountId): settings.InputVatAccountId = id; break;
+            case nameof(settings.OutputVatAccountId): settings.OutputVatAccountId = id; break;
+            case nameof(settings.VatSettlementAccountId): settings.VatSettlementAccountId = id; break;
+            case nameof(settings.CashAccountId): settings.CashAccountId = id; break;
+            case nameof(settings.BankAccountId): settings.BankAccountId = id; break;
+            case nameof(settings.RoundingAccountId): settings.RoundingAccountId = id; break;
+            case nameof(settings.SuspenseAccountId): settings.SuspenseAccountId = id; break;
+            case nameof(settings.RetainedEarningsAccountId): settings.RetainedEarningsAccountId = id; break;
+        }
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        savingSettings = true;
+        settings.CompanyId = companyId;
+        var result = await AccountingService.SaveCompanyAccountingSettingsAsync(settings);
+        savingSettings = false;
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Company accounting defaults saved.", "تم حفظ إعدادات محاسبة الشركة."));
+            await LoadStatusAsync();
+            await LoadConfigurationAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not save company defaults.", "تعذر حفظ إعدادات الشركة."));
+        }
+    }
+
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

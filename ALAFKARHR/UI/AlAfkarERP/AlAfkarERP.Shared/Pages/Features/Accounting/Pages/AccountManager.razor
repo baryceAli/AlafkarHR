@@ -1,0 +1,298 @@
+@layout AdminLayout
+@page "/Accounting/Accounts"
+
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Accounting.Enums
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@T("Chart of Accounts", "دليل الحسابات")"
+                Subtitle="@T("Company-scoped ledger accounts used by posting profiles and journals.", "حسابات دفتر الأستاذ المستخدمة في التوجيهات والقيود.")"
+                Overline="@T("Accounting", "المحاسبة")"
+                Icon="bi-diagram-3" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@T("You don't have permissions to view this page", "ليس لديك صلاحية عرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <AppCard>
+            <div class="d-flex flex-column flex-lg-row gap-2 justify-content-between mb-3">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input class="form-control" placeholder="@T("Search accounts", "بحث في الحسابات")" @bind="searchText" @bind:event="oninput" />
+                    <button class="btn btn-outline-secondary" type="button" @onclick="LoadAsync">@T("Search", "بحث")</button>
+                </div>
+                @if (CanCreate)
+                {
+                    <button class="btn btn-primary" type="button" @onclick="OpenCreate">
+                        <i class="bi bi-plus-lg"></i>
+                        @T("Create Account", "إضافة حساب")
+                    </button>
+                }
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col-12 col-md-4">
+                    <select class="form-select" @bind="selectedType">
+                        <option value="">@T("All account types", "كل أنواع الحسابات")</option>
+                        @foreach (var type in Enum.GetValues<AccountType>())
+                        {
+                            <option value="@type">@type</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <select class="form-select" @bind="selectedRole">
+                        <option value="">@T("All roles", "كل الأدوار")</option>
+                        @foreach (var role in Enum.GetValues<AccountRole>())
+                        {
+                            <option value="@role">@role</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <select class="form-select" @bind="selectedSystemFilter">
+                        <option value="">@T("System and user accounts", "حسابات النظام والمستخدم")</option>
+                        <option value="system">@T("System accounts", "حسابات النظام")</option>
+                        <option value="user">@T("User accounts", "حسابات المستخدم")</option>
+                    </select>
+                </div>
+            </div>
+
+            @if (loading)
+            {
+                <div class="text-muted py-4 text-center">@T("Loading accounts...", "جاري تحميل الحسابات...")</div>
+            }
+            else
+            {
+                <div class="erp-table-wrap">
+                    <table class="table align-middle erp-table">
+                        <thead>
+                            <tr>
+                                <th>@T("Code", "الكود")</th>
+                                <th>@T("Name", "الاسم")</th>
+                                <th>@T("Type", "النوع")</th>
+                                <th>@T("Role", "الدور")</th>
+                                <th>@T("Balance", "الطبيعة")</th>
+                                <th>@T("Posting", "ترحيل")</th>
+                                <th>@T("Template", "القالب")</th>
+                                <th>@T("Status", "الحالة")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var account in VisibleAccounts)
+                            {
+                                <tr>
+                                    <td><strong>@account.Code</strong></td>
+                                    <td>
+                                        <span class="@IndentClass(account)">@T(account.NameEng, account.Name)</span>
+                                        @if (account.ParentAccountId.HasValue)
+                                        {
+                                            <div class="text-muted small">@ParentLabel(account.ParentAccountId.Value)</div>
+                                        }
+                                    </td>
+                                    <td>@account.Type</td>
+                                    <td>@(account.Role == AccountRole.None ? "-" : account.Role)</td>
+                                    <td>@account.NormalBalance</td>
+                                    <td><StatusChip Text="@T(account.IsPostingAccount ? "Ledger" : "Group", account.IsPostingAccount ? "دفتر" : "مجموعة")" Tone="@(account.IsPostingAccount ? "info" : "muted")" /></td>
+                                    <td><StatusChip Text="@T(account.IsSystemAccount ? "System" : "User", account.IsSystemAccount ? "نظام" : "مستخدم")" Tone="@(account.IsSystemAccount ? "primary" : "muted")" /></td>
+                                    <td><StatusChip Text="@T(account.IsActive ? "Active" : "Inactive", account.IsActive ? "نشط" : "غير نشط")" Tone="@(account.IsActive ? "success" : "muted")" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                @if (!accounts.Any())
+                {
+                    <div class="text-muted py-4 text-center">@T("No accounts found.", "لا توجد حسابات.")</div>
+                }
+            }
+        </AppCard>
+    }
+</div>
+
+@if (showCreate)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <EditForm Model="@newAccount" OnValidSubmit="SaveAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@T("Create Account", "إضافة حساب")</h5>
+                        <button class="btn-close" type="button" @onclick="CloseCreate"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@T("Code", "الكود")</label>
+                                <InputText class="form-control" @bind-Value="newAccount.Code" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@T("Arabic Name", "الاسم العربي")</label>
+                                <InputText class="form-control" @bind-Value="newAccount.Name" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@T("English Name", "الاسم الإنجليزي")</label>
+                                <InputText class="form-control" @bind-Value="newAccount.NameEng" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@T("Type", "النوع")</label>
+                                <InputSelect class="form-select" @bind-Value="newAccount.Type">
+                                    @foreach (var type in Enum.GetValues<AccountType>())
+                                    {
+                                        <option value="@type">@type</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@T("Normal Balance", "الطبيعة")</label>
+                                <InputSelect class="form-select" @bind-Value="newAccount.NormalBalance">
+                                    @foreach (var balance in Enum.GetValues<NormalBalance>())
+                                    {
+                                        <option value="@balance">@balance</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@T("Role", "الدور")</label>
+                                <InputSelect class="form-select" @bind-Value="newAccount.Role">
+                                    @foreach (var role in Enum.GetValues<AccountRole>())
+                                    {
+                                        <option value="@role">@role</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@T("Parent Account", "الحساب الأب")</label>
+                                <InputSelect class="form-select" @bind-Value="newAccount.ParentAccountId">
+                                    <option value="">@T("None", "بدون")</option>
+                                    @foreach (var account in accounts)
+                                    {
+                                        <option value="@account.Id">@account.Code - @T(account.NameEng, account.Name)</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="form-check">
+                                    <InputCheckbox class="form-check-input" @bind-Value="newAccount.IsPostingAccount" />
+                                    <label class="form-check-label">@T("Posting account", "حساب ترحيلي")</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="form-check">
+                                    <InputCheckbox class="form-check-input" @bind-Value="newAccount.IsActive" />
+                                    <label class="form-check-label">@T("Active", "نشط")</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" type="button" @onclick="CloseCreate">@T("Cancel", "إلغاء")</button>
+                        <button class="btn btn-primary" type="submit" disabled="@saving"><i class="bi bi-save"></i> @T("Save", "حفظ")</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private List<AccountDto> accounts = [];
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private string? searchText;
+    private AccountType? selectedType;
+    private AccountRole? selectedRole;
+    private string? selectedSystemFilter;
+    private bool loading;
+    private bool saving;
+    private bool showCreate;
+    private AccountDto newAccount = new();
+    private bool CanView => HasPermission(PermissionList.AccountPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.AccountPermissions.Create);
+    private IEnumerable<AccountDto> VisibleAccounts => accounts
+        .Where(x => !selectedType.HasValue || x.Type == selectedType.Value)
+        .Where(x => !selectedRole.HasValue || x.Role == selectedRole.Value)
+        .Where(x => string.IsNullOrWhiteSpace(selectedSystemFilter) || (selectedSystemFilter == "system" ? x.IsSystemAccount : !x.IsSystemAccount))
+        .OrderBy(x => x.Code);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (companyId == Guid.Empty || !CanView)
+            return;
+
+        loading = true;
+        var result = await AccountingService.GetAccountsAsync(companyId, 1, 100, searchText);
+        loading = false;
+        if (result.IsSuccess && result.Data is not null)
+            accounts = result.Data.Data.ToList();
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load accounts.", "تعذر تحميل الحسابات."));
+    }
+
+    private void OpenCreate()
+    {
+        newAccount = new AccountDto
+        {
+            CompanyId = companyId,
+            Type = AccountType.Asset,
+            NormalBalance = NormalBalance.Debit,
+            Role = AccountRole.None,
+            IsPostingAccount = true,
+            IsActive = true
+        };
+        showCreate = true;
+    }
+
+    private void CloseCreate() => showCreate = false;
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        newAccount.CompanyId = companyId;
+        var result = await AccountingService.CreateAccountAsync(newAccount);
+        saving = false;
+
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Account created.", "تم إنشاء الحساب."));
+            showCreate = false;
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not create account.", "تعذر إنشاء الحساب."));
+        }
+    }
+
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string ParentLabel(Guid parentId)
+    {
+        var parent = accounts.FirstOrDefault(x => x.Id == parentId);
+        return parent is null ? string.Empty : $"{parent.Code} - {T(parent.NameEng, parent.Name)}";
+    }
+
+    private string IndentClass(AccountDto account) => account.ParentAccountId.HasValue ? "ps-3" : string.Empty;
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

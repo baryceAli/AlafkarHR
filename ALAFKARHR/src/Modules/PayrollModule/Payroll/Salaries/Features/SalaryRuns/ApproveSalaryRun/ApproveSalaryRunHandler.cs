@@ -1,6 +1,10 @@
+using Accounting.Contracts.Accounting.Features;
+using SharedWithUI.Accounting.Dtos;
+using SharedWithUI.Accounting.Enums;
+
 namespace Payroll.Salaries.Features.SalaryRuns.ApproveSalaryRun;
 
-public class ApproveSalaryRunHandler(PayrollDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class ApproveSalaryRunHandler(PayrollDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<ApproveSalaryRunCommand, ApproveSalaryRunResult>
 {
     public async Task<ApproveSalaryRunResult> Handle(ApproveSalaryRunCommand request, CancellationToken cancellationToken)
@@ -19,6 +23,7 @@ public class ApproveSalaryRunHandler(PayrollDbContext dbContext, IHttpContextAcc
             throw new InvalidOperationException("Only calculated salary runs can be approved");
 
         await PostLoanRepaymentsAsync([salaryRun.Id], userId, cancellationToken);
+        await PostPayrollAccountingAsync(salaryRun, cancellationToken);
 
         salaryRun.Status = SalaryRunStatus.Approved;
         salaryRun.ModifiedAt = DateTime.UtcNow;
@@ -69,4 +74,42 @@ public class ApproveSalaryRunHandler(PayrollDbContext dbContext, IHttpContextAcc
             }
         }
     }
+
+    private async Task PostPayrollAccountingAsync(SalaryRun salaryRun, CancellationToken cancellationToken)
+    {
+        var grossExpense = salaryRun.TotalSalary + salaryRun.TotalAllowances + salaryRun.InsuranceAmount;
+        if (grossExpense <= 0)
+            return;
+
+        var lines = new List<JournalEntryLineDto>
+        {
+            new() { AccountRole = AccountRole.Expense, Debit = grossExpense, Description = $"Payroll {salaryRun.SalaryMonth}/{salaryRun.SalaryYear}" }
+        };
+
+        if (salaryRun.NetSalary > 0)
+            lines.Add(new() { AccountRole = AccountRole.Payable, Credit = salaryRun.NetSalary, Description = "Net salary payable" });
+        if (salaryRun.TaxAmount > 0)
+            lines.Add(new() { AccountRole = AccountRole.Payable, Credit = salaryRun.TaxAmount, Description = "Payroll tax payable" });
+        if (salaryRun.InsuranceAmount > 0)
+            lines.Add(new() { AccountRole = AccountRole.Payable, Credit = salaryRun.InsuranceAmount, Description = "Payroll insurance payable" });
+        if (salaryRun.TotalDeductions > 0)
+            lines.Add(new() { AccountRole = AccountRole.Receivable, Credit = salaryRun.TotalDeductions, Description = "Payroll deductions and loan recovery" });
+
+        await sender.Send(new CreateAndPostJournalEntryCommand(new CreateJournalEntryDto
+        {
+            CompanyId = await ResolveCompanyIdAsync(salaryRun.ContractId, cancellationToken),
+            EntryDate = DateTime.UtcNow,
+            SourceModule = "Payroll",
+            SourceDocumentId = salaryRun.Id,
+            SourceDocumentNumber = $"{salaryRun.SalaryYear}-{salaryRun.SalaryMonth:00}-{salaryRun.EmployeeId:N}",
+            Memo = $"Payroll run {salaryRun.SalaryMonth}/{salaryRun.SalaryYear}",
+            Lines = lines
+        }), cancellationToken);
+    }
+
+    private async Task<Guid> ResolveCompanyIdAsync(Guid contractId, CancellationToken cancellationToken) =>
+        await dbContext.Set<Contract>()
+            .Where(x => x.Id == contractId)
+            .Select(x => x.CompanyId)
+            .FirstAsync(cancellationToken);
 }

@@ -1,3 +1,4 @@
+using Accounting;
 using AttendanceDomain;
 using Auth;
 using Cart;
@@ -44,6 +45,7 @@ builder.Services.AddDataProtection();
 
 
 var authAssembly = typeof(AuthModule).Assembly;
+var accountingAssembly = typeof(AccountingModule).Assembly;
 var attendanceAssembly = typeof(AttendanceDomainModule).Assembly;
 var cartAssembly = typeof(CartModule).Assembly;
 var contractsAssembly = typeof(ContractsModule).Assembly;
@@ -71,6 +73,7 @@ var mediaCenterAssembly = typeof(MediaCenterModule).Assembly;
 var fleetAssembly = typeof(FleetModule).Assembly;
 
 builder.Services.AddCarterWithAssemblies(
+                        accountingAssembly,
                         authAssembly,
                         attendanceAssembly,
                         cartAssembly,
@@ -103,6 +106,7 @@ builder.Services.AddCarterWithAssemblies(
 //inventoryAssembly);
 
 builder.Services.AddMediatRWithAssemblies(
+                        accountingAssembly,
                         authAssembly,
                         attendanceAssembly,
                         cartAssembly,
@@ -139,6 +143,7 @@ builder.Services.AddMediatRWithAssemblies(
 
 #region Module Service: Auth, Catalog, ShoppingCart, Ordering
 builder.Services
+        .AddAccountingModule(builder.Configuration)
         .AddAuthModule(builder.Configuration)
         .AddAttendanceModule(builder.Configuration)
         .AddCartModule(builder.Configuration)
@@ -190,6 +195,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapCarter();
 app
+    .UseAccountingModule(app.Environment)
     .UseAuthModule(app.Environment)
     .UseAttendanceModule(app.Environment)
     .UseCartModule(app.Environment)

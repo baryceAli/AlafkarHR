@@ -1,3 +1,4 @@
+global using Accounting.Contracts.Accounting.Features;
 global using Carter;
 global using Mapster;
 global using MediatR;
@@ -20,6 +21,8 @@ global using SharedWithUI.Maintenance.Enums;
 global using SharedWithUI.Permissions;
 global using SharedWithUI.RealEstate.Dtos;
 global using SharedWithUI.RealEstate.Enums;
+global using SharedWithUI.Accounting.Dtos;
+global using SharedWithUI.Accounting.Enums;
 global using System.Reflection;
 global using System.Security.Claims;
 global using Contracts.Contracts.Contracts.Features;
