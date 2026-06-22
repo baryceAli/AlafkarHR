@@ -216,7 +216,7 @@
             return;
         }
 
-        await ActiveWorkspaceChanged.InvokeAsync(NavigationMenuResolver.GetWorkspaceKey(item));
+        await ActiveWorkspaceChanged.InvokeAsync(NavigationMenuResolver.ResolveNavigationWorkspace(item, ActiveWorkspace));
         await SaveRecentAsync(item);
         NavigationManager.NavigateTo(item.Url!);
     }
@@ -313,7 +313,7 @@
 
     private void ExpandActivePath()
     {
-        var activePath = NavigationMenuResolver.GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri);
+        var activePath = NavigationMenuResolver.GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri, ActiveWorkspace);
         foreach (var item in activePath.Take(Math.Max(0, activePath.Count - 1)))
         {
             expandedWorkspaceRowKeys.Add(NavigationMenuResolver.GetStorageKey(item));
@@ -329,7 +329,7 @@
 
         var rowKey = NavigationMenuResolver.GetStorageKey(row.Item);
         return NavigationMenuResolver
-            .GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri)
+            .GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri, ActiveWorkspace)
             .Any(item => string.Equals(NavigationMenuResolver.GetStorageKey(item), rowKey, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -449,7 +449,7 @@
     private string Label(MenuItem item) => SharedDataService.SelectViewLang(item.TextEn, item.TextAr);
     private string PathLabel(MenuItem item)
     {
-        var path = NavigationMenuResolver.GetMenuPath(item);
+        var path = NavigationMenuResolver.GetMenuPath(item, ActiveWorkspace);
         return path.Count > 1
             ? string.Join(" / ", path.Select(Label))
             : item.Url ?? "";

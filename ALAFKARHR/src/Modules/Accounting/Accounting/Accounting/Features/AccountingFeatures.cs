@@ -1,0 +1,1466 @@
+namespace Accounting.Accounting.Features;
+
+public record CreateAccountCommand(AccountDto Account) : ICommand<CreateAccountResult>;
+public record CreateAccountResult(Guid Id);
+public record GetAccountsQuery(Guid CompanyId, int PageIndex, int PageSize, string? SearchText) : IQuery<GetAccountsResult>;
+public record GetAccountsResult(PaginatedResult<AccountDto> Accounts);
+public record CreateFiscalPeriodCommand(FiscalPeriodDto Period) : ICommand<CreateFiscalPeriodResult>;
+public record CreateFiscalPeriodResult(Guid Id);
+public record GetFiscalPeriodsQuery(Guid CompanyId) : IQuery<GetFiscalPeriodsResult>;
+public record GetFiscalPeriodsResult(List<FiscalPeriodDto> Periods);
+public record CreateTaxCodeCommand(TaxCodeDto TaxCode) : ICommand<CreateTaxCodeResult>;
+public record CreateTaxCodeResult(Guid Id);
+public record GetTaxCodesQuery(Guid CompanyId) : IQuery<GetTaxCodesResult>;
+public record GetTaxCodesResult(List<TaxCodeDto> TaxCodes);
+public record CreatePostingProfileCommand(PostingProfileDto Profile) : ICommand<CreatePostingProfileResult>;
+public record CreatePostingProfileResult(Guid Id);
+public record GetPostingProfilesQuery(Guid CompanyId) : IQuery<GetPostingProfilesResult>;
+public record GetPostingProfilesResult(List<PostingProfileDto> Profiles);
+public record GetBankAccountsQuery(Guid CompanyId) : IQuery<GetBankAccountsResult>;
+public record GetBankAccountsResult(List<BankAccountDto> BankAccounts);
+public record UpsertBankAccountCommand(BankAccountDto BankAccount) : ICommand<UpsertBankAccountResult>;
+public record UpsertBankAccountResult(Guid Id);
+public record GetCashAccountsQuery(Guid CompanyId) : IQuery<GetCashAccountsResult>;
+public record GetCashAccountsResult(List<CashAccountDto> CashAccounts);
+public record UpsertCashAccountCommand(CashAccountDto CashAccount) : ICommand<UpsertCashAccountResult>;
+public record UpsertCashAccountResult(Guid Id);
+public record GetCompanyAccountingSettingsQuery(Guid CompanyId) : IQuery<GetCompanyAccountingSettingsResult>;
+public record GetCompanyAccountingSettingsResult(CompanyAccountingSettingsDto? Settings);
+public record UpsertCompanyAccountingSettingsCommand(CompanyAccountingSettingsDto Settings) : ICommand<UpsertCompanyAccountingSettingsResult>;
+public record UpsertCompanyAccountingSettingsResult(Guid Id);
+public record GetAccountingDocumentsQuery(AccountingDocumentType? Type, Guid? CompanyId, int PageIndex, int PageSize, string? SearchText) : IQuery<GetAccountingDocumentsResult>;
+public record GetAccountingDocumentsResult(PaginatedResult<AccountingDocumentDto> Documents);
+public record GetJournalEntriesQuery(Guid? CompanyId, int PageIndex, int PageSize, string? SearchText) : IQuery<GetJournalEntriesResult>;
+public record GetJournalEntriesResult(PaginatedResult<JournalEntryDto> JournalEntries);
+public record UpsertZatcaSettingsCommand(ZatcaSettingsDto Settings) : ICommand<UpsertZatcaSettingsResult>;
+public record UpsertZatcaSettingsResult(Guid Id);
+public record GetZatcaSettingsQuery(Guid CompanyId) : IQuery<GetZatcaSettingsResult>;
+public record GetZatcaSettingsResult(ZatcaSettingsDto? Settings);
+public record GetEInvoicesQuery(Guid? CompanyId, ZatcaSubmissionStatus? Status, int PageIndex, int PageSize) : IQuery<GetEInvoicesResult>;
+public record GetEInvoicesResult(PaginatedResult<EInvoiceDto> Invoices);
+public record SubmitEInvoiceCommand(Guid EInvoiceId) : ICommand<SubmitEInvoiceResult>;
+public record SubmitEInvoiceResult(Guid SubmissionId, ZatcaSubmissionStatus Status);
+public record GetAccountingDashboardQuery(Guid? CompanyId) : IQuery<GetAccountingDashboardResult>;
+public record GetAccountingDashboardResult(AccountingDashboardDto Dashboard);
+public record GetAccountingTemplatesQuery(Guid? CompanyId) : IQuery<GetAccountingTemplatesResult>;
+public record GetAccountingTemplatesResult(List<AccountingTemplateDto> Templates);
+public record GetAccountingTemplateByIdQuery(Guid Id, Guid? CompanyId) : IQuery<GetAccountingTemplateByIdResult>;
+public record GetAccountingTemplateByIdResult(AccountingTemplateDto Template);
+public record UpsertAccountingTemplateCommand(AccountingTemplateDto Template) : ICommand<UpsertAccountingTemplateResult>;
+public record UpsertAccountingTemplateResult(Guid Id);
+public record DeleteAccountingTemplateCommand(Guid Id) : ICommand<DeleteAccountingTemplateResult>;
+public record DeleteAccountingTemplateResult(Guid Id);
+public record CaptureAccountingTemplateCommand(CaptureAccountingTemplateDto Template) : ICommand<UpsertAccountingTemplateResult>;
+public record GetAccountingSetupStatusQuery(Guid CompanyId) : IQuery<GetAccountingSetupStatusResult>;
+public record GetAccountingSetupStatusResult(AccountingSetupStatusDto Status);
+public record ApplyAccountingTemplateCommand(ApplyAccountingTemplateDto Setup) : ICommand<ApplyAccountingTemplateResult>;
+public record ApplyAccountingTemplateResult(ApplyAccountingTemplateResultDto Result);
+
+public class CreateAccountCommandValidator : AbstractValidator<CreateAccountCommand>
+{
+    public CreateAccountCommandValidator()
+    {
+        RuleFor(x => x.Account.CompanyId).NotEmpty();
+        RuleFor(x => x.Account.Code).NotEmpty().MaximumLength(40);
+        RuleFor(x => x.Account.Name).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Account.NameEng).NotEmpty().MaximumLength(200);
+    }
+}
+
+public class CreateAccountingDocumentCommandValidator : AbstractValidator<CreateAccountingDocumentCommand>
+{
+    public CreateAccountingDocumentCommandValidator()
+    {
+        RuleFor(x => x.Document.CompanyId).NotEmpty();
+        RuleFor(x => x.Document.Lines).NotEmpty();
+        RuleForEach(x => x.Document.Lines).ChildRules(line =>
+        {
+            line.RuleFor(x => x.Description).NotEmpty();
+            line.RuleFor(x => x.Quantity).GreaterThanOrEqualTo(0);
+        });
+    }
+}
+
+public class CreateAndPostJournalEntryCommandValidator : AbstractValidator<CreateAndPostJournalEntryCommand>
+{
+    public CreateAndPostJournalEntryCommandValidator()
+    {
+        RuleFor(x => x.JournalEntry.CompanyId).NotEmpty();
+        RuleFor(x => x.JournalEntry.Lines).NotEmpty();
+        RuleForEach(x => x.JournalEntry.Lines).ChildRules(line =>
+        {
+            line.RuleFor(x => x).Must(x => x.AccountId != Guid.Empty || x.AccountRole != AccountRole.None)
+                .WithMessage("Journal line must contain an account id or account role.");
+            line.RuleFor(x => x).Must(x => (x.Debit > 0 && x.Credit == 0) || (x.Credit > 0 && x.Debit == 0))
+                .WithMessage("Journal line must contain either debit or credit.");
+        });
+    }
+}
+
+public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+    : ICommandHandler<CreateAccountCommand, CreateAccountResult>,
+      ICommandHandler<CreateFiscalPeriodCommand, CreateFiscalPeriodResult>,
+      ICommandHandler<CreateTaxCodeCommand, CreateTaxCodeResult>,
+      ICommandHandler<CreatePostingProfileCommand, CreatePostingProfileResult>,
+      ICommandHandler<UpsertBankAccountCommand, UpsertBankAccountResult>,
+      ICommandHandler<UpsertCashAccountCommand, UpsertCashAccountResult>,
+      ICommandHandler<UpsertCompanyAccountingSettingsCommand, UpsertCompanyAccountingSettingsResult>,
+      ICommandHandler<CreateAccountingDocumentCommand, CreateAccountingDocumentResult>,
+      ICommandHandler<PostAccountingDocumentCommand, PostAccountingDocumentResult>,
+      ICommandHandler<CreateAndPostJournalEntryCommand, CreateAndPostJournalEntryResult>,
+      ICommandHandler<RecordAccountingReceiptCommand, CreateAccountingDocumentResult>,
+      ICommandHandler<GenerateZatcaInvoiceCommand, GenerateZatcaInvoiceResult>,
+      ICommandHandler<UpsertZatcaSettingsCommand, UpsertZatcaSettingsResult>,
+      ICommandHandler<SubmitEInvoiceCommand, SubmitEInvoiceResult>,
+      ICommandHandler<UpsertAccountingTemplateCommand, UpsertAccountingTemplateResult>,
+      ICommandHandler<DeleteAccountingTemplateCommand, DeleteAccountingTemplateResult>,
+      ICommandHandler<CaptureAccountingTemplateCommand, UpsertAccountingTemplateResult>,
+      ICommandHandler<ApplyAccountingTemplateCommand, ApplyAccountingTemplateResult>
+{
+    public async Task<CreateAccountResult> Handle(CreateAccountCommand command, CancellationToken cancellationToken)
+    {
+        var account = Account.Create(command.Account, UserId);
+        await dbContext.Accounts.AddAsync(account, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new CreateAccountResult(account.Id);
+    }
+
+    public async Task<CreateFiscalPeriodResult> Handle(CreateFiscalPeriodCommand command, CancellationToken cancellationToken)
+    {
+        var period = FiscalPeriod.Create(command.Period, UserId);
+        await dbContext.FiscalPeriods.AddAsync(period, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new CreateFiscalPeriodResult(period.Id);
+    }
+
+    public async Task<CreateTaxCodeResult> Handle(CreateTaxCodeCommand command, CancellationToken cancellationToken)
+    {
+        var taxCode = TaxCode.Create(command.TaxCode, UserId);
+        await dbContext.TaxCodes.AddAsync(taxCode, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new CreateTaxCodeResult(taxCode.Id);
+    }
+
+    public async Task<CreatePostingProfileResult> Handle(CreatePostingProfileCommand command, CancellationToken cancellationToken)
+    {
+        await EnsurePostingProfileAccountsAsync(command.Profile, cancellationToken);
+        var profile = PostingProfile.Create(command.Profile, UserId);
+        await dbContext.PostingProfiles.AddAsync(profile, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new CreatePostingProfileResult(profile.Id);
+    }
+
+    public async Task<UpsertBankAccountResult> Handle(UpsertBankAccountCommand command, CancellationToken cancellationToken)
+    {
+        var dto = command.BankAccount;
+        var ledgerId = await ResolveOrCreateLedgerAccountAsync(dto.CompanyId, dto.LedgerAccountId, dto.DisplayName, AccountRole.Bank, AccountType.Asset, NormalBalance.Debit, "112", cancellationToken);
+        var journalId = await ResolveOrCreateJournalAsync(dto.CompanyId, dto.JournalId, dto.DisplayName, AccountingJournalType.Bank, ledgerId, cancellationToken);
+        var bankAccount = dto.Id == Guid.Empty ? null : await dbContext.BankAccounts.FirstOrDefaultAsync(x => x.Id == dto.Id, cancellationToken);
+
+        if (bankAccount is null)
+        {
+            bankAccount = BankAccount.Create(dto, ledgerId, journalId, UserId);
+            await dbContext.BankAccounts.AddAsync(bankAccount, cancellationToken);
+        }
+        else
+        {
+            bankAccount.Update(dto, ledgerId, journalId, UserId);
+        }
+
+        if (dto.IsDefault)
+        {
+            var others = await dbContext.BankAccounts.Where(x => x.CompanyId == dto.CompanyId && x.Id != bankAccount.Id && x.IsDefault).ToListAsync(cancellationToken);
+            foreach (var other in others)
+                other.SetDefault(false, UserId);
+            await UpsertDefaultPaymentAccountAsync(dto.CompanyId, bankAccount.LedgerAccountId, AccountRole.Bank, cancellationToken);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new UpsertBankAccountResult(bankAccount.Id);
+    }
+
+    public async Task<UpsertCashAccountResult> Handle(UpsertCashAccountCommand command, CancellationToken cancellationToken)
+    {
+        var dto = command.CashAccount;
+        var ledgerId = await ResolveOrCreateLedgerAccountAsync(dto.CompanyId, dto.LedgerAccountId, dto.DisplayName, AccountRole.Cash, AccountType.Asset, NormalBalance.Debit, "111", cancellationToken);
+        var journalId = await ResolveOrCreateJournalAsync(dto.CompanyId, dto.JournalId, dto.DisplayName, AccountingJournalType.Cash, ledgerId, cancellationToken);
+        var cashAccount = dto.Id == Guid.Empty ? null : await dbContext.CashAccounts.FirstOrDefaultAsync(x => x.Id == dto.Id, cancellationToken);
+
+        if (cashAccount is null)
+        {
+            cashAccount = CashAccount.Create(dto, ledgerId, journalId, UserId);
+            await dbContext.CashAccounts.AddAsync(cashAccount, cancellationToken);
+        }
+        else
+        {
+            cashAccount.Update(dto, ledgerId, journalId, UserId);
+        }
+
+        if (dto.IsDefault)
+        {
+            var others = await dbContext.CashAccounts.Where(x => x.CompanyId == dto.CompanyId && x.Id != cashAccount.Id && x.IsDefault).ToListAsync(cancellationToken);
+            foreach (var other in others)
+                other.SetDefault(false, UserId);
+            await UpsertDefaultPaymentAccountAsync(dto.CompanyId, cashAccount.LedgerAccountId, AccountRole.Cash, cancellationToken);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new UpsertCashAccountResult(cashAccount.Id);
+    }
+
+    public async Task<UpsertCompanyAccountingSettingsResult> Handle(UpsertCompanyAccountingSettingsCommand command, CancellationToken cancellationToken)
+    {
+        var settings = await dbContext.CompanyAccountingSettings.FirstOrDefaultAsync(x => x.CompanyId == command.Settings.CompanyId, cancellationToken);
+        await EnsureOptionalPostingAccountsAsync(command.Settings.CompanyId, SettingsAccountIds(command.Settings), cancellationToken);
+        if (settings is null)
+        {
+            settings = CompanyAccountingSettings.Upsert(command.Settings, UserId);
+            await dbContext.CompanyAccountingSettings.AddAsync(settings, cancellationToken);
+        }
+        else
+        {
+            settings.Update(command.Settings, UserId);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new UpsertCompanyAccountingSettingsResult(settings.Id);
+    }
+
+    public async Task<CreateAccountingDocumentResult> Handle(CreateAccountingDocumentCommand command, CancellationToken cancellationToken)
+    {
+        if (command.Document.SourceDocumentId.HasValue && !string.IsNullOrWhiteSpace(command.Document.SourceModule))
+        {
+            var sourceModule = command.Document.SourceModule.Trim();
+            var existing = await dbContext.AccountingDocuments.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.CompanyId == command.Document.CompanyId
+                    && x.Type == command.Document.Type
+                    && x.SourceModule == sourceModule
+                    && x.SourceDocumentId == command.Document.SourceDocumentId.Value, cancellationToken);
+
+            if (existing is not null)
+                return new CreateAccountingDocumentResult(existing.Id, existing.Number);
+        }
+
+        var number = string.IsNullOrWhiteSpace(command.Document.Number)
+            ? await GenerateDocumentNumberAsync(command.Document.CompanyId, command.Document.Type, command.Document.DocumentDate, cancellationToken)
+            : command.Document.Number.Trim();
+
+        var document = AccountingDocument.Create(command.Document, number, UserId);
+        await dbContext.AccountingDocuments.AddAsync(document, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new CreateAccountingDocumentResult(document.Id, document.Number);
+    }
+
+    public async Task<PostAccountingDocumentResult> Handle(PostAccountingDocumentCommand command, CancellationToken cancellationToken)
+    {
+        var document = await dbContext.AccountingDocuments.Include(x => x.Lines).FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken)
+            ?? throw new NotFoundException("Accounting document", command.Id);
+
+        if (document.Status == AccountingDocumentStatus.Posted && document.JournalEntryId.HasValue)
+            return new PostAccountingDocumentResult(document.JournalEntryId.Value);
+
+        var profile = await ResolvePostingProfileAsync(document.CompanyId, document.Type, cancellationToken);
+        var settings = await dbContext.CompanyAccountingSettings.AsNoTracking().FirstOrDefaultAsync(x => x.CompanyId == document.CompanyId, cancellationToken);
+        var journalNumber = await GenerateJournalNumberAsync(document.CompanyId, document.DocumentDate, cancellationToken);
+        var lines = BuildJournalLines(document, profile, settings);
+        await EnsurePostingAccountsAsync(document.CompanyId, lines.Select(x => x.AccountId), cancellationToken);
+        var entry = JournalEntry.Create(
+            document.CompanyId,
+            journalNumber,
+            document.DocumentDate,
+            "Accounting",
+            document.Id,
+            document.Number,
+            $"{document.Type} {document.Number}",
+            lines,
+            UserId);
+        entry.Post(UserId);
+
+        await dbContext.JournalEntries.AddAsync(entry, cancellationToken);
+        document.Post(entry.Id, UserId);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new PostAccountingDocumentResult(entry.Id);
+    }
+
+    public async Task<CreateAndPostJournalEntryResult> Handle(CreateAndPostJournalEntryCommand command, CancellationToken cancellationToken)
+    {
+        if (command.JournalEntry.SourceDocumentId.HasValue && !string.IsNullOrWhiteSpace(command.JournalEntry.SourceModule))
+        {
+            var sourceModule = command.JournalEntry.SourceModule.Trim();
+            var existing = await dbContext.JournalEntries.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.CompanyId == command.JournalEntry.CompanyId
+                    && x.SourceModule == sourceModule
+                    && x.SourceDocumentId == command.JournalEntry.SourceDocumentId.Value, cancellationToken);
+
+            if (existing is not null)
+                return new CreateAndPostJournalEntryResult(existing.Id, existing.Number);
+        }
+        else if (!string.IsNullOrWhiteSpace(command.JournalEntry.SourceModule) && !string.IsNullOrWhiteSpace(command.JournalEntry.SourceDocumentNumber))
+        {
+            var sourceModule = command.JournalEntry.SourceModule.Trim();
+            var sourceDocumentNumber = command.JournalEntry.SourceDocumentNumber.Trim();
+            var existing = await dbContext.JournalEntries.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.CompanyId == command.JournalEntry.CompanyId
+                    && x.SourceModule == sourceModule
+                    && x.SourceDocumentNumber == sourceDocumentNumber, cancellationToken);
+
+            if (existing is not null)
+                return new CreateAndPostJournalEntryResult(existing.Id, existing.Number);
+        }
+
+        var journalNumber = await GenerateJournalNumberAsync(command.JournalEntry.CompanyId, command.JournalEntry.EntryDate, cancellationToken);
+        var lines = await ResolveJournalLinesAsync(command.JournalEntry.CompanyId, command.JournalEntry.Lines, cancellationToken);
+        await EnsurePostingAccountsAsync(command.JournalEntry.CompanyId, lines.Select(x => x.AccountId), cancellationToken);
+        var entry = JournalEntry.Create(
+            command.JournalEntry.CompanyId,
+            journalNumber,
+            command.JournalEntry.EntryDate,
+            command.JournalEntry.SourceModule,
+            command.JournalEntry.SourceDocumentId,
+            command.JournalEntry.SourceDocumentNumber,
+            command.JournalEntry.Memo,
+            lines,
+            UserId);
+        entry.Post(UserId);
+
+        await dbContext.JournalEntries.AddAsync(entry, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new CreateAndPostJournalEntryResult(entry.Id, entry.Number);
+    }
+
+    public async Task<CreateAccountingDocumentResult> Handle(RecordAccountingReceiptCommand command, CancellationToken cancellationToken)
+    {
+        var document = new AccountingDocumentDto
+        {
+            CompanyId = command.CompanyId,
+            BranchId = command.BranchId,
+            Type = AccountingDocumentType.CustomerReceipt,
+            DocumentDate = command.ReceiptDate,
+            PartyId = command.PartyId,
+            PartyName = command.PartyName,
+            SourceModule = string.IsNullOrWhiteSpace(command.SourceModule) ? "Payments" : command.SourceModule,
+            SourceDocumentId = command.SourceDocumentId,
+            SourceDocumentNumber = command.SourceDocumentNumber,
+            Lines =
+            [
+                new AccountingDocumentLineDto
+                {
+                    Description = $"Receipt for {command.SourceDocumentNumber ?? command.PartyName ?? "customer"}",
+                    Quantity = 1,
+                    UnitPrice = command.Amount,
+                    NetAmount = command.Amount,
+                    TotalAmount = command.Amount
+                }
+            ]
+        };
+
+        var created = await Handle(new CreateAccountingDocumentCommand(document), cancellationToken);
+        await Handle(new PostAccountingDocumentCommand(created.Id), cancellationToken);
+        return created;
+    }
+
+    public async Task<GenerateZatcaInvoiceResult> Handle(GenerateZatcaInvoiceCommand command, CancellationToken cancellationToken)
+    {
+        var document = await dbContext.AccountingDocuments.Include(x => x.Lines).FirstOrDefaultAsync(x => x.Id == command.AccountingDocumentId, cancellationToken)
+            ?? throw new NotFoundException("Accounting document", command.AccountingDocumentId);
+
+        if (document.Status != AccountingDocumentStatus.Posted)
+            throw new BadRequestException("Only posted accounting documents can generate ZATCA invoices.");
+
+        var existing = await dbContext.EInvoices.AsNoTracking().FirstOrDefaultAsync(x => x.AccountingDocumentId == document.Id, cancellationToken);
+        if (existing is not null)
+            return new GenerateZatcaInvoiceResult(existing.Id, existing.InvoiceHash, existing.QrPayload);
+
+        var settings = await dbContext.ZatcaSettings.AsNoTracking().FirstOrDefaultAsync(x => x.CompanyId == document.CompanyId, cancellationToken)
+            ?? throw new BadRequestException("ZATCA settings must be configured before generating e-invoices.");
+
+        var lastInvoice = await dbContext.EInvoices.AsNoTracking()
+            .Where(x => x.CompanyId == document.CompanyId)
+            .OrderByDescending(x => x.Icv)
+            .FirstOrDefaultAsync(cancellationToken);
+        var icv = (lastInvoice?.Icv ?? 0) + 1;
+        var previousHash = lastInvoice?.InvoiceHash;
+        var xml = BuildZatcaXml(document, settings, command.InvoiceType, icv, previousHash);
+        var hash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(xml)));
+        var qr = BuildQrPayload(settings.SellerName, settings.VatNumber, document.DocumentDate, document.TotalAmount, document.TaxAmount, hash);
+        var invoice = EInvoice.Create(document, command.InvoiceType, icv, previousHash, xml, hash, qr, UserId);
+        await dbContext.EInvoices.AddAsync(invoice, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new GenerateZatcaInvoiceResult(invoice.Id, invoice.InvoiceHash, invoice.QrPayload);
+    }
+
+    public async Task<UpsertZatcaSettingsResult> Handle(UpsertZatcaSettingsCommand command, CancellationToken cancellationToken)
+    {
+        var settings = await dbContext.ZatcaSettings.FirstOrDefaultAsync(x => x.CompanyId == command.Settings.CompanyId, cancellationToken);
+        if (settings is null)
+        {
+            settings = ZatcaSettings.Upsert(command.Settings, UserId);
+            await dbContext.ZatcaSettings.AddAsync(settings, cancellationToken);
+        }
+        else
+        {
+            settings.Update(command.Settings, UserId);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new UpsertZatcaSettingsResult(settings.Id);
+    }
+
+    public async Task<SubmitEInvoiceResult> Handle(SubmitEInvoiceCommand command, CancellationToken cancellationToken)
+    {
+        var invoice = await dbContext.EInvoices.FirstOrDefaultAsync(x => x.Id == command.EInvoiceId, cancellationToken)
+            ?? throw new NotFoundException("E-Invoice", command.EInvoiceId);
+
+        var targetStatus = invoice.InvoiceType == ZatcaInvoiceType.StandardTaxInvoice || invoice.InvoiceType == ZatcaInvoiceType.DebitNote
+            ? ZatcaSubmissionStatus.Cleared
+            : ZatcaSubmissionStatus.Reported;
+        var response = $"Local compliance queue accepted invoice {invoice.InvoiceNumber}. Configure live ZATCA transport before production.";
+        var submission = EInvoiceSubmission.Create(invoice.Id, targetStatus, invoice.XmlPayload, response, null, 0, UserId);
+        invoice.MarkSubmitted(targetStatus, UserId);
+        await dbContext.EInvoiceSubmissions.AddAsync(submission, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new SubmitEInvoiceResult(submission.Id, targetStatus);
+    }
+
+    public async Task<UpsertAccountingTemplateResult> Handle(UpsertAccountingTemplateCommand command, CancellationToken cancellationToken)
+    {
+        var dto = command.Template;
+        ValidateTemplate(dto);
+        if (dto.Visibility == AccountingTemplateVisibility.Shared && !HasPermission(PermissionList.AccountingTemplatePermissions.Share))
+            throw new BadRequestException("Shared template permission is required.");
+        if (dto.Visibility == AccountingTemplateVisibility.Private && (!dto.CompanyId.HasValue || dto.CompanyId.Value == Guid.Empty))
+            throw new BadRequestException("Company is required for private templates.");
+
+        dto.Code = dto.Code.Trim().ToUpperInvariant();
+        var scopedCompanyId = dto.Visibility == AccountingTemplateVisibility.Private ? dto.CompanyId : null;
+        var duplicate = await dbContext.AccountingTemplates.AnyAsync(x => x.Id != dto.Id && x.Code == dto.Code && x.CompanyId == scopedCompanyId, cancellationToken);
+        if (duplicate || string.Equals(dto.Code, SaudiAccountingTemplate.Code, StringComparison.OrdinalIgnoreCase))
+            throw new BadRequestException("Template code already exists.");
+
+        AccountingTemplate template;
+        if (dto.Id == Guid.Empty)
+        {
+            template = AccountingTemplate.Create(dto, UserId);
+            await dbContext.AccountingTemplates.AddAsync(template, cancellationToken);
+        }
+        else
+        {
+            template = await dbContext.AccountingTemplates
+                .Include(x => x.Accounts)
+                .Include(x => x.TaxCodes)
+                .Include(x => x.PostingProfiles)
+                .Include(x => x.Journals)
+                .FirstOrDefaultAsync(x => x.Id == dto.Id, cancellationToken)
+                ?? throw new NotFoundException("Accounting template", dto.Id);
+            if (template.IsSystem)
+                throw new BadRequestException("System templates cannot be edited.");
+            template.Update(dto, UserId);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new UpsertAccountingTemplateResult(template.Id);
+    }
+
+    public async Task<DeleteAccountingTemplateResult> Handle(DeleteAccountingTemplateCommand command, CancellationToken cancellationToken)
+    {
+        var template = await dbContext.AccountingTemplates.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken)
+            ?? throw new NotFoundException("Accounting template", command.Id);
+        if (template.IsSystem)
+            throw new BadRequestException("System templates cannot be deleted.");
+
+        template.Deactivate(UserId);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new DeleteAccountingTemplateResult(command.Id);
+    }
+
+    public async Task<UpsertAccountingTemplateResult> Handle(CaptureAccountingTemplateCommand command, CancellationToken cancellationToken)
+    {
+        var request = command.Template;
+        if (request.CompanyId == Guid.Empty)
+            throw new BadRequestException("Company is required.");
+        if (request.Visibility == AccountingTemplateVisibility.Shared && !HasPermission(PermissionList.AccountingTemplatePermissions.Share))
+            throw new BadRequestException("Shared template permission is required.");
+
+        var accounts = await dbContext.Accounts.AsNoTracking().Where(x => x.CompanyId == request.CompanyId).OrderBy(x => x.Code).ToListAsync(cancellationToken);
+        if (!accounts.Any())
+            throw new BadRequestException("Chart of accounts is required before capturing a template.");
+
+        var keyByAccountId = accounts.ToDictionary(x => x.Id, x => string.IsNullOrWhiteSpace(x.TemplateKey) ? $"ACC_{x.Code}" : x.TemplateKey!);
+        var dto = new AccountingTemplateDto
+        {
+            Code = request.Code,
+            Name = request.Name,
+            NameAr = request.NameAr,
+            CountryCode = request.CountryCode,
+            CurrencyCode = request.CurrencyCode,
+            Visibility = request.Visibility,
+            CompanyId = request.Visibility == AccountingTemplateVisibility.Private ? request.CompanyId : null,
+            IsActive = true,
+            Accounts = accounts.Select(x => new AccountingTemplateAccountDto
+            {
+                TemplateKey = keyByAccountId[x.Id],
+                Code = x.Code,
+                Name = x.Name,
+                NameEng = x.NameEng,
+                Type = x.Type,
+                NormalBalance = x.NormalBalance,
+                Role = x.Role,
+                ParentTemplateKey = x.ParentAccountId.HasValue && keyByAccountId.TryGetValue(x.ParentAccountId.Value, out var parentKey) ? parentKey : null,
+                IsPostingAccount = x.IsPostingAccount
+            }).ToList()
+        };
+
+        dto.TaxCodes = (await dbContext.TaxCodes.AsNoTracking().Where(x => x.CompanyId == request.CompanyId).OrderBy(x => x.Code).ToListAsync(cancellationToken))
+            .Select(x => new AccountingTemplateTaxCodeDto
+            {
+                Code = x.Code,
+                Name = x.Name,
+                Rate = x.Rate,
+                IsExempt = x.IsExempt,
+                ZatcaCategoryCode = x.ZatcaCategoryCode,
+                ExemptionReasonCode = x.ExemptionReasonCode,
+                IsActive = x.IsActive
+            }).ToList();
+
+        dto.Journals = (await dbContext.AccountingJournals.AsNoTracking().Where(x => x.CompanyId == request.CompanyId).OrderBy(x => x.Code).ToListAsync(cancellationToken))
+            .Select(x => new AccountingTemplateJournalDto
+            {
+                Code = x.Code,
+                Name = x.Name,
+                NameAr = x.NameAr,
+                Type = x.Type,
+                DefaultDebitAccountKey = x.DefaultDebitAccountId.HasValue && keyByAccountId.TryGetValue(x.DefaultDebitAccountId.Value, out var debitKey) ? debitKey : null,
+                DefaultCreditAccountKey = x.DefaultCreditAccountId.HasValue && keyByAccountId.TryGetValue(x.DefaultCreditAccountId.Value, out var creditKey) ? creditKey : null,
+                IsSystemJournal = x.IsSystemJournal,
+                IsActive = x.IsActive
+            }).ToList();
+
+        dto.PostingProfiles = (await dbContext.PostingProfiles.AsNoTracking().Where(x => x.CompanyId == request.CompanyId).OrderBy(x => x.Type).ToListAsync(cancellationToken))
+            .Where(x => keyByAccountId.ContainsKey(x.ReceivableAccountId)
+                && keyByAccountId.ContainsKey(x.PayableAccountId)
+                && keyByAccountId.ContainsKey(x.RevenueAccountId)
+                && keyByAccountId.ContainsKey(x.ExpenseAccountId)
+                && keyByAccountId.ContainsKey(x.OutputVatAccountId)
+                && keyByAccountId.ContainsKey(x.InputVatAccountId)
+                && keyByAccountId.ContainsKey(x.CashAccountId)
+                && keyByAccountId.ContainsKey(x.BankAccountId))
+            .Select(x => new AccountingTemplatePostingProfileDto
+            {
+                Type = x.Type,
+                ReceivableAccountKey = keyByAccountId[x.ReceivableAccountId],
+                PayableAccountKey = keyByAccountId[x.PayableAccountId],
+                RevenueAccountKey = keyByAccountId[x.RevenueAccountId],
+                ExpenseAccountKey = keyByAccountId[x.ExpenseAccountId],
+                OutputVatAccountKey = keyByAccountId[x.OutputVatAccountId],
+                InputVatAccountKey = keyByAccountId[x.InputVatAccountId],
+                CashAccountKey = keyByAccountId[x.CashAccountId],
+                BankAccountKey = keyByAccountId[x.BankAccountId],
+                IsDefault = x.IsDefault
+            }).ToList();
+
+        return await Handle(new UpsertAccountingTemplateCommand(dto), cancellationToken);
+    }
+
+    public async Task<ApplyAccountingTemplateResult> Handle(ApplyAccountingTemplateCommand command, CancellationToken cancellationToken)
+    {
+        var setup = command.Setup;
+        if (setup.CompanyId == Guid.Empty)
+            throw new BadRequestException("Company is required.");
+
+        var template = await ResolveTemplateAsync(setup, cancellationToken);
+        ValidateTemplate(template);
+        var created = new ApplyAccountingTemplateResultDto();
+        var existingAccounts = await dbContext.Accounts.Where(x => x.CompanyId == setup.CompanyId).ToListAsync(cancellationToken);
+        var byTemplate = existingAccounts.Where(x => !string.IsNullOrWhiteSpace(x.TemplateKey)).ToDictionary(x => x.TemplateKey!, StringComparer.OrdinalIgnoreCase);
+        var byCode = existingAccounts.ToDictionary(x => x.Code, StringComparer.OrdinalIgnoreCase);
+        var accountIdsByTemplate = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var spec in template.Accounts.OrderBy(x => x.ParentTemplateKey is null ? 0 : 1).ThenBy(x => x.Code))
+        {
+            if (byTemplate.TryGetValue(spec.TemplateKey, out var existingByTemplate) || byCode.TryGetValue(spec.Code, out existingByTemplate))
+            {
+                accountIdsByTemplate[spec.TemplateKey] = existingByTemplate.Id;
+                continue;
+            }
+
+            var account = Account.Create(new AccountDto
+            {
+                CompanyId = setup.CompanyId,
+                Code = spec.Code,
+                Name = spec.Name,
+                NameEng = spec.NameEng,
+                Type = spec.Type,
+                NormalBalance = spec.NormalBalance,
+                Role = spec.Role,
+                TemplateKey = spec.TemplateKey,
+                ParentAccountId = spec.ParentTemplateKey is not null && accountIdsByTemplate.TryGetValue(spec.ParentTemplateKey, out var parentId) ? parentId : null,
+                IsPostingAccount = spec.IsPostingAccount,
+                IsSystemAccount = template.IsSystem
+            }, UserId);
+            await dbContext.Accounts.AddAsync(account, cancellationToken);
+            byTemplate[spec.TemplateKey] = account;
+            byCode[spec.Code] = account;
+            accountIdsByTemplate[spec.TemplateKey] = account.Id;
+            created.AccountsCreated++;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var roleAccounts = await dbContext.Accounts.AsNoTracking()
+            .Where(x => x.CompanyId == setup.CompanyId && x.IsPostingAccount && x.Role != AccountRole.None)
+            .GroupBy(x => x.Role)
+            .ToDictionaryAsync(x => x.Key, x => x.OrderBy(a => a.Code).First().Id, cancellationToken);
+
+        foreach (var taxCode in template.TaxCodes)
+        {
+            var exists = await dbContext.TaxCodes.AnyAsync(x => x.CompanyId == setup.CompanyId && x.Code == taxCode.Code, cancellationToken);
+            if (exists)
+                continue;
+            await dbContext.TaxCodes.AddAsync(TaxCode.Create(new TaxCodeDto
+            {
+                CompanyId = setup.CompanyId,
+                Code = taxCode.Code,
+                Name = taxCode.Name,
+                Rate = taxCode.Rate,
+                IsExempt = taxCode.IsExempt,
+                ZatcaCategoryCode = taxCode.ZatcaCategoryCode,
+                ExemptionReasonCode = taxCode.ExemptionReasonCode,
+                IsActive = taxCode.IsActive
+            }, UserId), cancellationToken);
+            created.TaxCodesCreated++;
+        }
+
+        foreach (var profile in template.PostingProfiles)
+        {
+            var exists = await dbContext.PostingProfiles.AnyAsync(x => x.CompanyId == setup.CompanyId && x.Type == profile.Type && x.IsDefault == profile.IsDefault, cancellationToken);
+            if (exists)
+                continue;
+            await dbContext.PostingProfiles.AddAsync(PostingProfile.Create(new PostingProfileDto
+            {
+                CompanyId = setup.CompanyId,
+                Type = profile.Type,
+                ReceivableAccountId = ResolveTemplateAccountId(profile.ReceivableAccountKey, accountIdsByTemplate),
+                PayableAccountId = ResolveTemplateAccountId(profile.PayableAccountKey, accountIdsByTemplate),
+                RevenueAccountId = ResolveTemplateAccountId(profile.RevenueAccountKey, accountIdsByTemplate),
+                ExpenseAccountId = ResolveTemplateAccountId(profile.ExpenseAccountKey, accountIdsByTemplate),
+                OutputVatAccountId = ResolveTemplateAccountId(profile.OutputVatAccountKey, accountIdsByTemplate),
+                InputVatAccountId = ResolveTemplateAccountId(profile.InputVatAccountKey, accountIdsByTemplate),
+                CashAccountId = ResolveTemplateAccountId(profile.CashAccountKey, accountIdsByTemplate),
+                BankAccountId = ResolveTemplateAccountId(profile.BankAccountKey, accountIdsByTemplate),
+                IsDefault = profile.IsDefault
+            }, UserId), cancellationToken);
+            created.PostingProfilesCreated++;
+        }
+
+        if (setup.CreateDefaultJournals)
+        {
+            foreach (var journal in template.Journals)
+            {
+                var exists = await dbContext.AccountingJournals.AnyAsync(x => x.CompanyId == setup.CompanyId && x.Code == journal.Code, cancellationToken);
+                if (exists)
+                    continue;
+                await dbContext.AccountingJournals.AddAsync(AccountingJournal.Create(new AccountingJournalDto
+                {
+                    CompanyId = setup.CompanyId,
+                    Code = journal.Code,
+                    Name = journal.Name,
+                    NameAr = journal.NameAr,
+                    Type = journal.Type,
+                    DefaultDebitAccountId = ResolveOptionalTemplateAccountId(journal.DefaultDebitAccountKey, accountIdsByTemplate),
+                    DefaultCreditAccountId = ResolveOptionalTemplateAccountId(journal.DefaultCreditAccountKey, accountIdsByTemplate),
+                    IsSystemJournal = journal.IsSystemJournal,
+                    IsActive = journal.IsActive
+                }, UserId), cancellationToken);
+                created.JournalsCreated++;
+            }
+        }
+
+        await EnsureTemplateCompanyDefaultsAsync(setup.CompanyId, roleAccounts, cancellationToken);
+
+        var fiscalStart = setup.FiscalYearStart == default
+            ? new DateTime(DateTime.UtcNow.Year, template.FiscalYearStartMonth, Math.Min(template.FiscalYearStartDay, DateTime.DaysInMonth(DateTime.UtcNow.Year, template.FiscalYearStartMonth)))
+            : setup.FiscalYearStart.Date;
+        var fiscalEnd = fiscalStart.AddYears(1).AddDays(-1);
+        var periodExists = await dbContext.FiscalPeriods.AnyAsync(x => x.CompanyId == setup.CompanyId && x.StartDate == fiscalStart && x.EndDate == fiscalEnd, cancellationToken);
+        if (!periodExists)
+        {
+            await dbContext.FiscalPeriods.AddAsync(FiscalPeriod.Create(new FiscalPeriodDto
+            {
+                CompanyId = setup.CompanyId,
+                Name = $"{fiscalStart:yyyy}",
+                StartDate = fiscalStart,
+                EndDate = fiscalEnd,
+                Status = FiscalPeriodStatus.Open
+            }, UserId), cancellationToken);
+            created.FiscalPeriodsCreated++;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new ApplyAccountingTemplateResult(created);
+    }
+
+    private string UserId => httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+
+    private bool HasPermission(string permission) => httpContextAccessor.HttpContext?.User.Claims.Any(c => c.Value == permission) == true;
+
+    private async Task<AccountingTemplateDto> ResolveTemplateAsync(ApplyAccountingTemplateDto setup, CancellationToken cancellationToken)
+    {
+        if (setup.TemplateId.HasValue && setup.TemplateId.Value != Guid.Empty)
+        {
+            var template = await dbContext.AccountingTemplates
+                .Include(x => x.Accounts)
+                .Include(x => x.TaxCodes)
+                .Include(x => x.PostingProfiles)
+                .Include(x => x.Journals)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == setup.TemplateId.Value
+                    && x.IsActive
+                    && (x.Visibility == AccountingTemplateVisibility.Shared || x.CompanyId == setup.CompanyId), cancellationToken)
+                ?? throw new NotFoundException("Accounting template", setup.TemplateId.Value);
+            return template.ToDto();
+        }
+
+        if (string.Equals(setup.TemplateCode, SaudiAccountingTemplate.Code, StringComparison.OrdinalIgnoreCase))
+            return SaudiAccountingTemplate.Template;
+
+        var code = setup.TemplateCode.Trim().ToUpperInvariant();
+        var custom = await dbContext.AccountingTemplates
+            .Include(x => x.Accounts)
+            .Include(x => x.TaxCodes)
+            .Include(x => x.PostingProfiles)
+            .Include(x => x.Journals)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Code == code
+                && x.IsActive
+                && (x.Visibility == AccountingTemplateVisibility.Shared || x.CompanyId == setup.CompanyId), cancellationToken)
+            ?? throw new BadRequestException("Accounting template is not available.");
+
+        return custom.ToDto();
+    }
+
+    private static void ValidateTemplate(AccountingTemplateDto template)
+    {
+        if (string.IsNullOrWhiteSpace(template.Code))
+            throw new BadRequestException("Template code is required.");
+        if (string.IsNullOrWhiteSpace(template.Name))
+            throw new BadRequestException("Template name is required.");
+        if (!template.Accounts.Any())
+            throw new BadRequestException("Template must include at least one account.");
+
+        var accountKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var accountCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var account in template.Accounts)
+        {
+            if (string.IsNullOrWhiteSpace(account.TemplateKey) || string.IsNullOrWhiteSpace(account.Code) || string.IsNullOrWhiteSpace(account.Name) || string.IsNullOrWhiteSpace(account.NameEng))
+                throw new BadRequestException("Every template account requires key, code, Arabic name, and English name.");
+            if (!accountKeys.Add(account.TemplateKey.Trim()))
+                throw new BadRequestException($"Duplicate account template key '{account.TemplateKey}'.");
+            if (!accountCodes.Add(account.Code.Trim()))
+                throw new BadRequestException($"Duplicate account code '{account.Code}'.");
+        }
+
+        foreach (var account in template.Accounts.Where(x => !string.IsNullOrWhiteSpace(x.ParentTemplateKey)))
+        {
+            if (!accountKeys.Contains(account.ParentTemplateKey!))
+                throw new BadRequestException($"Parent account key '{account.ParentTemplateKey}' was not found.");
+        }
+
+        foreach (var profile in template.PostingProfiles)
+        {
+            foreach (var key in new[] { profile.ReceivableAccountKey, profile.PayableAccountKey, profile.RevenueAccountKey, profile.ExpenseAccountKey, profile.OutputVatAccountKey, profile.InputVatAccountKey, profile.CashAccountKey, profile.BankAccountKey })
+            {
+                if (!accountKeys.Contains(key))
+                    throw new BadRequestException($"Posting profile account key '{key}' was not found.");
+            }
+        }
+
+        foreach (var journal in template.Journals)
+        {
+            if (!string.IsNullOrWhiteSpace(journal.DefaultDebitAccountKey) && !accountKeys.Contains(journal.DefaultDebitAccountKey))
+                throw new BadRequestException($"Journal debit account key '{journal.DefaultDebitAccountKey}' was not found.");
+            if (!string.IsNullOrWhiteSpace(journal.DefaultCreditAccountKey) && !accountKeys.Contains(journal.DefaultCreditAccountKey))
+                throw new BadRequestException($"Journal credit account key '{journal.DefaultCreditAccountKey}' was not found.");
+        }
+    }
+
+    private static Guid ResolveTemplateAccountId(string key, IReadOnlyDictionary<string, Guid> accountIdsByTemplate)
+    {
+        if (!accountIdsByTemplate.TryGetValue(key, out var accountId))
+            throw new BadRequestException($"Template account key '{key}' was not created.");
+        return accountId;
+    }
+
+    private static Guid? ResolveOptionalTemplateAccountId(string? key, IReadOnlyDictionary<string, Guid> accountIdsByTemplate) =>
+        string.IsNullOrWhiteSpace(key) ? null : ResolveTemplateAccountId(key, accountIdsByTemplate);
+
+    private async Task<Guid> ResolveOrCreateLedgerAccountAsync(Guid companyId, Guid? accountId, string displayName, AccountRole role, AccountType type, NormalBalance balance, string codePrefix, CancellationToken cancellationToken)
+    {
+        if (accountId.HasValue && accountId.Value != Guid.Empty)
+        {
+            await EnsurePostingAccountsAsync(companyId, [accountId.Value], cancellationToken);
+            return accountId.Value;
+        }
+
+        var existing = await dbContext.Accounts.AsNoTracking()
+            .Where(x => x.CompanyId == companyId && x.Role == role && x.IsPostingAccount && x.IsActive)
+            .OrderBy(x => x.Code)
+            .FirstOrDefaultAsync(x => x.NameEng == displayName || x.Name == displayName, cancellationToken);
+        if (existing is not null)
+            return existing.Id;
+
+        var nextCode = await NextAccountCodeAsync(companyId, codePrefix, cancellationToken);
+        var account = Account.Create(new AccountDto
+        {
+            CompanyId = companyId,
+            Code = nextCode,
+            Name = displayName,
+            NameEng = displayName,
+            Type = type,
+            NormalBalance = balance,
+            Role = role,
+            IsPostingAccount = true,
+            IsSystemAccount = false
+        }, UserId);
+        await dbContext.Accounts.AddAsync(account, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return account.Id;
+    }
+
+    private async Task<Guid> ResolveOrCreateJournalAsync(Guid companyId, Guid? journalId, string displayName, AccountingJournalType type, Guid ledgerAccountId, CancellationToken cancellationToken)
+    {
+        if (journalId.HasValue && journalId.Value != Guid.Empty)
+        {
+            var exists = await dbContext.AccountingJournals.AnyAsync(x => x.CompanyId == companyId && x.Id == journalId.Value && x.IsActive, cancellationToken);
+            if (!exists)
+                throw new BadRequestException("Selected journal must belong to the company and be active.");
+            return journalId.Value;
+        }
+
+        var codePrefix = type == AccountingJournalType.Bank ? "BNK" : "CSH";
+        var code = await NextJournalCodeAsync(companyId, codePrefix, cancellationToken);
+        var journal = AccountingJournal.Create(new AccountingJournalDto
+        {
+            CompanyId = companyId,
+            Code = code,
+            Name = displayName,
+            NameAr = displayName,
+            Type = type,
+            DefaultDebitAccountId = ledgerAccountId,
+            DefaultCreditAccountId = ledgerAccountId,
+            IsSystemJournal = false,
+            IsActive = true
+        }, UserId);
+        await dbContext.AccountingJournals.AddAsync(journal, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return journal.Id;
+    }
+
+    private async Task<string> NextAccountCodeAsync(Guid companyId, string prefix, CancellationToken cancellationToken)
+    {
+        var codes = await dbContext.Accounts.IgnoreQueryFilters().AsNoTracking()
+            .Where(x => x.CompanyId == companyId && x.Code.StartsWith(prefix))
+            .Select(x => x.Code)
+            .ToListAsync(cancellationToken);
+        var next = codes.Select(x => int.TryParse(x[prefix.Length..], out var value) ? value : 0).DefaultIfEmpty(0).Max() + 1;
+        return $"{prefix}{next:D2}";
+    }
+
+    private async Task<string> NextJournalCodeAsync(Guid companyId, string prefix, CancellationToken cancellationToken)
+    {
+        var codes = await dbContext.AccountingJournals.IgnoreQueryFilters().AsNoTracking()
+            .Where(x => x.CompanyId == companyId && x.Code.StartsWith(prefix))
+            .Select(x => x.Code)
+            .ToListAsync(cancellationToken);
+        var next = codes.Select(x => int.TryParse(x[prefix.Length..], out var value) ? value : 0).DefaultIfEmpty(0).Max() + 1;
+        return $"{prefix}{next:D2}";
+    }
+
+    private async Task UpsertDefaultPaymentAccountAsync(Guid companyId, Guid accountId, AccountRole role, CancellationToken cancellationToken)
+    {
+        var settings = await dbContext.CompanyAccountingSettings.FirstOrDefaultAsync(x => x.CompanyId == companyId, cancellationToken);
+        var dto = settings?.ToDto() ?? new CompanyAccountingSettingsDto { CompanyId = companyId };
+        if (role == AccountRole.Bank)
+            dto.BankAccountId = accountId;
+        if (role == AccountRole.Cash)
+            dto.CashAccountId = accountId;
+
+        if (settings is null)
+            await dbContext.CompanyAccountingSettings.AddAsync(CompanyAccountingSettings.Upsert(dto, UserId), cancellationToken);
+        else
+            settings.Update(dto, UserId);
+    }
+
+    private async Task EnsureOptionalPostingAccountsAsync(Guid companyId, IEnumerable<Guid?> accountIds, CancellationToken cancellationToken) =>
+        await EnsurePostingAccountsAsync(companyId, accountIds.Where(x => x.HasValue).Select(x => x!.Value), cancellationToken);
+
+    private async Task<List<JournalEntryLineDto>> ResolveJournalLinesAsync(Guid companyId, IEnumerable<JournalEntryLineDto> lines, CancellationToken cancellationToken)
+    {
+        var sourceLines = lines.ToList();
+        var roles = sourceLines.Where(x => x.AccountId == Guid.Empty && x.AccountRole != AccountRole.None).Select(x => x.AccountRole).Distinct().ToList();
+        var resolved = new Dictionary<AccountRole, Guid>();
+
+        if (roles.Count > 0)
+        {
+            var settings = await dbContext.CompanyAccountingSettings.AsNoTracking().FirstOrDefaultAsync(x => x.CompanyId == companyId, cancellationToken);
+            foreach (var role in roles)
+            {
+                var settingsAccountId = ResolveSettingsAccountId(settings, role);
+                if (settingsAccountId.HasValue && settingsAccountId.Value != Guid.Empty)
+                    resolved[role] = settingsAccountId.Value;
+            }
+
+            var unresolvedRoles = roles.Where(x => !resolved.ContainsKey(x)).ToList();
+            if (unresolvedRoles.Count > 0)
+            {
+                var accountRoles = await dbContext.Accounts.AsNoTracking()
+                    .Where(x => x.CompanyId == companyId && x.IsActive && x.IsPostingAccount && unresolvedRoles.Contains(x.Role))
+                    .GroupBy(x => x.Role)
+                    .Select(x => new { Role = x.Key, Id = x.OrderBy(a => a.Code).Select(a => a.Id).First() })
+                    .ToListAsync(cancellationToken);
+
+                foreach (var account in accountRoles)
+                    resolved[account.Role] = account.Id;
+            }
+        }
+
+        return sourceLines.Select(line =>
+        {
+            if (line.AccountId != Guid.Empty)
+                return line;
+
+            if (!resolved.TryGetValue(line.AccountRole, out var accountId))
+                throw new BadRequestException($"No posting account is configured for role '{line.AccountRole}'.");
+
+            return new JournalEntryLineDto
+            {
+                Id = line.Id,
+                AccountId = accountId,
+                AccountRole = line.AccountRole,
+                Debit = line.Debit,
+                Credit = line.Credit,
+                Description = line.Description
+            };
+        }).ToList();
+    }
+
+    private static Guid? ResolveSettingsAccountId(CompanyAccountingSettings? settings, AccountRole role)
+    {
+        if (settings is null)
+            return null;
+
+        var dto = settings.ToDto();
+        return role switch
+        {
+            AccountRole.Receivable => dto.ReceivableAccountId,
+            AccountRole.Payable => dto.PayableAccountId,
+            AccountRole.Revenue => dto.RevenueAccountId,
+            AccountRole.Expense => dto.ExpenseAccountId,
+            AccountRole.Cogs => dto.CogsAccountId,
+            AccountRole.Inventory => dto.InventoryAccountId,
+            AccountRole.InputVat => dto.InputVatAccountId,
+            AccountRole.OutputVat => dto.OutputVatAccountId,
+            AccountRole.VatSettlement => dto.VatSettlementAccountId,
+            AccountRole.Cash => dto.CashAccountId,
+            AccountRole.Bank => dto.BankAccountId,
+            AccountRole.Rounding => dto.RoundingAccountId,
+            AccountRole.Suspense => dto.SuspenseAccountId,
+            AccountRole.RetainedEarnings => dto.RetainedEarningsAccountId,
+            _ => null
+        };
+    }
+
+    private static IEnumerable<Guid?> SettingsAccountIds(CompanyAccountingSettingsDto settings) =>
+    [
+        settings.ReceivableAccountId,
+        settings.PayableAccountId,
+        settings.RevenueAccountId,
+        settings.ExpenseAccountId,
+        settings.CogsAccountId,
+        settings.InventoryAccountId,
+        settings.InputVatAccountId,
+        settings.OutputVatAccountId,
+        settings.VatSettlementAccountId,
+        settings.CashAccountId,
+        settings.BankAccountId,
+        settings.RoundingAccountId,
+        settings.SuspenseAccountId,
+        settings.RetainedEarningsAccountId
+    ];
+
+    private async Task EnsurePostingProfileAccountsAsync(PostingProfileDto profile, CancellationToken cancellationToken) =>
+        await EnsurePostingAccountsAsync(profile.CompanyId, [
+            profile.ReceivableAccountId,
+            profile.PayableAccountId,
+            profile.RevenueAccountId,
+            profile.ExpenseAccountId,
+            profile.OutputVatAccountId,
+            profile.InputVatAccountId,
+            profile.CashAccountId,
+            profile.BankAccountId
+        ], cancellationToken);
+
+    private async Task EnsurePostingAccountsAsync(Guid companyId, IEnumerable<Guid> accountIds, CancellationToken cancellationToken)
+    {
+        var ids = accountIds.Where(x => x != Guid.Empty).Distinct().ToList();
+        var valid = await dbContext.Accounts.AsNoTracking()
+            .Where(x => x.CompanyId == companyId && ids.Contains(x.Id) && x.IsActive && x.IsPostingAccount)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        if (valid.Count != ids.Count)
+            throw new BadRequestException("Only active ledger/posting accounts can be used for posting.");
+    }
+
+    private static List<PostingProfileDto> BuildDefaultProfiles(Guid companyId, IReadOnlyDictionary<AccountRole, Guid> accounts) =>
+    [
+        Profile(companyId, PostingProfileType.Sales, accounts[AccountRole.Receivable], accounts[AccountRole.Payable], accounts[AccountRole.Revenue], accounts[AccountRole.Expense], accounts[AccountRole.OutputVat], accounts[AccountRole.InputVat], accounts[AccountRole.Cash], accounts[AccountRole.Bank]),
+        Profile(companyId, PostingProfileType.Purchases, accounts[AccountRole.Receivable], accounts[AccountRole.Payable], accounts[AccountRole.Revenue], accounts[AccountRole.Expense], accounts[AccountRole.OutputVat], accounts[AccountRole.InputVat], accounts[AccountRole.Cash], accounts[AccountRole.Bank]),
+        Profile(companyId, PostingProfileType.CustomerReceipt, accounts[AccountRole.Receivable], accounts[AccountRole.Payable], accounts[AccountRole.Revenue], accounts[AccountRole.Expense], accounts[AccountRole.OutputVat], accounts[AccountRole.InputVat], accounts[AccountRole.Cash], accounts[AccountRole.Bank]),
+        Profile(companyId, PostingProfileType.SupplierPayment, accounts[AccountRole.Receivable], accounts[AccountRole.Payable], accounts[AccountRole.Revenue], accounts[AccountRole.Expense], accounts[AccountRole.OutputVat], accounts[AccountRole.InputVat], accounts[AccountRole.Cash], accounts[AccountRole.Bank])
+    ];
+
+    private static PostingProfileDto Profile(Guid companyId, PostingProfileType type, Guid ar, Guid ap, Guid revenue, Guid expense, Guid outputVat, Guid inputVat, Guid cash, Guid bank) => new()
+    {
+        CompanyId = companyId,
+        Type = type,
+        ReceivableAccountId = ar,
+        PayableAccountId = ap,
+        RevenueAccountId = revenue,
+        ExpenseAccountId = expense,
+        OutputVatAccountId = outputVat,
+        InputVatAccountId = inputVat,
+        CashAccountId = cash,
+        BankAccountId = bank,
+        IsDefault = true
+    };
+
+    private async Task EnsureTemplateCompanyDefaultsAsync(Guid companyId, IReadOnlyDictionary<AccountRole, Guid> accounts, CancellationToken cancellationToken)
+    {
+        var settings = await dbContext.CompanyAccountingSettings.FirstOrDefaultAsync(x => x.CompanyId == companyId, cancellationToken);
+        var dto = settings?.ToDto() ?? new CompanyAccountingSettingsDto { CompanyId = companyId };
+        dto.ReceivableAccountId ??= accounts.GetValueOrDefault(AccountRole.Receivable);
+        dto.PayableAccountId ??= accounts.GetValueOrDefault(AccountRole.Payable);
+        dto.RevenueAccountId ??= accounts.GetValueOrDefault(AccountRole.Revenue);
+        dto.ExpenseAccountId ??= accounts.GetValueOrDefault(AccountRole.Expense);
+        dto.CogsAccountId ??= accounts.GetValueOrDefault(AccountRole.Cogs);
+        dto.InventoryAccountId ??= accounts.GetValueOrDefault(AccountRole.Inventory);
+        dto.InputVatAccountId ??= accounts.GetValueOrDefault(AccountRole.InputVat);
+        dto.OutputVatAccountId ??= accounts.GetValueOrDefault(AccountRole.OutputVat);
+        dto.VatSettlementAccountId ??= accounts.GetValueOrDefault(AccountRole.VatSettlement);
+        dto.CashAccountId ??= accounts.GetValueOrDefault(AccountRole.Cash);
+        dto.BankAccountId ??= accounts.GetValueOrDefault(AccountRole.Bank);
+        dto.RoundingAccountId ??= accounts.GetValueOrDefault(AccountRole.Rounding);
+        dto.SuspenseAccountId ??= accounts.GetValueOrDefault(AccountRole.Suspense);
+        dto.RetainedEarningsAccountId ??= accounts.GetValueOrDefault(AccountRole.RetainedEarnings);
+
+        if (settings is null)
+            await dbContext.CompanyAccountingSettings.AddAsync(CompanyAccountingSettings.Upsert(dto, UserId), cancellationToken);
+        else
+            settings.Update(dto, UserId);
+
+        var cashJournal = await dbContext.AccountingJournals.AsNoTracking().FirstOrDefaultAsync(x => x.CompanyId == companyId && x.Type == AccountingJournalType.Cash, cancellationToken);
+        var bankJournal = await dbContext.AccountingJournals.AsNoTracking().FirstOrDefaultAsync(x => x.CompanyId == companyId && x.Type == AccountingJournalType.Bank, cancellationToken);
+        if (!await dbContext.CashAccounts.AnyAsync(x => x.CompanyId == companyId && x.IsDefault, cancellationToken) && dto.CashAccountId.HasValue && cashJournal is not null)
+        {
+            await dbContext.CashAccounts.AddAsync(CashAccount.Create(new CashAccountDto
+            {
+                CompanyId = companyId,
+                DisplayName = "Main Cash",
+                LedgerAccountId = dto.CashAccountId,
+                JournalId = cashJournal.Id,
+                IsDefault = true,
+                IsActive = true
+            }, dto.CashAccountId.Value, cashJournal.Id, UserId), cancellationToken);
+        }
+
+        if (!await dbContext.BankAccounts.AnyAsync(x => x.CompanyId == companyId && x.IsDefault, cancellationToken) && dto.BankAccountId.HasValue && bankJournal is not null)
+        {
+            await dbContext.BankAccounts.AddAsync(BankAccount.Create(new BankAccountDto
+            {
+                CompanyId = companyId,
+                DisplayName = "Main Bank",
+                BankName = "Company Bank",
+                LedgerAccountId = dto.BankAccountId,
+                JournalId = bankJournal.Id,
+                IsDefault = true,
+                IsActive = true
+            }, dto.BankAccountId.Value, bankJournal.Id, UserId), cancellationToken);
+        }
+    }
+
+    private async Task<string> GenerateDocumentNumberAsync(Guid companyId, AccountingDocumentType type, DateTime date, CancellationToken cancellationToken)
+    {
+        var prefix = $"{DocumentPrefix(type)}-{(date == default ? DateTime.UtcNow : date):yyMM}-";
+        var numbers = await dbContext.AccountingDocuments.IgnoreQueryFilters().AsNoTracking()
+            .Where(x => x.CompanyId == companyId && x.Type == type && x.Number.StartsWith(prefix))
+            .Select(x => x.Number)
+            .ToListAsync(cancellationToken);
+        var next = numbers.Select(x => int.TryParse(x[prefix.Length..], out var value) ? value : 0).DefaultIfEmpty(0).Max() + 1;
+        return $"{prefix}{next:D5}";
+    }
+
+    private async Task<string> GenerateJournalNumberAsync(Guid companyId, DateTime date, CancellationToken cancellationToken)
+    {
+        var prefix = $"JE-{(date == default ? DateTime.UtcNow : date):yyMM}-";
+        var numbers = await dbContext.JournalEntries.IgnoreQueryFilters().AsNoTracking()
+            .Where(x => x.CompanyId == companyId && x.Number.StartsWith(prefix))
+            .Select(x => x.Number)
+            .ToListAsync(cancellationToken);
+        var next = numbers.Select(x => int.TryParse(x[prefix.Length..], out var value) ? value : 0).DefaultIfEmpty(0).Max() + 1;
+        return $"{prefix}{next:D5}";
+    }
+
+    private static string DocumentPrefix(AccountingDocumentType type) => type switch
+    {
+        AccountingDocumentType.SalesInvoice => "SI",
+        AccountingDocumentType.SalesCreditNote => "SCN",
+        AccountingDocumentType.SalesDebitNote => "SDN",
+        AccountingDocumentType.SupplierInvoice => "PINV",
+        AccountingDocumentType.CustomerReceipt => "RCT",
+        AccountingDocumentType.SupplierPayment => "PAY",
+        AccountingDocumentType.SupplierCreditNote => "PCN",
+        _ => "DOC"
+    };
+
+    private async Task<PostingProfile> ResolvePostingProfileAsync(Guid companyId, AccountingDocumentType type, CancellationToken cancellationToken)
+    {
+        var profileType = type switch
+        {
+            AccountingDocumentType.SupplierInvoice => PostingProfileType.Purchases,
+            AccountingDocumentType.SupplierCreditNote => PostingProfileType.Purchases,
+            AccountingDocumentType.CustomerReceipt => PostingProfileType.CustomerReceipt,
+            AccountingDocumentType.SupplierPayment => PostingProfileType.SupplierPayment,
+            _ => PostingProfileType.Sales
+        };
+
+        return await dbContext.PostingProfiles.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == companyId && x.Type == profileType && x.IsDefault, cancellationToken)
+            ?? throw new BadRequestException($"Default posting profile '{profileType}' is required before posting.");
+    }
+
+    private static List<JournalEntryLineDto> BuildJournalLines(AccountingDocument document, PostingProfile profile, CompanyAccountingSettings? settings) =>
+        NonZeroLines(document.Type switch
+        {
+            AccountingDocumentType.SupplierInvoice =>
+            [
+                new() { AccountId = profile.ExpenseAccountId, Debit = document.Subtotal, Description = document.Number },
+                new() { AccountId = profile.InputVatAccountId, Debit = document.TaxAmount, Description = document.Number },
+                new() { AccountId = profile.PayableAccountId, Credit = document.TotalAmount, Description = document.Number }
+            ],
+            AccountingDocumentType.SupplierCreditNote =>
+            [
+                new() { AccountId = profile.PayableAccountId, Debit = document.TotalAmount, Description = document.Number },
+                new() { AccountId = profile.ExpenseAccountId, Credit = document.Subtotal, Description = document.Number },
+                new() { AccountId = profile.InputVatAccountId, Credit = document.TaxAmount, Description = document.Number }
+            ],
+            AccountingDocumentType.CustomerReceipt =>
+            [
+                new() { AccountId = settings?.CashAccountId ?? settings?.BankAccountId ?? profile.CashAccountId, Debit = document.TotalAmount, Description = document.Number },
+                new() { AccountId = profile.ReceivableAccountId, Credit = document.TotalAmount, Description = document.Number }
+            ],
+            AccountingDocumentType.SupplierPayment =>
+            [
+                new() { AccountId = profile.PayableAccountId, Debit = document.TotalAmount, Description = document.Number },
+                new() { AccountId = settings?.BankAccountId ?? profile.BankAccountId, Credit = document.TotalAmount, Description = document.Number }
+            ],
+            AccountingDocumentType.SalesCreditNote =>
+            [
+                new() { AccountId = profile.RevenueAccountId, Debit = document.Subtotal, Description = document.Number },
+                new() { AccountId = profile.OutputVatAccountId, Debit = document.TaxAmount, Description = document.Number },
+                new() { AccountId = profile.ReceivableAccountId, Credit = document.TotalAmount, Description = document.Number }
+            ],
+            _ =>
+            [
+                new() { AccountId = profile.ReceivableAccountId, Debit = document.TotalAmount, Description = document.Number },
+                new() { AccountId = profile.RevenueAccountId, Credit = document.Subtotal, Description = document.Number },
+                new() { AccountId = profile.OutputVatAccountId, Credit = document.TaxAmount, Description = document.Number }
+            ]
+        });
+
+    private static List<JournalEntryLineDto> NonZeroLines(IEnumerable<JournalEntryLineDto> lines) =>
+        lines.Where(x => x.Debit > 0 || x.Credit > 0).ToList();
+
+    private static string BuildZatcaXml(AccountingDocument document, ZatcaSettings settings, ZatcaInvoiceType type, long icv, string? previousHash)
+    {
+        var invoice = new XElement("Invoice",
+            new XElement("ProfileId", "reporting:1.0"),
+            new XElement("UUID", Guid.NewGuid()),
+            new XElement("ICV", icv),
+            new XElement("PreviousInvoiceHash", previousHash ?? string.Empty),
+            new XElement("InvoiceNumber", document.Number),
+            new XElement("InvoiceType", type.ToString()),
+            new XElement("IssueDate", document.DocumentDate.ToString("yyyy-MM-dd")),
+            new XElement("Seller",
+                new XElement("Name", settings.SellerName),
+                new XElement("VatNumber", settings.VatNumber),
+                new XElement("City", settings.City),
+                new XElement("CountryCode", settings.CountryCode)),
+            new XElement("Buyer",
+                new XElement("Name", document.PartyName ?? string.Empty),
+                new XElement("VatNumber", document.PartyVatNumber ?? string.Empty)),
+            new XElement("Totals",
+                new XElement("TaxExclusiveAmount", document.Subtotal),
+                new XElement("TaxAmount", document.TaxAmount),
+                new XElement("TaxInclusiveAmount", document.TotalAmount)),
+            new XElement("Lines",
+                document.Lines.Select(line => new XElement("Line",
+                    new XElement("LineNumber", line.LineNumber),
+                    new XElement("Description", line.Description),
+                    new XElement("Quantity", line.Quantity),
+                    new XElement("NetAmount", line.NetAmount),
+                    new XElement("TaxRate", line.TaxRate),
+                    new XElement("TaxAmount", line.TaxAmount),
+                    new XElement("TotalAmount", line.TotalAmount)))));
+
+        return new XDocument(new XDeclaration("1.0", "utf-8", null), invoice).ToString(SaveOptions.DisableFormatting);
+    }
+
+    private static string BuildQrPayload(string sellerName, string vatNumber, DateTime invoiceDate, decimal totalAmount, decimal vatAmount, string invoiceHash)
+    {
+        var text = string.Join("|", sellerName, vatNumber, invoiceDate.ToString("O"), totalAmount.ToString("0.00"), vatAmount.ToString("0.00"), invoiceHash);
+        return Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
+    }
+}
+
+public class AccountingQueryHandlers(AccountingDbContext dbContext)
+    : IQueryHandler<GetAccountsQuery, GetAccountsResult>,
+      IQueryHandler<GetFiscalPeriodsQuery, GetFiscalPeriodsResult>,
+      IQueryHandler<GetTaxCodesQuery, GetTaxCodesResult>,
+      IQueryHandler<GetPostingProfilesQuery, GetPostingProfilesResult>,
+      IQueryHandler<GetBankAccountsQuery, GetBankAccountsResult>,
+      IQueryHandler<GetCashAccountsQuery, GetCashAccountsResult>,
+      IQueryHandler<GetCompanyAccountingSettingsQuery, GetCompanyAccountingSettingsResult>,
+      IQueryHandler<GetAccountingDocumentsQuery, GetAccountingDocumentsResult>,
+      IQueryHandler<GetJournalEntriesQuery, GetJournalEntriesResult>,
+      IQueryHandler<GetZatcaSettingsQuery, GetZatcaSettingsResult>,
+      IQueryHandler<GetEInvoicesQuery, GetEInvoicesResult>,
+      IQueryHandler<GetAccountingDashboardQuery, GetAccountingDashboardResult>,
+      IQueryHandler<GetAccountingTemplatesQuery, GetAccountingTemplatesResult>,
+      IQueryHandler<GetAccountingTemplateByIdQuery, GetAccountingTemplateByIdResult>,
+      IQueryHandler<GetAccountingSetupStatusQuery, GetAccountingSetupStatusResult>
+{
+    public async Task<GetAccountingTemplatesResult> Handle(GetAccountingTemplatesQuery query, CancellationToken cancellationToken)
+    {
+        var templates = new List<AccountingTemplateDto> { SaudiAccountingTemplate.Template };
+        var custom = await dbContext.AccountingTemplates
+            .Include(x => x.Accounts)
+            .Include(x => x.TaxCodes)
+            .Include(x => x.PostingProfiles)
+            .Include(x => x.Journals)
+            .AsNoTracking()
+            .Where(x => x.IsActive && (x.Visibility == AccountingTemplateVisibility.Shared || (query.CompanyId.HasValue && x.CompanyId == query.CompanyId.Value)))
+            .OrderBy(x => x.Name)
+            .ToListAsync(cancellationToken);
+        templates.AddRange(custom.Select(x => x.ToDto(false)));
+        return new GetAccountingTemplatesResult(templates);
+    }
+
+    public async Task<GetAccountingTemplateByIdResult> Handle(GetAccountingTemplateByIdQuery query, CancellationToken cancellationToken)
+    {
+        if (query.Id == Guid.Empty)
+            return new GetAccountingTemplateByIdResult(SaudiAccountingTemplate.Template);
+
+        var template = await dbContext.AccountingTemplates
+            .Include(x => x.Accounts)
+            .Include(x => x.TaxCodes)
+            .Include(x => x.PostingProfiles)
+            .Include(x => x.Journals)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == query.Id
+                && x.IsActive
+                && (x.Visibility == AccountingTemplateVisibility.Shared || !query.CompanyId.HasValue || x.CompanyId == query.CompanyId.Value), cancellationToken)
+            ?? throw new NotFoundException("Accounting template", query.Id);
+        return new GetAccountingTemplateByIdResult(template.ToDto());
+    }
+
+    public async Task<GetAccountingSetupStatusResult> Handle(GetAccountingSetupStatusQuery query, CancellationToken cancellationToken)
+    {
+        var accounts = await dbContext.Accounts.AsNoTracking().Where(x => x.CompanyId == query.CompanyId).ToListAsync(cancellationToken);
+        var templateKeys = accounts.Select(x => x.TemplateKey).Where(x => !string.IsNullOrWhiteSpace(x)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var codes = accounts.Select(x => x.Code).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missingAccounts = SaudiAccountingTemplate.Accounts.Count(x => !templateKeys.Contains(x.TemplateKey) && !codes.Contains(x.Code));
+        var taxCodes = await dbContext.TaxCodes.AsNoTracking().Where(x => x.CompanyId == query.CompanyId).Select(x => x.Code).ToListAsync(cancellationToken);
+        var profiles = await dbContext.PostingProfiles.AsNoTracking().Where(x => x.CompanyId == query.CompanyId && x.IsDefault).Select(x => x.Type).ToListAsync(cancellationToken);
+        var journals = await dbContext.AccountingJournals.AsNoTracking().Where(x => x.CompanyId == query.CompanyId).Select(x => x.Code).ToListAsync(cancellationToken);
+        var accountingSettings = await dbContext.CompanyAccountingSettings.AsNoTracking().FirstOrDefaultAsync(x => x.CompanyId == query.CompanyId, cancellationToken);
+        var companyDefaultsComplete = accountingSettings is not null && SettingsAccountIds(accountingSettings.ToDto()).All(x => x.HasValue && x.Value != Guid.Empty);
+        var defaultBankExists = await dbContext.BankAccounts.AsNoTracking().AnyAsync(x => x.CompanyId == query.CompanyId && x.IsDefault && x.IsActive, cancellationToken);
+        var defaultCashExists = await dbContext.CashAccounts.AsNoTracking().AnyAsync(x => x.CompanyId == query.CompanyId && x.IsDefault && x.IsActive, cancellationToken);
+        var fiscalPeriodExists = await dbContext.FiscalPeriods.AsNoTracking().AnyAsync(x => x.CompanyId == query.CompanyId && x.Status == FiscalPeriodStatus.Open, cancellationToken);
+        var settings = await dbContext.ZatcaSettings.AsNoTracking().FirstOrDefaultAsync(x => x.CompanyId == query.CompanyId, cancellationToken);
+        var zatcaComplete = settings is not null
+            && !string.IsNullOrWhiteSpace(settings.SellerName)
+            && !string.IsNullOrWhiteSpace(settings.SellerNameAr)
+            && !string.IsNullOrWhiteSpace(settings.VatNumber)
+            && !string.IsNullOrWhiteSpace(settings.BuildingNumber)
+            && !string.IsNullOrWhiteSpace(settings.City)
+            && string.Equals(settings.CountryCode, "SA", StringComparison.OrdinalIgnoreCase);
+
+        var taxSet = taxCodes.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var profileSet = profiles.ToHashSet();
+        var journalSet = journals.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var defaultTaxCodesExist = SaudiAccountingTemplate.RequiredTaxCodes.All(taxSet.Contains);
+        var postingProfilesExist = SaudiAccountingTemplate.RequiredPostingProfiles.All(profileSet.Contains);
+        var journalsExist = SaudiAccountingTemplate.RequiredJournalCodes.All(journalSet.Contains);
+        var missingItems = new List<string>();
+        if (missingAccounts > 0) missingItems.Add($"{missingAccounts} minimum accounts");
+        if (!defaultTaxCodesExist) missingItems.Add("default VAT tax codes");
+        if (!companyDefaultsComplete) missingItems.Add("company accounting defaults");
+        if (!defaultBankExists) missingItems.Add("default bank account");
+        if (!defaultCashExists) missingItems.Add("default cash account");
+        if (!postingProfilesExist) missingItems.Add("default posting profiles");
+        if (!journalsExist) missingItems.Add("default journals");
+        if (!fiscalPeriodExists) missingItems.Add("open fiscal period");
+        if (!zatcaComplete) missingItems.Add("ZATCA seller settings");
+
+        return new GetAccountingSetupStatusResult(new AccountingSetupStatusDto
+        {
+            CompanyId = query.CompanyId,
+            ChartExists = accounts.Any(),
+            MinimumAccountsMissing = missingAccounts,
+            DefaultTaxCodesExist = defaultTaxCodesExist,
+            CompanyDefaultsComplete = companyDefaultsComplete,
+            DefaultBankAccountExists = defaultBankExists,
+            DefaultCashAccountExists = defaultCashExists,
+            PostingProfilesExist = postingProfilesExist,
+            JournalsExist = journalsExist,
+            FiscalPeriodExists = fiscalPeriodExists,
+            ZatcaSettingsComplete = zatcaComplete,
+            ReadyToPost = missingAccounts == 0 && defaultTaxCodesExist && companyDefaultsComplete && defaultBankExists && defaultCashExists && postingProfilesExist && journalsExist && fiscalPeriodExists,
+            MissingItems = missingItems
+        });
+    }
+
+    public async Task<GetAccountsResult> Handle(GetAccountsQuery query, CancellationToken cancellationToken)
+    {
+        var accounts = dbContext.Accounts.AsNoTracking().Where(x => x.CompanyId == query.CompanyId);
+        if (!string.IsNullOrWhiteSpace(query.SearchText))
+            accounts = accounts.Where(x => x.Code.Contains(query.SearchText) || x.Name.Contains(query.SearchText) || x.NameEng.Contains(query.SearchText));
+
+        var count = await accounts.LongCountAsync(cancellationToken);
+        var pageIndex = query.PageIndex <= 0 ? 1 : query.PageIndex;
+        var pageSize = query.PageSize <= 0 ? 20 : query.PageSize;
+        var data = await accounts.OrderBy(x => x.Code).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        return new GetAccountsResult(new PaginatedResult<AccountDto>(pageIndex, pageSize, count, data.Select(x => x.ToDto())));
+    }
+
+    public async Task<GetFiscalPeriodsResult> Handle(GetFiscalPeriodsQuery query, CancellationToken cancellationToken) =>
+        new((await dbContext.FiscalPeriods.AsNoTracking().Where(x => x.CompanyId == query.CompanyId).OrderByDescending(x => x.StartDate).ToListAsync(cancellationToken)).Select(x => x.ToDto()).ToList());
+
+    public async Task<GetTaxCodesResult> Handle(GetTaxCodesQuery query, CancellationToken cancellationToken) =>
+        new((await dbContext.TaxCodes.AsNoTracking().Where(x => x.CompanyId == query.CompanyId).OrderBy(x => x.Code).ToListAsync(cancellationToken)).Select(x => x.ToDto()).ToList());
+
+    public async Task<GetPostingProfilesResult> Handle(GetPostingProfilesQuery query, CancellationToken cancellationToken) =>
+        new((await dbContext.PostingProfiles.AsNoTracking().Where(x => x.CompanyId == query.CompanyId).OrderBy(x => x.Type).ToListAsync(cancellationToken)).Select(x => x.ToDto()).ToList());
+
+    public async Task<GetBankAccountsResult> Handle(GetBankAccountsQuery query, CancellationToken cancellationToken) =>
+        new((await dbContext.BankAccounts.AsNoTracking().Where(x => x.CompanyId == query.CompanyId).OrderByDescending(x => x.IsDefault).ThenBy(x => x.DisplayName).ToListAsync(cancellationToken)).Select(x => x.ToDto()).ToList());
+
+    public async Task<GetCashAccountsResult> Handle(GetCashAccountsQuery query, CancellationToken cancellationToken) =>
+        new((await dbContext.CashAccounts.AsNoTracking().Where(x => x.CompanyId == query.CompanyId).OrderByDescending(x => x.IsDefault).ThenBy(x => x.DisplayName).ToListAsync(cancellationToken)).Select(x => x.ToDto()).ToList());
+
+    public async Task<GetCompanyAccountingSettingsResult> Handle(GetCompanyAccountingSettingsQuery query, CancellationToken cancellationToken)
+    {
+        var settings = await dbContext.CompanyAccountingSettings.AsNoTracking().FirstOrDefaultAsync(x => x.CompanyId == query.CompanyId, cancellationToken);
+        return new GetCompanyAccountingSettingsResult(settings?.ToDto());
+    }
+
+    public async Task<GetAccountingDocumentsResult> Handle(GetAccountingDocumentsQuery query, CancellationToken cancellationToken)
+    {
+        var documents = dbContext.AccountingDocuments.Include(x => x.Lines).AsNoTracking();
+        if (query.CompanyId.HasValue)
+            documents = documents.Where(x => x.CompanyId == query.CompanyId.Value);
+        if (query.Type.HasValue)
+            documents = documents.Where(x => x.Type == query.Type.Value);
+        if (!string.IsNullOrWhiteSpace(query.SearchText))
+            documents = documents.Where(x => x.Number.Contains(query.SearchText) || (x.PartyName != null && x.PartyName.Contains(query.SearchText)));
+
+        var count = await documents.LongCountAsync(cancellationToken);
+        var pageIndex = query.PageIndex <= 0 ? 1 : query.PageIndex;
+        var pageSize = query.PageSize <= 0 ? 20 : query.PageSize;
+        var data = await documents.OrderByDescending(x => x.DocumentDate).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        return new GetAccountingDocumentsResult(new PaginatedResult<AccountingDocumentDto>(pageIndex, pageSize, count, data.Select(x => x.ToDto())));
+    }
+
+    public async Task<GetJournalEntriesResult> Handle(GetJournalEntriesQuery query, CancellationToken cancellationToken)
+    {
+        var entries = dbContext.JournalEntries.Include(x => x.Lines).AsNoTracking();
+        if (query.CompanyId.HasValue)
+            entries = entries.Where(x => x.CompanyId == query.CompanyId.Value);
+        if (!string.IsNullOrWhiteSpace(query.SearchText))
+            entries = entries.Where(x => x.Number.Contains(query.SearchText) || (x.SourceDocumentNumber != null && x.SourceDocumentNumber.Contains(query.SearchText)));
+
+        var count = await entries.LongCountAsync(cancellationToken);
+        var pageIndex = query.PageIndex <= 0 ? 1 : query.PageIndex;
+        var pageSize = query.PageSize <= 0 ? 20 : query.PageSize;
+        var data = await entries.OrderByDescending(x => x.EntryDate).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        return new GetJournalEntriesResult(new PaginatedResult<JournalEntryDto>(pageIndex, pageSize, count, data.Select(x => x.ToDto())));
+    }
+
+    public async Task<GetZatcaSettingsResult> Handle(GetZatcaSettingsQuery query, CancellationToken cancellationToken)
+    {
+        var settings = await dbContext.ZatcaSettings.AsNoTracking().FirstOrDefaultAsync(x => x.CompanyId == query.CompanyId, cancellationToken);
+        var device = await dbContext.ZatcaDevices.AsNoTracking().FirstOrDefaultAsync(x => x.CompanyId == query.CompanyId && x.IsActive, cancellationToken);
+        return new GetZatcaSettingsResult(settings?.ToDto(device?.Name));
+    }
+
+    public async Task<GetEInvoicesResult> Handle(GetEInvoicesQuery query, CancellationToken cancellationToken)
+    {
+        var invoices = dbContext.EInvoices.AsNoTracking();
+        if (query.CompanyId.HasValue)
+            invoices = invoices.Where(x => x.CompanyId == query.CompanyId.Value);
+        if (query.Status.HasValue)
+            invoices = invoices.Where(x => x.SubmissionStatus == query.Status.Value);
+
+        var count = await invoices.LongCountAsync(cancellationToken);
+        var pageIndex = query.PageIndex <= 0 ? 1 : query.PageIndex;
+        var pageSize = query.PageSize <= 0 ? 20 : query.PageSize;
+        var data = await invoices.OrderByDescending(x => x.CreatedAt).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        return new GetEInvoicesResult(new PaginatedResult<EInvoiceDto>(pageIndex, pageSize, count, data.Select(x => x.ToDto())));
+    }
+
+    public async Task<GetAccountingDashboardResult> Handle(GetAccountingDashboardQuery query, CancellationToken cancellationToken)
+    {
+        var accounts = dbContext.Accounts.AsNoTracking();
+        var periods = dbContext.FiscalPeriods.AsNoTracking();
+        var documents = dbContext.AccountingDocuments.AsNoTracking();
+        var invoices = dbContext.EInvoices.AsNoTracking();
+        if (query.CompanyId.HasValue)
+        {
+            accounts = accounts.Where(x => x.CompanyId == query.CompanyId.Value);
+            periods = periods.Where(x => x.CompanyId == query.CompanyId.Value);
+            documents = documents.Where(x => x.CompanyId == query.CompanyId.Value);
+            invoices = invoices.Where(x => x.CompanyId == query.CompanyId.Value);
+        }
+
+        return new GetAccountingDashboardResult(new AccountingDashboardDto
+        {
+            Accounts = await accounts.CountAsync(cancellationToken),
+            OpenPeriods = await periods.CountAsync(x => x.Status == FiscalPeriodStatus.Open, cancellationToken),
+            DraftDocuments = await documents.CountAsync(x => x.Status == AccountingDocumentStatus.Draft, cancellationToken),
+            PostedDocuments = await documents.CountAsync(x => x.Status == AccountingDocumentStatus.Posted, cancellationToken),
+            PendingZatcaSubmissions = await invoices.CountAsync(x => x.SubmissionStatus == ZatcaSubmissionStatus.Pending || x.SubmissionStatus == ZatcaSubmissionStatus.RetryScheduled, cancellationToken),
+            FailedZatcaSubmissions = await invoices.CountAsync(x => x.SubmissionStatus == ZatcaSubmissionStatus.Failed, cancellationToken),
+            OutputVat = await documents.Where(x => x.Type == AccountingDocumentType.SalesInvoice && x.Status == AccountingDocumentStatus.Posted).SumAsync(x => x.TaxAmount, cancellationToken),
+            InputVat = await documents.Where(x => x.Type == AccountingDocumentType.SupplierInvoice && x.Status == AccountingDocumentStatus.Posted).SumAsync(x => x.TaxAmount, cancellationToken)
+        });
+    }
+
+    private static IEnumerable<Guid?> SettingsAccountIds(CompanyAccountingSettingsDto settings) =>
+    [
+        settings.ReceivableAccountId,
+        settings.PayableAccountId,
+        settings.RevenueAccountId,
+        settings.ExpenseAccountId,
+        settings.CogsAccountId,
+        settings.InventoryAccountId,
+        settings.InputVatAccountId,
+        settings.OutputVatAccountId,
+        settings.VatSettlementAccountId,
+        settings.CashAccountId,
+        settings.BankAccountId,
+        settings.RoundingAccountId,
+        settings.SuspenseAccountId,
+        settings.RetainedEarningsAccountId
+    ];
+}

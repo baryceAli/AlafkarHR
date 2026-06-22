@@ -1,6 +1,10 @@
+using Accounting.Contracts.Accounting.Features;
+using SharedWithUI.Accounting.Dtos;
+using SharedWithUI.Accounting.Enums;
+
 namespace Contracts.Contracts.Features.Contracts;
 
-public class ContractHandlers(ContractsDbContext dbContext, IHttpContextAccessor httpContextAccessor) :
+public class ContractHandlers(ContractsDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender) :
     IQueryHandler<GetContractsQuery, GetContractsResult>,
     IQueryHandler<GetContractByIdQuery, GetContractByIdResult>,
     ICommandHandler<CreateContractCommand, CreateContractResult>,
@@ -130,9 +134,62 @@ public class ContractHandlers(ContractsDbContext dbContext, IHttpContextAccessor
         var contract = await dbContext.Contracts.IncludeDetails()
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException($"Contract not found: {request.Id}");
+        var renewal = contract.Renewals.FirstOrDefault(x => x.Id == request.RenewalId)
+            ?? throw new NotFoundException($"Renewal not found: {request.RenewalId}");
         contract.ActivatePaidRenewal(request.RenewalId, request.PaymentReferenceId, request.PaidAmount, ContractFeatureHelpers.CurrentUserId(httpContextAccessor));
         await dbContext.SaveChangesAsync(cancellationToken);
+        await PostRenewalPaymentAccountingAsync(contract, renewal, request.PaidAmount, request.PaymentReferenceId, cancellationToken);
         return new RecordContractRenewalPaymentResult(true);
+    }
+
+    private async Task PostRenewalPaymentAccountingAsync(Contract contract, ContractRenewal renewal, decimal paidAmount, Guid? paymentReferenceId, CancellationToken cancellationToken)
+    {
+        if (paidAmount <= 0)
+            return;
+
+        if (string.Equals(contract.PartyType, "Supplier", StringComparison.OrdinalIgnoreCase))
+        {
+            var document = new AccountingDocumentDto
+            {
+                CompanyId = contract.CompanyId,
+                BranchId = contract.BranchId,
+                Type = AccountingDocumentType.SupplierPayment,
+                DocumentDate = DateTime.UtcNow,
+                PartyId = contract.PartyId,
+                PartyName = contract.PartyDisplayName,
+                CurrencyId = renewal.CurrencyId ?? contract.CurrencyId,
+                SourceModule = "Contracts",
+                SourceDocumentId = renewal.Id,
+                SourceDocumentNumber = paymentReferenceId?.ToString() ?? contract.Number,
+                Lines =
+                [
+                    new AccountingDocumentLineDto
+                    {
+                        Description = $"Contract renewal {contract.Number}",
+                        Quantity = 1,
+                        UnitPrice = paidAmount,
+                        NetAmount = paidAmount,
+                        TotalAmount = paidAmount
+                    }
+                ]
+            };
+
+            var created = await sender.Send(new CreateAccountingDocumentCommand(document), cancellationToken);
+            await sender.Send(new PostAccountingDocumentCommand(created.Id), cancellationToken);
+            return;
+        }
+
+        await sender.Send(new RecordAccountingReceiptCommand(
+            contract.CompanyId,
+            contract.BranchId,
+            contract.PartyId,
+            contract.PartyDisplayName,
+            "Contracts",
+            renewal.Id,
+            paymentReferenceId?.ToString() ?? contract.Number,
+            paidAmount,
+            false,
+            DateTime.UtcNow), cancellationToken);
     }
 
     public async Task<GetPartyContractsResult> Handle(GetPartyContractsQuery request, CancellationToken cancellationToken)

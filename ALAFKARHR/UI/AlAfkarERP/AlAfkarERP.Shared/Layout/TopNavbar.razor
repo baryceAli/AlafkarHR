@@ -127,6 +127,11 @@
         NavigationManager.LocationChanged += HandleLocationChanged;
     }
 
+    protected override void OnParametersSet()
+    {
+        UpdateActivePath();
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -144,7 +149,7 @@
 
     private void UpdateActivePath()
     {
-        ActivePath = NavigationMenuResolver.GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri);
+        ActivePath = NavigationMenuResolver.GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri, ActiveWorkspace);
     }
 
     private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)

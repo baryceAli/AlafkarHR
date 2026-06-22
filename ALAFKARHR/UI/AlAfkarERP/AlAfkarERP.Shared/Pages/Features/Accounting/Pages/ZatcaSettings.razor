@@ -1,0 +1,128 @@
+@layout AdminLayout
+
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("ZATCA Settings", "إعدادات زاتكا")"
+                Subtitle="@SharedDataService.SelectViewLang("Seller identity and e-invoice environment settings.", "هوية البائع وبيئة الفوترة الإلكترونية.")"
+                Overline="@SharedDataService.SelectViewLang("Accounting", "المحاسبة")"
+                Icon="bi-shield-check" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <AppCard>
+            <EditForm Model="@settings" OnValidSubmit="SaveAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-12 col-lg-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Seller Name", "اسم البائع")</label>
+                        <InputText class="form-control" @bind-Value="settings.SellerName" />
+                    </div>
+                    <div class="col-12 col-lg-6">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Seller Name Arabic", "اسم البائع بالعربية")</label>
+                        <InputText class="form-control" @bind-Value="settings.SellerNameAr" />
+                    </div>
+                    <div class="col-12 col-lg-4">
+                        <label class="form-label">@SharedDataService.SelectViewLang("VAT Number", "الرقم الضريبي")</label>
+                        <InputText class="form-control" @bind-Value="settings.VatNumber" />
+                    </div>
+                    <div class="col-12 col-lg-4">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Commercial Registration", "السجل التجاري")</label>
+                        <InputText class="form-control" @bind-Value="settings.CommercialRegistrationNumber" />
+                    </div>
+                    <div class="col-12 col-lg-4">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Environment", "البيئة")</label>
+                        <InputSelect class="form-select" @bind-Value="settings.Environment">
+                            <option value="Sandbox">Sandbox</option>
+                            <option value="Simulation">Simulation</option>
+                            <option value="Production">Production</option>
+                        </InputSelect>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Building No.", "رقم المبنى")</label>
+                        <InputText class="form-control" @bind-Value="settings.BuildingNumber" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Street", "الشارع")</label>
+                        <InputText class="form-control" @bind-Value="settings.StreetName" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("District", "الحي")</label>
+                        <InputText class="form-control" @bind-Value="settings.District" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("City", "المدينة")</label>
+                        <InputText class="form-control" @bind-Value="settings.City" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Postal Code", "الرمز البريدي")</label>
+                        <InputText class="form-control" @bind-Value="settings.PostalCode" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Country", "الدولة")</label>
+                        <InputText class="form-control" @bind-Value="settings.CountryCode" />
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end mt-4">
+                    <button class="btn btn-primary" type="submit" disabled="@saving">
+                        <i class="bi bi-save"></i>
+                        @SharedDataService.SelectViewLang("Save", "حفظ")
+                    </button>
+                </div>
+            </EditForm>
+        </AppCard>
+    }
+</div>
+
+@code {
+    private ZatcaSettingsDto settings = new();
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private bool saving;
+    private bool CanView => authState?.User.Claims.Any(c => c.Value == PermissionList.ZatcaSettingsPermissions.View) == true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var claim = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
+        Guid.TryParse(claim, out companyId);
+        settings.CompanyId = companyId;
+
+        if (companyId != Guid.Empty)
+        {
+            var result = await AccountingService.GetZatcaSettingsAsync(companyId);
+            if (result.IsSuccess && result.Data is not null)
+                settings = result.Data;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        settings.CompanyId = companyId;
+        var result = await AccountingService.SaveZatcaSettingsAsync(settings);
+        saving = false;
+
+        if (result.IsSuccess)
+            ToastService.ShowSuccess(SharedDataService.SelectViewLang("ZATCA settings saved.", "تم حفظ إعدادات زاتكا."));
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Could not save settings.", "تعذر حفظ الإعدادات."));
+    }
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

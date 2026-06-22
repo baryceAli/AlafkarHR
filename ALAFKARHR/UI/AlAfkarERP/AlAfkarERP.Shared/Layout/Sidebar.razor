@@ -84,6 +84,7 @@
                                  SearchText="@searchText"
                                  IsFiltering="@IsFiltering"
                                  IsCollapsed="@IsCollapsed"
+                                 ActiveWorkspace="@activeWorkspace"
                                  ParentPath="@EmptyMenuPath"
                                  OnLeafSelected="HandleLeafSelected"
                                  OnOpenStateChanged="PersistOpenStateAsync" />
@@ -117,6 +118,7 @@
 
     private AuthenticationState? authState;
     private string searchText = "";
+    private string activeWorkspace = NavigationMenuResolver.WorkspaceHome;
     private const string SidebarOpenStateStorageKey = "alafkar.sidebar.openKeys";
 
     private bool IsFiltering => !string.IsNullOrWhiteSpace(searchText);
@@ -217,6 +219,8 @@
     {
         try
         {
+            var storedWorkspace = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.ActiveWorkspaceStorageKey);
+            activeWorkspace = NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri, storedWorkspace);
             var value = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", SidebarOpenStateStorageKey);
             if (!string.IsNullOrWhiteSpace(value))
             {
@@ -230,7 +234,7 @@
                 }
             }
 
-            foreach (var item in NavigationMenuResolver.GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri))
+            foreach (var item in NavigationMenuResolver.GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri, activeWorkspace))
             {
                 item.IsOpen = true;
             }

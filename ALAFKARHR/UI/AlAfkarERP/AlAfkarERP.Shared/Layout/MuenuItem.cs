@@ -14,6 +14,7 @@ public class MenuItem
     public string? BadgeTitleEn { get; set; }
     public string? BadgeTitleAr { get; set; }
     public string? WorkspaceKey { get; set; }
+    public List<string> NavigationAliases { get; set; } = new();
     public int? MobilePriority { get; set; }
     public string? KeywordsEn { get; set; }
     public string? KeywordsAr { get; set; }
@@ -120,6 +121,157 @@ public class MenuItem
                             PermissionPolicy = PermissionList.CustomerPricingProfilePermissions.View
                         }
                     }
+                }
+            }
+        },
+        new MenuItem
+        {
+            TextEn = "Accounting",
+            TextAr = "المحاسبة",
+            Icon = "bi-calculator",
+            PermissionPolicy = PermissionList.AccountingDashboardPermissions.View,
+            WorkspaceKey = NavigationMenuResolver.WorkspaceAccountingFinance,
+            NavigationAliases = new()
+            {
+                "/Sales",
+                "/SalesOrder",
+                "/Orders",
+                "/Customers",
+                "/Procurement",
+                "/Suppliers"
+            },
+            KeywordsEn = "finance accounting ledger journals vat zatca invoices receipts payments",
+            KeywordsAr = "مالية محاسبة دفتر قيود ضريبة زاتكا فواتير مقبوضات مدفوعات",
+            Children = new()
+            {
+                new MenuItem
+                {
+                    TextEn = "Dashboard",
+                    TextAr = "لوحة المحاسبة",
+                    Icon = "bi-speedometer2",
+                    Url = "/Accounting/Dashboard",
+                    PermissionPolicy = PermissionList.AccountingDashboardPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Accounting Setup",
+                    TextAr = "إعداد المحاسبة",
+                    Icon = "bi-magic",
+                    Url = "/Accounting/Setup",
+                    PermissionPolicy = PermissionList.AccountingDashboardPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Templates",
+                    TextAr = "القوالب",
+                    Icon = "bi-journal-richtext",
+                    Url = "/Accounting/Templates",
+                    PermissionPolicy = PermissionList.AccountingTemplatePermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Chart of Accounts",
+                    TextAr = "دليل الحسابات",
+                    Icon = "bi-diagram-3",
+                    Url = "/Accounting/Accounts",
+                    PermissionPolicy = PermissionList.AccountPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Fiscal Periods",
+                    TextAr = "الفترات المالية",
+                    Icon = "bi-calendar2-week",
+                    Url = "/Accounting/FiscalPeriods",
+                    PermissionPolicy = PermissionList.FiscalPeriodPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Tax Codes",
+                    TextAr = "أكواد الضريبة",
+                    Icon = "bi-percent",
+                    Url = "/Accounting/TaxCodes",
+                    PermissionPolicy = PermissionList.TaxCodePermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Posting Profiles",
+                    TextAr = "توجيهات الترحيل",
+                    Icon = "bi-diagram-2",
+                    Url = "/Accounting/PostingProfiles",
+                    PermissionPolicy = PermissionList.PostingProfilePermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Bank & Cash Accounts",
+                    TextAr = "الحسابات البنكية والنقدية",
+                    Icon = "bi-bank",
+                    Url = "/Accounting/BankCashAccounts",
+                    PermissionPolicy = PermissionList.BankAccountPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Journal Entries",
+                    TextAr = "القيود اليومية",
+                    Icon = "bi-journal-check",
+                    Url = "/Accounting/Journals",
+                    PermissionPolicy = PermissionList.JournalEntryPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "All Documents",
+                    TextAr = "كل المستندات",
+                    Icon = "bi-files",
+                    Url = "/Accounting/Documents",
+                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Sales Invoices",
+                    TextAr = "فواتير المبيعات",
+                    Icon = "bi-receipt",
+                    Url = "/Accounting/SalesInvoices",
+                    NavigationAliases = new()
+                    {
+                        "/Sales/Orders",
+                        "/Orders/Intakes"
+                    },
+                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Purchase Invoices",
+                    TextAr = "فواتير المشتريات",
+                    Icon = "bi-receipt-cutoff",
+                    Url = "/Accounting/PurchaseInvoices",
+                    NavigationAliases = new()
+                    {
+                        "/Procurement/supplier-invoices"
+                    },
+                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Receipts & Payments",
+                    TextAr = "المقبوضات والمدفوعات",
+                    Icon = "bi-cash-stack",
+                    Url = "/Accounting/ReceiptsPayments",
+                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "ZATCA Submissions",
+                    TextAr = "إرسالات زاتكا",
+                    Icon = "bi-cloud-arrow-up",
+                    Url = "/Accounting/Zatca/Submissions",
+                    PermissionPolicy = PermissionList.ZatcaEInvoicePermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "ZATCA Settings",
+                    TextAr = "إعدادات زاتكا",
+                    Icon = "bi-shield-check",
+                    Url = "/Accounting/Zatca/Settings",
+                    PermissionPolicy = PermissionList.ZatcaSettingsPermissions.View
                 }
             }
         },

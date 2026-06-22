@@ -22,6 +22,14 @@ public static class CompanyRoleTemplates
         new("hr-manager", "HR Manager", HrManagerPermissions()),
         new("hr-employee", "HR Employee", HrEmployeePermissions()),
         new("payroll-employee", "Payroll Employee", PayrollEmployeePermissions()),
+        new("accounting-manager", "Accounting Manager", AccountingManagerPermissions()),
+        new("senior-accountant", "Senior Accountant", SeniorAccountantPermissions()),
+        new("accountant", "Accountant", AccountantPermissions()),
+        new("accounts-receivable-clerk", "Accounts Receivable Clerk", AccountingClerkPermissions()),
+        new("accounts-payable-clerk", "Accounts Payable Clerk", AccountingClerkPermissions()),
+        new("cash-bank-clerk", "Cash and Bank Clerk", CashBankClerkPermissions()),
+        new("tax-zatca-officer", "Tax and ZATCA Officer", TaxZatcaOfficerPermissions()),
+        new("accounting-auditor", "Accounting Auditor", AccountingAuditorPermissions()),
         new("attendance-and-leave-employee", "AttendanceAndLeaveEmployee", AttendanceAndLeaveEmployeePermissions()),
     ];
 
@@ -513,6 +521,141 @@ public static class CompanyRoleTemplates
             PermissionList.BranchPermissions.Permissions,
             PermissionList.AdministrationPermissions.Permissions,
             PermissionList.DepartmentPermissions.Permissions),
+    ];
+
+    private static List<string> AccountingManagerPermissions() =>
+    [
+        ..AllAccountingPermissions(),
+        ..OrganizationReadPermissions(),
+    ];
+
+    private static List<string> SeniorAccountantPermissions() =>
+    [
+        PermissionList.AccountingDashboardPermissions.View,
+        PermissionList.AccountingTemplatePermissions.View,
+        PermissionList.AccountingTemplatePermissions.Apply,
+        ..PermissionList.AccountPermissions.Permissions,
+        ..PermissionList.FiscalPeriodPermissions.Permissions,
+        ..PermissionList.TaxCodePermissions.Permissions,
+        ..PermissionList.PostingProfilePermissions.Permissions,
+        ..PermissionList.BankAccountPermissions.Permissions,
+        ..PermissionList.CashAccountPermissions.Permissions,
+        PermissionList.AccountingSettingsPermissions.View,
+        PermissionList.AccountingSettingsPermissions.Edit,
+        ..PermissionList.JournalEntryPermissions.Permissions,
+        ..PermissionList.AccountingDocumentPermissions.Permissions,
+        PermissionList.ZatcaSettingsPermissions.View,
+        PermissionList.ZatcaEInvoicePermissions.View,
+    ];
+
+    private static List<string> AccountantPermissions() =>
+    [
+        PermissionList.AccountingDashboardPermissions.View,
+        PermissionList.AccountingTemplatePermissions.View,
+        PermissionList.AccountPermissions.Select,
+        PermissionList.AccountPermissions.View,
+        PermissionList.FiscalPeriodPermissions.View,
+        PermissionList.TaxCodePermissions.View,
+        PermissionList.PostingProfilePermissions.View,
+        PermissionList.BankAccountPermissions.View,
+        PermissionList.CashAccountPermissions.View,
+        PermissionList.AccountingSettingsPermissions.View,
+        PermissionList.JournalEntryPermissions.View,
+        PermissionList.JournalEntryPermissions.Create,
+        PermissionList.JournalEntryPermissions.Post,
+        PermissionList.AccountingDocumentPermissions.View,
+        PermissionList.AccountingDocumentPermissions.Create,
+        PermissionList.AccountingDocumentPermissions.Post,
+    ];
+
+    private static List<string> AccountingClerkPermissions() =>
+    [
+        PermissionList.AccountingDashboardPermissions.View,
+        PermissionList.AccountPermissions.Select,
+        PermissionList.AccountPermissions.View,
+        PermissionList.JournalEntryPermissions.View,
+        PermissionList.JournalEntryPermissions.Create,
+        PermissionList.AccountingDocumentPermissions.View,
+        PermissionList.AccountingDocumentPermissions.Create,
+        PermissionList.AccountingDocumentPermissions.Post,
+    ];
+
+    private static List<string> CashBankClerkPermissions() =>
+    [
+        PermissionList.AccountingDashboardPermissions.View,
+        PermissionList.AccountPermissions.Select,
+        PermissionList.AccountPermissions.View,
+        PermissionList.BankAccountPermissions.View,
+        PermissionList.BankAccountPermissions.Create,
+        PermissionList.BankAccountPermissions.Edit,
+        PermissionList.CashAccountPermissions.View,
+        PermissionList.CashAccountPermissions.Create,
+        PermissionList.CashAccountPermissions.Edit,
+        PermissionList.JournalEntryPermissions.View,
+        PermissionList.JournalEntryPermissions.Create,
+        PermissionList.JournalEntryPermissions.Post,
+        PermissionList.AccountingDocumentPermissions.View,
+        PermissionList.AccountingDocumentPermissions.Create,
+        PermissionList.AccountingDocumentPermissions.Post,
+    ];
+
+    private static List<string> TaxZatcaOfficerPermissions() =>
+    [
+        PermissionList.AccountingDashboardPermissions.View,
+        PermissionList.TaxCodePermissions.View,
+        PermissionList.TaxCodePermissions.Create,
+        PermissionList.TaxCodePermissions.Edit,
+        PermissionList.ZatcaSettingsPermissions.View,
+        PermissionList.ZatcaSettingsPermissions.Edit,
+        PermissionList.ZatcaEInvoicePermissions.View,
+        PermissionList.ZatcaEInvoicePermissions.Generate,
+        PermissionList.ZatcaEInvoicePermissions.Submit,
+        PermissionList.AccountingDocumentPermissions.View,
+    ];
+
+    private static List<string> AccountingAuditorPermissions() =>
+    [
+        PermissionList.AccountingDashboardPermissions.View,
+        ..SelectView(
+            PermissionList.AccountingTemplatePermissions.Permissions,
+            PermissionList.AccountPermissions.Permissions,
+            PermissionList.FiscalPeriodPermissions.Permissions,
+            PermissionList.TaxCodePermissions.Permissions,
+            PermissionList.PostingProfilePermissions.Permissions,
+            PermissionList.BankAccountPermissions.Permissions,
+            PermissionList.CashAccountPermissions.Permissions,
+            PermissionList.AccountingSettingsPermissions.Permissions,
+            PermissionList.JournalEntryPermissions.Permissions,
+            PermissionList.AccountingDocumentPermissions.Permissions,
+            PermissionList.ZatcaSettingsPermissions.Permissions,
+            PermissionList.ZatcaEInvoicePermissions.Permissions),
+    ];
+
+    private static List<string> AllAccountingPermissions() =>
+    [
+        ..PermissionList.AccountingDashboardPermissions.Permissions,
+        ..PermissionList.AccountingTemplatePermissions.Permissions,
+        ..PermissionList.AccountPermissions.Permissions,
+        ..PermissionList.FiscalPeriodPermissions.Permissions,
+        ..PermissionList.TaxCodePermissions.Permissions,
+        ..PermissionList.PostingProfilePermissions.Permissions,
+        ..PermissionList.BankAccountPermissions.Permissions,
+        ..PermissionList.CashAccountPermissions.Permissions,
+        ..PermissionList.AccountingSettingsPermissions.Permissions,
+        ..PermissionList.JournalEntryPermissions.Permissions,
+        ..PermissionList.AccountingDocumentPermissions.Permissions,
+        ..PermissionList.ZatcaSettingsPermissions.Permissions,
+        ..PermissionList.ZatcaEInvoicePermissions.Permissions,
+    ];
+
+    private static List<string> OrganizationReadPermissions() =>
+    [
+        ..SelectView(
+            PermissionList.CompanyPermissions.Permissions,
+            PermissionList.BranchPermissions.Permissions,
+            PermissionList.AdministrationPermissions.Permissions,
+            PermissionList.DepartmentPermissions.Permissions),
+        PermissionList.CompanyPermissions.ViewLicense,
     ];
 
     private static List<string> AttendanceAndLeaveEmployeePermissions() =>

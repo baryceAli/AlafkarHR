@@ -4,7 +4,7 @@ namespace SalesOrder.Orders.Features.InvoiceOrder;
 
 public record InvoiceOrderCommand(SalesOrderDto SalesOrder) : ICommand<InvoiceOrderResult>;
 public record InvoiceOrderResult(bool IsSuccess);
-public class InvoiceOrderHandler(SalesOrderDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class InvoiceOrderHandler(SalesOrderDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<InvoiceOrderCommand, InvoiceOrderResult>
 {
     public async Task<InvoiceOrderResult> Handle(InvoiceOrderCommand request, CancellationToken cancellationToken)
@@ -26,6 +26,46 @@ public class InvoiceOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcce
         order.Invoice(linesToInvoice);
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        var accountingDocument = new AccountingDocumentDto
+        {
+            CompanyId = order.CompanyId,
+            Type = AccountingDocumentType.SalesInvoice,
+            DocumentDate = DateTime.UtcNow,
+            PartyId = order.CustomerId,
+            SourceModule = "SalesOrder",
+            SourceDocumentId = order.Id,
+            SourceDocumentNumber = order.Number,
+            Lines = order.Lines
+                .Where(x => linesToInvoice.ContainsKey(x.Id))
+                .Select(x =>
+                {
+                    var quantity = linesToInvoice[x.Id];
+                    var gross = quantity * x.UnitPrice;
+                    var discount = gross * x.DiscountRate / 100m;
+                    var net = gross - discount;
+                    var tax = net * x.TaxRate / 100m;
+
+                    return new AccountingDocumentLineDto
+                    {
+                        Description = string.IsNullOrWhiteSpace(x.ProductNameEng) ? x.ProductName : x.ProductNameEng,
+                        ProductId = x.ProductId,
+                        ProductSkuId = x.ProductSkuId,
+                        Quantity = quantity,
+                        UnitPrice = x.UnitPrice,
+                        DiscountAmount = discount,
+                        TaxRate = x.TaxRate,
+                        NetAmount = net,
+                        TaxAmount = tax,
+                        TotalAmount = net + tax
+                    };
+                })
+                .ToList()
+        };
+
+        var created = await sender.Send(new CreateAccountingDocumentCommand(accountingDocument), cancellationToken);
+        await sender.Send(new PostAccountingDocumentCommand(created.Id), cancellationToken);
+        await sender.Send(new GenerateZatcaInvoiceCommand(created.Id, ZatcaInvoiceType.StandardTaxInvoice), cancellationToken);
         return new InvoiceOrderResult(true);
     }
 }

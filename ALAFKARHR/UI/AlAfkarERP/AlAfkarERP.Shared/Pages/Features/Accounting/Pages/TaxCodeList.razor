@@ -1,0 +1,199 @@
+@layout AdminLayout
+@page "/Accounting/TaxCodes"
+
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@T("Tax Codes", "أكواد الضريبة")"
+                Subtitle="@T("VAT rates, exemptions, and ZATCA tax category mapping.", "نسب الضريبة والإعفاءات وربطها بفئات زاتكا.")"
+                Overline="@T("Accounting Setup", "إعدادات المحاسبة")"
+                Icon="bi-percent" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@T("You don't have permissions to view this page", "ليس لديك صلاحية عرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <AppCard>
+            <div class="d-flex justify-content-end mb-3">
+                @if (CanCreate)
+                {
+                    <button class="btn btn-primary" type="button" @onclick="OpenCreate"><i class="bi bi-plus-lg"></i> @T("Create Tax Code", "إضافة كود ضريبي")</button>
+                }
+            </div>
+            <div class="erp-table-wrap">
+                <table class="table align-middle erp-table">
+                    <thead>
+                        <tr>
+                            <th>@T("Code", "الكود")</th>
+                            <th>@T("Name", "الاسم")</th>
+                            <th>@T("Rate", "النسبة")</th>
+                            <th>@T("ZATCA Category", "فئة زاتكا")</th>
+                            <th>@T("Exemption Reason", "سبب الإعفاء")</th>
+                            <th>@T("Status", "الحالة")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var taxCode in taxCodes)
+                        {
+                            <tr>
+                                <td><strong>@taxCode.Code</strong></td>
+                                <td>@taxCode.Name</td>
+                                <td>@taxCode.Rate.ToString("N2")%</td>
+                                <td>@taxCode.ZatcaCategoryCode</td>
+                                <td>@taxCode.ExemptionReasonCode</td>
+                                <td>
+                                    <StatusChip Text="@T(taxCode.IsExempt ? "Exempt" : taxCode.IsActive ? "Active" : "Inactive", taxCode.IsExempt ? "معفى" : taxCode.IsActive ? "نشط" : "غير نشط")"
+                                                Tone="@(taxCode.IsExempt ? "warning" : taxCode.IsActive ? "success" : "muted")" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (!taxCodes.Any())
+            {
+                <div class="text-muted py-4 text-center">@T("No tax codes found.", "لا توجد أكواد ضريبية.")</div>
+            }
+        </AppCard>
+    }
+</div>
+
+@if (showCreate)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <EditForm Model="@newTaxCode" OnValidSubmit="SaveAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@T("Create Tax Code", "إضافة كود ضريبي")</h5>
+                        <button class="btn-close" type="button" @onclick="CloseCreate"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@T("Code", "الكود")</label>
+                                <InputText class="form-control" @bind-Value="newTaxCode.Code" />
+                            </div>
+                            <div class="col-12 col-md-8">
+                                <label class="form-label">@T("Name", "الاسم")</label>
+                                <InputText class="form-control" @bind-Value="newTaxCode.Name" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@T("Rate", "النسبة")</label>
+                                <InputNumber class="form-control" @bind-Value="newTaxCode.Rate" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@T("ZATCA Category", "فئة زاتكا")</label>
+                                <InputText class="form-control" @bind-Value="newTaxCode.ZatcaCategoryCode" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@T("Exemption Reason", "سبب الإعفاء")</label>
+                                <InputText class="form-control" @bind-Value="newTaxCode.ExemptionReasonCode" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="form-check">
+                                    <InputCheckbox class="form-check-input" @bind-Value="newTaxCode.IsExempt" />
+                                    <label class="form-check-label">@T("Exempt", "معفى")</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="form-check">
+                                    <InputCheckbox class="form-check-input" @bind-Value="newTaxCode.IsActive" />
+                                    <label class="form-check-label">@T("Active", "نشط")</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" type="button" @onclick="CloseCreate">@T("Cancel", "إلغاء")</button>
+                        <button class="btn btn-primary" type="submit" disabled="@saving"><i class="bi bi-save"></i> @T("Save", "حفظ")</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private List<TaxCodeDto> taxCodes = [];
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private bool showCreate;
+    private bool saving;
+    private TaxCodeDto newTaxCode = new();
+    private bool CanView => HasPermission(PermissionList.TaxCodePermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.TaxCodePermissions.Create);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (companyId == Guid.Empty || !CanView)
+            return;
+
+        var result = await AccountingService.GetTaxCodesAsync(companyId);
+        if (result.IsSuccess && result.Data is not null)
+            taxCodes = result.Data;
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load tax codes.", "تعذر تحميل أكواد الضريبة."));
+    }
+
+    private void OpenCreate()
+    {
+        newTaxCode = new TaxCodeDto
+        {
+            CompanyId = companyId,
+            Code = "VAT15",
+            Name = T("VAT 15%", "ضريبة 15%"),
+            Rate = 15,
+            ZatcaCategoryCode = "S",
+            IsActive = true
+        };
+        showCreate = true;
+    }
+
+    private void CloseCreate() => showCreate = false;
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        newTaxCode.CompanyId = companyId;
+        var result = await AccountingService.CreateTaxCodeAsync(newTaxCode);
+        saving = false;
+
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Tax code created.", "تم إنشاء كود الضريبة."));
+            showCreate = false;
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not create tax code.", "تعذر إنشاء كود الضريبة."));
+        }
+    }
+
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

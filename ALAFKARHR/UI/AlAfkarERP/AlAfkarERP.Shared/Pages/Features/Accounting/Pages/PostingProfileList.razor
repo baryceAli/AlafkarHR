@@ -1,0 +1,303 @@
+@layout AdminLayout
+@page "/Accounting/PostingProfiles"
+
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Accounting.Enums
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@T("Posting Profiles", "توجيهات الترحيل")"
+                Subtitle="@T("Default accounts used to post invoices, receipts, and payments.", "الحسابات الافتراضية المستخدمة لترحيل الفواتير والمقبوضات والمدفوعات.")"
+                Overline="@T("Accounting Setup", "إعدادات المحاسبة")"
+                Icon="bi-diagram-2" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@T("You don't have permissions to view this page", "ليس لديك صلاحية عرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <AppCard>
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-3">
+                <div class="text-muted small">@T("Posting requires default profiles for sales, purchases, customer receipts, and supplier payments.", "يتطلب الترحيل توجيهات افتراضية للمبيعات والمشتريات والمقبوضات والمدفوعات.")</div>
+                <div class="d-flex gap-2">
+                    @if (CanCreate)
+                    {
+                        <button class="btn btn-outline-primary" type="button" disabled="@autoMapping" @onclick="AutoMapAsync"><i class="bi bi-magic"></i> @T("Auto-map Saudi Template", "ربط تلقائي بالقالب السعودي")</button>
+                        <button class="btn btn-primary" type="button" @onclick="OpenCreate" disabled="@(!accounts.Any())"><i class="bi bi-plus-lg"></i> @T("Create Profile", "إضافة توجيه")</button>
+                    }
+                </div>
+            </div>
+            <div class="row g-2 mb-3">
+                @MappingHint("Sales", "المبيعات", "Customer AR -> Sales Revenue + Output VAT")
+                @MappingHint("Purchases", "المشتريات", "Expense + Input VAT -> Supplier AP")
+                @MappingHint("Customer Receipt", "مقبوضات العملاء", "Cash/Bank -> Customer AR")
+                @MappingHint("Supplier Payment", "مدفوعات الموردين", "Supplier AP -> Cash/Bank")
+            </div>
+            <div class="erp-table-wrap">
+                <table class="table align-middle erp-table">
+                    <thead>
+                        <tr>
+                            <th>@T("Type", "النوع")</th>
+                            <th>@T("Default", "افتراضي")</th>
+                            <th>@T("Receivable", "المدينون")</th>
+                            <th>@T("Payable", "الدائنون")</th>
+                            <th>@T("Revenue", "الإيرادات")</th>
+                            <th>@T("Expense", "المصروف")</th>
+                            <th>@T("VAT", "الضريبة")</th>
+                            <th>@T("Cash/Bank", "النقدية/البنك")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var profile in profiles)
+                        {
+                            <tr>
+                                <td><strong>@profile.Type</strong></td>
+                                <td><StatusChip Text="@T(profile.IsDefault ? "Default" : "Specific", profile.IsDefault ? "افتراضي" : "مخصص")" Tone="@(profile.IsDefault ? "success" : "muted")" /></td>
+                                <td>@AccountLabel(profile.ReceivableAccountId)</td>
+                                <td>@AccountLabel(profile.PayableAccountId)</td>
+                                <td>@AccountLabel(profile.RevenueAccountId)</td>
+                                <td>@AccountLabel(profile.ExpenseAccountId)</td>
+                                <td>@AccountLabel(profile.OutputVatAccountId) / @AccountLabel(profile.InputVatAccountId)</td>
+                                <td>@AccountLabel(profile.CashAccountId) / @AccountLabel(profile.BankAccountId)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (!profiles.Any())
+            {
+                <div class="text-muted py-4 text-center">@T("No posting profiles found. Create defaults before posting accounting documents.", "لا توجد توجيهات ترحيل. أنشئ التوجيهات الافتراضية قبل ترحيل المستندات.")</div>
+            }
+        </AppCard>
+    }
+</div>
+
+@if (showCreate)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <EditForm Model="@newProfile" OnValidSubmit="SaveAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@T("Create Posting Profile", "إضافة توجيه ترحيل")</h5>
+                        <button class="btn-close" type="button" @onclick="CloseCreate"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">@T("Type", "النوع")</label>
+                                <InputSelect class="form-select" @bind-Value="newProfile.Type">
+                                    @foreach (var type in Enum.GetValues<PostingProfileType>())
+                                    {
+                                        <option value="@type">@type</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-12 col-md-4 d-flex align-items-end">
+                                <div class="form-check">
+                                    <InputCheckbox class="form-check-input" @bind-Value="newProfile.IsDefault" />
+                                    <label class="form-check-label">@T("Default profile", "توجيه افتراضي")</label>
+                                </div>
+                            </div>
+                            @AccountSelect("Receivable", "المدينون", nameof(newProfile.ReceivableAccountId), newProfile.ReceivableAccountId)
+                            @AccountSelect("Payable", "الدائنون", nameof(newProfile.PayableAccountId), newProfile.PayableAccountId)
+                            @AccountSelect("Revenue", "الإيرادات", nameof(newProfile.RevenueAccountId), newProfile.RevenueAccountId)
+                            @AccountSelect("Expense", "المصروف", nameof(newProfile.ExpenseAccountId), newProfile.ExpenseAccountId)
+                            @AccountSelect("Output VAT", "ضريبة المخرجات", nameof(newProfile.OutputVatAccountId), newProfile.OutputVatAccountId)
+                            @AccountSelect("Input VAT", "ضريبة المدخلات", nameof(newProfile.InputVatAccountId), newProfile.InputVatAccountId)
+                            @AccountSelect("Cash", "الصندوق", nameof(newProfile.CashAccountId), newProfile.CashAccountId)
+                            @AccountSelect("Bank", "البنك", nameof(newProfile.BankAccountId), newProfile.BankAccountId)
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" type="button" @onclick="CloseCreate">@T("Cancel", "إلغاء")</button>
+                        <button class="btn btn-primary" type="submit" disabled="@saving"><i class="bi bi-save"></i> @T("Save", "حفظ")</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private List<PostingProfileDto> profiles = [];
+    private List<AccountDto> accounts = [];
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private bool showCreate;
+    private bool saving;
+    private bool autoMapping;
+    private PostingProfileDto newProfile = new();
+    private bool CanView => HasPermission(PermissionList.PostingProfilePermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.PostingProfilePermissions.Create);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (companyId == Guid.Empty || !CanView)
+            return;
+
+        var accountResult = await AccountingService.GetAccountsAsync(companyId, 1, 500, null);
+        if (accountResult.IsSuccess && accountResult.Data is not null)
+            accounts = accountResult.Data.Data.Where(x => x.IsActive && x.IsPostingAccount).ToList();
+
+        var result = await AccountingService.GetPostingProfilesAsync(companyId);
+        if (result.IsSuccess && result.Data is not null)
+            profiles = result.Data;
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load posting profiles.", "تعذر تحميل توجيهات الترحيل."));
+    }
+
+    private void OpenCreate()
+    {
+        var first = accounts.FirstOrDefault()?.Id ?? Guid.Empty;
+        newProfile = new PostingProfileDto
+        {
+            CompanyId = companyId,
+            Type = PostingProfileType.Sales,
+            ReceivableAccountId = first,
+            PayableAccountId = first,
+            RevenueAccountId = first,
+            ExpenseAccountId = first,
+            OutputVatAccountId = first,
+            InputVatAccountId = first,
+            CashAccountId = first,
+            BankAccountId = first,
+            IsDefault = true
+        };
+        showCreate = true;
+    }
+
+    private void CloseCreate() => showCreate = false;
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        newProfile.CompanyId = companyId;
+        var result = await AccountingService.CreatePostingProfileAsync(newProfile);
+        saving = false;
+
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Posting profile created.", "تم إنشاء توجيه الترحيل."));
+            showCreate = false;
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not create posting profile.", "تعذر إنشاء توجيه الترحيل."));
+        }
+    }
+
+    private async Task AutoMapAsync()
+    {
+        autoMapping = true;
+        var result = await AccountingService.ApplyTemplateAsync(new ApplyAccountingTemplateDto
+        {
+            CompanyId = companyId,
+            TemplateCode = "SA_SME",
+            FiscalYearStart = new DateTime(DateTime.UtcNow.Year, 1, 1),
+            CreateDefaultJournals = true
+        });
+        autoMapping = false;
+
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Saudi accounting defaults applied.", "تم تطبيق الإعدادات المحاسبية السعودية."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not apply defaults.", "تعذر تطبيق الإعدادات الافتراضية."));
+        }
+    }
+
+    private RenderFragment AccountSelect(string en, string ar, string property, Guid value) => builder =>
+    {
+        var sequence = 0;
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "col-12 col-md-6 col-xl-3");
+        builder.OpenElement(sequence++, "label");
+        builder.AddAttribute(sequence++, "class", "form-label");
+        builder.AddContent(sequence++, T(en, ar));
+        builder.CloseElement();
+        builder.OpenElement(sequence++, "select");
+        builder.AddAttribute(sequence++, "class", "form-select");
+        builder.AddAttribute(sequence++, "value", value);
+        builder.AddAttribute(sequence++, "onchange", EventCallback.Factory.Create<ChangeEventArgs>(this, e => SetAccount(property, e.Value?.ToString())));
+        foreach (var account in accounts)
+        {
+            builder.OpenElement(sequence++, "option");
+            builder.AddAttribute(sequence++, "value", account.Id);
+            builder.AddContent(sequence++, AccountLabel(account.Id));
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private void SetAccount(string property, string? value)
+    {
+        if (!Guid.TryParse(value, out var id))
+            return;
+
+        switch (property)
+        {
+            case nameof(newProfile.ReceivableAccountId): newProfile.ReceivableAccountId = id; break;
+            case nameof(newProfile.PayableAccountId): newProfile.PayableAccountId = id; break;
+            case nameof(newProfile.RevenueAccountId): newProfile.RevenueAccountId = id; break;
+            case nameof(newProfile.ExpenseAccountId): newProfile.ExpenseAccountId = id; break;
+            case nameof(newProfile.OutputVatAccountId): newProfile.OutputVatAccountId = id; break;
+            case nameof(newProfile.InputVatAccountId): newProfile.InputVatAccountId = id; break;
+            case nameof(newProfile.CashAccountId): newProfile.CashAccountId = id; break;
+            case nameof(newProfile.BankAccountId): newProfile.BankAccountId = id; break;
+        }
+    }
+
+    private string AccountLabel(Guid id)
+    {
+        var account = accounts.FirstOrDefault(x => x.Id == id);
+        return account is null ? "-" : $"{account.Code} - {T(account.NameEng, account.Name)}";
+    }
+
+    private RenderFragment MappingHint(string en, string ar, string description) => builder =>
+    {
+        var sequence = 0;
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "col-12 col-md-6 col-xl-3");
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "border rounded p-2 h-100");
+        builder.OpenElement(sequence++, "strong");
+        builder.AddContent(sequence++, T(en, ar));
+        builder.CloseElement();
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "text-muted small");
+        builder.AddContent(sequence++, description);
+        builder.CloseElement();
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

@@ -1,6 +1,9 @@
 ﻿using Catalog.Contracts.Products.Features.GetProductById;
+using Accounting.Contracts.Accounting.Features;
 using Inventory.Warehouses.Features.Inventories.StockIn;
 using Shared.Exceptions;
+using SharedWithUI.Accounting.Dtos;
+using SharedWithUI.Accounting.Enums;
 
 namespace Inventory.Warehouses.Features.Inventories.StockAdjustment;
 
@@ -124,6 +127,32 @@ public class StockAdjustmentHandler(InventoryDbContext dbContext, ISender sender
 
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (command.InventoryAggregate.TotalCost > 0)
+        {
+            var lines = new List<JournalEntryLineDto>();
+            if (command.InventoryAggregate.MovementType == MovementType.AdjustmentIncrease)
+            {
+                lines.Add(new JournalEntryLineDto { AccountRole = AccountRole.Inventory, Debit = command.InventoryAggregate.TotalCost, Description = "Inventory adjustment increase" });
+                lines.Add(new JournalEntryLineDto { AccountRole = AccountRole.Suspense, Credit = command.InventoryAggregate.TotalCost, Description = "Inventory adjustment clearing" });
+            }
+            else
+            {
+                lines.Add(new JournalEntryLineDto { AccountRole = AccountRole.Expense, Debit = command.InventoryAggregate.TotalCost, Description = "Inventory adjustment decrease" });
+                lines.Add(new JournalEntryLineDto { AccountRole = AccountRole.Inventory, Credit = command.InventoryAggregate.TotalCost, Description = "Inventory adjustment decrease" });
+            }
+
+            await sender.Send(new CreateAndPostJournalEntryCommand(new CreateJournalEntryDto
+            {
+                CompanyId = command.InventoryAggregate.CompanyId,
+                EntryDate = DateTime.UtcNow,
+                SourceModule = "Inventory",
+                SourceDocumentId = movement.Id,
+                SourceDocumentNumber = command.InventoryAggregate.ReferenceNumber,
+                Memo = command.InventoryAggregate.Notes ?? command.InventoryAggregate.MovementType.ToString(),
+                Lines = lines
+            }), cancellationToken);
+        }
 
         return new StockAdjustmentResult(inventory.Id);
     }

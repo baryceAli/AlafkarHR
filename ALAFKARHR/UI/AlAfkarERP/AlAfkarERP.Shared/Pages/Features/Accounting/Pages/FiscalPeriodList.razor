@@ -1,0 +1,190 @@
+@layout AdminLayout
+@page "/Accounting/FiscalPeriods"
+
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Accounting.Enums
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@T("Fiscal Periods", "الفترات المالية")"
+                Subtitle="@T("Open, close, and lock accounting periods used by postings.", "إدارة الفترات المالية المستخدمة في الترحيل.")"
+                Overline="@T("Accounting Setup", "إعدادات المحاسبة")"
+                Icon="bi-calendar2-week" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@T("You don't have permissions to view this page", "ليس لديك صلاحية عرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <AppCard>
+            <div class="d-flex justify-content-end mb-3">
+                @if (CanCreate)
+                {
+                    <button class="btn btn-primary" type="button" @onclick="OpenCreate"><i class="bi bi-plus-lg"></i> @T("Create Period", "إضافة فترة")</button>
+                }
+            </div>
+            <div class="erp-table-wrap">
+                <table class="table align-middle erp-table">
+                    <thead>
+                        <tr>
+                            <th>@T("Name", "الاسم")</th>
+                            <th>@T("Start", "البداية")</th>
+                            <th>@T("End", "النهاية")</th>
+                            <th>@T("Status", "الحالة")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var period in periods)
+                        {
+                            <tr>
+                                <td><strong>@period.Name</strong></td>
+                                <td>@period.StartDate.ToString("yyyy-MM-dd")</td>
+                                <td>@period.EndDate.ToString("yyyy-MM-dd")</td>
+                                <td><StatusChip Text="@period.Status.ToString()" Tone="@PeriodTone(period.Status)" /></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (!periods.Any())
+            {
+                <div class="text-muted py-4 text-center">@T("No fiscal periods found.", "لا توجد فترات مالية.")</div>
+            }
+        </AppCard>
+    }
+</div>
+
+@if (showCreate)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <EditForm Model="@newPeriod" OnValidSubmit="SaveAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@T("Create Fiscal Period", "إضافة فترة مالية")</h5>
+                        <button class="btn-close" type="button" @onclick="CloseCreate"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">@T("Name", "الاسم")</label>
+                                <InputText class="form-control" @bind-Value="newPeriod.Name" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">@T("Start Date", "تاريخ البداية")</label>
+                                <InputDate class="form-control" @bind-Value="newPeriod.StartDate" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">@T("End Date", "تاريخ النهاية")</label>
+                                <InputDate class="form-control" @bind-Value="newPeriod.EndDate" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">@T("Status", "الحالة")</label>
+                                <InputSelect class="form-select" @bind-Value="newPeriod.Status">
+                                    @foreach (var status in Enum.GetValues<FiscalPeriodStatus>())
+                                    {
+                                        <option value="@status">@status</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" type="button" @onclick="CloseCreate">@T("Cancel", "إلغاء")</button>
+                        <button class="btn btn-primary" type="submit" disabled="@saving"><i class="bi bi-save"></i> @T("Save", "حفظ")</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private List<FiscalPeriodDto> periods = [];
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private bool showCreate;
+    private bool saving;
+    private FiscalPeriodDto newPeriod = new();
+    private bool CanView => HasPermission(PermissionList.FiscalPeriodPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.FiscalPeriodPermissions.Create);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (companyId == Guid.Empty || !CanView)
+            return;
+
+        var result = await AccountingService.GetFiscalPeriodsAsync(companyId);
+        if (result.IsSuccess && result.Data is not null)
+            periods = result.Data;
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load fiscal periods.", "تعذر تحميل الفترات المالية."));
+    }
+
+    private void OpenCreate()
+    {
+        var today = DateTime.Today;
+        newPeriod = new FiscalPeriodDto
+        {
+            CompanyId = companyId,
+            Name = $"{today:yyyy-MM}",
+            StartDate = new DateTime(today.Year, today.Month, 1),
+            EndDate = new DateTime(today.Year, today.Month, DateTime.DaysInMonth(today.Year, today.Month)),
+            Status = FiscalPeriodStatus.Open
+        };
+        showCreate = true;
+    }
+
+    private void CloseCreate() => showCreate = false;
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        newPeriod.CompanyId = companyId;
+        var result = await AccountingService.CreateFiscalPeriodAsync(newPeriod);
+        saving = false;
+
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Fiscal period created.", "تم إنشاء الفترة المالية."));
+            showCreate = false;
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not create fiscal period.", "تعذر إنشاء الفترة المالية."));
+        }
+    }
+
+    private static string PeriodTone(FiscalPeriodStatus status) => status switch
+    {
+        FiscalPeriodStatus.Open => "success",
+        FiscalPeriodStatus.Closed => "warning",
+        FiscalPeriodStatus.Locked => "danger",
+        _ => "muted"
+    };
+
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

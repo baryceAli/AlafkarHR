@@ -1,7 +1,10 @@
+using Accounting.Contracts.Accounting.Features;
 using Inventory.Contracts.Stock;
 using Inventory.Warehouses.Features.Inventories.StockIn;
 using Inventory.Warehouses.Features.Inventories.StockOut;
 using Shared.Contracts.CQRS;
+using SharedWithUI.Accounting.Dtos;
+using SharedWithUI.Accounting.Enums;
 using SharedWithUI.Inventory.Dtos;
 using SharedWithUI.Inventory.Enums;
 
@@ -13,6 +16,22 @@ public class PostInventoryStockInCommandHandler(ISender sender)
     public async Task<PostInventoryStockResult> Handle(PostInventoryStockInCommand command, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new StockInCommand(command.ToInventoryAggregateDto(MovementType.PurchaseReceipt)), cancellationToken);
+        if (command.TotalCost > 0)
+        {
+            await sender.Send(new CreateAndPostJournalEntryCommand(new CreateJournalEntryDto
+            {
+                CompanyId = command.CompanyId,
+                EntryDate = DateTime.UtcNow,
+                SourceModule = "Inventory",
+                SourceDocumentNumber = command.ReferenceNumber ?? $"PurchaseReceipt-{result.Id:N}",
+                Memo = command.Notes ?? "Inventory purchase receipt valuation",
+                Lines =
+                [
+                    new() { AccountRole = AccountRole.Inventory, Debit = command.TotalCost, Description = "Inventory receipt" },
+                    new() { AccountRole = AccountRole.Suspense, Credit = command.TotalCost, Description = "Goods received clearing" }
+                ]
+            }), cancellationToken);
+        }
         return new PostInventoryStockResult(result.Id);
     }
 }
@@ -23,6 +42,22 @@ public class PostInventoryStockOutCommandHandler(ISender sender)
     public async Task<PostInventoryStockResult> Handle(PostInventoryStockOutCommand command, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new StockOutCommand(command.ToInventoryAggregateDto(MovementType.SupplierReturn)), cancellationToken);
+        if (command.TotalCost > 0)
+        {
+            await sender.Send(new CreateAndPostJournalEntryCommand(new CreateJournalEntryDto
+            {
+                CompanyId = command.CompanyId,
+                EntryDate = DateTime.UtcNow,
+                SourceModule = "Inventory",
+                SourceDocumentNumber = command.ReferenceNumber ?? $"SupplierReturn-{result.Id:N}",
+                Memo = command.Notes ?? "Inventory supplier return valuation",
+                Lines =
+                [
+                    new() { AccountRole = AccountRole.Suspense, Debit = command.TotalCost, Description = "Goods returned clearing" },
+                    new() { AccountRole = AccountRole.Inventory, Credit = command.TotalCost, Description = "Inventory return" }
+                ]
+            }), cancellationToken);
+        }
         return new PostInventoryStockResult(result.Id);
     }
 }

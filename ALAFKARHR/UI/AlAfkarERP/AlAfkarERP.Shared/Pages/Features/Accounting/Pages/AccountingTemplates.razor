@@ -1,0 +1,444 @@
+@layout AdminLayout
+@page "/Accounting/Templates"
+
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Accounting.Enums
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@T("Accounting Templates", "قوالب المحاسبة")"
+                Subtitle="@T("Create, capture, edit, and apply reusable accounting setup templates.", "إنشاء والتقاط وتعديل وتطبيق قوالب إعداد محاسبية قابلة لإعادة الاستخدام.")"
+                Overline="@T("Accounting", "المحاسبة")"
+                Icon="bi-journal-richtext" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@T("You don't have permissions to view this page", "ليس لديك صلاحية عرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-12 col-xl-4">
+                <AppCard CssClass="h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h5 mb-0">@T("Templates", "القوالب")</h2>
+                        @if (CanCreate)
+                        {
+                            <button class="btn btn-sm btn-primary" type="button" @onclick="NewTemplate">
+                                <i class="bi bi-plus-lg"></i>
+                                @T("New", "جديد")
+                            </button>
+                        }
+                    </div>
+                    <div class="d-grid gap-2 mb-3">
+                        @if (CanCreate)
+                        {
+                            <button class="btn btn-outline-secondary" type="button" @onclick="CaptureCurrentAsync" disabled="@saving">
+                                <i class="bi bi-box-arrow-down"></i>
+                                @T("Capture Current Setup", "التقاط الإعداد الحالي")
+                            </button>
+                        }
+                    </div>
+                    <div class="erp-table-wrap">
+                        <table class="table erp-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>@T("Name", "الاسم")</th>
+                                    <th>@T("Scope", "النطاق")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var template in templates)
+                                {
+                                    <tr role="button" @onclick="() => SelectTemplateAsync(template)">
+                                        <td>
+                                            <div class="fw-semibold">@T(template.Name, string.IsNullOrWhiteSpace(template.NameAr) ? template.Name : template.NameAr)</div>
+                                            <div class="text-muted small">@template.Code</div>
+                                        </td>
+                                        <td><StatusChip Text="@TemplateScope(template)" Tone="@(template.IsSystem ? "primary" : template.Visibility == AccountingTemplateVisibility.Shared ? "info" : "muted")" /></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+
+            <div class="col-12 col-xl-8">
+                <AppCard>
+                    <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
+                        <div>
+                            <h2 class="h5 mb-1">@T("Template Editor", "محرر القالب")</h2>
+                            <p class="text-muted mb-0">@T("Use account keys to connect parents, posting profiles, and journals.", "استخدم مفاتيح الحسابات لربط الحسابات الرئيسية والتوجيهات واليوميات.")</p>
+                        </div>
+                        <div class="d-flex gap-2 align-self-start">
+                            @if (CanApply)
+                            {
+                                <button class="btn btn-outline-primary" type="button" disabled="@saving" @onclick="ApplySelectedAsync">
+                                    <i class="bi bi-magic"></i>
+                                    @T("Apply", "تطبيق")
+                                </button>
+                            }
+                            @if (!selected.IsSystem && CanEditSelected)
+                            {
+                                <button class="btn btn-primary" type="button" disabled="@saving" @onclick="SaveAsync">
+                                    <i class="bi bi-check2"></i>
+                                    @T("Save", "حفظ")
+                                </button>
+                            }
+                            @if (!selected.IsSystem && selected.Id != Guid.Empty && CanDelete)
+                            {
+                                <button class="btn btn-outline-danger" type="button" disabled="@saving" @onclick="DeleteAsync">
+                                    <i class="bi bi-trash"></i>
+                                    @T("Delete", "حذف")
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">@T("Code", "الكود")</label>
+                            <input class="form-control" @bind="selected.Code" disabled="@selected.IsSystem" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">@T("English Name", "الاسم الإنجليزي")</label>
+                            <input class="form-control" @bind="selected.Name" disabled="@selected.IsSystem" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">@T("Arabic Name", "الاسم العربي")</label>
+                            <input class="form-control" @bind="selected.NameAr" disabled="@selected.IsSystem" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">@T("Visibility", "النطاق")</label>
+                            <select class="form-select" @bind="selected.Visibility" disabled="@(!CanShare || selected.IsSystem)">
+                                <option value="@AccountingTemplateVisibility.Private">@T("Private", "خاص")</option>
+                                <option value="@AccountingTemplateVisibility.Shared">@T("Shared", "مشترك")</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">@T("Country", "الدولة")</label>
+                            <input class="form-control" @bind="selected.CountryCode" disabled="@selected.IsSystem" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">@T("Currency", "العملة")</label>
+                            <input class="form-control" @bind="selected.CurrencyCode" disabled="@selected.IsSystem" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">@T("Fiscal Month", "شهر السنة المالية")</label>
+                            <input class="form-control" type="number" min="1" max="12" @bind="selected.FiscalYearStartMonth" disabled="@selected.IsSystem" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">@T("Fiscal Day", "يوم السنة المالية")</label>
+                            <input class="form-control" type="number" min="1" max="31" @bind="selected.FiscalYearStartDay" disabled="@selected.IsSystem" />
+                        </div>
+                    </div>
+
+                    @EditorSection(T("Accounts", "الحسابات"), selected.Accounts.Count, AddAccount)
+                    <div class="erp-table-wrap">
+                        <table class="table erp-table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>@T("Key", "المفتاح")</th>
+                                    <th>@T("Code", "الكود")</th>
+                                    <th>@T("Arabic", "عربي")</th>
+                                    <th>@T("English", "إنجليزي")</th>
+                                    <th>@T("Type", "النوع")</th>
+                                    <th>@T("Role", "الدور")</th>
+                                    <th>@T("Parent Key", "المفتاح الرئيسي")</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var line in selected.Accounts)
+                                {
+                                    <tr>
+                                        <td><input class="form-control form-control-sm" @bind="line.TemplateKey" disabled="@selected.IsSystem" /></td>
+                                        <td><input class="form-control form-control-sm" @bind="line.Code" disabled="@selected.IsSystem" /></td>
+                                        <td><input class="form-control form-control-sm" @bind="line.Name" disabled="@selected.IsSystem" /></td>
+                                        <td><input class="form-control form-control-sm" @bind="line.NameEng" disabled="@selected.IsSystem" /></td>
+                                        <td><select class="form-select form-select-sm" @bind="line.Type" disabled="@selected.IsSystem">@(EnumOptions<AccountType>())</select></td>
+                                        <td><select class="form-select form-select-sm" @bind="line.Role" disabled="@selected.IsSystem">@(EnumOptions<AccountRole>())</select></td>
+                                        <td><input class="form-control form-control-sm" @bind="line.ParentTemplateKey" disabled="@selected.IsSystem" /></td>
+                                        <td>@RemoveButton(() => selected.Accounts.Remove(line))</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @EditorSection(T("Tax Codes", "أكواد الضريبة"), selected.TaxCodes.Count, AddTax)
+                    <div class="erp-table-wrap">
+                        <table class="table erp-table align-middle">
+                            <thead><tr><th>@T("Code", "الكود")</th><th>@T("Name", "الاسم")</th><th>@T("Rate", "النسبة")</th><th>@T("ZATCA", "زاتكا")</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var line in selected.TaxCodes)
+                                {
+                                    <tr>
+                                        <td><input class="form-control form-control-sm" @bind="line.Code" disabled="@selected.IsSystem" /></td>
+                                        <td><input class="form-control form-control-sm" @bind="line.Name" disabled="@selected.IsSystem" /></td>
+                                        <td><input class="form-control form-control-sm" type="number" @bind="line.Rate" disabled="@selected.IsSystem" /></td>
+                                        <td><input class="form-control form-control-sm" @bind="line.ZatcaCategoryCode" disabled="@selected.IsSystem" /></td>
+                                        <td>@RemoveButton(() => selected.TaxCodes.Remove(line))</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @EditorSection(T("Posting Profiles", "توجيهات الترحيل"), selected.PostingProfiles.Count, AddProfile)
+                    <div class="erp-table-wrap">
+                        <table class="table erp-table align-middle">
+                            <thead><tr><th>@T("Type", "النوع")</th><th>@T("Receivable", "مدينون")</th><th>@T("Payable", "دائنون")</th><th>@T("Revenue", "إيراد")</th><th>@T("Expense", "مصروف")</th><th>@T("VAT", "ضريبة")</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var line in selected.PostingProfiles)
+                                {
+                                    <tr>
+                                        <td><select class="form-select form-select-sm" @bind="line.Type" disabled="@selected.IsSystem">@(EnumOptions<PostingProfileType>())</select></td>
+                                        <td><input class="form-control form-control-sm" @bind="line.ReceivableAccountKey" disabled="@selected.IsSystem" /></td>
+                                        <td><input class="form-control form-control-sm" @bind="line.PayableAccountKey" disabled="@selected.IsSystem" /></td>
+                                        <td><input class="form-control form-control-sm" @bind="line.RevenueAccountKey" disabled="@selected.IsSystem" /></td>
+                                        <td><input class="form-control form-control-sm" @bind="line.ExpenseAccountKey" disabled="@selected.IsSystem" /></td>
+                                        <td><input class="form-control form-control-sm" @bind="line.OutputVatAccountKey" disabled="@selected.IsSystem" /></td>
+                                        <td>@RemoveButton(() => selected.PostingProfiles.Remove(line))</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @EditorSection(T("Journals", "اليوميات"), selected.Journals.Count, AddJournal)
+                    <div class="erp-table-wrap">
+                        <table class="table erp-table align-middle mb-0">
+                            <thead><tr><th>@T("Code", "الكود")</th><th>@T("Name", "الاسم")</th><th>@T("Type", "النوع")</th><th>@T("Debit Key", "مفتاح المدين")</th><th>@T("Credit Key", "مفتاح الدائن")</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var line in selected.Journals)
+                                {
+                                    <tr>
+                                        <td><input class="form-control form-control-sm" @bind="line.Code" disabled="@selected.IsSystem" /></td>
+                                        <td><input class="form-control form-control-sm" @bind="line.Name" disabled="@selected.IsSystem" /></td>
+                                        <td><select class="form-select form-select-sm" @bind="line.Type" disabled="@selected.IsSystem">@(EnumOptions<AccountingJournalType>())</select></td>
+                                        <td><input class="form-control form-control-sm" @bind="line.DefaultDebitAccountKey" disabled="@selected.IsSystem" /></td>
+                                        <td><input class="form-control form-control-sm" @bind="line.DefaultCreditAccountKey" disabled="@selected.IsSystem" /></td>
+                                        <td>@RemoveButton(() => selected.Journals.Remove(line))</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private List<AccountingTemplateDto> templates = [];
+    private AccountingTemplateDto selected = NewTemplateModel();
+    private bool saving;
+    private bool CanView => HasPermission(PermissionList.AccountingTemplatePermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.AccountingTemplatePermissions.Create);
+    private bool CanEdit => HasPermission(PermissionList.AccountingTemplatePermissions.Edit);
+    private bool CanDelete => HasPermission(PermissionList.AccountingTemplatePermissions.Delete);
+    private bool CanShare => HasPermission(PermissionList.AccountingTemplatePermissions.Share);
+    private bool CanApply => HasPermission(PermissionList.AccountingTemplatePermissions.Apply);
+    private bool CanEditSelected => selected.Id == Guid.Empty ? CanCreate : CanEdit;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (companyId == Guid.Empty || !CanView)
+            return;
+
+        var result = await AccountingService.GetTemplatesAsync(companyId);
+        if (result.IsSuccess)
+        {
+            templates = result.Data ?? [];
+            selected = templates.FirstOrDefault() ?? NewTemplateModel();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load templates.", "تعذر تحميل القوالب."));
+        }
+    }
+
+    private async Task SelectTemplateAsync(AccountingTemplateDto template)
+    {
+        if (template.Id == Guid.Empty)
+        {
+            selected = template;
+            return;
+        }
+
+        var result = await AccountingService.GetTemplateAsync(template.Id, companyId);
+        selected = result.IsSuccess ? result.Data ?? template : template;
+    }
+
+    private void NewTemplate() => selected = NewTemplateModel();
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        selected.CompanyId = selected.Visibility == AccountingTemplateVisibility.Private ? companyId : null;
+        var result = await AccountingService.SaveTemplateAsync(selected);
+        saving = false;
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Template saved.", "تم حفظ القالب."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not save template.", "تعذر حفظ القالب."));
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        saving = true;
+        var result = await AccountingService.DeleteTemplateAsync(selected.Id);
+        saving = false;
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Template deleted.", "تم حذف القالب."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not delete template.", "تعذر حذف القالب."));
+        }
+    }
+
+    private async Task CaptureCurrentAsync()
+    {
+        saving = true;
+        var result = await AccountingService.CaptureTemplateAsync(new CaptureAccountingTemplateDto
+        {
+            CompanyId = companyId,
+            Code = $"CUSTOM_{DateTime.UtcNow:yyyyMMddHHmm}",
+            Name = "Captured Accounting Template",
+            NameAr = "قالب محاسبي ملتقط",
+            Visibility = AccountingTemplateVisibility.Private
+        });
+        saving = false;
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Current setup captured.", "تم التقاط الإعداد الحالي."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not capture setup.", "تعذر التقاط الإعداد."));
+        }
+    }
+
+    private async Task ApplySelectedAsync()
+    {
+        saving = true;
+        var result = await AccountingService.ApplyTemplateAsync(new ApplyAccountingTemplateDto
+        {
+            CompanyId = companyId,
+            TemplateId = selected.Id == Guid.Empty ? null : selected.Id,
+            TemplateCode = selected.Code,
+            FiscalYearStart = new DateTime(DateTime.UtcNow.Year, 1, 1),
+            CreateDefaultJournals = true
+        });
+        saving = false;
+        if (result.IsSuccess)
+            ToastService.ShowSuccess(T("Template applied.", "تم تطبيق القالب."));
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not apply template.", "تعذر تطبيق القالب."));
+    }
+
+    private RenderFragment EditorSection(string title, int count, Action add) => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "d-flex justify-content-between align-items-center mt-4 mb-2");
+        builder.OpenElement(2, "h3");
+        builder.AddAttribute(3, "class", "h6 mb-0");
+        builder.AddContent(4, $"{title} ({count})");
+        builder.CloseElement();
+        if (!selected.IsSystem)
+        {
+            builder.OpenElement(5, "button");
+            builder.AddAttribute(6, "class", "btn btn-sm btn-outline-secondary");
+            builder.AddAttribute(7, "type", "button");
+            builder.AddAttribute(8, "onclick", EventCallback.Factory.Create(this, add));
+            builder.AddMarkupContent(9, "<i class=\"bi bi-plus-lg\"></i> ");
+            builder.AddContent(10, T("Add", "إضافة"));
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+    };
+
+    private RenderFragment RemoveButton(Action remove) => builder =>
+    {
+        if (selected.IsSystem)
+            return;
+        builder.OpenElement(0, "button");
+        builder.AddAttribute(1, "class", "btn btn-sm btn-outline-danger");
+        builder.AddAttribute(2, "type", "button");
+        builder.AddAttribute(3, "onclick", EventCallback.Factory.Create(this, remove));
+        builder.AddMarkupContent(4, "<i class=\"bi bi-x-lg\"></i>");
+        builder.CloseElement();
+    };
+
+    private RenderFragment EnumOptions<TEnum>() where TEnum : struct, Enum => builder =>
+    {
+        var sequence = 0;
+        foreach (var value in Enum.GetValues<TEnum>())
+        {
+            builder.OpenElement(sequence++, "option");
+            builder.AddAttribute(sequence++, "value", value.ToString());
+            builder.AddContent(sequence++, value.ToString());
+            builder.CloseElement();
+        }
+    };
+
+    private void AddAccount() => selected.Accounts.Add(new AccountingTemplateAccountDto { TemplateKey = $"ACC_{selected.Accounts.Count + 1}", Code = $"{selected.Accounts.Count + 1:0000}", Name = "حساب", NameEng = "Account", Type = AccountType.Asset, NormalBalance = NormalBalance.Debit, IsPostingAccount = true });
+    private void AddTax() => selected.TaxCodes.Add(new AccountingTemplateTaxCodeDto { Code = $"TAX{selected.TaxCodes.Count + 1}", Name = "Tax", IsActive = true });
+    private void AddProfile() => selected.PostingProfiles.Add(new AccountingTemplatePostingProfileDto { Type = PostingProfileType.Sales, IsDefault = true });
+    private void AddJournal() => selected.Journals.Add(new AccountingTemplateJournalDto { Code = $"J{selected.Journals.Count + 1}", Name = "Journal", NameAr = "يومية", Type = AccountingJournalType.Miscellaneous, IsSystemJournal = true, IsActive = true });
+
+    private static AccountingTemplateDto NewTemplateModel() => new()
+    {
+        Code = "CUSTOM",
+        Name = "Custom Accounting Template",
+        NameAr = "قالب محاسبي مخصص",
+        Visibility = AccountingTemplateVisibility.Private,
+        CountryCode = "SA",
+        CurrencyCode = "SAR",
+        IsActive = true,
+        FiscalYearStartMonth = 1,
+        FiscalYearStartDay = 1
+    };
+
+    private string TemplateScope(AccountingTemplateDto template)
+    {
+        if (template.IsSystem)
+            return T("System", "نظامي");
+        return template.Visibility == AccountingTemplateVisibility.Shared ? T("Shared", "مشترك") : T("Private", "خاص");
+    }
+
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

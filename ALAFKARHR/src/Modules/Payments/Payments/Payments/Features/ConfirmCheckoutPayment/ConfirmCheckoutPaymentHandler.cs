@@ -42,6 +42,21 @@ public class ConfirmCheckoutPaymentHandler(PaymentsDbContext dbContext, ISender 
         await dbContext.PaymentAttempts.AddAsync(payment, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        if (status == PaymentStatus.Received)
+        {
+            await sender.Send(new RecordAccountingReceiptCommand(
+                request.Payment.CompanyId,
+                null,
+                request.Payment.CustomerId,
+                null,
+                "Payments",
+                request.Payment.SourceDocumentId,
+                request.Payment.SourceDocumentNumber,
+                request.Payment.Amount,
+                request.Payment.Method == PaymentMethodType.CardRecorded,
+                DateTime.UtcNow), cancellationToken);
+        }
+
         return new ConfirmCheckoutPaymentResult(payment.ToDecisionDto());
     }
 }

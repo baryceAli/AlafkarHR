@@ -1,0 +1,442 @@
+@layout AdminLayout
+@page "/Accounting/Documents"
+@page "/Accounting/SalesInvoices"
+@page "/Accounting/PurchaseInvoices"
+@page "/Accounting/ReceiptsPayments"
+
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Pages
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Accounting.Enums
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@T(AccountingUi.DocumentTitle(FilterType), DocumentTitleAr(FilterType))"
+                Subtitle="@T("Create, inspect, post, and prepare legal accounting documents.", "إنشاء وفحص وترحيل المستندات المحاسبية وتجهيزها للفوترة الإلكترونية.")"
+                Overline="@T("Accounting", "المحاسبة")"
+                Icon="bi-receipt" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@T("You don't have permissions to view this page", "ليس لديك صلاحية عرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <AppCard>
+            <div class="d-flex flex-column flex-lg-row gap-2 justify-content-between mb-3">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input class="form-control" placeholder="@T("Search number or party", "بحث بالرقم أو الطرف")" @bind="searchText" @bind:event="oninput" />
+                    <button class="btn btn-outline-secondary" type="button" @onclick="LoadAsync">@T("Search", "بحث")</button>
+                </div>
+                @if (CanCreate)
+                {
+                    <button class="btn btn-primary" type="button" @onclick="OpenCreate"><i class="bi bi-plus-lg"></i> @T("Create Document", "إضافة مستند")</button>
+                }
+            </div>
+
+            <div class="erp-table-wrap">
+                <table class="table align-middle erp-table">
+                    <thead>
+                        <tr>
+                            <th>@T("Number", "الرقم")</th>
+                            <th>@T("Type", "النوع")</th>
+                            <th>@T("Date", "التاريخ")</th>
+                            <th>@T("Party", "الطرف")</th>
+                            <th>@T("Tax", "الضريبة")</th>
+                            <th>@T("Total", "الإجمالي")</th>
+                            <th>@T("Status", "الحالة")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var document in VisibleDocuments)
+                        {
+                            <tr>
+                                <td><strong>@document.Number</strong></td>
+                                <td>@document.Type</td>
+                                <td>@document.DocumentDate.ToString("yyyy-MM-dd")</td>
+                                <td>@document.PartyName</td>
+                                <td>@document.TaxAmount.ToString("N2")</td>
+                                <td>@document.TotalAmount.ToString("N2")</td>
+                                <td><StatusChip Text="@document.Status.ToString()" Tone="@DocumentTone(document.Status)" /></td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary" type="button" title="@T("Details", "التفاصيل")" @onclick="() => OpenDetails(document)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        @if (CanPost && document.Status == AccountingDocumentStatus.Draft)
+                                        {
+                                            <button class="btn btn-outline-primary" type="button" title="@T("Post", "ترحيل")" @onclick="() => PostAsync(document.Id)">
+                                                <i class="bi bi-journal-check"></i>
+                                            </button>
+                                        }
+                                        @if (CanGenerateZatca && CanGenerateZatcaFor(document))
+                                        {
+                                            <button class="btn btn-outline-success" type="button" title="@T("Generate ZATCA", "توليد فاتورة زاتكا")" @onclick="() => GenerateZatcaAsync(document)">
+                                                <i class="bi bi-qr-code"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (!VisibleDocuments.Any())
+            {
+                <div class="text-muted py-4 text-center">@T("No accounting documents found.", "لا توجد مستندات محاسبية.")</div>
+            }
+        </AppCard>
+    }
+</div>
+
+@if (showCreate)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <EditForm Model="@newDocument" OnValidSubmit="SaveAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@T("Create Accounting Document", "إضافة مستند محاسبي")</h5>
+                        <button class="btn-close" type="button" @onclick="CloseCreate"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3 mb-3">
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">@T("Type", "النوع")</label>
+                                <InputSelect class="form-select" @bind-Value="newDocument.Type">
+                                    @foreach (var type in CreatableTypes)
+                                    {
+                                        <option value="@type">@type</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">@T("Date", "التاريخ")</label>
+                                <InputDate class="form-control" @bind-Value="newDocument.DocumentDate" />
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">@T("Party Name", "اسم الطرف")</label>
+                                <InputText class="form-control" @bind-Value="newDocument.PartyName" />
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">@T("Party VAT", "الرقم الضريبي للطرف")</label>
+                                <InputText class="form-control" @bind-Value="newDocument.PartyVatNumber" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">@T("Source Number", "رقم المصدر")</label>
+                                <InputText class="form-control" @bind-Value="newDocument.SourceDocumentNumber" />
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">@T("Lines", "البنود")</h6>
+                            <button class="btn btn-sm btn-outline-primary" type="button" @onclick="AddLine"><i class="bi bi-plus"></i> @T("Add Line", "إضافة بند")</button>
+                        </div>
+                        <div class="erp-table-wrap">
+                            <table class="table align-middle erp-table">
+                                <thead>
+                                    <tr>
+                                        <th>@T("Description", "الوصف")</th>
+                                        <th>@T("Qty", "الكمية")</th>
+                                        <th>@T("Unit", "السعر")</th>
+                                        <th>@T("Discount", "الخصم")</th>
+                                        <th>@T("Tax %", "الضريبة %")</th>
+                                        <th>@T("Tax Code", "كود الضريبة")</th>
+                                        <th>@T("Total", "الإجمالي")</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var line in newDocument.Lines)
+                                    {
+                                        <tr>
+                                            <td><InputText class="form-control form-control-sm" @bind-Value="line.Description" /></td>
+                                            <td><InputNumber class="form-control form-control-sm" @bind-Value="line.Quantity" @onchange="Recalculate" /></td>
+                                            <td><InputNumber class="form-control form-control-sm" @bind-Value="line.UnitPrice" @onchange="Recalculate" /></td>
+                                            <td><InputNumber class="form-control form-control-sm" @bind-Value="line.DiscountAmount" @onchange="Recalculate" /></td>
+                                            <td><InputNumber class="form-control form-control-sm" @bind-Value="line.TaxRate" @onchange="Recalculate" /></td>
+                                            <td><InputText class="form-control form-control-sm" @bind-Value="line.TaxCode" /></td>
+                                            <td>@line.TotalAmount.ToString("N2")</td>
+                                            <td class="text-end">
+                                                <button class="btn btn-sm btn-outline-danger" type="button" @onclick="() => RemoveLine(line)"><i class="bi bi-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex justify-content-end gap-3 mt-3">
+                            <strong>@T("Subtotal", "الإجمالي قبل الضريبة"): @newDocument.Subtotal.ToString("N2")</strong>
+                            <strong>@T("Tax", "الضريبة"): @newDocument.TaxAmount.ToString("N2")</strong>
+                            <strong>@T("Total", "الإجمالي"): @newDocument.TotalAmount.ToString("N2")</strong>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" type="button" @onclick="CloseCreate">@T("Cancel", "إلغاء")</button>
+                        <button class="btn btn-primary" type="submit" disabled="@saving"><i class="bi bi-save"></i> @T("Save", "حفظ")</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (selectedDocument is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@selectedDocument.Number</h5>
+                    <button class="btn-close" type="button" @onclick="CloseDetails"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-3"><strong>@T("Type", "النوع"):</strong> @selectedDocument.Type</div>
+                        <div class="col-12 col-md-3"><strong>@T("Status", "الحالة"):</strong> <StatusChip Text="@selectedDocument.Status.ToString()" Tone="@DocumentTone(selectedDocument.Status)" /></div>
+                        <div class="col-12 col-md-3"><strong>@T("Source", "المصدر"):</strong> @selectedDocument.SourceDocumentNumber</div>
+                        <div class="col-12 col-md-3"><strong>@T("Journal", "القيد"):</strong> @selectedDocument.JournalEntryId</div>
+                    </div>
+                    <div class="erp-table-wrap">
+                        <table class="table align-middle erp-table">
+                            <thead>
+                                <tr>
+                                    <th>@T("Description", "الوصف")</th>
+                                    <th>@T("Qty", "الكمية")</th>
+                                    <th>@T("Unit", "السعر")</th>
+                                    <th>@T("Discount", "الخصم")</th>
+                                    <th>@T("Tax", "الضريبة")</th>
+                                    <th>@T("Total", "الإجمالي")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var line in selectedDocument.Lines)
+                                {
+                                    <tr>
+                                        <td>@line.Description</td>
+                                        <td>@line.Quantity.ToString("N2")</td>
+                                        <td>@line.UnitPrice.ToString("N2")</td>
+                                        <td>@line.DiscountAmount.ToString("N2")</td>
+                                        <td>@line.TaxAmount.ToString("N2")</td>
+                                        <td>@line.TotalAmount.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" type="button" @onclick="CloseDetails">@T("Close", "إغلاق")</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private List<AccountingDocumentDto> documents = [];
+    private AuthenticationState? authState;
+    private Guid? companyId;
+    private string? searchText;
+    private bool showCreate;
+    private bool saving;
+    private AccountingDocumentDto newDocument = new();
+    private AccountingDocumentDto? selectedDocument;
+    private bool CanView => HasPermission(PermissionList.AccountingDocumentPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.AccountingDocumentPermissions.Create);
+    private bool CanPost => HasPermission(PermissionList.AccountingDocumentPermissions.Post);
+    private bool CanGenerateZatca => HasPermission(PermissionList.ZatcaEInvoicePermissions.Generate);
+
+    private AccountingDocumentType? FilterType
+    {
+        get
+        {
+            var path = NavigationManager.Uri.ToLowerInvariant();
+            if (path.Contains("salesinvoices")) return AccountingDocumentType.SalesInvoice;
+            if (path.Contains("purchaseinvoices")) return AccountingDocumentType.SupplierInvoice;
+            return null;
+        }
+    }
+
+    private bool ReceiptPaymentRoute => NavigationManager.Uri.ToLowerInvariant().Contains("receiptspayments");
+
+    private IEnumerable<AccountingDocumentDto> VisibleDocuments => ReceiptPaymentRoute
+        ? documents.Where(x => x.Type is AccountingDocumentType.CustomerReceipt or AccountingDocumentType.SupplierPayment)
+        : documents;
+
+    private IEnumerable<AccountingDocumentType> CreatableTypes => ReceiptPaymentRoute
+        ? [AccountingDocumentType.CustomerReceipt, AccountingDocumentType.SupplierPayment]
+        : FilterType.HasValue
+            ? [FilterType.Value]
+            : Enum.GetValues<AccountingDocumentType>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var parsedCompanyId))
+            companyId = parsedCompanyId;
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (!CanView)
+            return;
+
+        var result = await AccountingService.GetDocumentsAsync(FilterType, companyId, 1, 100, searchText);
+        if (result.IsSuccess && result.Data is not null)
+            documents = result.Data.Data.ToList();
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load documents.", "تعذر تحميل المستندات."));
+    }
+
+    private void OpenCreate()
+    {
+        newDocument = new AccountingDocumentDto
+        {
+            CompanyId = companyId ?? Guid.Empty,
+            Type = CreatableTypes.First(),
+            DocumentDate = DateTime.UtcNow,
+            Lines = []
+        };
+        AddLine();
+        showCreate = true;
+    }
+
+    private void CloseCreate() => showCreate = false;
+    private void OpenDetails(AccountingDocumentDto document) => selectedDocument = document;
+    private void CloseDetails() => selectedDocument = null;
+
+    private void AddLine()
+    {
+        newDocument.Lines.Add(new AccountingDocumentLineDto
+        {
+            LineNumber = newDocument.Lines.Count + 1,
+            Description = T("Line item", "بند"),
+            Quantity = 1,
+            UnitPrice = 0,
+            TaxRate = 15,
+            TaxCode = "VAT15"
+        });
+        Recalculate();
+    }
+
+    private void RemoveLine(AccountingDocumentLineDto line)
+    {
+        if (newDocument.Lines.Count <= 1)
+            return;
+        newDocument.Lines.Remove(line);
+        Recalculate();
+    }
+
+    private void Recalculate()
+    {
+        var lineNumber = 1;
+        foreach (var line in newDocument.Lines)
+        {
+            line.LineNumber = lineNumber++;
+            line.NetAmount = Math.Max(0, (line.Quantity * line.UnitPrice) - line.DiscountAmount);
+            line.TaxAmount = Math.Round(line.NetAmount * (line.TaxRate / 100), 2);
+            line.TotalAmount = line.NetAmount + line.TaxAmount;
+        }
+
+        newDocument.Subtotal = newDocument.Lines.Sum(x => x.NetAmount);
+        newDocument.TaxAmount = newDocument.Lines.Sum(x => x.TaxAmount);
+        newDocument.TotalAmount = newDocument.Lines.Sum(x => x.TotalAmount);
+    }
+
+    private async Task SaveAsync()
+    {
+        Recalculate();
+        saving = true;
+        newDocument.CompanyId = companyId ?? Guid.Empty;
+        var result = await AccountingService.CreateDocumentAsync(newDocument);
+        saving = false;
+
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Document created.", "تم إنشاء المستند."));
+            showCreate = false;
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not create document.", "تعذر إنشاء المستند."));
+        }
+    }
+
+    private async Task PostAsync(Guid id)
+    {
+        var result = await AccountingService.PostDocumentAsync(id);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Document posted.", "تم ترحيل المستند."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not post document.", "تعذر ترحيل المستند."));
+        }
+    }
+
+    private async Task GenerateZatcaAsync(AccountingDocumentDto document)
+    {
+        var type = document.Type switch
+        {
+            AccountingDocumentType.SalesCreditNote => ZatcaInvoiceType.CreditNote,
+            AccountingDocumentType.SalesDebitNote => ZatcaInvoiceType.DebitNote,
+            _ => ZatcaInvoiceType.StandardTaxInvoice
+        };
+
+        var result = await AccountingService.GenerateZatcaInvoiceAsync(document.Id, type);
+        if (result.IsSuccess)
+            ToastService.ShowSuccess(T("ZATCA invoice generated.", "تم توليد فاتورة زاتكا."));
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not generate ZATCA invoice.", "تعذر توليد فاتورة زاتكا."));
+    }
+
+    private static bool CanGenerateZatcaFor(AccountingDocumentDto document) =>
+        document.Status == AccountingDocumentStatus.Posted &&
+        document.Type is AccountingDocumentType.SalesInvoice or AccountingDocumentType.SalesCreditNote or AccountingDocumentType.SalesDebitNote;
+
+    private static string DocumentTone(AccountingDocumentStatus status) => status switch
+    {
+        AccountingDocumentStatus.Posted => "success",
+        AccountingDocumentStatus.Draft => "warning",
+        AccountingDocumentStatus.Reversed => "info",
+        AccountingDocumentStatus.Cancelled => "danger",
+        _ => "muted"
+    };
+
+    private static string DocumentTitleAr(AccountingDocumentType? type) => type switch
+    {
+        AccountingDocumentType.SalesInvoice => "فواتير المبيعات",
+        AccountingDocumentType.SupplierInvoice => "فواتير المشتريات",
+        AccountingDocumentType.CustomerReceipt => "المقبوضات",
+        AccountingDocumentType.SupplierPayment => "المدفوعات",
+        AccountingDocumentType.SalesCreditNote => "الإشعارات الدائنة",
+        AccountingDocumentType.SalesDebitNote => "الإشعارات المدينة",
+        _ => "مستندات المحاسبة"
+    };
+
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

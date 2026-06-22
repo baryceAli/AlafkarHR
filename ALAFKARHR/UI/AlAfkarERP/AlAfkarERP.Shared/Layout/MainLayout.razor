@@ -57,6 +57,7 @@
 
     <CommandPalette IsOpen="@isCommandPaletteOpen"
                     IsOpenChanged="SetCommandPaletteOpen"
+                    ActiveWorkspace="@activeWorkspace"
                     AuthState="@AuthState"
                     OnNavigate="OnNavigationItemSelectedAsync" />
 
@@ -106,31 +107,51 @@
 
     private async Task<string> LoadActiveWorkspaceAsync()
     {
+        string resolvedWorkspace;
         try
         {
             var stored = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.ActiveWorkspaceStorageKey);
-            return NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri, stored);
+            resolvedWorkspace = NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri, stored);
         }
         catch (InvalidOperationException)
         {
+            resolvedWorkspace = NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri);
         }
         catch (JSException)
         {
+            resolvedWorkspace = NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri);
         }
 
-        return NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri);
+        return EnsureAuthorizedWorkspace(resolvedWorkspace);
     }
 
     private async Task SetActiveWorkspaceAsync(string workspaceKey)
     {
-        activeWorkspace = workspaceKey;
+        activeWorkspace = EnsureAuthorizedWorkspace(workspaceKey);
         try
         {
-            await JSRuntime.InvokeVoidAsync("localStorage.setItem", NavigationShellState.ActiveWorkspaceStorageKey, workspaceKey);
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", NavigationShellState.ActiveWorkspaceStorageKey, activeWorkspace);
         }
         catch (JSException)
         {
         }
+    }
+
+    private string EnsureAuthorizedWorkspace(string workspaceKey)
+    {
+        var authorizedWorkspaces = NavigationMenuResolver.GetAuthorizedWorkspaces(AuthState?.User);
+        if (authorizedWorkspaces.Any(workspace => workspace.Key == workspaceKey))
+        {
+            return workspaceKey;
+        }
+
+        var routeWorkspace = NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri);
+        if (authorizedWorkspaces.Any(workspace => workspace.Key == routeWorkspace))
+        {
+            return routeWorkspace;
+        }
+
+        return authorizedWorkspaces.FirstOrDefault()?.Key ?? NavigationMenuResolver.WorkspaceHome;
     }
 
     private void OpenMoreHub()
@@ -176,12 +197,12 @@
 
     private async Task OnNavigationItemSelectedAsync(MenuItem item)
     {
-        await SetActiveWorkspaceAsync(NavigationMenuResolver.GetWorkspaceKey(item));
+        await SetActiveWorkspaceAsync(NavigationMenuResolver.ResolveNavigationWorkspace(item, activeWorkspace));
     }
 
     private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
     {
-        activeWorkspace = NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri, activeWorkspace);
+        activeWorkspace = EnsureAuthorizedWorkspace(NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri, activeWorkspace));
         _ = InvokeAsync(StateHasChanged);
     }
 

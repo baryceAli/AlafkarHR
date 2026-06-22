@@ -55,20 +55,45 @@ public static class NavigationMenuResolver
     ];
 
     public static IReadOnlyList<MenuItem> GetActivePath(string currentUri, string baseUri)
+        => GetActivePath(currentUri, baseUri, null);
+
+    public static IReadOnlyList<MenuItem> GetActivePath(string currentUri, string baseUri, string? preferredWorkspaceKey)
     {
         var currentPath = NormalizePath(ToRelativePath(currentUri, baseUri));
-        var bestMatch = new List<MenuItem>();
+        var bestMatch = (Path: new List<MenuItem>(), Score: 0, Specificity: 0);
 
-        foreach (var item in MenuItem.Menu)
+        if (!string.IsNullOrWhiteSpace(preferredWorkspaceKey))
         {
-            var path = FindBestPath(item, currentPath);
-            if (path.Count > bestMatch.Count)
+            foreach (var item in MenuItem.Menu)
             {
-                bestMatch = path;
+                var candidate = FindBestPathCandidate(item, currentPath);
+                if (candidate.Path.Count == 0 || !PathBelongsToWorkspace(candidate.Path, preferredWorkspaceKey))
+                {
+                    continue;
+                }
+
+                if (IsBetterPathCandidate(candidate, bestMatch))
+                {
+                    bestMatch = candidate;
+                }
+            }
+
+            if (bestMatch.Path.Count > 0)
+            {
+                return bestMatch.Path;
             }
         }
 
-        return bestMatch;
+        foreach (var item in MenuItem.Menu)
+        {
+            var candidate = FindBestPathCandidate(item, currentPath);
+            if (IsBetterPathCandidate(candidate, bestMatch))
+            {
+                bestMatch = candidate;
+            }
+        }
+
+        return bestMatch.Path;
     }
 
     public static string NormalizePath(string? url)
@@ -107,6 +132,10 @@ public static class NavigationMenuResolver
                && normalizedCurrentPath.StartsWith($"{normalizedTargetPath}/", StringComparison.OrdinalIgnoreCase);
     }
 
+    public static bool IsPathWithinItem(string? currentPath, MenuItem item)
+        => IsPathWithinUrl(currentPath, item.Url)
+           || item.NavigationAliases.Any(alias => IsPathWithinUrl(currentPath, alias));
+
     public static string GetStorageKey(MenuItem item)
         => !string.IsNullOrWhiteSpace(item.Url)
             ? NormalizePath(item.Url)
@@ -125,6 +154,15 @@ public static class NavigationMenuResolver
         if (path == "/" || path == "/dashboard" || text.Equals("Home", StringComparison.OrdinalIgnoreCase))
         {
             return WorkspaceHome;
+        }
+
+        if (path.StartsWith("/accounting", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Accounting", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("ZATCA", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Journal", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Ledger", StringComparison.OrdinalIgnoreCase))
+        {
+            return WorkspaceAccountingFinance;
         }
 
         if (path == "/salesorder/pos" || text.Equals("POS", StringComparison.OrdinalIgnoreCase))
@@ -242,7 +280,7 @@ public static class NavigationMenuResolver
             return WorkspaceHome;
         }
 
-        if (TryResolveExactWorkspaceMatch(currentPath, preferredWorkspaceKey, out var preferredWorkspace))
+        if (TryResolveWorkspaceMatch(currentPath, preferredWorkspaceKey, out var preferredWorkspace))
         {
             return preferredWorkspace;
         }
@@ -257,7 +295,7 @@ public static class NavigationMenuResolver
             return exactWorkspace;
         }
 
-        var activePath = GetActivePath(currentUri, baseUri);
+        var activePath = GetActivePath(currentUri, baseUri, preferredWorkspaceKey);
         return activePath.Count == 0 ? WorkspaceHome : GetWorkspaceKey(activePath.Last());
     }
 
@@ -312,6 +350,12 @@ public static class NavigationMenuResolver
         }
 
         var authorizedItems = GetAuthorizedNavigableItems(user).ToList();
+        if (workspaceKey == WorkspaceAccountingFinance
+            && authorizedItems.Any(item => NormalizePath(item.Url) == "/accounting/dashboard"))
+        {
+            return "/Accounting/Dashboard";
+        }
+
         var workspace = MobileWorkspaces.FirstOrDefault(item => item.Key == workspaceKey);
         if (!string.IsNullOrWhiteSpace(workspace?.Url)
             && authorizedItems.Any(item => NormalizePath(item.Url) == NormalizePath(workspace.Url)))
@@ -334,8 +378,11 @@ public static class NavigationMenuResolver
     }
 
     public static string ResolveHubWorkspaceKey(string currentUri, string baseUri)
+        => ResolveHubWorkspaceKey(currentUri, baseUri, null);
+
+    public static string ResolveHubWorkspaceKey(string currentUri, string baseUri, string? preferredWorkspaceKey)
     {
-        var activePath = GetActivePath(currentUri, baseUri);
+        var activePath = GetActivePath(currentUri, baseUri, preferredWorkspaceKey);
         return activePath.Count == 0 ? HubAdmin : ResolveHubWorkspaceKey(activePath.Last());
     }
 
@@ -348,6 +395,17 @@ public static class NavigationMenuResolver
         }
 
         return workspaceKey == WorkspaceMore ? HubAdmin : workspaceKey;
+    }
+
+    public static string ResolveNavigationWorkspace(MenuItem item, string? currentWorkspaceKey)
+    {
+        if (!string.IsNullOrWhiteSpace(currentWorkspaceKey)
+            && ItemCanNavigateWithinWorkspace(item, currentWorkspaceKey))
+        {
+            return currentWorkspaceKey;
+        }
+
+        return GetWorkspaceKey(item);
     }
 
     public static IReadOnlyList<NavigationMenuRow> GetAuthorizedRows(ClaimsPrincipal? user, IEnumerable<MenuItem>? source = null)
@@ -388,7 +446,22 @@ public static class NavigationMenuResolver
     }
 
     public static IReadOnlyList<MenuItem> GetMenuPath(MenuItem target)
+        => GetMenuPath(target, null);
+
+    public static IReadOnlyList<MenuItem> GetMenuPath(MenuItem target, string? preferredWorkspaceKey)
     {
+        if (!string.IsNullOrWhiteSpace(preferredWorkspaceKey))
+        {
+            foreach (var item in MenuItem.Menu)
+            {
+                var path = FindPath(item, target);
+                if (path.Count > 0 && PathBelongsToWorkspace(path, preferredWorkspaceKey))
+                {
+                    return path;
+                }
+            }
+        }
+
         foreach (var item in MenuItem.Menu)
         {
             var path = FindPath(item, target);
@@ -459,12 +532,9 @@ public static class NavigationMenuResolver
         }
     }
 
-    private static List<MenuItem> FindBestPath(MenuItem item, string currentPath)
-        => FindBestPathCandidate(item, currentPath).Path;
-
     private static (List<MenuItem> Path, int Score, int Specificity) FindBestPathCandidate(MenuItem item, string currentPath)
     {
-        var ownMatch = GetPathMatch(currentPath, item.Url);
+        var ownMatch = GetPathMatch(currentPath, item);
 
         var bestChildPath = (Path: new List<MenuItem>(), Score: 0, Specificity: 0);
         foreach (var child in item.Children)
@@ -486,6 +556,22 @@ public static class NavigationMenuResolver
         }
 
         return (new List<MenuItem>(), 0, 0);
+    }
+
+    private static (int Score, int Specificity) GetPathMatch(string currentPath, MenuItem item)
+    {
+        var bestMatch = GetPathMatch(currentPath, item.Url);
+        foreach (var alias in item.NavigationAliases)
+        {
+            var aliasMatch = GetPathMatch(currentPath, alias);
+            if (aliasMatch.Score > bestMatch.Score
+                || aliasMatch.Score == bestMatch.Score && aliasMatch.Specificity > bestMatch.Specificity)
+            {
+                bestMatch = aliasMatch;
+            }
+        }
+
+        return bestMatch;
     }
 
     private static (int Score, int Specificity) GetPathMatch(string currentPath, string? targetUrl)
@@ -562,6 +648,7 @@ public static class NavigationMenuResolver
             BadgeTitleEn = item.BadgeTitleEn,
             BadgeTitleAr = item.BadgeTitleAr,
             WorkspaceKey = item.WorkspaceKey,
+            NavigationAliases = item.NavigationAliases.ToList(),
             MobilePriority = item.MobilePriority,
             KeywordsEn = item.KeywordsEn,
             KeywordsAr = item.KeywordsAr,
@@ -608,7 +695,7 @@ public static class NavigationMenuResolver
             WorkspaceHr => FindChildSections(roots, "People", "Human Resource", "Attendance", "Leave Management", "Payroll"),
             WorkspacePurchasing => FindChildSections(roots, "Operations", "Supplier Management", "Procurement"),
             WorkspaceWarehouse => FindChildSections(roots, "Operations", "Products Management", "Inventory Management"),
-            WorkspaceAccountingFinance => [],
+            WorkspaceAccountingFinance => FindSections(roots, "Accounting"),
             WorkspaceAdmin => FindSections(roots,
                 "Organizational Structure",
                 "Contracts",
@@ -701,6 +788,7 @@ public static class NavigationMenuResolver
             BadgeTitleEn = item.BadgeTitleEn,
             BadgeTitleAr = item.BadgeTitleAr,
             WorkspaceKey = item.WorkspaceKey,
+            NavigationAliases = item.NavigationAliases.ToList(),
             MobilePriority = item.MobilePriority,
             KeywordsEn = item.KeywordsEn,
             KeywordsAr = item.KeywordsAr,
@@ -809,10 +897,33 @@ public static class NavigationMenuResolver
         return item.Children.Any(child => RowBelongsToWorkspace(child, workspaceKey, user));
     }
 
+    private static bool PathBelongsToWorkspace(IReadOnlyList<MenuItem> path, string workspaceKey)
+        => path.Any(item => string.Equals(GetWorkspaceKey(item), workspaceKey, StringComparison.OrdinalIgnoreCase));
+
+    private static bool ItemCanNavigateWithinWorkspace(MenuItem item, string workspaceKey)
+    {
+        var itemWorkspaceKey = GetWorkspaceKey(item);
+        if (string.Equals(itemWorkspaceKey, workspaceKey, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(item.Url))
+        {
+            return false;
+        }
+
+        var itemPath = NormalizePath(item.Url);
+        return Flatten(MenuItem.Menu)
+            .Any(candidate =>
+                string.Equals(GetWorkspaceKey(candidate), workspaceKey, StringComparison.OrdinalIgnoreCase)
+                && IsPathWithinItem(itemPath, candidate));
+    }
+
     private static bool IsText(MenuItem item, string text)
         => item.TextEn.Equals(text, StringComparison.OrdinalIgnoreCase);
 
-    private static bool TryResolveExactWorkspaceMatch(string currentPath, string? preferredWorkspaceKey, out string workspaceKey)
+    private static bool TryResolveWorkspaceMatch(string currentPath, string? preferredWorkspaceKey, out string workspaceKey)
     {
         workspaceKey = string.Empty;
         if (string.IsNullOrWhiteSpace(preferredWorkspaceKey))
@@ -822,8 +933,7 @@ public static class NavigationMenuResolver
 
         var match = Flatten(MenuItem.Menu)
             .FirstOrDefault(item =>
-                !string.IsNullOrWhiteSpace(item.Url)
-                && NormalizePath(item.Url) == currentPath
+                IsPathWithinItem(currentPath, item)
                 && string.Equals(GetWorkspaceKey(item), preferredWorkspaceKey, StringComparison.OrdinalIgnoreCase));
 
         if (match is null)

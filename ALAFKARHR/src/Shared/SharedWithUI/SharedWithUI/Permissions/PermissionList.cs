@@ -77,6 +77,19 @@ public static class PermissionList
             .. FleetVehicleExpensePermissions.Permissions,
             .. FleetVehicleDocumentPermissions.Permissions,
             .. FleetReportsPermissions.Permissions,
+            .. AccountingDashboardPermissions.Permissions,
+            .. AccountingTemplatePermissions.Permissions,
+            .. AccountPermissions.Permissions,
+            .. FiscalPeriodPermissions.Permissions,
+            .. TaxCodePermissions.Permissions,
+            .. PostingProfilePermissions.Permissions,
+            .. BankAccountPermissions.Permissions,
+            .. CashAccountPermissions.Permissions,
+            .. AccountingSettingsPermissions.Permissions,
+            .. JournalEntryPermissions.Permissions,
+            .. AccountingDocumentPermissions.Permissions,
+            .. ZatcaSettingsPermissions.Permissions,
+            .. ZatcaEInvoicePermissions.Permissions,
             .. SystemSettingsPermissions.Permissions,
         ];
 
@@ -1464,6 +1477,129 @@ public static class PermissionList
                 $"{Create}",
                 $"{Edit}",
             };
+    }
+
+    public static class AccountingDashboardPermissions
+    {
+        public static string GroupName { get; set; } = "Accounting.Dashboard";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static List<string> Permissions => [View];
+    }
+
+    public static class AccountingTemplatePermissions
+    {
+        public static string GroupName { get; set; } = "Accounting.Template";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Share { get; set; } = $"{GroupName}.Share";
+        public static string Apply { get; set; } = $"{GroupName}.Apply";
+        public static List<string> Permissions => [View, Create, Edit, Delete, Share, Apply];
+    }
+
+    public static class AccountPermissions
+    {
+        public static string GroupName { get; set; } = "Accounting.Account";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete];
+    }
+
+    public static class FiscalPeriodPermissions
+    {
+        public static string GroupName { get; set; } = "Accounting.FiscalPeriod";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Close { get; set; } = $"{GroupName}.Close";
+        public static List<string> Permissions => [View, Create, Close];
+    }
+
+    public static class TaxCodePermissions
+    {
+        public static string GroupName { get; set; } = "Accounting.TaxCode";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static List<string> Permissions => [View, Create, Edit];
+    }
+
+    public static class PostingProfilePermissions
+    {
+        public static string GroupName { get; set; } = "Accounting.PostingProfile";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static List<string> Permissions => [View, Create, Edit];
+    }
+
+    public static class BankAccountPermissions
+    {
+        public static string GroupName { get; set; } = "Accounting.BankAccount";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static List<string> Permissions => [View, Create, Edit, Delete];
+    }
+
+    public static class CashAccountPermissions
+    {
+        public static string GroupName { get; set; } = "Accounting.CashAccount";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static List<string> Permissions => [View, Create, Edit, Delete];
+    }
+
+    public static class AccountingSettingsPermissions
+    {
+        public static string GroupName { get; set; } = "Accounting.Settings";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static List<string> Permissions => [View, Edit];
+    }
+
+    public static class JournalEntryPermissions
+    {
+        public static string GroupName { get; set; } = "Accounting.JournalEntry";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Post { get; set; } = $"{GroupName}.Post";
+        public static string Reverse { get; set; } = $"{GroupName}.Reverse";
+        public static List<string> Permissions => [View, Create, Post, Reverse];
+    }
+
+    public static class AccountingDocumentPermissions
+    {
+        public static string GroupName { get; set; } = "Accounting.Document";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Post { get; set; } = $"{GroupName}.Post";
+        public static string Reverse { get; set; } = $"{GroupName}.Reverse";
+        public static List<string> Permissions => [View, Create, Post, Reverse];
+    }
+
+    public static class ZatcaSettingsPermissions
+    {
+        public static string GroupName { get; set; } = "Accounting.ZatcaSettings";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static List<string> Permissions => [View, Edit];
+    }
+
+    public static class ZatcaEInvoicePermissions
+    {
+        public static string GroupName { get; set; } = "Accounting.ZatcaEInvoice";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Generate { get; set; } = $"{GroupName}.Generate";
+        public static string Submit { get; set; } = $"{GroupName}.Submit";
+        public static string Retry { get; set; } = $"{GroupName}.Retry";
+        public static List<string> Permissions => [View, Generate, Submit, Retry];
     }
 
 

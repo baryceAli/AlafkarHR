@@ -1,0 +1,154 @@
+@layout AdminLayout
+@page "/Accounting/Dashboard"
+
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Accounting.Enums
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@T("Accounting", "المحاسبة")"
+                Subtitle="@T("General ledger, accounting setup, VAT position, and ZATCA readiness.", "دفتر الأستاذ وإعدادات المحاسبة وموقف الضريبة وجاهزية زاتكا.")"
+                Overline="@T("Finance", "المالية")"
+                Icon="bi-calculator" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@T("You don't have permissions to view this page", "ليس لديك صلاحية عرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-12 col-sm-6 col-xl-3">
+                <StatsCard Title="@T("Accounts", "الحسابات")" Value="@dashboard.Accounts.ToString("N0")" Icon="bi-diagram-3" Tone="primary" CssClass="h-100" OnClick="@(() => Go("/Accounting/Accounts"))" />
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <StatsCard Title="@T("Open Periods", "الفترات المفتوحة")" Value="@dashboard.OpenPeriods.ToString("N0")" Icon="bi-calendar2-week" Tone="info" CssClass="h-100" OnClick="@(() => Go("/Accounting/FiscalPeriods"))" />
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <StatsCard Title="@T("Posted Documents", "المستندات المرحلة")" Value="@dashboard.PostedDocuments.ToString("N0")" Icon="bi-journal-check" Tone="success" CssClass="h-100" OnClick="@(() => Go("/Accounting/Documents"))" />
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+                <StatsCard Title="@T("ZATCA Pending", "بانتظار زاتكا")" Value="@dashboard.PendingZatcaSubmissions.ToString("N0")" Icon="bi-cloud-arrow-up" Tone="warning" CssClass="h-100" OnClick="@(() => Go("/Accounting/Zatca/Submissions"))" />
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-12 col-xl-4">
+                <AppCard CssClass="h-100">
+                    <h2 class="h5 mb-3">@T("Quick Links", "روابط سريعة")</h2>
+                    @QuickLink("Accounting Setup", "إعداد المحاسبة", "/Accounting/Setup", "bi-magic")
+                    @QuickLink("Chart of Accounts", "دليل الحسابات", "/Accounting/Accounts", "bi-diagram-3")
+                    @QuickLink("Fiscal Periods", "الفترات المالية", "/Accounting/FiscalPeriods", "bi-calendar2-week")
+                    @QuickLink("Tax Codes", "أكواد الضريبة", "/Accounting/TaxCodes", "bi-percent")
+                    @QuickLink("Posting Profiles", "توجيهات الترحيل", "/Accounting/PostingProfiles", "bi-diagram-2")
+                    @QuickLink("Documents", "المستندات", "/Accounting/Documents", "bi-receipt")
+                    @QuickLink("Journals", "القيود", "/Accounting/Journals", "bi-journal-check")
+                    @QuickLink("ZATCA Settings", "إعدادات زاتكا", "/Accounting/Zatca/Settings", "bi-shield-check")
+                </AppCard>
+            </div>
+            <div class="col-12 col-xl-4">
+                <AppCard CssClass="h-100">
+                    <h2 class="h5 mb-3">@T("VAT Position", "موقف ضريبة القيمة المضافة")</h2>
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span>@T("Output VAT", "ضريبة المخرجات")</span>
+                        <strong>@dashboard.OutputVat.ToString("N2")</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-2">
+                        <span>@T("Input VAT", "ضريبة المدخلات")</span>
+                        <strong>@dashboard.InputVat.ToString("N2")</strong>
+                    </div>
+                </AppCard>
+            </div>
+            <div class="col-12 col-xl-4">
+                <AppCard CssClass="h-100">
+                    <h2 class="h5 mb-3">@T("Setup Health", "جاهزية الإعداد")</h2>
+                    @if (setupStatus is null)
+                    {
+                        <div class="text-muted">@T("Loading setup status...", "جاري تحميل حالة الإعداد...")</div>
+                    }
+                    else
+                    {
+                        @HealthItem(T("Minimum chart", "الحد الأدنى للحسابات"), setupStatus.MinimumAccountsMissing == 0)
+                        @HealthItem(T("Default tax codes", "أكواد الضريبة الافتراضية"), setupStatus.DefaultTaxCodesExist)
+                        @HealthItem(T("Posting profiles", "توجيهات الترحيل"), setupStatus.PostingProfilesExist)
+                        @HealthItem(T("Accounting journals", "اليوميات المحاسبية"), setupStatus.JournalsExist)
+                        @HealthItem(T("Fiscal period", "الفترة المالية"), setupStatus.FiscalPeriodExists)
+                        @HealthItem(T("ZATCA settings", "إعدادات زاتكا"), setupStatus.ZatcaSettingsComplete)
+                    }
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private AccountingDashboardDto dashboard = new();
+    private AccountingSetupStatusDto? setupStatus;
+    private AuthenticationState? authState;
+    private Guid? companyId;
+    private bool CanView => authState?.User.Claims.Any(c => c.Value == PermissionList.AccountingDashboardPermissions.View) == true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var parsedCompanyId))
+            companyId = parsedCompanyId;
+
+        var result = await AccountingService.GetDashboardAsync(companyId);
+        if (result.IsSuccess && result.Data is not null)
+            dashboard = result.Data;
+
+        if (companyId.HasValue)
+        {
+            var setupResult = await AccountingService.GetSetupStatusAsync(companyId.Value);
+            if (setupResult.IsSuccess)
+                setupStatus = setupResult.Data;
+        }
+    }
+
+    private RenderFragment QuickLink(string en, string ar, string url, string icon) => builder =>
+    {
+        var sequence = 0;
+        builder.OpenElement(sequence++, "button");
+        builder.AddAttribute(sequence++, "type", "button");
+        builder.AddAttribute(sequence++, "class", "btn btn-outline-secondary w-100 d-flex align-items-center justify-content-between mb-2");
+        builder.AddAttribute(sequence++, "onclick", EventCallback.Factory.Create(this, () => Go(url)));
+        builder.OpenElement(sequence++, "span");
+        builder.OpenElement(sequence++, "i");
+        builder.AddAttribute(sequence++, "class", $"bi {icon} me-2");
+        builder.CloseElement();
+        builder.AddContent(sequence++, T(en, ar));
+        builder.CloseElement();
+        builder.OpenElement(sequence++, "i");
+        builder.AddAttribute(sequence++, "class", "bi bi-chevron-right");
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private RenderFragment HealthItem(string label, bool ok) => builder =>
+    {
+        var sequence = 0;
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "d-flex align-items-center justify-content-between border-bottom py-2");
+        builder.AddContent(sequence++, label);
+        builder.OpenComponent<StatusChip>(sequence++);
+        builder.AddAttribute(sequence++, "Text", ok ? T("Ready", "جاهز") : T("Missing", "ناقص"));
+        builder.AddAttribute(sequence++, "Tone", ok ? "success" : "warning");
+        builder.CloseComponent();
+        builder.CloseElement();
+    };
+
+    private void Go(string url) => NavigationManager.NavigateTo(url);
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}
