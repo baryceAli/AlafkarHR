@@ -39,11 +39,8 @@ public class MediaCenterService : BaseApiService, IMediaCenterService
         var url = $"{path}/activities?pageIndex={filter.PageIndex}&pageSize={filter.PageSize}&searchText={Uri.EscapeDataString(filter.SearchText ?? string.Empty)}";
         if (filter.CompanyId.HasValue) url += $"&companyId={filter.CompanyId}";
         if (filter.ActivityTypeId.HasValue) url += $"&activityTypeId={filter.ActivityTypeId}";
-        if (filter.ProjectId.HasValue) url += $"&projectId={filter.ProjectId}";
-        if (filter.CustomerId.HasValue) url += $"&customerId={filter.CustomerId}";
-        if (filter.ProjectCustomerId.HasValue) url += $"&projectCustomerId={filter.ProjectCustomerId}";
-        if (filter.PlaceId.HasValue) url += $"&placeId={filter.PlaceId}";
-        if (filter.AllocationId.HasValue) url += $"&allocationId={filter.AllocationId}";
+        if (!string.IsNullOrWhiteSpace(filter.RelatedType)) url += $"&relatedType={Uri.EscapeDataString(filter.RelatedType)}";
+        if (!string.IsNullOrWhiteSpace(filter.RelatedText)) url += $"&relatedText={Uri.EscapeDataString(filter.RelatedText)}";
         if (filter.FromDate.HasValue) url += $"&fromDate={Uri.EscapeDataString(filter.FromDate.Value.ToString("O"))}";
         if (filter.ToDate.HasValue) url += $"&toDate={Uri.EscapeDataString(filter.ToDate.Value.ToString("O"))}";
         if (filter.MediaKind.HasValue) url += $"&mediaKind={filter.MediaKind}";

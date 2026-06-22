@@ -1041,6 +1041,39 @@ public class MenuItem
             }
         },
 
+        //Media Center
+        new MenuItem
+        {
+            TextEn = "Media Center",
+            TextAr = "المركز الإعلامي",
+            Icon = "bi-images",
+            PermissionPolicy = PermissionList.MediaCenterPermissions.Select,
+            WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            KeywordsEn = "admin media library activities photos videos audio documents gallery",
+            KeywordsAr = "إدارة مركز إعلامي مكتبة أنشطة صور فيديو صوت مستندات معرض",
+            Children = new()
+            {
+                new MenuItem
+                {
+                    TextEn = "Library",
+                    TextAr = "المكتبة",
+                    Icon = "bi-images",
+                    Url = "/MediaCenter/Activities",
+                    PermissionPolicy = PermissionList.MediaCenterPermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                },
+                new MenuItem
+                {
+                    TextEn = "Activity Types",
+                    TextAr = "أنواع الأنشطة",
+                    Icon = "bi-tags",
+                    Url = "/MediaCenter/ActivityTypes",
+                    PermissionPolicy = PermissionList.MediaCenterPermissions.ManageTypes,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                }
+            }
+        },
+
         //Project Management
         new MenuItem
         {
@@ -1087,24 +1120,6 @@ public class MenuItem
                     Icon = "bi-calendar-event",
                     Url = "/ProjectManagement/DistributionSchedule",
                     PermissionPolicy = PermissionList.ProjectManagementPermissions.Distribution,
-                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
-                },
-                new MenuItem
-                {
-                    TextEn = "Media Center",
-                    TextAr = "المركز الإعلامي",
-                    Icon = "bi-images",
-                    Url = "/MediaCenter/Activities",
-                    PermissionPolicy = PermissionList.MediaCenterPermissions.View,
-                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
-                },
-                new MenuItem
-                {
-                    TextEn = "Media Activity Types",
-                    TextAr = "أنواع الأنشطة الإعلامية",
-                    Icon = "bi-tags",
-                    Url = "/MediaCenter/ActivityTypes",
-                    PermissionPolicy = PermissionList.MediaCenterPermissions.ManageTypes,
                     WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
                 },
                 new MenuItem

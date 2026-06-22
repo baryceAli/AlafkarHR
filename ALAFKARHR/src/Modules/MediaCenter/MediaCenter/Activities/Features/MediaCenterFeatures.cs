@@ -14,11 +14,8 @@ public record GetMediaActivitiesQuery(
     Guid? CompanyId,
     string? SearchText,
     Guid? ActivityTypeId,
-    Guid? ProjectId,
-    Guid? CustomerId,
-    Guid? ProjectCustomerId,
-    Guid? PlaceId,
-    Guid? AllocationId,
+    string? RelatedType,
+    string? RelatedText,
     DateTime? FromDate,
     DateTime? ToDate,
     MediaKind? MediaKind,
@@ -59,8 +56,14 @@ public class SaveMediaActivityValidator : AbstractValidator<SaveMediaActivityDto
         RuleFor(x => x.ActivityTypeId).NotEmpty();
         RuleFor(x => x.Title).NotEmpty().MaximumLength(250);
         RuleFor(x => x.TitleEng).MaximumLength(250);
-        RuleFor(x => x.FreeTextLocation).MaximumLength(500);
+        RuleFor(x => x.LocationText).MaximumLength(500);
         RuleFor(x => x.Notes).MaximumLength(1000);
+        RuleForEach(x => x.RelatedRecords).ChildRules(record =>
+        {
+            record.RuleFor(x => x.RelatedType).NotEmpty().MaximumLength(120);
+            record.RuleFor(x => x.DisplayName).NotEmpty().MaximumLength(250);
+            record.RuleFor(x => x.Notes).MaximumLength(500);
+        });
     }
 }
 
@@ -125,11 +128,8 @@ public class MediaCenterEndpoint : ICarterModule
                 query.CompanyId,
                 pagination.SearchText,
                 query.ActivityTypeId,
-                query.ProjectId,
-                query.CustomerId,
-                query.ProjectCustomerId,
-                query.PlaceId,
-                query.AllocationId,
+                query.RelatedType,
+                query.RelatedText,
                 query.FromDate,
                 query.ToDate,
                 query.MediaKind,
@@ -282,7 +282,7 @@ public class MediaCenterHandlers(MediaCenterDbContext dbContext, IHttpContextAcc
         await EnsureActivityTypeAsync(request.Activity.CompanyId, request.Activity.ActivityTypeId, cancellationToken);
         var activity = MediaActivity.Create(request.Activity, UserId());
         await dbContext.MediaActivities.AddAsync(activity, cancellationToken);
-        await SyncChildrenAsync(activity.Id, request.Activity.Customers, request.Activity.Allocations, cancellationToken);
+        await SyncChildrenAsync(activity.Id, request.Activity.RelatedRecords, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new CreateMediaEntityResult(activity.Id);
     }
@@ -293,7 +293,7 @@ public class MediaCenterHandlers(MediaCenterDbContext dbContext, IHttpContextAcc
             ?? throw new NotFoundException($"Media activity not found: {request.Id}");
         await EnsureActivityTypeAsync(activity.CompanyId, request.Activity.ActivityTypeId, cancellationToken);
         activity.Update(request.Activity, UserId());
-        await SyncChildrenAsync(activity.Id, request.Activity.Customers, request.Activity.Allocations, cancellationToken);
+        await SyncChildrenAsync(activity.Id, request.Activity.RelatedRecords, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new UpdateMediaEntityResult(true);
     }
@@ -339,19 +339,26 @@ public class MediaCenterHandlers(MediaCenterDbContext dbContext, IHttpContextAcc
 
     private IQueryable<MediaActivity> ActivityQuery() =>
         dbContext.MediaActivities
-            .Include(x => x.Customers)
-            .Include(x => x.Allocations)
+            .Include(x => x.RelatedRecords)
             .Include(x => x.Media);
 
     private static IQueryable<MediaActivity> ApplyActivityFilters(IQueryable<MediaActivity> query, GetMediaActivitiesQuery request)
     {
         if (request.CompanyId.HasValue) query = query.Where(x => x.CompanyId == request.CompanyId);
         if (request.ActivityTypeId.HasValue) query = query.Where(x => x.ActivityTypeId == request.ActivityTypeId);
-        if (request.ProjectId.HasValue) query = query.Where(x => x.ProjectId == request.ProjectId);
-        if (request.PlaceId.HasValue) query = query.Where(x => x.DistributionPlaceId == request.PlaceId || x.Allocations.Any(a => a.DistributionPlaceId == request.PlaceId));
-        if (request.CustomerId.HasValue) query = query.Where(x => x.Customers.Any(c => c.CustomerId == request.CustomerId));
-        if (request.ProjectCustomerId.HasValue) query = query.Where(x => x.Customers.Any(c => c.ProjectCustomerId == request.ProjectCustomerId) || x.Allocations.Any(a => a.ProjectCustomerId == request.ProjectCustomerId));
-        if (request.AllocationId.HasValue) query = query.Where(x => x.Allocations.Any(a => a.ProjectDistributionAllocationId == request.AllocationId));
+        if (!string.IsNullOrWhiteSpace(request.RelatedType))
+        {
+            var relatedType = request.RelatedType.Trim();
+            query = query.Where(x => x.RelatedRecords.Any(r => r.RelatedType.Contains(relatedType)));
+        }
+        if (!string.IsNullOrWhiteSpace(request.RelatedText))
+        {
+            var relatedText = request.RelatedText.Trim();
+            query = query.Where(x => x.RelatedRecords.Any(r =>
+                r.DisplayName.Contains(relatedText) ||
+                r.RelatedType.Contains(relatedText) ||
+                (r.Notes != null && r.Notes.Contains(relatedText))));
+        }
         if (request.FromDate.HasValue) query = query.Where(x => x.ActivityDate >= request.FromDate.Value.Date);
         if (request.ToDate.HasValue) query = query.Where(x => x.ActivityDate <= request.ToDate.Value.Date);
         if (request.MediaKind.HasValue && request.MediaKind.Value != MediaKind.All) query = query.Where(x => x.Media.Any(m => m.MediaKind == request.MediaKind));
@@ -361,34 +368,24 @@ public class MediaCenterHandlers(MediaCenterDbContext dbContext, IHttpContextAcc
             query = query.Where(x =>
                 x.Title.Contains(search) ||
                 x.TitleEng.Contains(search) ||
-                (x.ProjectName != null && x.ProjectName.Contains(search)) ||
-                (x.PlaceName != null && x.PlaceName.Contains(search)) ||
-                (x.FreeTextLocation != null && x.FreeTextLocation.Contains(search)) ||
+                (x.LocationText != null && x.LocationText.Contains(search)) ||
                 (x.Notes != null && x.Notes.Contains(search)) ||
-                x.Customers.Any(c =>
-                    (c.CustomerName != null && c.CustomerName.Contains(search)) ||
-                    (c.CustomerNameEng != null && c.CustomerNameEng.Contains(search)) ||
-                    (c.ProjectCustomerName != null && c.ProjectCustomerName.Contains(search))) ||
-                x.Allocations.Any(a =>
-                    (a.CustomerName != null && a.CustomerName.Contains(search)) ||
-                    (a.DeliverableName != null && a.DeliverableName.Contains(search)) ||
-                    (a.PlaceName != null && a.PlaceName.Contains(search))));
+                x.RelatedRecords.Any(r =>
+                    r.RelatedType.Contains(search) ||
+                    r.DisplayName.Contains(search) ||
+                    (r.Notes != null && r.Notes.Contains(search))));
         }
 
         return query;
     }
 
-    private async Task SyncChildrenAsync(Guid activityId, IEnumerable<MediaActivityCustomerDto> customers, IEnumerable<MediaActivityAllocationDto> allocations, CancellationToken cancellationToken)
+    private async Task SyncChildrenAsync(Guid activityId, IEnumerable<MediaActivityRelatedRecordDto> relatedRecords, CancellationToken cancellationToken)
     {
-        var existingCustomers = await dbContext.MediaActivityCustomers.Where(x => x.MediaActivityId == activityId).ToListAsync(cancellationToken);
-        var existingAllocations = await dbContext.MediaActivityAllocations.Where(x => x.MediaActivityId == activityId).ToListAsync(cancellationToken);
-        dbContext.MediaActivityCustomers.RemoveRange(existingCustomers);
-        dbContext.MediaActivityAllocations.RemoveRange(existingAllocations);
+        var existing = await dbContext.MediaActivityRelatedRecords.Where(x => x.MediaActivityId == activityId).ToListAsync(cancellationToken);
+        dbContext.MediaActivityRelatedRecords.RemoveRange(existing);
 
-        var nextCustomers = customers.Select(x => MediaActivityCustomer.Create(activityId, x, UserId())).ToList();
-        var nextAllocations = allocations.Select(x => MediaActivityAllocation.Create(activityId, x, UserId())).ToList();
-        await dbContext.MediaActivityCustomers.AddRangeAsync(nextCustomers, cancellationToken);
-        await dbContext.MediaActivityAllocations.AddRangeAsync(nextAllocations, cancellationToken);
+        var next = relatedRecords.Select(x => MediaActivityRelatedRecord.Create(activityId, x, UserId())).ToList();
+        await dbContext.MediaActivityRelatedRecords.AddRangeAsync(next, cancellationToken);
     }
 
     private async Task EnsureActivityTypeAsync(Guid companyId, Guid activityTypeId, CancellationToken cancellationToken)
@@ -442,41 +439,22 @@ public class MediaCenterHandlers(MediaCenterDbContext dbContext, IHttpContextAcc
             TitleEng = activity.TitleEng,
             ActivityDate = activity.ActivityDate,
             ActivityTime = activity.ActivityTime,
-            ProjectId = activity.ProjectId,
-            ProjectName = activity.ProjectName,
-            DistributionPlaceId = activity.DistributionPlaceId,
-            PlaceName = activity.PlaceName,
-            FreeTextLocation = activity.FreeTextLocation,
+            LocationText = activity.LocationText,
             Notes = activity.Notes,
             MediaCount = activity.Media.Count,
             CreatedAt = activity.CreatedAt,
-            Customers = activity.Customers.Select(ToDto).ToList(),
-            Allocations = activity.Allocations.Select(ToDto).ToList(),
+            RelatedRecords = activity.RelatedRecords.Select(ToDto).ToList(),
             Media = activity.Media.OrderByDescending(x => x.IsPrimary).ThenByDescending(x => x.CreatedAt).Select(ToDto).ToList()
         };
     }
 
-    private static MediaActivityCustomerDto ToDto(MediaActivityCustomer item) => new()
+    private static MediaActivityRelatedRecordDto ToDto(MediaActivityRelatedRecord item) => new()
     {
         Id = item.Id,
-        CustomerId = item.CustomerId,
-        CustomerName = item.CustomerName,
-        CustomerNameEng = item.CustomerNameEng,
-        ProjectCustomerId = item.ProjectCustomerId,
-        ProjectCustomerName = item.ProjectCustomerName
-    };
-
-    private static MediaActivityAllocationDto ToDto(MediaActivityAllocation item) => new()
-    {
-        Id = item.Id,
-        ProjectDistributionAllocationId = item.ProjectDistributionAllocationId,
-        DistributionDate = item.DistributionDate,
-        ProjectCustomerId = item.ProjectCustomerId,
-        CustomerName = item.CustomerName,
-        DeliverableId = item.DeliverableId,
-        DeliverableName = item.DeliverableName,
-        DistributionPlaceId = item.DistributionPlaceId,
-        PlaceName = item.PlaceName
+        RelatedType = item.RelatedType,
+        RelatedRecordId = item.RelatedRecordId,
+        DisplayName = item.DisplayName,
+        Notes = item.Notes
     };
 
     private static MediaActivityMediaDto ToDto(MediaActivityMedia item) => new()
@@ -501,11 +479,8 @@ public class MediaActivityListQuery
 {
     public Guid? CompanyId { get; set; }
     public Guid? ActivityTypeId { get; set; }
-    public Guid? ProjectId { get; set; }
-    public Guid? CustomerId { get; set; }
-    public Guid? ProjectCustomerId { get; set; }
-    public Guid? PlaceId { get; set; }
-    public Guid? AllocationId { get; set; }
+    public string? RelatedType { get; set; }
+    public string? RelatedText { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
     public MediaKind? MediaKind { get; set; }

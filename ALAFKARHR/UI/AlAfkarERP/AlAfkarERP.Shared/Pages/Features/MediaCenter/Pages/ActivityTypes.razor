@@ -71,7 +71,7 @@
                                 <td><StatusChip Text="@(item.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))" Tone="@(item.IsActive ? "success" : "muted")" /></td>
                                 @if (CanManageTypes)
                                 {
-                                    <td class="text-end"><button class="btn btn-sm btn-outline-secondary" @onclick="() => Edit(item)" title="@Text("Edit", "تعديل")"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(item.Id)" title="@Text("Delete", "حذف")"><i class="bi bi-trash"></i></button></td>
+                                    <td class="text-end"><button class="btn btn-sm btn-outline-secondary" @onclick="() => EditAsync(item.Id)" title="@Text("Edit", "تعديل")"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(item.Id)" title="@Text("Delete", "حذف")"><i class="bi bi-trash"></i></button></td>
                                 }
                             </tr>
                         }
@@ -121,10 +121,21 @@
         editing = new MediaActivityTypeDto { CompanyId = ApiConfig.CompanyId, IsActive = true };
     }
 
-    private void Edit(MediaActivityTypeDto item)
+    private async Task EditAsync(Guid id)
     {
         if (!CanManageTypes) return;
-        editing = new MediaActivityTypeDto { Id = item.Id, CompanyId = item.CompanyId, Name = item.Name, NameEng = item.NameEng, Description = item.Description, IsActive = item.IsActive };
+        busy = true;
+        var response = await MediaCenterService.GetActivityTypeByIdAsync(id);
+        busy = false;
+        if (response.IsSuccess && response.Data is not null)
+        {
+            var item = response.Data;
+            editing = new MediaActivityTypeDto { Id = item.Id, CompanyId = item.CompanyId, Name = item.Name, NameEng = item.NameEng, Description = item.Description, IsActive = item.IsActive };
+        }
+        else
+        {
+            ToastService.ShowError(Error(response, Text("Unable to load activity type.", "تعذر تحميل نوع النشاط.")));
+        }
     }
 
     private void CancelEdit() => editing = null;

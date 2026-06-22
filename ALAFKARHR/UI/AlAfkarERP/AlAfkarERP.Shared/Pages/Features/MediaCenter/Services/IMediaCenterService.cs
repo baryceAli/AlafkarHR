@@ -28,11 +28,8 @@ public class MediaActivityFilter
     public Guid? CompanyId { get; set; }
     public string? SearchText { get; set; }
     public Guid? ActivityTypeId { get; set; }
-    public Guid? ProjectId { get; set; }
-    public Guid? CustomerId { get; set; }
-    public Guid? ProjectCustomerId { get; set; }
-    public Guid? PlaceId { get; set; }
-    public Guid? AllocationId { get; set; }
+    public string? RelatedType { get; set; }
+    public string? RelatedText { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
     public MediaKind? MediaKind { get; set; }
