@@ -1,0 +1,146 @@
+@layout AdminLayout
+@page "/Accounting/Reports"
+
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Accounting.Enums
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@T("Accounting Reports", "تقارير المحاسبة")"
+                Subtitle="@T("Review ledger activity, balances, aging, and VAT position from posted entries.", "راجع حركة الأستاذ والأرصدة والأعمار وموقف الضريبة من القيود المرحلة.")"
+                Overline="@T("Accounting", "المحاسبة")"
+                Icon="bi-bar-chart-line" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@T("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <AppCard>
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-12 col-md-4">
+                    <label class="form-label">@T("Report", "التقرير")</label>
+                    <InputSelect class="form-select" @bind-Value="reportType">
+                        <option value="@AccountingReportType.GeneralLedger">@T("General Ledger", "الأستاذ العام")</option>
+                        <option value="@AccountingReportType.TrialBalance">@T("Trial Balance", "ميزان المراجعة")</option>
+                        <option value="@AccountingReportType.AgedReceivables">@T("Aged Receivables", "أعمار الذمم المدينة")</option>
+                        <option value="@AccountingReportType.AgedPayables">@T("Aged Payables", "أعمار الذمم الدائنة")</option>
+                        <option value="@AccountingReportType.TaxSummary">@T("VAT Summary", "ملخص الضريبة")</option>
+                    </InputSelect>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">@T("From", "من")</label>
+                    <InputDate class="form-control" @bind-Value="fromDate" />
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">@T("To", "إلى")</label>
+                    <InputDate class="form-control" @bind-Value="toDate" />
+                </div>
+                <div class="col-12 col-md-2">
+                    <button class="btn btn-primary w-100" type="button" disabled="@loading" @onclick="LoadReportAsync">
+                        <i class="bi bi-search"></i>
+                        @T("Run", "تشغيل")
+                    </button>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-md-4">
+                    <StatsCard Title="@T("Debit", "مدين")" Value="@report.TotalDebit.ToString("N2")" Icon="bi-plus-circle" Tone="info" CssClass="h-100" />
+                </div>
+                <div class="col-12 col-md-4">
+                    <StatsCard Title="@T("Credit", "دائن")" Value="@report.TotalCredit.ToString("N2")" Icon="bi-dash-circle" Tone="warning" CssClass="h-100" />
+                </div>
+                <div class="col-12 col-md-4">
+                    <StatsCard Title="@T("Balance", "الرصيد")" Value="@report.Balance.ToString("N2")" Icon="bi-calculator" Tone="primary" CssClass="h-100" />
+                </div>
+            </div>
+
+            <div class="erp-table-wrap">
+                <table class="table align-middle erp-table">
+                    <thead>
+                        <tr>
+                            <th>@T("Date", "التاريخ")</th>
+                            <th>@T("Code", "الكود")</th>
+                            <th>@T("Name", "الاسم")</th>
+                            <th>@T("Source", "المصدر")</th>
+                            <th>@T("Party / Memo", "الطرف / البيان")</th>
+                            <th>@T("Debit", "مدين")</th>
+                            <th>@T("Credit", "دائن")</th>
+                            <th>@T("Balance", "الرصيد")</th>
+                            <th>@T("Tax", "الضريبة")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in report.Rows)
+                        {
+                            <tr>
+                                <td>@(row.Date?.ToString("yyyy-MM-dd") ?? "-")</td>
+                                <td><code>@row.Code</code></td>
+                                <td>@row.Name</td>
+                                <td>@row.Source</td>
+                                <td>@row.Party</td>
+                                <td>@row.Debit.ToString("N2")</td>
+                                <td>@row.Credit.ToString("N2")</td>
+                                <td>@row.Balance.ToString("N2")</td>
+                                <td>@row.TaxAmount.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (!report.Rows.Any())
+            {
+                <div class="text-muted py-4 text-center">@T("No report rows found for the selected filters.", "لا توجد بيانات للتقرير حسب الفلاتر المحددة.")</div>
+            }
+        </AppCard>
+    }
+</div>
+
+@code {
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private AccountingReportType reportType = AccountingReportType.GeneralLedger;
+    private DateTime? fromDate = new(DateTime.UtcNow.Year, 1, 1);
+    private DateTime? toDate = DateTime.UtcNow.Date;
+    private AccountingReportDto report = new();
+    private bool loading;
+    private bool CanView => HasPermission(PermissionList.AccountingReportPermissions.View);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId);
+        await LoadReportAsync();
+    }
+
+    private async Task LoadReportAsync()
+    {
+        if (companyId == Guid.Empty || !CanView)
+            return;
+
+        loading = true;
+        var result = await AccountingService.GetAccountingReportAsync(reportType, companyId, fromDate, toDate);
+        loading = false;
+
+        if (result.IsSuccess && result.Data is not null)
+            report = result.Data;
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load report.", "تعذر تحميل التقرير."));
+    }
+
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

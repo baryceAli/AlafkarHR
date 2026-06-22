@@ -1094,6 +1094,75 @@ public class AccountingDocumentLine : Entity<Guid>
     };
 }
 
+public class BankTransaction : Aggregate<Guid>
+{
+    private BankTransaction() { }
+
+    public Guid CompanyId { get; private set; }
+    public Guid? BankAccountId { get; private set; }
+    public Guid? CashAccountId { get; private set; }
+    public DateTime TransactionDate { get; private set; }
+    public string Description { get; private set; } = string.Empty;
+    public string? ReferenceNumber { get; private set; }
+    public decimal Amount { get; private set; }
+    public BankTransactionStatus Status { get; private set; }
+    public Guid? MatchedJournalEntryId { get; private set; }
+    public Guid? MatchedAccountingDocumentId { get; private set; }
+    public Guid? WriteOffAccountId { get; private set; }
+    public DateTime? ClearanceDate { get; private set; }
+
+    public static BankTransaction Create(BankTransactionDto dto, string userId) => new()
+    {
+        Id = dto.Id == Guid.Empty ? Guid.NewGuid() : dto.Id,
+        CompanyId = dto.CompanyId,
+        BankAccountId = dto.BankAccountId,
+        CashAccountId = dto.CashAccountId,
+        TransactionDate = dto.TransactionDate == default ? DateTime.UtcNow.Date : dto.TransactionDate.Date,
+        Description = dto.Description.Trim(),
+        ReferenceNumber = Clean(dto.ReferenceNumber),
+        Amount = dto.Amount,
+        Status = BankTransactionStatus.Unreconciled,
+        CreatedAt = DateTime.UtcNow,
+        CreatedBy = userId
+    };
+
+    public void Reconcile(Guid? journalEntryId, Guid? accountingDocumentId, Guid? writeOffAccountId, DateTime clearanceDate, string userId)
+    {
+        if (Status == BankTransactionStatus.Reconciled)
+            return;
+
+        if (!journalEntryId.HasValue && !accountingDocumentId.HasValue && !writeOffAccountId.HasValue)
+            throw new BadRequestException("Select a journal entry, document, or write-off account before reconciling.");
+
+        MatchedJournalEntryId = journalEntryId;
+        MatchedAccountingDocumentId = accountingDocumentId;
+        WriteOffAccountId = writeOffAccountId;
+        ClearanceDate = clearanceDate == default ? DateTime.UtcNow.Date : clearanceDate.Date;
+        Status = BankTransactionStatus.Reconciled;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+
+    public BankTransactionDto ToDto() => new()
+    {
+        Id = Id,
+        CompanyId = CompanyId,
+        BankAccountId = BankAccountId,
+        CashAccountId = CashAccountId,
+        TransactionDate = TransactionDate,
+        Description = Description,
+        ReferenceNumber = ReferenceNumber,
+        Amount = Amount,
+        Status = Status,
+        MatchedJournalEntryId = MatchedJournalEntryId,
+        MatchedAccountingDocumentId = MatchedAccountingDocumentId,
+        WriteOffAccountId = WriteOffAccountId,
+        ClearanceDate = ClearanceDate
+    };
+
+    private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+}
+
 public class ZatcaSettings : Aggregate<Guid>
 {
     private ZatcaSettings() { }

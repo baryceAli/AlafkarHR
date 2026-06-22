@@ -38,6 +38,13 @@ public interface IAccountingService
     Task<ApiResult<Guid>> PostDocumentAsync(Guid id);
     Task<ApiResult<Guid>> GenerateZatcaInvoiceAsync(Guid documentId, ZatcaInvoiceType invoiceType);
     Task<ApiResult<PaginatedResult<JournalEntryDto>>> GetJournalsAsync(Guid? companyId, int pageIndex, int pageSize, string? searchText);
+    Task<ApiResult<Guid>> CreateQuickJournalEntryAsync(QuickJournalEntryDto journalEntry);
+    Task<ApiResult<PaginatedResult<BankTransactionDto>>> GetBankTransactionsAsync(Guid companyId, BankTransactionStatus? status, int pageIndex, int pageSize, string? searchText);
+    Task<ApiResult<BankReconciliationSummaryDto>> GetBankReconciliationSummaryAsync(Guid companyId);
+    Task<ApiResult<List<BankReconciliationMatchDto>>> GetBankReconciliationMatchesAsync(Guid bankTransactionId);
+    Task<ApiResult<Guid>> CreateBankTransactionAsync(BankTransactionDto transaction);
+    Task<ApiResult<Guid>> ReconcileBankTransactionAsync(ReconcileBankTransactionDto reconciliation);
+    Task<ApiResult<AccountingReportDto>> GetAccountingReportAsync(AccountingReportType type, Guid companyId, DateTime? fromDate, DateTime? toDate);
     Task<ApiResult<PaginatedResult<EInvoiceDto>>> GetEInvoicesAsync(Guid? companyId, ZatcaSubmissionStatus? status, int pageIndex, int pageSize);
     Task<ApiResult<ZatcaSettingsDto?>> GetZatcaSettingsAsync(Guid companyId);
     Task<ApiResult<Guid>> SaveZatcaSettingsAsync(ZatcaSettingsDto settings);

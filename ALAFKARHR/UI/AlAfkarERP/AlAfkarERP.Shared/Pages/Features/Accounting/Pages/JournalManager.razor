@@ -26,6 +26,52 @@
     else
     {
         <AppCard>
+            @if (CanCreate)
+            {
+                <EditForm Model="@quickEntry" OnValidSubmit="SaveQuickEntryAsync">
+                    <DataAnnotationsValidator />
+                    <div class="row g-3 align-items-end mb-3">
+                        <div class="col-12 col-lg-2">
+                            <label class="form-label">@T("Date", "التاريخ")</label>
+                            <InputDate class="form-control" @bind-Value="quickEntry.EntryDate" />
+                        </div>
+                        <div class="col-12 col-lg-2">
+                            <label class="form-label">@T("Debit Account", "حساب المدين")</label>
+                            <InputSelect class="form-select" @bind-Value="quickEntry.DebitAccountId">
+                                <option value="@Guid.Empty">@T("Select", "اختر")</option>
+                                @foreach (var account in postingAccounts)
+                                {
+                                    <option value="@account.Id">@AccountLabel(account)</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-12 col-lg-2">
+                            <label class="form-label">@T("Credit Account", "حساب الدائن")</label>
+                            <InputSelect class="form-select" @bind-Value="quickEntry.CreditAccountId">
+                                <option value="@Guid.Empty">@T("Select", "اختر")</option>
+                                @foreach (var account in postingAccounts)
+                                {
+                                    <option value="@account.Id">@AccountLabel(account)</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-12 col-lg-2">
+                            <label class="form-label">@T("Amount", "المبلغ")</label>
+                            <InputNumber class="form-control" @bind-Value="quickEntry.Amount" />
+                        </div>
+                        <div class="col-12 col-lg-2">
+                            <label class="form-label">@T("Memo", "البيان")</label>
+                            <InputText class="form-control" @bind-Value="quickEntry.Memo" />
+                        </div>
+                        <div class="col-12 col-lg-2">
+                            <button class="btn btn-primary w-100" type="submit" disabled="@(!CanSaveQuick || savingQuick)">
+                                <i class="bi bi-check2-circle"></i>
+                                @T("Save and Post", "حفظ وترحيل")
+                            </button>
+                        </div>
+                    </div>
+                </EditForm>
+            }
             <div class="input-group mb-3">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                 <input class="form-control" placeholder="@T("Search journals", "بحث في القيود")" @bind="searchText" @bind:event="oninput" />
@@ -120,11 +166,21 @@
 
 @code {
     private List<JournalEntryDto> entries = [];
+    private List<AccountDto> postingAccounts = [];
     private JournalEntryDto? selectedEntry;
     private AuthenticationState? authState;
     private Guid? companyId;
     private string? searchText;
+    private bool savingQuick;
+    private QuickJournalEntryDto quickEntry = new();
     private bool CanView => HasPermission(PermissionList.JournalEntryPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.JournalEntryPermissions.Create);
+    private bool CanSaveQuick => companyId.HasValue
+        && companyId.Value != Guid.Empty
+        && quickEntry.DebitAccountId != Guid.Empty
+        && quickEntry.CreditAccountId != Guid.Empty
+        && quickEntry.DebitAccountId != quickEntry.CreditAccountId
+        && quickEntry.Amount > 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -133,6 +189,8 @@
         if (Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var parsedCompanyId))
             companyId = parsedCompanyId;
 
+        ResetQuickEntry();
+        await LoadAccountsAsync();
         await LoadAsync();
     }
 
@@ -147,6 +205,49 @@
         else
             ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load journal entries.", "تعذر تحميل القيود اليومية."));
     }
+
+    private async Task LoadAccountsAsync()
+    {
+        if (!companyId.HasValue || companyId.Value == Guid.Empty)
+            return;
+
+        var result = await AccountingService.GetAccountsAsync(companyId.Value, 1, 500, null);
+        if (result.IsSuccess && result.Data is not null)
+            postingAccounts = result.Data.Data.Where(x => x.IsActive && x.IsPostingAccount).OrderBy(x => x.Code).ToList();
+    }
+
+    private async Task SaveQuickEntryAsync()
+    {
+        if (!CanSaveQuick || !companyId.HasValue)
+            return;
+
+        savingQuick = true;
+        quickEntry.CompanyId = companyId.Value;
+        var result = await AccountingService.CreateQuickJournalEntryAsync(quickEntry);
+        savingQuick = false;
+
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Journal entry posted.", "تم ترحيل القيد."));
+            ResetQuickEntry();
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not post journal entry.", "تعذر ترحيل القيد."));
+        }
+    }
+
+    private void ResetQuickEntry()
+    {
+        quickEntry = new QuickJournalEntryDto
+        {
+            CompanyId = companyId ?? Guid.Empty,
+            EntryDate = DateTime.UtcNow.Date
+        };
+    }
+
+    private string AccountLabel(AccountDto account) => $"{account.Code} - {T(account.NameEng, account.Name)}";
 
     private static string JournalTone(JournalEntryStatus status) => status switch
     {

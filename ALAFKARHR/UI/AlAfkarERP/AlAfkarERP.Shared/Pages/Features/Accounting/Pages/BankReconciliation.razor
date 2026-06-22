@@ -1,0 +1,400 @@
+@layout AdminLayout
+@page "/Accounting/BankReconciliation"
+
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Accounting.Enums
+@using SharedWithUI.Permissions
+
+@implements IDisposable
+@inject IAccountingService AccountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@T("Bank Reconciliation", "تسوية البنك")"
+                Subtitle="@T("Match bank statement lines with posted documents, journals, or write-off accounts.", "طابق حركات كشف البنك مع المستندات أو القيود المرحلة أو حسابات التسوية.")"
+                Overline="@T("Accounting", "المحاسبة")"
+                Icon="bi-bank" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@T("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+    }
+    else
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-4">
+                <StatsCard Title="@T("Unreconciled", "غير مسواة")" Value="@summary.UnreconciledCount.ToString("N0")" Icon="bi-shuffle" Tone="warning" CssClass="h-100" />
+            </div>
+            <div class="col-12 col-sm-4">
+                <StatsCard Title="@T("Inflow", "الوارد")" Value="@summary.UnreconciledInflow.ToString("N2")" Icon="bi-arrow-down-left" Tone="success" CssClass="h-100" />
+            </div>
+            <div class="col-12 col-sm-4">
+                <StatsCard Title="@T("Outflow", "الصادر")" Value="@summary.UnreconciledOutflow.ToString("N2")" Icon="bi-arrow-up-right" Tone="danger" CssClass="h-100" />
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-12 col-xl-4">
+                <AppCard CssClass="h-100">
+                    <h2 class="h5 mb-3">@T("Add Statement Line", "إضافة حركة كشف")</h2>
+                    <EditForm Model="@newTransaction" OnValidSubmit="SaveTransactionAsync">
+                        <DataAnnotationsValidator />
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">@T("Account", "الحساب")</label>
+                                <InputSelect class="form-select" @bind-Value="selectedBankOrCash">
+                                    <option value="">@T("Select bank or cash", "اختر بنك أو نقدية")</option>
+                                    @foreach (var bank in bankAccounts)
+                                    {
+                                        <option value="@($"bank:{bank.Id}")">@bank.DisplayName</option>
+                                    }
+                                    @foreach (var cash in cashAccounts)
+                                    {
+                                        <option value="@($"cash:{cash.Id}")">@cash.DisplayName</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">@T("Date", "التاريخ")</label>
+                                <InputDate class="form-control" @bind-Value="newTransaction.TransactionDate" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">@T("Amount", "المبلغ")</label>
+                                <InputNumber class="form-control" @bind-Value="newTransaction.Amount" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">@T("Reference", "المرجع")</label>
+                                <InputText class="form-control" @bind-Value="newTransaction.ReferenceNumber" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">@T("Description", "الوصف")</label>
+                                <InputText class="form-control" @bind-Value="newTransaction.Description" />
+                            </div>
+                            <div class="col-12">
+                                <button class="btn btn-primary w-100" type="submit" disabled="@(!CanCreate || savingTransaction)">
+                                    <i class="bi bi-plus-lg"></i>
+                                    @T("Add Line", "إضافة الحركة")
+                                </button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+
+            <div class="col-12 col-xl-8">
+                <AppCard>
+                    <div class="d-flex flex-column flex-lg-row gap-2 justify-content-between mb-3">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input class="form-control" placeholder="@T("Search statement lines", "بحث في حركات الكشف")" @bind="searchText" @bind:event="oninput" />
+                            <button class="btn btn-outline-secondary" type="button" @onclick="LoadAsync">@T("Search", "بحث")</button>
+                        </div>
+                        <InputSelect class="form-select w-auto" @bind-Value="statusFilter" @bind-Value:after="LoadAsync">
+                            <option value="">@T("All statuses", "كل الحالات")</option>
+                            <option value="@BankTransactionStatus.Unreconciled">@T("Unreconciled", "غير مسواة")</option>
+                            <option value="@BankTransactionStatus.Reconciled">@T("Reconciled", "مسواة")</option>
+                        </InputSelect>
+                    </div>
+                    <div class="erp-table-wrap">
+                        <table class="table align-middle erp-table">
+                            <thead>
+                                <tr>
+                                    <th>@T("Date", "التاريخ")</th>
+                                    <th>@T("Description", "الوصف")</th>
+                                    <th>@T("Reference", "المرجع")</th>
+                                    <th>@T("Amount", "المبلغ")</th>
+                                    <th>@T("Status", "الحالة")</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var transaction in transactions)
+                                {
+                                    <tr>
+                                        <td>@transaction.TransactionDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@transaction.Description</td>
+                                        <td>@transaction.ReferenceNumber</td>
+                                        <td class="@(transaction.Amount >= 0 ? "text-success" : "text-danger")">@transaction.Amount.ToString("N2")</td>
+                                        <td><StatusChip Text="@transaction.Status.ToString()" Tone="@(transaction.Status == BankTransactionStatus.Reconciled ? "success" : "warning")" /></td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-outline-primary" type="button" disabled="@(transaction.Status == BankTransactionStatus.Reconciled || !CanReconcile)" @onclick="() => OpenMatchAsync(transaction)">
+                                                <i class="bi bi-shuffle"></i>
+                                                @T("Match", "مطابقة")
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (!transactions.Any())
+                    {
+                        <div class="text-muted py-4 text-center">@T("No bank transactions found.", "لا توجد حركات بنكية.")</div>
+                    }
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@if (selectedTransaction is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@T("Match Statement Line", "مطابقة حركة الكشف")</h5>
+                    <button class="btn-close" type="button" @onclick="CloseMatch"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        @selectedTransaction.TransactionDate.ToString("yyyy-MM-dd") -
+                        @selectedTransaction.Description -
+                        <strong>@selectedTransaction.Amount.ToString("N2")</strong>
+                    </div>
+                    <div class="erp-table-wrap mb-3">
+                        <table class="table align-middle erp-table">
+                            <thead>
+                                <tr>
+                                    <th>@T("Number", "الرقم")</th>
+                                    <th>@T("Source", "المصدر")</th>
+                                    <th>@T("Date", "التاريخ")</th>
+                                    <th>@T("Party / Memo", "الطرف / البيان")</th>
+                                    <th>@T("Amount", "المبلغ")</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var match in matches)
+                                {
+                                    <tr>
+                                        <td>@match.Number</td>
+                                        <td>@match.Source</td>
+                                        <td>@match.Date.ToString("yyyy-MM-dd")</td>
+                                        <td>@match.PartyOrMemo</td>
+                                        <td>@match.Amount.ToString("N2")</td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-primary" type="button" disabled="@(reconciling || !CanReconcile)" @onclick="() => ReconcileAsync(match)">
+                                                @T("Reconcile", "تسوية")
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (!matches.Any())
+                    {
+                        <div class="text-muted text-center py-3">@T("No suggested matches. Choose a write-off account below.", "لا توجد مطابقات مقترحة. اختر حساب تسوية أدناه.")</div>
+                    }
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-md-8">
+                            <label class="form-label">@T("Write-off Account", "حساب التسوية")</label>
+                            <InputSelect class="form-select" @bind-Value="writeOffAccountId">
+                                <option value="@Guid.Empty">@T("Select account", "اختر الحساب")</option>
+                                @foreach (var account in postingAccounts)
+                                {
+                                    <option value="@account.Id">@($"{account.Code} - {T(account.NameEng, account.Name)}")</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <button class="btn btn-outline-primary w-100" type="button" disabled="@(writeOffAccountId == Guid.Empty || reconciling || !CanReconcile)" @onclick="ReconcileWriteOffAsync">
+                                @T("Write Off", "تسوية مباشرة")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" type="button" @onclick="CloseMatch">@T("Close", "إغلاق")</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private List<BankTransactionDto> transactions = [];
+    private List<BankReconciliationMatchDto> matches = [];
+    private List<BankAccountDto> bankAccounts = [];
+    private List<CashAccountDto> cashAccounts = [];
+    private List<AccountDto> postingAccounts = [];
+    private BankReconciliationSummaryDto summary = new();
+    private BankTransactionDto newTransaction = new();
+    private BankTransactionDto? selectedTransaction;
+    private BankTransactionStatus? statusFilter = BankTransactionStatus.Unreconciled;
+    private string? searchText;
+    private string? selectedBankOrCash;
+    private Guid writeOffAccountId;
+    private bool savingTransaction;
+    private bool reconciling;
+    private bool CanView => HasPermission(PermissionList.BankReconciliationPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.BankReconciliationPermissions.Create);
+    private bool CanReconcile => HasPermission(PermissionList.BankReconciliationPermissions.Reconcile);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId);
+        ResetTransaction();
+        await LoadLookupsAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (companyId == Guid.Empty || !CanView)
+            return;
+
+        var summaryResult = await AccountingService.GetBankReconciliationSummaryAsync(companyId);
+        if (summaryResult.IsSuccess && summaryResult.Data is not null)
+            summary = summaryResult.Data;
+
+        var result = await AccountingService.GetBankTransactionsAsync(companyId, statusFilter, 1, 100, searchText);
+        if (result.IsSuccess && result.Data is not null)
+            transactions = result.Data.Data.ToList();
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load bank transactions.", "تعذر تحميل حركات البنك."));
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        if (companyId == Guid.Empty)
+            return;
+
+        var bankResult = await AccountingService.GetBankAccountsAsync(companyId);
+        if (bankResult.IsSuccess && bankResult.Data is not null)
+            bankAccounts = bankResult.Data;
+
+        var cashResult = await AccountingService.GetCashAccountsAsync(companyId);
+        if (cashResult.IsSuccess && cashResult.Data is not null)
+            cashAccounts = cashResult.Data;
+
+        var accountResult = await AccountingService.GetAccountsAsync(companyId, 1, 500, null);
+        if (accountResult.IsSuccess && accountResult.Data is not null)
+            postingAccounts = accountResult.Data.Data.Where(x => x.IsActive && x.IsPostingAccount).OrderBy(x => x.Code).ToList();
+    }
+
+    private async Task SaveTransactionAsync()
+    {
+        ApplySelectedAccount();
+        newTransaction.CompanyId = companyId;
+        savingTransaction = true;
+        var result = await AccountingService.CreateBankTransactionAsync(newTransaction);
+        savingTransaction = false;
+
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Statement line added.", "تمت إضافة حركة الكشف."));
+            ResetTransaction();
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not add statement line.", "تعذر إضافة حركة الكشف."));
+        }
+    }
+
+    private async Task OpenMatchAsync(BankTransactionDto transaction)
+    {
+        if (!CanReconcile)
+            return;
+
+        selectedTransaction = transaction;
+        writeOffAccountId = Guid.Empty;
+        var result = await AccountingService.GetBankReconciliationMatchesAsync(transaction.Id);
+        matches = result.IsSuccess && result.Data is not null ? result.Data : [];
+    }
+
+    private async Task ReconcileAsync(BankReconciliationMatchDto match)
+    {
+        if (selectedTransaction is null || !CanReconcile)
+            return;
+
+        await ReconcileAsync(new ReconcileBankTransactionDto
+        {
+            BankTransactionId = selectedTransaction.Id,
+            JournalEntryId = match.IsJournalEntry ? match.Id : null,
+            AccountingDocumentId = match.IsJournalEntry ? null : match.Id,
+            ClearanceDate = DateTime.UtcNow.Date
+        });
+    }
+
+    private async Task ReconcileWriteOffAsync()
+    {
+        if (selectedTransaction is null || writeOffAccountId == Guid.Empty || !CanReconcile)
+            return;
+
+        await ReconcileAsync(new ReconcileBankTransactionDto
+        {
+            BankTransactionId = selectedTransaction.Id,
+            WriteOffAccountId = writeOffAccountId,
+            ClearanceDate = DateTime.UtcNow.Date
+        });
+    }
+
+    private async Task ReconcileAsync(ReconcileBankTransactionDto reconciliation)
+    {
+        reconciling = true;
+        var result = await AccountingService.ReconcileBankTransactionAsync(reconciliation);
+        reconciling = false;
+
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Transaction reconciled.", "تمت تسوية الحركة."));
+            CloseMatch();
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not reconcile transaction.", "تعذر تسوية الحركة."));
+        }
+    }
+
+    private void ApplySelectedAccount()
+    {
+        newTransaction.BankAccountId = null;
+        newTransaction.CashAccountId = null;
+        if (string.IsNullOrWhiteSpace(selectedBankOrCash))
+            return;
+
+        var parts = selectedBankOrCash.Split(':');
+        if (parts.Length != 2 || !Guid.TryParse(parts[1], out var id))
+            return;
+
+        if (parts[0] == "bank")
+            newTransaction.BankAccountId = id;
+        else
+            newTransaction.CashAccountId = id;
+    }
+
+    private void ResetTransaction()
+    {
+        selectedBankOrCash = null;
+        newTransaction = new BankTransactionDto
+        {
+            CompanyId = companyId,
+            TransactionDate = DateTime.UtcNow.Date
+        };
+    }
+
+    private void CloseMatch()
+    {
+        selectedTransaction = null;
+        matches = [];
+        writeOffAccountId = Guid.Empty;
+    }
+
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

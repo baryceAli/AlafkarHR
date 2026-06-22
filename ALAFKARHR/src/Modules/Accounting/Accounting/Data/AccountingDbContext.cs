@@ -15,6 +15,7 @@ public class AccountingDbContext(DbContextOptions<AccountingDbContext> options) 
     public DbSet<AccountingJournal> AccountingJournals => Set<AccountingJournal>();
     public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();
     public DbSet<AccountingDocument> AccountingDocuments => Set<AccountingDocument>();
+    public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
     public DbSet<ZatcaSettings> ZatcaSettings => Set<ZatcaSettings>();
     public DbSet<ZatcaDevice> ZatcaDevices => Set<ZatcaDevice>();
     public DbSet<EInvoice> EInvoices => Set<EInvoice>();

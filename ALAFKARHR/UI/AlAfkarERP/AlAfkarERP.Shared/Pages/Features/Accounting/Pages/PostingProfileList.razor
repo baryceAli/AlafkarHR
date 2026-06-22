@@ -141,6 +141,7 @@
     private PostingProfileDto newProfile = new();
     private bool CanView => HasPermission(PermissionList.PostingProfilePermissions.View);
     private bool CanCreate => HasPermission(PermissionList.PostingProfilePermissions.Create);
+    private bool CanApplyTemplate => HasPermission(PermissionList.AccountingTemplatePermissions.Apply);
 
     protected override async Task OnInitializedAsync()
     {
@@ -209,6 +210,9 @@
 
     private async Task AutoMapAsync()
     {
+        if (!CanApplyTemplate)
+            return;
+
         autoMapping = true;
         var result = await AccountingService.ApplyTemplateAsync(new ApplyAccountingTemplateDto
         {

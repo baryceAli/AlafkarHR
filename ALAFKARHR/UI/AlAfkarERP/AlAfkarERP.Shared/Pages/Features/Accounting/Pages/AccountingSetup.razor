@@ -20,7 +20,7 @@
                 Overline="@T("Accounting", "المحاسبة")"
                 Icon="bi-magic" />
 
-    @if (!CanView)
+    @if (!CanAccessSetup)
     {
         <div class="alert alert-warning">@T("You don't have permissions to view this page", "ليس لديك صلاحية عرض هذه الصفحة")</div>
     }
@@ -221,6 +221,7 @@
     private bool CanManageTemplates => HasPermission(PermissionList.AccountingTemplatePermissions.View);
     private bool CanViewSettings => HasPermission(PermissionList.AccountingSettingsPermissions.View);
     private bool CanEditSettings => HasPermission(PermissionList.AccountingSettingsPermissions.Edit);
+    private bool CanAccessSetup => CanView || CanManageTemplates || CanApply || CanViewSettings || CanEditSettings;
 
     protected override async Task OnInitializedAsync()
     {
