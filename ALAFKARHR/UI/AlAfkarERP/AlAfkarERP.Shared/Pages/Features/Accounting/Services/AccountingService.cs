@@ -94,6 +94,19 @@ public class AccountingService : BaseApiService, IAccountingService
         return await SendAsync<Guid>(request, "id");
     }
 
+    public async Task<ApiResult<Guid>> SaveAccountAsync(AccountDto account)
+    {
+        var method = account.Id == Guid.Empty ? HttpMethod.Post : HttpMethod.Put;
+        var path = account.Id == Guid.Empty
+            ? $"api/{_apiConfig.Version}/accounting/accounts"
+            : $"api/{_apiConfig.Version}/accounting/accounts/{account.Id}";
+        var request = new HttpRequestMessage(method, path)
+        {
+            Content = JsonContent.Create(account)
+        };
+        return await SendAsync<Guid>(request, "id");
+    }
+
     public async Task<ApiResult<List<FiscalPeriodDto>>> GetFiscalPeriodsAsync(Guid companyId)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/fiscal-periods?companyId={companyId}");

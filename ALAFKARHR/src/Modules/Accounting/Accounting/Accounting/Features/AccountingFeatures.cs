@@ -2,6 +2,8 @@ namespace Accounting.Accounting.Features;
 
 public record CreateAccountCommand(AccountDto Account) : ICommand<CreateAccountResult>;
 public record CreateAccountResult(Guid Id);
+public record UpdateAccountCommand(Guid Id, AccountDto Account) : ICommand<UpdateAccountResult>;
+public record UpdateAccountResult(Guid Id);
 public record GetAccountsQuery(Guid CompanyId, int PageIndex, int PageSize, string? SearchText) : IQuery<GetAccountsResult>;
 public record GetAccountsResult(PaginatedResult<AccountDto> Accounts);
 public record CreateFiscalPeriodCommand(FiscalPeriodDto Period) : ICommand<CreateFiscalPeriodResult>;
@@ -67,6 +69,18 @@ public class CreateAccountCommandValidator : AbstractValidator<CreateAccountComm
     }
 }
 
+public class UpdateAccountCommandValidator : AbstractValidator<UpdateAccountCommand>
+{
+    public UpdateAccountCommandValidator()
+    {
+        RuleFor(x => x.Id).NotEmpty();
+        RuleFor(x => x.Account.CompanyId).NotEmpty();
+        RuleFor(x => x.Account.Code).NotEmpty().MaximumLength(40);
+        RuleFor(x => x.Account.Name).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Account.NameEng).NotEmpty().MaximumLength(200);
+    }
+}
+
 public class CreateAccountingDocumentCommandValidator : AbstractValidator<CreateAccountingDocumentCommand>
 {
     public CreateAccountingDocumentCommandValidator()
@@ -99,6 +113,7 @@ public class CreateAndPostJournalEntryCommandValidator : AbstractValidator<Creat
 
 public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpContextAccessor httpContextAccessor)
     : ICommandHandler<CreateAccountCommand, CreateAccountResult>,
+      ICommandHandler<UpdateAccountCommand, UpdateAccountResult>,
       ICommandHandler<CreateFiscalPeriodCommand, CreateFiscalPeriodResult>,
       ICommandHandler<CreateTaxCodeCommand, CreateTaxCodeResult>,
       ICommandHandler<CreatePostingProfileCommand, CreatePostingProfileResult>,
@@ -119,10 +134,26 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
 {
     public async Task<CreateAccountResult> Handle(CreateAccountCommand command, CancellationToken cancellationToken)
     {
+        await ValidateAccountAsync(command.Account, null, cancellationToken);
         var account = Account.Create(command.Account, UserId);
         await dbContext.Accounts.AddAsync(account, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new CreateAccountResult(account.Id);
+    }
+
+    public async Task<UpdateAccountResult> Handle(UpdateAccountCommand command, CancellationToken cancellationToken)
+    {
+        var dto = command.Account;
+        dto.Id = command.Id;
+        await ValidateAccountAsync(dto, command.Id, cancellationToken);
+
+        var account = await dbContext.Accounts.FirstOrDefaultAsync(x => x.Id == command.Id && x.CompanyId == dto.CompanyId, cancellationToken);
+        if (account is null)
+            throw new BadRequestException("Account was not found.");
+
+        account.Update(dto, UserId);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new UpdateAccountResult(account.Id);
     }
 
     public async Task<CreateFiscalPeriodResult> Handle(CreateFiscalPeriodCommand command, CancellationToken cancellationToken)
@@ -792,6 +823,53 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
 
     private static Guid? ResolveOptionalTemplateAccountId(string? key, IReadOnlyDictionary<string, Guid> accountIdsByTemplate) =>
         string.IsNullOrWhiteSpace(key) ? null : ResolveTemplateAccountId(key, accountIdsByTemplate);
+
+    private async Task ValidateAccountAsync(AccountDto dto, Guid? editingAccountId, CancellationToken cancellationToken)
+    {
+        var code = dto.Code.Trim();
+        var duplicateCodeExists = await dbContext.Accounts.IgnoreQueryFilters().AsNoTracking()
+            .AnyAsync(x => x.CompanyId == dto.CompanyId && x.Code == code && (!editingAccountId.HasValue || x.Id != editingAccountId.Value), cancellationToken);
+        if (duplicateCodeExists)
+            throw new BadRequestException("Account code already exists for this company.");
+
+        if (!dto.ParentAccountId.HasValue || dto.ParentAccountId.Value == Guid.Empty)
+            return;
+
+        var parent = await dbContext.Accounts.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == dto.CompanyId && x.Id == dto.ParentAccountId.Value && x.IsActive, cancellationToken);
+        if (parent is null)
+            throw new BadRequestException("Parent account must belong to the company and be active.");
+
+        if (editingAccountId.HasValue)
+        {
+            if (dto.ParentAccountId.Value == editingAccountId.Value)
+                throw new BadRequestException("Account cannot be its own parent.");
+
+            await EnsureParentIsNotDescendantAsync(dto.CompanyId, editingAccountId.Value, dto.ParentAccountId.Value, cancellationToken);
+        }
+    }
+
+    private async Task EnsureParentIsNotDescendantAsync(Guid companyId, Guid accountId, Guid parentAccountId, CancellationToken cancellationToken)
+    {
+        var links = await dbContext.Accounts.AsNoTracking()
+            .Where(x => x.CompanyId == companyId)
+            .Select(x => new { x.Id, x.ParentAccountId })
+            .ToListAsync(cancellationToken);
+        var parentsByAccountId = links.ToDictionary(x => x.Id, x => x.ParentAccountId);
+        var currentId = parentAccountId;
+        var visited = new HashSet<Guid>();
+
+        while (visited.Add(currentId) && parentsByAccountId.TryGetValue(currentId, out var nextParentId))
+        {
+            if (currentId == accountId)
+                throw new BadRequestException("Parent account cannot be a descendant of the account.");
+
+            if (!nextParentId.HasValue || nextParentId.Value == Guid.Empty)
+                return;
+
+            currentId = nextParentId.Value;
+        }
+    }
 
     private async Task<Guid> ResolveOrCreateLedgerAccountAsync(Guid companyId, Guid? accountId, string displayName, AccountRole role, AccountType type, NormalBalance balance, string codePrefix, CancellationToken cancellationToken)
     {
