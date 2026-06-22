@@ -42,3 +42,33 @@
 
     applyTheme(readTheme());
 })();
+
+(function () {
+    let shortcutHandler = null;
+
+    window.alafkarNavigation = {
+        bindShortcuts: function (dotNetRef) {
+            if (shortcutHandler) {
+                document.removeEventListener("keydown", shortcutHandler);
+            }
+
+            shortcutHandler = function (event) {
+                const key = (event.key || "").toLowerCase();
+                if ((event.ctrlKey || event.metaKey) && key === "k") {
+                    event.preventDefault();
+                    dotNetRef.invokeMethodAsync("OpenCommandPaletteFromShortcut");
+                }
+            };
+
+            document.addEventListener("keydown", shortcutHandler);
+        },
+        unbindShortcuts: function () {
+            if (!shortcutHandler) {
+                return;
+            }
+
+            document.removeEventListener("keydown", shortcutHandler);
+            shortcutHandler = null;
+        }
+    };
+})();

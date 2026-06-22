@@ -1352,6 +1352,76 @@ body {
     gap: var(--erp-space-2);
 }
 
+.workspace-board {
+    border-bottom: 1px solid var(--erp-border);
+    padding-bottom: var(--erp-space-4);
+}
+
+.workspace-board-grid {
+    display: grid;
+    gap: var(--erp-space-2);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.workspace-board-tile {
+    align-items: center;
+    background: var(--erp-bg-subtle);
+    border: 1px solid var(--erp-border);
+    border-radius: var(--erp-radius-md);
+    color: var(--erp-text);
+    display: flex;
+    gap: var(--erp-space-2);
+    min-height: 52px;
+    min-width: 0;
+    padding: var(--erp-space-2);
+    text-align: start;
+}
+
+.workspace-board-tile:hover,
+.workspace-board-tile:focus {
+    background: var(--erp-primary-soft);
+    border-color: color-mix(in srgb, var(--erp-primary) 22%, transparent);
+    color: var(--erp-primary);
+}
+
+.workspace-board-tile:disabled {
+    color: var(--erp-text-muted);
+    cursor: default;
+    opacity: .72;
+}
+
+.workspace-board-tile > i {
+    align-items: center;
+    background: var(--erp-surface);
+    border: 1px solid var(--erp-border);
+    border-radius: var(--erp-radius-md);
+    display: inline-flex;
+    flex: 0 0 32px;
+    height: 32px;
+    justify-content: center;
+}
+
+.workspace-board-tile span {
+    display: grid;
+    min-width: 0;
+}
+
+.workspace-board-tile strong,
+.workspace-board-tile small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.workspace-board-tile strong {
+    font-size: .78rem;
+}
+
+.workspace-board-tile small {
+    color: var(--erp-text-muted);
+    font-size: .7rem;
+}
+
 .desktop-hub-section-list {
     display: grid;
     gap: var(--erp-space-3);
@@ -1392,6 +1462,13 @@ body {
     text-align: start;
 }
 
+.desktop-nav-row {
+    align-items: center;
+    display: flex;
+    gap: var(--erp-space-1);
+    min-width: 0;
+}
+
 .desktop-nav-link {
     align-items: center;
     background: transparent;
@@ -1400,7 +1477,29 @@ body {
     display: flex;
     gap: var(--erp-space-3);
     min-height: 40px;
+    min-width: 0;
     padding: var(--erp-space-2) var(--erp-space-3);
+    width: 100%;
+}
+
+.desktop-favorite-toggle {
+    align-items: center;
+    border: 1px solid transparent;
+    border-radius: var(--erp-radius-md);
+    color: var(--erp-text-soft);
+    display: inline-flex;
+    flex: 0 0 34px;
+    height: 34px;
+    justify-content: center;
+    padding: 0;
+}
+
+.desktop-favorite-toggle:hover,
+.desktop-favorite-toggle:focus,
+.desktop-favorite-toggle.is-active {
+    background: color-mix(in srgb, var(--erp-warning) 13%, transparent);
+    border-color: color-mix(in srgb, var(--erp-warning) 24%, transparent);
+    color: var(--erp-warning);
 }
 
 .desktop-nav-link > span,
@@ -1938,6 +2037,34 @@ body {
     min-height: 44px;
 }
 
+.command-palette-hints {
+    align-items: center;
+    border-bottom: 1px solid var(--erp-border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--erp-space-2);
+    padding: var(--erp-space-2) var(--erp-space-3);
+}
+
+.command-hint {
+    align-items: center;
+    background: var(--erp-bg-subtle);
+    border: 1px solid var(--erp-border);
+    border-radius: var(--erp-radius-full);
+    color: var(--erp-text-muted);
+    display: inline-flex;
+    font-size: .72rem;
+    font-weight: 700;
+    min-height: 24px;
+    padding-inline: var(--erp-space-2);
+}
+
+.command-hint.is-active {
+    background: var(--erp-primary-soft);
+    border-color: color-mix(in srgb, var(--erp-primary) 22%, transparent);
+    color: var(--erp-primary);
+}
+
 .command-palette-results {
     display: grid;
     max-height: 520px;
@@ -1956,7 +2083,8 @@ body {
     padding: var(--erp-space-3);
 }
 
-.command-result:hover {
+.command-result:hover,
+.command-result.is-selected {
     background: var(--erp-primary-soft);
 }
 
@@ -1990,6 +2118,17 @@ body {
 
 .command-result-enter {
     color: var(--erp-text-soft);
+}
+
+.command-result-mode {
+    background: var(--erp-bg-subtle);
+    border: 1px solid var(--erp-border);
+    border-radius: var(--erp-radius-full);
+    color: var(--erp-text-muted);
+    flex: 0 0 auto;
+    font-size: .68rem;
+    font-weight: 800;
+    padding: var(--erp-space-1) var(--erp-space-2);
 }
 
 .command-empty {

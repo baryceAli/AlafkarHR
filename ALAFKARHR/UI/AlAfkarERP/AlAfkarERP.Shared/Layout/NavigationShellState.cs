@@ -6,7 +6,7 @@ public static class NavigationShellState
     public const string FavoriteStorageKey = "alafkar.mobileNav.favoriteKeys";
     public const string RecentStorageKey = "alafkar.mobileNav.recentKeys";
     public const string SidebarCollapsedStorageKey = "alafkar.desktopNav.isCollapsed";
-    public const int MaxRecentItems = 3;
+    public const int MaxRecentItems = 6;
 
     public static IReadOnlyList<string> ParseKeys(string? value)
         => string.IsNullOrWhiteSpace(value)

@@ -2,6 +2,7 @@
 @using AlAfkarERP.Shared.Utilities
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
 @inherits LayoutComponentBase
 @implements IDisposable
 
@@ -79,6 +80,7 @@
     private string moreHubInitialView = MoreHub.ViewDirectory;
     private bool isMoreHubOpen;
     private bool isCommandPaletteOpen;
+    private DotNetObjectReference<AdminLayout>? shortcutReference;
 
     protected override async Task OnInitializedAsync()
     {
@@ -98,6 +100,8 @@
                 await RunTaskDailyCheckSilentlyAsync();
             }
             activeWorkspace = await LoadActiveWorkspaceAsync();
+            shortcutReference = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("alafkarNavigation.bindShortcuts", shortcutReference);
             await InvokeAsync(StateHasChanged);
             // NavigationManager.NavigateTo("/login");
         }
@@ -191,6 +195,13 @@
         isCommandPaletteOpen = true;
     }
 
+    [JSInvokable]
+    public async Task OpenCommandPaletteFromShortcut()
+    {
+        isCommandPaletteOpen = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
     private Task SetMoreHubOpen(bool value)
     {
         isMoreHubOpen = value;
@@ -229,5 +240,7 @@
     {
         SharedDataService.OnChange1 -= HandleChangeAsync;
         NavigationManager.LocationChanged -= HandleLocationChanged;
+        _ = JSRuntime.InvokeVoidAsync("alafkarNavigation.unbindShortcuts");
+        shortcutReference?.Dispose();
     }
 }

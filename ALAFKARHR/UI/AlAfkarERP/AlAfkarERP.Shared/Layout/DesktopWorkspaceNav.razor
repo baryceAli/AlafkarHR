@@ -64,6 +64,43 @@
             </div>
         </div>
 
+        <div class="desktop-nav-section workspace-board">
+            <h3>@SharedDataService.SelectViewLang("My Workspace", "\u0645\u0633\u0627\u062d\u0629 \u0639\u0645\u0644\u064a")</h3>
+            <div class="workspace-board-grid">
+                @if (WorkspaceDefaultItem is not null)
+                {
+                    <button type="button" class="workspace-board-tile" @onclick="() => NavigateAsync(WorkspaceDefaultItem)">
+                        <i class="bi @WorkspaceDefaultItem.Icon"></i>
+                        <span>
+                            <strong>@SharedDataService.SelectViewLang("Start", "\u0627\u0644\u0628\u062f\u0621")</strong>
+                            <small>@Label(WorkspaceDefaultItem)</small>
+                        </span>
+                    </button>
+                }
+                <button type="button" class="workspace-board-tile" @onclick="OnOpenCommand">
+                    <i class="bi bi-command"></i>
+                    <span>
+                        <strong>@SharedDataService.SelectViewLang("Command", "\u0623\u0645\u0631")</strong>
+                        <small>Ctrl+K</small>
+                    </span>
+                </button>
+                <button type="button" class="workspace-board-tile" @onclick="OpenFirstFavoriteAsync" disabled="@(!FavoriteItems.Any())">
+                    <i class="bi bi-star"></i>
+                    <span>
+                        <strong>@SharedDataService.SelectViewLang("Pinned", "\u0645\u062b\u0628\u062a")</strong>
+                        <small>@SharedDataService.SelectViewLang($"{FavoriteItems.Count()} pages", $"{FavoriteItems.Count()} \u0635\u0641\u062d\u0627\u062a")</small>
+                    </span>
+                </button>
+                <button type="button" class="workspace-board-tile" @onclick="OpenFirstRecentAsync" disabled="@(!RecentItems.Any())">
+                    <i class="bi bi-clock-history"></i>
+                    <span>
+                        <strong>@SharedDataService.SelectViewLang("Recent", "\u0627\u0644\u0623\u062e\u064a\u0631")</strong>
+                        <small>@SharedDataService.SelectViewLang($"{RecentItems.Count()} pages", $"{RecentItems.Count()} \u0635\u0641\u062d\u0627\u062a")</small>
+                    </span>
+                </button>
+            </div>
+        </div>
+
         @if (FavoriteItems.Any())
         {
             <div class="desktop-nav-section">
@@ -109,21 +146,33 @@
                 {
                     var hasChildren = HasAccordionChildren(row);
                     var isExpanded = IsExpanded(row);
-                    <button type="button"
-                            class="@DesktopRowClass(row)"
-                            disabled="@(!CanNavigate(row.Item) && !hasChildren)"
-                            aria-expanded="@(hasChildren ? isExpanded : null)"
-                            @onclick="() => HandleWorkspaceRowClickAsync(row)">
-                        <i class="bi @row.Item.Icon"></i>
-                        <span>
-                            <strong>@Label(row.Item)</strong>
-                            <small>@PathLabel(row)</small>
-                        </span>
-                        @if (hasChildren)
+                    <div class="desktop-nav-row">
+                        <button type="button"
+                                class="@DesktopRowClass(row)"
+                                disabled="@(!CanNavigate(row.Item) && !hasChildren)"
+                                aria-expanded="@(hasChildren ? isExpanded : null)"
+                                @onclick="() => HandleWorkspaceRowClickAsync(row)">
+                            <i class="bi @row.Item.Icon"></i>
+                            <span>
+                                <strong>@Label(row.Item)</strong>
+                                <small>@PathLabel(row)</small>
+                            </span>
+                            @if (hasChildren)
+                            {
+                                <i class="bi @(isExpanded ? "bi-chevron-down" : "bi-chevron-right") desktop-nav-chevron"></i>
+                            }
+                        </button>
+                        @if (CanFavorite(row.Item))
                         {
-                            <i class="bi @(isExpanded ? "bi-chevron-down" : "bi-chevron-right") desktop-nav-chevron"></i>
+                            <button type="button"
+                                    class="btn desktop-favorite-toggle @(IsFavorite(row.Item) ? "is-active" : "")"
+                                    title="@FavoriteTitle(row.Item)"
+                                    aria-label="@FavoriteTitle(row.Item)"
+                                    @onclick="() => ToggleFavoriteAsync(row.Item)">
+                                <i class="bi @(IsFavorite(row.Item) ? "bi-star-fill" : "bi-star")"></i>
+                            </button>
                         }
-                    </button>
+                    </div>
                 }
             </div>
         }
@@ -147,6 +196,10 @@
     private IEnumerable<NavigationMenuRow> VisibleWorkspaceRows => WorkspaceRows.Where(row => IsVisibleWorkspaceRow(row) && !IsPanelExcludedItem(row.Item));
     private IEnumerable<MenuItem> FavoriteItems => ResolveKeys(favoriteKeys).Where(MatchesActiveWorkspace).Where(item => !IsPanelExcludedItem(item)).Take(5);
     private IEnumerable<MenuItem> RecentItems => ResolveKeys(recentKeys).Where(MatchesActiveWorkspace).Where(item => !IsPanelExcludedItem(item)).Take(NavigationShellState.MaxRecentItems);
+    private MenuItem? WorkspaceDefaultItem
+        => AuthorizedItems.FirstOrDefault(item =>
+            !IsPanelExcludedItem(item)
+            && (ActiveWorkspace == NavigationMenuResolver.WorkspaceMore || NavigationMenuResolver.GetWorkspaceKey(item) == ActiveWorkspace));
     private string SidebarShellClass => $"desktop-workspace-shell {(isCollapsed ? "is-collapsed" : "")}";
     private string CollapseText
         => isCollapsed
@@ -219,6 +272,24 @@
         await ActiveWorkspaceChanged.InvokeAsync(NavigationMenuResolver.ResolveNavigationWorkspace(item, ActiveWorkspace));
         await SaveRecentAsync(item);
         NavigationManager.NavigateTo(item.Url!);
+    }
+
+    private async Task OpenFirstFavoriteAsync()
+    {
+        var item = FavoriteItems.FirstOrDefault();
+        if (item is not null)
+        {
+            await NavigateAsync(item);
+        }
+    }
+
+    private async Task OpenFirstRecentAsync()
+    {
+        var item = RecentItems.FirstOrDefault();
+        if (item is not null)
+        {
+            await NavigateAsync(item);
+        }
     }
 
     private async Task HandleWorkspaceRowClickAsync(NavigationMenuRow row)
@@ -385,6 +456,27 @@
     {
         recentKeys = NavigationShellState.AddRecent(recentKeys, NavigationMenuResolver.GetStorageKey(item));
         await TrySetLocalStorageItemAsync(NavigationShellState.RecentStorageKey, NavigationShellState.SerializeKeys(recentKeys));
+    }
+
+    private bool CanFavorite(MenuItem item)
+        => item.IsFavoriteCandidate && CanNavigate(item);
+
+    private bool IsFavorite(MenuItem item)
+        => favoriteKeys.Contains(NavigationMenuResolver.GetStorageKey(item), StringComparer.OrdinalIgnoreCase);
+
+    private string FavoriteTitle(MenuItem item)
+        => IsFavorite(item)
+            ? SharedDataService.SelectViewLang("Remove from favorites", "\u0625\u0632\u0627\u0644\u0629 \u0645\u0646 \u0627\u0644\u0645\u0641\u0636\u0644\u0629")
+            : SharedDataService.SelectViewLang("Add to favorites", "\u0625\u0636\u0627\u0641\u0629 \u0644\u0644\u0645\u0641\u0636\u0644\u0629");
+
+    private async Task ToggleFavoriteAsync(MenuItem item)
+    {
+        var key = NavigationMenuResolver.GetStorageKey(item);
+        favoriteKeys = IsFavorite(item)
+            ? favoriteKeys.Where(existingKey => !string.Equals(existingKey, key, StringComparison.OrdinalIgnoreCase)).ToList()
+            : favoriteKeys.Concat([key]).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        await TrySetLocalStorageItemAsync(NavigationShellState.FavoriteStorageKey, NavigationShellState.SerializeKeys(favoriteKeys));
     }
 
     private async Task ToggleCollapsedAsync()
