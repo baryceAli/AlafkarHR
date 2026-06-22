@@ -17,9 +17,13 @@ public interface ICartService
 
 public class CheckoutCartResultDto
 {
-    public Guid OrderIntakeId { get; set; }
+    public Guid? OrderIntakeId { get; set; }
+    public Guid? SalesOrderId { get; set; }
     public string Number { get; set; } = string.Empty;
+    public string? SalesOrderNumber { get; set; }
     public Guid PaymentId { get; set; }
     public PaymentStatus PaymentStatus { get; set; }
     public decimal CheckoutTotal { get; set; }
+    public Guid? AccountingDocumentId { get; set; }
+    public Guid? ZatcaEInvoiceId { get; set; }
 }

@@ -1,11 +1,21 @@
 using Orders.Contracts.Orders.Features.SubmitOrderIntake;
 using Payments.Contracts.Payments.Features.ConfirmCheckoutPayment;
 using Pricing.Contracts.Pricings.Features.ResolvePrice;
+using Sales.Contracts.Sales.Features.CreatePosDirectSale;
 
 namespace Cart.Carts.Features.CheckoutCart;
 
 public record CheckoutCartCommand(Guid CartId, PaymentMethodType PaymentMethod, string? PaymentReference, string? PaymentNotes, string? CouponCode = null) : ICommand<CheckoutCartResult>;
-public record CheckoutCartResult(Guid OrderIntakeId, string Number, Guid PaymentId, PaymentStatus PaymentStatus, decimal CheckoutTotal);
+public record CheckoutCartResult(
+    Guid? OrderIntakeId,
+    Guid? SalesOrderId,
+    string Number,
+    string? SalesOrderNumber,
+    Guid PaymentId,
+    PaymentStatus PaymentStatus,
+    decimal CheckoutTotal,
+    Guid? AccountingDocumentId,
+    Guid? ZatcaEInvoiceId);
 
 public class CheckoutCartHandler(CartDbContext dbContext, ISender sender)
     : ICommandHandler<CheckoutCartCommand, CheckoutCartResult>
@@ -62,9 +72,36 @@ public class CheckoutCartHandler(CartDbContext dbContext, ISender sender)
         if (!paymentResult.Payment.IsApproved)
             throw new Exception(paymentResult.Payment.DecisionReason ?? "Checkout payment was rejected.");
 
+        if (cart.Source == OrderIntakeSource.Pos)
+        {
+            var directSale = await sender.Send(new CreatePosDirectSaleCommand(cart.ToDto(), paymentResult.Payment), cancellationToken);
+            cart.Clear("checkout");
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            return new CheckoutCartResult(
+                null,
+                directSale.SalesOrderId,
+                directSale.SalesOrderNumber,
+                directSale.SalesOrderNumber,
+                paymentResult.Payment.PaymentId,
+                paymentResult.Payment.Status,
+                paymentResult.Payment.Amount,
+                directSale.AccountingDocumentId,
+                directSale.ZatcaEInvoiceId);
+        }
+
         var orderResult = await sender.Send(new SubmitOrderIntakeCommand(cart.ToOrderIntakeDto(paymentResult.Payment)), cancellationToken);
         cart.Clear("checkout");
         await dbContext.SaveChangesAsync(cancellationToken);
-        return new CheckoutCartResult(orderResult.Id, orderResult.Number, paymentResult.Payment.PaymentId, paymentResult.Payment.Status, paymentResult.Payment.Amount);
+        return new CheckoutCartResult(
+            orderResult.Id,
+            null,
+            orderResult.Number,
+            null,
+            paymentResult.Payment.PaymentId,
+            paymentResult.Payment.Status,
+            paymentResult.Payment.Amount,
+            null,
+            null);
     }
 }

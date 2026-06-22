@@ -15,7 +15,10 @@ public class PostInventoryStockInCommandHandler(ISender sender)
 {
     public async Task<PostInventoryStockResult> Handle(PostInventoryStockInCommand command, CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new StockInCommand(command.ToInventoryAggregateDto(MovementType.PurchaseReceipt)), cancellationToken);
+        var movementType = command.SourceDocumentType == "SalesReturn"
+            ? MovementType.CustomerReturn
+            : MovementType.PurchaseReceipt;
+        var result = await sender.Send(new StockInCommand(command.ToInventoryAggregateDto(movementType)), cancellationToken);
         if (command.TotalCost > 0)
         {
             await sender.Send(new CreateAndPostJournalEntryCommand(new CreateJournalEntryDto
@@ -41,7 +44,10 @@ public class PostInventoryStockOutCommandHandler(ISender sender)
 {
     public async Task<PostInventoryStockResult> Handle(PostInventoryStockOutCommand command, CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new StockOutCommand(command.ToInventoryAggregateDto(MovementType.SupplierReturn)), cancellationToken);
+        var movementType = command.SourceDocumentType == "SalesDeliveryNote"
+            ? MovementType.SalesShipment
+            : MovementType.SupplierReturn;
+        var result = await sender.Send(new StockOutCommand(command.ToInventoryAggregateDto(movementType)), cancellationToken);
         if (command.TotalCost > 0)
         {
             await sender.Send(new CreateAndPostJournalEntryCommand(new CreateJournalEntryDto

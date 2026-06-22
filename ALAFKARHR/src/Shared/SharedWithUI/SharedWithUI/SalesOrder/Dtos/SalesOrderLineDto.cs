@@ -20,6 +20,7 @@ public class SalesOrderLineDto
     public decimal DeliveredQuantity { get; set; }
 
     public decimal InvoicedQuantity { get; set; }
+    public decimal ReturnedQuantity { get; set; }
 
     public decimal UnitPrice { get; set; }
     public Guid UnitOfMeasureId { get; set; }
@@ -37,6 +38,7 @@ public class SalesOrderLineDto
     public string? Notes { get; set; }
     public decimal TotalAmount =>
         NetAmount + TaxAmount;
+    public SalesPricingSnapshotDto Pricing { get; set; } = new();
 
     //public bool IsFullyReserved =>
     //    ReservedQuantity >= Quantity;

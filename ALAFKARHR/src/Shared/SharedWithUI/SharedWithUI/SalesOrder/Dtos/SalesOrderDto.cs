@@ -11,10 +11,22 @@ public class SalesOrderDto
 
     public Guid? PriceListId { get; set; }
     public string? CouponCode { get; set; }
+    public string? SalespersonId { get; set; }
+    public Guid? SourceQuotationId { get; set; }
+    public SalesOrderSourceType SourceType { get; set; } = SalesOrderSourceType.Manual;
+    public Guid? SourceDocumentId { get; set; }
+    public string? SourceDocumentNumber { get; set; }
+    public Guid? PaymentId { get; set; }
+    public Guid? AccountingDocumentId { get; set; }
+    public Guid? ZatcaEInvoiceId { get; set; }
 
     public SalesOrderStatus Status { get; set; }
 
     public DateTime OrderDate { get; set; }
+    public DateTime? DeliveryDate { get; set; }
+    public string? CustomerPurchaseOrderNumber { get; set; }
+    public string? Notes { get; set; }
+    public string? Terms { get; set; }
 
     public decimal Subtotal { get; set; }
 
@@ -41,5 +53,6 @@ public class SalesOrderDto
     public DateTime? CompletedAt { get; set; }
 
     public Guid CompanyId { get; set; }
+    public SalesInvoicingPolicy InvoicingPolicy { get; set; } = SalesInvoicingPolicy.InvoiceDeliveredQuantity;
 
 }

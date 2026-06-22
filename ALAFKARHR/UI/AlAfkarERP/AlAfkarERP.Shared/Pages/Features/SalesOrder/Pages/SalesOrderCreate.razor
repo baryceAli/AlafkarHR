@@ -1,0 +1,391 @@
+@layout AdminLayout
+@page "/Sales/Orders/Create"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Customers.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Customers.Dtos
+@using SharedWithUI.Customers.Enums
+@using SharedWithUI.Permissions
+@using SharedWithUI.SalesOrder.Dtos
+@using SharedWithUI.SalesOrder.Enums
+
+@inject ISalesService SalesService
+@inject ICustomerService CustomerService
+@inject IProductService ProductService
+@inject ICurrencyService CurrencyService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+<section class="sales-page" dir="@SharedDataService.PageDirection">
+    @if (!CanCreate)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to create sales orders.", "لا تملك صلاحية إنشاء أوامر البيع.")</div>
+        return;
+    }
+
+    <PageHeader Title="@Text("New Sales Order", "أمر بيع جديد")"
+                Subtitle="@Text("Create a draft sales order for organization and back-office sales.", "إنشاء مسودة أمر بيع للمبيعات المكتبية والعملاء من المؤسسات.")"
+                Overline="@Text("Sales", "المبيعات")"
+                Icon="bi-file-earmark-plus">
+        <Actions>
+            <a class="btn btn-outline-secondary" href="/Sales/Orders">
+                <i class="bi bi-arrow-left"></i> @Text("Back", "رجوع")
+            </a>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <div class="erp-loading py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2">@Text("Loading sales order form...", "جاري تحميل نموذج أمر البيع...")</div>
+        </div>
+    }
+    else
+    {
+        <EditForm Model="order" OnValidSubmit="SaveAsync">
+            <DataAnnotationsValidator />
+
+            <div class="row g-3">
+                <div class="col-xl-8">
+                    <AppCard Title="@Text("Order Details", "تفاصيل الأمر")" CssClass="mb-3">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Order number", "رقم الأمر")</label>
+                                <input class="form-control" @bind="order.Number" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Order date", "تاريخ الأمر")</label>
+                                <InputDate class="form-control" @bind-Value="order.OrderDate" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Delivery date", "تاريخ التسليم")</label>
+                                <InputDate class="form-control" @bind-Value="order.DeliveryDate" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Customer", "العميل")</label>
+                                <select class="form-select" @onchange="OnCustomerChanged">
+                                    <option value="">@Text("Select customer", "اختر العميل")</option>
+                                    @foreach (var customer in customers)
+                                    {
+                                        <option value="@customer.Id" selected="@(customer.Id == order.CustomerId)">@customer.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Customer purchase order", "أمر شراء العميل")</label>
+                                <input class="form-control" @bind="order.CustomerPurchaseOrderNumber" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                                <textarea class="form-control" rows="3" @bind="order.Notes"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Terms", "الشروط")</label>
+                                <textarea class="form-control" rows="3" @bind="order.Terms"></textarea>
+                            </div>
+                        </div>
+                    </AppCard>
+
+                    <AppCard Title="@Text("Order Lines", "أصناف الأمر")">
+                        <div class="d-flex justify-content-end mb-2">
+                            <button class="btn btn-outline-primary btn-sm" type="button" @onclick="AddLine">
+                                <i class="bi bi-plus-lg"></i> @Text("Add line", "إضافة صنف")
+                            </button>
+                        </div>
+
+                        <div class="erp-table-wrap">
+                            <table class="table erp-table align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>@Text("SKU", "الرمز")</th>
+                                        <th>@Text("Qty", "الكمية")</th>
+                                        <th>@Text("Unit price", "سعر الوحدة")</th>
+                                        <th>@Text("Discount", "الخصم")</th>
+                                        <th>@Text("Tax", "الضريبة")</th>
+                                        <th>@Text("Total", "الإجمالي")</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var line in order.Lines)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <select class="form-select form-select-sm" @onchange="e => SelectSku(line, e.Value?.ToString())">
+                                                    <option value="">@Text("Select SKU", "اختر الرمز")</option>
+                                                    @foreach (var sku in skus)
+                                                    {
+                                                        <option value="@sku.Id" selected="@(sku.Id == line.ProductSkuId)">@Text(sku.NameEng, sku.Name) - @sku.SkuCode</option>
+                                                    }
+                                                </select>
+                                                @if (!string.IsNullOrWhiteSpace(line.ProductName))
+                                                {
+                                                    <div class="text-muted small mt-1">@Text(line.ProductNameEng, line.ProductName)</div>
+                                                }
+                                            </td>
+                                            <td><input class="form-control form-control-sm" type="number" min="0.01" step="0.01" @bind="line.Quantity" @bind:after="Recalculate" /></td>
+                                            <td>@Money(line.UnitPrice)</td>
+                                            <td>@($"{line.DiscountRate:N2}%")</td>
+                                            <td>@($"{line.TaxRate:N2}%")</td>
+                                            <td class="fw-semibold">@Money(line.TotalAmount)</td>
+                                            <td class="text-end">
+                                                <button class="btn btn-sm btn-outline-danger" type="button" @onclick="() => RemoveLine(line)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </AppCard>
+                </div>
+
+                <div class="col-xl-4">
+                    <AppCard Title="@Text("Quick Customer", "عميل سريع")" CssClass="mb-3">
+                        <div class="mb-2">
+                            <label class="form-label">@Text("Organization name", "اسم المؤسسة")</label>
+                            <input class="form-control" @bind="quickCustomer.Name" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">@Text("Commercial name", "الاسم التجاري")</label>
+                            <input class="form-control" @bind="quickCustomer.CommercialName" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">@Text("VAT number", "الرقم الضريبي")</label>
+                            <input class="form-control" @bind="quickCustomer.VatNumber" />
+                        </div>
+                        <button class="btn btn-outline-primary w-100" type="button" @onclick="CreateCustomerAsync" disabled="@isSaving">
+                            <i class="bi bi-person-plus"></i> @Text("Create and select", "إنشاء واختيار")
+                        </button>
+                    </AppCard>
+
+                    <AppCard Title="@Text("Totals", "الإجماليات")">
+                        <div class="summary-row"><span>@Text("Subtotal", "المجموع")</span><strong>@Money(order.Subtotal)</strong></div>
+                        <div class="summary-row"><span>@Text("Tax", "الضريبة")</span><strong>@Money(order.TaxAmount)</strong></div>
+                        <div class="summary-row summary-total"><span>@Text("Total", "الإجمالي")</span><strong>@Money(order.TotalAmount)</strong></div>
+                        <button class="btn btn-primary w-100 mt-3" type="submit" disabled="@isSaving">
+                            <i class="bi bi-save"></i> @Text("Save Draft", "حفظ كمسودة")
+                        </button>
+                    </AppCard>
+                </div>
+            </div>
+        </EditForm>
+    }
+</section>
+
+@code {
+    private bool CanCreate;
+    private bool isLoading;
+    private bool isSaving;
+    private Guid companyId;
+    private string currencyCode = string.Empty;
+    private CreateManualSalesOrderDto order = new();
+    private CustomerDto quickCustomer = NewQuickCustomer();
+    private List<CustomerDto> customers = [];
+    private List<ProductDto> products = [];
+    private List<ProductSkuDto> skus = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        CanCreate = authState.User.Claims.Any(c => c.Value == PermissionList.SalesOrderPermissions.Create);
+        if (!authState.User.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+
+        order = new CreateManualSalesOrderDto
+        {
+            Number = $"SO-{DateTime.UtcNow:yyyyMMddHHmmss}",
+            CompanyId = companyId,
+            OrderDate = DateTime.Today,
+            DeliveryDate = DateTime.Today,
+            SourceType = SalesOrderSourceType.Manual,
+            Lines = []
+        };
+
+        if (CanCreate)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var customerTask = CustomerService.GetByCompany(companyId, 0, 1000);
+        var productTask = ProductService.GetPricedByCompanyAsync(companyId, null, 0, 1000);
+        var currencyTask = CurrencyService.GetAsync(companyId, 0, 1000);
+
+        await Task.WhenAll(customerTask, productTask, currencyTask);
+
+        customers = customerTask.Result.IsSuccess ? customerTask.Result.Data?.Data.ToList() ?? [] : [];
+        products = productTask.Result.IsSuccess ? productTask.Result.Data?.Data.ToList() ?? [] : [];
+        skus = products.SelectMany(x => x.Skus).OrderBy(x => Text(x.NameEng, x.Name)).ToList();
+        var currencies = currencyTask.Result.IsSuccess ? currencyTask.Result.Data?.Data.ToList() ?? [] : [];
+        currencyCode = currencies.FirstOrDefault(c => c.IsDefault)?.Code ?? currencies.FirstOrDefault()?.Code ?? string.Empty;
+        AddLine();
+        isLoading = false;
+    }
+
+    private async Task OnCustomerChanged(ChangeEventArgs args)
+    {
+        if (Guid.TryParse(args.Value?.ToString(), out var id))
+        {
+            order.CustomerId = id;
+            var productResult = await ProductService.GetPricedByCompanyAsync(companyId, id, 0, 1000, order.PriceListId);
+            products = productResult.IsSuccess ? productResult.Data?.Data.ToList() ?? [] : products;
+            skus = products.SelectMany(x => x.Skus).OrderBy(x => Text(x.NameEng, x.Name)).ToList();
+        }
+        else
+        {
+            order.CustomerId = Guid.Empty;
+        }
+    }
+
+    private void AddLine()
+    {
+        order.Lines.Add(new SalesOrderLineDto { Quantity = 1 });
+        Recalculate();
+    }
+
+    private void RemoveLine(SalesOrderLineDto line)
+    {
+        order.Lines.Remove(line);
+        Recalculate();
+    }
+
+    private void SelectSku(SalesOrderLineDto line, string? value)
+    {
+        if (!Guid.TryParse(value, out var skuId))
+            return;
+
+        var sku = skus.FirstOrDefault(x => x.Id == skuId);
+        if (sku is null)
+            return;
+
+        line.ProductId = sku.ProductId;
+        line.ProductSkuId = sku.Id;
+        line.ProductName = sku.Name;
+        line.ProductNameEng = sku.NameEng;
+        line.SkuCode = sku.SkuCode;
+        line.UnitOfMeasureId = sku.UnitId ?? Guid.Empty;
+        line.UnitPrice = sku.Price;
+        line.DiscountRate = sku.DiscountRate;
+        line.TaxRate = sku.TaxRate;
+        Recalculate();
+    }
+
+    private async Task CreateCustomerAsync()
+    {
+        if (string.IsNullOrWhiteSpace(quickCustomer.Name))
+        {
+            ToastService.ShowWarning(Text("Enter the organization name.", "أدخل اسم المؤسسة."));
+            return;
+        }
+
+        isSaving = true;
+        quickCustomer.CompanyId = companyId;
+        var result = await CustomerService.CreateAsync(quickCustomer);
+        if (result.IsSuccess && result.Data is not null)
+        {
+            ToastService.ShowSuccess(Text("Customer created.", "تم إنشاء العميل."));
+            var customerResult = await CustomerService.GetByCompany(companyId, 0, 1000);
+            customers = customerResult.IsSuccess ? customerResult.Data?.Data.ToList() ?? [] : customers;
+            order.CustomerId = result.Data.Id;
+            quickCustomer = NewQuickCustomer();
+            await OnCustomerChanged(new ChangeEventArgs { Value = order.CustomerId.ToString() });
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to create customer.", "تعذر إنشاء العميل."));
+        }
+        isSaving = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (order.CustomerId == Guid.Empty)
+        {
+            ToastService.ShowWarning(Text("Select a customer.", "اختر العميل."));
+            return;
+        }
+
+        order.Lines = order.Lines.Where(x => x.ProductSkuId != Guid.Empty && x.Quantity > 0).ToList();
+        if (order.Lines.Count == 0)
+        {
+            ToastService.ShowWarning(Text("Add at least one SKU line.", "أضف صنفا واحدا على الأقل."));
+            AddLine();
+            return;
+        }
+
+        Recalculate();
+        isSaving = true;
+        var result = await SalesService.CreateManualOrderAsync(order);
+        if (result.IsSuccess && result.Data is not null)
+        {
+            ToastService.ShowSuccess(Text("Sales order draft created.", "تم إنشاء مسودة أمر البيع."));
+            NavigationManager.NavigateTo($"/Sales/Orders/{result.Data.Id}");
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to create sales order.", "تعذر إنشاء أمر البيع."));
+        }
+        isSaving = false;
+    }
+
+    private void Recalculate()
+    {
+        order.Subtotal = order.Lines.Sum(x => x.NetAmount);
+        order.TaxAmount = order.Lines.Sum(x => x.TaxAmount);
+        order.TotalAmount = order.Subtotal + order.TaxAmount;
+    }
+
+    private static CustomerDto NewQuickCustomer() => new()
+    {
+        Status = CustomerStatus.Active,
+        PaymentTerm = PaymentTermType.Cash,
+        CreditStatus = CreditStatus.Good,
+        Addresses = [],
+        Contacts = []
+    };
+
+    private string Money(decimal value) => string.IsNullOrWhiteSpace(currencyCode) ? $"{value:N2}" : $"{value:N2} {currencyCode}";
+    private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
+
+<style>
+    .summary-row {
+        align-items: center;
+        border-block-end: 1px solid var(--erp-border);
+        display: flex;
+        justify-content: space-between;
+        padding-block: .5rem;
+    }
+
+    .summary-total {
+        border-block-end: 0;
+        font-size: 1.05rem;
+    }
+</style>

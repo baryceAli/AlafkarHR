@@ -1,0 +1,162 @@
+@layout AdminLayout
+@page "/Sales/Quotations"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.SalesOrder.Dtos
+@using SharedWithUI.SalesOrder.Enums
+
+@inject ISalesService SalesService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<section class="sales-page" dir="@SharedDataService.PageDirection">
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        return;
+    }
+
+    <PageHeader Title="@Text("Sales Quotations", "عروض أسعار المبيعات")"
+                Subtitle="@Text("Track quotation status, conversion, and open quotation value.", "متابعة حالة عروض الأسعار والتحويل والقيمة المفتوحة.")"
+                Overline="@Text("Sales", "المبيعات")"
+                Icon="bi-file-earmark-text">
+        <Actions>
+            <a class="btn btn-outline-secondary" href="/Sales/Orders">
+                <i class="bi bi-list-check"></i> @Text("Sales Orders", "أوامر البيع")
+            </a>
+        </Actions>
+    </PageHeader>
+
+    <AppCard Title="@Text("Quotations", "عروض الأسعار")">
+        @if (isLoading)
+        {
+            <div class="erp-loading py-4"><div class="spinner-border text-primary" role="status"></div></div>
+        }
+        else if (!quotations.Any())
+        {
+            <EmptyState Title="@Text("No quotations", "لا توجد عروض أسعار")"
+                        Message="@Text("Created quotations will appear here.", "ستظهر عروض الأسعار المنشأة هنا.")"
+                        Icon="bi-file-earmark-text" />
+        }
+        else
+        {
+            <div class="erp-table-wrap">
+                <table class="table erp-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>@Text("Number", "الرقم")</th>
+                            <th>@Text("Status", "الحالة")</th>
+                            <th>@Text("Date", "التاريخ")</th>
+                            <th>@Text("Valid until", "صالح حتى")</th>
+                            <th>@Text("Total", "الإجمالي")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var quotation in quotations)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@quotation.Number</td>
+                                <td><span class="badge rounded-pill @StatusBadge(quotation.Status)">@quotation.Status</span></td>
+                                <td>@quotation.QuotationDate.ToString("yyyy-MM-dd")</td>
+                                <td>@(quotation.ValidUntil?.ToString("yyyy-MM-dd") ?? "-")</td>
+                                <td>@quotation.TotalAmount.ToString("N2")</td>
+                                <td class="text-end">
+                                    @if (quotation.Status == SalesQuotationStatus.Draft && CanSend)
+                                    {
+                                        <button class="btn btn-sm btn-outline-secondary" @onclick='() => ActionAsync(quotation.Id, "send")'>@Text("Send", "إرسال")</button>
+                                    }
+                                    @if (quotation.Status is SalesQuotationStatus.Draft or SalesQuotationStatus.Sent && CanConvert)
+                                    {
+                                        <button class="btn btn-sm btn-primary" @onclick="() => ConvertAsync(quotation.Id)">
+                                            <i class="bi bi-arrow-right-circle"></i> @Text("Convert", "تحويل")
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </AppCard>
+</section>
+
+@code {
+    private bool CanView;
+    private bool CanSend;
+    private bool CanConvert;
+    private bool isLoading;
+    private Guid companyId;
+    private List<SalesQuotationDto> quotations = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var permissions = authState.User.Claims.Select(c => c.Value).ToHashSet();
+        CanView = permissions.Contains(PermissionList.SalesQuotationPermissions.View);
+        CanSend = permissions.Contains(PermissionList.SalesQuotationPermissions.Send);
+        CanConvert = permissions.Contains(PermissionList.SalesQuotationPermissions.Convert);
+        if (!authState.User.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+        if (CanView)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await SalesService.GetQuotationsByCompanyAsync(companyId, 0, 50);
+        quotations = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
+        isLoading = false;
+    }
+
+    private async Task ActionAsync(Guid id, string action)
+    {
+        var result = await SalesService.QuotationActionAsync(id, action);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Quotation updated.", "تم تحديث عرض السعر."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Action failed.", "تعذر تنفيذ الإجراء."));
+        }
+    }
+
+    private async Task ConvertAsync(Guid id)
+    {
+        var result = await SalesService.ConvertQuotationAsync(id);
+        if (result.IsSuccess && result.Data.HasValue)
+            NavigationManager.NavigateTo($"/Sales/Orders/{result.Data.Value}");
+        else
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to convert quotation.", "تعذر تحويل عرض السعر."));
+    }
+
+    private static string StatusBadge(SalesQuotationStatus status) => status switch
+    {
+        SalesQuotationStatus.ConvertedToSalesOrder or SalesQuotationStatus.Accepted => "text-bg-success",
+        SalesQuotationStatus.Rejected or SalesQuotationStatus.Cancelled or SalesQuotationStatus.Expired => "text-bg-danger",
+        SalesQuotationStatus.Sent => "text-bg-primary",
+        _ => "text-bg-secondary"
+    };
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

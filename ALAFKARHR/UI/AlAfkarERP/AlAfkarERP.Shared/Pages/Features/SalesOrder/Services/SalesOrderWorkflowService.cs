@@ -14,6 +14,12 @@ public class SalesOrderWorkflowService : BaseApiService, ISalesOrderWorkflowServ
         _path = $"api/{apiConfig.Version}";
     }
 
+    public async Task<ApiResult<bool>> ConfirmAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/SalesOrders/Order/{id}/Confirm");
+        return await SendAsync<bool>(request, "isSuccess");
+    }
+
     public async Task<ApiResult<bool>> DeliverAsync(SalesOrderDto order)
     {
         var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/SalesOrders/Order/Deliver")

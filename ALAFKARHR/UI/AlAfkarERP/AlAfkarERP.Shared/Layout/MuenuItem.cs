@@ -63,6 +63,14 @@ public class MenuItem
                 },
                 new MenuItem
                 {
+                    TextEn = "Quotations",
+                    TextAr = "عروض أسعار المبيعات",
+                    Icon = "bi-file-earmark-text",
+                    Url = "/Sales/Quotations",
+                    PermissionPolicy = PermissionList.SalesQuotationPermissions.View
+                },
+                new MenuItem
+                {
                     TextEn = "Order Intakes",
                     TextAr = "طلبات البيع",
                     Icon = "bi-card-checklist",
@@ -76,6 +84,30 @@ public class MenuItem
                     Icon = "bi-list-check",
                     Url = "/Sales/Orders",
                     PermissionPolicy = PermissionList.SalesOrderPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Delivery Notes",
+                    TextAr = "إشعارات التسليم",
+                    Icon = "bi-truck",
+                    Url = "/Sales/DeliveryNotes",
+                    PermissionPolicy = PermissionList.SalesDeliveryNotePermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Returns / Credit Notes",
+                    TextAr = "المرتجعات / الإشعارات الدائنة",
+                    Icon = "bi-arrow-counterclockwise",
+                    Url = "/Sales/Returns",
+                    PermissionPolicy = PermissionList.SalesReturnPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Sales Reports",
+                    TextAr = "تقارير المبيعات",
+                    Icon = "bi-bar-chart-line",
+                    Url = "/Sales/Dashboard",
+                    PermissionPolicy = PermissionList.SalesReportPermissions.View
                 },
                 new MenuItem
                 {

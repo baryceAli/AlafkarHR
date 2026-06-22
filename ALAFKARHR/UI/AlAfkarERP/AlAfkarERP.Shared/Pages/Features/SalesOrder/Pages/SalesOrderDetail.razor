@@ -92,13 +92,19 @@
                     <div class="summary-row summary-total"><span>@Text("Total", "الإجمالي")</span><strong>@Money(order.TotalAmount)</strong></div>
                 </AppCard>
 
-                @if (CanEdit && !order.IsCancelled && !order.IsCompleted)
+                @if ((CanEdit || CanConfirm) && !order.IsCancelled && !order.IsCompleted)
                 {
                     <AppCard Title="@Text("Workflow", "سير العمل")">
-                        <button class="btn btn-outline-primary w-100 mb-2" @onclick="DeliverAsync" disabled="@isSaving">
+                        @if (order.Status == SalesOrderStatus.Draft && CanConfirm)
+                        {
+                            <button class="btn btn-primary w-100 mb-2" @onclick="ConfirmAsync" disabled="@isSaving">
+                                <i class="bi bi-check2-circle"></i> @Text("Confirm order", "تأكيد الأمر")
+                            </button>
+                        }
+                        <button class="btn btn-outline-primary w-100 mb-2" @onclick="DeliverAsync" disabled="@(isSaving || order.Status == SalesOrderStatus.Draft || !CanEdit)">
                             <i class="bi bi-truck"></i> @Text("Mark delivered", "تحديد كمسلم")
                         </button>
-                        <button class="btn btn-outline-success w-100 mb-2" @onclick="InvoiceAsync" disabled="@isSaving">
+                        <button class="btn btn-outline-success w-100 mb-2" @onclick="InvoiceAsync" disabled="@(isSaving || order.Status == SalesOrderStatus.Draft || !CanEdit)">
                             <i class="bi bi-receipt"></i> @Text("Mark invoiced", "تحديد كمفوتر")
                         </button>
                         <label class="form-label">@Text("Cancel reason", "سبب الإلغاء")</label>
@@ -118,6 +124,7 @@
 
     private bool CanView;
     private bool CanEdit;
+    private bool CanConfirm;
     private bool isLoading;
     private bool isSaving;
     private string cancelReason = string.Empty;
@@ -131,6 +138,7 @@
         var permissions = authState.User.Claims.Select(c => c.Value).ToHashSet();
         CanView = permissions.Contains(PermissionList.SalesOrderPermissions.View);
         CanEdit = permissions.Contains(PermissionList.SalesOrderPermissions.Edit);
+        CanConfirm = permissions.Contains(PermissionList.SalesOrderPermissions.Confirm);
         if (!authState.User.Identity?.IsAuthenticated ?? true)
         {
             NavigationManager.NavigateTo("/login", true);
@@ -157,6 +165,8 @@
         var currencies = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
         currencyCode = currencies.FirstOrDefault(c => c.IsDefault)?.Code ?? currencies.FirstOrDefault()?.Code ?? string.Empty;
     }
+
+    private async Task ConfirmAsync() => await RunWorkflowAsync(() => WorkflowService.ConfirmAsync(Id), Text("Order confirmed.", "تم تأكيد الأمر."));
 
     private async Task DeliverAsync() => await RunWorkflowAsync(() => WorkflowService.DeliverAsync(order!), Text("Order delivered.", "تم تحديد الأمر كمسلم."));
 

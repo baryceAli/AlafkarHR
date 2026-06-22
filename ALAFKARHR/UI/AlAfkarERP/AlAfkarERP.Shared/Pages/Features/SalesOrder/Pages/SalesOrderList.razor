@@ -28,6 +28,12 @@
                 Overline="@Text("Sales", "المبيعات")"
                 Icon="bi-list-check">
         <Actions>
+            @if (CanCreate)
+            {
+                <a class="btn btn-primary" href="/Sales/Orders/Create">
+                    <i class="bi bi-plus-lg"></i> @Text("New Sales Order", "أمر بيع جديد")
+                </a>
+            }
             <a class="btn btn-outline-secondary" href="/Sales/Dashboard">
                 <i class="bi bi-graph-up-arrow"></i> @Text("Dashboard", "لوحة المبيعات")
             </a>
@@ -95,6 +101,7 @@
 
 @code {
     private bool CanView;
+    private bool CanCreate;
     private bool isLoading;
     private Guid companyId;
     private string currencyCode = string.Empty;
@@ -114,6 +121,7 @@
             NavigationManager.NavigateTo("/login", true);
             return;
         }
+        CanCreate = authState.User.Claims.Any(c => c.Value == PermissionList.SalesOrderPermissions.Create);
         if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
 
         {

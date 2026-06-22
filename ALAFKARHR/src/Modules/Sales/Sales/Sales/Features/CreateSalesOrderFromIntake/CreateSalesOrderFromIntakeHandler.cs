@@ -1,6 +1,7 @@
 using Customers.Contracts.Customers.Features.GetCustomerSalesEligibility;
 using Sales.Contracts.Sales.Features.CreateSalesOrderFromIntake;
 using SalesOrder.Orders.Features.CreateOrder;
+using SharedWithUI.Payments.Enums;
 
 namespace Sales.Sales.Features.CreateSalesOrderFromIntake;
 
@@ -17,7 +18,8 @@ public class CreateSalesOrderFromIntakeHandler(ISender sender)
             new GetCustomerSalesEligibilityQuery(request.Order.CustomerId.Value, request.Order.CompanyId, requestedAmount),
             cancellationToken);
 
-        if (!eligibility.Exists || !eligibility.IsActive || !eligibility.IsCreditAllowed)
+        var paymentReceived = request.Order.PaymentStatus == PaymentStatus.Received;
+        if (!eligibility.Exists || !eligibility.IsActive || (!paymentReceived && !eligibility.IsCreditAllowed))
             throw new Exception(eligibility.BlockReason ?? "Customer is not eligible for sales.");
 
         var salesOrder = new SalesOrderDto
@@ -25,6 +27,10 @@ public class CreateSalesOrderFromIntakeHandler(ISender sender)
             Number = $"SO-{request.Order.Number}",
             CustomerId = request.Order.CustomerId.Value,
             CompanyId = request.Order.CompanyId,
+            SourceType = SalesOrderSourceType.OrderIntakeConversion,
+            SourceDocumentId = request.Order.Id,
+            SourceDocumentNumber = request.Order.Number,
+            PaymentId = request.Order.PaymentId,
             Lines = request.Order.Lines.Select(x => new SalesOrderLineDto
             {
                 ProductId = x.ProductId,
