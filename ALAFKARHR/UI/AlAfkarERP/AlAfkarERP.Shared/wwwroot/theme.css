@@ -2234,6 +2234,257 @@ body {
     border-color: var(--erp-border);
 }
 
+.erp-segmented-control {
+    align-items: center;
+    background: var(--erp-surface-level-0, var(--erp-bg));
+    border: 1px solid var(--erp-border);
+    border-radius: var(--erp-radius-md, .375rem);
+    display: inline-flex;
+    gap: var(--erp-space-1);
+    padding: var(--erp-space-1);
+}
+
+.erp-segmented-button {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: var(--erp-radius-sm, .125rem);
+    color: var(--erp-muted);
+    display: inline-flex;
+    font-size: .875rem;
+    font-weight: 600;
+    gap: var(--erp-space-2);
+    min-height: 32px;
+    padding-block: var(--erp-space-1);
+    padding-inline: var(--erp-space-3);
+}
+
+.erp-segmented-button:hover,
+.erp-segmented-button:focus-visible {
+    background: color-mix(in srgb, var(--erp-primary) 8%, transparent);
+    color: var(--erp-text);
+}
+
+.erp-segmented-button.active {
+    background: var(--erp-surface);
+    color: var(--erp-primary);
+    box-shadow: var(--erp-shadow-sm);
+}
+
+.account-view-actions,
+.account-tree-toolbar {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--erp-space-2);
+    justify-content: space-between;
+}
+
+.account-tree-toolbar {
+    margin-bottom: var(--erp-space-3);
+}
+
+.account-tree-wrap {
+    border: 1px solid var(--erp-border);
+    border-radius: var(--erp-radius-lg, .5rem);
+    overflow: auto;
+}
+
+.account-tree-table {
+    margin-bottom: 0;
+}
+
+.account-tree-table th,
+.account-tree-table td {
+    white-space: nowrap;
+}
+
+.account-tree-row:hover {
+    background: color-mix(in srgb, var(--erp-primary) 5%, transparent);
+}
+
+.account-tree-node {
+    align-items: center;
+    display: flex;
+    gap: var(--erp-space-2);
+    min-width: 280px;
+    padding-inline-start: calc(var(--account-tree-depth, 0) * 28px);
+}
+
+.account-tree-toggle {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: var(--erp-muted);
+    display: inline-flex;
+    height: 28px;
+    justify-content: center;
+    padding: 0;
+    width: 28px;
+}
+
+.account-tree-toggle:hover,
+.account-tree-toggle:focus-visible {
+    color: var(--erp-primary);
+}
+
+.account-tree-toggle-placeholder {
+    flex: 0 0 28px;
+}
+
+.account-tree-icon {
+    color: var(--erp-muted);
+    font-size: 1rem;
+}
+
+.account-tree-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.account-tree-label span {
+    color: var(--erp-muted);
+    font-family: var(--erp-font-mono, monospace);
+    font-size: .75rem;
+}
+
+.account-actions-col {
+    inline-size: 112px;
+}
+
+.account-row-actions {
+    align-items: center;
+    display: inline-flex;
+    gap: var(--erp-space-1);
+    justify-content: flex-end;
+    min-inline-size: max-content;
+}
+
+.account-inline-row > td {
+    background: var(--erp-surface-muted);
+    white-space: normal;
+}
+
+.account-inline-heading {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--erp-space-2);
+    justify-content: space-between;
+}
+
+.account-tree-inline-editor {
+    inline-size: calc(100% - (var(--account-tree-depth, 0) * 28px));
+    margin-inline-start: calc(var(--account-tree-depth, 0) * 28px);
+    max-inline-size: 100%;
+    min-inline-size: 0;
+}
+
+.account-tree-inline-grid {
+    align-items: end;
+    display: grid;
+    gap: var(--erp-space-2);
+    grid-template-columns: minmax(84px, 104px) minmax(140px, .9fr) minmax(140px, .9fr) max-content max-content;
+}
+
+.account-tree-inline-grid > div {
+    min-inline-size: 0;
+}
+
+.account-tree-inline-grid .form-label {
+    margin-bottom: var(--erp-space-1);
+}
+
+.account-tree-inline-option {
+    align-items: center;
+    display: flex;
+    justify-self: start;
+    min-block-size: 31px;
+    min-inline-size: max-content;
+}
+
+.account-tree-inline-grid > .account-row-actions {
+    justify-self: end;
+}
+
+.account-tree-inline-editor .account-code-input {
+    max-inline-size: 104px;
+}
+
+.account-tree-inline-editor .account-name-input {
+    min-inline-size: 0;
+}
+
+.account-inline-check {
+    align-items: center;
+    display: flex;
+    gap: var(--erp-space-1);
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.account-tree-inline-editor .account-inline-check {
+    display: inline-flex;
+    gap: var(--erp-space-2);
+    margin: 0;
+    padding: 0;
+}
+
+.account-tree-inline-editor .account-inline-check .form-check-input {
+    flex: 0 0 auto;
+    float: none;
+    margin: 0;
+    margin-inline: 0;
+    position: static;
+}
+
+.account-tree-inline-editor .account-inline-check .form-check-label {
+    cursor: pointer;
+    line-height: 1.2;
+    margin: 0;
+}
+
+[dir="rtl"] .account-tree-inline-editor .account-inline-check {
+    flex-direction: row;
+}
+
+@media (max-width: 1200px) {
+    .account-tree-inline-grid {
+        grid-template-columns: minmax(84px, 104px) minmax(140px, 1fr) minmax(140px, 1fr);
+    }
+
+    .account-tree-inline-option {
+        grid-column: 1 / 2;
+    }
+
+    .account-tree-inline-grid > .account-row-actions {
+        grid-column: 2 / 4;
+    }
+}
+
+@media (max-width: 768px) {
+    .account-tree-inline-grid {
+        grid-template-columns: minmax(160px, 1fr);
+    }
+
+    .account-tree-inline-grid > div:nth-child(3),
+    .account-tree-inline-option,
+    .account-tree-inline-grid > .account-row-actions {
+        grid-column: 1;
+    }
+
+    .account-tree-inline-grid > .account-row-actions {
+        justify-self: stretch;
+    }
+
+    .account-tree-inline-editor {
+        inline-size: 100%;
+        margin-inline-start: 0;
+    }
+}
+
 .erp-pagination {
     align-items: center;
     border-top: 1px solid var(--erp-border);

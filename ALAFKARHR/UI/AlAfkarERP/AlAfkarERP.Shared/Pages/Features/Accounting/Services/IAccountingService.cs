@@ -16,6 +16,7 @@ public interface IAccountingService
     Task<ApiResult<ApplyAccountingTemplateResultDto>> ApplyTemplateAsync(ApplyAccountingTemplateDto setup);
     Task<ApiResult<PaginatedResult<AccountDto>>> GetAccountsAsync(Guid companyId, int pageIndex, int pageSize, string? searchText);
     Task<ApiResult<Guid>> CreateAccountAsync(AccountDto account);
+    Task<ApiResult<Guid>> SaveAccountAsync(AccountDto account);
     Task<ApiResult<List<FiscalPeriodDto>>> GetFiscalPeriodsAsync(Guid companyId);
     Task<ApiResult<Guid>> CreateFiscalPeriodAsync(FiscalPeriodDto period);
     Task<ApiResult<List<TaxCodeDto>>> GetTaxCodesAsync(Guid companyId);

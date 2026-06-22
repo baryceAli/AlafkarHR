@@ -32,7 +32,7 @@ public class Account : Aggregate<Guid>
             ParentAccountId = dto.ParentAccountId,
             IsPostingAccount = dto.IsPostingAccount,
             IsSystemAccount = dto.IsSystemAccount,
-            IsActive = true,
+            IsActive = dto.IsActive,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = userId
         };
@@ -51,6 +51,7 @@ public class Account : Aggregate<Guid>
         TemplateKey = string.IsNullOrWhiteSpace(dto.TemplateKey) ? null : dto.TemplateKey.Trim();
         ParentAccountId = dto.ParentAccountId;
         IsPostingAccount = dto.IsPostingAccount;
+        IsActive = dto.IsActive;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = userId;
     }

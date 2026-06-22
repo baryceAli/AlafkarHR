@@ -53,6 +53,13 @@ public class AccountingEndpoints : ICarterModule
             Results.Created($"{baseRoute}/accounts", await sender.Send(new CreateAccountCommand(account))))
             .RequireAuthorization(PermissionList.AccountPermissions.Create);
 
+        app.MapPut($"{baseRoute}/accounts/{{id:guid}}", async (Guid id, AccountDto account, ISender sender) =>
+        {
+            account.Id = id;
+            return Results.Ok(await sender.Send(new UpdateAccountCommand(id, account)));
+        })
+            .RequireAuthorization(PermissionList.AccountPermissions.Edit);
+
         app.MapGet($"{baseRoute}/fiscal-periods", async (Guid companyId, ISender sender) =>
             Results.Ok(await sender.Send(new GetFiscalPeriodsQuery(companyId))))
             .RequireAuthorization(PermissionList.FiscalPeriodPermissions.View);

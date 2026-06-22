@@ -3,6 +3,7 @@
 
 @using AlAfkarERP.Shared.Pages.Features.Accounting.Services
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
 @using SharedWithUI.Accounting.Dtos
 @using SharedWithUI.Accounting.Enums
 @using SharedWithUI.Permissions
@@ -12,6 +13,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 @inject ToastService ToastService
+@inject IJSRuntime JSRuntime
 
 <div class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@T("Chart of Accounts", "دليل الحسابات")"
@@ -40,6 +42,19 @@
                     </button>
                 }
             </div>
+            <div class="account-view-actions mb-3">
+                <div class="erp-segmented-control" role="group" aria-label="@T("Account view", "عرض الحسابات")">
+                    <button class="erp-segmented-button @(currentView == AccountViewMode.Table ? "active" : string.Empty)" type="button" @onclick="() => SetViewAsync(AccountViewMode.Table)">
+                        <i class="bi bi-table"></i>
+                        <span>@T("Table", "جدول")</span>
+                    </button>
+                    <button class="erp-segmented-button @(currentView == AccountViewMode.Tree ? "active" : string.Empty)" type="button" @onclick="() => SetViewAsync(AccountViewMode.Tree)">
+                        <i class="bi bi-diagram-3"></i>
+                        <span>@T("Tree", "شجرة")</span>
+                    </button>
+                </div>
+            </div>
+
             <div class="row g-2 mb-3">
                 <div class="col-12 col-md-4">
                     <select class="form-select" @bind="selectedType">
@@ -74,6 +89,140 @@
             }
             else
             {
+                @if (currentView == AccountViewMode.Tree)
+                {
+                    <div class="account-tree-toolbar">
+                        <div class="text-muted small">@T("Hierarchy view", "عرض شجري")</div>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" type="button" @onclick="ExpandAll">
+                                <i class="bi bi-arrows-expand"></i>
+                                @T("Expand all", "توسيع الكل")
+                            </button>
+                            <button class="btn btn-outline-secondary" type="button" @onclick="CollapseAll">
+                                <i class="bi bi-arrows-collapse"></i>
+                                @T("Collapse all", "طي الكل")
+                            </button>
+                        </div>
+                    </div>
+                    <div class="erp-table-wrap account-tree-wrap">
+                        <table class="table align-middle erp-table account-tree-table">
+                            <thead>
+                                <tr>
+                                    <th>@T("Account", "الحساب")</th>
+                                    <th>@T("Type", "النوع")</th>
+                                    <th>@T("Role", "الدور")</th>
+                                    <th>@T("Balance", "الطبيعة")</th>
+                                    <th>@T("Posting", "ترحيل")</th>
+                                    <th>@T("Template", "القالب")</th>
+                                    <th>@T("Status", "الحالة")</th>
+                                    <th class="account-actions-col">@T("Actions", "الإجراءات")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in VisibleTreeRows)
+                                {
+                                    var account = row.Account;
+                                    var hasChildren = HasVisibleChildren(account.Id);
+                                    var isExpanded = expandedAccountIds.Contains(account.Id);
+                                    var groupCheckboxId = GroupCheckboxId(account.Id);
+                                    <tr class="account-tree-row">
+                                        <td>
+                                            <div class="account-tree-node" style="--account-tree-depth:@row.Depth">
+                                                @if (hasChildren)
+                                                {
+                                                    <button class="account-tree-toggle" type="button" title="@ExpandToggleTitle(isExpanded)" @onclick="() => ToggleExpanded(account.Id)">
+                                                        <i class="@ChevronClass(isExpanded)"></i>
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <span class="account-tree-toggle account-tree-toggle-placeholder"></span>
+                                                }
+                                                <i class="@AccountIconClass(account)"></i>
+                                                <div class="account-tree-label">
+                                                    <strong>@T(account.NameEng, account.Name)</strong>
+                                                    <span>@account.Code</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>@account.Type</td>
+                                        <td>@RoleLabel(account)</td>
+                                        <td>@account.NormalBalance</td>
+                                        <td>@PostingChip(account)</td>
+                                        <td>@TemplateChip(account)</td>
+                                        <td>@StatusChipFor(account)</td>
+                                        <td>
+                                            <div class="account-row-actions">
+                                                @if (CanCreate)
+                                                {
+                                                    <button class="btn btn-sm btn-outline-primary" type="button" title="@T("Add child", "إضافة فرعي")" @onclick="() => StartCreateChild(account)">
+                                                        <i class="bi bi-plus-lg"></i>
+                                                    </button>
+                                                }
+                                                @if (CanEdit)
+                                                {
+                                                    <button class="btn btn-sm btn-outline-secondary" type="button" title="@T("Edit", "تعديل")" @onclick="() => StartEdit(account)">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    @if (IsInlineEditorFor(account.Id))
+                                    {
+                                        <tr class="account-inline-row">
+                                            <td colspan="8">
+                                                <EditForm Model="@editingAccount" OnValidSubmit="SaveInlineAsync">
+                                                    <DataAnnotationsValidator />
+                                                    <div class="erp-inline-editor account-tree-inline-editor" style="--account-tree-depth:@row.Depth">
+                                                        <div class="account-inline-heading">
+                                                            <strong>@InlineEditorTitle</strong>
+                                                            <span class="text-muted small">@ParentInlineLabel</span>
+                                                        </div>
+                                                        <div class="account-tree-inline-grid">
+                                                            <div>
+                                                                <label class="form-label">@T("Code", "الكود")</label>
+                                                                <InputText class="form-control form-control-sm account-code-input" @bind-Value="editingAccount!.Code" />
+                                                            </div>
+                                                            <div>
+                                                                <label class="form-label">@T("Arabic Name", "الاسم العربي")</label>
+                                                                <InputText class="form-control form-control-sm account-name-input" @bind-Value="editingAccount!.Name" />
+                                                            </div>
+                                                            <div>
+                                                                <label class="form-label">@T("English Name", "الاسم الإنجليزي")</label>
+                                                                <InputText class="form-control form-control-sm account-name-input" @bind-Value="editingAccount!.NameEng" />
+                                                            </div>
+                                                            <div class="account-tree-inline-option">
+                                                                <div class="form-check account-inline-check">
+                                                                    <InputCheckbox id="@groupCheckboxId" class="form-check-input" @bind-Value="editingIsGroup" />
+                                                                    <label class="form-check-label" for="@groupCheckboxId">@T("Group", "مجموعة")</label>
+                                                                </div>
+                                                            </div>
+                                                            <div class="account-row-actions">
+                                                                <button class="btn btn-sm btn-primary" type="submit" disabled="@savingInline">
+                                                                    <i class="bi bi-check-lg"></i>
+                                                                </button>
+                                                                <button class="btn btn-sm btn-outline-secondary" type="button" disabled="@savingInline" @onclick="CancelInline">
+                                                                    <i class="bi bi-x-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </EditForm>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (!VisibleTreeRows.Any())
+                    {
+                        <div class="text-muted py-4 text-center">@T("No accounts found.", "لا توجد حسابات.")</div>
+                    }
+                }
+                else
+                {
                 <div class="erp-table-wrap">
                     <table class="table align-middle erp-table">
                         <thead>
@@ -86,6 +235,7 @@
                                 <th>@T("Posting", "ترحيل")</th>
                                 <th>@T("Template", "القالب")</th>
                                 <th>@T("Status", "الحالة")</th>
+                                <th class="account-actions-col">@T("Actions", "الإجراءات")</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -106,14 +256,121 @@
                                     <td><StatusChip Text="@T(account.IsPostingAccount ? "Ledger" : "Group", account.IsPostingAccount ? "دفتر" : "مجموعة")" Tone="@(account.IsPostingAccount ? "info" : "muted")" /></td>
                                     <td><StatusChip Text="@T(account.IsSystemAccount ? "System" : "User", account.IsSystemAccount ? "نظام" : "مستخدم")" Tone="@(account.IsSystemAccount ? "primary" : "muted")" /></td>
                                     <td><StatusChip Text="@T(account.IsActive ? "Active" : "Inactive", account.IsActive ? "نشط" : "غير نشط")" Tone="@(account.IsActive ? "success" : "muted")" /></td>
+                                    <td>
+                                        <div class="account-row-actions">
+                                            @if (CanCreate)
+                                            {
+                                                <button class="btn btn-sm btn-outline-primary" type="button" title="@T("Add child", "إضافة فرعي")" @onclick="() => StartCreateChild(account)">
+                                                    <i class="bi bi-plus-lg"></i>
+                                                </button>
+                                            }
+                                            @if (CanEdit)
+                                            {
+                                                <button class="btn btn-sm btn-outline-secondary" type="button" title="@T("Edit", "تعديل")" @onclick="() => StartEdit(account)">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
                                 </tr>
+                                @if (IsInlineEditorFor(account.Id))
+                                {
+                                    <tr class="account-inline-row">
+                                        <td colspan="9">
+                                            <EditForm Model="@editingAccount" OnValidSubmit="SaveInlineAsync">
+                                                <DataAnnotationsValidator />
+                                                <div class="erp-inline-editor account-table-inline-editor">
+                                                    <div class="account-inline-heading">
+                                                        <strong>@InlineEditorTitle</strong>
+                                                        <span class="text-muted small">@ParentInlineLabel</span>
+                                                    </div>
+                                                    <div class="row g-2">
+                                                        <div class="col-12 col-md-2">
+                                                            <label class="form-label">@T("Code", "الكود")</label>
+                                                            <InputText class="form-control form-control-sm" @bind-Value="editingAccount!.Code" />
+                                                        </div>
+                                                        <div class="col-12 col-md-3">
+                                                            <label class="form-label">@T("Arabic Name", "الاسم العربي")</label>
+                                                            <InputText class="form-control form-control-sm" @bind-Value="editingAccount!.Name" />
+                                                        </div>
+                                                        <div class="col-12 col-md-3">
+                                                            <label class="form-label">@T("English Name", "الاسم الإنجليزي")</label>
+                                                            <InputText class="form-control form-control-sm" @bind-Value="editingAccount!.NameEng" />
+                                                        </div>
+                                                        <div class="col-12 col-md-2">
+                                                            <label class="form-label">@T("Type", "النوع")</label>
+                                                            <InputSelect class="form-select form-select-sm" @bind-Value="editingAccount!.Type">
+                                                                @foreach (var type in Enum.GetValues<AccountType>())
+                                                                {
+                                                                    <option value="@type">@type</option>
+                                                                }
+                                                            </InputSelect>
+                                                        </div>
+                                                        <div class="col-12 col-md-2">
+                                                            <label class="form-label">@T("Balance", "الطبيعة")</label>
+                                                            <InputSelect class="form-select form-select-sm" @bind-Value="editingAccount!.NormalBalance">
+                                                                @foreach (var balance in Enum.GetValues<NormalBalance>())
+                                                                {
+                                                                    <option value="@balance">@balance</option>
+                                                                }
+                                                            </InputSelect>
+                                                        </div>
+                                                        <div class="col-12 col-md-2">
+                                                            <label class="form-label">@T("Role", "الدور")</label>
+                                                            <InputSelect class="form-select form-select-sm" @bind-Value="editingAccount!.Role">
+                                                                @foreach (var role in Enum.GetValues<AccountRole>())
+                                                                {
+                                                                    <option value="@role">@role</option>
+                                                                }
+                                                            </InputSelect>
+                                                        </div>
+                                                        <div class="col-12 col-md-4">
+                                                            <label class="form-label">@T("Parent Account", "الحساب الأب")</label>
+                                                            <InputSelect class="form-select form-select-sm" @bind-Value="editingAccount!.ParentAccountId">
+                                                                <option value="">@T("None", "بدون")</option>
+                                                                @foreach (var parent in AvailableParentAccounts)
+                                                                {
+                                                                    <option value="@parent.Id">@parent.Code - @T(parent.NameEng, parent.Name)</option>
+                                                                }
+                                                            </InputSelect>
+                                                        </div>
+                                                        <div class="col-12 col-md-2 d-flex align-items-end">
+                                                            <div class="form-check">
+                                                                <InputCheckbox class="form-check-input" @bind-Value="editingIsGroup" />
+                                                                <label class="form-check-label">@T("Group", "مجموعة")</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-md-2 d-flex align-items-end">
+                                                            <div class="form-check">
+                                                                <InputCheckbox class="form-check-input" @bind-Value="editingAccount!.IsActive" />
+                                                                <label class="form-check-label">@T("Active", "نشط")</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-md-2 d-flex align-items-end justify-content-md-end">
+                                                            <div class="account-row-actions">
+                                                                <button class="btn btn-sm btn-primary" type="submit" disabled="@savingInline">
+                                                                    <i class="bi bi-check-lg"></i>
+                                                                    @T("Save", "حفظ")
+                                                                </button>
+                                                                <button class="btn btn-sm btn-outline-secondary" type="button" disabled="@savingInline" @onclick="CancelInline">
+                                                                    <i class="bi bi-x-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </EditForm>
+                                        </td>
+                                    </tr>
+                                }
                             }
                         </tbody>
                     </table>
                 </div>
-                @if (!accounts.Any())
+                @if (!VisibleAccounts.Any())
                 {
                     <div class="text-muted py-4 text-center">@T("No accounts found.", "لا توجد حسابات.")</div>
+                }
                 }
             }
         </AppCard>
@@ -208,6 +465,10 @@
 }
 
 @code {
+    private const int AccountsPageSize = 200;
+    private const string AccountViewStorageKey = "accounting.accounts.view";
+
+    private readonly HashSet<Guid> expandedAccountIds = [];
     private List<AccountDto> accounts = [];
     private AuthenticationState? authState;
     private Guid companyId;
@@ -215,17 +476,35 @@
     private AccountType? selectedType;
     private AccountRole? selectedRole;
     private string? selectedSystemFilter;
+    private AccountViewMode currentView = AccountViewMode.Table;
     private bool loading;
     private bool saving;
+    private bool savingInline;
     private bool showCreate;
+    private bool initializedExpansion;
     private AccountDto newAccount = new();
+    private AccountDto? editingAccount;
+    private Guid? inlineAnchorAccountId;
+    private InlineAccountMode inlineMode;
+    private bool editingIsGroup;
     private bool CanView => HasPermission(PermissionList.AccountPermissions.View);
     private bool CanCreate => HasPermission(PermissionList.AccountPermissions.Create);
+    private bool CanEdit => HasPermission(PermissionList.AccountPermissions.Edit);
     private IEnumerable<AccountDto> VisibleAccounts => accounts
-        .Where(x => !selectedType.HasValue || x.Type == selectedType.Value)
-        .Where(x => !selectedRole.HasValue || x.Role == selectedRole.Value)
-        .Where(x => string.IsNullOrWhiteSpace(selectedSystemFilter) || (selectedSystemFilter == "system" ? x.IsSystemAccount : !x.IsSystemAccount))
+        .Where(AccountMatchesFilters)
         .OrderBy(x => x.Code);
+    private List<AccountTreeRow> VisibleTreeRows => BuildVisibleTreeRows();
+    private Dictionary<Guid, List<AccountDto>> VisibleTreeChildren => BuildVisibleTreeChildren();
+    private IEnumerable<AccountDto> AvailableParentAccounts => accounts
+        .Where(x => editingAccount is null || x.Id != editingAccount.Id)
+        .Where(x => editingAccount is null || editingAccount.Id == Guid.Empty || !IsDescendantOf(x.Id, editingAccount.Id))
+        .OrderBy(x => x.Code);
+    private string InlineEditorTitle => inlineMode == InlineAccountMode.CreateChild
+        ? T("Add child account", "إضافة حساب فرعي")
+        : T("Edit account", "تعديل الحساب");
+    private string ParentInlineLabel => editingAccount?.ParentAccountId is Guid parentId && parentId != Guid.Empty
+        ? ParentLabel(parentId)
+        : T("Root account", "حساب رئيسي");
 
     protected override async Task OnInitializedAsync()
     {
@@ -235,18 +514,65 @@
         await LoadAsync();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        var storedView = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", AccountViewStorageKey);
+        if (Enum.TryParse<AccountViewMode>(storedView, out var view))
+        {
+            currentView = view;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
     private async Task LoadAsync()
     {
         if (companyId == Guid.Empty || !CanView)
             return;
 
         loading = true;
-        var result = await AccountingService.GetAccountsAsync(companyId, 1, 100, searchText);
+        var allAccounts = new List<AccountDto>();
+        var pageIndex = 1;
+        long totalCount = 0;
+        AlAfkarERP.Shared.Dtos.ApiResult<AlAfkarERP.Shared.Dtos.PaginatedResult<AccountDto>>? result = null;
+
+        while (pageIndex == 1 || allAccounts.Count < totalCount)
+        {
+            result = await AccountingService.GetAccountsAsync(companyId, pageIndex, AccountsPageSize, null);
+            if (!result.IsSuccess || result.Data is null)
+            {
+                loading = false;
+                ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load accounts.", "تعذر تحميل الحسابات."));
+                return;
+            }
+
+            totalCount = result.Data.Count;
+            var page = result.Data.Data.ToList();
+            allAccounts.AddRange(page);
+
+            if (!page.Any())
+                break;
+
+            pageIndex++;
+        }
         loading = false;
-        if (result.IsSuccess && result.Data is not null)
-            accounts = result.Data.Data.ToList();
+        if (result is not null)
+        {
+            accounts = allAccounts
+                .GroupBy(x => x.Id)
+                .Select(x => x.First())
+                .OrderBy(x => x.Code)
+                .ToList();
+            if (!initializedExpansion)
+            {
+                ExpandAll();
+                initializedExpansion = true;
+            }
+        }
         else
-            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load accounts.", "تعذر تحميل الحسابات."));
+            ToastService.ShowError(result?.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load accounts.", "تعذر تحميل الحسابات."));
     }
 
     private void OpenCreate()
@@ -284,6 +610,262 @@
         }
     }
 
+    private void StartCreateChild(AccountDto parent)
+    {
+        editingAccount = new AccountDto
+        {
+            CompanyId = companyId,
+            Code = SuggestedChildCode(parent),
+            Name = string.Empty,
+            NameEng = string.Empty,
+            Type = parent.Type,
+            NormalBalance = parent.NormalBalance,
+            Role = AccountRole.None,
+            ParentAccountId = parent.Id,
+            IsPostingAccount = true,
+            IsActive = true
+        };
+        inlineAnchorAccountId = parent.Id;
+        inlineMode = InlineAccountMode.CreateChild;
+        editingIsGroup = !editingAccount.IsPostingAccount;
+        expandedAccountIds.Add(parent.Id);
+    }
+
+    private void StartEdit(AccountDto account)
+    {
+        editingAccount = CloneAccount(account);
+        inlineAnchorAccountId = account.Id;
+        inlineMode = InlineAccountMode.Edit;
+        editingIsGroup = !account.IsPostingAccount;
+    }
+
+    private void CancelInline()
+    {
+        editingAccount = null;
+        inlineAnchorAccountId = null;
+        editingIsGroup = false;
+        savingInline = false;
+    }
+
+    private async Task SaveInlineAsync()
+    {
+        if (editingAccount is null)
+            return;
+
+        editingAccount.CompanyId = companyId;
+        editingAccount.IsPostingAccount = !editingIsGroup;
+
+        savingInline = true;
+        var result = await AccountingService.SaveAccountAsync(editingAccount);
+        savingInline = false;
+
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(inlineMode == InlineAccountMode.CreateChild
+                ? T("Account created.", "تم إنشاء الحساب.")
+                : T("Account updated.", "تم تعديل الحساب."));
+            CancelInline();
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not save account.", "تعذر حفظ الحساب."));
+        }
+    }
+
+    private bool IsInlineEditorFor(Guid accountId) => inlineAnchorAccountId == accountId && editingAccount is not null;
+
+    private static AccountDto CloneAccount(AccountDto account) => new()
+    {
+        Id = account.Id,
+        CompanyId = account.CompanyId,
+        Code = account.Code,
+        Name = account.Name,
+        NameEng = account.NameEng,
+        Type = account.Type,
+        NormalBalance = account.NormalBalance,
+        Role = account.Role,
+        TemplateKey = account.TemplateKey,
+        ParentAccountId = account.ParentAccountId,
+        IsPostingAccount = account.IsPostingAccount,
+        IsSystemAccount = account.IsSystemAccount,
+        IsActive = account.IsActive
+    };
+
+    private string SuggestedChildCode(AccountDto parent)
+    {
+        var childCodes = accounts
+            .Where(x => x.ParentAccountId == parent.Id && x.Code.StartsWith(parent.Code, StringComparison.OrdinalIgnoreCase))
+            .Select(x => x.Code)
+            .ToList();
+
+        if (int.TryParse(parent.Code, out var parentNumber))
+        {
+            var nextNumber = childCodes
+                .Select(x => int.TryParse(x, out var value) && value >= parentNumber ? value : 0)
+                .DefaultIfEmpty(parentNumber)
+                .Max() + 1;
+            return nextNumber.ToString($"D{parent.Code.Length}");
+        }
+
+        var nextSuffix = childCodes
+            .Select(x => x.Length > parent.Code.Length && int.TryParse(x[parent.Code.Length..], out var suffix) ? suffix : 0)
+            .DefaultIfEmpty(0)
+            .Max() + 1;
+        return $"{parent.Code}{nextSuffix}";
+    }
+
+    private bool IsDescendantOf(Guid possibleDescendantId, Guid ancestorId)
+    {
+        var parentByAccountId = accounts.ToDictionary(x => x.Id, x => x.ParentAccountId);
+        var currentId = possibleDescendantId;
+        var visited = new HashSet<Guid>();
+
+        while (visited.Add(currentId) && parentByAccountId.TryGetValue(currentId, out var parentId))
+        {
+            if (!parentId.HasValue || parentId.Value == Guid.Empty)
+                return false;
+
+            if (parentId.Value == ancestorId)
+                return true;
+
+            currentId = parentId.Value;
+        }
+
+        return false;
+    }
+
+    private void ApplyFilters() => StateHasChanged();
+
+    private async Task SetViewAsync(AccountViewMode view)
+    {
+        currentView = view;
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", AccountViewStorageKey, view.ToString());
+    }
+
+    private bool AccountMatchesFilters(AccountDto account) =>
+        AccountMatchesSearch(account)
+        && (!selectedType.HasValue || account.Type == selectedType.Value)
+        && (!selectedRole.HasValue || account.Role == selectedRole.Value)
+        && (string.IsNullOrWhiteSpace(selectedSystemFilter) || (selectedSystemFilter == "system" ? account.IsSystemAccount : !account.IsSystemAccount));
+
+    private bool AccountMatchesSearch(AccountDto account)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+            return true;
+
+        var text = searchText.Trim();
+        return Contains(account.Code, text)
+            || Contains(account.Name, text)
+            || Contains(account.NameEng, text)
+            || Contains(account.Role.ToString(), text)
+            || Contains(account.Type.ToString(), text);
+    }
+
+    private static bool Contains(string? value, string search) =>
+        !string.IsNullOrWhiteSpace(value) && value.Contains(search, StringComparison.OrdinalIgnoreCase);
+
+    private HashSet<Guid> GetVisibleTreeAccountIds()
+    {
+        var ids = new HashSet<Guid>(accounts.Where(AccountMatchesFilters).Select(x => x.Id));
+        var accountById = accounts.ToDictionary(x => x.Id);
+
+        foreach (var id in ids.ToList())
+        {
+            var current = accountById.GetValueOrDefault(id);
+            while (current?.ParentAccountId is Guid parentId && accountById.TryGetValue(parentId, out var parent))
+            {
+                ids.Add(parent.Id);
+                current = parent;
+            }
+        }
+
+        return ids;
+    }
+
+    private Dictionary<Guid, List<AccountDto>> BuildVisibleTreeChildren()
+    {
+        var visibleIds = GetVisibleTreeAccountIds();
+        var visibleAccounts = accounts.Where(x => visibleIds.Contains(x.Id)).ToList();
+        var visibleIdLookup = visibleAccounts.Select(x => x.Id).ToHashSet();
+
+        return visibleAccounts
+            .GroupBy(x => x.ParentAccountId.HasValue && visibleIdLookup.Contains(x.ParentAccountId.Value) ? x.ParentAccountId.Value : Guid.Empty)
+            .ToDictionary(x => x.Key, x => x.OrderBy(account => account.Code).ToList());
+    }
+
+    private List<AccountTreeRow> BuildVisibleTreeRows()
+    {
+        var children = VisibleTreeChildren;
+        var rows = new List<AccountTreeRow>();
+
+        AppendTreeRows(Guid.Empty, 0);
+        return rows;
+
+        void AppendTreeRows(Guid parentId, int depth)
+        {
+            if (!children.TryGetValue(parentId, out var childAccounts))
+                return;
+
+            foreach (var account in childAccounts)
+            {
+                rows.Add(new AccountTreeRow(account, depth));
+
+                if (expandedAccountIds.Contains(account.Id) || HasActiveFilters())
+                    AppendTreeRows(account.Id, depth + 1);
+            }
+        }
+    }
+
+    private bool HasActiveFilters() =>
+        !string.IsNullOrWhiteSpace(searchText)
+        || selectedType.HasValue
+        || selectedRole.HasValue
+        || !string.IsNullOrWhiteSpace(selectedSystemFilter);
+
+    private bool HasVisibleChildren(Guid accountId) =>
+        VisibleTreeChildren.TryGetValue(accountId, out var children) && children.Any();
+
+    private void ToggleExpanded(Guid accountId)
+    {
+        if (!expandedAccountIds.Add(accountId))
+            expandedAccountIds.Remove(accountId);
+    }
+
+    private void ExpandAll()
+    {
+        expandedAccountIds.Clear();
+        var parentIds = accounts.Where(x => x.ParentAccountId.HasValue).Select(x => x.ParentAccountId!.Value).ToHashSet();
+        foreach (var accountId in parentIds)
+            expandedAccountIds.Add(accountId);
+    }
+
+    private void CollapseAll() => expandedAccountIds.Clear();
+
+    private RenderFragment PostingChip(AccountDto account) => builder =>
+    {
+        builder.OpenComponent<StatusChip>(0);
+        builder.AddAttribute(1, "Text", T(account.IsPostingAccount ? "Ledger" : "Group", account.IsPostingAccount ? "دفتر" : "مجموعة"));
+        builder.AddAttribute(2, "Tone", account.IsPostingAccount ? "info" : "muted");
+        builder.CloseComponent();
+    };
+
+    private RenderFragment TemplateChip(AccountDto account) => builder =>
+    {
+        builder.OpenComponent<StatusChip>(0);
+        builder.AddAttribute(1, "Text", T(account.IsSystemAccount ? "System" : "User", account.IsSystemAccount ? "نظام" : "مستخدم"));
+        builder.AddAttribute(2, "Tone", account.IsSystemAccount ? "primary" : "muted");
+        builder.CloseComponent();
+    };
+
+    private RenderFragment StatusChipFor(AccountDto account) => builder =>
+    {
+        builder.OpenComponent<StatusChip>(0);
+        builder.AddAttribute(1, "Text", T(account.IsActive ? "Active" : "Inactive", account.IsActive ? "نشط" : "غير نشط"));
+        builder.AddAttribute(2, "Tone", account.IsActive ? "success" : "muted");
+        builder.CloseComponent();
+    };
+
     private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
     private string ParentLabel(Guid parentId)
     {
@@ -292,7 +874,26 @@
     }
 
     private string IndentClass(AccountDto account) => account.ParentAccountId.HasValue ? "ps-3" : string.Empty;
+    private string RoleLabel(AccountDto account) => account.Role == AccountRole.None ? "-" : account.Role.ToString();
+    private string ChevronClass(bool isExpanded) => $"bi {(isExpanded ? "bi-chevron-down" : "bi-chevron-right")}";
+    private string AccountIconClass(AccountDto account) => $"account-tree-icon bi {(account.IsPostingAccount ? "bi-file-earmark-text" : "bi-folder2")}";
+    private string ExpandToggleTitle(bool isExpanded) => T(isExpanded ? "Collapse" : "Expand", isExpanded ? "طي" : "توسيع");
+    private string GroupCheckboxId(Guid accountId) => $"account-inline-group-{accountId:N}";
     private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+
+    private enum AccountViewMode
+    {
+        Table,
+        Tree
+    }
+
+    private enum InlineAccountMode
+    {
+        CreateChild,
+        Edit
+    }
+
+    private sealed record AccountTreeRow(AccountDto Account, int Depth);
 }
