@@ -148,6 +148,11 @@ public static class NavigationMenuResolver
             return item.WorkspaceKey;
         }
 
+        if (TryFindInheritedWorkspaceKey(MenuItem.Menu, item, null, out var inheritedWorkspaceKey))
+        {
+            return inheritedWorkspaceKey;
+        }
+
         var path = NormalizePath(item.Url);
         var text = item.TextEn;
 
@@ -918,6 +923,48 @@ public static class NavigationMenuResolver
             .Any(candidate =>
                 string.Equals(GetWorkspaceKey(candidate), workspaceKey, StringComparison.OrdinalIgnoreCase)
                 && IsPathWithinItem(itemPath, candidate));
+    }
+
+    private static bool TryFindInheritedWorkspaceKey(IEnumerable<MenuItem> items, MenuItem target, string? inheritedWorkspaceKey, out string workspaceKey)
+    {
+        foreach (var item in items)
+        {
+            var currentWorkspaceKey = !string.IsNullOrWhiteSpace(item.WorkspaceKey)
+                ? item.WorkspaceKey
+                : inheritedWorkspaceKey;
+
+            if (IsSameMenuIdentity(item, target) && !string.IsNullOrWhiteSpace(currentWorkspaceKey))
+            {
+                workspaceKey = currentWorkspaceKey;
+                return true;
+            }
+
+            if (TryFindInheritedWorkspaceKey(item.Children, target, currentWorkspaceKey, out workspaceKey))
+            {
+                return true;
+            }
+        }
+
+        workspaceKey = string.Empty;
+        return false;
+    }
+
+    private static bool IsSameMenuIdentity(MenuItem first, MenuItem second)
+    {
+        if (ReferenceEquals(first, second))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(first.Url) && !string.IsNullOrWhiteSpace(second.Url))
+        {
+            return NormalizePath(first.Url) == NormalizePath(second.Url);
+        }
+
+        return string.Equals(first.TextEn, second.TextEn, StringComparison.OrdinalIgnoreCase)
+               && string.Equals(first.TextAr, second.TextAr, StringComparison.OrdinalIgnoreCase)
+               && string.Equals(first.Icon, second.Icon, StringComparison.OrdinalIgnoreCase)
+               && string.Equals(first.PermissionPolicy, second.PermissionPolicy, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsText(MenuItem item, string text)
