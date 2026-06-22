@@ -109,3 +109,19 @@ public enum ZatcaSubmissionStatus
     Failed = 4,
     RetryScheduled = 5
 }
+
+public enum BankTransactionStatus
+{
+    Unreconciled = 1,
+    Reconciled = 2,
+    Ignored = 3
+}
+
+public enum AccountingReportType
+{
+    GeneralLedger = 1,
+    TrialBalance = 2,
+    AgedReceivables = 3,
+    AgedPayables = 4,
+    TaxSummary = 5
+}

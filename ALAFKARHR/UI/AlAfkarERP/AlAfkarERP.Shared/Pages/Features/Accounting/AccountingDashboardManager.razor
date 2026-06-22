@@ -41,6 +41,12 @@
         </div>
 
         <div class="row g-3 mt-1">
+            <div class="col-12 col-sm-6 col-xl-3">
+                <StatsCard Title="@T("To Reconcile", "بانتظار التسوية")" Value="@dashboard.UnreconciledBankTransactions.ToString("N0")" Icon="bi-shuffle" Tone="danger" CssClass="h-100" OnClick="@(() => Go("/Accounting/BankReconciliation"))" />
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
             <div class="col-12 col-xl-4">
                 <AppCard CssClass="h-100">
                     <h2 class="h5 mb-3">@T("Quick Links", "روابط سريعة")</h2>
@@ -52,6 +58,13 @@
                     @QuickLink("Documents", "المستندات", "/Accounting/Documents", "bi-receipt")
                     @QuickLink("Journals", "القيود", "/Accounting/Journals", "bi-journal-check")
                     @QuickLink("ZATCA Settings", "إعدادات زاتكا", "/Accounting/Zatca/Settings", "bi-shield-check")
+                    @QuickLink("Bank Reconciliation", "تسوية البنك", "/Accounting/BankReconciliation", "bi-shuffle")
+                    @QuickLink("Reports", "التقارير", "/Accounting/Reports", "bi-clipboard-data")
+                    @QuickLink("Sales Invoices", "فواتير المبيعات", "/Accounting/SalesInvoices", "bi-receipt")
+                    @QuickLink("Purchase Invoices", "فواتير المشتريات", "/Accounting/PurchaseInvoices", "bi-receipt-cutoff")
+                    @QuickLink("Receipts & Payments", "المقبوضات والمدفوعات", "/Accounting/ReceiptsPayments", "bi-cash-stack")
+                    @QuickLink("Credit Notes", "الإشعارات الدائنة", "/Accounting/CreditNotes", "bi-arrow-counterclockwise")
+                    @QuickLink("Debit Notes", "الإشعارات المدينة", "/Accounting/DebitNotes", "bi-arrow-clockwise")
                 </AppCard>
             </div>
             <div class="col-12 col-xl-4">

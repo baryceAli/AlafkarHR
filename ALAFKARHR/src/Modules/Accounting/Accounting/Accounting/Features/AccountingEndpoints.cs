@@ -10,6 +10,10 @@ public class AccountingEndpoints : ICarterModule
             Results.Ok(await sender.Send(new GetAccountingDashboardQuery(companyId))))
             .RequireAuthorization(PermissionList.AccountingDashboardPermissions.View);
 
+        app.MapGet($"{baseRoute}/reports", async (AccountingReportType type, Guid companyId, DateTime? fromDate, DateTime? toDate, ISender sender) =>
+            Results.Ok(await sender.Send(new GetAccountingReportQuery(type, companyId, fromDate, toDate))))
+            .RequireAuthorization(PermissionList.AccountingReportPermissions.View);
+
         app.MapGet($"{baseRoute}/setup/templates", async (Guid? companyId, ISender sender) =>
             Results.Ok(await sender.Send(new GetAccountingTemplatesQuery(companyId))))
             .RequireAuthorization(PermissionList.AccountingTemplatePermissions.View);
@@ -124,6 +128,26 @@ public class AccountingEndpoints : ICarterModule
             Results.Ok(await sender.Send(new UpsertCashAccountCommand(cashAccount))))
             .RequireAuthorization(PermissionList.CashAccountPermissions.Edit);
 
+        app.MapGet($"{baseRoute}/bank-reconciliation/transactions", async (Guid companyId, BankTransactionStatus? status, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
+            Results.Ok(await sender.Send(new GetBankTransactionsQuery(companyId, status, pageIndex ?? 1, pageSize ?? 20, searchText))))
+            .RequireAuthorization(PermissionList.BankReconciliationPermissions.View);
+
+        app.MapGet($"{baseRoute}/bank-reconciliation/summary", async (Guid companyId, ISender sender) =>
+            Results.Ok(await sender.Send(new GetBankReconciliationSummaryQuery(companyId))))
+            .RequireAuthorization(PermissionList.BankReconciliationPermissions.View);
+
+        app.MapGet($"{baseRoute}/bank-reconciliation/transactions/{{id:guid}}/matches", async (Guid id, ISender sender) =>
+            Results.Ok(await sender.Send(new GetBankReconciliationMatchesQuery(id))))
+            .RequireAuthorization(PermissionList.BankReconciliationPermissions.View);
+
+        app.MapPost($"{baseRoute}/bank-reconciliation/transactions", async (BankTransactionDto transaction, ISender sender) =>
+            Results.Created($"{baseRoute}/bank-reconciliation/transactions", await sender.Send(new CreateBankTransactionCommand(transaction))))
+            .RequireAuthorization(PermissionList.BankReconciliationPermissions.Create);
+
+        app.MapPost($"{baseRoute}/bank-reconciliation/reconcile", async (ReconcileBankTransactionDto reconciliation, ISender sender) =>
+            Results.Ok(await sender.Send(new ReconcileBankTransactionCommand(reconciliation))))
+            .RequireAuthorization(PermissionList.BankReconciliationPermissions.Reconcile);
+
         app.MapGet($"{baseRoute}/settings", async (Guid companyId, ISender sender) =>
             Results.Ok(await sender.Send(new GetCompanyAccountingSettingsQuery(companyId))))
             .RequireAuthorization(PermissionList.AccountingSettingsPermissions.View);
@@ -151,6 +175,10 @@ public class AccountingEndpoints : ICarterModule
         app.MapGet($"{baseRoute}/journals", async (Guid? companyId, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
             Results.Ok(await sender.Send(new GetJournalEntriesQuery(companyId, pageIndex ?? 1, pageSize ?? 20, searchText))))
             .RequireAuthorization(PermissionList.JournalEntryPermissions.View);
+
+        app.MapPost($"{baseRoute}/journals/quick-entry", async (QuickJournalEntryDto journalEntry, ISender sender) =>
+            Results.Created($"{baseRoute}/journals", await sender.Send(new CreateQuickJournalEntryCommand(journalEntry))))
+            .RequireAuthorization(PermissionList.JournalEntryPermissions.Create);
 
         app.MapGet($"{baseRoute}/zatca/settings", async (Guid companyId, ISender sender) =>
             Results.Ok(await sender.Send(new GetZatcaSettingsQuery(companyId))))

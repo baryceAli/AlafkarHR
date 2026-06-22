@@ -262,6 +262,21 @@ public class AccountingDocumentConfiguration : IEntityTypeConfiguration<Accounti
     }
 }
 
+public class BankTransactionConfiguration : IEntityTypeConfiguration<BankTransaction>
+{
+    public void Configure(EntityTypeBuilder<BankTransaction> builder)
+    {
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Description).HasMaxLength(500).IsRequired();
+        builder.Property(x => x.ReferenceNumber).HasMaxLength(120);
+        builder.Property(x => x.Amount).HasPrecision(18, 2);
+        builder.Property(x => x.Status).HasConversion<int>();
+        builder.HasIndex(x => new { x.CompanyId, x.Status, x.TransactionDate });
+        builder.HasIndex(x => new { x.CompanyId, x.ReferenceNumber });
+        builder.HasQueryFilter(x => !x.IsDeleted);
+    }
+}
+
 public class ZatcaSettingsConfiguration : IEntityTypeConfiguration<ZatcaSettings>
 {
     public void Configure(EntityTypeBuilder<ZatcaSettings> builder)

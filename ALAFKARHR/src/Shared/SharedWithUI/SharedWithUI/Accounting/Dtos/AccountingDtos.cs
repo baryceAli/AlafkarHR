@@ -258,6 +258,7 @@ public class AccountingDashboardDto
     public int OpenPeriods { get; set; }
     public int DraftDocuments { get; set; }
     public int PostedDocuments { get; set; }
+    public int UnreconciledBankTransactions { get; set; }
     public int PendingZatcaSubmissions { get; set; }
     public int FailedZatcaSubmissions { get; set; }
     public decimal OutputVat { get; set; }
@@ -386,4 +387,85 @@ public class AccountingSetupStatusDto
     public bool ZatcaSettingsComplete { get; set; }
     public bool ReadyToPost { get; set; }
     public List<string> MissingItems { get; set; } = [];
+}
+
+public class QuickJournalEntryDto
+{
+    public Guid CompanyId { get; set; }
+    public DateTime EntryDate { get; set; } = DateTime.UtcNow;
+    public Guid DebitAccountId { get; set; }
+    public Guid CreditAccountId { get; set; }
+    public decimal Amount { get; set; }
+    public string? Memo { get; set; }
+    public string? ReferenceNumber { get; set; }
+}
+
+public class BankTransactionDto
+{
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid? BankAccountId { get; set; }
+    public Guid? CashAccountId { get; set; }
+    public DateTime TransactionDate { get; set; } = DateTime.UtcNow;
+    public string Description { get; set; } = string.Empty;
+    public string? ReferenceNumber { get; set; }
+    public decimal Amount { get; set; }
+    public BankTransactionStatus Status { get; set; } = BankTransactionStatus.Unreconciled;
+    public Guid? MatchedJournalEntryId { get; set; }
+    public Guid? MatchedAccountingDocumentId { get; set; }
+    public Guid? WriteOffAccountId { get; set; }
+    public DateTime? ClearanceDate { get; set; }
+}
+
+public class BankReconciliationMatchDto
+{
+    public Guid Id { get; set; }
+    public string Number { get; set; } = string.Empty;
+    public string Source { get; set; } = string.Empty;
+    public DateTime Date { get; set; }
+    public string? PartyOrMemo { get; set; }
+    public decimal Amount { get; set; }
+    public bool IsJournalEntry { get; set; }
+}
+
+public class BankReconciliationSummaryDto
+{
+    public int UnreconciledCount { get; set; }
+    public decimal UnreconciledInflow { get; set; }
+    public decimal UnreconciledOutflow { get; set; }
+    public int ReconciledCount { get; set; }
+}
+
+public class ReconcileBankTransactionDto
+{
+    public Guid BankTransactionId { get; set; }
+    public Guid? JournalEntryId { get; set; }
+    public Guid? AccountingDocumentId { get; set; }
+    public Guid? WriteOffAccountId { get; set; }
+    public DateTime ClearanceDate { get; set; } = DateTime.UtcNow;
+}
+
+public class AccountingReportRowDto
+{
+    public DateTime? Date { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Source { get; set; }
+    public string? Party { get; set; }
+    public decimal Debit { get; set; }
+    public decimal Credit { get; set; }
+    public decimal Balance { get; set; }
+    public decimal TaxAmount { get; set; }
+}
+
+public class AccountingReportDto
+{
+    public AccountingReportType Type { get; set; }
+    public Guid CompanyId { get; set; }
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
+    public decimal TotalDebit { get; set; }
+    public decimal TotalCredit { get; set; }
+    public decimal Balance { get; set; }
+    public List<AccountingReportRowDto> Rows { get; set; } = [];
 }

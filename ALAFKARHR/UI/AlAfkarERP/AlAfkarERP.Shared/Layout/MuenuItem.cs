@@ -210,6 +210,22 @@ public class MenuItem
                 },
                 new MenuItem
                 {
+                    TextEn = "Cash Accounts",
+                    TextAr = "الحسابات النقدية",
+                    Icon = "bi-wallet2",
+                    Url = "/Accounting/BankCashAccounts",
+                    PermissionPolicy = PermissionList.CashAccountPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Company Defaults",
+                    TextAr = "إعدادات الشركة المحاسبية",
+                    Icon = "bi-sliders",
+                    Url = "/Accounting/Setup",
+                    PermissionPolicy = PermissionList.AccountingSettingsPermissions.View
+                },
+                new MenuItem
+                {
                     TextEn = "Journal Entries",
                     TextAr = "القيود اليومية",
                     Icon = "bi-journal-check",
@@ -256,6 +272,38 @@ public class MenuItem
                     Icon = "bi-cash-stack",
                     Url = "/Accounting/ReceiptsPayments",
                     PermissionPolicy = PermissionList.AccountingDocumentPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Credit Notes",
+                    TextAr = "الإشعارات الدائنة",
+                    Icon = "bi-arrow-counterclockwise",
+                    Url = "/Accounting/CreditNotes",
+                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Debit Notes",
+                    TextAr = "الإشعارات المدينة",
+                    Icon = "bi-arrow-clockwise",
+                    Url = "/Accounting/DebitNotes",
+                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Bank Reconciliation",
+                    TextAr = "تسوية البنك",
+                    Icon = "bi-shuffle",
+                    Url = "/Accounting/BankReconciliation",
+                    PermissionPolicy = PermissionList.BankReconciliationPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Reports",
+                    TextAr = "التقارير",
+                    Icon = "bi-bar-chart-line",
+                    Url = "/Accounting/Reports",
+                    PermissionPolicy = PermissionList.AccountingReportPermissions.View
                 },
                 new MenuItem
                 {

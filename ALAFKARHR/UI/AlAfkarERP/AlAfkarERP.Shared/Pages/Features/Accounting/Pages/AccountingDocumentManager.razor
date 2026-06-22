@@ -3,6 +3,8 @@
 @page "/Accounting/SalesInvoices"
 @page "/Accounting/PurchaseInvoices"
 @page "/Accounting/ReceiptsPayments"
+@page "/Accounting/CreditNotes"
+@page "/Accounting/DebitNotes"
 
 @using AlAfkarERP.Shared.Pages.Features.Accounting.Pages
 @using AlAfkarERP.Shared.Pages.Features.Accounting.Services
@@ -19,7 +21,7 @@
 @inject ToastService ToastService
 
 <div class="erp-page" dir="@SharedDataService.PageDirection">
-    <PageHeader Title="@T(AccountingUi.DocumentTitle(FilterType), DocumentTitleAr(FilterType))"
+    <PageHeader Title="@T(DocumentTitleEn, DocumentTitleAr)"
                 Subtitle="@T("Create, inspect, post, and prepare legal accounting documents.", "إنشاء وفحص وترحيل المستندات المحاسبية وتجهيزها للفوترة الإلكترونية.")"
                 Overline="@T("Accounting", "المحاسبة")"
                 Icon="bi-receipt" />
@@ -261,28 +263,69 @@
     private bool CanPost => HasPermission(PermissionList.AccountingDocumentPermissions.Post);
     private bool CanGenerateZatca => HasPermission(PermissionList.ZatcaEInvoicePermissions.Generate);
 
-    private AccountingDocumentType? FilterType
+    private string CurrentPath => NavigationManager.Uri.ToLowerInvariant();
+    private bool ReceiptPaymentRoute => CurrentPath.Contains("receiptspayments");
+    private bool CreditNoteRoute => CurrentPath.Contains("creditnotes");
+    private bool DebitNoteRoute => CurrentPath.Contains("debitnotes");
+
+    private AccountingDocumentType? FilterType => CurrentPath switch
     {
-        get
-        {
-            var path = NavigationManager.Uri.ToLowerInvariant();
-            if (path.Contains("salesinvoices")) return AccountingDocumentType.SalesInvoice;
-            if (path.Contains("purchaseinvoices")) return AccountingDocumentType.SupplierInvoice;
-            return null;
-        }
-    }
+        var path when path.Contains("salesinvoices") => AccountingDocumentType.SalesInvoice,
+        var path when path.Contains("purchaseinvoices") => AccountingDocumentType.SupplierInvoice,
+        _ => null
+    };
 
-    private bool ReceiptPaymentRoute => NavigationManager.Uri.ToLowerInvariant().Contains("receiptspayments");
-
-    private IEnumerable<AccountingDocumentDto> VisibleDocuments => ReceiptPaymentRoute
-        ? documents.Where(x => x.Type is AccountingDocumentType.CustomerReceipt or AccountingDocumentType.SupplierPayment)
-        : documents;
+    private IEnumerable<AccountingDocumentDto> VisibleDocuments => documents.Where(x => CreatableTypes.Contains(x.Type));
 
     private IEnumerable<AccountingDocumentType> CreatableTypes => ReceiptPaymentRoute
         ? [AccountingDocumentType.CustomerReceipt, AccountingDocumentType.SupplierPayment]
+        : CreditNoteRoute
+            ? [AccountingDocumentType.SalesCreditNote, AccountingDocumentType.SupplierCreditNote]
+        : DebitNoteRoute
+            ? [AccountingDocumentType.SalesDebitNote]
         : FilterType.HasValue
             ? [FilterType.Value]
             : Enum.GetValues<AccountingDocumentType>();
+
+    private IEnumerable<AccountingDocumentType?> QueryTypes => ReceiptPaymentRoute
+        ? [AccountingDocumentType.CustomerReceipt, AccountingDocumentType.SupplierPayment]
+        : CreditNoteRoute
+            ? [AccountingDocumentType.SalesCreditNote, AccountingDocumentType.SupplierCreditNote]
+        : DebitNoteRoute
+            ? [AccountingDocumentType.SalesDebitNote]
+        : [FilterType];
+
+    private string EmptyStateMessageEn => ReceiptPaymentRoute
+        ? "No receipts or payments found. Create one after configuring bank or cash accounts."
+        : CreditNoteRoute
+            ? "No credit notes found. Create one when you need to reverse sales or supplier invoice value."
+        : DebitNoteRoute
+            ? "No debit notes found. Create one when you need to increase a sales invoice value."
+        : "No accounting documents found. Apply setup defaults and create the first document.";
+
+    private string EmptyStateMessageAr => ReceiptPaymentRoute
+        ? "لا توجد مقبوضات أو مدفوعات. أنشئ حركة بعد إعداد حسابات البنك أو النقدية."
+        : CreditNoteRoute
+            ? "لا توجد إشعارات دائنة. أنشئ إشعارا عند الحاجة لعكس قيمة فاتورة مبيعات أو مورد."
+        : DebitNoteRoute
+            ? "لا توجد إشعارات مدينة. أنشئ إشعارا عند الحاجة لزيادة قيمة فاتورة مبيعات."
+        : "لا توجد مستندات محاسبية. طبّق الإعدادات الافتراضية ثم أنشئ أول مستند.";
+
+    private string DocumentTitleEn => ReceiptPaymentRoute
+        ? "Receipts & Payments"
+        : CreditNoteRoute
+            ? "Credit Notes"
+        : DebitNoteRoute
+            ? "Debit Notes"
+        : AccountingUi.DocumentTitle(FilterType);
+
+    private string DocumentTitleAr => ReceiptPaymentRoute
+        ? "المقبوضات والمدفوعات"
+        : CreditNoteRoute
+            ? "الإشعارات الدائنة"
+        : DebitNoteRoute
+            ? "الإشعارات المدينة"
+        : DocumentTitleArFor(FilterType);
 
     protected override async Task OnInitializedAsync()
     {
@@ -299,11 +342,34 @@
         if (!CanView)
             return;
 
+        var loaded = new List<AccountingDocumentDto>();
+        foreach (var type in QueryTypes)
+        {
+            var queryResult = await AccountingService.GetDocumentsAsync(type, companyId, 1, 100, searchText);
+            if (queryResult.IsSuccess && queryResult.Data is not null)
+            {
+                loaded.AddRange(queryResult.Data.Data);
+                continue;
+            }
+
+            ToastService.ShowError(queryResult.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load documents.", "تعذر تحميل المستندات."));
+            return;
+        }
+
+        documents = loaded
+            .GroupBy(x => x.Id)
+            .Select(x => x.First())
+            .OrderByDescending(x => x.DocumentDate)
+            .ThenByDescending(x => x.Number)
+            .ToList();
+        if (documents.Count < 0)
+        {
         var result = await AccountingService.GetDocumentsAsync(FilterType, companyId, 1, 100, searchText);
         if (result.IsSuccess && result.Data is not null)
             documents = result.Data.Data.ToList();
         else
             ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not load documents.", "تعذر تحميل المستندات."));
+        }
     }
 
     private void OpenCreate()
@@ -424,7 +490,7 @@
         _ => "muted"
     };
 
-    private static string DocumentTitleAr(AccountingDocumentType? type) => type switch
+    private static string DocumentTitleArFor(AccountingDocumentType? type) => type switch
     {
         AccountingDocumentType.SalesInvoice => "فواتير المبيعات",
         AccountingDocumentType.SupplierInvoice => "فواتير المشتريات",

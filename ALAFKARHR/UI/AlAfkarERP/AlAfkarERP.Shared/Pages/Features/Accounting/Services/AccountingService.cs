@@ -260,6 +260,67 @@ public class AccountingService : BaseApiService, IAccountingService
         return await SendAsync<PaginatedResult<JournalEntryDto>>(request, "journalEntries");
     }
 
+    public async Task<ApiResult<Guid>> CreateQuickJournalEntryAsync(QuickJournalEntryDto journalEntry)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/accounting/journals/quick-entry")
+        {
+            Content = JsonContent.Create(journalEntry)
+        };
+        return await SendAsync<Guid>(request, "id");
+    }
+
+    public async Task<ApiResult<PaginatedResult<BankTransactionDto>>> GetBankTransactionsAsync(Guid companyId, BankTransactionStatus? status, int pageIndex, int pageSize, string? searchText)
+    {
+        var query = $"companyId={companyId}&pageIndex={pageIndex}&pageSize={pageSize}&searchText={searchText}";
+        if (status.HasValue)
+            query = $"status={status.Value}&{query}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/bank-reconciliation/transactions?{query}");
+        return await SendAsync<PaginatedResult<BankTransactionDto>>(request, "transactions");
+    }
+
+    public async Task<ApiResult<BankReconciliationSummaryDto>> GetBankReconciliationSummaryAsync(Guid companyId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/bank-reconciliation/summary?companyId={companyId}");
+        return await SendAsync<BankReconciliationSummaryDto>(request, "summary");
+    }
+
+    public async Task<ApiResult<List<BankReconciliationMatchDto>>> GetBankReconciliationMatchesAsync(Guid bankTransactionId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/bank-reconciliation/transactions/{bankTransactionId}/matches");
+        return await SendAsync<List<BankReconciliationMatchDto>>(request, "matches");
+    }
+
+    public async Task<ApiResult<Guid>> CreateBankTransactionAsync(BankTransactionDto transaction)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/accounting/bank-reconciliation/transactions")
+        {
+            Content = JsonContent.Create(transaction)
+        };
+        return await SendAsync<Guid>(request, "id");
+    }
+
+    public async Task<ApiResult<Guid>> ReconcileBankTransactionAsync(ReconcileBankTransactionDto reconciliation)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/accounting/bank-reconciliation/reconcile")
+        {
+            Content = JsonContent.Create(reconciliation)
+        };
+        return await SendAsync<Guid>(request, "id");
+    }
+
+    public async Task<ApiResult<AccountingReportDto>> GetAccountingReportAsync(AccountingReportType type, Guid companyId, DateTime? fromDate, DateTime? toDate)
+    {
+        var query = $"type={type}&companyId={companyId}";
+        if (fromDate.HasValue)
+            query += $"&fromDate={fromDate.Value:O}";
+        if (toDate.HasValue)
+            query += $"&toDate={toDate.Value:O}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/reports?{query}");
+        return await SendAsync<AccountingReportDto>(request, "report");
+    }
+
     public async Task<ApiResult<PaginatedResult<EInvoiceDto>>> GetEInvoicesAsync(Guid? companyId, ZatcaSubmissionStatus? status, int pageIndex, int pageSize)
     {
         var query = $"companyId={companyId}&pageIndex={pageIndex}&pageSize={pageSize}";

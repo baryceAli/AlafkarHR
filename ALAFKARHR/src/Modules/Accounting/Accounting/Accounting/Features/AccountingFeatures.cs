@@ -63,6 +63,19 @@ public record GetAccountingSetupStatusQuery(Guid CompanyId) : IQuery<GetAccounti
 public record GetAccountingSetupStatusResult(AccountingSetupStatusDto Status);
 public record ApplyAccountingTemplateCommand(ApplyAccountingTemplateDto Setup) : ICommand<ApplyAccountingTemplateResult>;
 public record ApplyAccountingTemplateResult(ApplyAccountingTemplateResultDto Result);
+public record CreateQuickJournalEntryCommand(QuickJournalEntryDto JournalEntry) : ICommand<CreateAndPostJournalEntryResult>;
+public record CreateBankTransactionCommand(BankTransactionDto Transaction) : ICommand<CreateBankTransactionResult>;
+public record CreateBankTransactionResult(Guid Id);
+public record ReconcileBankTransactionCommand(ReconcileBankTransactionDto Reconciliation) : ICommand<ReconcileBankTransactionResult>;
+public record ReconcileBankTransactionResult(Guid Id, BankTransactionStatus Status);
+public record GetBankTransactionsQuery(Guid CompanyId, BankTransactionStatus? Status, int PageIndex, int PageSize, string? SearchText) : IQuery<GetBankTransactionsResult>;
+public record GetBankTransactionsResult(PaginatedResult<BankTransactionDto> Transactions);
+public record GetBankReconciliationSummaryQuery(Guid CompanyId) : IQuery<GetBankReconciliationSummaryResult>;
+public record GetBankReconciliationSummaryResult(BankReconciliationSummaryDto Summary);
+public record GetBankReconciliationMatchesQuery(Guid BankTransactionId) : IQuery<GetBankReconciliationMatchesResult>;
+public record GetBankReconciliationMatchesResult(List<BankReconciliationMatchDto> Matches);
+public record GetAccountingReportQuery(AccountingReportType Type, Guid CompanyId, DateTime? FromDate, DateTime? ToDate) : IQuery<GetAccountingReportResult>;
+public record GetAccountingReportResult(AccountingReportDto Report);
 
 public class CreateAccountCommandValidator : AbstractValidator<CreateAccountCommand>
 {
@@ -117,6 +130,29 @@ public class CreateAndPostJournalEntryCommandValidator : AbstractValidator<Creat
     }
 }
 
+public class CreateQuickJournalEntryCommandValidator : AbstractValidator<CreateQuickJournalEntryCommand>
+{
+    public CreateQuickJournalEntryCommandValidator()
+    {
+        RuleFor(x => x.JournalEntry.CompanyId).NotEmpty();
+        RuleFor(x => x.JournalEntry.DebitAccountId).NotEmpty();
+        RuleFor(x => x.JournalEntry.CreditAccountId).NotEmpty();
+        RuleFor(x => x.JournalEntry.Amount).GreaterThan(0);
+        RuleFor(x => x.JournalEntry).Must(x => x.DebitAccountId != x.CreditAccountId)
+            .WithMessage("Debit and credit accounts must be different.");
+    }
+}
+
+public class CreateBankTransactionCommandValidator : AbstractValidator<CreateBankTransactionCommand>
+{
+    public CreateBankTransactionCommandValidator()
+    {
+        RuleFor(x => x.Transaction.CompanyId).NotEmpty();
+        RuleFor(x => x.Transaction.Description).NotEmpty().MaximumLength(500);
+        RuleFor(x => x.Transaction.Amount).NotEqual(0);
+    }
+}
+
 public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpContextAccessor httpContextAccessor)
     : ICommandHandler<CreateAccountCommand, CreateAccountResult>,
       ICommandHandler<UpdateAccountCommand, UpdateAccountResult>,
@@ -133,6 +169,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
       ICommandHandler<CreateAccountingDocumentCommand, CreateAccountingDocumentResult>,
       ICommandHandler<PostAccountingDocumentCommand, PostAccountingDocumentResult>,
       ICommandHandler<CreateAndPostJournalEntryCommand, CreateAndPostJournalEntryResult>,
+      ICommandHandler<CreateQuickJournalEntryCommand, CreateAndPostJournalEntryResult>,
       ICommandHandler<RecordAccountingReceiptCommand, CreateAccountingDocumentResult>,
       ICommandHandler<GenerateZatcaInvoiceCommand, GenerateZatcaInvoiceResult>,
       ICommandHandler<UpsertZatcaSettingsCommand, UpsertZatcaSettingsResult>,
@@ -140,7 +177,9 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
       ICommandHandler<UpsertAccountingTemplateCommand, UpsertAccountingTemplateResult>,
       ICommandHandler<DeleteAccountingTemplateCommand, DeleteAccountingTemplateResult>,
       ICommandHandler<CaptureAccountingTemplateCommand, UpsertAccountingTemplateResult>,
-      ICommandHandler<ApplyAccountingTemplateCommand, ApplyAccountingTemplateResult>
+      ICommandHandler<ApplyAccountingTemplateCommand, ApplyAccountingTemplateResult>,
+      ICommandHandler<CreateBankTransactionCommand, CreateBankTransactionResult>,
+      ICommandHandler<ReconcileBankTransactionCommand, ReconcileBankTransactionResult>
 {
     public async Task<CreateAccountResult> Handle(CreateAccountCommand command, CancellationToken cancellationToken)
     {
@@ -463,6 +502,91 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         await dbContext.JournalEntries.AddAsync(entry, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new CreateAndPostJournalEntryResult(entry.Id, entry.Number);
+    }
+
+    public async Task<CreateAndPostJournalEntryResult> Handle(CreateQuickJournalEntryCommand command, CancellationToken cancellationToken)
+    {
+        var quick = command.JournalEntry;
+        return await Handle(new CreateAndPostJournalEntryCommand(new CreateJournalEntryDto
+        {
+            CompanyId = quick.CompanyId,
+            EntryDate = quick.EntryDate == default ? DateTime.UtcNow.Date : quick.EntryDate.Date,
+            SourceModule = "ManualJournal",
+            SourceDocumentNumber = quick.ReferenceNumber,
+            Memo = quick.Memo,
+            Lines =
+            [
+                new JournalEntryLineDto
+                {
+                    AccountId = quick.DebitAccountId,
+                    Debit = quick.Amount,
+                    Description = quick.Memo
+                },
+                new JournalEntryLineDto
+                {
+                    AccountId = quick.CreditAccountId,
+                    Credit = quick.Amount,
+                    Description = quick.Memo
+                }
+            ]
+        }), cancellationToken);
+    }
+
+    public async Task<CreateBankTransactionResult> Handle(CreateBankTransactionCommand command, CancellationToken cancellationToken)
+    {
+        if (!command.Transaction.BankAccountId.HasValue && !command.Transaction.CashAccountId.HasValue)
+            throw new BadRequestException("Select a bank or cash account.");
+
+        if (command.Transaction.BankAccountId.HasValue)
+        {
+            var exists = await dbContext.BankAccounts.AsNoTracking()
+                .AnyAsync(x => x.Id == command.Transaction.BankAccountId.Value && x.CompanyId == command.Transaction.CompanyId && x.IsActive, cancellationToken);
+            if (!exists)
+                throw new BadRequestException("Bank account was not found.");
+        }
+
+        if (command.Transaction.CashAccountId.HasValue)
+        {
+            var exists = await dbContext.CashAccounts.AsNoTracking()
+                .AnyAsync(x => x.Id == command.Transaction.CashAccountId.Value && x.CompanyId == command.Transaction.CompanyId && x.IsActive, cancellationToken);
+            if (!exists)
+                throw new BadRequestException("Cash account was not found.");
+        }
+
+        var transaction = BankTransaction.Create(command.Transaction, UserId);
+        await dbContext.BankTransactions.AddAsync(transaction, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new CreateBankTransactionResult(transaction.Id);
+    }
+
+    public async Task<ReconcileBankTransactionResult> Handle(ReconcileBankTransactionCommand command, CancellationToken cancellationToken)
+    {
+        var dto = command.Reconciliation;
+        var transaction = await dbContext.BankTransactions.FirstOrDefaultAsync(x => x.Id == dto.BankTransactionId, cancellationToken)
+            ?? throw new NotFoundException("Bank transaction", dto.BankTransactionId);
+
+        if (dto.JournalEntryId.HasValue)
+        {
+            var exists = await dbContext.JournalEntries.AsNoTracking()
+                .AnyAsync(x => x.Id == dto.JournalEntryId.Value && x.CompanyId == transaction.CompanyId && x.Status == JournalEntryStatus.Posted, cancellationToken);
+            if (!exists)
+                throw new BadRequestException("Posted journal entry was not found.");
+        }
+
+        if (dto.AccountingDocumentId.HasValue)
+        {
+            var exists = await dbContext.AccountingDocuments.AsNoTracking()
+                .AnyAsync(x => x.Id == dto.AccountingDocumentId.Value && x.CompanyId == transaction.CompanyId && x.Status == AccountingDocumentStatus.Posted, cancellationToken);
+            if (!exists)
+                throw new BadRequestException("Posted accounting document was not found.");
+        }
+
+        if (dto.WriteOffAccountId.HasValue)
+            await EnsurePostingAccountsAsync(transaction.CompanyId, [dto.WriteOffAccountId.Value], cancellationToken);
+
+        transaction.Reconcile(dto.JournalEntryId, dto.AccountingDocumentId, dto.WriteOffAccountId, dto.ClearanceDate, UserId);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new ReconcileBankTransactionResult(transaction.Id, transaction.Status);
     }
 
     public async Task<CreateAccountingDocumentResult> Handle(RecordAccountingReceiptCommand command, CancellationToken cancellationToken)
@@ -1527,7 +1651,11 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
       IQueryHandler<GetAccountingDashboardQuery, GetAccountingDashboardResult>,
       IQueryHandler<GetAccountingTemplatesQuery, GetAccountingTemplatesResult>,
       IQueryHandler<GetAccountingTemplateByIdQuery, GetAccountingTemplateByIdResult>,
-      IQueryHandler<GetAccountingSetupStatusQuery, GetAccountingSetupStatusResult>
+      IQueryHandler<GetAccountingSetupStatusQuery, GetAccountingSetupStatusResult>,
+      IQueryHandler<GetBankTransactionsQuery, GetBankTransactionsResult>,
+      IQueryHandler<GetBankReconciliationSummaryQuery, GetBankReconciliationSummaryResult>,
+      IQueryHandler<GetBankReconciliationMatchesQuery, GetBankReconciliationMatchesResult>,
+      IQueryHandler<GetAccountingReportQuery, GetAccountingReportResult>
 {
     public async Task<GetAccountingTemplatesResult> Handle(GetAccountingTemplatesQuery query, CancellationToken cancellationToken)
     {
@@ -1715,12 +1843,14 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
         var periods = dbContext.FiscalPeriods.AsNoTracking();
         var documents = dbContext.AccountingDocuments.AsNoTracking();
         var invoices = dbContext.EInvoices.AsNoTracking();
+        var bankTransactions = dbContext.BankTransactions.AsNoTracking();
         if (query.CompanyId.HasValue)
         {
             accounts = accounts.Where(x => x.CompanyId == query.CompanyId.Value);
             periods = periods.Where(x => x.CompanyId == query.CompanyId.Value);
             documents = documents.Where(x => x.CompanyId == query.CompanyId.Value);
             invoices = invoices.Where(x => x.CompanyId == query.CompanyId.Value);
+            bankTransactions = bankTransactions.Where(x => x.CompanyId == query.CompanyId.Value);
         }
 
         return new GetAccountingDashboardResult(new AccountingDashboardDto
@@ -1729,11 +1859,235 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
             OpenPeriods = await periods.CountAsync(x => x.Status == FiscalPeriodStatus.Open, cancellationToken),
             DraftDocuments = await documents.CountAsync(x => x.Status == AccountingDocumentStatus.Draft, cancellationToken),
             PostedDocuments = await documents.CountAsync(x => x.Status == AccountingDocumentStatus.Posted, cancellationToken),
+            UnreconciledBankTransactions = await bankTransactions.CountAsync(x => x.Status == BankTransactionStatus.Unreconciled, cancellationToken),
             PendingZatcaSubmissions = await invoices.CountAsync(x => x.SubmissionStatus == ZatcaSubmissionStatus.Pending || x.SubmissionStatus == ZatcaSubmissionStatus.RetryScheduled, cancellationToken),
             FailedZatcaSubmissions = await invoices.CountAsync(x => x.SubmissionStatus == ZatcaSubmissionStatus.Failed, cancellationToken),
             OutputVat = await documents.Where(x => x.Type == AccountingDocumentType.SalesInvoice && x.Status == AccountingDocumentStatus.Posted).SumAsync(x => x.TaxAmount, cancellationToken),
             InputVat = await documents.Where(x => x.Type == AccountingDocumentType.SupplierInvoice && x.Status == AccountingDocumentStatus.Posted).SumAsync(x => x.TaxAmount, cancellationToken)
         });
+    }
+
+    public async Task<GetBankTransactionsResult> Handle(GetBankTransactionsQuery query, CancellationToken cancellationToken)
+    {
+        var transactions = dbContext.BankTransactions.AsNoTracking().Where(x => x.CompanyId == query.CompanyId);
+        if (query.Status.HasValue)
+            transactions = transactions.Where(x => x.Status == query.Status.Value);
+        if (!string.IsNullOrWhiteSpace(query.SearchText))
+            transactions = transactions.Where(x => x.Description.Contains(query.SearchText) || (x.ReferenceNumber != null && x.ReferenceNumber.Contains(query.SearchText)));
+
+        var count = await transactions.LongCountAsync(cancellationToken);
+        var pageIndex = query.PageIndex <= 0 ? 1 : query.PageIndex;
+        var pageSize = query.PageSize <= 0 ? 20 : query.PageSize;
+        var data = await transactions
+            .OrderBy(x => x.Status)
+            .ThenByDescending(x => x.TransactionDate)
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return new GetBankTransactionsResult(new PaginatedResult<BankTransactionDto>(pageIndex, pageSize, count, data.Select(x => x.ToDto())));
+    }
+
+    public async Task<GetBankReconciliationSummaryResult> Handle(GetBankReconciliationSummaryQuery query, CancellationToken cancellationToken)
+    {
+        var transactions = await dbContext.BankTransactions.AsNoTracking()
+            .Where(x => x.CompanyId == query.CompanyId)
+            .ToListAsync(cancellationToken);
+
+        return new GetBankReconciliationSummaryResult(new BankReconciliationSummaryDto
+        {
+            UnreconciledCount = transactions.Count(x => x.Status == BankTransactionStatus.Unreconciled),
+            UnreconciledInflow = transactions.Where(x => x.Status == BankTransactionStatus.Unreconciled && x.Amount > 0).Sum(x => x.Amount),
+            UnreconciledOutflow = Math.Abs(transactions.Where(x => x.Status == BankTransactionStatus.Unreconciled && x.Amount < 0).Sum(x => x.Amount)),
+            ReconciledCount = transactions.Count(x => x.Status == BankTransactionStatus.Reconciled)
+        });
+    }
+
+    public async Task<GetBankReconciliationMatchesResult> Handle(GetBankReconciliationMatchesQuery query, CancellationToken cancellationToken)
+    {
+        var transaction = await dbContext.BankTransactions.AsNoTracking().FirstOrDefaultAsync(x => x.Id == query.BankTransactionId, cancellationToken)
+            ?? throw new NotFoundException("Bank transaction", query.BankTransactionId);
+
+        var amount = Math.Abs(transaction.Amount);
+        var fromDate = transaction.TransactionDate.Date.AddDays(-14);
+        var toDate = transaction.TransactionDate.Date.AddDays(14);
+
+        var documents = await dbContext.AccountingDocuments.AsNoTracking()
+            .Where(x => x.CompanyId == transaction.CompanyId
+                && x.Status == AccountingDocumentStatus.Posted
+                && x.DocumentDate >= fromDate
+                && x.DocumentDate <= toDate
+                && (x.TotalAmount == amount || x.Number == transaction.ReferenceNumber))
+            .OrderByDescending(x => x.DocumentDate)
+            .Take(10)
+            .ToListAsync(cancellationToken);
+
+        var journals = await dbContext.JournalEntries.AsNoTracking()
+            .Where(x => x.CompanyId == transaction.CompanyId
+                && x.Status == JournalEntryStatus.Posted
+                && x.EntryDate >= fromDate
+                && x.EntryDate <= toDate
+                && (x.TotalDebit == amount || x.Number == transaction.ReferenceNumber || x.SourceDocumentNumber == transaction.ReferenceNumber))
+            .OrderByDescending(x => x.EntryDate)
+            .Take(10)
+            .ToListAsync(cancellationToken);
+
+        var matches = documents.Select(x => new BankReconciliationMatchDto
+            {
+                Id = x.Id,
+                Number = x.Number,
+                Source = x.Type.ToString(),
+                Date = x.DocumentDate,
+                PartyOrMemo = x.PartyName,
+                Amount = x.TotalAmount,
+                IsJournalEntry = false
+            })
+            .Concat(journals.Select(x => new BankReconciliationMatchDto
+            {
+                Id = x.Id,
+                Number = x.Number,
+                Source = x.SourceModule ?? "Journal",
+                Date = x.EntryDate,
+                PartyOrMemo = x.Memo,
+                Amount = x.TotalDebit,
+                IsJournalEntry = true
+            }))
+            .OrderByDescending(x => x.Number == transaction.ReferenceNumber)
+            .ThenBy(x => Math.Abs(x.Amount - amount))
+            .ThenByDescending(x => x.Date)
+            .Take(12)
+            .ToList();
+
+        return new GetBankReconciliationMatchesResult(matches);
+    }
+
+    public async Task<GetAccountingReportResult> Handle(GetAccountingReportQuery query, CancellationToken cancellationToken)
+    {
+        var fromDate = query.FromDate?.Date;
+        var toDate = query.ToDate?.Date;
+        var entries = dbContext.JournalEntries.Include(x => x.Lines).AsNoTracking()
+            .Where(x => x.CompanyId == query.CompanyId && x.Status == JournalEntryStatus.Posted);
+        if (fromDate.HasValue)
+            entries = entries.Where(x => x.EntryDate >= fromDate.Value);
+        if (toDate.HasValue)
+            entries = entries.Where(x => x.EntryDate <= toDate.Value);
+
+        var entryList = await entries.OrderBy(x => x.EntryDate).ToListAsync(cancellationToken);
+        var accountIds = entryList.SelectMany(x => x.Lines).Select(x => x.AccountId).Distinct().ToList();
+        var accounts = await dbContext.Accounts.AsNoTracking()
+            .Where(x => x.CompanyId == query.CompanyId && accountIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        var rows = query.Type switch
+        {
+            AccountingReportType.TrialBalance => BuildTrialBalanceRows(entryList, accounts),
+            AccountingReportType.AgedReceivables => await BuildAgedDocumentRowsAsync(query.CompanyId, AccountingDocumentType.SalesInvoice, cancellationToken),
+            AccountingReportType.AgedPayables => await BuildAgedDocumentRowsAsync(query.CompanyId, AccountingDocumentType.SupplierInvoice, cancellationToken),
+            AccountingReportType.TaxSummary => await BuildTaxSummaryRowsAsync(query.CompanyId, fromDate, toDate, cancellationToken),
+            _ => BuildGeneralLedgerRows(entryList, accounts)
+        };
+
+        return new GetAccountingReportResult(new AccountingReportDto
+        {
+            Type = query.Type,
+            CompanyId = query.CompanyId,
+            FromDate = fromDate,
+            ToDate = toDate,
+            Rows = rows,
+            TotalDebit = rows.Sum(x => x.Debit),
+            TotalCredit = rows.Sum(x => x.Credit),
+            Balance = rows.Sum(x => x.Debit - x.Credit)
+        });
+    }
+
+    private static List<AccountingReportRowDto> BuildGeneralLedgerRows(List<JournalEntry> entries, Dictionary<Guid, Account> accounts)
+    {
+        var running = new Dictionary<Guid, decimal>();
+        var rows = new List<AccountingReportRowDto>();
+        foreach (var entry in entries)
+        {
+            foreach (var line in entry.Lines)
+            {
+                accounts.TryGetValue(line.AccountId, out var account);
+                running[line.AccountId] = running.GetValueOrDefault(line.AccountId) + line.Debit - line.Credit;
+                rows.Add(new AccountingReportRowDto
+                {
+                    Date = entry.EntryDate,
+                    Code = account?.Code ?? string.Empty,
+                    Name = account?.NameEng ?? account?.Name ?? line.AccountId.ToString(),
+                    Source = entry.SourceDocumentNumber ?? entry.Number,
+                    Party = entry.Memo,
+                    Debit = line.Debit,
+                    Credit = line.Credit,
+                    Balance = running[line.AccountId]
+                });
+            }
+        }
+
+        return rows;
+    }
+
+    private static List<AccountingReportRowDto> BuildTrialBalanceRows(List<JournalEntry> entries, Dictionary<Guid, Account> accounts) =>
+        entries.SelectMany(x => x.Lines)
+            .GroupBy(x => x.AccountId)
+            .Select(x =>
+            {
+                accounts.TryGetValue(x.Key, out var account);
+                var debit = x.Sum(line => line.Debit);
+                var credit = x.Sum(line => line.Credit);
+                return new AccountingReportRowDto
+                {
+                    Code = account?.Code ?? string.Empty,
+                    Name = account?.NameEng ?? account?.Name ?? x.Key.ToString(),
+                    Debit = debit,
+                    Credit = credit,
+                    Balance = debit - credit
+                };
+            })
+            .OrderBy(x => x.Code)
+            .ToList();
+
+    private async Task<List<AccountingReportRowDto>> BuildAgedDocumentRowsAsync(Guid companyId, AccountingDocumentType type, CancellationToken cancellationToken)
+    {
+        var today = DateTime.UtcNow.Date;
+        var documents = await dbContext.AccountingDocuments.AsNoTracking()
+            .Where(x => x.CompanyId == companyId && x.Type == type && x.Status == AccountingDocumentStatus.Posted)
+            .OrderBy(x => x.DocumentDate)
+            .ToListAsync(cancellationToken);
+
+        return documents.Select(x => new AccountingReportRowDto
+        {
+            Date = x.DocumentDate,
+            Code = x.Number,
+            Name = x.PartyName ?? "-",
+            Source = x.Type.ToString(),
+            Debit = type == AccountingDocumentType.SalesInvoice ? x.TotalAmount : 0,
+            Credit = type == AccountingDocumentType.SupplierInvoice ? x.TotalAmount : 0,
+            Balance = x.TotalAmount,
+            Party = $"{Math.Max(0, (today - x.DocumentDate.Date).Days)} days"
+        }).ToList();
+    }
+
+    private async Task<List<AccountingReportRowDto>> BuildTaxSummaryRowsAsync(Guid companyId, DateTime? fromDate, DateTime? toDate, CancellationToken cancellationToken)
+    {
+        var documents = dbContext.AccountingDocuments.AsNoTracking()
+            .Where(x => x.CompanyId == companyId && x.Status == AccountingDocumentStatus.Posted);
+        if (fromDate.HasValue)
+            documents = documents.Where(x => x.DocumentDate >= fromDate.Value);
+        if (toDate.HasValue)
+            documents = documents.Where(x => x.DocumentDate <= toDate.Value);
+
+        return await documents
+            .GroupBy(x => x.Type)
+            .Select(x => new AccountingReportRowDto
+            {
+                Code = x.Key.ToString(),
+                Name = x.Key.ToString(),
+                Debit = x.Where(d => d.Type == AccountingDocumentType.SupplierInvoice).Sum(d => d.TaxAmount),
+                Credit = x.Where(d => d.Type == AccountingDocumentType.SalesInvoice).Sum(d => d.TaxAmount),
+                TaxAmount = x.Sum(d => d.TaxAmount),
+                Balance = x.Sum(d => d.TaxAmount)
+            })
+            .ToListAsync(cancellationToken);
     }
 
     private static IEnumerable<Guid?> SettingsAccountIds(CompanyAccountingSettingsDto settings) =>

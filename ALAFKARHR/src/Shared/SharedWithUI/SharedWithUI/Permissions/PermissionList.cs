@@ -88,6 +88,8 @@ public static class PermissionList
             .. AccountingSettingsPermissions.Permissions,
             .. JournalEntryPermissions.Permissions,
             .. AccountingDocumentPermissions.Permissions,
+            .. BankReconciliationPermissions.Permissions,
+            .. AccountingReportPermissions.Permissions,
             .. ZatcaSettingsPermissions.Permissions,
             .. ZatcaEInvoicePermissions.Permissions,
             .. SystemSettingsPermissions.Permissions,
@@ -1585,6 +1587,22 @@ public static class PermissionList
         public static string Post { get; set; } = $"{GroupName}.Post";
         public static string Reverse { get; set; } = $"{GroupName}.Reverse";
         public static List<string> Permissions => [View, Create, Post, Reverse];
+    }
+
+    public static class BankReconciliationPermissions
+    {
+        public static string GroupName { get; set; } = "Accounting.BankReconciliation";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Reconcile { get; set; } = $"{GroupName}.Reconcile";
+        public static List<string> Permissions => [View, Create, Reconcile];
+    }
+
+    public static class AccountingReportPermissions
+    {
+        public static string GroupName { get; set; } = "Accounting.Report";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static List<string> Permissions => [View];
     }
 
     public static class ZatcaSettingsPermissions
