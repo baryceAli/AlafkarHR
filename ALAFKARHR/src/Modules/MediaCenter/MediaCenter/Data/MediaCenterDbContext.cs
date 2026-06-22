@@ -4,8 +4,7 @@ public class MediaCenterDbContext(DbContextOptions<MediaCenterDbContext> options
 {
     public DbSet<MediaActivityType> MediaActivityTypes => Set<MediaActivityType>();
     public DbSet<MediaActivity> MediaActivities => Set<MediaActivity>();
-    public DbSet<MediaActivityCustomer> MediaActivityCustomers => Set<MediaActivityCustomer>();
-    public DbSet<MediaActivityAllocation> MediaActivityAllocations => Set<MediaActivityAllocation>();
+    public DbSet<MediaActivityRelatedRecord> MediaActivityRelatedRecords => Set<MediaActivityRelatedRecord>();
     public DbSet<MediaActivityMedia> MediaActivityMedia => Set<MediaActivityMedia>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

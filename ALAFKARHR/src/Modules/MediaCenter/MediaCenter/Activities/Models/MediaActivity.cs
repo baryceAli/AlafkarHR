@@ -2,8 +2,7 @@ namespace MediaCenter.Activities.Models;
 
 public class MediaActivity : Aggregate<Guid>
 {
-    private readonly List<MediaActivityCustomer> _customers = [];
-    private readonly List<MediaActivityAllocation> _allocations = [];
+    private readonly List<MediaActivityRelatedRecord> _relatedRecords = [];
     private readonly List<MediaActivityMedia> _media = [];
 
     public Guid CompanyId { get; private set; }
@@ -12,14 +11,9 @@ public class MediaActivity : Aggregate<Guid>
     public string TitleEng { get; private set; } = string.Empty;
     public DateTime ActivityDate { get; private set; }
     public TimeOnly? ActivityTime { get; private set; }
-    public Guid? ProjectId { get; private set; }
-    public string? ProjectName { get; private set; }
-    public Guid? DistributionPlaceId { get; private set; }
-    public string? PlaceName { get; private set; }
-    public string? FreeTextLocation { get; private set; }
+    public string? LocationText { get; private set; }
     public string? Notes { get; private set; }
-    public IReadOnlyCollection<MediaActivityCustomer> Customers => _customers;
-    public IReadOnlyCollection<MediaActivityAllocation> Allocations => _allocations;
+    public IReadOnlyCollection<MediaActivityRelatedRecord> RelatedRecords => _relatedRecords;
     public IReadOnlyCollection<MediaActivityMedia> Media => _media;
 
     private MediaActivity() { }
@@ -36,11 +30,7 @@ public class MediaActivity : Aggregate<Guid>
             TitleEng = string.IsNullOrWhiteSpace(dto.TitleEng) ? dto.Title.Trim() : dto.TitleEng.Trim(),
             ActivityDate = dto.ActivityDate.Date,
             ActivityTime = dto.ActivityTime,
-            ProjectId = dto.ProjectId,
-            ProjectName = dto.ProjectName,
-            DistributionPlaceId = dto.DistributionPlaceId,
-            PlaceName = dto.PlaceName,
-            FreeTextLocation = dto.FreeTextLocation,
+            LocationText = dto.LocationText,
             Notes = dto.Notes,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
@@ -55,11 +45,7 @@ public class MediaActivity : Aggregate<Guid>
         TitleEng = string.IsNullOrWhiteSpace(dto.TitleEng) ? dto.Title.Trim() : dto.TitleEng.Trim();
         ActivityDate = dto.ActivityDate.Date;
         ActivityTime = dto.ActivityTime;
-        ProjectId = dto.ProjectId;
-        ProjectName = dto.ProjectName;
-        DistributionPlaceId = dto.DistributionPlaceId;
-        PlaceName = dto.PlaceName;
-        FreeTextLocation = dto.FreeTextLocation;
+        LocationText = dto.LocationText;
         Notes = dto.Notes;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
@@ -85,68 +71,31 @@ public class MediaActivity : Aggregate<Guid>
     }
 }
 
-public class MediaActivityCustomer : Entity<Guid>
+public class MediaActivityRelatedRecord : Entity<Guid>
 {
     public Guid MediaActivityId { get; private set; }
-    public Guid? CustomerId { get; private set; }
-    public string? CustomerName { get; private set; }
-    public string? CustomerNameEng { get; private set; }
-    public Guid? ProjectCustomerId { get; private set; }
-    public string? ProjectCustomerName { get; private set; }
+    public string RelatedType { get; private set; } = string.Empty;
+    public Guid? RelatedRecordId { get; private set; }
+    public string DisplayName { get; private set; } = string.Empty;
+    public string? Notes { get; private set; }
 
-    private MediaActivityCustomer() { }
+    private MediaActivityRelatedRecord() { }
 
-    public static MediaActivityCustomer Create(Guid mediaActivityId, MediaActivityCustomerDto dto, string createdBy)
+    public static MediaActivityRelatedRecord Create(Guid mediaActivityId, MediaActivityRelatedRecordDto dto, string createdBy)
     {
-        if (!dto.CustomerId.HasValue && !dto.ProjectCustomerId.HasValue && string.IsNullOrWhiteSpace(dto.CustomerName))
-            throw new BadRequestException("Customer or project customer is required.");
+        if (string.IsNullOrWhiteSpace(dto.RelatedType))
+            throw new BadRequestException("Related record type is required.");
+        if (string.IsNullOrWhiteSpace(dto.DisplayName))
+            throw new BadRequestException("Related record display name is required.");
 
-        return new MediaActivityCustomer
+        return new MediaActivityRelatedRecord
         {
             Id = Guid.NewGuid(),
             MediaActivityId = mediaActivityId,
-            CustomerId = dto.CustomerId,
-            CustomerName = dto.CustomerName,
-            CustomerNameEng = dto.CustomerNameEng,
-            ProjectCustomerId = dto.ProjectCustomerId,
-            ProjectCustomerName = dto.ProjectCustomerName,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = createdBy
-        };
-    }
-}
-
-public class MediaActivityAllocation : Entity<Guid>
-{
-    public Guid MediaActivityId { get; private set; }
-    public Guid ProjectDistributionAllocationId { get; private set; }
-    public DateTime DistributionDate { get; private set; }
-    public Guid? ProjectCustomerId { get; private set; }
-    public string? CustomerName { get; private set; }
-    public Guid? DeliverableId { get; private set; }
-    public string? DeliverableName { get; private set; }
-    public Guid? DistributionPlaceId { get; private set; }
-    public string? PlaceName { get; private set; }
-
-    private MediaActivityAllocation() { }
-
-    public static MediaActivityAllocation Create(Guid mediaActivityId, MediaActivityAllocationDto dto, string createdBy)
-    {
-        if (dto.ProjectDistributionAllocationId == Guid.Empty)
-            throw new BadRequestException("Project distribution allocation is required.");
-
-        return new MediaActivityAllocation
-        {
-            Id = Guid.NewGuid(),
-            MediaActivityId = mediaActivityId,
-            ProjectDistributionAllocationId = dto.ProjectDistributionAllocationId,
-            DistributionDate = dto.DistributionDate.Date,
-            ProjectCustomerId = dto.ProjectCustomerId,
-            CustomerName = dto.CustomerName,
-            DeliverableId = dto.DeliverableId,
-            DeliverableName = dto.DeliverableName,
-            DistributionPlaceId = dto.DistributionPlaceId,
-            PlaceName = dto.PlaceName,
+            RelatedType = dto.RelatedType.Trim(),
+            RelatedRecordId = dto.RelatedRecordId,
+            DisplayName = dto.DisplayName.Trim(),
+            Notes = dto.Notes,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };

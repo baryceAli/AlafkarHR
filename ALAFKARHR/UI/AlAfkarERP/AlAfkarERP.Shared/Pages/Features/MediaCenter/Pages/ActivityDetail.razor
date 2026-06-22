@@ -1,4 +1,4 @@
-﻿@page "/MediaCenter/Activities/{Id:guid}"
+@page "/MediaCenter/Activities/{Id:guid}"
 @layout AdminLayout
 @implements IDisposable
 
@@ -19,12 +19,11 @@
 @inject SharedDataService SharedDataService
 @inject ToastService ToastService
 @inject NavigationManager NavigationManager
-@inject ApiConfig ApiConfig
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JS
 
 <div class="erp-page" dir="@SharedDataService.PageDirection">
-    <PageHeader Title="@(activity is null ? Text("Media Activity", "نشاط إعلامي") : DisplayName(activity.Title, activity.TitleEng))"
+    <PageHeader Title="@(activity is null ? Text("Media Entry", "إدخال إعلامي") : DisplayName(activity.Title, activity.TitleEng))"
                 Subtitle="@(activity is null ? null : DateTimeText(activity.ActivityDate, activity.ActivityTime))"
                 Icon="bi-images">
         <Actions>
@@ -40,18 +39,17 @@
     }
     else if (activity is null)
     {
-        <EmptyState Title="@Text("Activity not found", "النشاط غير موجود")" />
+        <EmptyState Title="@Text("Entry not found", "الإدخال غير موجود")" />
     }
     else
     {
         <div class="row g-3">
             <div class="col-lg-4">
-                <AppCard Title="@Text("Activity details", "تفاصيل النشاط")">
+                <AppCard Title="@Text("Entry details", "تفاصيل الإدخال")">
                     <dl class="row mb-0">
                         <dt class="col-5">@Text("Type", "النوع")</dt><dd class="col-7">@DisplayName(activity.ActivityTypeName, activity.ActivityTypeNameEng)</dd>
                         <dt class="col-5">@Text("Date", "التاريخ")</dt><dd class="col-7">@DateTimeText(activity.ActivityDate, activity.ActivityTime)</dd>
-                        <dt class="col-5">@Text("Project", "المشروع")</dt><dd class="col-7">@activity.ProjectName</dd>
-                        <dt class="col-5">@Text("Location", "الموقع")</dt><dd class="col-7">@(activity.PlaceName ?? activity.FreeTextLocation)</dd>
+                        <dt class="col-5">@Text("Location", "الموقع")</dt><dd class="col-7">@activity.LocationText</dd>
                         <dt class="col-5">@Text("Media", "الوسائط")</dt><dd class="col-7">@activity.MediaCount</dd>
                     </dl>
                     @if (!string.IsNullOrWhiteSpace(activity.Notes))
@@ -61,25 +59,29 @@
                     }
                 </AppCard>
 
-                <AppCard Title="@Text("Customers and allocations", "العملاء والتخصيصات")" CssClass="mt-3">
-                    @if (!activity.Customers.Any() && !activity.Allocations.Any())
+                <AppCard Title="@Text("Related records", "السجلات المرتبطة")" CssClass="mt-3">
+                    @if (!activity.RelatedRecords.Any())
                     {
-                        <EmptyState Title="@Text("No linked customers", "لا توجد روابط عملاء")" Icon="bi-people" />
+                        <EmptyState Title="@Text("No related records", "لا توجد سجلات مرتبطة")" Icon="bi-link-45deg" />
                     }
                     else
                     {
-                        <div class="d-flex flex-wrap gap-2 mb-3">
-                            @foreach (var customer in activity.Customers)
-                            {
-                                <StatusChip Text="@(customer.CustomerName ?? customer.ProjectCustomerName ?? Text("Customer", "عميل"))" Tone="primary" Icon="bi-person" />
-                            }
-                        </div>
                         <div class="d-flex flex-column gap-2">
-                            @foreach (var allocation in activity.Allocations)
+                            @foreach (var record in activity.RelatedRecords)
                             {
                                 <div class="border rounded p-2 small">
-                                    <div class="fw-semibold">@AllocationLabel(allocation)</div>
-                                    <div class="text-muted">@allocation.ProjectDistributionAllocationId</div>
+                                    <div class="d-flex justify-content-between align-items-start gap-2">
+                                        <div class="fw-semibold">@record.DisplayName</div>
+                                        <StatusChip Text="@record.RelatedType" Tone="primary" Icon="bi-link-45deg" />
+                                    </div>
+                                    @if (record.RelatedRecordId.HasValue)
+                                    {
+                                        <div class="text-muted">@record.RelatedRecordId</div>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(record.Notes))
+                                    {
+                                        <div class="mt-1">@record.Notes</div>
+                                    }
                                 </div>
                             }
                         </div>
@@ -119,7 +121,7 @@
                 <AppCard Title="@Text("Gallery", "المعرض")" CssClass="mt-3">
                     @if (!activity.Media.Any())
                     {
-                        <EmptyState Title="@Text("No media uploaded", "لم يتم رفع وسائط")" Message="@Text("Upload images, videos, audio, or documents for this activity.", "ارفع صورا أو فيديو أو صوتا أو مستندات لهذا النشاط.")" Icon="bi-images" />
+                        <EmptyState Title="@Text("No media uploaded", "لم يتم رفع وسائط")" Message="@Text("Upload images, videos, audio, or documents for this entry.", "ارفع صورا أو فيديو أو صوتا أو مستندات لهذا الإدخال.")" Icon="bi-images" />
                     }
                     else
                     {
@@ -190,7 +192,7 @@
         busy = true;
         var response = await MediaCenterService.GetActivityByIdAsync(Id);
         activity = response.IsSuccess ? response.Data : null;
-        if (!response.IsSuccess) ToastService.ShowError(Error(response, Text("Unable to load media activity.", "تعذر تحميل النشاط الإعلامي.")));
+        if (!response.IsSuccess) ToastService.ShowError(Error(response, Text("Unable to load media entry.", "تعذر تحميل الإدخال الإعلامي.")));
         busy = false;
         await LoadDocumentsAsync();
     }
@@ -212,7 +214,7 @@
         newMedia.DocumentId = documentId;
         var response = await MediaCenterService.AddMediaAsync(activity.Id, newMedia);
         if (response.IsSuccess) { ToastService.ShowSuccess(Text("Media attached.", "تم ربط الوسائط.")); newMedia = new AddMediaActivityMediaDto { MediaKind = MediaKind.Image }; await LoadAsync(); }
-        else ToastService.ShowError(Error(response, Text("Media uploaded, but it could not be attached to the activity.", "تم رفع الوسائط ولكن تعذر ربطها بالنشاط.")));
+        else ToastService.ShowError(Error(response, Text("Media uploaded, but it could not be attached to the entry.", "تم رفع الوسائط ولكن تعذر ربطها بالإدخال.")));
     }
 
     private void EditMedia(MediaActivityMediaDto media)
@@ -247,7 +249,6 @@
 
     private void ViewDocument(Guid documentId) => NavigationManager.NavigateTo($"/DocumentManagement/View/{documentId}");
     private DocumentDetailDto? Document(Guid id) => documents.TryGetValue(id, out var document) ? document : null;
-    private string AllocationLabel(MediaActivityAllocationDto item) => $"{item.DistributionDate:yyyy-MM-dd} - {item.PlaceName} - {item.CustomerName} - {item.DeliverableName}";
     private string DateTimeText(DateTime date, TimeOnly? time) => time.HasValue ? $"{date:yyyy-MM-dd} {time:HH:mm}" : date.ToString("yyyy-MM-dd");
     private bool HasPermission(string permission) => CompanyContext.HasPermission(authState?.User, permission);
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);

@@ -30,16 +30,11 @@ public class MediaActivityDto
     public string TitleEng { get; set; } = string.Empty;
     public DateTime ActivityDate { get; set; } = DateTime.UtcNow.Date;
     public TimeOnly? ActivityTime { get; set; }
-    public Guid? ProjectId { get; set; }
-    public string? ProjectName { get; set; }
-    public Guid? DistributionPlaceId { get; set; }
-    public string? PlaceName { get; set; }
-    public string? FreeTextLocation { get; set; }
+    public string? LocationText { get; set; }
     public string? Notes { get; set; }
     public int MediaCount { get; set; }
     public DateTime? CreatedAt { get; set; }
-    public List<MediaActivityCustomerDto> Customers { get; set; } = [];
-    public List<MediaActivityAllocationDto> Allocations { get; set; } = [];
+    public List<MediaActivityRelatedRecordDto> RelatedRecords { get; set; } = [];
     public List<MediaActivityMediaDto> Media { get; set; } = [];
 }
 
@@ -55,37 +50,18 @@ public class SaveMediaActivityDto
     public string TitleEng { get; set; } = string.Empty;
     public DateTime ActivityDate { get; set; } = DateTime.UtcNow.Date;
     public TimeOnly? ActivityTime { get; set; }
-    public Guid? ProjectId { get; set; }
-    public string? ProjectName { get; set; }
-    public Guid? DistributionPlaceId { get; set; }
-    public string? PlaceName { get; set; }
-    public string? FreeTextLocation { get; set; }
+    public string? LocationText { get; set; }
     public string? Notes { get; set; }
-    public List<MediaActivityCustomerDto> Customers { get; set; } = [];
-    public List<MediaActivityAllocationDto> Allocations { get; set; } = [];
+    public List<MediaActivityRelatedRecordDto> RelatedRecords { get; set; } = [];
 }
 
-public class MediaActivityCustomerDto
+public class MediaActivityRelatedRecordDto
 {
     public Guid Id { get; set; }
-    public Guid? CustomerId { get; set; }
-    public string? CustomerName { get; set; }
-    public string? CustomerNameEng { get; set; }
-    public Guid? ProjectCustomerId { get; set; }
-    public string? ProjectCustomerName { get; set; }
-}
-
-public class MediaActivityAllocationDto
-{
-    public Guid Id { get; set; }
-    public Guid ProjectDistributionAllocationId { get; set; }
-    public DateTime DistributionDate { get; set; }
-    public Guid? ProjectCustomerId { get; set; }
-    public string? CustomerName { get; set; }
-    public Guid? DeliverableId { get; set; }
-    public string? DeliverableName { get; set; }
-    public Guid? DistributionPlaceId { get; set; }
-    public string? PlaceName { get; set; }
+    public string RelatedType { get; set; } = string.Empty;
+    public Guid? RelatedRecordId { get; set; }
+    public string DisplayName { get; set; } = string.Empty;
+    public string? Notes { get; set; }
 }
 
 public class MediaActivityMediaDto

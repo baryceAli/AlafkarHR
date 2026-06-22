@@ -19,43 +19,25 @@ public class MediaActivityConfiguration : IEntityTypeConfiguration<MediaActivity
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Title).HasMaxLength(250).IsRequired();
         builder.Property(x => x.TitleEng).HasMaxLength(250);
-        builder.Property(x => x.ProjectName).HasMaxLength(250);
-        builder.Property(x => x.PlaceName).HasMaxLength(250);
-        builder.Property(x => x.FreeTextLocation).HasMaxLength(500);
+        builder.Property(x => x.LocationText).HasMaxLength(500);
         builder.Property(x => x.Notes).HasMaxLength(1000);
-        builder.HasMany(x => x.Customers).WithOne().HasForeignKey(x => x.MediaActivityId).OnDelete(DeleteBehavior.Cascade);
-        builder.HasMany(x => x.Allocations).WithOne().HasForeignKey(x => x.MediaActivityId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(x => x.RelatedRecords).WithOne().HasForeignKey(x => x.MediaActivityId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(x => x.Media).WithOne().HasForeignKey(x => x.MediaActivityId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(x => new { x.CompanyId, x.ActivityDate });
         builder.HasIndex(x => new { x.CompanyId, x.ActivityTypeId });
-        builder.HasIndex(x => x.ProjectId);
-        builder.HasIndex(x => x.DistributionPlaceId);
     }
 }
 
-public class MediaActivityCustomerConfiguration : IEntityTypeConfiguration<MediaActivityCustomer>
+public class MediaActivityRelatedRecordConfiguration : IEntityTypeConfiguration<MediaActivityRelatedRecord>
 {
-    public void Configure(EntityTypeBuilder<MediaActivityCustomer> builder)
+    public void Configure(EntityTypeBuilder<MediaActivityRelatedRecord> builder)
     {
         builder.HasKey(x => x.Id);
-        builder.Property(x => x.CustomerName).HasMaxLength(250);
-        builder.Property(x => x.CustomerNameEng).HasMaxLength(250);
-        builder.Property(x => x.ProjectCustomerName).HasMaxLength(250);
-        builder.HasIndex(x => x.CustomerId);
-        builder.HasIndex(x => x.ProjectCustomerId);
-    }
-}
-
-public class MediaActivityAllocationConfiguration : IEntityTypeConfiguration<MediaActivityAllocation>
-{
-    public void Configure(EntityTypeBuilder<MediaActivityAllocation> builder)
-    {
-        builder.HasKey(x => x.Id);
-        builder.Property(x => x.CustomerName).HasMaxLength(250);
-        builder.Property(x => x.DeliverableName).HasMaxLength(250);
-        builder.Property(x => x.PlaceName).HasMaxLength(250);
-        builder.HasIndex(x => x.ProjectDistributionAllocationId);
-        builder.HasIndex(x => new { x.DistributionDate, x.ProjectCustomerId, x.DistributionPlaceId });
+        builder.Property(x => x.RelatedType).HasMaxLength(120).IsRequired();
+        builder.Property(x => x.DisplayName).HasMaxLength(250).IsRequired();
+        builder.Property(x => x.Notes).HasMaxLength(500);
+        builder.HasIndex(x => x.RelatedType);
+        builder.HasIndex(x => x.RelatedRecordId);
     }
 }
 
