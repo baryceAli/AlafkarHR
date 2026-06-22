@@ -122,6 +122,30 @@ public class AccountingService : BaseApiService, IAccountingService
         return await SendAsync<Guid>(request, "id");
     }
 
+    public async Task<ApiResult<Guid>> CloseFiscalPeriodAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/accounting/fiscal-periods/{id}/close");
+        return await SendAsync<Guid>(request, "id");
+    }
+
+    public async Task<ApiResult<Guid>> LockFiscalPeriodAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/accounting/fiscal-periods/{id}/lock");
+        return await SendAsync<Guid>(request, "id");
+    }
+
+    public async Task<ApiResult<Guid>> ReopenFiscalPeriodAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/accounting/fiscal-periods/{id}/reopen");
+        return await SendAsync<Guid>(request, "id");
+    }
+
+    public async Task<ApiResult<Guid>> YearEndCloseFiscalPeriodAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/accounting/fiscal-periods/{id}/year-end-close");
+        return await SendAsync<Guid>(request, "journalEntryId");
+    }
+
     public async Task<ApiResult<List<TaxCodeDto>>> GetTaxCodesAsync(Guid companyId)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/tax-codes?companyId={companyId}");

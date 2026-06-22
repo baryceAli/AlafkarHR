@@ -3,6 +3,7 @@
 
 @using AlAfkarERP.Shared.Pages.Features.Accounting.Services
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Rendering
 @using SharedWithUI.Accounting.Dtos
 @using SharedWithUI.Accounting.Enums
 @using SharedWithUI.Permissions
@@ -26,7 +27,12 @@
     else
     {
         <AppCard>
-            <div class="d-flex justify-content-end mb-3">
+            <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between mb-3">
+                <div class="d-flex flex-wrap gap-2">
+                    @SummaryChip(T("Open", "مفتوحة"), FiscalPeriodStatus.Open, "success")
+                    @SummaryChip(T("Closed", "مغلقة"), FiscalPeriodStatus.Closed, "warning")
+                    @SummaryChip(T("Locked", "مقفلة"), FiscalPeriodStatus.Locked, "danger")
+                </div>
                 @if (CanCreate)
                 {
                     <button class="btn btn-primary" type="button" @onclick="OpenCreate"><i class="bi bi-plus-lg"></i> @T("Create Period", "إضافة فترة")</button>
@@ -40,6 +46,7 @@
                             <th>@T("Start", "البداية")</th>
                             <th>@T("End", "النهاية")</th>
                             <th>@T("Status", "الحالة")</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -50,6 +57,34 @@
                                 <td>@period.StartDate.ToString("yyyy-MM-dd")</td>
                                 <td>@period.EndDate.ToString("yyyy-MM-dd")</td>
                                 <td><StatusChip Text="@period.Status.ToString()" Tone="@PeriodTone(period.Status)" /></td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        @if (CanClose && period.Status == FiscalPeriodStatus.Open)
+                                        {
+                                            <button class="btn btn-outline-warning" type="button" title="@T("Close", "إغلاق")" disabled="@IsBusy(period)" @onclick="() => ConfirmAction(period, PeriodAction.Close)">
+                                                <i class="bi bi-calendar-check"></i>
+                                            </button>
+                                        }
+                                        @if (CanLock && period.Status != FiscalPeriodStatus.Locked)
+                                        {
+                                            <button class="btn btn-outline-danger" type="button" title="@T("Lock", "قفل")" disabled="@IsBusy(period)" @onclick="() => ConfirmAction(period, PeriodAction.Lock)">
+                                                <i class="bi bi-lock"></i>
+                                            </button>
+                                        }
+                                        @if (CanReopen && period.Status != FiscalPeriodStatus.Open)
+                                        {
+                                            <button class="btn btn-outline-success" type="button" title="@T("Reopen", "إعادة فتح")" disabled="@IsBusy(period)" @onclick="() => ConfirmAction(period, PeriodAction.Reopen)">
+                                                <i class="bi bi-unlock"></i>
+                                            </button>
+                                        }
+                                        @if (CanYearEndClose && period.Status is FiscalPeriodStatus.Open or FiscalPeriodStatus.Closed)
+                                        {
+                                            <button class="btn btn-outline-primary" type="button" title="@T("Year-End Close", "إغلاق نهاية السنة")" disabled="@IsBusy(period)" @onclick="() => ConfirmAction(period, PeriodAction.YearEndClose)">
+                                                <i class="bi bi-journal-arrow-down"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -89,13 +124,7 @@
                                 <InputDate class="form-control" @bind-Value="newPeriod.EndDate" />
                             </div>
                             <div class="col-12">
-                                <label class="form-label">@T("Status", "الحالة")</label>
-                                <InputSelect class="form-select" @bind-Value="newPeriod.Status">
-                                    @foreach (var status in Enum.GetValues<FiscalPeriodStatus>())
-                                    {
-                                        <option value="@status">@status</option>
-                                    }
-                                </InputSelect>
+                                <div class="alert alert-info mb-0">@T("New fiscal periods are created open. Use row actions to close, lock, or reopen them.", "يتم إنشاء الفترات المالية مفتوحة. استخدم إجراءات الصف للإغلاق أو القفل أو إعادة الفتح.")</div>
                             </div>
                         </div>
                     </div>
@@ -110,15 +139,51 @@
     <div class="modal-backdrop fade show"></div>
 }
 
+@if (confirmPeriod is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@ActionTitle(confirmAction)</h5>
+                    <button class="btn-close" type="button" @onclick="CancelAction"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">@ActionMessage(confirmAction, confirmPeriod)</p>
+                    <div class="d-flex gap-2 align-items-center">
+                        <StatusChip Text="@confirmPeriod.Status.ToString()" Tone="@PeriodTone(confirmPeriod.Status)" />
+                        <span class="text-muted">@confirmPeriod.StartDate.ToString("yyyy-MM-dd") - @confirmPeriod.EndDate.ToString("yyyy-MM-dd")</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" type="button" @onclick="CancelAction">@T("Cancel", "إلغاء")</button>
+                    <button class="btn btn-primary" type="button" disabled="@actionSaving" @onclick="ExecuteActionAsync">
+                        <i class="@ActionIcon(confirmAction)"></i> @ActionButton(confirmAction)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
 @code {
     private List<FiscalPeriodDto> periods = [];
     private AuthenticationState? authState;
     private Guid companyId;
     private bool showCreate;
     private bool saving;
+    private bool actionSaving;
+    private Guid? busyPeriodId;
+    private FiscalPeriodDto? confirmPeriod;
+    private PeriodAction confirmAction;
     private FiscalPeriodDto newPeriod = new();
     private bool CanView => HasPermission(PermissionList.FiscalPeriodPermissions.View);
     private bool CanCreate => HasPermission(PermissionList.FiscalPeriodPermissions.Create);
+    private bool CanClose => HasPermission(PermissionList.FiscalPeriodPermissions.Close);
+    private bool CanLock => HasPermission(PermissionList.FiscalPeriodPermissions.Lock);
+    private bool CanReopen => HasPermission(PermissionList.FiscalPeriodPermissions.Reopen);
+    private bool CanYearEndClose => HasPermission(PermissionList.FiscalPeriodPermissions.YearEndClose);
 
     protected override async Task OnInitializedAsync()
     {
@@ -156,10 +221,24 @@
 
     private void CloseCreate() => showCreate = false;
 
+    private void ConfirmAction(FiscalPeriodDto period, PeriodAction action)
+    {
+        confirmPeriod = period;
+        confirmAction = action;
+    }
+
+    private void CancelAction()
+    {
+        confirmPeriod = null;
+        actionSaving = false;
+        busyPeriodId = null;
+    }
+
     private async Task SaveAsync()
     {
         saving = true;
         newPeriod.CompanyId = companyId;
+        newPeriod.Status = FiscalPeriodStatus.Open;
         var result = await AccountingService.CreateFiscalPeriodAsync(newPeriod);
         saving = false;
 
@@ -175,6 +254,39 @@
         }
     }
 
+    private async Task ExecuteActionAsync()
+    {
+        if (confirmPeriod is null)
+            return;
+
+        actionSaving = true;
+        busyPeriodId = confirmPeriod.Id;
+        var result = confirmAction switch
+        {
+            PeriodAction.Close => await AccountingService.CloseFiscalPeriodAsync(confirmPeriod.Id),
+            PeriodAction.Lock => await AccountingService.LockFiscalPeriodAsync(confirmPeriod.Id),
+            PeriodAction.Reopen => await AccountingService.ReopenFiscalPeriodAsync(confirmPeriod.Id),
+            PeriodAction.YearEndClose => await AccountingService.YearEndCloseFiscalPeriodAsync(confirmPeriod.Id),
+            _ => await AccountingService.CloseFiscalPeriodAsync(confirmPeriod.Id)
+        };
+        actionSaving = false;
+
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(ActionSuccess(confirmAction));
+            confirmPeriod = null;
+            busyPeriodId = null;
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Fiscal period action failed.", "تعذر تنفيذ إجراء الفترة المالية."));
+            busyPeriodId = null;
+        }
+    }
+
+    private bool IsBusy(FiscalPeriodDto period) => busyPeriodId == period.Id;
+
     private static string PeriodTone(FiscalPeriodStatus status) => status switch
     {
         FiscalPeriodStatus.Open => "success",
@@ -183,8 +295,69 @@
         _ => "muted"
     };
 
+    private RenderFragment SummaryChip(string label, FiscalPeriodStatus status, string tone) => builder =>
+    {
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", $"badge text-bg-{tone}");
+        builder.AddContent(2, $"{label}: {periods.Count(x => x.Status == status)}");
+        builder.CloseElement();
+    };
+
+    private string ActionTitle(PeriodAction action) => action switch
+    {
+        PeriodAction.Close => T("Close Fiscal Period", "إغلاق الفترة المالية"),
+        PeriodAction.Lock => T("Lock Fiscal Period", "قفل الفترة المالية"),
+        PeriodAction.Reopen => T("Reopen Fiscal Period", "إعادة فتح الفترة المالية"),
+        PeriodAction.YearEndClose => T("Year-End Close", "إغلاق نهاية السنة"),
+        _ => T("Fiscal Period Action", "إجراء الفترة المالية")
+    };
+
+    private string ActionButton(PeriodAction action) => action switch
+    {
+        PeriodAction.Close => T("Close", "إغلاق"),
+        PeriodAction.Lock => T("Lock", "قفل"),
+        PeriodAction.Reopen => T("Reopen", "إعادة فتح"),
+        PeriodAction.YearEndClose => T("Run Year-End Close", "تنفيذ إغلاق نهاية السنة"),
+        _ => T("Confirm", "تأكيد")
+    };
+
+    private string ActionIcon(PeriodAction action) => action switch
+    {
+        PeriodAction.Close => "bi bi-calendar-check",
+        PeriodAction.Lock => "bi bi-lock",
+        PeriodAction.Reopen => "bi bi-unlock",
+        PeriodAction.YearEndClose => "bi bi-journal-arrow-down",
+        _ => "bi bi-check-lg"
+    };
+
+    private string ActionMessage(PeriodAction action, FiscalPeriodDto period) => action switch
+    {
+        PeriodAction.Close => T($"Close {period.Name}? Posting will be blocked until it is reopened.", $"إغلاق {period.Name}؟ سيتم منع الترحيل حتى إعادة الفتح."),
+        PeriodAction.Lock => T($"Lock {period.Name}? Posting will be blocked until it is reopened.", $"قفل {period.Name}؟ سيتم منع الترحيل حتى إعادة الفتح."),
+        PeriodAction.Reopen => T($"Reopen {period.Name}? Posting will be allowed again for dates inside this period.", $"إعادة فتح {period.Name}؟ سيتم السماح بالترحيل داخل هذه الفترة."),
+        PeriodAction.YearEndClose => T($"Run year-end close for {period.Name}? This creates a closing journal entry to retained earnings.", $"تنفيذ إغلاق نهاية السنة لـ {period.Name}؟ سيتم إنشاء قيد إقفال إلى الأرباح المبقاة."),
+        _ => T("Confirm this fiscal period action?", "تأكيد إجراء الفترة المالية؟")
+    };
+
+    private string ActionSuccess(PeriodAction action) => action switch
+    {
+        PeriodAction.Close => T("Fiscal period closed.", "تم إغلاق الفترة المالية."),
+        PeriodAction.Lock => T("Fiscal period locked.", "تم قفل الفترة المالية."),
+        PeriodAction.Reopen => T("Fiscal period reopened.", "تمت إعادة فتح الفترة المالية."),
+        PeriodAction.YearEndClose => T("Year-end close completed.", "تم إغلاق نهاية السنة."),
+        _ => T("Fiscal period updated.", "تم تحديث الفترة المالية.")
+    };
+
     private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
     private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+
+    private enum PeriodAction
+    {
+        Close,
+        Lock,
+        Reopen,
+        YearEndClose
+    }
 }

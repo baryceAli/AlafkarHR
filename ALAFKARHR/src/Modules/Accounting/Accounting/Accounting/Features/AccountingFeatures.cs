@@ -8,6 +8,12 @@ public record GetAccountsQuery(Guid CompanyId, int PageIndex, int PageSize, stri
 public record GetAccountsResult(PaginatedResult<AccountDto> Accounts);
 public record CreateFiscalPeriodCommand(FiscalPeriodDto Period) : ICommand<CreateFiscalPeriodResult>;
 public record CreateFiscalPeriodResult(Guid Id);
+public record CloseFiscalPeriodCommand(Guid Id) : ICommand<FiscalPeriodActionResult>;
+public record LockFiscalPeriodCommand(Guid Id) : ICommand<FiscalPeriodActionResult>;
+public record ReopenFiscalPeriodCommand(Guid Id) : ICommand<FiscalPeriodActionResult>;
+public record YearEndCloseFiscalPeriodCommand(Guid Id) : ICommand<YearEndCloseFiscalPeriodResult>;
+public record FiscalPeriodActionResult(Guid Id, FiscalPeriodStatus Status);
+public record YearEndCloseFiscalPeriodResult(Guid Id, FiscalPeriodStatus Status, Guid JournalEntryId);
 public record GetFiscalPeriodsQuery(Guid CompanyId) : IQuery<GetFiscalPeriodsResult>;
 public record GetFiscalPeriodsResult(List<FiscalPeriodDto> Periods);
 public record CreateTaxCodeCommand(TaxCodeDto TaxCode) : ICommand<CreateTaxCodeResult>;
@@ -115,6 +121,10 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
     : ICommandHandler<CreateAccountCommand, CreateAccountResult>,
       ICommandHandler<UpdateAccountCommand, UpdateAccountResult>,
       ICommandHandler<CreateFiscalPeriodCommand, CreateFiscalPeriodResult>,
+      ICommandHandler<CloseFiscalPeriodCommand, FiscalPeriodActionResult>,
+      ICommandHandler<LockFiscalPeriodCommand, FiscalPeriodActionResult>,
+      ICommandHandler<ReopenFiscalPeriodCommand, FiscalPeriodActionResult>,
+      ICommandHandler<YearEndCloseFiscalPeriodCommand, YearEndCloseFiscalPeriodResult>,
       ICommandHandler<CreateTaxCodeCommand, CreateTaxCodeResult>,
       ICommandHandler<CreatePostingProfileCommand, CreatePostingProfileResult>,
       ICommandHandler<UpsertBankAccountCommand, UpsertBankAccountResult>,
@@ -158,10 +168,104 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
 
     public async Task<CreateFiscalPeriodResult> Handle(CreateFiscalPeriodCommand command, CancellationToken cancellationToken)
     {
+        var startDate = command.Period.StartDate.Date;
+        var endDate = command.Period.EndDate.Date;
+        var overlaps = await dbContext.FiscalPeriods.AsNoTracking()
+            .AnyAsync(x => x.CompanyId == command.Period.CompanyId
+                && x.StartDate <= endDate
+                && x.EndDate >= startDate, cancellationToken);
+        if (overlaps)
+            throw new BadRequestException("Fiscal period dates overlap with an existing period.");
+
         var period = FiscalPeriod.Create(command.Period, UserId);
         await dbContext.FiscalPeriods.AddAsync(period, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new CreateFiscalPeriodResult(period.Id);
+    }
+
+    public async Task<FiscalPeriodActionResult> Handle(CloseFiscalPeriodCommand command, CancellationToken cancellationToken)
+    {
+        var period = await dbContext.FiscalPeriods.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken)
+            ?? throw new NotFoundException("Fiscal period", command.Id);
+
+        period.Close(UserId);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new FiscalPeriodActionResult(period.Id, period.Status);
+    }
+
+    public async Task<FiscalPeriodActionResult> Handle(LockFiscalPeriodCommand command, CancellationToken cancellationToken)
+    {
+        var period = await dbContext.FiscalPeriods.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken)
+            ?? throw new NotFoundException("Fiscal period", command.Id);
+
+        period.Lock(UserId);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new FiscalPeriodActionResult(period.Id, period.Status);
+    }
+
+    public async Task<FiscalPeriodActionResult> Handle(ReopenFiscalPeriodCommand command, CancellationToken cancellationToken)
+    {
+        var period = await dbContext.FiscalPeriods.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken)
+            ?? throw new NotFoundException("Fiscal period", command.Id);
+
+        period.Reopen(UserId);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new FiscalPeriodActionResult(period.Id, period.Status);
+    }
+
+    public async Task<YearEndCloseFiscalPeriodResult> Handle(YearEndCloseFiscalPeriodCommand command, CancellationToken cancellationToken)
+    {
+        var period = await dbContext.FiscalPeriods.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken)
+            ?? throw new NotFoundException("Fiscal period", command.Id);
+
+        if (period.Status == FiscalPeriodStatus.Locked)
+            throw new BadRequestException("Locked fiscal periods must be reopened before year-end close.");
+
+        var existingClosing = await dbContext.JournalEntries.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == period.CompanyId
+                && x.SourceModule == ClosingSourceModule
+                && x.SourceDocumentId == period.Id
+                && x.Status != JournalEntryStatus.Reversed, cancellationToken);
+        if (existingClosing is not null)
+            throw new BadRequestException("Fiscal period already has a year-end closing journal entry.");
+
+        var settings = await dbContext.CompanyAccountingSettings.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == period.CompanyId, cancellationToken)
+            ?? throw new BadRequestException("Company accounting settings are required before year-end close.");
+        if (!settings.RetainedEarningsAccountId.HasValue || settings.RetainedEarningsAccountId.Value == Guid.Empty)
+            throw new BadRequestException("Retained earnings account is required before year-end close.");
+
+        var retainedEarningsAccount = await dbContext.Accounts.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == settings.RetainedEarningsAccountId.Value && x.CompanyId == period.CompanyId, cancellationToken)
+            ?? throw new BadRequestException("Retained earnings account was not found.");
+        if (!retainedEarningsAccount.IsActive || !retainedEarningsAccount.IsPostingAccount)
+            throw new BadRequestException("Retained earnings account must be an active posting account.");
+
+        var balances = await GetClosingAccountBalancesAsync(period, cancellationToken);
+        if (!balances.Any())
+            throw new BadRequestException("No revenue or expense balances were found for this fiscal period.");
+
+        var lines = BuildYearEndClosingLines(balances, retainedEarningsAccount.Id);
+        if (!lines.Any())
+            throw new BadRequestException("Revenue and expense account balances are already zero for this fiscal period.");
+
+        var journalNumber = await GenerateJournalNumberAsync(period.CompanyId, period.EndDate, cancellationToken);
+        var entry = JournalEntry.Create(
+            period.CompanyId,
+            journalNumber,
+            period.EndDate,
+            ClosingSourceModule,
+            period.Id,
+            period.Name,
+            $"Year-end close {period.Name}",
+            lines,
+            UserId);
+        entry.Post(UserId);
+
+        await dbContext.JournalEntries.AddAsync(entry, cancellationToken);
+        period.Close(UserId);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new YearEndCloseFiscalPeriodResult(period.Id, period.Status, entry.Id);
     }
 
     public async Task<CreateTaxCodeResult> Handle(CreateTaxCodeCommand command, CancellationToken cancellationToken)
@@ -290,6 +394,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         if (document.Status == AccountingDocumentStatus.Posted && document.JournalEntryId.HasValue)
             return new PostAccountingDocumentResult(document.JournalEntryId.Value);
 
+        await EnsureOpenFiscalPeriodAsync(document.CompanyId, document.DocumentDate, cancellationToken);
         var profile = await ResolvePostingProfileAsync(document.CompanyId, document.Type, cancellationToken);
         var settings = await dbContext.CompanyAccountingSettings.AsNoTracking().FirstOrDefaultAsync(x => x.CompanyId == document.CompanyId, cancellationToken);
         var journalNumber = await GenerateJournalNumberAsync(document.CompanyId, document.DocumentDate, cancellationToken);
@@ -339,6 +444,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
                 return new CreateAndPostJournalEntryResult(existing.Id, existing.Number);
         }
 
+        await EnsureOpenFiscalPeriodAsync(command.JournalEntry.CompanyId, command.JournalEntry.EntryDate, cancellationToken);
         var journalNumber = await GenerateJournalNumberAsync(command.JournalEntry.CompanyId, command.JournalEntry.EntryDate, cancellationToken);
         var lines = await ResolveJournalLinesAsync(command.JournalEntry.CompanyId, command.JournalEntry.Lines, cancellationToken);
         await EnsurePostingAccountsAsync(command.JournalEntry.CompanyId, lines.Select(x => x.AccountId), cancellationToken);
@@ -730,7 +836,113 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         return new ApplyAccountingTemplateResult(created);
     }
 
+    private const string ClosingSourceModule = "AccountingClosing";
+
     private string UserId => httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+
+    private async Task EnsureOpenFiscalPeriodAsync(Guid companyId, DateTime postingDate, CancellationToken cancellationToken)
+    {
+        var date = (postingDate == default ? DateTime.UtcNow : postingDate).Date;
+        var period = await dbContext.FiscalPeriods.AsNoTracking()
+            .Where(x => x.CompanyId == companyId && x.StartDate <= date && x.EndDate >= date)
+            .OrderByDescending(x => x.StartDate)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (period is null)
+            throw new BadRequestException($"No fiscal period exists for posting date {date:yyyy-MM-dd}.");
+
+        if (period.Status != FiscalPeriodStatus.Open)
+            throw new BadRequestException($"Fiscal period {period.Name} is {period.Status} and cannot accept postings.");
+    }
+
+    private async Task<List<ClosingAccountBalance>> GetClosingAccountBalancesAsync(FiscalPeriod period, CancellationToken cancellationToken)
+    {
+        var entries = await dbContext.JournalEntries
+            .Include(x => x.Lines)
+            .AsNoTracking()
+            .Where(x => x.CompanyId == period.CompanyId
+                && x.Status == JournalEntryStatus.Posted
+                && x.EntryDate >= period.StartDate
+                && x.EntryDate <= period.EndDate
+                && x.SourceModule != ClosingSourceModule)
+            .ToListAsync(cancellationToken);
+
+        var lineBalances = entries
+            .SelectMany(x => x.Lines)
+            .GroupBy(x => x.AccountId)
+            .Select(x => new { AccountId = x.Key, Balance = x.Sum(line => line.Debit - line.Credit) })
+            .Where(x => x.Balance != 0)
+            .ToList();
+
+        if (!lineBalances.Any())
+            return [];
+
+        var accountIds = lineBalances.Select(x => x.AccountId).ToList();
+        var accounts = await dbContext.Accounts.AsNoTracking()
+            .Where(x => x.CompanyId == period.CompanyId
+                && accountIds.Contains(x.Id)
+                && (x.Type == AccountType.Revenue || x.Type == AccountType.Expense))
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        var balances = new List<ClosingAccountBalance>();
+        foreach (var balance in lineBalances)
+        {
+            if (!accounts.TryGetValue(balance.AccountId, out var account))
+                continue;
+
+            if (!account.IsActive || !account.IsPostingAccount)
+                throw new BadRequestException($"Account {account.Code} must be active and postable before year-end close.");
+
+            balances.Add(new ClosingAccountBalance(account.Id, account.Code, balance.Balance));
+        }
+
+        return balances;
+    }
+
+    private static List<JournalEntryLineDto> BuildYearEndClosingLines(List<ClosingAccountBalance> balances, Guid retainedEarningsAccountId)
+    {
+        var lines = new List<JournalEntryLineDto>();
+        foreach (var balance in balances)
+        {
+            var amount = Math.Abs(decimal.Round(balance.Balance, 2));
+            if (amount == 0)
+                continue;
+
+            lines.Add(new JournalEntryLineDto
+            {
+                AccountId = balance.AccountId,
+                Debit = balance.Balance < 0 ? amount : 0,
+                Credit = balance.Balance > 0 ? amount : 0,
+                Description = $"Year-end close {balance.Code}"
+            });
+        }
+
+        var totalDebit = lines.Sum(x => x.Debit);
+        var totalCredit = lines.Sum(x => x.Credit);
+        var difference = decimal.Round(totalDebit - totalCredit, 2);
+        if (difference > 0)
+        {
+            lines.Add(new JournalEntryLineDto
+            {
+                AccountId = retainedEarningsAccountId,
+                Credit = difference,
+                Description = "Year-end close to retained earnings"
+            });
+        }
+        else if (difference < 0)
+        {
+            lines.Add(new JournalEntryLineDto
+            {
+                AccountId = retainedEarningsAccountId,
+                Debit = Math.Abs(difference),
+                Description = "Year-end close to retained earnings"
+            });
+        }
+
+        return lines;
+    }
+
+    private sealed record ClosingAccountBalance(Guid AccountId, string Code, decimal Balance);
 
     private bool HasPermission(string permission) => httpContextAccessor.HttpContext?.User.Claims.Any(c => c.Value == permission) == true;
 
