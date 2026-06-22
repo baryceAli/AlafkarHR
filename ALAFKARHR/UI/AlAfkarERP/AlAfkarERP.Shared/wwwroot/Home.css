@@ -65,7 +65,7 @@ a {
 .home-page {
     background: linear-gradient(180deg, var(--erp-bg) 0%, var(--home-surface) 42%, var(--erp-bg) 100%);
     color: var(--home-ink);
-    margin-top: 72px;
+    margin-top: 0;
     min-height: 100vh;
 }
 
@@ -890,7 +890,7 @@ a {
     }
 
     .home-page {
-        margin-top: 64px;
+        margin-top: 0;
     }
 
     .home-hero {
@@ -1583,6 +1583,7 @@ a {
 }
 
 .template-page {
+    --home-template-nav-offset: 76px;
     --template-bg: var(--erp-bg);
     --template-surface: var(--erp-surface);
     --template-text: var(--erp-text);
@@ -1608,11 +1609,12 @@ a {
     display: flex;
     gap: var(--erp-space-4);
     inset-block-start: 0;
+    inset-inline: 0;
     justify-content: space-between;
     min-height: 76px;
     padding-inline: clamp(1rem, 4vw, 2rem);
-    position: sticky;
-    z-index: 20;
+    position: fixed;
+    z-index: 90;
 }
 
 .template-brand,
@@ -1686,7 +1688,7 @@ a {
 
 .template-hero {
     overflow: hidden;
-    padding-block: clamp(3rem, 7vw, 6rem);
+    padding-block: calc(var(--home-template-nav-offset) + clamp(3rem, 7vw, 6rem)) clamp(3rem, 7vw, 6rem);
 }
 
 .template-hero-grid {
@@ -2088,7 +2090,7 @@ a {
 }
 
 .template-hero {
-    padding-block: 4.75rem;
+    padding-block: calc(var(--home-template-nav-offset) + 4.75rem) 4.75rem;
 }
 
 .template-hero-grid {
@@ -2271,7 +2273,7 @@ a {
 
 @media (max-width: 991.98px) {
     .template-hero {
-        padding-block: 3.5rem;
+        padding-block: calc(var(--home-template-nav-offset) + 3.5rem) 3.5rem;
     }
 
     .template-hero-grid,
@@ -2289,15 +2291,20 @@ a {
 }
 
 @media (max-width: 767.98px) {
+    .template-page {
+        --home-template-nav-offset: 148px;
+    }
+
     .template-container {
         inline-size: min(100% - 28px, 1280px);
     }
 
     .template-nav {
         align-items: stretch;
+        flex-wrap: wrap;
         min-height: 0;
         padding-block: var(--erp-space-3);
-        position: relative;
+        position: fixed;
     }
 
     .template-brand,
@@ -2343,6 +2350,10 @@ a {
 }
 
 @media (max-width: 575.98px) {
+    .template-page {
+        --home-template-nav-offset: 172px;
+    }
+
     .template-brand span {
         white-space: normal;
     }
@@ -2357,7 +2368,7 @@ a {
     }
 
     .template-hero {
-        padding-block: 2.75rem;
+        padding-block: calc(var(--home-template-nav-offset) + 2.75rem) 2.75rem;
     }
 
     .template-hero h1 {
@@ -2383,6 +2394,7 @@ a {
 
 /* Uploaded landing page designs */
 .uploaded-landing {
+    --home-template-nav-offset: 80px;
     --u-bg: #f8f9ff;
     --u-surface: #ffffff;
     --u-soft: #e5eeff;
@@ -2414,8 +2426,9 @@ a {
     backdrop-filter: blur(20px);
     border-block-end: 1px solid color-mix(in srgb, var(--u-border) 28%, transparent);
     inset-block-start: 0;
-    position: sticky;
-    z-index: 50;
+    inset-inline: 0;
+    position: fixed;
+    z-index: 90;
 }
 
 .u-nav .inner {
@@ -2513,7 +2526,7 @@ a {
 }
 
 .u-hero {
-    padding-block: clamp(4rem, 9vw, 7.5rem);
+    padding-block: calc(var(--home-template-nav-offset) + clamp(4rem, 9vw, 7.5rem)) clamp(4rem, 9vw, 7.5rem);
 }
 
 .u-split {
@@ -3365,6 +3378,10 @@ a {
 }
 
 @media (max-width: 767.98px) {
+    .uploaded-landing {
+        --home-template-nav-offset: 144px;
+    }
+
     .u-container {
         inline-size: min(100% - 32px, 1280px);
     }
