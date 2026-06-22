@@ -34,13 +34,6 @@
                     <input class="form-control" placeholder="@T("Search accounts", "بحث في الحسابات")" @bind="searchText" @bind:event="oninput" />
                     <button class="btn btn-outline-secondary" type="button" @onclick="LoadAsync">@T("Search", "بحث")</button>
                 </div>
-                @if (CanCreate)
-                {
-                    <button class="btn btn-primary" type="button" @onclick="OpenCreate">
-                        <i class="bi bi-plus-lg"></i>
-                        @T("Create Account", "إضافة حساب")
-                    </button>
-                }
             </div>
             <div class="account-view-actions mb-3">
                 <div class="erp-segmented-control" role="group" aria-label="@T("Account view", "عرض الحسابات")">
@@ -52,34 +45,6 @@
                         <i class="bi bi-diagram-3"></i>
                         <span>@T("Tree", "شجرة")</span>
                     </button>
-                </div>
-            </div>
-
-            <div class="row g-2 mb-3">
-                <div class="col-12 col-md-4">
-                    <select class="form-select" @bind="selectedType">
-                        <option value="">@T("All account types", "كل أنواع الحسابات")</option>
-                        @foreach (var type in Enum.GetValues<AccountType>())
-                        {
-                            <option value="@type">@type</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-12 col-md-4">
-                    <select class="form-select" @bind="selectedRole">
-                        <option value="">@T("All roles", "كل الأدوار")</option>
-                        @foreach (var role in Enum.GetValues<AccountRole>())
-                        {
-                            <option value="@role">@role</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-12 col-md-4">
-                    <select class="form-select" @bind="selectedSystemFilter">
-                        <option value="">@T("System and user accounts", "حسابات النظام والمستخدم")</option>
-                        <option value="system">@T("System accounts", "حسابات النظام")</option>
-                        <option value="user">@T("User accounts", "حسابات المستخدم")</option>
-                    </select>
                 </div>
             </div>
 
@@ -104,33 +69,19 @@
                             </button>
                         </div>
                     </div>
-                    <div class="erp-table-wrap account-tree-wrap">
-                        <table class="table align-middle erp-table account-tree-table">
-                            <thead>
-                                <tr>
-                                    <th>@T("Account", "الحساب")</th>
-                                    <th>@T("Type", "النوع")</th>
-                                    <th>@T("Role", "الدور")</th>
-                                    <th>@T("Balance", "الطبيعة")</th>
-                                    <th>@T("Posting", "ترحيل")</th>
-                                    <th>@T("Template", "القالب")</th>
-                                    <th>@T("Status", "الحالة")</th>
-                                    <th class="account-actions-col">@T("Actions", "الإجراءات")</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                    <div class="account-tree-wrap" role="tree" aria-label="@T("Chart of accounts hierarchy", "التسلسل الشجري للحسابات")">
                                 @foreach (var row in VisibleTreeRows)
                                 {
                                     var account = row.Account;
                                     var hasChildren = HasVisibleChildren(account.Id);
                                     var isExpanded = expandedAccountIds.Contains(account.Id);
                                     var groupCheckboxId = GroupCheckboxId(account.Id);
-                                    <tr class="account-tree-row">
-                                        <td>
-                                            <div class="account-tree-node" style="--account-tree-depth:@row.Depth">
+                                    <div class="account-tree-item" style="--account-tree-depth:@row.Depth" role="treeitem" aria-expanded="@(hasChildren ? isExpanded : null)" aria-level="@(row.Depth + 1)">
+                                        <div class="account-tree-row">
+                                            <div class="account-tree-node">
                                                 @if (hasChildren)
                                                 {
-                                                    <button class="account-tree-toggle" type="button" title="@ExpandToggleTitle(isExpanded)" @onclick="() => ToggleExpanded(account.Id)">
+                                                    <button class="account-tree-toggle" type="button" title="@ExpandToggleTitle(isExpanded)" aria-label="@ExpandToggleTitle(isExpanded)" @onclick="() => ToggleExpanded(account.Id)">
                                                         <i class="@ChevronClass(isExpanded)"></i>
                                                     </button>
                                                 }
@@ -138,24 +89,19 @@
                                                 {
                                                     <span class="account-tree-toggle account-tree-toggle-placeholder"></span>
                                                 }
-                                                <i class="@AccountIconClass(account)"></i>
-                                                <div class="account-tree-label">
-                                                    <strong>@T(account.NameEng, account.Name)</strong>
+                                                <i class="@PostingIconClass(account)" role="img" title="@PostingTitle(account)" aria-label="@PostingTitle(account)"></i>
+                                                <div class="account-tree-label @(account.IsActive ? null : "account-tree-label-muted")">
+                                                    <div class="account-tree-name-line">
+                                                        <strong>@T(account.NameEng, account.Name)</strong>
+                                                        <i class="@NormalBalanceIconClass(account)" role="img" title="@NormalBalanceTitle(account)" aria-label="@NormalBalanceTitle(account)"></i>
+                                                    </div>
                                                     <span>@account.Code</span>
                                                 </div>
                                             </div>
-                                        </td>
-                                        <td>@account.Type</td>
-                                        <td>@RoleLabel(account)</td>
-                                        <td>@account.NormalBalance</td>
-                                        <td>@PostingChip(account)</td>
-                                        <td>@TemplateChip(account)</td>
-                                        <td>@StatusChipFor(account)</td>
-                                        <td>
-                                            <div class="account-row-actions">
+                                            <div class="account-row-actions account-tree-controls">
                                                 @if (CanCreate)
                                                 {
-                                                    <button class="btn btn-sm btn-outline-primary" type="button" title="@T("Add child", "إضافة فرعي")" @onclick="() => StartCreateChild(account)">
+                                                    <button class="btn btn-sm btn-outline-primary" type="button" title="@AddChildTitle(account)" disabled="@account.IsPostingAccount" @onclick="() => StartCreateChild(account)">
                                                         <i class="bi bi-plus-lg"></i>
                                                     </button>
                                                 }
@@ -166,55 +112,51 @@
                                                     </button>
                                                 }
                                             </div>
-                                        </td>
-                                    </tr>
+                                        </div>
                                     @if (IsInlineEditorFor(account.Id))
                                     {
-                                        <tr class="account-inline-row">
-                                            <td colspan="8">
-                                                <EditForm Model="@editingAccount" OnValidSubmit="SaveInlineAsync">
-                                                    <DataAnnotationsValidator />
-                                                    <div class="erp-inline-editor account-tree-inline-editor" style="--account-tree-depth:@row.Depth">
-                                                        <div class="account-inline-heading">
-                                                            <strong>@InlineEditorTitle</strong>
-                                                            <span class="text-muted small">@ParentInlineLabel</span>
+                                        <div class="account-inline-row">
+                                            <EditForm Model="@editingAccount" OnValidSubmit="SaveInlineAsync">
+                                                <DataAnnotationsValidator />
+                                                <div class="erp-inline-editor account-tree-inline-editor" style="--account-tree-depth:@row.Depth">
+                                                    <div class="account-inline-heading">
+                                                        <strong>@InlineEditorTitle</strong>
+                                                        <span class="text-muted small">@ParentInlineLabel</span>
+                                                    </div>
+                                                    <div class="account-tree-inline-grid">
+                                                        <div>
+                                                            <label class="form-label">@T("Code", "الكود")</label>
+                                                            <InputText class="form-control form-control-sm account-code-input" @bind-Value="editingAccount!.Code" />
                                                         </div>
-                                                        <div class="account-tree-inline-grid">
-                                                            <div>
-                                                                <label class="form-label">@T("Code", "الكود")</label>
-                                                                <InputText class="form-control form-control-sm account-code-input" @bind-Value="editingAccount!.Code" />
+                                                        <div>
+                                                            <label class="form-label">@T("Arabic Name", "الاسم العربي")</label>
+                                                            <InputText class="form-control form-control-sm account-name-input" @bind-Value="editingAccount!.Name" />
+                                                        </div>
+                                                        <div>
+                                                            <label class="form-label">@T("English Name", "الاسم الإنجليزي")</label>
+                                                            <InputText class="form-control form-control-sm account-name-input" @bind-Value="editingAccount!.NameEng" />
+                                                        </div>
+                                                        <div class="account-tree-inline-option">
+                                                            <div class="form-check account-inline-check">
+                                                                <InputCheckbox id="@groupCheckboxId" class="form-check-input" @bind-Value="editingIsGroup" />
+                                                                <label class="form-check-label" for="@groupCheckboxId">@T("Group", "مجموعة")</label>
                                                             </div>
-                                                            <div>
-                                                                <label class="form-label">@T("Arabic Name", "الاسم العربي")</label>
-                                                                <InputText class="form-control form-control-sm account-name-input" @bind-Value="editingAccount!.Name" />
-                                                            </div>
-                                                            <div>
-                                                                <label class="form-label">@T("English Name", "الاسم الإنجليزي")</label>
-                                                                <InputText class="form-control form-control-sm account-name-input" @bind-Value="editingAccount!.NameEng" />
-                                                            </div>
-                                                            <div class="account-tree-inline-option">
-                                                                <div class="form-check account-inline-check">
-                                                                    <InputCheckbox id="@groupCheckboxId" class="form-check-input" @bind-Value="editingIsGroup" />
-                                                                    <label class="form-check-label" for="@groupCheckboxId">@T("Group", "مجموعة")</label>
-                                                                </div>
-                                                            </div>
-                                                            <div class="account-row-actions">
-                                                                <button class="btn btn-sm btn-primary" type="submit" disabled="@savingInline">
-                                                                    <i class="bi bi-check-lg"></i>
-                                                                </button>
-                                                                <button class="btn btn-sm btn-outline-secondary" type="button" disabled="@savingInline" @onclick="CancelInline">
-                                                                    <i class="bi bi-x-lg"></i>
-                                                                </button>
-                                                            </div>
+                                                        </div>
+                                                        <div class="account-row-actions">
+                                                            <button class="btn btn-sm btn-primary" type="submit" disabled="@savingInline">
+                                                                <i class="bi bi-check-lg"></i>
+                                                            </button>
+                                                            <button class="btn btn-sm btn-outline-secondary" type="button" disabled="@savingInline" @onclick="CancelInline">
+                                                                <i class="bi bi-x-lg"></i>
+                                                            </button>
                                                         </div>
                                                     </div>
-                                                </EditForm>
-                                            </td>
-                                        </tr>
+                                                </div>
+                                            </EditForm>
+                                        </div>
                                     }
+                                </div>
                                 }
-                            </tbody>
-                        </table>
                     </div>
                     @if (!VisibleTreeRows.Any())
                     {
@@ -260,7 +202,7 @@
                                         <div class="account-row-actions">
                                             @if (CanCreate)
                                             {
-                                                <button class="btn btn-sm btn-outline-primary" type="button" title="@T("Add child", "إضافة فرعي")" @onclick="() => StartCreateChild(account)">
+                                                <button class="btn btn-sm btn-outline-primary" type="button" title="@AddChildTitle(account)" disabled="@account.IsPostingAccount" @onclick="() => StartCreateChild(account)">
                                                     <i class="bi bi-plus-lg"></i>
                                                 </button>
                                             }
@@ -473,9 +415,6 @@
     private AuthenticationState? authState;
     private Guid companyId;
     private string? searchText;
-    private AccountType? selectedType;
-    private AccountRole? selectedRole;
-    private string? selectedSystemFilter;
     private AccountViewMode currentView = AccountViewMode.Table;
     private bool loading;
     private bool saving;
@@ -612,6 +551,11 @@
 
     private void StartCreateChild(AccountDto parent)
     {
+        if (parent.IsPostingAccount)
+        {
+            return;
+        }
+
         editingAccount = new AccountDto
         {
             CompanyId = companyId,
@@ -735,19 +679,13 @@
         return false;
     }
 
-    private void ApplyFilters() => StateHasChanged();
-
     private async Task SetViewAsync(AccountViewMode view)
     {
         currentView = view;
         await JSRuntime.InvokeVoidAsync("localStorage.setItem", AccountViewStorageKey, view.ToString());
     }
 
-    private bool AccountMatchesFilters(AccountDto account) =>
-        AccountMatchesSearch(account)
-        && (!selectedType.HasValue || account.Type == selectedType.Value)
-        && (!selectedRole.HasValue || account.Role == selectedRole.Value)
-        && (string.IsNullOrWhiteSpace(selectedSystemFilter) || (selectedSystemFilter == "system" ? account.IsSystemAccount : !account.IsSystemAccount));
+    private bool AccountMatchesFilters(AccountDto account) => AccountMatchesSearch(account);
 
     private bool AccountMatchesSearch(AccountDto account)
     {
@@ -817,11 +755,7 @@
         }
     }
 
-    private bool HasActiveFilters() =>
-        !string.IsNullOrWhiteSpace(searchText)
-        || selectedType.HasValue
-        || selectedRole.HasValue
-        || !string.IsNullOrWhiteSpace(selectedSystemFilter);
+    private bool HasActiveFilters() => !string.IsNullOrWhiteSpace(searchText);
 
     private bool HasVisibleChildren(Guid accountId) =>
         VisibleTreeChildren.TryGetValue(accountId, out var children) && children.Any();
@@ -842,30 +776,6 @@
 
     private void CollapseAll() => expandedAccountIds.Clear();
 
-    private RenderFragment PostingChip(AccountDto account) => builder =>
-    {
-        builder.OpenComponent<StatusChip>(0);
-        builder.AddAttribute(1, "Text", T(account.IsPostingAccount ? "Ledger" : "Group", account.IsPostingAccount ? "دفتر" : "مجموعة"));
-        builder.AddAttribute(2, "Tone", account.IsPostingAccount ? "info" : "muted");
-        builder.CloseComponent();
-    };
-
-    private RenderFragment TemplateChip(AccountDto account) => builder =>
-    {
-        builder.OpenComponent<StatusChip>(0);
-        builder.AddAttribute(1, "Text", T(account.IsSystemAccount ? "System" : "User", account.IsSystemAccount ? "نظام" : "مستخدم"));
-        builder.AddAttribute(2, "Tone", account.IsSystemAccount ? "primary" : "muted");
-        builder.CloseComponent();
-    };
-
-    private RenderFragment StatusChipFor(AccountDto account) => builder =>
-    {
-        builder.OpenComponent<StatusChip>(0);
-        builder.AddAttribute(1, "Text", T(account.IsActive ? "Active" : "Inactive", account.IsActive ? "نشط" : "غير نشط"));
-        builder.AddAttribute(2, "Tone", account.IsActive ? "success" : "muted");
-        builder.CloseComponent();
-    };
-
     private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
     private string ParentLabel(Guid parentId)
     {
@@ -874,9 +784,32 @@
     }
 
     private string IndentClass(AccountDto account) => account.ParentAccountId.HasValue ? "ps-3" : string.Empty;
-    private string RoleLabel(AccountDto account) => account.Role == AccountRole.None ? "-" : account.Role.ToString();
     private string ChevronClass(bool isExpanded) => $"bi {(isExpanded ? "bi-chevron-down" : "bi-chevron-right")}";
-    private string AccountIconClass(AccountDto account) => $"account-tree-icon bi {(account.IsPostingAccount ? "bi-file-earmark-text" : "bi-folder2")}";
+    private string AddChildTitle(AccountDto account) => account.IsPostingAccount
+        ? T("Ledger accounts cannot have child accounts", "لا يمكن للحسابات الترحيلية إضافة حسابات فرعية")
+        : T("Add child", "إضافة فرعي");
+    private string PostingIconClass(AccountDto account) => $"account-tree-icon account-tree-posting-icon {PostingStateClass(account)} bi {(account.IsPostingAccount ? "bi-file-earmark-text" : "bi-folder2")}";
+    private string NormalBalanceIconClass(AccountDto account) => $"account-tree-balance-icon bi {(account.NormalBalance == NormalBalance.Debit ? "bi-arrow-down-left" : "bi-arrow-up-right")}";
+    private string NormalBalanceTitle(AccountDto account) => account.NormalBalance == NormalBalance.Debit
+        ? T("Debit", "مدين")
+        : T("Credit", "دائن");
+    private string PostingTitle(AccountDto account)
+    {
+        var ownerEn = account.IsSystemAccount ? "System" : "User";
+        var ownerAr = account.IsSystemAccount ? "نظام" : "مستخدم";
+        var statusEn = account.IsActive ? "active" : "inactive";
+        var statusAr = account.IsActive ? "نشط" : "غير نشط";
+        var kindEn = account.IsPostingAccount ? "ledger account" : "group account";
+        var kindAr = account.IsPostingAccount ? "حساب ترحيلي" : "حساب مجموعة";
+        return T($"{ownerEn} {statusEn} {kindEn}", $"{ownerAr} {statusAr} {kindAr}");
+    }
+    private static string PostingStateClass(AccountDto account) => account switch
+    {
+        { IsSystemAccount: true, IsActive: true } => "account-posting-system-active",
+        { IsSystemAccount: true, IsActive: false } => "account-posting-system-inactive",
+        { IsSystemAccount: false, IsActive: true } => "account-posting-user-active",
+        _ => "account-posting-user-inactive"
+    };
     private string ExpandToggleTitle(bool isExpanded) => T(isExpanded ? "Collapse" : "Expand", isExpanded ? "طي" : "توسيع");
     private string GroupCheckboxId(Guid accountId) => $"account-inline-group-{accountId:N}";
     private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);

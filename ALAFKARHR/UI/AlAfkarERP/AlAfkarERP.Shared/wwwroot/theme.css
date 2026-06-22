@@ -2285,29 +2285,38 @@ body {
 }
 
 .account-tree-wrap {
-    border: 1px solid var(--erp-border);
-    border-radius: var(--erp-radius-lg, .5rem);
-    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--erp-space-1);
+    min-inline-size: 0;
 }
 
-.account-tree-table {
-    margin-bottom: 0;
+.account-tree-item {
+    min-inline-size: 0;
 }
 
-.account-tree-table th,
-.account-tree-table td {
-    white-space: nowrap;
+.account-tree-row {
+    align-items: center;
+    border: 1px solid transparent;
+    border-radius: var(--erp-radius-md, .375rem);
+    display: grid;
+    gap: var(--erp-space-3);
+    grid-template-columns: minmax(260px, 1fr) max-content;
+    min-block-size: 44px;
+    padding-block: var(--erp-space-2);
+    padding-inline: var(--erp-space-2);
 }
 
 .account-tree-row:hover {
     background: color-mix(in srgb, var(--erp-primary) 5%, transparent);
+    border-color: color-mix(in srgb, var(--erp-primary) 12%, transparent);
 }
 
 .account-tree-node {
     align-items: center;
     display: flex;
     gap: var(--erp-space-2);
-    min-width: 280px;
+    min-inline-size: 0;
     padding-inline-start: calc(var(--account-tree-depth, 0) * 28px);
 }
 
@@ -2337,11 +2346,40 @@ body {
     font-size: 1rem;
 }
 
+.account-tree-posting-icon {
+    font-size: .9375rem;
+}
+
 .account-tree-label {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    min-width: 0;
+    min-inline-size: 0;
+}
+
+.account-tree-name-line {
+    align-items: center;
+    display: flex;
+    gap: var(--erp-space-1, .25rem);
+    min-inline-size: 0;
+}
+
+.account-tree-label strong {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.account-tree-balance-icon {
+    color: var(--erp-text-muted);
+    flex: 0 0 auto;
+    font-size: .75rem;
+    line-height: 1;
+}
+
+.account-tree-label-muted strong {
+    color: var(--erp-color-outline, var(--erp-text-muted));
 }
 
 .account-tree-label span {
@@ -2354,6 +2392,22 @@ body {
     inline-size: 112px;
 }
 
+.account-posting-system-active {
+    color: var(--erp-primary);
+}
+
+.account-posting-system-inactive {
+    color: color-mix(in srgb, var(--erp-primary) 58%, var(--erp-text-muted));
+}
+
+.account-posting-user-active {
+    color: var(--erp-text-muted);
+}
+
+.account-posting-user-inactive {
+    color: color-mix(in srgb, var(--erp-text-muted) 58%, var(--erp-surface));
+}
+
 .account-row-actions {
     align-items: center;
     display: inline-flex;
@@ -2362,8 +2416,26 @@ body {
     min-inline-size: max-content;
 }
 
-.account-inline-row > td {
+.account-tree-controls {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--erp-transition-fast, 150ms ease), visibility var(--erp-transition-fast, 150ms ease);
+    visibility: hidden;
+}
+
+.account-tree-row:hover .account-tree-controls,
+.account-tree-row:focus-within .account-tree-controls,
+.account-tree-controls:focus-within {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+}
+
+.account-inline-row {
     background: var(--erp-surface-muted);
+    border-radius: var(--erp-radius-md, .375rem);
+    margin-block: var(--erp-space-1) var(--erp-space-2);
+    padding: var(--erp-space-2);
     white-space: normal;
 }
 
@@ -2465,6 +2537,22 @@ body {
 }
 
 @media (max-width: 768px) {
+    .account-tree-row {
+        align-items: flex-start;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .account-tree-row > .account-row-actions {
+        justify-content: flex-start;
+        padding-inline-start: calc(var(--account-tree-depth, 0) * 28px + 56px);
+    }
+
+    .account-tree-controls {
+        opacity: 1;
+        pointer-events: auto;
+        visibility: visible;
+    }
+
     .account-tree-inline-grid {
         grid-template-columns: minmax(160px, 1fr);
     }
@@ -2482,6 +2570,14 @@ body {
     .account-tree-inline-editor {
         inline-size: 100%;
         margin-inline-start: 0;
+    }
+}
+
+@media (hover: none), (pointer: coarse) {
+    .account-tree-controls {
+        opacity: 1;
+        pointer-events: auto;
+        visibility: visible;
     }
 }
 
