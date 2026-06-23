@@ -26,6 +26,7 @@ public class WarehouseDto
     [Required(ErrorMessage = "Latitude is required")]
     public double Latitude { get; set; }
     public Guid CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
     public WarehouseType WarehouseType { get; set; } = WarehouseType.Commercial;
 
 }

@@ -1,6 +1,7 @@
 ﻿global using SharedWithUI.Inventory.Dtos;
 global using SharedWithUI.Maintenance.Enums;
 global using Shared.Contracts.CQRS;
+global using Shared.Contracts.Organization;
 global using Inventory.Warehouses.Models;
 global using FluentValidation;
 global using Carter;

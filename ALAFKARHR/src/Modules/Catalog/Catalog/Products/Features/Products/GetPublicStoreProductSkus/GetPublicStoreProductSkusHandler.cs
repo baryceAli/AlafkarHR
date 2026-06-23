@@ -136,11 +136,14 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISende
                 on product.CategoryId equals category.Id
             join brand in dbContext.Brands.AsNoTracking()
                 on sku.BrandId equals brand.Id
+            join unit in dbContext.Units.AsNoTracking()
+                on sku.UnitId equals unit.Id
             where sku.ShowOnStore && sku.IsSellable
                   && !sku.IsDeleted
                   && !product.IsDeleted
                   && !category.IsDeleted
                   && !brand.IsDeleted
+                  && !unit.IsDeleted
             select new ProductSkuDto
             {
                 Id = sku.Id,
@@ -166,6 +169,8 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISende
                     .Select(p => p.ProductPackage.NameEng)
                     .FirstOrDefault(),
                 UnitId = sku.UnitId,
+                UnitName = unit.UnitName,
+                UnitNameEng = unit.UnitNameEng,
                 Name = sku.Name,
                 NameEng = sku.NameEng,
                 SkuCode = sku.SkuCode,
@@ -173,6 +178,7 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISende
                 SkuKey = sku.SkuKey,
                 Barcode = sku.Barcode ?? string.Empty,
                 Price = sku.Price,
+                Calories = sku.Calories,
                 BasePrice = sku.Price,
                 PriceSource = "Catalog",
                 FinalUnitAmount = sku.Price,
@@ -312,4 +318,5 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISende
             }
         }
     }
+
 }

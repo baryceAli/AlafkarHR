@@ -20,6 +20,7 @@ using AlAfkarERP.Shared.Pages.Features.Procurement.Services;
 using AlAfkarERP.Shared.Pages.Features.ProjectManagement.Services;
 using AlAfkarERP.Shared.Pages.Features.RealEstate.Services;
 using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services;
+using AlAfkarERP.Shared.Pages.Features.StoreFront.Services;
 using AlAfkarERP.Shared.Pages.Features.Suppliers.Services;
 using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services;
 using AlAfkarERP.Shared.Pages.Reuable2;
@@ -90,6 +91,12 @@ builder.Services.AddHttpClient<IParentCompanyService, ParentCompanyService>(clie
 
 builder.Services.AddScoped<ILicenseCategoryService, LicenseCategoryService>();
 builder.Services.AddHttpClient<ILicenseCategoryService, LicenseCategoryService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+
+builder.Services.AddScoped<IBusinessLineService, BusinessLineService>();
+builder.Services.AddHttpClient<IBusinessLineService, BusinessLineService>(client =>
 {
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
@@ -414,6 +421,12 @@ builder.Services.AddHttpClient<ISalesService, SalesService>(client =>
 
 builder.Services.AddScoped<ISalesOrderWorkflowService, SalesOrderWorkflowService>();
 builder.Services.AddHttpClient<ISalesOrderWorkflowService, SalesOrderWorkflowService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+
+builder.Services.AddScoped<IStoreFrontService, StoreFrontService>();
+builder.Services.AddHttpClient<IStoreFrontService, StoreFrontService>(client =>
 {
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });

@@ -20,7 +20,7 @@ public class GetMaintenanceWorkOrderByIdEndpoint : ICarterModule
     }
 }
 
-public class GetMaintenanceWorkOrderByIdHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class GetMaintenanceWorkOrderByIdHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : IQueryHandler<GetMaintenanceWorkOrderByIdQuery, GetMaintenanceWorkOrderByIdResult>
 {
     public async Task<GetMaintenanceWorkOrderByIdResult> Handle(GetMaintenanceWorkOrderByIdQuery request, CancellationToken cancellationToken)
@@ -37,6 +37,10 @@ public class GetMaintenanceWorkOrderByIdHandler(MaintenanceDbContext dbContext, 
         query = MaintenanceFeatureHelpers.ApplyVisibility(query, httpContextAccessor, currentUserId);
         var workOrder = await query.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException("Maintenance work order", request.Id);
+
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(workOrder.Asset.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanRead(branchAccess, workOrder.Asset.BranchId))
+            throw new ForbiddenException("You do not have permission to view this maintenance work order.");
 
         return new GetMaintenanceWorkOrderByIdResult(MaintenanceFeatureHelpers.ToDto(workOrder));
     }

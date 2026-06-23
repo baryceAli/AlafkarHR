@@ -1,7 +1,7 @@
 namespace Organization.Organizations.Services;
 
 public class CompanyHierarchyContext(OrganizationDbContext dbContext, IHttpContextAccessor httpContextAccessor)
-    : ICompanyHierarchyContext
+    : ICompanyHierarchyContext, Shared.Contracts.Organization.ICompanyHierarchyReader
 {
     public async Task<Guid> GetCurrentParentCompanyIdAsync(CancellationToken cancellationToken)
     {

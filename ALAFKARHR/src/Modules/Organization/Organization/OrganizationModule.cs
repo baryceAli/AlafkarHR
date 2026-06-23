@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Organization.Data.Seed;
+using Shared.Contracts.Organization;
 using Shared.Data;
 using Shared.Data.Seed;
 
@@ -36,6 +37,8 @@ public static class OrganizationModule
 
         services.AddScoped<IDataSeeder<OrganizationDbContext>, OrganizationDataSeeder>();
         services.AddScoped<ICompanyHierarchyContext, CompanyHierarchyContext>();
+        services.AddScoped<ICompanyHierarchyReader, CompanyHierarchyContext>();
+        services.AddScoped<IBusinessLineEntitlementService, BusinessLineEntitlementService>();
 
 
         return services;

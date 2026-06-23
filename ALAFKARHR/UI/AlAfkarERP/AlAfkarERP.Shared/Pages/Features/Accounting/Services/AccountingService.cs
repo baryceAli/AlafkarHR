@@ -223,6 +223,39 @@ public class AccountingService : BaseApiService, IAccountingService
         return await SendAsync<Guid>(request, "id");
     }
 
+    public async Task<ApiResult<AccountCodingSettingsDto>> GetAccountCodingSettingsAsync(Guid companyId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/account-coding-settings?companyId={companyId}");
+        return await SendAsync<AccountCodingSettingsDto>(request, "settings");
+    }
+
+    public async Task<ApiResult<Guid>> SaveAccountCodingSettingsAsync(AccountCodingSettingsDto settings)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/accounting/account-coding-settings")
+        {
+            Content = JsonContent.Create(settings)
+        };
+        return await SendAsync<Guid>(request, "id");
+    }
+
+    public async Task<ApiResult<AccountRenumberPreviewDto>> PreviewAccountRenumberAsync(AccountCodingSettingsDto settings)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/accounting/account-coding-settings/preview-renumber")
+        {
+            Content = JsonContent.Create(settings)
+        };
+        return await SendAsync<AccountRenumberPreviewDto>(request, "preview");
+    }
+
+    public async Task<ApiResult<AccountRenumberPreviewDto>> ApplyAccountRenumberAsync(ApplyAccountRenumberDto renumber)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/accounting/account-coding-settings/apply-renumber")
+        {
+            Content = JsonContent.Create(renumber)
+        };
+        return await SendAsync<AccountRenumberPreviewDto>(request, "preview");
+    }
+
     public async Task<ApiResult<PaginatedResult<AccountingDocumentDto>>> GetDocumentsAsync(AccountingDocumentType? type, Guid? companyId, int pageIndex, int pageSize, string? searchText)
     {
         var query = $"companyId={companyId}&pageIndex={pageIndex}&pageSize={pageSize}&searchText={searchText}";

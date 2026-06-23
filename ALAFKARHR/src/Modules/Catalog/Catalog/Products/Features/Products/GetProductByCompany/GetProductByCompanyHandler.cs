@@ -81,6 +81,7 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext, ISender send
                         SkuKey = sku.SkuKey,
                         UnitId = sku.UnitId,
                         Price = sku.Price,
+                        Calories = sku.Calories,
                         BasePrice = sku.Price,
                         PriceSource = "Catalog",
                         FinalUnitAmount = sku.Price,
@@ -134,7 +135,6 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext, ISender send
         {
             await ApplyResolvedPricesAsync(productDtos, companyId, customerId.Value, priceListId, cancellationToken);
         }
-
         return new GetProductByCompanyResult(
             new PaginatedResult<ProductDto>(
                 paginationRequest.PageIndex,
@@ -182,4 +182,5 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext, ISender send
             sku.FinalUnitAmount = price.FinalUnitAmount;
         }
     }
+
 }

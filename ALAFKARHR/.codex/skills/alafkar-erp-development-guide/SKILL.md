@@ -144,29 +144,43 @@ The Blazor server app registers services and typed `HttpClient`s in `UI/AlAfkarE
 
 IDs are usually `Guid`. Shared entity base classes provide audit fields and soft-delete fields. Many entities are scoped by company, branch, administration, department, user, or related module IDs; preserve this scoping. Use module DbContexts, schema names, EF configurations, migrations, and seeders already present in the target module.
 
-## 19. Menu and Navigation
+## 19. Company and Branch Scope Rules
+
+Before adding or changing any business entity, workflow, query, command, page, or report, identify whether it is company-level, branch-level, or mixed. Company-level data must use `CompanyId`; branch-level data must use `CompanyId` plus nullable or required `BranchId` according to the existing model and workflow. Preserve the parent/child company model: respect `Company.ParentCompanyId` and `CompanyHierarchyContext`, and do not let child companies manage child companies.
+
+Branch-aware backend features must use `GetCurrentUserBranchAccessQuery` and `BranchScopePolicy` for read, filter, and mutation decisions. Reads and filters may allow all branches when the user has a branch-access view-all permission; mutations require view-all access or an explicit assigned branch. Never trust a UI-selected `BranchId` without backend validation that the branch belongs to the company and is allowed for the current user.
+
+Every company must have a main branch. Create or reuse it through `EnsureMainBranchCommand`; legacy company branches with `Code == "MAIN"` are promoted to main branch. Creating or updating a branch must call `EnsureBranchAccountingCommand`. Applying accounting templates and accounting seeders must ensure branch accounting for every company branch. Branch accounting creates or renames system account groups under the top-level company account groups and ensures default Cash and Bank journals. Accounting queries for accounts, documents, journals, bank/cash accounts, and transactions must apply branch access filtering.
+
+Branch assignment is controlled by `PermissionList.BranchPermissions.AssignUsers` (`Organization.Branch.AssignUsers`). View-all branch bypass permissions are `PermissionList.OrganizationBranchAccessPermissions.ViewAll` (`Organization.BranchAccess.ViewAll`) and `PermissionList.AccountingBranchAccessPermissions.ViewAll` (`Accounting.BranchAccess.ViewAll`). These permissions only control branch scope visibility; normal endpoint, menu, and action permissions still apply.
+
+Role templates are company-scoped through `CompanyRoleTemplates`. Default roles are seeded per company; template roles have `TemplateKey`, are synchronized from the template definition, and are protected from deletion. Company role internal names use `CompanyRole-{companyId:N}-{slug}` and company system admins use `SystemAdmin-{companyId:N}`. Custom roles may only use tenant permissions from `PermissionList.GetTenantPermissions()`.
+
+Branch-aware Blazor pages must load branch access where needed and hide or disable branch filters/actions according to that access, while keeping backend enforcement as the source of truth. User role management must preserve the branch assignment workflow: selected branches plus optional default branch, where the default branch must be included in the selected branches. Menu and action visibility uses permission claims; branch access filtering is additional and must not replace backend authorization.
+
+## 20. Menu and Navigation
 
 Menu structure is in `UI/AlAfkarERP/AlAfkarERP.Shared/Layout/MuenuItem.cs`. Each item has `TextEn`, `TextAr`, `Icon` using Bootstrap icon class names, `Url`, `PermissionPolicy`, optional badges, and children. URLs use module-style paths such as `/Organization/Company/List`. Add navigation only when requested or clearly required.
 
-## 20. Reporting Pattern
+## 21. Reporting Pattern
 
 Report pages live beside feature pages when present, e.g. TaskManagement reports. Use filter controls, date ranges where relevant, existing services/DTOs, responsive summary/table layouts, export patterns only if already present in the feature, and report-specific permissions. Do not add reporting endpoints without matching backend authorization.
 
-## 21. Module Integration Rules
+## 22. Module Integration Rules
 
 Avoid tight coupling between modules. Use shared contracts for data crossing module boundaries, integration/domain events where existing module style supports them, and application services or APIs when a feature already exposes them. Attendance, Leave, Payroll, Employee, Organization, Auth, and Reporting work should preserve identity, company/branch/organization scoping, permission checks, and existing workflow state transitions.
 
-## 22. Required Output Format for Future Codex Tasks
+## 23. Required Output Format for Future Codex Tasks
 
 For future development tasks, respond with: brief understanding; files/modules to inspect; minimal implementation plan; files changed; UI exposure; manual test checklist; assumptions or risks.
 
 UI exposure: describe where the user can access the feature, including route/menu/action/button/form changes, or state explicitly that the user requested backend-only work.
 
-## 23. UI Migration Strategy
+## 24. UI Migration Strategy
 
 When asked to redesign UI, do not redesign the whole ERP at once. Start with the main layout, sidebar/topbar, one representative list page, one representative form page, and one dashboard page if available. Stop after the sample implementation, provide a migration plan for the rest, and continue page-by-page only when requested.
 
-## 24. Examples
+## 25. Examples
 
 Example page structure: `PageHeader`, `FilterBar`, `AppCard`, responsive table, empty/loading states, and permission-based action buttons.
 

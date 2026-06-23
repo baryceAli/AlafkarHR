@@ -11,6 +11,7 @@
 @implements IDisposable
 
 @inject ILicenseCategoryService LicenseCategoryService
+@inject IBusinessLineService BusinessLineService
 @inject ICurrencyService CurrencyService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
@@ -182,6 +183,20 @@
                                 }
                             </div>
                             <div class="col-12">
+                                <label class="form-label">@Text("Default Business Lines", "خطوط الأعمال الافتراضية")</label>
+                                <div class="business-line-selector">
+                                    @foreach (var businessLine in ActiveBusinessLines)
+                                    {
+                                        <label class="business-line-option">
+                                            <input type="checkbox"
+                                                   checked="@IsBusinessLineSelected(selectedCategory.BusinessLines, businessLine.Id)"
+                                                   @onchange="args => ToggleBusinessLine(selectedCategory.BusinessLines, businessLine, args)" />
+                                            <span><i class="bi @businessLine.Icon"></i> @BusinessLineName(businessLine)</span>
+                                        </label>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-12">
                                 <label class="form-label">@Text("Notes", "ملاحظات")</label>
                                 <InputTextArea class="form-control" @bind-Value="selectedCategory.Notes" />
                             </div>
@@ -214,11 +229,28 @@
     .license-category-grid span {
         color: var(--erp-text-muted);
     }
+
+    .business-line-selector {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .business-line-option {
+        align-items: center;
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        cursor: pointer;
+        display: inline-flex;
+        gap: 0.4rem;
+        padding: 0.35rem 0.55rem;
+    }
 </style>
 
 @code {
     private List<LicenseCategoryDto> categories = [];
     private List<CurrencyDto> currencies = [];
+    private List<BusinessLineDto> businessLines = [];
     private LicenseCategoryDto? selectedCategory;
     private CurrencyDto? selectedCurrency;
     private AuthenticationState? AuthState;
@@ -235,6 +267,7 @@
     private string ModalTitle => isCreateMode ? Text("Create License Category", "إنشاء فئة ترخيص") : Text("Edit License Category", "تعديل فئة الترخيص");
     private string CurrencyPlaceholder => Text("Select currency...", "اختر العملة...");
     private CurrencyDto? DefaultCurrency => currencies.FirstOrDefault(currency => currency.IsDefault) ?? currencies.FirstOrDefault();
+    private IEnumerable<BusinessLineDto> ActiveBusinessLines => businessLines.Where(item => item.IsActive).OrderBy(item => item.DisplayOrder).ThenBy(item => item.Name);
 
     protected override async Task OnInitializedAsync()
     {
@@ -277,6 +310,17 @@
                 categories = [];
                 errorMessage = result.Error?.Detail ?? Text("Unable to load license categories.", "تعذر تحميل فئات الترخيص.");
             }
+
+            var businessLineResult = await BusinessLineService.GetAsync(includeInactive: true);
+            if (businessLineResult.IsSuccess && businessLineResult.Data is not null)
+            {
+                businessLines = businessLineResult.Data;
+            }
+            else
+            {
+                businessLines = [];
+                Toast("warning", businessLineResult.Error?.Detail ?? Text("Unable to load business lines.", "تعذر تحميل خطوط الأعمال."));
+            }
         }
         finally
         {
@@ -293,7 +337,8 @@
             CurrencyId = selectedCurrency?.Id,
             CurrencyCode = selectedCurrency?.Code,
             IsActive = true,
-            MaxUsers = 1
+            MaxUsers = 1,
+            BusinessLines = ActiveBusinessLines.Select(ToLicensedBusinessLine).ToList()
         };
         currencySelectionMessage = selectedCurrency is null
             ? Text("Add a currency in General Settings before saving a license category.", "أضف عملة في الإعدادات العامة قبل حفظ فئة الترخيص.")
@@ -421,6 +466,35 @@
         return currencies.FirstOrDefault(currency => currency.Id == currencyId.Value);
     }
 
+    private string BusinessLineName(BusinessLineDto line)
+        => SharedDataService.Language == "Ar" ? line.NameAr : line.Name;
+
+    private static bool IsBusinessLineSelected(List<LicensedBusinessLineDto> selectedLines, Guid businessLineId)
+        => selectedLines.Any(line => line.BusinessLineId == businessLineId);
+
+    private static void ToggleBusinessLine(List<LicensedBusinessLineDto> selectedLines, BusinessLineDto businessLine, ChangeEventArgs args)
+    {
+        var isChecked = args.Value is bool value && value;
+        if (isChecked)
+        {
+            if (!selectedLines.Any(line => line.BusinessLineId == businessLine.Id))
+                selectedLines.Add(ToLicensedBusinessLine(businessLine));
+        }
+        else
+        {
+            selectedLines.RemoveAll(line => line.BusinessLineId == businessLine.Id);
+        }
+    }
+
+    private static LicensedBusinessLineDto ToLicensedBusinessLine(BusinessLineDto businessLine) => new()
+    {
+        BusinessLineId = businessLine.Id,
+        Key = businessLine.Key,
+        Name = businessLine.Name,
+        NameAr = businessLine.NameAr,
+        Icon = businessLine.Icon
+    };
+
     private string CurrencyDisplay(LicenseCategoryDto category)
         => CurrencyById(category.CurrencyId)?.Code
            ?? CurrencyByCode(category.CurrencyCode)?.Code
@@ -465,6 +539,14 @@
         CurrencyId = source.CurrencyId,
         CurrencyCode = source.CurrencyCode,
         IsActive = source.IsActive,
-        Notes = source.Notes
+        Notes = source.Notes,
+        BusinessLines = source.BusinessLines.Select(line => new LicensedBusinessLineDto
+        {
+            BusinessLineId = line.BusinessLineId,
+            Key = line.Key,
+            Name = line.Name,
+            NameAr = line.NameAr,
+            Icon = line.Icon
+        }).ToList()
     };
 }

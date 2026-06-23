@@ -1,3 +1,5 @@
+using Organization.Organizations.Features.BusinessLines;
+
 namespace Organization.Organizations.Features.LicenseCategories;
 
 public record GetLicenseCategoriesQuery(bool IncludeInactive) : IQuery<GetLicenseCategoriesResult>;
@@ -23,6 +25,11 @@ public class LicenseCategoryValidator : AbstractValidator<LicenseCategoryDto>
         RuleFor(x => x.CurrencyId).NotEmpty();
         RuleFor(x => x.CurrencyCode).MaximumLength(10);
         RuleFor(x => x.Notes).MaximumLength(1000);
+        RuleForEach(x => x.BusinessLines).ChildRules(line =>
+        {
+            line.RuleFor(x => x.BusinessLineId).NotEmpty();
+            line.RuleFor(x => x.ActivationLimit).GreaterThan(0);
+        });
     }
 }
 
@@ -57,10 +64,15 @@ public class LicenseCategoryQueryHandler(OrganizationDbContext dbContext)
             .ThenBy(x => x.Name)
             .ToListAsync(cancellationToken);
 
-        return new GetLicenseCategoriesResult(categories.Select(ToDto).ToList());
+        var businessLinesByCategory = await GetBusinessLinesByCategoryAsync(
+            dbContext,
+            categories.Select(category => category.Id).ToList(),
+            cancellationToken);
+
+        return new GetLicenseCategoriesResult(categories.Select(category => ToDto(category, businessLinesByCategory)).ToList());
     }
 
-    public static LicenseCategoryDto ToDto(LicenseCategory category) => new()
+    public static LicenseCategoryDto ToDto(LicenseCategory category, IReadOnlyDictionary<Guid, List<LicensedBusinessLineDto>>? businessLinesByCategory = null) => new()
     {
         Id = category.Id,
         Key = category.Key,
@@ -73,8 +85,39 @@ public class LicenseCategoryQueryHandler(OrganizationDbContext dbContext)
         CurrencyId = category.CurrencyId,
         CurrencyCode = category.CurrencyCode,
         IsActive = category.IsActive,
-        Notes = category.Notes
+        Notes = category.Notes,
+        BusinessLines = businessLinesByCategory is not null && businessLinesByCategory.TryGetValue(category.Id, out var businessLines)
+            ? businessLines
+            : []
     };
+
+    public static async Task<Dictionary<Guid, List<LicensedBusinessLineDto>>> GetBusinessLinesByCategoryAsync(
+        OrganizationDbContext dbContext,
+        IReadOnlyCollection<Guid> categoryIds,
+        CancellationToken cancellationToken)
+    {
+        if (categoryIds.Count == 0)
+            return [];
+
+        var rows = await dbContext.LicenseCategoryBusinessLines
+            .AsNoTracking()
+            .Where(x => categoryIds.Contains(x.LicenseCategoryId))
+            .Select(x => new { x.LicenseCategoryId, x.BusinessLine, x.ActivationLimit })
+            .OrderBy(x => x.BusinessLine.DisplayOrder)
+            .ThenBy(x => x.BusinessLine.Name)
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .GroupBy(x => x.LicenseCategoryId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(x =>
+                {
+                    var dto = BusinessLineQueryHandler.ToLicensedDto(x.BusinessLine);
+                    dto.ActivationLimit = x.ActivationLimit;
+                    return dto;
+                }).ToList());
+    }
 }
 
 public class LicenseCategoryCommandHandler(OrganizationDbContext dbContext, IHttpContextAccessor httpContextAccessor)
@@ -104,9 +147,11 @@ public class LicenseCategoryCommandHandler(OrganizationDbContext dbContext, IHtt
             GetUserId());
 
         await dbContext.LicenseCategories.AddAsync(category, cancellationToken);
+        await SyncCategoryBusinessLinesAsync(category.Id, request.Category.BusinessLines, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return new CreateLicenseCategoryResult(LicenseCategoryQueryHandler.ToDto(category));
+        var businessLinesByCategory = await LicenseCategoryQueryHandler.GetBusinessLinesByCategoryAsync(dbContext, [category.Id], cancellationToken);
+        return new CreateLicenseCategoryResult(LicenseCategoryQueryHandler.ToDto(category, businessLinesByCategory));
     }
 
     public async Task<UpdateLicenseCategoryResult> Handle(UpdateLicenseCategoryCommand request, CancellationToken cancellationToken)
@@ -131,6 +176,8 @@ public class LicenseCategoryCommandHandler(OrganizationDbContext dbContext, IHtt
             request.Category.Notes,
             GetUserId());
 
+        await SyncCategoryBusinessLinesAsync(category.Id, request.Category.BusinessLines, cancellationToken);
+
         await dbContext.SaveChangesAsync(cancellationToken);
         return new UpdateLicenseCategoryResult(true);
     }
@@ -146,6 +193,46 @@ public class LicenseCategoryCommandHandler(OrganizationDbContext dbContext, IHtt
     private async Task<LicenseCategory> FindAsync(Guid id, CancellationToken cancellationToken) =>
         await dbContext.LicenseCategories.FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
         ?? throw new NotFoundException($"License category not found: {id}");
+
+    private async Task SyncCategoryBusinessLinesAsync(Guid categoryId, List<LicensedBusinessLineDto> businessLines, CancellationToken cancellationToken)
+    {
+        var requestedLines = businessLines
+            .Where(x => x.BusinessLineId != Guid.Empty)
+            .GroupBy(x => x.BusinessLineId)
+            .ToDictionary(x => x.Key, x => Math.Max(x.First().ActivationLimit, 1));
+        var requestedIds = requestedLines.Keys.ToHashSet();
+
+        if (requestedIds.Count > 0)
+        {
+            var existingBusinessLineIds = await dbContext.BusinessLines
+                .Where(x => requestedIds.Contains(x.Id) && x.IsActive)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+
+            if (existingBusinessLineIds.Count != requestedIds.Count)
+                throw new InvalidOperationException("One or more selected business lines are inactive or unavailable");
+        }
+
+        var currentLinks = await dbContext.LicenseCategoryBusinessLines
+            .Where(x => x.LicenseCategoryId == categoryId)
+            .ToListAsync(cancellationToken);
+
+        var linksToRemove = currentLinks.Where(x => !requestedIds.Contains(x.BusinessLineId)).ToList();
+        dbContext.LicenseCategoryBusinessLines.RemoveRange(linksToRemove);
+
+        var currentIds = currentLinks.Select(x => x.BusinessLineId).ToHashSet();
+        foreach (var businessLineId in requestedIds.Where(id => !currentIds.Contains(id)))
+        {
+            await dbContext.LicenseCategoryBusinessLines.AddAsync(
+                LicenseCategoryBusinessLine.Create(categoryId, businessLineId, requestedLines[businessLineId]),
+                cancellationToken);
+        }
+
+        foreach (var link in currentLinks.Where(x => requestedIds.Contains(x.BusinessLineId)))
+        {
+            link.UpdateActivationLimit(requestedLines[link.BusinessLineId]);
+        }
+    }
 
     private string GetUserId() =>
         httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value

@@ -45,3 +45,28 @@ public class BranchDto
     public IReadOnlyCollection<AdministrationDto> Administrations ;
 
 }
+
+public class UserBranchAssignmentsDto
+{
+    public List<Guid> BranchIds { get; set; } = [];
+    public Guid? DefaultBranchId { get; set; }
+}
+
+public class CurrentUserBranchAccessDto
+{
+    public bool CanViewAllBranches { get; set; }
+    public List<Guid> BranchIds { get; set; } = [];
+}
+
+public class AssignUserBranchesDto
+{
+    public Guid UserId { get; set; }
+    public Guid CompanyId { get; set; }
+    public List<Guid> BranchIds { get; set; } = [];
+    public Guid? DefaultBranchId { get; set; }
+}
+
+public class AssignUserBranchesResultDto
+{
+    public int AssignedCount { get; set; }
+}

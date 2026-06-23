@@ -20,7 +20,7 @@ public class DeleteMaintenanceAssetEndpoint : ICarterModule
     }
 }
 
-public class DeleteMaintenanceAssetHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class DeleteMaintenanceAssetHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<DeleteMaintenanceAssetCommand, DeleteMaintenanceAssetResult>
 {
     public async Task<DeleteMaintenanceAssetResult> Handle(DeleteMaintenanceAssetCommand request, CancellationToken cancellationToken)
@@ -28,6 +28,10 @@ public class DeleteMaintenanceAssetHandler(MaintenanceDbContext dbContext, IHttp
         var currentUserId = MaintenanceFeatureHelpers.GetCurrentUserId(httpContextAccessor);
         var asset = await dbContext.MaintenanceAssets.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException("Maintenance asset", request.Id);
+
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(asset.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, asset.BranchId))
+            throw new ForbiddenException("You do not have permission to delete this maintenance asset.");
 
         var hasChildren = await dbContext.MaintenanceAssets.AnyAsync(x => x.ParentAssetId == request.Id, cancellationToken);
         if (hasChildren)

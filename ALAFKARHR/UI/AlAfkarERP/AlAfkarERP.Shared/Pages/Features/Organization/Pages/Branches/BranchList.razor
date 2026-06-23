@@ -255,11 +255,12 @@
                                                         </div>
                                                     </div>
                                                     <div class="col-12">
-                                                        <div class="form-check branch-check">
+                                                        <div class="form-check branch-check d-none">
                                                             <InputCheckbox class="form-check-input"
                                                                            Value="branch.IsMainBranch"
-                                                                           ValueChanged="value => OnMainBranchChanged(branch, value)"
-                                                                           ValueExpression="() => branch.IsMainBranch" />
+                                                                           ValueChanged="_ => { }"
+                                                                           ValueExpression="() => branch.IsMainBranch"
+                                                                           disabled />
                                                             <label class="form-check-label">@Text("Main Branch", "الفرع الرئيسي")</label>
                                                         </div>
                                                     </div>
@@ -331,7 +332,7 @@
                         </button>
                             <button class="btn btn-outline-danger btn-sm branch-action"
                                 @onclick="() => DeleteBranch(branch)"
-                                    disabled="@(!CanDeleteBranch)"
+                                    disabled="@(!CanDeleteBranch || branch.IsMainBranch)"
                                     title="@Text("Delete", "حذف")">
                                 <i class="bi bi-trash"></i>
                         </button>
@@ -712,21 +713,6 @@
         isEdit = true;
     }
 
-    private void OnMainBranchChanged(BranchDto selectedBranch, bool isMainBranch)
-    {
-        selectedBranch.IsMainBranch = isMainBranch;
-
-        if (!isMainBranch)
-        {
-            return;
-        }
-
-        foreach (var branch in branches.Where(branch => branch.Id != selectedBranch.Id))
-        {
-            branch.IsMainBranch = false;
-        }
-    }
-
     async Task SaveBranch(BranchDto branch)
     {
         if (branch.Id == editingBranchId && !isEdit)
@@ -736,6 +722,7 @@
             Random rnd = new Random();
             branch.Code = branch.NameEng.Substring(0, 1) + rnd.Next(100, 999);
             branch.CompanyId = companyId;
+            branch.IsMainBranch = false;
 
             var bResponse = await BranchService.CreateAsync(branch);
             if (bResponse.IsSuccess)
@@ -795,6 +782,16 @@
 
     async Task DeleteBranch(BranchDto branch)
     {
+        if (branch.IsMainBranch)
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Message = SharedDataService.SelectViewLang("Main branch cannot be deleted", "Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø­Ø°Ù Ø§Ù„ÙØ±Ø¹ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ"),
+                Type = "warning"
+            });
+            return;
+        }
+
         await ModalService.ShowAsync(new ModalOptions
         {
             Title = SharedDataService.SelectViewLang("Confirm Delete", "تأكيد عملية الحذف"),

@@ -1,5 +1,6 @@
 ﻿@using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.JSInterop
@@ -11,6 +12,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject ITaskManagementService TaskManagementService
+@inject ICompanyService CompanyService
 
 @* @Body *@
 @* <div class="d-flex vh-100"> *@
@@ -20,6 +22,7 @@
         <EnterpriseNavigationPanel ActiveWorkspace="@activeWorkspace"
                                    ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
                                    AuthState="@AuthState"
+                                   LicensedBusinessLineKeys="@licensedBusinessLineKeys"
                                    OnOpenCommand="OpenCommandPalette" />
     }
     else
@@ -27,6 +30,7 @@
         <DesktopWorkspaceNav ActiveWorkspace="@activeWorkspace"
                              ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
                              AuthState="@AuthState"
+                             LicensedBusinessLineKeys="@licensedBusinessLineKeys"
                              OnOpenCommand="OpenCommandPalette" />
     }
 
@@ -40,6 +44,7 @@
                    ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
                    IsMoreOpen="@isMoreHubOpen"
                    ShellAuthState="@AuthState"
+                   LicensedBusinessLineKeys="@licensedBusinessLineKeys"
                    IsEnterpriseNext="@IsEnterpriseNext" />
         
         <!-- Page Content -->
@@ -69,12 +74,14 @@
              InitialView="@moreHubInitialView"
              ActiveWorkspace="@activeWorkspace"
              AuthState="@AuthState"
+             LicensedBusinessLineKeys="@licensedBusinessLineKeys"
              OnNavigate="OnNavigationItemSelectedAsync" />
 
     <CommandPalette IsOpen="@isCommandPaletteOpen"
                     IsOpenChanged="SetCommandPaletteOpen"
                     ActiveWorkspace="@activeWorkspace"
                     AuthState="@AuthState"
+                    LicensedBusinessLineKeys="@licensedBusinessLineKeys"
                     OnNavigate="OnNavigationItemSelectedAsync" />
 
 </div>
@@ -93,6 +100,7 @@
     private bool isCommandPaletteOpen;
     private string stylePreset = "classic";
     private DotNetObjectReference<AdminLayout>? shortcutReference;
+    private IReadOnlySet<string>? licensedBusinessLineKeys;
     private bool IsEnterpriseNext => string.Equals(stylePreset, "enterprise-next", StringComparison.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()
@@ -110,6 +118,7 @@
             }
             else
             {
+                await LoadLicensedBusinessLinesAsync();
                 await RunTaskDailyCheckSilentlyAsync();
             }
             activeWorkspace = await LoadActiveWorkspaceAsync();
@@ -169,6 +178,20 @@
         return "classic";
     }
 
+    private async Task LoadLicensedBusinessLinesAsync()
+    {
+        if (CompanyContext.IsPlatformScoped(AuthState?.User))
+        {
+            licensedBusinessLineKeys = null;
+            return;
+        }
+
+        var result = await CompanyService.GetCurrentLicenseAsync();
+        licensedBusinessLineKeys = result.IsSuccess && result.Data is not null
+            ? result.Data.BusinessLines.Select(line => line.Key).ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    }
+
     private async Task SetActiveWorkspaceAsync(string workspaceKey)
     {
         activeWorkspace = EnsureAuthorizedWorkspace(workspaceKey);
@@ -183,7 +206,7 @@
 
     private string EnsureAuthorizedWorkspace(string workspaceKey)
     {
-        var authorizedWorkspaces = NavigationMenuResolver.GetAuthorizedWorkspaces(AuthState?.User);
+        var authorizedWorkspaces = NavigationMenuResolver.GetAuthorizedWorkspaces(AuthState?.User, licensedBusinessLineKeys);
         if (authorizedWorkspaces.Any(workspace => workspace.Key == workspaceKey))
         {
             return workspaceKey;

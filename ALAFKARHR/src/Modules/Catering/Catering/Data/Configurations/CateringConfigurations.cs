@@ -26,6 +26,8 @@ public class MealComponentConfiguration : IEntityTypeConfiguration<MealComponent
         builder.Property(x => x.UnitName).HasMaxLength(80);
         builder.Property(x => x.Notes).HasMaxLength(500);
         builder.Property(x => x.QuantityPerMeal).HasColumnType("decimal(18,4)");
+        builder.Property(x => x.CaloriesPerUnit).HasColumnType("decimal(18,4)");
+        builder.Property(x => x.TotalCalories).HasColumnType("decimal(18,4)");
         builder.HasIndex(x => new { x.MealDefinitionId, x.ProductSkuId });
     }
 }
@@ -40,6 +42,8 @@ public class CateringContractConfiguration : IEntityTypeConfiguration<CateringCo
         builder.Property(x => x.CustomerNameEng).HasMaxLength(250);
         builder.Property(x => x.SeasonLabel).HasMaxLength(120).IsRequired();
         builder.Property(x => x.ContractedMealQuantity).HasColumnType("decimal(18,2)");
+        builder.Property(x => x.MinMealCalories).HasColumnType("decimal(18,2)");
+        builder.Property(x => x.MaxMealCalories).HasColumnType("decimal(18,2)");
         builder.Property(x => x.Notes).HasMaxLength(1000);
         builder.HasMany(x => x.Addendums).WithOne().HasForeignKey(x => x.CateringContractId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(x => new { x.CompanyId, x.CustomerId, x.ServiceType });

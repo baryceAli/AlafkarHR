@@ -35,16 +35,59 @@ internal static class MaintenanceFeatureHelpers
         if (!parentAssetId.HasValue)
             return;
 
-        var exists = await dbContext.MaintenanceAssets.AnyAsync(x => x.Id == parentAssetId.Value, cancellationToken);
+        var exists = await dbContext.MaintenanceAssets.AnyAsync(x => x.Id == parentAssetId.Value && !x.IsDeleted, cancellationToken);
         if (!exists)
             throw new NotFoundException("Parent maintenance asset", parentAssetId.Value);
     }
 
+    public static async Task EnsureParentAssetScopeAsync(
+        MaintenanceDbContext dbContext,
+        ISender sender,
+        Guid companyId,
+        Guid? childBranchId,
+        Guid? parentAssetId,
+        Guid? currentAssetId,
+        CancellationToken cancellationToken)
+    {
+        if (!parentAssetId.HasValue)
+            return;
+
+        if (currentAssetId.HasValue && parentAssetId.Value == currentAssetId.Value)
+            throw new BadRequestException("Maintenance asset cannot be its own parent.");
+
+        var parent = await dbContext.MaintenanceAssets.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == parentAssetId.Value && !x.IsDeleted, cancellationToken)
+            ?? throw new NotFoundException("Parent maintenance asset", parentAssetId.Value);
+
+        if (parent.CompanyId != companyId)
+            throw new BadRequestException("Parent maintenance asset must belong to the same company.");
+
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (!BranchScopePolicy.CanRead(branchAccess, parent.BranchId))
+            throw new ForbiddenException("You do not have permission to use this parent maintenance asset.");
+
+        if (childBranchId.HasValue && parent.BranchId.HasValue && parent.BranchId != childBranchId)
+            throw new BadRequestException("Branch-owned maintenance assets can only use shared parents or parents from the same branch.");
+
+        if (!childBranchId.HasValue && parent.BranchId.HasValue)
+            throw new BadRequestException("Company-level/shared maintenance assets can only use company-level/shared parents.");
+    }
+
     public static async Task EnsureAssetAsync(MaintenanceDbContext dbContext, Guid assetId, CancellationToken cancellationToken)
     {
-        var exists = await dbContext.MaintenanceAssets.AnyAsync(x => x.Id == assetId, cancellationToken);
+        var exists = await dbContext.MaintenanceAssets.AnyAsync(x => x.Id == assetId && !x.IsDeleted, cancellationToken);
         if (!exists)
             throw new NotFoundException("Maintenance asset", assetId);
+    }
+
+    public static async Task EnsureCanMutateWorkOrderAsync(ISender sender, MaintenanceWorkOrder workOrder, CancellationToken cancellationToken)
+    {
+        if (workOrder.Asset is null)
+            throw new NotFoundException("Maintenance asset", workOrder.AssetId);
+
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(workOrder.Asset.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, workOrder.Asset.BranchId))
+            throw new ForbiddenException("You do not have permission to change this maintenance work order branch scope.");
     }
 
     public static MaintenanceWorkOrderDto ToDto(MaintenanceWorkOrder workOrder)
@@ -58,6 +101,7 @@ internal static class MaintenanceFeatureHelpers
             AssetId = workOrder.AssetId,
             AssetName = workOrder.Asset?.Name ?? string.Empty,
             AssetType = workOrder.Asset?.AssetType ?? MaintenanceAssetType.Other,
+            BranchId = workOrder.Asset?.BranchId,
             RequestedByUserId = workOrder.RequestedByUserId,
             AssignedToUserId = workOrder.AssignedToUserId,
             Priority = workOrder.Priority,

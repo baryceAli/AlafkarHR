@@ -48,13 +48,14 @@
     [Parameter] public string ActiveWorkspace { get; set; } = NavigationMenuResolver.WorkspaceHome;
     [Parameter] public bool IsMoreOpen { get; set; }
     [Parameter] public AuthenticationState? AuthState { get; set; }
+    [Parameter] public IReadOnlySet<string>? LicensedBusinessLineKeys { get; set; }
     [Parameter] public EventCallback<string> ActiveWorkspaceChanged { get; set; }
     [Parameter] public EventCallback OnOpenMore { get; set; }
 
     private bool isOpen;
 
     private IReadOnlyList<NavigationWorkspace> WorkspaceItems
-        => NavigationMenuResolver.GetAuthorizedWorkspaces(AuthState?.User);
+        => NavigationMenuResolver.GetAuthorizedWorkspaces(AuthState?.User, LicensedBusinessLineKeys);
 
     private NavigationWorkspace ActiveWorkspaceItem
         => IsMoreOpen
@@ -75,7 +76,7 @@
         }
 
         await ActiveWorkspaceChanged.InvokeAsync(workspace.Key);
-        var url = NavigationMenuResolver.GetWorkspaceDefaultUrl(workspace.Key, AuthState?.User);
+        var url = NavigationMenuResolver.GetWorkspaceDefaultUrl(workspace.Key, AuthState?.User, LicensedBusinessLineKeys);
         if (!string.IsNullOrWhiteSpace(url))
         {
             NavigationManager.NavigateTo(url);

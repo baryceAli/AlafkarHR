@@ -3,7 +3,7 @@
 
 public record UpdateBranchCommand(BranchDto Branch) : ICommand<UpdateBranchResult>;
 public record UpdateBranchResult(bool IsSuccess);
-public class UpdateBranchHandler(OrganizationDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class UpdateBranchHandler(OrganizationDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<UpdateBranchCommand, UpdateBranchResult>
 {
     public async Task<UpdateBranchResult> Handle(UpdateBranchCommand request, CancellationToken cancellationToken)
@@ -19,11 +19,6 @@ public class UpdateBranchHandler(OrganizationDbContext dbContext, IHttpContextAc
                         .Value ??
                         throw new UnauthorizedAccessException("User is not authenticated");
 
-        if (request.Branch.IsMainBranch)
-        {
-            await ClearOtherMainBranchesAsync(branch.CompanyId, branch.Id, userId, cancellationToken);
-        }
-
         branch.Update(
             request.Branch.Name,
             request.Branch.NameEng,
@@ -33,36 +28,19 @@ public class UpdateBranchHandler(OrganizationDbContext dbContext, IHttpContextAc
             request.Branch.Code,
             request.Branch.Phone,
             request.Branch.Email,
-            request.Branch.IsMainBranch,
+            branch.IsMainBranch,
             userId);
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        await sender.Send(new EnsureBranchAccountingCommand(
+            branch.CompanyId,
+            branch.Id,
+            branch.Code,
+            branch.Name,
+            branch.NameEng), cancellationToken);
+
         return new UpdateBranchResult(true);
     }
 
-    private async Task ClearOtherMainBranchesAsync(Guid companyId, Guid currentBranchId, string userId, CancellationToken cancellationToken)
-    {
-        var mainBranches = await dbContext.Branches
-            .Where(branch =>
-                branch.CompanyId == companyId &&
-                branch.Id != currentBranchId &&
-                branch.IsMainBranch)
-            .ToListAsync(cancellationToken);
-
-        foreach (var branch in mainBranches)
-        {
-            branch.Update(
-                branch.Name,
-                branch.NameEng,
-                branch.Location,
-                branch.Longitude,
-                branch.Latitude,
-                branch.Code,
-                branch.Phone,
-                branch.Email,
-                false,
-                userId);
-        }
-    }
 }

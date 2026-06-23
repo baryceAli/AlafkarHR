@@ -33,6 +33,10 @@ public interface IAccountingService
     Task<ApiResult<Guid>> SaveCashAccountAsync(CashAccountDto cashAccount);
     Task<ApiResult<CompanyAccountingSettingsDto?>> GetCompanyAccountingSettingsAsync(Guid companyId);
     Task<ApiResult<Guid>> SaveCompanyAccountingSettingsAsync(CompanyAccountingSettingsDto settings);
+    Task<ApiResult<AccountCodingSettingsDto>> GetAccountCodingSettingsAsync(Guid companyId);
+    Task<ApiResult<Guid>> SaveAccountCodingSettingsAsync(AccountCodingSettingsDto settings);
+    Task<ApiResult<AccountRenumberPreviewDto>> PreviewAccountRenumberAsync(AccountCodingSettingsDto settings);
+    Task<ApiResult<AccountRenumberPreviewDto>> ApplyAccountRenumberAsync(ApplyAccountRenumberDto renumber);
     Task<ApiResult<PaginatedResult<AccountingDocumentDto>>> GetDocumentsAsync(AccountingDocumentType? type, Guid? companyId, int pageIndex, int pageSize, string? searchText);
     Task<ApiResult<Guid>> CreateDocumentAsync(AccountingDocumentDto document);
     Task<ApiResult<Guid>> PostDocumentAsync(Guid id);

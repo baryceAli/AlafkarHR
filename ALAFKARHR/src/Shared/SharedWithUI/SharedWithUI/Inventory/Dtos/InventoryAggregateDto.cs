@@ -18,6 +18,9 @@ public class InventoryAggregateDto
     public Guid WarehouseId { get; set; }
     public string? WarehouseName { get; set; }
     public string? WarehouseNameEng { get; set; }
+    public Guid? BranchId { get; set; }
+    public string? BranchName { get; set; }
+    public string? BranchNameEng { get; set; }
     public decimal TotalQuantity { get; set; }
     public decimal TotalReserved { get; set; }
     public decimal TotalAvailable { get; set; }

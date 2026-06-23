@@ -36,6 +36,17 @@ public class MealDefinition : Aggregate<Guid>
         DeletedBy = userId;
     }
 
+    public void RecalculateCalories(IEnumerable<MealComponent> components, string userId)
+    {
+        var totalCalories = components
+            .Where(x => !x.IsDeleted)
+            .Sum(x => x.TotalCalories ?? 0m);
+
+        Calories = totalCalories > 0m ? (int)Math.Round(totalCalories, MidpointRounding.AwayFromZero) : null;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+
     private void Apply(MealDefinitionDto dto, string userId)
     {
         CompanyId = dto.CompanyId;
@@ -67,6 +78,8 @@ public class MealComponent : Entity<Guid>
     public string? ComponentNameEng { get; private set; }
     public decimal QuantityPerMeal { get; private set; }
     public string? UnitName { get; private set; }
+    public decimal? CaloriesPerUnit { get; private set; }
+    public decimal? TotalCalories { get; private set; }
     public string? Notes { get; private set; }
 
     private MealComponent() { }
@@ -89,6 +102,8 @@ public class MealComponent : Entity<Guid>
             ComponentNameEng = dto.ComponentNameEng?.Trim(),
             QuantityPerMeal = dto.QuantityPerMeal,
             UnitName = dto.UnitName?.Trim(),
+            CaloriesPerUnit = dto.CaloriesPerUnit,
+            TotalCalories = dto.CaloriesPerUnit.HasValue ? dto.QuantityPerMeal * dto.CaloriesPerUnit.Value : dto.TotalCalories,
             Notes = dto.Notes?.Trim(),
             CreatedAt = DateTime.UtcNow,
             CreatedBy = userId
@@ -114,6 +129,9 @@ public class CateringContract : Aggregate<Guid>
     public DateTime EndDate { get; private set; }
     public decimal ContractedMealQuantity { get; private set; }
     public Guid MealDefinitionId { get; private set; }
+    public bool IsMealCaloriesRequired { get; private set; }
+    public decimal? MinMealCalories { get; private set; }
+    public decimal? MaxMealCalories { get; private set; }
     public CateringContractStatus Status { get; private set; }
     public string? Notes { get; private set; }
     public IReadOnlyCollection<CateringContractAddendum> Addendums => _addendums.Where(x => !x.IsDeleted).ToList();
@@ -171,6 +189,9 @@ public class CateringContract : Aggregate<Guid>
         EndDate = dto.EndDate.Date;
         ContractedMealQuantity = dto.ContractedMealQuantity;
         MealDefinitionId = dto.MealDefinitionId;
+        IsMealCaloriesRequired = dto.IsMealCaloriesRequired;
+        MinMealCalories = dto.IsMealCaloriesRequired ? dto.MinMealCalories : null;
+        MaxMealCalories = dto.IsMealCaloriesRequired ? dto.MaxMealCalories : null;
         if (dto.Status != CateringContractStatus.Draft || Status != CateringContractStatus.Draft) Status = dto.Status;
         Notes = dto.Notes?.Trim();
         ModifiedAt = DateTime.UtcNow;
@@ -184,6 +205,12 @@ public class CateringContract : Aggregate<Guid>
         if (string.IsNullOrWhiteSpace(dto.CustomerName)) throw new BadRequestException("Charity/customer name is required.");
         if (dto.MealDefinitionId == Guid.Empty) throw new BadRequestException("Meal definition is required.");
         if (dto.ContractedMealQuantity <= 0) throw new BadRequestException("Contracted meal quantity must be greater than zero.");
+        if (dto.IsMealCaloriesRequired)
+        {
+            if (!dto.MinMealCalories.HasValue || !dto.MaxMealCalories.HasValue) throw new BadRequestException("Meal calorie range is required.");
+            if (dto.MinMealCalories.Value <= 0 || dto.MaxMealCalories.Value <= 0) throw new BadRequestException("Meal calories must be greater than zero.");
+            if (dto.MinMealCalories.Value > dto.MaxMealCalories.Value) throw new BadRequestException("Minimum meal calories cannot exceed maximum meal calories.");
+        }
         if (dto.EndDate.Date < dto.StartDate.Date) throw new BadRequestException("End date cannot be before start date.");
     }
 }

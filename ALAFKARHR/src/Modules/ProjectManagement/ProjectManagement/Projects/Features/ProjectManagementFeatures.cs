@@ -1,6 +1,6 @@
 namespace ProjectManagement.Projects.Features;
 
-public record GetProjectsQuery(Guid? CompanyId, string? SearchText, ProjectStatus? Status, PaginationRequest Pagination) : IQuery<GetProjectsResult>;
+public record GetProjectsQuery(Guid? CompanyId, Guid? BranchId, string? SearchText, ProjectStatus? Status, PaginationRequest Pagination) : IQuery<GetProjectsResult>;
 public record GetProjectsResult(PaginatedResult<ProjectDto> Projects);
 public record GetProjectsResponse(PaginatedResult<ProjectDto> Projects);
 
@@ -107,7 +107,7 @@ public class ProjectManagementEndpoint : ICarterModule
 
         group.MapGet("/projects", async ([AsParameters] ProjectListQuery query, [AsParameters] PaginationRequest pagination, ISender sender) =>
         {
-            var result = await sender.Send(new GetProjectsQuery(query.CompanyId, pagination.SearchText, query.Status, pagination));
+            var result = await sender.Send(new GetProjectsQuery(query.CompanyId, query.BranchId, pagination.SearchText, query.Status, pagination));
             return Results.Ok(result.Adapt<GetProjectsResponse>());
         }).RequireAuthorization(PermissionList.ProjectManagementPermissions.View);
 
@@ -295,7 +295,29 @@ public class ProjectManagementHandlers(ProjectManagementDbContext dbContext, ISe
     public async Task<GetProjectsResult> Handle(GetProjectsQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.Projects.AsNoTracking();
-        if (request.CompanyId.HasValue) query = query.Where(x => x.CompanyId == request.CompanyId);
+        if (request.CompanyId.HasValue)
+        {
+            query = query.Where(x => x.CompanyId == request.CompanyId);
+            var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(request.CompanyId.Value), cancellationToken);
+            if (!BranchScopePolicy.CanFilter(branchAccess, request.BranchId))
+                throw new ForbiddenException("You do not have permission to view this project branch scope.");
+
+            if (branchAccess.CanViewAllBranches)
+            {
+                if (request.BranchId.HasValue)
+                    query = query.Where(x => x.BranchId == request.BranchId.Value);
+            }
+            else
+            {
+                query = request.BranchId.HasValue
+                    ? query.Where(x => x.BranchId == null || x.BranchId == request.BranchId.Value)
+                    : query.Where(x => x.BranchId == null || (x.BranchId.HasValue && branchAccess.BranchIds.Contains(x.BranchId.Value)));
+            }
+        }
+        else if (request.BranchId.HasValue)
+        {
+            query = query.Where(x => x.BranchId == request.BranchId.Value);
+        }
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status);
         if (!string.IsNullOrWhiteSpace(request.SearchText))
         {
@@ -320,12 +342,14 @@ public class ProjectManagementHandlers(ProjectManagementDbContext dbContext, ISe
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException($"Project not found: {request.Id}");
 
+        await EnsureCanReadProjectAsync(project.CompanyId, project.BranchId, cancellationToken);
         return new GetProjectByIdResult(ToDto(project));
     }
 
     public async Task<CreateProjectResult> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
     {
         var projectNumber = await NextProjectNumberAsync(request.Project.CompanyId, cancellationToken);
+        await EnsureCanMutateProjectAsync(request.Project.CompanyId, request.Project.BranchId, cancellationToken);
         var project = Project.Create(request.Project, projectNumber, UserId());
         await dbContext.Projects.AddAsync(project, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -336,6 +360,10 @@ public class ProjectManagementHandlers(ProjectManagementDbContext dbContext, ISe
     {
         var project = await dbContext.Projects.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException($"Project not found: {request.Id}");
+        if (request.Project.CompanyId != project.CompanyId)
+            throw new BadRequestException("Project company cannot be changed.");
+        await EnsureCanMutateProjectAsync(project.CompanyId, project.BranchId, cancellationToken);
+        await EnsureCanMutateProjectAsync(project.CompanyId, request.Project.BranchId, cancellationToken);
         project.Update(request.Project, UserId());
         await dbContext.SaveChangesAsync(cancellationToken);
         return new UpdateProjectResult(true);
@@ -345,6 +373,7 @@ public class ProjectManagementHandlers(ProjectManagementDbContext dbContext, ISe
     {
         var project = await dbContext.Projects.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException($"Project not found: {request.Id}");
+        await EnsureCanMutateProjectAsync(project.CompanyId, project.BranchId, cancellationToken);
         project.Remove(UserId());
         await dbContext.SaveChangesAsync(cancellationToken);
         return new DeleteProjectResult(true);
@@ -354,6 +383,7 @@ public class ProjectManagementHandlers(ProjectManagementDbContext dbContext, ISe
     {
         var project = await dbContext.Projects.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException($"Project not found: {request.Id}");
+        await EnsureCanMutateProjectAsync(project.CompanyId, project.BranchId, cancellationToken);
         project.ChangeStatus(request.Status, UserId());
         await dbContext.SaveChangesAsync(cancellationToken);
         return new UpdateProjectResult(true);
@@ -783,6 +813,20 @@ public class ProjectManagementHandlers(ProjectManagementDbContext dbContext, ISe
                 .ThenInclude(x => x.Lines)
             .Include(x => x.TaskLinks);
 
+    private async Task EnsureCanReadProjectAsync(Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    {
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (!BranchScopePolicy.CanRead(branchAccess, branchId))
+            throw new ForbiddenException("You do not have permission to view this project branch scope.");
+    }
+
+    private async Task EnsureCanMutateProjectAsync(Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    {
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, branchId))
+            throw new ForbiddenException("You do not have permission to change this project branch scope.");
+    }
+
     private async Task EnsureProjectExistsAsync(Guid projectId, CancellationToken cancellationToken)
     {
         if (!await dbContext.Projects.AnyAsync(x => x.Id == projectId, cancellationToken))
@@ -1061,6 +1105,7 @@ public class GuidQuery
 public class ProjectListQuery : GuidQuery
 {
     public ProjectStatus? Status { get; set; }
+    public Guid? BranchId { get; set; }
 }
 
 public class PlaceListQuery : GuidQuery;

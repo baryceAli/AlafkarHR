@@ -9,6 +9,7 @@ public class GetStockMovementsEndpoint : ICarterModule
     {
         app.MapGet("/api/v1/inventory/stock-movements/company/{companyId:guid}", async (
                 Guid companyId,
+                Guid? branchId,
                 Guid? warehouseId,
                 Guid? productSkuId,
                 Guid? batchId,
@@ -23,6 +24,7 @@ public class GetStockMovementsEndpoint : ICarterModule
                     new StockMovementFilterDto
                     {
                         CompanyId = companyId,
+                        BranchId = branchId,
                         WarehouseId = warehouseId,
                         ProductSkuId = productSkuId,
                         BatchId = batchId,
@@ -41,15 +43,42 @@ public class GetStockMovementsEndpoint : ICarterModule
     }
 }
 
-public class GetStockMovementsHandler(InventoryDbContext dbContext)
+public class GetStockMovementsHandler(InventoryDbContext dbContext, ISender sender)
     : IQueryHandler<GetStockMovementsQuery, GetStockMovementsResult>
 {
     public async Task<GetStockMovementsResult> Handle(GetStockMovementsQuery request, CancellationToken cancellationToken)
     {
-        var warehouseIds = await dbContext.Warehouses.AsNoTracking()
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(request.Filter.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanFilter(branchAccess, request.Filter.BranchId))
+            throw new ForbiddenException("You do not have permission to view this branch's stock movements.");
+
+        var warehouseQuery = dbContext.Warehouses.AsNoTracking()
             .Where(x => x.CompanyId == request.Filter.CompanyId && !x.IsDeleted)
-            .Select(x => x.Id)
-            .ToListAsync(cancellationToken);
+            .AsQueryable();
+
+        if (branchAccess.CanViewAllBranches)
+        {
+            if (request.Filter.BranchId.HasValue)
+                warehouseQuery = warehouseQuery.Where(x => x.BranchId == request.Filter.BranchId.Value);
+        }
+        else
+        {
+            warehouseQuery = request.Filter.BranchId.HasValue
+                ? warehouseQuery.Where(x => x.BranchId == null || x.BranchId == request.Filter.BranchId.Value)
+                : warehouseQuery.Where(x => x.BranchId == null || (x.BranchId.HasValue && branchAccess.BranchIds.Contains(x.BranchId.Value)));
+        }
+
+        var warehouseIds = await warehouseQuery.Select(x => x.Id).ToListAsync(cancellationToken);
+
+        if (request.Filter.WarehouseId.HasValue && !warehouseIds.Contains(request.Filter.WarehouseId.Value))
+        {
+            var warehouseExists = await dbContext.Warehouses.AsNoTracking()
+                .AnyAsync(x => x.Id == request.Filter.WarehouseId.Value && x.CompanyId == request.Filter.CompanyId && !x.IsDeleted, cancellationToken);
+            if (!warehouseExists)
+                throw new NotFoundException($"Warehouse not found: {request.Filter.WarehouseId.Value}");
+
+            throw new ForbiddenException("You do not have permission to view stock movements for this warehouse.");
+        }
 
         var query = dbContext.StockMovements.AsNoTracking()
             .Where(x => warehouseIds.Contains(x.WarehouseId) && !x.IsDeleted);

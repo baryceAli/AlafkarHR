@@ -66,6 +66,7 @@ public class GetProductByIdHandler(CatalogDbContext dbContext)
                             UnitId=sku.UnitId,
                             //Variants=sku.Variants,
                             Price = sku.Price,
+                            Calories = sku.Calories,
                             ProductionType = sku.ProductionType,
                             ShowOnStore = sku.ShowOnStore,
                             IsSellable = sku.IsSellable,

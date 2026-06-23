@@ -11,9 +11,9 @@ public class ContractEndpoints : ICarterModule
     {
         var baseRoute = "/api/v1/contracts/contracts";
 
-        app.MapGet(baseRoute, async (Guid? companyId, string? partyType, Guid? partyId, ContractStatus? status, string? type, ContractRenewalPaymentStatus? paymentStatus, DateTime? fromDate, DateTime? toDate, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
+        app.MapGet(baseRoute, async (Guid? companyId, Guid? branchId, string? partyType, Guid? partyId, ContractStatus? status, string? type, ContractRenewalPaymentStatus? paymentStatus, DateTime? fromDate, DateTime? toDate, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
         {
-            var result = await sender.Send(new GetContractsQuery(companyId, partyType, partyId, status, type, paymentStatus, fromDate, toDate, pageIndex ?? 1, pageSize ?? 20, searchText));
+            var result = await sender.Send(new GetContractsQuery(companyId, branchId, partyType, partyId, status, type, paymentStatus, fromDate, toDate, pageIndex ?? 1, pageSize ?? 20, searchText));
             return Results.Ok(new { contracts = result.Contracts });
         })
             .WithName("GetContracts")

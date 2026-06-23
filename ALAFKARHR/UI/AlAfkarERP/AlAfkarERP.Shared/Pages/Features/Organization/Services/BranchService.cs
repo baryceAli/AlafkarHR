@@ -55,6 +55,27 @@ public class BranchService : BaseApiService, IBranchService
         return await SendAsync<BranchDto>(request, "branch");
     }
 
+    public async Task<ApiResult<CurrentUserBranchAccessDto>> GetCurrentUserBranchAccessAsync(Guid companyId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiConfig.BaseURL}/api/{_apiConfig.Version}/organization/branch-access/current?companyId={companyId}");
+        return await SendAsync<CurrentUserBranchAccessDto>(request, null);
+    }
+
+    public async Task<ApiResult<UserBranchAssignmentsDto>> GetUserBranchAssignmentsAsync(Guid userId, Guid companyId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiConfig.BaseURL}/api/{_apiConfig.Version}/organization/branch-access/users/{userId}?companyId={companyId}");
+        return await SendAsync<UserBranchAssignmentsDto>(request, null);
+    }
+
+    public async Task<ApiResult<AssignUserBranchesResultDto>> AssignUserBranchesAsync(AssignUserBranchesDto assignment)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Put, $"{_apiConfig.BaseURL}/api/{_apiConfig.Version}/organization/branch-access/users/{assignment.UserId}")
+        {
+            Content = JsonContent.Create(assignment)
+        };
+        return await SendAsync<AssignUserBranchesResultDto>(request, null);
+    }
+
     public async Task<ApiResult<UpdateDeleteResponseDto>> UpdateAsync(BranchDto branch)
     {
         var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}")

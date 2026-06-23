@@ -2,11 +2,55 @@
 
 public class InitialData
 {
+    public static Guid CateringBusinessLineId => Guid.Parse("544d599e-8d7d-4b58-bb4a-8bd9332d2bc5");
+    public static Guid RealEstateBusinessLineId => Guid.Parse("7fd5d0df-2e43-40f4-bcb7-7ed625c925e6");
+    public static Guid StoreFrontBusinessLineId => Guid.Parse("d3c85fd2-0fa8-4d7d-9f97-2c54c5f67b58");
     public static Guid BasicLicenseCategoryId => Guid.Parse("8ae8997e-42a6-4b39-8d35-5c86fdf2f031");
     public static Guid StandardLicenseCategoryId => Guid.Parse("65f1a088-c089-4681-a205-5f830da2a0c9");
     public static Guid ProLicenseCategoryId => Guid.Parse("96a7b174-932b-4ef9-b680-6ad0d1deea75");
     public static Guid AdvancedLicenseCategoryId => Guid.Parse("861b0e2e-5f63-427b-903f-1d20e9271fbd");
     public static Guid SarCurrencyId => Guid.Parse("71077eb6-cb32-49b1-bb41-72c1c7eeac5c");
+
+    public static IEnumerable<BusinessLine> BusinessLines => new List<BusinessLine>
+    {
+        BusinessLine.Create(
+            CateringBusinessLineId,
+            SharedWithUI.Organization.BusinessLineKeys.Catering,
+            "Catering",
+            "خدمات الإعاشة",
+            "bi-cup-hot",
+            "Catering contracts, meals, locations, schedules, deliveries, assignments, and reports.",
+            10,
+            SharedWithUI.Organization.Enums.BusinessLineActivationPolicy.SinglePerCompany,
+            "local-seed"),
+        BusinessLine.Create(
+            RealEstateBusinessLineId,
+            SharedWithUI.Organization.BusinessLineKeys.RealEstate,
+            "Real Estate",
+            "العقارات",
+            "bi-buildings",
+            "Properties, units, leases, rent collections, utilities, expenses, and reports.",
+            20,
+            SharedWithUI.Organization.Enums.BusinessLineActivationPolicy.SinglePerCompany,
+            "local-seed"),
+        BusinessLine.Create(
+            StoreFrontBusinessLineId,
+            SharedWithUI.Organization.BusinessLineKeys.StoreFront,
+            "Store Front",
+            "واجهة المتجر",
+            "bi-shop",
+            "Stores, shop types, store-specific sellable goods and services, and store-aware POS.",
+            30,
+            SharedWithUI.Organization.Enums.BusinessLineActivationPolicy.MultiplePerCompany,
+            "local-seed")
+    };
+
+    public static IEnumerable<Guid> ImplementedBusinessLineIds => new[]
+    {
+        CateringBusinessLineId,
+        RealEstateBusinessLineId,
+        StoreFrontBusinessLineId
+    };
 
     public static IEnumerable<LicenseCategory> LicenseCategories => new List<LicenseCategory>
     {

@@ -11,6 +11,7 @@ public class GetMaintenanceWorkOrdersEndpoint : ICarterModule
             int PageIndex,
             int PageSize,
             string? searchText,
+            Guid? companyId,
             Guid? assetId,
             Guid? branchId,
             MaintenanceAssetType? assetType,
@@ -22,6 +23,7 @@ public class GetMaintenanceWorkOrdersEndpoint : ICarterModule
         {
             var filter = new MaintenanceWorkOrderFilterDto
             {
+                CompanyId = companyId,
                 AssetId = assetId,
                 BranchId = branchId,
                 AssetType = assetType,
@@ -43,11 +45,12 @@ public class GetMaintenanceWorkOrdersEndpoint : ICarterModule
             int PageIndex,
             int PageSize,
             string? searchText,
+            Guid? companyId,
             ISender sender) =>
         {
             var result = await sender.Send(new GetMaintenanceWorkOrdersQuery(
                 new PaginationRequest(PageIndex, PageSize, searchText),
-                new MaintenanceWorkOrderFilterDto(),
+                new MaintenanceWorkOrderFilterDto { CompanyId = companyId },
                 true));
             return Results.Ok(result);
         })
@@ -58,7 +61,7 @@ public class GetMaintenanceWorkOrdersEndpoint : ICarterModule
     }
 }
 
-public class GetMaintenanceWorkOrdersHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class GetMaintenanceWorkOrdersHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : IQueryHandler<GetMaintenanceWorkOrdersQuery, GetMaintenanceWorkOrdersResult>
 {
     public async Task<GetMaintenanceWorkOrdersResult> Handle(GetMaintenanceWorkOrdersQuery request, CancellationToken cancellationToken)
@@ -76,10 +79,28 @@ public class GetMaintenanceWorkOrdersHandler(MaintenanceDbContext dbContext, IHt
             ? query.Where(x => x.RequestedByUserId == currentUserId || x.AssignedToUserId == currentUserId.ToString())
             : MaintenanceFeatureHelpers.ApplyVisibility(query, httpContextAccessor, currentUserId);
 
+        if (!request.Filter.CompanyId.HasValue)
+            throw new BadRequestException("CompanyId is required for maintenance work order branch scope.");
+
+        query = query.Where(x => x.Asset.CompanyId == request.Filter.CompanyId.Value);
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(request.Filter.CompanyId.Value), cancellationToken);
+        if (!BranchScopePolicy.CanFilter(branchAccess, request.Filter.BranchId))
+            throw new ForbiddenException("You do not have permission to view this branch's maintenance work orders.");
+
+        if (branchAccess.CanViewAllBranches)
+        {
+            if (request.Filter.BranchId.HasValue)
+                query = query.Where(x => x.Asset.BranchId == request.Filter.BranchId.Value);
+        }
+        else
+        {
+            query = request.Filter.BranchId.HasValue
+                ? query.Where(x => x.Asset.BranchId == null || x.Asset.BranchId == request.Filter.BranchId.Value)
+                : query.Where(x => x.Asset.BranchId == null || (x.Asset.BranchId.HasValue && branchAccess.BranchIds.Contains(x.Asset.BranchId.Value)));
+        }
+
         if (request.Filter.AssetId.HasValue)
             query = query.Where(x => x.AssetId == request.Filter.AssetId.Value);
-        if (request.Filter.BranchId.HasValue)
-            query = query.Where(x => x.Asset.BranchId == request.Filter.BranchId.Value);
         if (request.Filter.AssetType.HasValue)
             query = query.Where(x => x.Asset.AssetType == request.Filter.AssetType.Value);
         if (request.Filter.Priority.HasValue)

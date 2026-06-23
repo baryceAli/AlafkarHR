@@ -199,8 +199,17 @@ namespace Catering.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsMealCaloriesRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("MaxMealCalories")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<Guid>("MealDefinitionId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("MinMealCalories")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
@@ -550,6 +559,9 @@ namespace Catering.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<decimal?>("CaloriesPerUnit")
+                        .HasColumnType("decimal(18,4)");
+
                     b.Property<string>("ComponentName")
                         .IsRequired()
                         .HasMaxLength(180)
@@ -597,6 +609,9 @@ namespace Catering.Data.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("QuantityPerMeal")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal?>("TotalCalories")
                         .HasColumnType("decimal(18,4)");
 
                     b.Property<string>("UnitName")

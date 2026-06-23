@@ -21,7 +21,8 @@ public class UploadMaintenanceAttachmentEndpoint : ICarterModule
 public class UploadMaintenanceAttachmentHandler(
     MaintenanceDbContext dbContext,
     IWebHostEnvironment environment,
-    IHttpContextAccessor httpContextAccessor)
+    IHttpContextAccessor httpContextAccessor,
+    ISender sender)
     : ICommandHandler<UploadMaintenanceAttachmentCommand, MaintenanceCreateResult>
 {
     public async Task<MaintenanceCreateResult> Handle(UploadMaintenanceAttachmentCommand request, CancellationToken cancellationToken)
@@ -30,8 +31,9 @@ public class UploadMaintenanceAttachmentHandler(
         if (request.File.Length <= 0)
             throw new BadRequestException("Attachment file is required.");
 
-        var workOrder = await dbContext.MaintenanceWorkOrders.FirstOrDefaultAsync(x => x.Id == request.WorkOrderId, cancellationToken)
+        var workOrder = await dbContext.MaintenanceWorkOrders.Include(x => x.Asset).FirstOrDefaultAsync(x => x.Id == request.WorkOrderId, cancellationToken)
             ?? throw new NotFoundException("Maintenance work order", request.WorkOrderId);
+        await MaintenanceFeatureHelpers.EnsureCanMutateWorkOrderAsync(sender, workOrder, cancellationToken);
 
         var uploadsRoot = Path.Combine(environment.ContentRootPath, "wwwroot", "uploads", "maintenance");
         Directory.CreateDirectory(uploadsRoot);

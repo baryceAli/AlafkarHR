@@ -40,6 +40,7 @@ public record StockMovementDto
 public class StockMovementFilterDto
 {
     public Guid CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
     public Guid? WarehouseId { get; set; }
     public Guid? ProductSkuId { get; set; }
     public Guid? BatchId { get; set; }

@@ -13,6 +13,8 @@ public class MealComponentDto
     public string? ComponentNameEng { get; set; }
     public decimal QuantityPerMeal { get; set; }
     public string? UnitName { get; set; }
+    public decimal? CaloriesPerUnit { get; set; }
+    public decimal? TotalCalories { get; set; }
     public string? Notes { get; set; }
 }
 
@@ -61,6 +63,9 @@ public class CateringContractDto
     public Guid MealDefinitionId { get; set; }
     public string? MealName { get; set; }
     public string? MealNameEng { get; set; }
+    public bool IsMealCaloriesRequired { get; set; }
+    public decimal? MinMealCalories { get; set; }
+    public decimal? MaxMealCalories { get; set; }
     public CateringContractStatus Status { get; set; } = CateringContractStatus.Draft;
     public string? Notes { get; set; }
     public List<CateringContractAddendumDto> Addendums { get; set; } = [];

@@ -4,7 +4,7 @@ public record CreateAccountCommand(AccountDto Account) : ICommand<CreateAccountR
 public record CreateAccountResult(Guid Id);
 public record UpdateAccountCommand(Guid Id, AccountDto Account) : ICommand<UpdateAccountResult>;
 public record UpdateAccountResult(Guid Id);
-public record GetAccountsQuery(Guid CompanyId, int PageIndex, int PageSize, string? SearchText) : IQuery<GetAccountsResult>;
+public record GetAccountsQuery(Guid CompanyId, Guid? BranchId, int PageIndex, int PageSize, string? SearchText) : IQuery<GetAccountsResult>;
 public record GetAccountsResult(PaginatedResult<AccountDto> Accounts);
 public record CreateFiscalPeriodCommand(FiscalPeriodDto Period) : ICommand<CreateFiscalPeriodResult>;
 public record CreateFiscalPeriodResult(Guid Id);
@@ -24,11 +24,11 @@ public record CreatePostingProfileCommand(PostingProfileDto Profile) : ICommand<
 public record CreatePostingProfileResult(Guid Id);
 public record GetPostingProfilesQuery(Guid CompanyId) : IQuery<GetPostingProfilesResult>;
 public record GetPostingProfilesResult(List<PostingProfileDto> Profiles);
-public record GetBankAccountsQuery(Guid CompanyId) : IQuery<GetBankAccountsResult>;
+public record GetBankAccountsQuery(Guid CompanyId, Guid? BranchId) : IQuery<GetBankAccountsResult>;
 public record GetBankAccountsResult(List<BankAccountDto> BankAccounts);
 public record UpsertBankAccountCommand(BankAccountDto BankAccount) : ICommand<UpsertBankAccountResult>;
 public record UpsertBankAccountResult(Guid Id);
-public record GetCashAccountsQuery(Guid CompanyId) : IQuery<GetCashAccountsResult>;
+public record GetCashAccountsQuery(Guid CompanyId, Guid? BranchId) : IQuery<GetCashAccountsResult>;
 public record GetCashAccountsResult(List<CashAccountDto> CashAccounts);
 public record UpsertCashAccountCommand(CashAccountDto CashAccount) : ICommand<UpsertCashAccountResult>;
 public record UpsertCashAccountResult(Guid Id);
@@ -36,9 +36,17 @@ public record GetCompanyAccountingSettingsQuery(Guid CompanyId) : IQuery<GetComp
 public record GetCompanyAccountingSettingsResult(CompanyAccountingSettingsDto? Settings);
 public record UpsertCompanyAccountingSettingsCommand(CompanyAccountingSettingsDto Settings) : ICommand<UpsertCompanyAccountingSettingsResult>;
 public record UpsertCompanyAccountingSettingsResult(Guid Id);
-public record GetAccountingDocumentsQuery(AccountingDocumentType? Type, Guid? CompanyId, int PageIndex, int PageSize, string? SearchText) : IQuery<GetAccountingDocumentsResult>;
+public record GetAccountCodingSettingsQuery(Guid CompanyId) : IQuery<GetAccountCodingSettingsResult>;
+public record GetAccountCodingSettingsResult(AccountCodingSettingsDto Settings);
+public record UpsertAccountCodingSettingsCommand(AccountCodingSettingsDto Settings) : ICommand<UpsertAccountCodingSettingsResult>;
+public record UpsertAccountCodingSettingsResult(Guid Id);
+public record PreviewAccountRenumberCommand(AccountCodingSettingsDto Settings) : ICommand<PreviewAccountRenumberResult>;
+public record PreviewAccountRenumberResult(AccountRenumberPreviewDto Preview);
+public record ApplyAccountRenumberCommand(ApplyAccountRenumberDto Renumber) : ICommand<ApplyAccountRenumberResult>;
+public record ApplyAccountRenumberResult(AccountRenumberPreviewDto Preview);
+public record GetAccountingDocumentsQuery(AccountingDocumentType? Type, Guid? CompanyId, Guid? BranchId, int PageIndex, int PageSize, string? SearchText) : IQuery<GetAccountingDocumentsResult>;
 public record GetAccountingDocumentsResult(PaginatedResult<AccountingDocumentDto> Documents);
-public record GetJournalEntriesQuery(Guid? CompanyId, int PageIndex, int PageSize, string? SearchText) : IQuery<GetJournalEntriesResult>;
+public record GetJournalEntriesQuery(Guid? CompanyId, Guid? BranchId, int PageIndex, int PageSize, string? SearchText) : IQuery<GetJournalEntriesResult>;
 public record GetJournalEntriesResult(PaginatedResult<JournalEntryDto> JournalEntries);
 public record UpsertZatcaSettingsCommand(ZatcaSettingsDto Settings) : ICommand<UpsertZatcaSettingsResult>;
 public record UpsertZatcaSettingsResult(Guid Id);
@@ -48,7 +56,7 @@ public record GetEInvoicesQuery(Guid? CompanyId, ZatcaSubmissionStatus? Status, 
 public record GetEInvoicesResult(PaginatedResult<EInvoiceDto> Invoices);
 public record SubmitEInvoiceCommand(Guid EInvoiceId) : ICommand<SubmitEInvoiceResult>;
 public record SubmitEInvoiceResult(Guid SubmissionId, ZatcaSubmissionStatus Status);
-public record GetAccountingDashboardQuery(Guid? CompanyId) : IQuery<GetAccountingDashboardResult>;
+public record GetAccountingDashboardQuery(Guid? CompanyId, Guid? BranchId) : IQuery<GetAccountingDashboardResult>;
 public record GetAccountingDashboardResult(AccountingDashboardDto Dashboard);
 public record GetAccountingTemplatesQuery(Guid? CompanyId) : IQuery<GetAccountingTemplatesResult>;
 public record GetAccountingTemplatesResult(List<AccountingTemplateDto> Templates);
@@ -68,13 +76,13 @@ public record CreateBankTransactionCommand(BankTransactionDto Transaction) : ICo
 public record CreateBankTransactionResult(Guid Id);
 public record ReconcileBankTransactionCommand(ReconcileBankTransactionDto Reconciliation) : ICommand<ReconcileBankTransactionResult>;
 public record ReconcileBankTransactionResult(Guid Id, BankTransactionStatus Status);
-public record GetBankTransactionsQuery(Guid CompanyId, BankTransactionStatus? Status, int PageIndex, int PageSize, string? SearchText) : IQuery<GetBankTransactionsResult>;
+public record GetBankTransactionsQuery(Guid CompanyId, Guid? BranchId, BankTransactionStatus? Status, int PageIndex, int PageSize, string? SearchText) : IQuery<GetBankTransactionsResult>;
 public record GetBankTransactionsResult(PaginatedResult<BankTransactionDto> Transactions);
-public record GetBankReconciliationSummaryQuery(Guid CompanyId) : IQuery<GetBankReconciliationSummaryResult>;
+public record GetBankReconciliationSummaryQuery(Guid CompanyId, Guid? BranchId) : IQuery<GetBankReconciliationSummaryResult>;
 public record GetBankReconciliationSummaryResult(BankReconciliationSummaryDto Summary);
 public record GetBankReconciliationMatchesQuery(Guid BankTransactionId) : IQuery<GetBankReconciliationMatchesResult>;
 public record GetBankReconciliationMatchesResult(List<BankReconciliationMatchDto> Matches);
-public record GetAccountingReportQuery(AccountingReportType Type, Guid CompanyId, DateTime? FromDate, DateTime? ToDate) : IQuery<GetAccountingReportResult>;
+public record GetAccountingReportQuery(AccountingReportType Type, Guid CompanyId, Guid? BranchId, DateTime? FromDate, DateTime? ToDate) : IQuery<GetAccountingReportResult>;
 public record GetAccountingReportResult(AccountingReportDto Report);
 
 public class CreateAccountCommandValidator : AbstractValidator<CreateAccountCommand>
@@ -82,7 +90,6 @@ public class CreateAccountCommandValidator : AbstractValidator<CreateAccountComm
     public CreateAccountCommandValidator()
     {
         RuleFor(x => x.Account.CompanyId).NotEmpty();
-        RuleFor(x => x.Account.Code).NotEmpty().MaximumLength(40);
         RuleFor(x => x.Account.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Account.NameEng).NotEmpty().MaximumLength(200);
     }
@@ -94,7 +101,6 @@ public class UpdateAccountCommandValidator : AbstractValidator<UpdateAccountComm
     {
         RuleFor(x => x.Id).NotEmpty();
         RuleFor(x => x.Account.CompanyId).NotEmpty();
-        RuleFor(x => x.Account.Code).NotEmpty().MaximumLength(40);
         RuleFor(x => x.Account.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Account.NameEng).NotEmpty().MaximumLength(200);
     }
@@ -153,7 +159,7 @@ public class CreateBankTransactionCommandValidator : AbstractValidator<CreateBan
     }
 }
 
-public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<CreateAccountCommand, CreateAccountResult>,
       ICommandHandler<UpdateAccountCommand, UpdateAccountResult>,
       ICommandHandler<CreateFiscalPeriodCommand, CreateFiscalPeriodResult>,
@@ -166,6 +172,9 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
       ICommandHandler<UpsertBankAccountCommand, UpsertBankAccountResult>,
       ICommandHandler<UpsertCashAccountCommand, UpsertCashAccountResult>,
       ICommandHandler<UpsertCompanyAccountingSettingsCommand, UpsertCompanyAccountingSettingsResult>,
+      ICommandHandler<UpsertAccountCodingSettingsCommand, UpsertAccountCodingSettingsResult>,
+      ICommandHandler<PreviewAccountRenumberCommand, PreviewAccountRenumberResult>,
+      ICommandHandler<ApplyAccountRenumberCommand, ApplyAccountRenumberResult>,
       ICommandHandler<CreateAccountingDocumentCommand, CreateAccountingDocumentResult>,
       ICommandHandler<PostAccountingDocumentCommand, PostAccountingDocumentResult>,
       ICommandHandler<CreateAndPostJournalEntryCommand, CreateAndPostJournalEntryResult>,
@@ -178,12 +187,16 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
       ICommandHandler<DeleteAccountingTemplateCommand, DeleteAccountingTemplateResult>,
       ICommandHandler<CaptureAccountingTemplateCommand, UpsertAccountingTemplateResult>,
       ICommandHandler<ApplyAccountingTemplateCommand, ApplyAccountingTemplateResult>,
+      ICommandHandler<EnsureBranchAccountingCommand, EnsureBranchAccountingResult>,
       ICommandHandler<CreateBankTransactionCommand, CreateBankTransactionResult>,
       ICommandHandler<ReconcileBankTransactionCommand, ReconcileBankTransactionResult>
 {
     public async Task<CreateAccountResult> Handle(CreateAccountCommand command, CancellationToken cancellationToken)
     {
-        await ValidateAccountAsync(command.Account, null, cancellationToken);
+        await EnsureCanAccessBranchAsync(command.Account.CompanyId, command.Account.BranchId, cancellationToken);
+        var codingSettings = await GetCodingSettingsDtoAsync(command.Account.CompanyId, cancellationToken);
+        command.Account.Code = await GenerateAccountCodeAsync(command.Account, null, codingSettings, cancellationToken);
+        await ValidateAccountAsync(command.Account, null, codingSettings, cancellationToken);
         var account = Account.Create(command.Account, UserId);
         await dbContext.Accounts.AddAsync(account, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -194,12 +207,19 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
     {
         var dto = command.Account;
         dto.Id = command.Id;
-        await ValidateAccountAsync(dto, command.Id, cancellationToken);
+        await EnsureCanAccessBranchAsync(dto.CompanyId, dto.BranchId, cancellationToken);
 
         var account = await dbContext.Accounts.FirstOrDefaultAsync(x => x.Id == command.Id && x.CompanyId == dto.CompanyId, cancellationToken);
         if (account is null)
             throw new BadRequestException("Account was not found.");
 
+        var structureChanged = AccountStructureChanged(dto, account);
+        if (structureChanged && await dbContext.Accounts.AsNoTracking().AnyAsync(x => x.CompanyId == dto.CompanyId && x.ParentAccountId == account.Id, cancellationToken))
+            throw new BadRequestException("Group accounts with child accounts must be renumbered through account coding settings.");
+
+        var codingSettings = await GetCodingSettingsDtoAsync(dto.CompanyId, cancellationToken);
+        dto.Code = structureChanged ? await GenerateAccountCodeAsync(dto, command.Id, codingSettings, cancellationToken) : account.Code;
+        await ValidateAccountAsync(dto, command.Id, codingSettings, cancellationToken);
         account.Update(dto, UserId);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new UpdateAccountResult(account.Id);
@@ -291,6 +311,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         var journalNumber = await GenerateJournalNumberAsync(period.CompanyId, period.EndDate, cancellationToken);
         var entry = JournalEntry.Create(
             period.CompanyId,
+            null,
             journalNumber,
             period.EndDate,
             ClosingSourceModule,
@@ -327,8 +348,9 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
     public async Task<UpsertBankAccountResult> Handle(UpsertBankAccountCommand command, CancellationToken cancellationToken)
     {
         var dto = command.BankAccount;
-        var ledgerId = await ResolveOrCreateLedgerAccountAsync(dto.CompanyId, dto.LedgerAccountId, dto.DisplayName, AccountRole.Bank, AccountType.Asset, NormalBalance.Debit, "112", cancellationToken);
-        var journalId = await ResolveOrCreateJournalAsync(dto.CompanyId, dto.JournalId, dto.DisplayName, AccountingJournalType.Bank, ledgerId, cancellationToken);
+        await EnsureCanAccessBranchAsync(dto.CompanyId, dto.BranchId, cancellationToken);
+        var ledgerId = await ResolveOrCreateLedgerAccountAsync(dto.CompanyId, dto.BranchId, dto.LedgerAccountId, dto.DisplayName, AccountRole.Bank, AccountType.Asset, NormalBalance.Debit, cancellationToken);
+        var journalId = await ResolveOrCreateJournalAsync(dto.CompanyId, dto.BranchId, dto.JournalId, dto.DisplayName, AccountingJournalType.Bank, ledgerId, cancellationToken);
         var bankAccount = dto.Id == Guid.Empty ? null : await dbContext.BankAccounts.FirstOrDefaultAsync(x => x.Id == dto.Id, cancellationToken);
 
         if (bankAccount is null)
@@ -343,7 +365,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
 
         if (dto.IsDefault)
         {
-            var others = await dbContext.BankAccounts.Where(x => x.CompanyId == dto.CompanyId && x.Id != bankAccount.Id && x.IsDefault).ToListAsync(cancellationToken);
+            var others = await dbContext.BankAccounts.Where(x => x.CompanyId == dto.CompanyId && x.BranchId == dto.BranchId && x.Id != bankAccount.Id && x.IsDefault).ToListAsync(cancellationToken);
             foreach (var other in others)
                 other.SetDefault(false, UserId);
             await UpsertDefaultPaymentAccountAsync(dto.CompanyId, bankAccount.LedgerAccountId, AccountRole.Bank, cancellationToken);
@@ -356,8 +378,9 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
     public async Task<UpsertCashAccountResult> Handle(UpsertCashAccountCommand command, CancellationToken cancellationToken)
     {
         var dto = command.CashAccount;
-        var ledgerId = await ResolveOrCreateLedgerAccountAsync(dto.CompanyId, dto.LedgerAccountId, dto.DisplayName, AccountRole.Cash, AccountType.Asset, NormalBalance.Debit, "111", cancellationToken);
-        var journalId = await ResolveOrCreateJournalAsync(dto.CompanyId, dto.JournalId, dto.DisplayName, AccountingJournalType.Cash, ledgerId, cancellationToken);
+        await EnsureCanAccessBranchAsync(dto.CompanyId, dto.BranchId, cancellationToken);
+        var ledgerId = await ResolveOrCreateLedgerAccountAsync(dto.CompanyId, dto.BranchId, dto.LedgerAccountId, dto.DisplayName, AccountRole.Cash, AccountType.Asset, NormalBalance.Debit, cancellationToken);
+        var journalId = await ResolveOrCreateJournalAsync(dto.CompanyId, dto.BranchId, dto.JournalId, dto.DisplayName, AccountingJournalType.Cash, ledgerId, cancellationToken);
         var cashAccount = dto.Id == Guid.Empty ? null : await dbContext.CashAccounts.FirstOrDefaultAsync(x => x.Id == dto.Id, cancellationToken);
 
         if (cashAccount is null)
@@ -372,7 +395,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
 
         if (dto.IsDefault)
         {
-            var others = await dbContext.CashAccounts.Where(x => x.CompanyId == dto.CompanyId && x.Id != cashAccount.Id && x.IsDefault).ToListAsync(cancellationToken);
+            var others = await dbContext.CashAccounts.Where(x => x.CompanyId == dto.CompanyId && x.BranchId == dto.BranchId && x.Id != cashAccount.Id && x.IsDefault).ToListAsync(cancellationToken);
             foreach (var other in others)
                 other.SetDefault(false, UserId);
             await UpsertDefaultPaymentAccountAsync(dto.CompanyId, cashAccount.LedgerAccountId, AccountRole.Cash, cancellationToken);
@@ -400,8 +423,99 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         return new UpsertCompanyAccountingSettingsResult(settings.Id);
     }
 
+    public async Task<UpsertAccountCodingSettingsResult> Handle(UpsertAccountCodingSettingsCommand command, CancellationToken cancellationToken)
+    {
+        ValidateCodingSettings(command.Settings);
+        var settings = await dbContext.AccountCodingSettings.FirstOrDefaultAsync(x => x.CompanyId == command.Settings.CompanyId, cancellationToken);
+        var currentSettings = settings?.ToDto() ?? AccountCodingSettings.Default(command.Settings.CompanyId);
+        var accountsExist = await dbContext.Accounts.AsNoTracking().AnyAsync(x => x.CompanyId == command.Settings.CompanyId, cancellationToken);
+        if (accountsExist && AccountCodePattern.StructuralCodingChanged(currentSettings, command.Settings))
+            throw new BadRequestException("Account root code or suffix length changes must be applied through account coding preview and renumber.");
+
+        if (settings is null)
+        {
+            settings = AccountCodingSettings.Upsert(command.Settings, UserId);
+            await dbContext.AccountCodingSettings.AddAsync(settings, cancellationToken);
+        }
+        else
+        {
+            settings.Update(command.Settings, UserId);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new UpsertAccountCodingSettingsResult(settings.Id);
+    }
+
+    public async Task<PreviewAccountRenumberResult> Handle(PreviewAccountRenumberCommand command, CancellationToken cancellationToken)
+    {
+        ValidateCodingSettings(command.Settings);
+        return new PreviewAccountRenumberResult(await BuildRenumberPreviewAsync(command.Settings, cancellationToken));
+    }
+
+    public async Task<ApplyAccountRenumberResult> Handle(ApplyAccountRenumberCommand command, CancellationToken cancellationToken)
+    {
+        var requested = command.Renumber.Settings;
+        ValidateCodingSettings(requested);
+        var preview = await BuildRenumberPreviewAsync(requested, cancellationToken);
+        if (!preview.CanApply)
+            throw new BadRequestException(string.Join(" ", preview.Errors.DefaultIfEmpty("Account coding changes cannot be applied.")));
+
+        var accountsById = await dbContext.Accounts
+            .Where(x => x.CompanyId == requested.CompanyId)
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        foreach (var line in preview.Lines)
+        {
+            if (!accountsById.TryGetValue(line.AccountId, out var account))
+                throw new BadRequestException("Account coding preview is stale. Refresh the preview and apply again.");
+
+            if (!string.Equals(account.Code, line.OldCode, StringComparison.OrdinalIgnoreCase))
+                throw new BadRequestException("Account coding preview is stale. Refresh the preview and apply again.");
+        }
+
+        var renumberedIds = preview.Lines.Select(x => x.AccountId).ToHashSet();
+        var unchangedCodes = accountsById.Values
+            .Where(x => !renumberedIds.Contains(x.Id))
+            .Select(x => x.Code)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (preview.Lines.Select(x => TemporaryRenumberCode(x.AccountId)).Any(unchangedCodes.Contains))
+            throw new BadRequestException("Temporary account renumbering code would conflict with an existing account.");
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        foreach (var line in preview.Lines)
+        {
+            if (accountsById.TryGetValue(line.AccountId, out var account))
+                account.ChangeCode(TemporaryRenumberCode(line.AccountId), UserId);
+        }
+
+        if (preview.Lines.Any())
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+        foreach (var line in preview.Lines)
+        {
+            if (accountsById.TryGetValue(line.AccountId, out var account))
+                account.ChangeCode(line.NewCode, UserId);
+        }
+
+        var settings = await dbContext.AccountCodingSettings.FirstOrDefaultAsync(x => x.CompanyId == requested.CompanyId, cancellationToken);
+        if (settings is null)
+        {
+            settings = AccountCodingSettings.Upsert(requested, UserId);
+            await dbContext.AccountCodingSettings.AddAsync(settings, cancellationToken);
+        }
+        else
+        {
+            settings.Update(requested, UserId);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return new ApplyAccountRenumberResult(preview);
+    }
+
     public async Task<CreateAccountingDocumentResult> Handle(CreateAccountingDocumentCommand command, CancellationToken cancellationToken)
     {
+        await EnsureCanAccessBranchAsync(command.Document.CompanyId, command.Document.BranchId, cancellationToken);
         if (command.Document.SourceDocumentId.HasValue && !string.IsNullOrWhiteSpace(command.Document.SourceModule))
         {
             var sourceModule = command.Document.SourceModule.Trim();
@@ -430,6 +544,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         var document = await dbContext.AccountingDocuments.Include(x => x.Lines).FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken)
             ?? throw new NotFoundException("Accounting document", command.Id);
 
+        await EnsureCanAccessBranchAsync(document.CompanyId, document.BranchId, cancellationToken);
         if (document.Status == AccountingDocumentStatus.Posted && document.JournalEntryId.HasValue)
             return new PostAccountingDocumentResult(document.JournalEntryId.Value);
 
@@ -438,9 +553,10 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         var settings = await dbContext.CompanyAccountingSettings.AsNoTracking().FirstOrDefaultAsync(x => x.CompanyId == document.CompanyId, cancellationToken);
         var journalNumber = await GenerateJournalNumberAsync(document.CompanyId, document.DocumentDate, cancellationToken);
         var lines = BuildJournalLines(document, profile, settings);
-        await EnsurePostingAccountsAsync(document.CompanyId, lines.Select(x => x.AccountId), cancellationToken);
+        await EnsurePostingAccountsAsync(document.CompanyId, document.BranchId, lines.Select(x => x.AccountId), cancellationToken);
         var entry = JournalEntry.Create(
             document.CompanyId,
+            document.BranchId,
             journalNumber,
             document.DocumentDate,
             "Accounting",
@@ -483,12 +599,14 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
                 return new CreateAndPostJournalEntryResult(existing.Id, existing.Number);
         }
 
+        await EnsureCanAccessBranchAsync(command.JournalEntry.CompanyId, command.JournalEntry.BranchId, cancellationToken);
         await EnsureOpenFiscalPeriodAsync(command.JournalEntry.CompanyId, command.JournalEntry.EntryDate, cancellationToken);
         var journalNumber = await GenerateJournalNumberAsync(command.JournalEntry.CompanyId, command.JournalEntry.EntryDate, cancellationToken);
-        var lines = await ResolveJournalLinesAsync(command.JournalEntry.CompanyId, command.JournalEntry.Lines, cancellationToken);
-        await EnsurePostingAccountsAsync(command.JournalEntry.CompanyId, lines.Select(x => x.AccountId), cancellationToken);
+        var lines = await ResolveJournalLinesAsync(command.JournalEntry.CompanyId, command.JournalEntry.BranchId, command.JournalEntry.Lines, cancellationToken);
+        await EnsurePostingAccountsAsync(command.JournalEntry.CompanyId, command.JournalEntry.BranchId, lines.Select(x => x.AccountId), cancellationToken);
         var entry = JournalEntry.Create(
             command.JournalEntry.CompanyId,
+            command.JournalEntry.BranchId,
             journalNumber,
             command.JournalEntry.EntryDate,
             command.JournalEntry.SourceModule,
@@ -510,6 +628,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         return await Handle(new CreateAndPostJournalEntryCommand(new CreateJournalEntryDto
         {
             CompanyId = quick.CompanyId,
+            BranchId = quick.BranchId,
             EntryDate = quick.EntryDate == default ? DateTime.UtcNow.Date : quick.EntryDate.Date,
             SourceModule = "ManualJournal",
             SourceDocumentNumber = quick.ReferenceNumber,
@@ -534,13 +653,14 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
 
     public async Task<CreateBankTransactionResult> Handle(CreateBankTransactionCommand command, CancellationToken cancellationToken)
     {
+        await EnsureCanAccessBranchAsync(command.Transaction.CompanyId, command.Transaction.BranchId, cancellationToken);
         if (!command.Transaction.BankAccountId.HasValue && !command.Transaction.CashAccountId.HasValue)
             throw new BadRequestException("Select a bank or cash account.");
 
         if (command.Transaction.BankAccountId.HasValue)
         {
             var exists = await dbContext.BankAccounts.AsNoTracking()
-                .AnyAsync(x => x.Id == command.Transaction.BankAccountId.Value && x.CompanyId == command.Transaction.CompanyId && x.IsActive, cancellationToken);
+                .AnyAsync(x => x.Id == command.Transaction.BankAccountId.Value && x.CompanyId == command.Transaction.CompanyId && x.BranchId == command.Transaction.BranchId && x.IsActive, cancellationToken);
             if (!exists)
                 throw new BadRequestException("Bank account was not found.");
         }
@@ -548,7 +668,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         if (command.Transaction.CashAccountId.HasValue)
         {
             var exists = await dbContext.CashAccounts.AsNoTracking()
-                .AnyAsync(x => x.Id == command.Transaction.CashAccountId.Value && x.CompanyId == command.Transaction.CompanyId && x.IsActive, cancellationToken);
+                .AnyAsync(x => x.Id == command.Transaction.CashAccountId.Value && x.CompanyId == command.Transaction.CompanyId && x.BranchId == command.Transaction.BranchId && x.IsActive, cancellationToken);
             if (!exists)
                 throw new BadRequestException("Cash account was not found.");
         }
@@ -564,11 +684,12 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         var dto = command.Reconciliation;
         var transaction = await dbContext.BankTransactions.FirstOrDefaultAsync(x => x.Id == dto.BankTransactionId, cancellationToken)
             ?? throw new NotFoundException("Bank transaction", dto.BankTransactionId);
+        await EnsureCanAccessBranchAsync(transaction.CompanyId, transaction.BranchId, cancellationToken);
 
         if (dto.JournalEntryId.HasValue)
         {
             var exists = await dbContext.JournalEntries.AsNoTracking()
-                .AnyAsync(x => x.Id == dto.JournalEntryId.Value && x.CompanyId == transaction.CompanyId && x.Status == JournalEntryStatus.Posted, cancellationToken);
+                .AnyAsync(x => x.Id == dto.JournalEntryId.Value && x.CompanyId == transaction.CompanyId && x.BranchId == transaction.BranchId && x.Status == JournalEntryStatus.Posted, cancellationToken);
             if (!exists)
                 throw new BadRequestException("Posted journal entry was not found.");
         }
@@ -576,13 +697,13 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         if (dto.AccountingDocumentId.HasValue)
         {
             var exists = await dbContext.AccountingDocuments.AsNoTracking()
-                .AnyAsync(x => x.Id == dto.AccountingDocumentId.Value && x.CompanyId == transaction.CompanyId && x.Status == AccountingDocumentStatus.Posted, cancellationToken);
+                .AnyAsync(x => x.Id == dto.AccountingDocumentId.Value && x.CompanyId == transaction.CompanyId && x.BranchId == transaction.BranchId && x.Status == AccountingDocumentStatus.Posted, cancellationToken);
             if (!exists)
                 throw new BadRequestException("Posted accounting document was not found.");
         }
 
         if (dto.WriteOffAccountId.HasValue)
-            await EnsurePostingAccountsAsync(transaction.CompanyId, [dto.WriteOffAccountId.Value], cancellationToken);
+            await EnsurePostingAccountsAsync(transaction.CompanyId, transaction.BranchId, [dto.WriteOffAccountId.Value], cancellationToken);
 
         transaction.Reconcile(dto.JournalEntryId, dto.AccountingDocumentId, dto.WriteOffAccountId, dto.ClearanceDate, UserId);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -830,6 +951,8 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
 
         var template = await ResolveTemplateAsync(setup, cancellationToken);
         ValidateTemplate(template);
+        var codingSettings = await GetCodingSettingsDtoAsync(setup.CompanyId, cancellationToken);
+        var generatedTemplateCodes = AccountCodePattern.GenerateTemplateCodes(template, codingSettings);
         var created = new ApplyAccountingTemplateResultDto();
         var existingAccounts = await dbContext.Accounts.Where(x => x.CompanyId == setup.CompanyId).ToListAsync(cancellationToken);
         var byTemplate = existingAccounts.Where(x => !string.IsNullOrWhiteSpace(x.TemplateKey)).ToDictionary(x => x.TemplateKey!, StringComparer.OrdinalIgnoreCase);
@@ -838,7 +961,8 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
 
         foreach (var spec in template.Accounts.OrderBy(x => x.ParentTemplateKey is null ? 0 : 1).ThenBy(x => x.Code))
         {
-            if (byTemplate.TryGetValue(spec.TemplateKey, out var existingByTemplate) || byCode.TryGetValue(spec.Code, out existingByTemplate))
+            var generatedCode = generatedTemplateCodes[spec.TemplateKey];
+            if (byTemplate.TryGetValue(spec.TemplateKey, out var existingByTemplate) || byCode.TryGetValue(generatedCode, out existingByTemplate))
             {
                 accountIdsByTemplate[spec.TemplateKey] = existingByTemplate.Id;
                 continue;
@@ -847,7 +971,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
             var account = Account.Create(new AccountDto
             {
                 CompanyId = setup.CompanyId,
-                Code = spec.Code,
+                Code = generatedCode,
                 Name = spec.Name,
                 NameEng = spec.NameEng,
                 Type = spec.Type,
@@ -860,7 +984,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
             }, UserId);
             await dbContext.Accounts.AddAsync(account, cancellationToken);
             byTemplate[spec.TemplateKey] = account;
-            byCode[spec.Code] = account;
+            byCode[generatedCode] = account;
             accountIdsByTemplate[spec.TemplateKey] = account.Id;
             created.AccountsCreated++;
         }
@@ -957,12 +1081,102 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        var branches = await sender.Send(new GetCompanyBranchesForAccountingQuery(setup.CompanyId), cancellationToken);
+        foreach (var branch in branches.Branches)
+        {
+            var ensured = await Handle(new EnsureBranchAccountingCommand(
+                branch.CompanyId,
+                branch.BranchId,
+                branch.Code,
+                branch.Name,
+                branch.NameEng), cancellationToken);
+            created.AccountsCreated += ensured.AccountGroupsCreated;
+            created.JournalsCreated += ensured.JournalsCreated;
+        }
+
         return new ApplyAccountingTemplateResult(created);
+    }
+
+    public async Task<EnsureBranchAccountingResult> Handle(EnsureBranchAccountingCommand command, CancellationToken cancellationToken)
+    {
+        if (command.CompanyId == Guid.Empty || command.BranchId == Guid.Empty)
+            throw new BadRequestException("Company and branch are required.");
+
+        var topGroups = await dbContext.Accounts
+            .Where(x => x.CompanyId == command.CompanyId && x.ParentAccountId == null && !x.IsPostingAccount && x.IsActive)
+            .OrderBy(x => x.Code)
+            .ToListAsync(cancellationToken);
+        if (!topGroups.Any())
+            return new EnsureBranchAccountingResult(0, 0);
+
+        var codingSettings = await GetCodingSettingsDtoAsync(command.CompanyId, cancellationToken);
+        var createdGroups = 0;
+        var branchName = string.IsNullOrWhiteSpace(command.BranchNameEng) ? command.BranchName : command.BranchNameEng;
+        foreach (var group in topGroups)
+        {
+            var existingGroup = await dbContext.Accounts.FirstOrDefaultAsync(x =>
+                x.CompanyId == command.CompanyId &&
+                x.BranchId == command.BranchId &&
+                x.ParentAccountId == group.Id &&
+                !x.IsPostingAccount, cancellationToken);
+            if (existingGroup is not null)
+            {
+                if (existingGroup.IsSystemAccount)
+                    existingGroup.Rename($"{group.Name}-{command.BranchName}", $"{group.NameEng}-{branchName}", UserId);
+                continue;
+            }
+
+            var code = await NextAccountCodeAsync(command.CompanyId, group.Code, codingSettings.ChildGroupSuffixLength, cancellationToken);
+            await dbContext.Accounts.AddAsync(Account.Create(new AccountDto
+            {
+                CompanyId = command.CompanyId,
+                BranchId = command.BranchId,
+                Code = code,
+                Name = $"{group.Name}-{command.BranchName}",
+                NameEng = $"{group.NameEng}-{branchName}",
+                Type = group.Type,
+                NormalBalance = group.NormalBalance,
+                Role = AccountRole.None,
+                ParentAccountId = group.Id,
+                IsPostingAccount = false,
+                IsSystemAccount = true,
+                IsActive = true
+            }, UserId), cancellationToken);
+            createdGroups++;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var journalsCreated = 0;
+        var branchGroups = await dbContext.Accounts.AsNoTracking()
+            .Where(x => x.CompanyId == command.CompanyId && x.BranchId == command.BranchId && !x.IsPostingAccount && x.IsActive)
+            .OrderBy(x => x.Code)
+            .ToListAsync(cancellationToken);
+        var assetGroup = branchGroups.FirstOrDefault(x => x.Type == AccountType.Asset);
+        if (assetGroup is not null)
+        {
+            journalsCreated += await EnsureDefaultBranchJournalAsync(command.CompanyId, command.BranchId, command.BranchCode, command.BranchName, AccountingJournalType.Cash, assetGroup, codingSettings, cancellationToken);
+            journalsCreated += await EnsureDefaultBranchJournalAsync(command.CompanyId, command.BranchId, command.BranchCode, command.BranchName, AccountingJournalType.Bank, assetGroup, codingSettings, cancellationToken);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new EnsureBranchAccountingResult(createdGroups, journalsCreated);
     }
 
     private const string ClosingSourceModule = "AccountingClosing";
 
     private string UserId => httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+
+    private async Task EnsureCanAccessBranchAsync(Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    {
+        var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (access.CanViewAllBranches)
+            return;
+
+        if (!branchId.HasValue || !access.BranchIds.Contains(branchId.Value))
+            throw new UnauthorizedAccessException("User is not allowed to access this branch accounting data.");
+    }
 
     private async Task EnsureOpenFiscalPeriodAsync(Guid companyId, DateTime postingDate, CancellationToken cancellationToken)
     {
@@ -1160,7 +1374,107 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
     private static Guid? ResolveOptionalTemplateAccountId(string? key, IReadOnlyDictionary<string, Guid> accountIdsByTemplate) =>
         string.IsNullOrWhiteSpace(key) ? null : ResolveTemplateAccountId(key, accountIdsByTemplate);
 
-    private async Task ValidateAccountAsync(AccountDto dto, Guid? editingAccountId, CancellationToken cancellationToken)
+    private async Task<AccountCodingSettingsDto> GetCodingSettingsDtoAsync(Guid companyId, CancellationToken cancellationToken)
+    {
+        var settings = await dbContext.AccountCodingSettings.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == companyId, cancellationToken);
+        return settings?.ToDto() ?? AccountCodingSettings.Default(companyId);
+    }
+
+    private static void ValidateCodingSettings(AccountCodingSettingsDto settings)
+    {
+        if (settings.CompanyId == Guid.Empty)
+            throw new BadRequestException("Company is required.");
+
+        var roots = new[] { settings.AssetRootCode, settings.LiabilityRootCode, settings.EquityRootCode, settings.RevenueRootCode, settings.ExpenseRootCode }
+            .Select(x => x?.Trim() ?? string.Empty)
+            .ToList();
+        if (roots.Any(x => string.IsNullOrWhiteSpace(x) || !x.All(char.IsDigit)))
+            throw new BadRequestException("Root account codes must contain digits only.");
+        if (roots.Distinct(StringComparer.OrdinalIgnoreCase).Count() != roots.Count)
+            throw new BadRequestException("Root account codes must be unique.");
+        if (settings.ChildGroupSuffixLength is < 1 or > 8 || settings.ChildLedgerSuffixLength is < 1 or > 8)
+            throw new BadRequestException("Account suffix lengths must be between 1 and 8 digits.");
+    }
+
+    private async Task<string> GenerateAccountCodeAsync(AccountDto dto, Guid? editingAccountId, AccountCodingSettingsDto settings, CancellationToken cancellationToken)
+    {
+        if (!dto.ParentAccountId.HasValue || dto.ParentAccountId.Value == Guid.Empty)
+        {
+            if (dto.IsPostingAccount)
+                throw new BadRequestException("Top-level accounts must be group accounts.");
+
+            return AccountCodePattern.RootCode(settings, dto.Type);
+        }
+
+        var parent = await dbContext.Accounts.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == dto.CompanyId && x.Id == dto.ParentAccountId.Value && x.IsActive, cancellationToken)
+            ?? throw new BadRequestException("Parent account must belong to the company and be active.");
+        var suffixLength = dto.IsPostingAccount ? settings.ChildLedgerSuffixLength : settings.ChildGroupSuffixLength;
+        return await NextAccountCodeAsync(dto.CompanyId, parent.Code, suffixLength, cancellationToken, editingAccountId);
+    }
+
+    private static bool AccountStructureChanged(AccountDto dto, Account account) =>
+        dto.ParentAccountId != account.ParentAccountId
+        || dto.BranchId != account.BranchId
+        || dto.Type != account.Type
+        || dto.IsPostingAccount != account.IsPostingAccount;
+
+    private async Task<AccountRenumberPreviewDto> BuildRenumberPreviewAsync(AccountCodingSettingsDto requestedSettings, CancellationToken cancellationToken)
+    {
+        var accounts = await dbContext.Accounts.AsNoTracking()
+            .Where(x => x.CompanyId == requestedSettings.CompanyId)
+            .OrderBy(x => x.Code)
+            .ToListAsync(cancellationToken);
+        var hasPostingActivity = await HasPostingActivityAsync(requestedSettings.CompanyId, cancellationToken);
+        var plannedCodes = AccountCodePattern.PlanRenumberCodes(
+            accounts.Select(x => new AccountCodePattern.AccountNode(x.Id, x.ParentAccountId, x.Code, x.Type, x.IsPostingAccount)).ToList(),
+            requestedSettings);
+
+        var lines = accounts
+            .Where(x => !string.Equals(x.Code, plannedCodes[x.Id], StringComparison.OrdinalIgnoreCase))
+            .Select(x => new AccountRenumberPreviewLineDto
+            {
+                AccountId = x.Id,
+                Name = x.Name,
+                NameEng = x.NameEng,
+                Type = x.Type,
+                OldCode = x.Code,
+                NewCode = plannedCodes[x.Id]
+            })
+            .OrderBy(x => x.OldCode)
+            .ToList();
+
+        var errors = new List<string>();
+        if (hasPostingActivity && lines.Any())
+            errors.Add("Posted accounting activity exists; account code renumbering is locked.");
+
+        var duplicates = plannedCodes.Values
+            .GroupBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .Where(x => x.Count() > 1)
+            .Select(x => x.Key)
+            .ToList();
+        if (duplicates.Any())
+            errors.Add($"Generated account codes would conflict: {string.Join(", ", duplicates)}.");
+
+        return new AccountRenumberPreviewDto
+        {
+            CompanyId = requestedSettings.CompanyId,
+            HasPostingActivity = hasPostingActivity,
+            CanApply = !errors.Any(),
+            Errors = errors,
+            Lines = lines
+        };
+
+    }
+
+    private static string TemporaryRenumberCode(Guid accountId) => $"__REN-{accountId:N}";
+
+    private async Task<bool> HasPostingActivityAsync(Guid companyId, CancellationToken cancellationToken) =>
+        await dbContext.JournalEntries.AsNoTracking().AnyAsync(x => x.CompanyId == companyId && x.Status == JournalEntryStatus.Posted, cancellationToken)
+        || await dbContext.AccountingDocuments.AsNoTracking().AnyAsync(x => x.CompanyId == companyId && x.Status == AccountingDocumentStatus.Posted, cancellationToken);
+
+    private async Task ValidateAccountAsync(AccountDto dto, Guid? editingAccountId, AccountCodingSettingsDto settings, CancellationToken cancellationToken)
     {
         var code = dto.Code.Trim();
         var duplicateCodeExists = await dbContext.Accounts.IgnoreQueryFilters().AsNoTracking()
@@ -1169,12 +1483,24 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
             throw new BadRequestException("Account code already exists for this company.");
 
         if (!dto.ParentAccountId.HasValue || dto.ParentAccountId.Value == Guid.Empty)
+        {
+            if (dto.BranchId.HasValue)
+                throw new BadRequestException("Branch accounts must be created under a branch account group.");
             return;
+        }
 
         var parent = await dbContext.Accounts.AsNoTracking()
             .FirstOrDefaultAsync(x => x.CompanyId == dto.CompanyId && x.Id == dto.ParentAccountId.Value && x.IsActive, cancellationToken);
         if (parent is null)
             throw new BadRequestException("Parent account must belong to the company and be active.");
+        if (parent.IsPostingAccount)
+            throw new BadRequestException("Posting accounts cannot have child accounts.");
+        if (dto.BranchId.HasValue && parent.BranchId.HasValue && parent.BranchId != dto.BranchId)
+            throw new BadRequestException("Branch account must stay inside the same branch account subtree.");
+        if (!dto.BranchId.HasValue && parent.BranchId.HasValue)
+            throw new BadRequestException("Company-wide accounts cannot be created under a branch account group.");
+
+        ValidateChildAccountCode(dto, parent.Code, settings);
 
         if (editingAccountId.HasValue)
         {
@@ -1207,31 +1533,49 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         }
     }
 
-    private async Task<Guid> ResolveOrCreateLedgerAccountAsync(Guid companyId, Guid? accountId, string displayName, AccountRole role, AccountType type, NormalBalance balance, string codePrefix, CancellationToken cancellationToken)
+    private static void ValidateChildAccountCode(AccountDto dto, string parentCode, AccountCodingSettingsDto settings)
+    {
+        var suffixLength = dto.IsPostingAccount ? settings.ChildLedgerSuffixLength : settings.ChildGroupSuffixLength;
+        var accountKind = dto.IsPostingAccount ? "ledger" : "group";
+        var code = dto.Code.Trim();
+
+        if (!code.StartsWith(parentCode, StringComparison.OrdinalIgnoreCase))
+            throw new BadRequestException($"Child {accountKind} account code must start with parent account code '{parentCode}'.");
+
+        var suffix = code[parentCode.Length..];
+        if (suffix.Length != suffixLength || !suffix.All(char.IsDigit) || int.Parse(suffix) <= 0)
+            throw new BadRequestException($"Child {accountKind} account code must use parent code plus {suffixLength} digits greater than zero.");
+    }
+
+    private async Task<Guid> ResolveOrCreateLedgerAccountAsync(Guid companyId, Guid? branchId, Guid? accountId, string displayName, AccountRole role, AccountType type, NormalBalance balance, CancellationToken cancellationToken)
     {
         if (accountId.HasValue && accountId.Value != Guid.Empty)
         {
-            await EnsurePostingAccountsAsync(companyId, [accountId.Value], cancellationToken);
+            await EnsurePostingAccountsAsync(companyId, branchId, [accountId.Value], cancellationToken);
             return accountId.Value;
         }
 
         var existing = await dbContext.Accounts.AsNoTracking()
-            .Where(x => x.CompanyId == companyId && x.Role == role && x.IsPostingAccount && x.IsActive)
+            .Where(x => x.CompanyId == companyId && x.BranchId == branchId && x.Role == role && x.IsPostingAccount && x.IsActive)
             .OrderBy(x => x.Code)
             .FirstOrDefaultAsync(x => x.NameEng == displayName || x.Name == displayName, cancellationToken);
         if (existing is not null)
             return existing.Id;
 
-        var nextCode = await NextAccountCodeAsync(companyId, codePrefix, cancellationToken);
+        var parent = await ResolveDefaultAssetLedgerParentAsync(companyId, branchId, cancellationToken);
+        var codingSettings = await GetCodingSettingsDtoAsync(companyId, cancellationToken);
+        var nextCode = await NextAccountCodeAsync(companyId, parent?.Code ?? AccountCodePattern.RootCode(codingSettings, AccountType.Asset), codingSettings.ChildLedgerSuffixLength, cancellationToken);
         var account = Account.Create(new AccountDto
         {
             CompanyId = companyId,
+            BranchId = branchId,
             Code = nextCode,
             Name = displayName,
             NameEng = displayName,
             Type = type,
             NormalBalance = balance,
             Role = role,
+            ParentAccountId = parent?.Id,
             IsPostingAccount = true,
             IsSystemAccount = false
         }, UserId);
@@ -1240,11 +1584,11 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         return account.Id;
     }
 
-    private async Task<Guid> ResolveOrCreateJournalAsync(Guid companyId, Guid? journalId, string displayName, AccountingJournalType type, Guid ledgerAccountId, CancellationToken cancellationToken)
+    private async Task<Guid> ResolveOrCreateJournalAsync(Guid companyId, Guid? branchId, Guid? journalId, string displayName, AccountingJournalType type, Guid ledgerAccountId, CancellationToken cancellationToken)
     {
         if (journalId.HasValue && journalId.Value != Guid.Empty)
         {
-            var exists = await dbContext.AccountingJournals.AnyAsync(x => x.CompanyId == companyId && x.Id == journalId.Value && x.IsActive, cancellationToken);
+            var exists = await dbContext.AccountingJournals.AnyAsync(x => x.CompanyId == companyId && x.BranchId == branchId && x.Id == journalId.Value && x.IsActive, cancellationToken);
             if (!exists)
                 throw new BadRequestException("Selected journal must belong to the company and be active.");
             return journalId.Value;
@@ -1255,6 +1599,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         var journal = AccountingJournal.Create(new AccountingJournalDto
         {
             CompanyId = companyId,
+            BranchId = branchId,
             Code = code,
             Name = displayName,
             NameAr = displayName,
@@ -1269,14 +1614,82 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         return journal.Id;
     }
 
-    private async Task<string> NextAccountCodeAsync(Guid companyId, string prefix, CancellationToken cancellationToken)
+    private async Task<int> EnsureDefaultBranchJournalAsync(Guid companyId, Guid branchId, string branchCode, string branchName, AccountingJournalType type, Account assetGroup, AccountCodingSettingsDto codingSettings, CancellationToken cancellationToken)
+    {
+        var existing = await dbContext.AccountingJournals.FirstOrDefaultAsync(x => x.CompanyId == companyId && x.BranchId == branchId && x.Type == type, cancellationToken);
+        if (existing is not null)
+        {
+            if (existing.IsSystemJournal)
+                existing.Rename($"{branchName} {(type == AccountingJournalType.Bank ? "Bank" : "Cash")}", $"{branchName} {(type == AccountingJournalType.Bank ? "Bank" : "Cash")}", UserId);
+            return 0;
+        }
+
+        var prefix = $"{(type == AccountingJournalType.Bank ? "BNK" : "CSH")}-{NormalizeBranchCode(branchCode)}";
+        var ledgerCode = await NextAccountCodeAsync(companyId, assetGroup.Code, codingSettings.ChildLedgerSuffixLength, cancellationToken);
+        var displayName = $"{branchName} {(type == AccountingJournalType.Bank ? "Bank" : "Cash")}";
+        var ledger = Account.Create(new AccountDto
+        {
+            CompanyId = companyId,
+            BranchId = branchId,
+            Code = ledgerCode,
+            Name = displayName,
+            NameEng = displayName,
+            Type = AccountType.Asset,
+            NormalBalance = NormalBalance.Debit,
+            Role = type == AccountingJournalType.Bank ? AccountRole.Bank : AccountRole.Cash,
+            ParentAccountId = assetGroup.Id,
+            IsPostingAccount = true,
+            IsSystemAccount = true,
+            IsActive = true
+        }, UserId);
+        await dbContext.Accounts.AddAsync(ledger, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var journal = AccountingJournal.Create(new AccountingJournalDto
+        {
+            CompanyId = companyId,
+            BranchId = branchId,
+            Code = await NextJournalCodeAsync(companyId, prefix, cancellationToken),
+            Name = displayName,
+            NameAr = displayName,
+            Type = type,
+            DefaultDebitAccountId = ledger.Id,
+            DefaultCreditAccountId = ledger.Id,
+            IsSystemJournal = true,
+            IsActive = true
+        }, UserId);
+        await dbContext.AccountingJournals.AddAsync(journal, cancellationToken);
+        return 1;
+    }
+
+    private static string NormalizeBranchCode(string branchCode)
+    {
+        var normalized = new string((branchCode ?? string.Empty).Where(char.IsLetterOrDigit).Take(8).ToArray()).ToUpperInvariant();
+        return string.IsNullOrWhiteSpace(normalized) ? "BR" : normalized;
+    }
+
+    private async Task<Account?> ResolveDefaultAssetLedgerParentAsync(Guid companyId, Guid? branchId, CancellationToken cancellationToken) =>
+        await dbContext.Accounts.AsNoTracking()
+            .Where(x => x.CompanyId == companyId && x.BranchId == branchId && x.IsActive && !x.IsPostingAccount)
+            .OrderByDescending(x => x.TemplateKey == "SA_CURRENT_ASSETS")
+            .ThenByDescending(x => x.Code == "100001")
+            .ThenByDescending(x => x.Type == AccountType.Asset)
+            .ThenBy(x => x.Code)
+            .FirstOrDefaultAsync(x => branchId.HasValue
+                ? x.Type == AccountType.Asset
+                : x.TemplateKey == "SA_CURRENT_ASSETS" || x.Code == "100001", cancellationToken);
+
+    private async Task<string> NextAccountCodeAsync(Guid companyId, string prefix, int suffixLength, CancellationToken cancellationToken, Guid? editingAccountId = null)
     {
         var codes = await dbContext.Accounts.IgnoreQueryFilters().AsNoTracking()
-            .Where(x => x.CompanyId == companyId && x.Code.StartsWith(prefix))
+            .Where(x => x.CompanyId == companyId
+                && x.Code.StartsWith(prefix)
+                && x.Code.Length == prefix.Length + suffixLength
+                && (!editingAccountId.HasValue || x.Id != editingAccountId.Value))
             .Select(x => x.Code)
             .ToListAsync(cancellationToken);
         var next = codes.Select(x => int.TryParse(x[prefix.Length..], out var value) ? value : 0).DefaultIfEmpty(0).Max() + 1;
-        return $"{prefix}{next:D2}";
+        return $"{prefix}{next.ToString($"D{suffixLength}")}";
     }
 
     private async Task<string> NextJournalCodeAsync(Guid companyId, string prefix, CancellationToken cancellationToken)
@@ -1305,9 +1718,9 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
     }
 
     private async Task EnsureOptionalPostingAccountsAsync(Guid companyId, IEnumerable<Guid?> accountIds, CancellationToken cancellationToken) =>
-        await EnsurePostingAccountsAsync(companyId, accountIds.Where(x => x.HasValue).Select(x => x!.Value), cancellationToken);
+        await EnsurePostingAccountsAsync(companyId, null, accountIds.Where(x => x.HasValue).Select(x => x!.Value), cancellationToken);
 
-    private async Task<List<JournalEntryLineDto>> ResolveJournalLinesAsync(Guid companyId, IEnumerable<JournalEntryLineDto> lines, CancellationToken cancellationToken)
+    private async Task<List<JournalEntryLineDto>> ResolveJournalLinesAsync(Guid companyId, Guid? branchId, IEnumerable<JournalEntryLineDto> lines, CancellationToken cancellationToken)
     {
         var sourceLines = lines.ToList();
         var roles = sourceLines.Where(x => x.AccountId == Guid.Empty && x.AccountRole != AccountRole.None).Select(x => x.AccountRole).Distinct().ToList();
@@ -1319,17 +1732,25 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
             foreach (var role in roles)
             {
                 var settingsAccountId = ResolveSettingsAccountId(settings, role);
-                if (settingsAccountId.HasValue && settingsAccountId.Value != Guid.Empty)
+                if (settingsAccountId.HasValue
+                    && settingsAccountId.Value != Guid.Empty
+                    && await IsPostingAccountAvailableForBranchAsync(companyId, branchId, settingsAccountId.Value, cancellationToken))
+                {
                     resolved[role] = settingsAccountId.Value;
+                }
             }
 
             var unresolvedRoles = roles.Where(x => !resolved.ContainsKey(x)).ToList();
             if (unresolvedRoles.Count > 0)
             {
                 var accountRoles = await dbContext.Accounts.AsNoTracking()
-                    .Where(x => x.CompanyId == companyId && x.IsActive && x.IsPostingAccount && unresolvedRoles.Contains(x.Role))
+                    .Where(x => x.CompanyId == companyId
+                        && x.IsActive
+                        && x.IsPostingAccount
+                        && unresolvedRoles.Contains(x.Role)
+                        && (x.BranchId == branchId || x.BranchId == null))
                     .GroupBy(x => x.Role)
-                    .Select(x => new { Role = x.Key, Id = x.OrderBy(a => a.Code).Select(a => a.Id).First() })
+                    .Select(x => new { Role = x.Key, Id = x.OrderByDescending(a => a.BranchId == branchId).ThenBy(a => a.Code).Select(a => a.Id).First() })
                     .ToListAsync(cancellationToken);
 
                 foreach (var account in accountRoles)
@@ -1402,7 +1823,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
     ];
 
     private async Task EnsurePostingProfileAccountsAsync(PostingProfileDto profile, CancellationToken cancellationToken) =>
-        await EnsurePostingAccountsAsync(profile.CompanyId, [
+        await EnsurePostingAccountsAsync(profile.CompanyId, null, [
             profile.ReceivableAccountId,
             profile.PayableAccountId,
             profile.RevenueAccountId,
@@ -1413,17 +1834,29 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
             profile.BankAccountId
         ], cancellationToken);
 
-    private async Task EnsurePostingAccountsAsync(Guid companyId, IEnumerable<Guid> accountIds, CancellationToken cancellationToken)
+    private async Task EnsurePostingAccountsAsync(Guid companyId, Guid? branchId, IEnumerable<Guid> accountIds, CancellationToken cancellationToken)
     {
         var ids = accountIds.Where(x => x != Guid.Empty).Distinct().ToList();
         var valid = await dbContext.Accounts.AsNoTracking()
-            .Where(x => x.CompanyId == companyId && ids.Contains(x.Id) && x.IsActive && x.IsPostingAccount)
+            .Where(x => x.CompanyId == companyId
+                && ids.Contains(x.Id)
+                && x.IsActive
+                && x.IsPostingAccount
+                && (x.BranchId == branchId || x.BranchId == null))
             .Select(x => x.Id)
             .ToListAsync(cancellationToken);
 
         if (valid.Count != ids.Count)
-            throw new BadRequestException("Only active ledger/posting accounts can be used for posting.");
+            throw new BadRequestException("Only active ledger/posting accounts for the selected branch can be used for posting.");
     }
+
+    private async Task<bool> IsPostingAccountAvailableForBranchAsync(Guid companyId, Guid? branchId, Guid accountId, CancellationToken cancellationToken) =>
+        await dbContext.Accounts.AsNoTracking()
+            .AnyAsync(x => x.CompanyId == companyId
+                && x.Id == accountId
+                && x.IsActive
+                && x.IsPostingAccount
+                && (x.BranchId == branchId || x.BranchId == null), cancellationToken);
 
     private static List<PostingProfileDto> BuildDefaultProfiles(Guid companyId, IReadOnlyDictionary<AccountRole, Guid> accounts) =>
     [
@@ -1636,7 +2069,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
     }
 }
 
-public class AccountingQueryHandlers(AccountingDbContext dbContext)
+public class AccountingQueryHandlers(AccountingDbContext dbContext, ISender sender)
     : IQueryHandler<GetAccountsQuery, GetAccountsResult>,
       IQueryHandler<GetFiscalPeriodsQuery, GetFiscalPeriodsResult>,
       IQueryHandler<GetTaxCodesQuery, GetTaxCodesResult>,
@@ -1644,6 +2077,7 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
       IQueryHandler<GetBankAccountsQuery, GetBankAccountsResult>,
       IQueryHandler<GetCashAccountsQuery, GetCashAccountsResult>,
       IQueryHandler<GetCompanyAccountingSettingsQuery, GetCompanyAccountingSettingsResult>,
+      IQueryHandler<GetAccountCodingSettingsQuery, GetAccountCodingSettingsResult>,
       IQueryHandler<GetAccountingDocumentsQuery, GetAccountingDocumentsResult>,
       IQueryHandler<GetJournalEntriesQuery, GetJournalEntriesResult>,
       IQueryHandler<GetZatcaSettingsQuery, GetZatcaSettingsResult>,
@@ -1752,6 +2186,7 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
     public async Task<GetAccountsResult> Handle(GetAccountsQuery query, CancellationToken cancellationToken)
     {
         var accounts = dbContext.Accounts.AsNoTracking().Where(x => x.CompanyId == query.CompanyId);
+        accounts = await ApplyBranchAccessAsync(accounts, query.CompanyId, query.BranchId, cancellationToken);
         if (!string.IsNullOrWhiteSpace(query.SearchText))
             accounts = accounts.Where(x => x.Code.Contains(query.SearchText) || x.Name.Contains(query.SearchText) || x.NameEng.Contains(query.SearchText));
 
@@ -1771,11 +2206,19 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
     public async Task<GetPostingProfilesResult> Handle(GetPostingProfilesQuery query, CancellationToken cancellationToken) =>
         new((await dbContext.PostingProfiles.AsNoTracking().Where(x => x.CompanyId == query.CompanyId).OrderBy(x => x.Type).ToListAsync(cancellationToken)).Select(x => x.ToDto()).ToList());
 
-    public async Task<GetBankAccountsResult> Handle(GetBankAccountsQuery query, CancellationToken cancellationToken) =>
-        new((await dbContext.BankAccounts.AsNoTracking().Where(x => x.CompanyId == query.CompanyId).OrderByDescending(x => x.IsDefault).ThenBy(x => x.DisplayName).ToListAsync(cancellationToken)).Select(x => x.ToDto()).ToList());
+    public async Task<GetBankAccountsResult> Handle(GetBankAccountsQuery query, CancellationToken cancellationToken)
+    {
+        var bankAccounts = dbContext.BankAccounts.AsNoTracking().Where(x => x.CompanyId == query.CompanyId);
+        bankAccounts = await ApplyBranchAccessAsync(bankAccounts, query.CompanyId, query.BranchId, cancellationToken);
+        return new((await bankAccounts.OrderByDescending(x => x.IsDefault).ThenBy(x => x.DisplayName).ToListAsync(cancellationToken)).Select(x => x.ToDto()).ToList());
+    }
 
-    public async Task<GetCashAccountsResult> Handle(GetCashAccountsQuery query, CancellationToken cancellationToken) =>
-        new((await dbContext.CashAccounts.AsNoTracking().Where(x => x.CompanyId == query.CompanyId).OrderByDescending(x => x.IsDefault).ThenBy(x => x.DisplayName).ToListAsync(cancellationToken)).Select(x => x.ToDto()).ToList());
+    public async Task<GetCashAccountsResult> Handle(GetCashAccountsQuery query, CancellationToken cancellationToken)
+    {
+        var cashAccounts = dbContext.CashAccounts.AsNoTracking().Where(x => x.CompanyId == query.CompanyId);
+        cashAccounts = await ApplyBranchAccessAsync(cashAccounts, query.CompanyId, query.BranchId, cancellationToken);
+        return new((await cashAccounts.OrderByDescending(x => x.IsDefault).ThenBy(x => x.DisplayName).ToListAsync(cancellationToken)).Select(x => x.ToDto()).ToList());
+    }
 
     public async Task<GetCompanyAccountingSettingsResult> Handle(GetCompanyAccountingSettingsQuery query, CancellationToken cancellationToken)
     {
@@ -1783,11 +2226,20 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
         return new GetCompanyAccountingSettingsResult(settings?.ToDto());
     }
 
+    public async Task<GetAccountCodingSettingsResult> Handle(GetAccountCodingSettingsQuery query, CancellationToken cancellationToken)
+    {
+        var settings = await dbContext.AccountCodingSettings.AsNoTracking().FirstOrDefaultAsync(x => x.CompanyId == query.CompanyId, cancellationToken);
+        return new GetAccountCodingSettingsResult(settings?.ToDto() ?? AccountCodingSettings.Default(query.CompanyId));
+    }
+
     public async Task<GetAccountingDocumentsResult> Handle(GetAccountingDocumentsQuery query, CancellationToken cancellationToken)
     {
         var documents = dbContext.AccountingDocuments.Include(x => x.Lines).AsNoTracking();
         if (query.CompanyId.HasValue)
+        {
             documents = documents.Where(x => x.CompanyId == query.CompanyId.Value);
+            documents = await ApplyBranchAccessAsync(documents, query.CompanyId.Value, query.BranchId, cancellationToken);
+        }
         if (query.Type.HasValue)
             documents = documents.Where(x => x.Type == query.Type.Value);
         if (!string.IsNullOrWhiteSpace(query.SearchText))
@@ -1804,7 +2256,10 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
     {
         var entries = dbContext.JournalEntries.Include(x => x.Lines).AsNoTracking();
         if (query.CompanyId.HasValue)
+        {
             entries = entries.Where(x => x.CompanyId == query.CompanyId.Value);
+            entries = await ApplyBranchAccessAsync(entries, query.CompanyId.Value, query.BranchId, cancellationToken);
+        }
         if (!string.IsNullOrWhiteSpace(query.SearchText))
             entries = entries.Where(x => x.Number.Contains(query.SearchText) || (x.SourceDocumentNumber != null && x.SourceDocumentNumber.Contains(query.SearchText)));
 
@@ -1851,6 +2306,9 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
             documents = documents.Where(x => x.CompanyId == query.CompanyId.Value);
             invoices = invoices.Where(x => x.CompanyId == query.CompanyId.Value);
             bankTransactions = bankTransactions.Where(x => x.CompanyId == query.CompanyId.Value);
+            accounts = await ApplyBranchAccessAsync(accounts, query.CompanyId.Value, query.BranchId, cancellationToken);
+            documents = await ApplyBranchAccessAsync(documents, query.CompanyId.Value, query.BranchId, cancellationToken);
+            bankTransactions = await ApplyBranchAccessAsync(bankTransactions, query.CompanyId.Value, query.BranchId, cancellationToken);
         }
 
         return new GetAccountingDashboardResult(new AccountingDashboardDto
@@ -1870,6 +2328,7 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
     public async Task<GetBankTransactionsResult> Handle(GetBankTransactionsQuery query, CancellationToken cancellationToken)
     {
         var transactions = dbContext.BankTransactions.AsNoTracking().Where(x => x.CompanyId == query.CompanyId);
+        transactions = await ApplyBranchAccessAsync(transactions, query.CompanyId, query.BranchId, cancellationToken);
         if (query.Status.HasValue)
             transactions = transactions.Where(x => x.Status == query.Status.Value);
         if (!string.IsNullOrWhiteSpace(query.SearchText))
@@ -1889,8 +2348,10 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
 
     public async Task<GetBankReconciliationSummaryResult> Handle(GetBankReconciliationSummaryQuery query, CancellationToken cancellationToken)
     {
-        var transactions = await dbContext.BankTransactions.AsNoTracking()
-            .Where(x => x.CompanyId == query.CompanyId)
+        var transactionQuery = dbContext.BankTransactions.AsNoTracking()
+            .Where(x => x.CompanyId == query.CompanyId);
+        transactionQuery = await ApplyBranchAccessAsync(transactionQuery, query.CompanyId, query.BranchId, cancellationToken);
+        var transactions = await transactionQuery
             .ToListAsync(cancellationToken);
 
         return new GetBankReconciliationSummaryResult(new BankReconciliationSummaryDto
@@ -1906,6 +2367,7 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
     {
         var transaction = await dbContext.BankTransactions.AsNoTracking().FirstOrDefaultAsync(x => x.Id == query.BankTransactionId, cancellationToken)
             ?? throw new NotFoundException("Bank transaction", query.BankTransactionId);
+        await EnsureCanReadBranchAsync(transaction.CompanyId, transaction.BranchId, cancellationToken);
 
         var amount = Math.Abs(transaction.Amount);
         var fromDate = transaction.TransactionDate.Date.AddDays(-14);
@@ -1913,6 +2375,7 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
 
         var documents = await dbContext.AccountingDocuments.AsNoTracking()
             .Where(x => x.CompanyId == transaction.CompanyId
+                && x.BranchId == transaction.BranchId
                 && x.Status == AccountingDocumentStatus.Posted
                 && x.DocumentDate >= fromDate
                 && x.DocumentDate <= toDate
@@ -1923,6 +2386,7 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
 
         var journals = await dbContext.JournalEntries.AsNoTracking()
             .Where(x => x.CompanyId == transaction.CompanyId
+                && x.BranchId == transaction.BranchId
                 && x.Status == JournalEntryStatus.Posted
                 && x.EntryDate >= fromDate
                 && x.EntryDate <= toDate
@@ -1966,6 +2430,7 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
         var toDate = query.ToDate?.Date;
         var entries = dbContext.JournalEntries.Include(x => x.Lines).AsNoTracking()
             .Where(x => x.CompanyId == query.CompanyId && x.Status == JournalEntryStatus.Posted);
+        entries = await ApplyBranchAccessAsync(entries, query.CompanyId, query.BranchId, cancellationToken);
         if (fromDate.HasValue)
             entries = entries.Where(x => x.EntryDate >= fromDate.Value);
         if (toDate.HasValue)
@@ -1980,9 +2445,9 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
         var rows = query.Type switch
         {
             AccountingReportType.TrialBalance => BuildTrialBalanceRows(entryList, accounts),
-            AccountingReportType.AgedReceivables => await BuildAgedDocumentRowsAsync(query.CompanyId, AccountingDocumentType.SalesInvoice, cancellationToken),
-            AccountingReportType.AgedPayables => await BuildAgedDocumentRowsAsync(query.CompanyId, AccountingDocumentType.SupplierInvoice, cancellationToken),
-            AccountingReportType.TaxSummary => await BuildTaxSummaryRowsAsync(query.CompanyId, fromDate, toDate, cancellationToken),
+            AccountingReportType.AgedReceivables => await BuildAgedDocumentRowsAsync(query.CompanyId, query.BranchId, AccountingDocumentType.SalesInvoice, cancellationToken),
+            AccountingReportType.AgedPayables => await BuildAgedDocumentRowsAsync(query.CompanyId, query.BranchId, AccountingDocumentType.SupplierInvoice, cancellationToken),
+            AccountingReportType.TaxSummary => await BuildTaxSummaryRowsAsync(query.CompanyId, query.BranchId, fromDate, toDate, cancellationToken),
             _ => BuildGeneralLedgerRows(entryList, accounts)
         };
 
@@ -1990,6 +2455,7 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
         {
             Type = query.Type,
             CompanyId = query.CompanyId,
+            BranchId = query.BranchId,
             FromDate = fromDate,
             ToDate = toDate,
             Rows = rows,
@@ -2046,11 +2512,13 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
             .OrderBy(x => x.Code)
             .ToList();
 
-    private async Task<List<AccountingReportRowDto>> BuildAgedDocumentRowsAsync(Guid companyId, AccountingDocumentType type, CancellationToken cancellationToken)
+    private async Task<List<AccountingReportRowDto>> BuildAgedDocumentRowsAsync(Guid companyId, Guid? branchId, AccountingDocumentType type, CancellationToken cancellationToken)
     {
         var today = DateTime.UtcNow.Date;
-        var documents = await dbContext.AccountingDocuments.AsNoTracking()
-            .Where(x => x.CompanyId == companyId && x.Type == type && x.Status == AccountingDocumentStatus.Posted)
+        var documentQuery = dbContext.AccountingDocuments.AsNoTracking()
+            .Where(x => x.CompanyId == companyId && x.Type == type && x.Status == AccountingDocumentStatus.Posted);
+        documentQuery = await ApplyBranchAccessAsync(documentQuery, companyId, branchId, cancellationToken);
+        var documents = await documentQuery
             .OrderBy(x => x.DocumentDate)
             .ToListAsync(cancellationToken);
 
@@ -2067,10 +2535,11 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
         }).ToList();
     }
 
-    private async Task<List<AccountingReportRowDto>> BuildTaxSummaryRowsAsync(Guid companyId, DateTime? fromDate, DateTime? toDate, CancellationToken cancellationToken)
+    private async Task<List<AccountingReportRowDto>> BuildTaxSummaryRowsAsync(Guid companyId, Guid? branchId, DateTime? fromDate, DateTime? toDate, CancellationToken cancellationToken)
     {
         var documents = dbContext.AccountingDocuments.AsNoTracking()
             .Where(x => x.CompanyId == companyId && x.Status == AccountingDocumentStatus.Posted);
+        documents = await ApplyBranchAccessAsync(documents, companyId, branchId, cancellationToken);
         if (fromDate.HasValue)
             documents = documents.Where(x => x.DocumentDate >= fromDate.Value);
         if (toDate.HasValue)
@@ -2088,6 +2557,82 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext)
                 Balance = x.Sum(d => d.TaxAmount)
             })
             .ToListAsync(cancellationToken);
+    }
+
+    private async Task EnsureCanReadBranchAsync(Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    {
+        var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (access.CanViewAllBranches)
+            return;
+
+        if (!branchId.HasValue || !access.BranchIds.Contains(branchId.Value))
+            throw new UnauthorizedAccessException("User is not allowed to access this branch accounting data.");
+    }
+
+    private async Task<IQueryable<Account>> ApplyBranchAccessAsync(IQueryable<Account> query, Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    {
+        var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (access.CanViewAllBranches)
+            return branchId.HasValue ? query.Where(x => x.BranchId == branchId.Value) : query;
+
+        return branchId.HasValue
+            ? query.Where(x => x.BranchId.HasValue && x.BranchId == branchId.Value && access.BranchIds.Contains(x.BranchId.Value))
+            : query.Where(x => x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value));
+    }
+
+    private async Task<IQueryable<AccountingDocument>> ApplyBranchAccessAsync(IQueryable<AccountingDocument> query, Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    {
+        var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (access.CanViewAllBranches)
+            return branchId.HasValue ? query.Where(x => x.BranchId == branchId.Value) : query;
+
+        return branchId.HasValue
+            ? query.Where(x => x.BranchId.HasValue && x.BranchId == branchId.Value && access.BranchIds.Contains(x.BranchId.Value))
+            : query.Where(x => x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value));
+    }
+
+    private async Task<IQueryable<JournalEntry>> ApplyBranchAccessAsync(IQueryable<JournalEntry> query, Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    {
+        var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (access.CanViewAllBranches)
+            return branchId.HasValue ? query.Where(x => x.BranchId == branchId.Value) : query;
+
+        return branchId.HasValue
+            ? query.Where(x => x.BranchId.HasValue && x.BranchId == branchId.Value && access.BranchIds.Contains(x.BranchId.Value))
+            : query.Where(x => x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value));
+    }
+
+    private async Task<IQueryable<BankAccount>> ApplyBranchAccessAsync(IQueryable<BankAccount> query, Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    {
+        var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (access.CanViewAllBranches)
+            return branchId.HasValue ? query.Where(x => x.BranchId == branchId.Value) : query;
+
+        return branchId.HasValue
+            ? query.Where(x => x.BranchId.HasValue && x.BranchId == branchId.Value && access.BranchIds.Contains(x.BranchId.Value))
+            : query.Where(x => x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value));
+    }
+
+    private async Task<IQueryable<CashAccount>> ApplyBranchAccessAsync(IQueryable<CashAccount> query, Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    {
+        var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (access.CanViewAllBranches)
+            return branchId.HasValue ? query.Where(x => x.BranchId == branchId.Value) : query;
+
+        return branchId.HasValue
+            ? query.Where(x => x.BranchId.HasValue && x.BranchId == branchId.Value && access.BranchIds.Contains(x.BranchId.Value))
+            : query.Where(x => x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value));
+    }
+
+    private async Task<IQueryable<BankTransaction>> ApplyBranchAccessAsync(IQueryable<BankTransaction> query, Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    {
+        var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (access.CanViewAllBranches)
+            return branchId.HasValue ? query.Where(x => x.BranchId == branchId.Value) : query;
+
+        return branchId.HasValue
+            ? query.Where(x => x.BranchId.HasValue && x.BranchId == branchId.Value && access.BranchIds.Contains(x.BranchId.Value))
+            : query.Where(x => x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value));
     }
 
     private static IEnumerable<Guid?> SettingsAccountIds(CompanyAccountingSettingsDto settings) =>

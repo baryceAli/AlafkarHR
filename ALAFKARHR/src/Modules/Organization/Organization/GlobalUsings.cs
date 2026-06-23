@@ -19,3 +19,5 @@ global using SharedWithUI.Permissions;
 global using Microsoft.AspNetCore.Mvc;
 global using Shared.Pagination;
 global using SharedWithUI.Organization.Dtos;
+global using Accounting.Contracts.Accounting.Features;
+global using Shared.Contracts.Organization;

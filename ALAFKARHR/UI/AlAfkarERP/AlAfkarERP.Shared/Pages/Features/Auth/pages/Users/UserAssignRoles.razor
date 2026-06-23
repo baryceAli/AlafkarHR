@@ -3,10 +3,12 @@
 @implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Auth.Services
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Auth.Dtos
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 @using System.ComponentModel.DataAnnotations
 @using System.Globalization
@@ -14,6 +16,7 @@
 
 @inject IRoleService RoleService
 @inject IUserService UserService
+@inject IBranchService BranchService
 @inject ToastService ToastService
 @inject ModalService ModalService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -224,6 +227,13 @@
                                             <i class="bi bi-key"></i>
                                         </button>
 
+                                        <button class="btn btn-outline-secondary btn-sm erp-row-action"
+                                                @onclick="() => OpenBranchAssignments(row)"
+                                                disabled="@(!CanAssignBranches || isBusy)"
+                                                title="@Text("Assign branches", "تعيين الفروع")">
+                                            <i class="bi bi-diagram-3"></i>
+                                        </button>
+
                                         <button class="btn btn-outline-danger btn-sm erp-row-action"
                                                 @onclick="() => OpenUnassignRoles(row)"
                                                 disabled="@(!CanUnassign || isBusy || !DisplayRoles(row).Any())"
@@ -342,6 +352,78 @@
     <div class="modal-backdrop fade show"></div>
 }
 
+@if (branchAssignmentRow is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Text("Assign branches", "تعيين الفروع")</h5>
+                    <button type="button" class="btn-close" aria-label="@Text("Close", "إغلاق")" @onclick="CloseBranchAssignments"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">
+                        @Text($"Choose branch access for {branchAssignmentRow.DisplayName}.", $"اختر صلاحية الفروع للمستخدم {branchAssignmentRow.DisplayName}.")
+                    </p>
+
+                    @if (branches.Count == 0)
+                    {
+                        <div class="alert alert-warning mb-0">
+                            @Text("No branches are available for this company.", "لا توجد فروع متاحة لهذه الشركة.")
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row g-2">
+                            @foreach (var branch in branches)
+                            {
+                                var branchId = branch.Id;
+                                <div class="col-md-6">
+                                    <label class="form-check border rounded p-2 d-flex align-items-start gap-2">
+                                        <input class="form-check-input mt-1"
+                                               type="checkbox"
+                                               checked="@selectedBranchIds.Contains(branchId)"
+                                               @onchange="args => ToggleBranchAssignment(branchId, args)" />
+                                        <span class="form-check-label">
+                                            <span class="fw-semibold">@LocalizedBranchName(branch)</span>
+                                            @if (branch.IsMainBranch)
+                                            {
+                                                <span class="badge text-bg-secondary ms-1">@Text("Main", "رئيسي")</span>
+                                            }
+                                            <span class="d-block text-muted small">@branch.Code</span>
+                                        </span>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+
+                        <label class="form-label mt-3">@Text("Default branch", "الفرع الافتراضي")</label>
+                        <select class="form-select" @bind="defaultBranchIdText" disabled="@(selectedBranchIds.Count == 0)">
+                            <option value="">@Text("No default branch", "بدون فرع افتراضي")</option>
+                            @foreach (var branch in branches.Where(x => selectedBranchIds.Contains(x.Id)))
+                            {
+                                <option value="@branch.Id">@LocalizedBranchName(branch)</option>
+                            }
+                        </select>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseBranchAssignments" disabled="@isBusy">
+                        @Text("Cancel", "إلغاء")
+                    </button>
+                    <button type="button"
+                            class="btn btn-primary"
+                            @onclick="SaveBranchAssignments"
+                            disabled="@(!CanAssignBranches || isBusy || branches.Count == 0)">
+                        <i class="bi bi-check-lg"></i> @Text("Save", "حفظ")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
 @code {
     private AuthenticationState? AuthState;
     private Guid companyId;
@@ -375,10 +457,14 @@
     private UserRolesRow? selectedCreateRow;
     private UserRolesRow? resetPasswordRow;
     private UserRolesRow? unassignRow;
+    private UserRolesRow? branchAssignmentRow;
     private RoleDto? rolePickerValue;
     private AssignRolesFormModel assignRolesForm = new();
     private PasswordResetModel passwordReset = new();
     private List<RoleDto> selectedRoles = [];
+    private List<BranchDto> branches = [];
+    private HashSet<Guid> selectedBranchIds = [];
+    private string defaultBranchIdText = string.Empty;
     private HashSet<string> selectedUnassignRoleNames = new(StringComparer.OrdinalIgnoreCase);
     private int rolePickerKey;
 
@@ -386,6 +472,7 @@
     private bool CanAssign => HasPermission(PermissionList.UsersPermissions.Create);
     private bool CanUnassign => HasPermission(PermissionList.UsersPermissions.Delete);
     private bool CanResetPassword => HasPermission(PermissionList.UsersPermissions.Edit);
+    private bool CanAssignBranches => HasPermission(PermissionList.BranchPermissions.AssignUsers);
 
     private List<UserRolesRow> AvailableUsersForCreate =>
         userRoleRows
@@ -691,6 +778,119 @@
         passwordReset = new PasswordResetModel();
     }
 
+    private async Task OpenBranchAssignments(UserRolesRow row)
+    {
+        branchAssignmentRow = row;
+        selectedBranchIds = [];
+        defaultBranchIdText = string.Empty;
+        isBusy = true;
+
+        try
+        {
+            if (branches.Count == 0)
+            {
+                var branchResult = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+                if (branchResult.IsSuccess)
+                {
+                    branches = branchResult.Data?.Data?.ToList() ?? [];
+                }
+                else
+                {
+                    ShowToast(branchResult.Error?.Detail ?? Text("Unable to load branches.", "تعذر تحميل الفروع."), "error");
+                }
+            }
+
+            var assignmentResult = await BranchService.GetUserBranchAssignmentsAsync(row.User.Id, companyId);
+            if (assignmentResult.IsSuccess)
+            {
+                selectedBranchIds = assignmentResult.Data?.BranchIds?.ToHashSet() ?? [];
+                defaultBranchIdText = assignmentResult.Data?.DefaultBranchId?.ToString() ?? string.Empty;
+            }
+            else
+            {
+                ShowToast(assignmentResult.Error?.Detail ?? Text("Unable to load branch assignments.", "تعذر تحميل تعيينات الفروع."), "error");
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void CloseBranchAssignments()
+    {
+        branchAssignmentRow = null;
+        selectedBranchIds = [];
+        defaultBranchIdText = string.Empty;
+    }
+
+    private void ToggleBranchAssignment(Guid branchId, ChangeEventArgs args)
+    {
+        var isChecked = args.Value is bool value && value;
+        if (isChecked)
+        {
+            selectedBranchIds.Add(branchId);
+            if (string.IsNullOrWhiteSpace(defaultBranchIdText))
+            {
+                defaultBranchIdText = branchId.ToString();
+            }
+        }
+        else
+        {
+            selectedBranchIds.Remove(branchId);
+            if (string.Equals(defaultBranchIdText, branchId.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                defaultBranchIdText = selectedBranchIds.FirstOrDefault() == Guid.Empty
+                    ? string.Empty
+                    : selectedBranchIds.First().ToString();
+            }
+        }
+    }
+
+    private async Task SaveBranchAssignments()
+    {
+        if (branchAssignmentRow is null)
+        {
+            return;
+        }
+
+        Guid? defaultBranchId = Guid.TryParse(defaultBranchIdText, out var parsedDefaultBranchId)
+            ? parsedDefaultBranchId
+            : null;
+
+        if (defaultBranchId.HasValue && !selectedBranchIds.Contains(defaultBranchId.Value))
+        {
+            await ShowValidationModal(Text("Default branch must be selected in branch access.", "يجب أن يكون الفرع الافتراضي ضمن الفروع المحددة."));
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            var result = await BranchService.AssignUserBranchesAsync(new AssignUserBranchesDto
+            {
+                UserId = branchAssignmentRow.User.Id,
+                CompanyId = companyId,
+                BranchIds = selectedBranchIds.ToList(),
+                DefaultBranchId = defaultBranchId
+            });
+
+            if (result.IsSuccess)
+            {
+                ShowToast(Text("Branch access saved successfully.", "تم حفظ صلاحية الفروع بنجاح."), "success");
+                CloseBranchAssignments();
+            }
+            else
+            {
+                ShowToast(result.Error?.Detail ?? Text("Unable to save branch access.", "تعذر حفظ صلاحية الفروع."), "error");
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
     private async Task ResetPasswordAsync()
     {
         if (resetPasswordRow is null)
@@ -852,6 +1052,9 @@
 
     private static string RoleDisplayName(RoleDto role)
         => string.IsNullOrWhiteSpace(role.DisplayName) ? role.RoleName : role.DisplayName;
+
+    private string LocalizedBranchName(BranchDto branch)
+        => SharedDataService.SelectViewLang(branch.NameEng, branch.Name);
 
     private bool HasPermission(string permission)
         => AuthState?.User.Claims.Any(c => c.Value == permission) == true;

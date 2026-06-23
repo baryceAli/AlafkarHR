@@ -63,14 +63,15 @@ public class MaintenanceWorkOrderActionsEndpoint : ICarterModule
     }
 }
 
-public class AssignMaintenanceWorkOrderHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class AssignMaintenanceWorkOrderHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<AssignMaintenanceWorkOrderCommand, MaintenanceActionResult>
 {
     public async Task<MaintenanceActionResult> Handle(AssignMaintenanceWorkOrderCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = MaintenanceFeatureHelpers.GetCurrentUserId(httpContextAccessor);
-        var workOrder = await dbContext.MaintenanceWorkOrders.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
+        var workOrder = await dbContext.MaintenanceWorkOrders.Include(x => x.Asset).FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException("Maintenance work order", request.Id);
+        await MaintenanceFeatureHelpers.EnsureCanMutateWorkOrderAsync(sender, workOrder, cancellationToken);
 
         workOrder.Assign(request.Assignment.AssignedToUserId, request.Assignment.DueDate, currentUserId);
         MaintenanceFeatureHelpers.AddHistory(workOrder, "Assigned", $"Assigned to {request.Assignment.AssignedToUserId}.", currentUserId);
@@ -79,14 +80,15 @@ public class AssignMaintenanceWorkOrderHandler(MaintenanceDbContext dbContext, I
     }
 }
 
-public class ChangeMaintenanceWorkOrderStatusHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class ChangeMaintenanceWorkOrderStatusHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<ChangeMaintenanceWorkOrderStatusCommand, MaintenanceActionResult>
 {
     public async Task<MaintenanceActionResult> Handle(ChangeMaintenanceWorkOrderStatusCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = MaintenanceFeatureHelpers.GetCurrentUserId(httpContextAccessor);
-        var workOrder = await dbContext.MaintenanceWorkOrders.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
+        var workOrder = await dbContext.MaintenanceWorkOrders.Include(x => x.Asset).FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException("Maintenance work order", request.Id);
+        await MaintenanceFeatureHelpers.EnsureCanMutateWorkOrderAsync(sender, workOrder, cancellationToken);
 
         workOrder.ChangeStatus(request.Status, currentUserId);
         MaintenanceFeatureHelpers.AddHistory(workOrder, "StatusChanged", $"Status changed to {request.Status}.", currentUserId);
@@ -95,14 +97,15 @@ public class ChangeMaintenanceWorkOrderStatusHandler(MaintenanceDbContext dbCont
     }
 }
 
-public class ApproveMaintenanceCostHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class ApproveMaintenanceCostHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<ApproveMaintenanceCostCommand, MaintenanceActionResult>
 {
     public async Task<MaintenanceActionResult> Handle(ApproveMaintenanceCostCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = MaintenanceFeatureHelpers.GetCurrentUserId(httpContextAccessor);
-        var workOrder = await dbContext.MaintenanceWorkOrders.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
+        var workOrder = await dbContext.MaintenanceWorkOrders.Include(x => x.Asset).FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException("Maintenance work order", request.Id);
+        await MaintenanceFeatureHelpers.EnsureCanMutateWorkOrderAsync(sender, workOrder, cancellationToken);
 
         workOrder.ApproveCost(request.CostApproval.IsApproved, request.CostApproval.ApprovedCost, request.CostApproval.ApprovalNotes, currentUserId);
         MaintenanceFeatureHelpers.AddHistory(workOrder, request.CostApproval.IsApproved ? "CostApproved" : "CostRejected", request.CostApproval.ApprovalNotes, currentUserId);
@@ -111,14 +114,15 @@ public class ApproveMaintenanceCostHandler(MaintenanceDbContext dbContext, IHttp
     }
 }
 
-public class AddMaintenanceCommentHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class AddMaintenanceCommentHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<AddMaintenanceCommentCommand, MaintenanceCreateResult>
 {
     public async Task<MaintenanceCreateResult> Handle(AddMaintenanceCommentCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = MaintenanceFeatureHelpers.GetCurrentUserId(httpContextAccessor);
-        var workOrder = await dbContext.MaintenanceWorkOrders.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
+        var workOrder = await dbContext.MaintenanceWorkOrders.Include(x => x.Asset).FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException("Maintenance work order", request.Id);
+        await MaintenanceFeatureHelpers.EnsureCanMutateWorkOrderAsync(sender, workOrder, cancellationToken);
 
         var comment = MaintenanceComment.Create(workOrder.Id, request.Comment.Comment, currentUserId);
         workOrder.AddComment(comment);
@@ -128,14 +132,15 @@ public class AddMaintenanceCommentHandler(MaintenanceDbContext dbContext, IHttpC
     }
 }
 
-public class DeleteMaintenanceWorkOrderHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class DeleteMaintenanceWorkOrderHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<DeleteMaintenanceWorkOrderCommand, MaintenanceActionResult>
 {
     public async Task<MaintenanceActionResult> Handle(DeleteMaintenanceWorkOrderCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = MaintenanceFeatureHelpers.GetCurrentUserId(httpContextAccessor);
-        var workOrder = await dbContext.MaintenanceWorkOrders.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
+        var workOrder = await dbContext.MaintenanceWorkOrders.Include(x => x.Asset).FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException("Maintenance work order", request.Id);
+        await MaintenanceFeatureHelpers.EnsureCanMutateWorkOrderAsync(sender, workOrder, cancellationToken);
 
         workOrder.Remove(currentUserId);
         await dbContext.SaveChangesAsync(cancellationToken);

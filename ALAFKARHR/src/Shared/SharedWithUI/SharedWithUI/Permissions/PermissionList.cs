@@ -20,6 +20,7 @@ public static class PermissionList
             ..PositionPermissions.Permissions,
             ..CompanyPermissions.Permissions,
             ..BranchPermissions.Permissions,
+            ..OrganizationBranchAccessPermissions.Permissions,
             ..AdministrationPermissions.Permissions,
             ..DepartmentPermissions.Permissions,
             .. CategoryPermissions.Permissions,
@@ -61,6 +62,9 @@ public static class PermissionList
             .. SalesReturnPermissions.Permissions,
             .. SalesReportPermissions.Permissions,
             .. SalesPriceOverridePermissions.Permissions,
+            .. StoreFrontStorePermissions.Permissions,
+            .. StoreFrontItemPermissions.Permissions,
+            .. StoreFrontPosPermissions.Permissions,
             .. PurchaseRequestPermissions.Permissions,
             .. RequestForQuotationPermissions.Permissions,
             .. SupplierQuotationPermissions.Permissions,
@@ -103,6 +107,7 @@ public static class PermissionList
             .. AccountingDocumentPermissions.Permissions,
             .. BankReconciliationPermissions.Permissions,
             .. AccountingReportPermissions.Permissions,
+            .. AccountingBranchAccessPermissions.Permissions,
             .. ZatcaSettingsPermissions.Permissions,
             .. ZatcaEInvoicePermissions.Permissions,
             .. SystemSettingsPermissions.Permissions,
@@ -134,6 +139,7 @@ public static class PermissionList
             CompanyPermissions.EditChild,
             CompanyPermissions.DisableChild,
             CompanyPermissions.ResetChildAdminPassword,
+            ..BranchPermissions.Permissions,
             ..UsersPermissions.Permissions,
             ..RolesPermissions.Permissions,
             SystemSettingsPermissions.Select,
@@ -197,6 +203,7 @@ public static class PermissionList
         public static string Create { get; set; } = $"{GroupName}.Create";
         public static string Edit { get; set; } = $"{GroupName}.Edit";
         public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string AssignUsers { get; set; } = $"{GroupName}.AssignUsers";
 
         public static List<string> Permissions =>
             new List<string>
@@ -206,6 +213,7 @@ public static class PermissionList
                 $"{Create}",
                 $"{Edit}",
                 $"{Delete}",
+                $"{AssignUsers}",
             };
 
     }
@@ -404,6 +412,7 @@ public static class PermissionList
         public static string Create { get; set; } = $"{GroupName}.Create";
         public static string Edit { get; set; } = $"{GroupName}.Edit";
         public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string AssignUsers { get; set; } = $"{GroupName}.AssignUsers";
 
         public static List<string> Permissions =>
             new List<string>
@@ -413,9 +422,18 @@ public static class PermissionList
                 $"{Create}",
                 $"{Edit}",
                 $"{Delete}",
+                $"{AssignUsers}",
             };
 
     }
+
+    public static class OrganizationBranchAccessPermissions
+    {
+        public static string GroupName { get; set; } = "Organization.BranchAccess";
+        public static string ViewAll { get; set; } = $"{GroupName}.ViewAll";
+        public static List<string> Permissions => [ViewAll];
+    }
+
     public static class AdministrationPermissions
     {
 
@@ -1565,6 +1583,34 @@ public static class PermissionList
             };
     }
 
+    public static class StoreFrontStorePermissions
+    {
+        public static string GroupName { get; set; } = "StoreFront.Store";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete];
+    }
+
+    public static class StoreFrontItemPermissions
+    {
+        public static string GroupName { get; set; } = "StoreFront.Item";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static List<string> Permissions => [View, Edit];
+    }
+
+    public static class StoreFrontPosPermissions
+    {
+        public static string GroupName { get; set; } = "StoreFront.POS";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Checkout { get; set; } = $"{GroupName}.Checkout";
+        public static string PriceOverride { get; set; } = $"{GroupName}.PriceOverride";
+        public static List<string> Permissions => [View, Checkout, PriceOverride];
+    }
+
     public static class CateringContractPermissions
     {
         public static string GroupName { get; set; } = "Catering.Contract";
@@ -1765,6 +1811,13 @@ public static class PermissionList
         public static string GroupName { get; set; } = "Accounting.Report";
         public static string View { get; set; } = $"{GroupName}.View";
         public static List<string> Permissions => [View];
+    }
+
+    public static class AccountingBranchAccessPermissions
+    {
+        public static string GroupName { get; set; } = "Accounting.BranchAccess";
+        public static string ViewAll { get; set; } = $"{GroupName}.ViewAll";
+        public static List<string> Permissions => [ViewAll];
     }
 
     public static class ZatcaSettingsPermissions

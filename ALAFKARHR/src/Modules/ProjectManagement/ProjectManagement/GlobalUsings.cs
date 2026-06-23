@@ -14,6 +14,7 @@ global using Microsoft.Extensions.Hosting;
 global using ProjectManagement.Data;
 global using ProjectManagement.Projects.Models;
 global using Shared.Contracts.CQRS;
+global using Shared.Contracts.Organization;
 global using Shared.Data;
 global using Shared.DDD;
 global using Shared.Exceptions;

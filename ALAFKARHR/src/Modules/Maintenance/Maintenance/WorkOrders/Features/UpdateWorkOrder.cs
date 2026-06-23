@@ -22,15 +22,33 @@ public class UpdateMaintenanceWorkOrderEndpoint : ICarterModule
     }
 }
 
-public class UpdateMaintenanceWorkOrderHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class UpdateMaintenanceWorkOrderHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<UpdateMaintenanceWorkOrderCommand, UpdateMaintenanceWorkOrderResult>
 {
     public async Task<UpdateMaintenanceWorkOrderResult> Handle(UpdateMaintenanceWorkOrderCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = MaintenanceFeatureHelpers.GetCurrentUserId(httpContextAccessor);
-        await MaintenanceFeatureHelpers.EnsureAssetAsync(dbContext, request.WorkOrder.AssetId, cancellationToken);
-        var workOrder = await dbContext.MaintenanceWorkOrders.FirstOrDefaultAsync(x => x.Id == request.WorkOrder.Id, cancellationToken)
+        var workOrder = await dbContext.MaintenanceWorkOrders
+            .Include(x => x.Asset)
+            .FirstOrDefaultAsync(x => x.Id == request.WorkOrder.Id && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException("Maintenance work order", request.WorkOrder.Id);
+
+        if (workOrder.Asset is null || workOrder.Asset.IsDeleted)
+            throw new NotFoundException("Maintenance asset", workOrder.AssetId);
+
+        var newAsset = await dbContext.MaintenanceAssets.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.WorkOrder.AssetId && !x.IsDeleted, cancellationToken)
+            ?? throw new NotFoundException("Maintenance asset", request.WorkOrder.AssetId);
+
+        if (workOrder.Asset.CompanyId != newAsset.CompanyId)
+            throw new BadRequestException("Maintenance work order asset company cannot be changed.");
+
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(workOrder.Asset.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, workOrder.Asset.BranchId) ||
+            !BranchScopePolicy.CanMutate(branchAccess, newAsset.BranchId))
+        {
+            throw new ForbiddenException("You do not have permission to update this work order branch scope.");
+        }
 
         workOrder.Update(
             request.WorkOrder.Title,

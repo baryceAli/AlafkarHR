@@ -29,6 +29,13 @@ public class StockAdjustmentHandler(InventoryDbContext dbContext, ISender sender
 {
     public async Task<StockAdjustmentResult> Handle(StockAdjustmentCommand command, CancellationToken cancellationToken)
     {
+        var warehouse = await global::Inventory.Warehouses.Features.Inventories.InventoryBranchScope.EnsureCanMutateWarehouseAsync(
+            dbContext,
+            sender,
+            command.InventoryAggregate.CompanyId,
+            command.InventoryAggregate.WarehouseId,
+            cancellationToken);
+
         //var batch = await dbContext.Batches.AsNoTracking().FirstOrDefaultAsync(b => b.Id == command.InventoryAggregate.InitialBatchId, cancellationToken);
         //if (batch is null)
         //    throw new NotFoundException($"Batch not found: {command.InventoryAggregate.InitialBatchId}");
@@ -148,6 +155,7 @@ public class StockAdjustmentHandler(InventoryDbContext dbContext, ISender sender
             await sender.Send(new CreateAndPostJournalEntryCommand(new CreateJournalEntryDto
             {
                 CompanyId = command.InventoryAggregate.CompanyId,
+                BranchId = warehouse.BranchId,
                 EntryDate = DateTime.UtcNow,
                 SourceModule = "Inventory",
                 SourceDocumentId = movement.Id,

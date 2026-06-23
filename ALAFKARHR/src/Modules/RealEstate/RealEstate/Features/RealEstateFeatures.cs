@@ -76,158 +76,160 @@ public class RealEstateEndpoints : ICarterModule
     public void AddRoutes(IEndpointRouteBuilder app)
     {
         var baseRoute = "/api/v1/real-estate";
+        var group = app.MapGroup(baseRoute)
+            .RequireBusinessLine(BusinessLineKeys.RealEstate);
 
-        app.MapGet($"{baseRoute}/properties", async (Guid? companyId, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
+        group.MapGet("/properties", async (Guid? companyId, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
         {
             var result = await sender.Send(new GetPropertiesQuery(companyId, pageIndex ?? 1, pageSize ?? 20, searchText));
             return Results.Ok(new { properties = result.Properties });
         }).RequireAuthorization(PermissionList.RealEstatePropertyPermissions.View);
 
-        app.MapGet($"{baseRoute}/properties/{{id:guid}}", async (Guid id, ISender sender) =>
+        group.MapGet("/properties/{id:guid}", async (Guid id, ISender sender) =>
             Results.Ok(new { property = (await sender.Send(new GetPropertyByIdQuery(id))).Property }))
             .RequireAuthorization(PermissionList.RealEstatePropertyPermissions.View);
 
-        app.MapPost($"{baseRoute}/properties", async (CreatePropertyRequest request, ISender sender) =>
+        group.MapPost("/properties", async (CreatePropertyRequest request, ISender sender) =>
             Results.Created($"{baseRoute}/properties", await sender.Send(new CreatePropertyCommand(request.Property))))
             .RequireAuthorization(PermissionList.RealEstatePropertyPermissions.Create);
 
-        app.MapPut($"{baseRoute}/properties/{{id:guid}}", async (Guid id, UpdatePropertyRequest request, ISender sender) =>
+        group.MapPut("/properties/{id:guid}", async (Guid id, UpdatePropertyRequest request, ISender sender) =>
             Results.Ok(await sender.Send(new UpdatePropertyCommand(id, request.Property))))
             .RequireAuthorization(PermissionList.RealEstatePropertyPermissions.Edit);
 
-        app.MapDelete($"{baseRoute}/properties/{{id:guid}}", async (Guid id, ISender sender) =>
+        group.MapDelete("/properties/{id:guid}", async (Guid id, ISender sender) =>
             Results.Ok(await sender.Send(new DeletePropertyCommand(id))))
             .RequireAuthorization(PermissionList.RealEstatePropertyPermissions.Delete);
 
-        app.MapGet($"{baseRoute}/units", async (Guid? propertyId, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
+        group.MapGet("/units", async (Guid? propertyId, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
         {
             var result = await sender.Send(new GetUnitsQuery(propertyId, pageIndex ?? 1, pageSize ?? 20, searchText));
             return Results.Ok(new { units = result.Units });
         }).RequireAuthorization(PermissionList.RealEstateUnitPermissions.View);
 
-        app.MapGet($"{baseRoute}/units/{{id:guid}}", async (Guid id, ISender sender) =>
+        group.MapGet("/units/{id:guid}", async (Guid id, ISender sender) =>
             Results.Ok(new { unit = (await sender.Send(new GetUnitByIdQuery(id))).Unit }))
             .RequireAuthorization(PermissionList.RealEstateUnitPermissions.View);
 
-        app.MapPost($"{baseRoute}/units", async (CreateUnitRequest request, ISender sender) =>
+        group.MapPost("/units", async (CreateUnitRequest request, ISender sender) =>
             Results.Created($"{baseRoute}/units", await sender.Send(new CreateUnitCommand(request.Unit))))
             .RequireAuthorization(PermissionList.RealEstateUnitPermissions.Create);
 
-        app.MapPut($"{baseRoute}/units/{{id:guid}}", async (Guid id, UpdateUnitRequest request, ISender sender) =>
+        group.MapPut("/units/{id:guid}", async (Guid id, UpdateUnitRequest request, ISender sender) =>
             Results.Ok(await sender.Send(new UpdateUnitCommand(id, request.Unit))))
             .RequireAuthorization(PermissionList.RealEstateUnitPermissions.Edit);
 
-        app.MapDelete($"{baseRoute}/units/{{id:guid}}", async (Guid id, ISender sender) =>
+        group.MapDelete("/units/{id:guid}", async (Guid id, ISender sender) =>
             Results.Ok(await sender.Send(new DeleteUnitCommand(id))))
             .RequireAuthorization(PermissionList.RealEstateUnitPermissions.Delete);
 
-        app.MapGet($"{baseRoute}/leases", async (Guid? companyId, LeaseDirection? direction, Guid? propertyId, Guid? unitId, LeaseStatus? status, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
+        group.MapGet("/leases", async (Guid? companyId, LeaseDirection? direction, Guid? propertyId, Guid? unitId, LeaseStatus? status, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
         {
             var result = await sender.Send(new GetLeasesQuery(companyId, direction, propertyId, unitId, status, pageIndex ?? 1, pageSize ?? 20, searchText));
             return Results.Ok(new { leases = result.Leases });
         }).RequireAuthorization(PermissionList.RealEstateLeasePermissions.View);
 
-        app.MapGet($"{baseRoute}/leases/{{id:guid}}", async (Guid id, ISender sender) =>
+        group.MapGet("/leases/{id:guid}", async (Guid id, ISender sender) =>
             Results.Ok(new { lease = (await sender.Send(new GetLeaseByIdQuery(id))).Lease }))
             .RequireAuthorization(PermissionList.RealEstateLeasePermissions.View);
 
-        app.MapPost($"{baseRoute}/leases", async (CreateLeaseRequest request, ISender sender) =>
+        group.MapPost("/leases", async (CreateLeaseRequest request, ISender sender) =>
             Results.Created($"{baseRoute}/leases", await sender.Send(new CreateLeaseCommand(request.Lease))))
             .RequireAuthorization(PermissionList.RealEstateLeasePermissions.Create);
 
-        app.MapPut($"{baseRoute}/leases/{{id:guid}}", async (Guid id, UpdateLeaseRequest request, ISender sender) =>
+        group.MapPut("/leases/{id:guid}", async (Guid id, UpdateLeaseRequest request, ISender sender) =>
             Results.Ok(await sender.Send(new UpdateLeaseCommand(id, request.Lease))))
             .RequireAuthorization(PermissionList.RealEstateLeasePermissions.Edit);
 
-        app.MapPost($"{baseRoute}/leases/{{id:guid}}/generate-installments", async (Guid id, ISender sender) =>
+        group.MapPost("/leases/{id:guid}/generate-installments", async (Guid id, ISender sender) =>
             Results.Ok(await sender.Send(new GenerateLeaseInstallmentsCommand(id))))
             .RequireAuthorization(PermissionList.RealEstateInstallmentPermissions.Generate);
 
-        app.MapPost($"{baseRoute}/leases/{{id:guid}}/activate", async (Guid id, ISender sender) =>
+        group.MapPost("/leases/{id:guid}/activate", async (Guid id, ISender sender) =>
             Results.Ok(await sender.Send(new ActivateLeaseCommand(id))))
             .RequireAuthorization(PermissionList.RealEstateLeasePermissions.Activate);
 
-        app.MapPost($"{baseRoute}/leases/{{id:guid}}/suspend", async (Guid id, ISender sender) =>
+        group.MapPost("/leases/{id:guid}/suspend", async (Guid id, ISender sender) =>
             Results.Ok(await sender.Send(new SuspendLeaseCommand(id))))
             .RequireAuthorization(PermissionList.RealEstateLeasePermissions.Suspend);
 
-        app.MapPost($"{baseRoute}/leases/{{id:guid}}/terminate", async (Guid id, ISender sender) =>
+        group.MapPost("/leases/{id:guid}/terminate", async (Guid id, ISender sender) =>
             Results.Ok(await sender.Send(new TerminateLeaseCommand(id))))
             .RequireAuthorization(PermissionList.RealEstateLeasePermissions.Terminate);
 
-        app.MapGet($"{baseRoute}/installments", async (Guid? leaseId, Guid? companyId, InstallmentStatus? status, DateTime? fromDate, DateTime? toDate, int? pageIndex, int? pageSize, ISender sender) =>
+        group.MapGet("/installments", async (Guid? leaseId, Guid? companyId, InstallmentStatus? status, DateTime? fromDate, DateTime? toDate, int? pageIndex, int? pageSize, ISender sender) =>
         {
             var result = await sender.Send(new GetInstallmentsQuery(leaseId, companyId, status, fromDate, toDate, pageIndex ?? 1, pageSize ?? 20));
             return Results.Ok(new { installments = result.Installments });
         }).RequireAuthorization(PermissionList.RealEstateInstallmentPermissions.View);
 
-        app.MapPost($"{baseRoute}/installments/payments", async (RecordRentPaymentRequest request, ISender sender) =>
+        group.MapPost("/installments/payments", async (RecordRentPaymentRequest request, ISender sender) =>
             Results.Ok(await sender.Send(new RecordRentPaymentCommand(request.Payment))))
             .RequireAuthorization(PermissionList.RealEstateInstallmentPermissions.RecordPayment);
 
-        app.MapGet($"{baseRoute}/expenses", async (Guid? companyId, Guid? propertyId, ExpenseCategory? category, DateTime? fromDate, DateTime? toDate, int? pageIndex, int? pageSize, ISender sender) =>
+        group.MapGet("/expenses", async (Guid? companyId, Guid? propertyId, ExpenseCategory? category, DateTime? fromDate, DateTime? toDate, int? pageIndex, int? pageSize, ISender sender) =>
         {
             var result = await sender.Send(new GetExpensesQuery(companyId, propertyId, category, fromDate, toDate, pageIndex ?? 1, pageSize ?? 20));
             return Results.Ok(new { expenses = result.Expenses });
         }).RequireAuthorization(PermissionList.RealEstateExpensePermissions.View);
 
-        app.MapPost($"{baseRoute}/expenses", async (CreateExpenseRequest request, ISender sender) =>
+        group.MapPost("/expenses", async (CreateExpenseRequest request, ISender sender) =>
             Results.Created($"{baseRoute}/expenses", await sender.Send(new CreateExpenseCommand(request.Expense))))
             .RequireAuthorization(PermissionList.RealEstateExpensePermissions.Create);
 
-        app.MapPut($"{baseRoute}/expenses/{{id:guid}}", async (Guid id, UpdateExpenseRequest request, ISender sender) =>
+        group.MapPut("/expenses/{id:guid}", async (Guid id, UpdateExpenseRequest request, ISender sender) =>
             Results.Ok(await sender.Send(new UpdateExpenseCommand(id, request.Expense))))
             .RequireAuthorization(PermissionList.RealEstateExpensePermissions.Edit);
 
-        app.MapDelete($"{baseRoute}/expenses/{{id:guid}}", async (Guid id, ISender sender) =>
+        group.MapDelete("/expenses/{id:guid}", async (Guid id, ISender sender) =>
             Results.Ok(await sender.Send(new DeleteExpenseCommand(id))))
             .RequireAuthorization(PermissionList.RealEstateExpensePermissions.Delete);
 
-        app.MapGet($"{baseRoute}/utility-accounts", async (Guid? propertyId, int? pageIndex, int? pageSize, ISender sender) =>
+        group.MapGet("/utility-accounts", async (Guid? propertyId, int? pageIndex, int? pageSize, ISender sender) =>
         {
             var result = await sender.Send(new GetUtilityAccountsQuery(propertyId, pageIndex ?? 1, pageSize ?? 20));
             return Results.Ok(new { utilityAccounts = result.UtilityAccounts });
         }).RequireAuthorization(PermissionList.RealEstateUtilityPermissions.View);
 
-        app.MapPost($"{baseRoute}/utility-accounts", async (CreateUtilityAccountRequest request, ISender sender) =>
+        group.MapPost("/utility-accounts", async (CreateUtilityAccountRequest request, ISender sender) =>
             Results.Created($"{baseRoute}/utility-accounts", await sender.Send(new CreateUtilityAccountCommand(request.UtilityAccount))))
             .RequireAuthorization(PermissionList.RealEstateUtilityPermissions.Create);
 
-        app.MapPut($"{baseRoute}/utility-accounts/{{id:guid}}", async (Guid id, UpdateUtilityAccountRequest request, ISender sender) =>
+        group.MapPut("/utility-accounts/{id:guid}", async (Guid id, UpdateUtilityAccountRequest request, ISender sender) =>
             Results.Ok(await sender.Send(new UpdateUtilityAccountCommand(id, request.UtilityAccount))))
             .RequireAuthorization(PermissionList.RealEstateUtilityPermissions.Edit);
 
-        app.MapDelete($"{baseRoute}/utility-accounts/{{id:guid}}", async (Guid id, ISender sender) =>
+        group.MapDelete("/utility-accounts/{id:guid}", async (Guid id, ISender sender) =>
             Results.Ok(await sender.Send(new DeleteUtilityAccountCommand(id))))
             .RequireAuthorization(PermissionList.RealEstateUtilityPermissions.Delete);
 
-        app.MapGet($"{baseRoute}/utility-bills", async (Guid? propertyId, Guid? utilityAccountId, bool? isPaid, int? pageIndex, int? pageSize, ISender sender) =>
+        group.MapGet("/utility-bills", async (Guid? propertyId, Guid? utilityAccountId, bool? isPaid, int? pageIndex, int? pageSize, ISender sender) =>
         {
             var result = await sender.Send(new GetUtilityBillsQuery(propertyId, utilityAccountId, isPaid, pageIndex ?? 1, pageSize ?? 20));
             return Results.Ok(new { utilityBills = result.UtilityBills });
         }).RequireAuthorization(PermissionList.RealEstateUtilityPermissions.View);
 
-        app.MapPost($"{baseRoute}/utility-bills", async (CreateUtilityBillRequest request, ISender sender) =>
+        group.MapPost("/utility-bills", async (CreateUtilityBillRequest request, ISender sender) =>
             Results.Created($"{baseRoute}/utility-bills", await sender.Send(new CreateUtilityBillCommand(request.UtilityBill))))
             .RequireAuthorization(PermissionList.RealEstateUtilityPermissions.Create);
 
-        app.MapPut($"{baseRoute}/utility-bills/{{id:guid}}", async (Guid id, UpdateUtilityBillRequest request, ISender sender) =>
+        group.MapPut("/utility-bills/{id:guid}", async (Guid id, UpdateUtilityBillRequest request, ISender sender) =>
             Results.Ok(await sender.Send(new UpdateUtilityBillCommand(id, request.UtilityBill))))
             .RequireAuthorization(PermissionList.RealEstateUtilityPermissions.Edit);
 
-        app.MapDelete($"{baseRoute}/utility-bills/{{id:guid}}", async (Guid id, ISender sender) =>
+        group.MapDelete("/utility-bills/{id:guid}", async (Guid id, ISender sender) =>
             Results.Ok(await sender.Send(new DeleteUtilityBillCommand(id))))
             .RequireAuthorization(PermissionList.RealEstateUtilityPermissions.Delete);
 
-        app.MapPost($"{baseRoute}/utility-bills/{{id:guid}}/mark-paid", async (Guid id, ISender sender) =>
+        group.MapPost("/utility-bills/{id:guid}/mark-paid", async (Guid id, ISender sender) =>
             Results.Ok(await sender.Send(new MarkUtilityBillPaidCommand(id))))
             .RequireAuthorization(PermissionList.RealEstateUtilityPermissions.Edit);
 
-        app.MapGet($"{baseRoute}/dashboard", async (Guid? companyId, ISender sender) =>
+        group.MapGet("/dashboard", async (Guid? companyId, ISender sender) =>
             Results.Ok(new { dashboard = (await sender.Send(new GetRealEstateDashboardQuery(companyId))).Dashboard }))
             .RequireAuthorization(PermissionList.RealEstateReportsPermissions.View);
 
-        app.MapGet($"{baseRoute}/reports", async (Guid? companyId, ISender sender) =>
+        group.MapGet("/reports", async (Guid? companyId, ISender sender) =>
             Results.Ok(new { reports = (await sender.Send(new GetRealEstateReportsQuery(companyId))).Reports }))
             .RequireAuthorization(PermissionList.RealEstateReportsPermissions.View);
     }

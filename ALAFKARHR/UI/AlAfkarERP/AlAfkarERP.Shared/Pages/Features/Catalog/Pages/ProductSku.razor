@@ -126,6 +126,7 @@
                 </th>
                 <th>@SharedDataService.SelectViewLang("Packages", "العبوات")</th>
                 <th>@SharedDataService.SelectViewLang("Unit", "الوحدة")</th>
+                <th>@SharedDataService.SelectViewLang("Calories", "السعرات")</th>
                 <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
             </tr>
         </thead>
@@ -151,7 +152,7 @@
                         }
                     }
                     <tr>
-                        <td colspan="9">
+                        <td colspan="10">
                             <EditForm Model="editingItem" OnValidSubmit="() => SaveProductSKU(editingItem)">
                                 <DataAnnotationsValidator />
                                 <ValidationSummary />
@@ -361,6 +362,14 @@
                                     </div>
 
                                     <div class="mb-3 row">
+                                        <label class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Calories", "السعرات")</label>
+                                        <div class="col-sm-10">
+                                            <InputNumber class="form-control" @bind-Value="editingItem.Calories" />
+                                            <ValidationMessage For="() => editingItem.Calories" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Options", "الخيارات")</label>
                                         <div class="col-sm-10">
                                             <div class="erp-subpanel">
@@ -504,6 +513,7 @@
                         }
                     </td>
                     <td>@SharedDataService.SelectViewLang(units.FirstOrDefault(b => b.Id == sku.UnitId)?.UnitNameEng ?? "", units.FirstOrDefault(b => b.Id == sku.UnitId)?.UnitName ?? "")</td>
+                    <td>@(sku.Calories?.ToString("N2") ?? "-")</td>
                     <td>
                         <div class="d-flex justify-content-end gap-2">
                         <button class="btn btn-outline-warning btn-sm erp-row-action"
@@ -695,6 +705,18 @@
             {
                 Title = SharedDataService.SelectViewLang("Create New", "إنشاء جديد"),
                 Message = SharedDataService.SelectViewLang("Please select a Unit", "الرجاء اختيار الوحدة"),
+                IsError = true,
+                OnOk = async () => { }
+            });
+            return;
+        }
+
+        if (!productSku.Calories.HasValue || productSku.Calories.Value <= 0)
+        {
+            await ModalService.ShowAsync(new ModalOptions
+            {
+                Title = SharedDataService.SelectViewLang("Create New", "إنشاء جديد"),
+                Message = SharedDataService.SelectViewLang("Please enter calories greater than zero", "الرجاء إدخال سعرات أكبر من صفر"),
                 IsError = true,
                 OnOk = async () => { }
             });

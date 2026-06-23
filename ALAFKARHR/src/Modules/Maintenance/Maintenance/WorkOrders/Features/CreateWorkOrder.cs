@@ -24,13 +24,20 @@ public class CreateMaintenanceWorkOrderEndpoint : ICarterModule
 public class CreateMaintenanceWorkOrderHandler(
     MaintenanceDbContext dbContext,
     IMaintenanceNumberGenerator numberGenerator,
-    IHttpContextAccessor httpContextAccessor)
+    IHttpContextAccessor httpContextAccessor,
+    ISender sender)
     : ICommandHandler<CreateMaintenanceWorkOrderCommand, CreateMaintenanceWorkOrderResult>
 {
     public async Task<CreateMaintenanceWorkOrderResult> Handle(CreateMaintenanceWorkOrderCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = MaintenanceFeatureHelpers.GetCurrentUserId(httpContextAccessor);
-        await MaintenanceFeatureHelpers.EnsureAssetAsync(dbContext, request.WorkOrder.AssetId, cancellationToken);
+        var asset = await dbContext.MaintenanceAssets.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.WorkOrder.AssetId && !x.IsDeleted, cancellationToken)
+            ?? throw new NotFoundException("Maintenance asset", request.WorkOrder.AssetId);
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(asset.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, asset.BranchId))
+            throw new ForbiddenException("You do not have permission to create a work order for this asset branch scope.");
+
         var workOrderNumber = await numberGenerator.GenerateWorkOrderNumberAsync(cancellationToken);
 
         var workOrder = MaintenanceWorkOrder.Create(

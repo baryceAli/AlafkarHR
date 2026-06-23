@@ -23,6 +23,12 @@ public class ProductSkuDto
     public bool IsPackage => PackageId.HasValue || Packages.Any();
 
     public Guid? UnitId { get; set; }
+    public string? UnitName { get; set; }
+    public string? UnitNameEng { get; set; }
+
+    [Required(ErrorMessage = "Calories is required")]
+    [Range(0.01, 10000000, ErrorMessage = "Calories must be greater than 0")]
+    public decimal? Calories { get; set; }
 
 
     [Required(ErrorMessage = "Name is required")]

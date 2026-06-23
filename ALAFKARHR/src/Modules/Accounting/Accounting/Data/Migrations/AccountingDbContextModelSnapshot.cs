@@ -29,6 +29,9 @@ namespace Accounting.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(40)
@@ -95,12 +98,83 @@ namespace Accounting.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CompanyId", "BranchId");
+
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
                     b.HasIndex("CompanyId", "TemplateKey");
 
                     b.ToTable("Accounts", "Accounting");
+                });
+
+            modelBuilder.Entity("Accounting.Accounting.Models.AccountCodingSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AssetRootCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("ChildGroupSuffixLength")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ChildLedgerSuffixLength")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EquityRootCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ExpenseRootCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LiabilityRootCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RevenueRootCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId")
+                        .IsUnique();
+
+                    b.ToTable("AccountCodingSettings", "Accounting");
                 });
 
             modelBuilder.Entity("Accounting.Accounting.Models.AccountingDocument", b =>
@@ -194,6 +268,8 @@ namespace Accounting.Data.Migrations
 
                     b.HasIndex("CompanyId", "SourceDocumentId");
 
+                    b.HasIndex("CompanyId", "BranchId", "DocumentDate");
+
                     b.HasIndex("CompanyId", "Type", "Number")
                         .IsUnique();
 
@@ -208,6 +284,9 @@ namespace Accounting.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BranchId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Code")
@@ -272,6 +351,8 @@ namespace Accounting.Data.Migrations
 
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
+
+                    b.HasIndex("CompanyId", "BranchId", "Type");
 
                     b.ToTable("AccountingJournals", "Accounting");
                 });
@@ -374,6 +455,9 @@ namespace Accounting.Data.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uniqueidentifier");
 
@@ -430,10 +514,10 @@ namespace Accounting.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId", "DisplayName")
-                        .IsUnique();
-
                     b.HasIndex("CompanyId", "IsDefault");
+
+                    b.HasIndex("CompanyId", "BranchId", "DisplayName")
+                        .IsUnique();
 
                     b.ToTable("BankAccounts", "Accounting");
                 });
@@ -449,6 +533,9 @@ namespace Accounting.Data.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid?>("BankAccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BranchId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CashAccountId")
@@ -509,6 +596,8 @@ namespace Accounting.Data.Migrations
 
                     b.HasIndex("CompanyId", "ReferenceNumber");
 
+                    b.HasIndex("CompanyId", "BranchId", "Status");
+
                     b.HasIndex("CompanyId", "Status", "TransactionDate");
 
                     b.ToTable("BankTransactions", "Accounting");
@@ -518,6 +607,9 @@ namespace Accounting.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BranchId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("CompanyId")
@@ -568,10 +660,10 @@ namespace Accounting.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId", "DisplayName")
-                        .IsUnique();
-
                     b.HasIndex("CompanyId", "IsDefault");
+
+                    b.HasIndex("CompanyId", "BranchId", "DisplayName")
+                        .IsUnique();
 
                     b.ToTable("CashAccounts", "Accounting");
                 });
@@ -850,6 +942,9 @@ namespace Accounting.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uniqueidentifier");
 
@@ -904,6 +999,8 @@ namespace Accounting.Data.Migrations
 
                     b.HasIndex("CompanyId", "Number")
                         .IsUnique();
+
+                    b.HasIndex("CompanyId", "BranchId", "EntryDate");
 
                     b.ToTable("JournalEntries", "Accounting");
                 });

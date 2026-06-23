@@ -21,9 +21,13 @@ public class WarehouseService : BaseApiService, IWarehouseService
         return await SendAsync<UpdateDeleteResponseDto>(request, null);
     }
 
-    public async Task<ApiResult<PaginatedResult<WarehouseDto>>> GetAsync(Guid companyId,int PageIndex, int PageSize,string searchText="")
+    public async Task<ApiResult<PaginatedResult<WarehouseDto>>> GetAsync(Guid companyId,int PageIndex, int PageSize,string searchText="", Guid? branchId = null)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{path}/company/{companyId}?PageIndex={PageIndex}&PageSize={PageSize}&searchText={searchText}");
+        var url = $"{path}/company/{companyId}?PageIndex={PageIndex}&PageSize={PageSize}&searchText={Uri.EscapeDataString(searchText ?? string.Empty)}";
+        if (branchId.HasValue)
+            url += $"&branchId={branchId.Value}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
         return await SendAsync<PaginatedResult<WarehouseDto>>(request, "warehouseList");
     }
 

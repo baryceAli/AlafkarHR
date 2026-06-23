@@ -11,6 +11,8 @@ public class DeleteBranchHandler(OrganizationDbContext dbContext, IHttpContextAc
         if (branch is null)
             throw new NotFoundException($"Branch not found: {request.Id}");
 
+        if (branch.IsMainBranch)
+            throw new BadRequestException("Main branch cannot be deleted.");
 
         var userId = httpContextAccessor.HttpContext?
                         .User

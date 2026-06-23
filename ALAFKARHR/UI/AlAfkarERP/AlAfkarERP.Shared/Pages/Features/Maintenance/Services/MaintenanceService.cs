@@ -11,9 +11,11 @@ namespace AlAfkarERP.Shared.Pages.Features.Maintenance.Services;
 public class MaintenanceService : BaseApiService, IMaintenanceService
 {
     private readonly string path;
+    private readonly ApiConfig apiConfig;
 
     public MaintenanceService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
+        this.apiConfig = apiConfig;
         path = $"api/{apiConfig.Version}/maintenance";
     }
 
@@ -22,7 +24,7 @@ public class MaintenanceService : BaseApiService, IMaintenanceService
         var url = $"{path}/assets?PageIndex={pageIndex}&PageSize={pageSize}&searchText={Uri.EscapeDataString(searchText ?? string.Empty)}";
         if (assetType.HasValue) url += $"&assetType={assetType}";
         if (status.HasValue) url += $"&status={status}";
-        if (companyId.HasValue) url += $"&companyId={companyId}";
+        url += $"&companyId={(companyId.HasValue && companyId.Value != Guid.Empty ? companyId.Value : apiConfig.CompanyId)}";
         if (branchId.HasValue) url += $"&branchId={branchId}";
         if (parentAssetId.HasValue) url += $"&parentAssetId={parentAssetId}";
         return await SendAsync<PaginatedResult<MaintenanceAssetDto>>(new HttpRequestMessage(HttpMethod.Get, url), "assets");
@@ -48,7 +50,7 @@ public class MaintenanceService : BaseApiService, IMaintenanceService
 
     public async Task<ApiResult<PaginatedResult<MaintenanceWorkOrderDto>>> GetWorkOrdersAsync(int pageIndex, int pageSize, string searchText = "", Guid? assetId = null, Guid? branchId = null, MaintenanceAssetType? assetType = null, MaintenancePriority? priority = null, MaintenanceWorkOrderStatus? status = null, DateTime? fromDate = null, DateTime? toDate = null)
     {
-        var url = $"{path}/work-orders?PageIndex={pageIndex}&PageSize={pageSize}&searchText={Uri.EscapeDataString(searchText ?? string.Empty)}";
+        var url = $"{path}/work-orders?PageIndex={pageIndex}&PageSize={pageSize}&searchText={Uri.EscapeDataString(searchText ?? string.Empty)}&companyId={apiConfig.CompanyId}";
         if (assetId.HasValue) url += $"&assetId={assetId}";
         if (branchId.HasValue) url += $"&branchId={branchId}";
         if (assetType.HasValue) url += $"&assetType={assetType}";
@@ -60,7 +62,7 @@ public class MaintenanceService : BaseApiService, IMaintenanceService
     }
 
     public async Task<ApiResult<PaginatedResult<MaintenanceWorkOrderDto>>> GetMyWorkOrdersAsync(int pageIndex, int pageSize, string searchText = "")
-        => await SendAsync<PaginatedResult<MaintenanceWorkOrderDto>>(new HttpRequestMessage(HttpMethod.Get, $"{path}/work-orders/my?PageIndex={pageIndex}&PageSize={pageSize}&searchText={Uri.EscapeDataString(searchText ?? string.Empty)}"), "workOrders");
+        => await SendAsync<PaginatedResult<MaintenanceWorkOrderDto>>(new HttpRequestMessage(HttpMethod.Get, $"{path}/work-orders/my?PageIndex={pageIndex}&PageSize={pageSize}&searchText={Uri.EscapeDataString(searchText ?? string.Empty)}&companyId={apiConfig.CompanyId}"), "workOrders");
 
     public async Task<ApiResult<MaintenanceWorkOrderDto>> GetWorkOrderByIdAsync(Guid id)
         => await SendAsync<MaintenanceWorkOrderDto>(new HttpRequestMessage(HttpMethod.Get, $"{path}/work-orders/{id}"), "workOrder");

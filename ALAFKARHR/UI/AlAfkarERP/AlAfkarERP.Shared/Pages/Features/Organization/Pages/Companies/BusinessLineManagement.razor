@@ -1,0 +1,319 @@
+@layout AdminLayout
+@page "/Organization/BusinessLines"
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Organization.Dtos
+@using SharedWithUI.Permissions
+@implements IDisposable
+
+@inject IBusinessLineService BusinessLineService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="business-line-page erp-page" dir="@SharedDataService.PageDirection">
+    @if (!CanView)
+    {
+        <div class="alert alert-warning d-flex align-items-center gap-2">
+            <i class="bi bi-shield-lock"></i>
+            <span>@Text("You do not have permission to view business lines.", "ليس لديك صلاحية عرض خطوط الأعمال.")</span>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+            <div>
+                <h3 class="mb-1">@Text("Business Lines", "خطوط الأعمال")</h3>
+                <div class="text-muted">@Text("Manage the licensed verticals available to parent company plans.", "إدارة الأنشطة العمودية المتاحة لتراخيص الشركات الرئيسية.")</div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isLoading">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    @Text("Refresh", "تحديث")
+                </button>
+                <button class="btn btn-primary" @onclick="OpenCreate" disabled="@(!CanManage)">
+                    <i class="bi bi-plus-lg"></i>
+                    @Text("Create Business Line", "إنشاء خط أعمال")
+                </button>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-5 text-center">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <div class="fw-semibold">@Text("Loading business lines...", "جاري تحميل خطوط الأعمال...")</div>
+                </div>
+            </div>
+        }
+        else if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-warning d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>@errorMessage</span>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@Text("Business Line", "خط الأعمال")</th>
+                                <th>@Text("Key", "المفتاح")</th>
+                                <th>@Text("Order", "الترتيب")</th>
+                                <th>@Text("Status", "الحالة")</th>
+                                <th class="text-end">@Text("Actions", "الإجراءات")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in businessLines)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi @item.Icon text-primary"></i>
+                                            <div>
+                                                <div class="fw-semibold">@DisplayName(item)</div>
+                                                <div class="text-muted small">@item.Description</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><code>@item.Key</code></td>
+                                    <td>@item.DisplayOrder</td>
+                                    <td><StatusChip Text="@(item.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))" Tone="@(item.IsActive ? "success" : "muted")" /></td>
+                                    <td class="text-end">
+                                        <div class="btn-group">
+                                            <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenEdit(item)" disabled="@(!CanManage)" title="@Text("Edit", "تعديل")">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            <button class="btn btn-outline-warning btn-sm" @onclick="() => ToggleStatusAsync(item)" disabled="@(!CanManage)" title="@Text("Deactivate or reactivate", "إيقاف أو إعادة تفعيل")">
+                                                <i class="bi @(item.IsActive ? "bi-slash-circle" : "bi-check2-circle")"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@if (showModal && selectedBusinessLine is not null)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <EditForm Model="selectedBusinessLine" OnValidSubmit="SaveAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@ModalTitle</h5>
+                        <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Key", "المفتاح")</label>
+                                <InputText class="form-control" @bind-Value="selectedBusinessLine.Key" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Name", "الاسم")</label>
+                                <InputText class="form-control" @bind-Value="selectedBusinessLine.Name" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Arabic Name", "الاسم العربي")</label>
+                                <InputText class="form-control" @bind-Value="selectedBusinessLine.NameAr" />
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label">@Text("Bootstrap Icon", "أيقونة Bootstrap")</label>
+                                <InputText class="form-control" @bind-Value="selectedBusinessLine.Icon" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Display Order", "ترتيب العرض")</label>
+                                <InputNumber class="form-control" @bind-Value="selectedBusinessLine.DisplayOrder" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">@Text("Description", "الوصف")</label>
+                                <InputTextArea class="form-control" @bind-Value="selectedBusinessLine.Description" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CloseModal" disabled="@isSaving">@Text("Cancel", "إلغاء")</button>
+                        <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            }
+                            @Text("Save", "حفظ")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<BusinessLineDto> businessLines = [];
+    private BusinessLineDto? selectedBusinessLine;
+    private AuthenticationState? authState;
+    private string? errorMessage;
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool showModal;
+    private bool isCreateMode;
+
+    private bool IsPlatformScoped => CompanyContext.IsPlatformScoped(authState?.User);
+    private bool CanView => IsPlatformScoped && HasPermission(PermissionList.ParentCompanyPermissions.View);
+    private bool CanManage => IsPlatformScoped && HasPermission(PermissionList.ParentCompanyPermissions.ManageLicense);
+    private string ModalTitle => isCreateMode ? Text("Create Business Line", "إنشاء خط أعمال") : Text("Edit Business Line", "تعديل خط الأعمال");
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleLanguageChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (!CanView)
+        {
+            isLoading = false;
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var result = await BusinessLineService.GetAsync(includeInactive: true);
+            if (result.IsSuccess && result.Data is not null)
+            {
+                businessLines = result.Data.OrderBy(x => x.DisplayOrder).ThenBy(x => x.Name).ToList();
+            }
+            else
+            {
+                errorMessage = result.Error?.Detail ?? Text("Unable to load business lines.", "تعذر تحميل خطوط الأعمال.");
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OpenCreate()
+    {
+        isCreateMode = true;
+        selectedBusinessLine = new BusinessLineDto
+        {
+            IsActive = true,
+            Icon = "bi-grid",
+            DisplayOrder = businessLines.Count == 0 ? 10 : businessLines.Max(x => x.DisplayOrder) + 10
+        };
+        showModal = true;
+    }
+
+    private void OpenEdit(BusinessLineDto item)
+    {
+        isCreateMode = false;
+        selectedBusinessLine = new BusinessLineDto
+        {
+            Id = item.Id,
+            Key = item.Key,
+            Name = item.Name,
+            NameAr = item.NameAr,
+            Icon = item.Icon,
+            Description = item.Description,
+            IsActive = item.IsActive,
+            DisplayOrder = item.DisplayOrder
+        };
+        showModal = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (selectedBusinessLine is null)
+            return;
+
+        isSaving = true;
+        try
+        {
+            var isSuccess = false;
+            string? errorDetail = null;
+
+            if (isCreateMode)
+            {
+                var result = await BusinessLineService.CreateAsync(selectedBusinessLine);
+                isSuccess = result.IsSuccess;
+                errorDetail = result.Error?.Detail;
+            }
+            else
+            {
+                var result = await BusinessLineService.UpdateAsync(selectedBusinessLine);
+                isSuccess = result.IsSuccess && result.Data?.IsSuccess == true;
+                errorDetail = result.Error?.Detail;
+            }
+
+            if (isSuccess)
+            {
+                Toast("success", Text("Business line was saved.", "تم حفظ خط الأعمال."));
+                CloseModal();
+                await LoadAsync();
+            }
+            else
+            {
+                Toast("error", errorDetail ?? Text("Unable to save business line.", "تعذر حفظ خط الأعمال."));
+            }
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task ToggleStatusAsync(BusinessLineDto item)
+    {
+        var result = await BusinessLineService.SetStatusAsync(item.Id, !item.IsActive);
+        if (result.IsSuccess && result.Data?.IsSuccess == true)
+        {
+            Toast("success", Text("Business line status was updated.", "تم تحديث حالة خط الأعمال."));
+            await LoadAsync();
+        }
+        else
+        {
+            Toast("error", result.Error?.Detail ?? Text("Unable to update business line status.", "تعذر تحديث حالة خط الأعمال."));
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        selectedBusinessLine = null;
+    }
+
+    private bool HasPermission(string permission) => CompanyContext.HasPermission(authState?.User, permission);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string DisplayName(BusinessLineDto item) => SharedDataService.Language == "Ar" ? item.NameAr : item.Name;
+    private void Toast(string type, string message) => ToastService.Show(new ToastMessage { Type = type, Message = message });
+
+    private async Task HandleLanguageChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleLanguageChangeAsync;
+    }
+}

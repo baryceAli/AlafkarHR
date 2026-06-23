@@ -128,6 +128,10 @@ public class CreateFleetVehicleHandler(
             ? await fleetNumberGenerator.GenerateVehicleCodeAsync(cancellationToken)
             : request.Vehicle.VehicleCode.Trim();
 
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(request.Vehicle.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, request.Vehicle.BranchId))
+            throw new ForbiddenException("You do not have permission to create a fleet vehicle in this branch scope.");
+
         var vehicle = FleetVehicle.Create(vehicleCode, request.Vehicle, currentUserId);
         dbContext.Vehicles.Add(vehicle);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -163,8 +167,18 @@ public class UpdateFleetVehicleHandler(FleetDbContext dbContext, ISender sender,
     public async Task<FleetActionResult> Handle(UpdateFleetVehicleCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = FleetFeatureHelpers.GetCurrentUserId(httpContextAccessor);
-        var vehicle = await dbContext.Vehicles.FirstOrDefaultAsync(x => x.Id == request.Vehicle.Id, cancellationToken)
+        var vehicle = await dbContext.Vehicles.FirstOrDefaultAsync(x => x.Id == request.Vehicle.Id && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException("Fleet vehicle", request.Vehicle.Id);
+
+        if (request.Vehicle.CompanyId != vehicle.CompanyId)
+            throw new BadRequestException("Fleet vehicle company cannot be changed.");
+
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(vehicle.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, vehicle.BranchId) ||
+            !BranchScopePolicy.CanMutate(branchAccess, request.Vehicle.BranchId))
+        {
+            throw new ForbiddenException("You do not have permission to update this fleet vehicle branch scope.");
+        }
 
         vehicle.Update(request.Vehicle, currentUserId);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -202,8 +216,12 @@ public class DeleteFleetVehicleHandler(FleetDbContext dbContext, ISender sender,
     public async Task<FleetActionResult> Handle(DeleteFleetVehicleCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = FleetFeatureHelpers.GetCurrentUserId(httpContextAccessor);
-        var vehicle = await dbContext.Vehicles.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
+        var vehicle = await dbContext.Vehicles.FirstOrDefaultAsync(x => x.Id == request.Id && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException("Fleet vehicle", request.Id);
+
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(vehicle.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, vehicle.BranchId))
+            throw new ForbiddenException("You do not have permission to delete this fleet vehicle branch scope.");
 
         await sender.Send(new UpsertLinkedMaintenanceAssetCommand(
             "Fleet",
@@ -229,14 +247,18 @@ public class DeleteFleetVehicleHandler(FleetDbContext dbContext, ISender sender,
     }
 }
 
-public class UpdateFleetVehicleOdometerHandler(FleetDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class UpdateFleetVehicleOdometerHandler(FleetDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<UpdateFleetVehicleOdometerCommand, FleetActionResult>
 {
     public async Task<FleetActionResult> Handle(UpdateFleetVehicleOdometerCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = FleetFeatureHelpers.GetCurrentUserId(httpContextAccessor);
-        var vehicle = await dbContext.Vehicles.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
+        var vehicle = await dbContext.Vehicles.FirstOrDefaultAsync(x => x.Id == request.Id && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException("Fleet vehicle", request.Id);
+
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(vehicle.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, vehicle.BranchId))
+            throw new ForbiddenException("You do not have permission to update this fleet vehicle branch scope.");
 
         vehicle.UpdateOdometer(request.Odometer, currentUserId);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -284,7 +306,7 @@ public class RepairFleetVehicleMaintenanceLinksHandler(FleetDbContext dbContext,
     }
 }
 
-public class GetFleetVehiclesHandler(FleetDbContext dbContext)
+public class GetFleetVehiclesHandler(FleetDbContext dbContext, ISender sender)
     : IQueryHandler<GetFleetVehiclesQuery, GetFleetVehiclesResult>
 {
     public async Task<GetFleetVehiclesResult> Handle(GetFleetVehiclesQuery request, CancellationToken cancellationToken)
@@ -292,9 +314,28 @@ public class GetFleetVehiclesHandler(FleetDbContext dbContext)
         var query = dbContext.Vehicles.AsNoTracking().AsQueryable();
 
         if (request.Filter.CompanyId.HasValue)
+        {
             query = query.Where(x => x.CompanyId == request.Filter.CompanyId.Value);
-        if (request.Filter.BranchId.HasValue)
+            var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(request.Filter.CompanyId.Value), cancellationToken);
+            if (!BranchScopePolicy.CanFilter(branchAccess, request.Filter.BranchId))
+                throw new ForbiddenException("You do not have permission to view this fleet vehicle branch scope.");
+
+            if (branchAccess.CanViewAllBranches)
+            {
+                if (request.Filter.BranchId.HasValue)
+                    query = query.Where(x => x.BranchId == request.Filter.BranchId.Value);
+            }
+            else
+            {
+                query = request.Filter.BranchId.HasValue
+                    ? query.Where(x => x.BranchId == null || x.BranchId == request.Filter.BranchId.Value)
+                    : query.Where(x => x.BranchId == null || (x.BranchId.HasValue && branchAccess.BranchIds.Contains(x.BranchId.Value)));
+            }
+        }
+        else if (request.Filter.BranchId.HasValue)
+        {
             query = query.Where(x => x.BranchId == request.Filter.BranchId.Value);
+        }
         if (request.Filter.OwnershipType.HasValue)
             query = query.Where(x => x.OwnershipType == request.Filter.OwnershipType.Value);
         if (request.Filter.Status.HasValue)
@@ -326,13 +367,17 @@ public class GetFleetVehiclesHandler(FleetDbContext dbContext)
     }
 }
 
-public class GetFleetVehicleByIdHandler(FleetDbContext dbContext, MaintenanceDbContext maintenanceDbContext)
+public class GetFleetVehicleByIdHandler(FleetDbContext dbContext, MaintenanceDbContext maintenanceDbContext, ISender sender)
     : IQueryHandler<GetFleetVehicleByIdQuery, GetFleetVehicleByIdResult>
 {
     public async Task<GetFleetVehicleByIdResult> Handle(GetFleetVehicleByIdQuery request, CancellationToken cancellationToken)
     {
         var vehicle = await dbContext.Vehicles.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException("Fleet vehicle", request.Id);
+
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(vehicle.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanRead(branchAccess, vehicle.BranchId))
+            throw new ForbiddenException("You do not have permission to view this fleet vehicle branch scope.");
 
         var assignments = await dbContext.VehicleAssignments.Include(x => x.Vehicle).AsNoTracking().Where(x => x.VehicleId == request.Id).OrderByDescending(x => x.StartDate).ToListAsync(cancellationToken);
         var documents = await dbContext.VehicleDocuments.Include(x => x.Vehicle).AsNoTracking().Where(x => x.VehicleId == request.Id).OrderBy(x => x.ExpiryDate).ToListAsync(cancellationToken);
@@ -390,7 +435,8 @@ public class GetFleetVehicleByIdHandler(FleetDbContext dbContext, MaintenanceDbC
             CurrencyCode = workOrder.CurrencyCode,
             VendorName = workOrder.VendorName,
             SupplierId = workOrder.SupplierId,
-            CostApprovalStatus = workOrder.CostApprovalStatus
+            CostApprovalStatus = workOrder.CostApprovalStatus,
+            BranchId = workOrder.Asset?.BranchId
         };
     }
 }
@@ -399,14 +445,19 @@ public class CreateEmergencyFleetMaintenanceHandler(
     FleetDbContext dbContext,
     MaintenanceDbContext maintenanceDbContext,
     IMaintenanceNumberGenerator numberGenerator,
-    IHttpContextAccessor httpContextAccessor)
+    IHttpContextAccessor httpContextAccessor,
+    ISender sender)
     : ICommandHandler<CreateEmergencyFleetMaintenanceCommand, CreateEmergencyFleetMaintenanceResult>
 {
     public async Task<CreateEmergencyFleetMaintenanceResult> Handle(CreateEmergencyFleetMaintenanceCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = FleetFeatureHelpers.GetCurrentUserId(httpContextAccessor);
-        var vehicle = await dbContext.Vehicles.FirstOrDefaultAsync(x => x.Id == request.WorkOrder.VehicleId, cancellationToken)
+        var vehicle = await dbContext.Vehicles.FirstOrDefaultAsync(x => x.Id == request.WorkOrder.VehicleId && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException("Fleet vehicle", request.WorkOrder.VehicleId);
+
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(vehicle.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, vehicle.BranchId))
+            throw new ForbiddenException("You do not have permission to create maintenance for this fleet vehicle branch scope.");
 
         if (!vehicle.MaintenanceAssetId.HasValue)
             throw new BadRequestException("Vehicle is not linked to a maintenance asset.");

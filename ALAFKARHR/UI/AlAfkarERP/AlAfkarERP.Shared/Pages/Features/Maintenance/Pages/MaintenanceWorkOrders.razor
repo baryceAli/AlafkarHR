@@ -119,6 +119,7 @@
                         <th>@Text("Number", "الرقم")</th>
                         <th>@Text("Title", "العنوان")</th>
                         <th>@Text("Asset", "الأصل")</th>
+                        <th>@Text("Branch scope", "نطاق الفرع")</th>
                         <th>@Text("Priority", "الأولوية")</th>
                         <th>@Text("Status", "الحالة")</th>
                         <th>@Text("Cost Approval", "اعتماد التكلفة")</th>
@@ -129,11 +130,11 @@
                 <tbody>
                     @if (isLoading)
                     {
-                        <tr><td colspan="8" class="text-muted">@Text("Loading work orders...", "جاري تحميل أوامر العمل...")</td></tr>
+                        <tr><td colspan="9" class="text-muted">@Text("Loading work orders...", "جاري تحميل أوامر العمل...")</td></tr>
                     }
                     else if (!workOrders.Any())
                     {
-                        <tr><td colspan="8" class="text-muted">@Text("No work orders found.", "لا توجد أوامر عمل.")</td></tr>
+                        <tr><td colspan="9" class="text-muted">@Text("No work orders found.", "لا توجد أوامر عمل.")</td></tr>
                     }
                     else
                     {
@@ -143,6 +144,7 @@
                                 <td class="fw-semibold">@workOrder.WorkOrderNumber</td>
                                 <td>@workOrder.Title</td>
                                 <td>@workOrder.AssetName</td>
+                                <td><span class="badge bg-light text-dark border">@BranchScopeLabel(workOrder.BranchId)</span></td>
                                 <td><StatusChip Text="@workOrder.Priority.ToString()" Tone="@PriorityTone(workOrder.Priority)" /></td>
                                 <td><StatusChip Text="@workOrder.Status.ToString()" Tone="@StatusTone(workOrder.Status)" /></td>
                                 <td><StatusChip Text="@workOrder.CostApprovalStatus.ToString()" Tone="@CostTone(workOrder.CostApprovalStatus)" /></td>
@@ -349,6 +351,17 @@
     private string PriorityTone(MaintenancePriority priority) => priority is MaintenancePriority.High or MaintenancePriority.Critical ? "danger" : priority == MaintenancePriority.Medium ? "warning" : "muted";
     private string StatusTone(MaintenanceWorkOrderStatus status) => status == MaintenanceWorkOrderStatus.Completed ? "success" : status is MaintenanceWorkOrderStatus.Cancelled or MaintenanceWorkOrderStatus.Rejected ? "danger" : status == MaintenanceWorkOrderStatus.PendingApproval ? "warning" : "info";
     private string CostTone(MaintenanceCostApprovalStatus status) => status == MaintenanceCostApprovalStatus.Approved ? "success" : status == MaintenanceCostApprovalStatus.Rejected ? "danger" : status == MaintenanceCostApprovalStatus.Pending ? "warning" : "muted";
+    private string BranchScopeLabel(Guid? branchId) =>
+        branchId.HasValue
+            ? BranchName(branchId.Value)
+            : Text("Company-level/shared", "على مستوى الشركة / مشترك");
+
+    private string BranchName(Guid branchId)
+    {
+        var branch = branches.FirstOrDefault(x => x.Id == branchId);
+        return branch is null ? Text("Unknown branch", "فرع غير معروف") : LocalizedName(branch.NameEng, branch.Name);
+    }
+
     private string LocalizedName(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);

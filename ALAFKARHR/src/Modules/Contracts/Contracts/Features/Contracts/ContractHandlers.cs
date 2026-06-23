@@ -24,7 +24,28 @@ public class ContractHandlers(ContractsDbContext dbContext, IHttpContextAccessor
         var query = dbContext.Contracts.IncludeDetails().AsNoTracking().AsQueryable();
 
         if (request.CompanyId.HasValue)
+        {
             query = query.Where(x => x.CompanyId == request.CompanyId);
+            var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(request.CompanyId.Value), cancellationToken);
+            if (!BranchScopePolicy.CanFilter(branchAccess, request.BranchId))
+                throw new ForbiddenException("You do not have permission to view this contract branch scope.");
+
+            if (branchAccess.CanViewAllBranches)
+            {
+                if (request.BranchId.HasValue)
+                    query = query.Where(x => x.BranchId == request.BranchId.Value);
+            }
+            else
+            {
+                query = request.BranchId.HasValue
+                    ? query.Where(x => x.BranchId == null || x.BranchId == request.BranchId.Value)
+                    : query.Where(x => x.BranchId == null || (x.BranchId.HasValue && branchAccess.BranchIds.Contains(x.BranchId.Value)));
+            }
+        }
+        else if (request.BranchId.HasValue)
+        {
+            query = query.Where(x => x.BranchId == request.BranchId.Value);
+        }
         if (!string.IsNullOrWhiteSpace(request.PartyType))
             query = query.Where(x => x.PartyType == request.PartyType);
         if (request.PartyId.HasValue)
@@ -63,6 +84,7 @@ public class ContractHandlers(ContractsDbContext dbContext, IHttpContextAccessor
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException($"Contract not found: {request.Id}");
 
+        await EnsureCanReadContractAsync(contract.CompanyId, contract.BranchId, cancellationToken);
         return new GetContractByIdResult(contract.ToDto());
     }
 
@@ -73,6 +95,7 @@ public class ContractHandlers(ContractsDbContext dbContext, IHttpContextAccessor
             ? await ContractFeatureHelpers.GenerateNumberAsync(dbContext, request.Contract.CompanyId, request.Contract.Type, cancellationToken)
             : request.Contract.Number.Trim();
 
+        await EnsureCanMutateContractAsync(request.Contract.CompanyId, request.Contract.BranchId, cancellationToken);
         var contract = Contract.Create(number, request.Contract, userId);
         await dbContext.Contracts.AddAsync(contract, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -85,6 +108,11 @@ public class ContractHandlers(ContractsDbContext dbContext, IHttpContextAccessor
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException($"Contract not found: {request.Id}");
 
+        if (request.Contract.CompanyId != contract.CompanyId)
+            throw new BadRequestException("Contract company cannot be changed.");
+
+        await EnsureCanMutateContractAsync(contract.CompanyId, contract.BranchId, cancellationToken);
+        await EnsureCanMutateContractAsync(contract.CompanyId, request.Contract.BranchId, cancellationToken);
         contract.Update(request.Contract, ContractFeatureHelpers.CurrentUserId(httpContextAccessor));
         await dbContext.SaveChangesAsync(cancellationToken);
         return new UpdateContractResult(true);
@@ -94,6 +122,7 @@ public class ContractHandlers(ContractsDbContext dbContext, IHttpContextAccessor
     {
         var contract = await dbContext.Contracts.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException($"Contract not found: {request.Id}");
+        await EnsureCanMutateContractAsync(contract.CompanyId, contract.BranchId, cancellationToken);
         contract.Remove(ContractFeatureHelpers.CurrentUserId(httpContextAccessor));
         await dbContext.SaveChangesAsync(cancellationToken);
         return new DeleteContractResult(true);
@@ -105,6 +134,7 @@ public class ContractHandlers(ContractsDbContext dbContext, IHttpContextAccessor
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException($"Contract not found: {request.Id}");
 
+        await EnsureCanMutateContractAsync(contract.CompanyId, contract.BranchId, cancellationToken);
         contract.ChangeStatus(request.Status, request.Action, request.Notes, ContractFeatureHelpers.CurrentUserId(httpContextAccessor));
         await dbContext.SaveChangesAsync(cancellationToken);
         return new ChangeContractStatusResult(true);
@@ -114,6 +144,7 @@ public class ContractHandlers(ContractsDbContext dbContext, IHttpContextAccessor
     {
         var contract = await dbContext.Contracts.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException($"Contract not found: {request.Id}");
+        await EnsureCanMutateContractAsync(contract.CompanyId, contract.BranchId, cancellationToken);
         contract.ConfigureRenewal(request.Settings, ContractFeatureHelpers.CurrentUserId(httpContextAccessor));
         await dbContext.SaveChangesAsync(cancellationToken);
         return new ConfigureContractRenewalResult(true);
@@ -124,6 +155,7 @@ public class ContractHandlers(ContractsDbContext dbContext, IHttpContextAccessor
         var contract = await dbContext.Contracts.IncludeDetails()
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException($"Contract not found: {request.Id}");
+        await EnsureCanMutateContractAsync(contract.CompanyId, contract.BranchId, cancellationToken);
         var renewal = contract.ProcessRenewal(ContractFeatureHelpers.CurrentUserId(httpContextAccessor));
         await dbContext.SaveChangesAsync(cancellationToken);
         return new ProcessContractRenewalResult(renewal.ToDto());
@@ -134,12 +166,27 @@ public class ContractHandlers(ContractsDbContext dbContext, IHttpContextAccessor
         var contract = await dbContext.Contracts.IncludeDetails()
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException($"Contract not found: {request.Id}");
+        await EnsureCanMutateContractAsync(contract.CompanyId, contract.BranchId, cancellationToken);
         var renewal = contract.Renewals.FirstOrDefault(x => x.Id == request.RenewalId)
             ?? throw new NotFoundException($"Renewal not found: {request.RenewalId}");
         contract.ActivatePaidRenewal(request.RenewalId, request.PaymentReferenceId, request.PaidAmount, ContractFeatureHelpers.CurrentUserId(httpContextAccessor));
         await dbContext.SaveChangesAsync(cancellationToken);
         await PostRenewalPaymentAccountingAsync(contract, renewal, request.PaidAmount, request.PaymentReferenceId, cancellationToken);
         return new RecordContractRenewalPaymentResult(true);
+    }
+
+    private async Task EnsureCanReadContractAsync(Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    {
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (!BranchScopePolicy.CanRead(branchAccess, branchId))
+            throw new ForbiddenException("You do not have permission to view this contract branch scope.");
+    }
+
+    private async Task EnsureCanMutateContractAsync(Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    {
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, branchId))
+            throw new ForbiddenException("You do not have permission to change this contract branch scope.");
     }
 
     private async Task PostRenewalPaymentAccountingAsync(Contract contract, ContractRenewal renewal, decimal paidAmount, Guid? paymentReferenceId, CancellationToken cancellationToken)
@@ -196,6 +243,10 @@ public class ContractHandlers(ContractsDbContext dbContext, IHttpContextAccessor
     {
         var query = dbContext.Contracts.IncludeDetails().AsNoTracking()
             .Where(x => x.CompanyId == request.CompanyId && x.PartyType == request.PartyType && x.PartyId == request.PartyId);
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(request.CompanyId), cancellationToken);
+        if (!branchAccess.CanViewAllBranches)
+            query = query.Where(x => x.BranchId == null || (x.BranchId.HasValue && branchAccess.BranchIds.Contains(x.BranchId.Value)));
+
         if (request.Status.HasValue)
             query = query.Where(x => x.Status == request.Status);
 
@@ -236,12 +287,14 @@ public class ContractHandlers(ContractsDbContext dbContext, IHttpContextAccessor
 
     public async Task<GetContractRenewalObligationsResult> Handle(GetContractRenewalObligationsQuery request, CancellationToken cancellationToken)
     {
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(request.CompanyId), cancellationToken);
         var obligations = await dbContext.Contracts.AsNoTracking()
             .Where(x => x.CompanyId == request.CompanyId
                 && x.Status == ContractStatus.Active
                 && x.RenewalSettings.AutoRenew
                 && x.EndDate >= request.FromDate.Date
                 && x.EndDate <= request.ToDate.Date)
+            .Where(x => branchAccess.CanViewAllBranches || x.BranchId == null || (x.BranchId.HasValue && branchAccess.BranchIds.Contains(x.BranchId.Value)))
             .Select(x => new ContractRenewalObligationDto
             {
                 ContractId = x.Id,
