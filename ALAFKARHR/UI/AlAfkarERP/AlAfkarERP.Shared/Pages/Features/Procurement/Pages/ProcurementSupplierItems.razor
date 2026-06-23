@@ -1,0 +1,372 @@
+@layout AdminLayout
+@page "/Procurement/SupplierItems"
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Services
+@using AlAfkarERP.Shared.Pages.Features.Suppliers.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Permissions
+@using SharedWithUI.Procurement.Dtos
+@using SharedWithUI.Suppliers.Dtos
+
+@implements IDisposable
+@inject IProcurementService ProcurementService
+@inject ISupplierService SupplierService
+@inject IProductService ProductService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Supplier Items", "أصناف الموردين")"
+                Subtitle="@Text("Map supplier item codes, lead times, and preferred SKU relationships.", "ربط رموز أصناف الموردين ومدد التوريد وعلاقات وحدات المنتج المفضلة.")"
+                Overline="@Text("Procurement Controls", "ضوابط المشتريات")"
+                Icon="bi bi-box-seam">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="Back">
+                <i class="bi bi-arrow-return-left"></i>
+                @Text("Controls", "الضوابط")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3"></div>
+                <div class="fw-semibold">@Text("Loading supplier items...", "جاري تحميل أصناف الموردين...")</div>
+            </div>
+        </AppCard>
+    }
+    else if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view supplier items.", "ليست لديك صلاحية عرض أصناف الموردين.")</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-12 col-xl-4">
+                <AppCard Title="@FormTitle" CssClass="h-100">
+                    <EditForm Model="model" OnValidSubmit="SaveAsync">
+                        <DataAnnotationsValidator />
+                        <div class="vstack gap-3">
+                            <div>
+                                <label class="form-label">@Text("Supplier", "المورد")</label>
+                                <AutoCompleteComponent TItem="SupplierDto"
+                                                       Items="suppliers"
+                                                       ItemText="SupplierText"
+                                                       Value="selectedSupplier"
+                                                       ValueChanged="OnSupplierChanged"
+                                                       PlaceHolder="@Text("Select supplier...", "اختر المورد...")" />
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("Product", "المنتج")</label>
+                                <AutoCompleteComponent TItem="ProductDto"
+                                                       Items="products"
+                                                       ItemText="ProductText"
+                                                       Value="selectedProduct"
+                                                       ValueChanged="OnProductChanged"
+                                                       PlaceHolder="@Text("Select product...", "اختر المنتج...")" />
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("SKU", "وحدة المنتج")</label>
+                                <AutoCompleteComponent TItem="ProductSkuDto"
+                                                       Items="SkuOptions"
+                                                       ItemText="SkuText"
+                                                       Value="selectedSku"
+                                                       ValueChanged="OnSkuChanged"
+                                                       PlaceHolder="@Text("Select SKU...", "اختر وحدة المنتج...")" />
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("Supplier SKU", "رمز المورد")</label>
+                                <InputText class="form-control" @bind-Value="model.SupplierSku" />
+                            </div>
+                            <div class="row g-2">
+                                <div class="col">
+                                    <label class="form-label">@Text("Lead Days", "أيام التوريد")</label>
+                                    <InputNumber class="form-control" @bind-Value="model.LeadTimeDays" />
+                                </div>
+                                <div class="col">
+                                    <label class="form-label">@Text("MOQ", "أقل كمية")</label>
+                                    <InputNumber class="form-control" @bind-Value="model.MinimumOrderQuantity" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                                <InputTextArea class="form-control" @bind-Value="model.Notes" rows="2" />
+                            </div>
+                            <label class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="model.IsPreferred" />
+                                <span class="form-check-label">@Text("Preferred supplier item", "صنف مورد مفضل")</span>
+                            </label>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary" type="submit" disabled="@(!CanSave)">
+                                    <i class="bi bi-save"></i>
+                                    @Text("Save", "حفظ")
+                                </button>
+                                <button class="btn btn-outline-secondary" type="button" @onclick="ResetForm">
+                                    @Text("Clear", "مسح")
+                                </button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+            <div class="col-12 col-xl-8">
+                <AppCard Title="@Text("Supplier Item List", "قائمة أصناف الموردين")">
+                    <FilterBar CssClass="mb-3">
+                        <ChildContent>
+                            <div class="input-group erp-search-control">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input class="form-control" placeholder="@Text("Search supplier, product, or SKU", "ابحث بالمورد أو المنتج أو الرمز")" @bind="searchText" @bind:event="oninput" />
+                            </div>
+                        </ChildContent>
+                        <Actions>
+                            <button class="btn btn-outline-secondary" @onclick="LoadItemsAsync">
+                                <i class="bi bi-arrow-repeat"></i>
+                                @Text("Refresh", "تحديث")
+                            </button>
+                        </Actions>
+                    </FilterBar>
+                    <div class="erp-table-wrap">
+                        <table class="table erp-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>@Text("Supplier", "المورد")</th>
+                                    <th>@Text("Product", "المنتج")</th>
+                                    <th>@Text("Supplier SKU", "رمز المورد")</th>
+                                    <th>@Text("Lead/MOQ", "التوريد/أقل كمية")</th>
+                                    <th>@Text("Preferred", "مفضل")</th>
+                                    <th class="text-end">@Text("Actions", "الإجراءات")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (FilteredItems.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">@Text("No supplier items found.", "لا توجد أصناف موردين.")</td>
+                                    </tr>
+                                }
+                                @foreach (var item in FilteredItems)
+                                {
+                                    <tr>
+                                        <td>@Display(item.SupplierName)</td>
+                                        <td>
+                                            <div class="fw-semibold">@DisplayProduct(item)</div>
+                                            <div class="text-muted small">@Display(item.SkuCode)</div>
+                                        </td>
+                                        <td>@Display(item.SupplierSku)</td>
+                                        <td>@item.LeadTimeDays / @item.MinimumOrderQuantity.ToString("N2")</td>
+                                        <td><StatusChip Text="@(item.IsPreferred ? Text("Preferred", "مفضل") : Text("Standard", "عادي"))" Tone="@(item.IsPreferred ? "success" : "muted")" /></td>
+                                        <td>
+                                            <div class="d-flex justify-content-end gap-2">
+                                                <button class="btn btn-outline-warning btn-sm erp-row-action" title="@Text("Edit", "تعديل")" @onclick="() => Edit(item)" disabled="@(!CanSave)">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger btn-sm erp-row-action" title="@Text("Delete", "حذف")" @onclick="() => DeleteAsync(item.Id)" disabled="@(!CanDelete)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private bool isLoading = true;
+    private string? searchText;
+    private AuthenticationState? authState;
+    private SupplierItemDto model = new();
+    private List<SupplierItemDto> items = [];
+    private readonly List<SupplierDto> suppliers = [];
+    private readonly List<ProductDto> products = [];
+    private readonly List<ProductSkuDto> allSkus = [];
+    private SupplierDto? selectedSupplier;
+    private ProductDto? selectedProduct;
+    private ProductSkuDto? selectedSku;
+
+    private bool CanView => HasPermission(PermissionList.PurchaseOrderPermissions.View);
+    private bool CanSave => HasPermission(PermissionList.PurchaseOrderPermissions.Create);
+    private bool CanDelete => HasPermission(PermissionList.PurchaseOrderPermissions.Delete);
+    private string FormTitle => model.Id == Guid.Empty ? Text("New Supplier Item", "صنف مورد جديد") : Text("Edit Supplier Item", "تعديل صنف مورد");
+    private List<ProductSkuDto> SkuOptions => model.ProductId == Guid.Empty ? allSkus : allSkus.Where(sku => sku.ProductId == model.ProductId).ToList();
+    private List<SupplierItemDto> FilteredItems => string.IsNullOrWhiteSpace(searchText)
+        ? items
+        : items.Where(item =>
+            Contains(item.SupplierName, searchText) ||
+            Contains(item.ProductName, searchText) ||
+            Contains(item.ProductNameEng, searchText) ||
+            Contains(item.SkuCode, searchText) ||
+            Contains(item.SupplierSku, searchText)).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+        {
+            isLoading = false;
+            return;
+        }
+
+        ResetForm();
+        await LoadLookupsAsync();
+        await LoadItemsAsync();
+        isLoading = false;
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var supplierResponse = await SupplierService.GetByCompanyAsync(companyId, 0, 200);
+        if (supplierResponse.IsSuccess)
+            suppliers.AddRange(supplierResponse.Data?.Data ?? []);
+
+        var productResponse = await ProductService.GetByCompanyAsync(companyId, 0, 200);
+        if (productResponse.IsSuccess)
+        {
+            products.AddRange(productResponse.Data?.Data ?? []);
+            allSkus.AddRange(products.SelectMany(product => product.Skus ?? []));
+        }
+    }
+
+    private async Task LoadItemsAsync()
+    {
+        var result = await ProcurementService.GetSupplierItemsAsync(companyId);
+        if (result.IsSuccess)
+            items = result.Data ?? [];
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load supplier items.", "تعذر تحميل أصناف الموردين."));
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!CanSave)
+            return;
+
+        model.CompanyId = companyId;
+        var result = await ProcurementService.SaveSupplierItemAsync(model);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Supplier item saved.", "تم حفظ صنف المورد."));
+            ResetForm();
+            await LoadItemsAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not save supplier item.", "تعذر حفظ صنف المورد."));
+        }
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        if (!CanDelete)
+            return;
+
+        var result = await ProcurementService.DeleteSupplierItemAsync(id);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Supplier item deleted.", "تم حذف صنف المورد."));
+            if (model.Id == id)
+                ResetForm();
+            await LoadItemsAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not delete supplier item.", "تعذر حذف صنف المورد."));
+        }
+    }
+
+    private void Edit(SupplierItemDto item)
+    {
+        model = new SupplierItemDto
+        {
+            Id = item.Id,
+            CompanyId = item.CompanyId,
+            SupplierId = item.SupplierId,
+            SupplierName = item.SupplierName,
+            ProductId = item.ProductId,
+            ProductSkuId = item.ProductSkuId,
+            ProductName = item.ProductName,
+            ProductNameEng = item.ProductNameEng,
+            SkuCode = item.SkuCode,
+            SupplierSku = item.SupplierSku,
+            LeadTimeDays = item.LeadTimeDays,
+            MinimumOrderQuantity = item.MinimumOrderQuantity,
+            IsPreferred = item.IsPreferred,
+            Notes = item.Notes
+        };
+        selectedSupplier = suppliers.FirstOrDefault(supplier => supplier.Id == item.SupplierId);
+        selectedProduct = products.FirstOrDefault(product => product.Id == item.ProductId);
+        selectedSku = allSkus.FirstOrDefault(sku => sku.Id == item.ProductSkuId);
+    }
+
+    private void ResetForm()
+    {
+        model = new SupplierItemDto { CompanyId = companyId };
+        selectedSupplier = null;
+        selectedProduct = null;
+        selectedSku = null;
+    }
+
+    private Task OnSupplierChanged(SupplierDto? supplier)
+    {
+        selectedSupplier = supplier;
+        model.SupplierId = supplier?.Id ?? Guid.Empty;
+        model.SupplierName = supplier?.Name;
+        return Task.CompletedTask;
+    }
+
+    private Task OnProductChanged(ProductDto? product)
+    {
+        selectedProduct = product;
+        model.ProductId = product?.Id ?? Guid.Empty;
+        model.ProductName = product?.Name;
+        model.ProductNameEng = product?.NameEng;
+        selectedSku = null;
+        model.ProductSkuId = Guid.Empty;
+        model.SkuCode = null;
+        return Task.CompletedTask;
+    }
+
+    private Task OnSkuChanged(ProductSkuDto? sku)
+    {
+        selectedSku = sku;
+        model.ProductSkuId = sku?.Id ?? Guid.Empty;
+        model.SkuCode = sku?.SkuCode;
+        if (sku is not null && selectedProduct?.Id != sku.ProductId)
+        {
+            selectedProduct = products.FirstOrDefault(product => product.Id == sku.ProductId);
+            model.ProductId = sku.ProductId;
+            model.ProductName = selectedProduct?.Name ?? sku.ProductName;
+            model.ProductNameEng = selectedProduct?.NameEng ?? sku.ProductNameEng;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void Back() => NavigationManager.NavigateTo("/Procurement/Enhancements");
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private string DisplayProduct(SupplierItemDto item) => Display(SharedDataService.SelectViewLang(item.ProductNameEng ?? string.Empty, item.ProductName ?? string.Empty));
+    private string SupplierText(SupplierDto supplier) => string.IsNullOrWhiteSpace(supplier.SupplierCode) ? supplier.Name : $"{supplier.Name} ({supplier.SupplierCode})";
+    private string ProductText(ProductDto product) => SharedDataService.SelectViewLang(product.NameEng, product.Name);
+    private string SkuText(ProductSkuDto sku) => FirstNonEmpty(SharedDataService.SelectViewLang(sku.NameEng ?? string.Empty, sku.Name ?? string.Empty), sku.SkuCode, sku.Name, sku.NameEng);
+    private static string FirstNonEmpty(params string?[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+    private static bool Contains(string? value, string? query) => !string.IsNullOrWhiteSpace(value) && !string.IsNullOrWhiteSpace(query) && value.Contains(query, StringComparison.OrdinalIgnoreCase);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

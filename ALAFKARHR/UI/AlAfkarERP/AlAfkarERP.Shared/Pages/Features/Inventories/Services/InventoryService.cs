@@ -113,6 +113,81 @@ public class InventoryService : BaseApiService, IInventoryService
         return await SendAsync<CreateResponseDto>(request, null);
     }
 
+    public async Task<ApiResult<List<WarehouseLocationDto>>> GetWarehouseLocationsAsync(Guid companyId) =>
+        await GetControlListAsync<WarehouseLocationDto>("warehouse-locations", companyId);
+
+    public async Task<ApiResult<CreateResponseDto>> SaveWarehouseLocationAsync(WarehouseLocationDto item) =>
+        await SaveControlAsync("warehouse-locations", item);
+
+    public async Task<ApiResult<string>> DeleteWarehouseLocationAsync(Guid id) =>
+        await DeleteControlAsync("warehouse-locations", id);
+
+    public async Task<ApiResult<List<PutawayRuleDto>>> GetPutawayRulesAsync(Guid companyId) =>
+        await GetControlListAsync<PutawayRuleDto>("putaway-rules", companyId);
+
+    public async Task<ApiResult<CreateResponseDto>> SavePutawayRuleAsync(PutawayRuleDto item) =>
+        await SaveControlAsync("putaway-rules", item);
+
+    public async Task<ApiResult<string>> DeletePutawayRuleAsync(Guid id) =>
+        await DeleteControlAsync("putaway-rules", id);
+
+    public async Task<ApiResult<List<QualityInspectionDto>>> GetQualityInspectionsAsync(Guid companyId) =>
+        await GetControlListAsync<QualityInspectionDto>("quality-inspections", companyId);
+
+    public async Task<ApiResult<CreateResponseDto>> SaveQualityInspectionAsync(QualityInspectionDto item) =>
+        await SaveControlAsync("quality-inspections", item);
+
+    public async Task<ApiResult<string>> DeleteQualityInspectionAsync(Guid id) =>
+        await DeleteControlAsync("quality-inspections", id);
+
+    public async Task<ApiResult<List<LandedCostVoucherDto>>> GetLandedCostVouchersAsync(Guid companyId) =>
+        await GetControlListAsync<LandedCostVoucherDto>("landed-cost-vouchers", companyId);
+
+    public async Task<ApiResult<CreateResponseDto>> SaveLandedCostVoucherAsync(LandedCostVoucherDto item) =>
+        await SaveControlAsync("landed-cost-vouchers", item);
+
+    public async Task<ApiResult<string>> PostLandedCostVoucherAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/inventory/controls/landed-cost-vouchers/{id}/post");
+        return await SendAsync<string>(request, null);
+    }
+
+    public async Task<ApiResult<string>> DeleteLandedCostVoucherAsync(Guid id) =>
+        await DeleteControlAsync("landed-cost-vouchers", id);
+
+    public async Task<ApiResult<List<InventoryValuationLayerDto>>> GetValuationLayersAsync(Guid companyId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/inventory/controls/valuation-layers/company/{companyId}");
+        return await SendAsync<List<InventoryValuationLayerDto>>(request, "items");
+    }
+
+    public async Task<ApiResult<List<ProjectedStockRowDto>>> GetProjectedStockAsync(Guid companyId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/inventory/controls/projected-stock/company/{companyId}");
+        return await SendAsync<List<ProjectedStockRowDto>>(request, "rows");
+    }
+
+    private async Task<ApiResult<List<T>>> GetControlListAsync<T>(string route, Guid companyId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/inventory/controls/{route}/company/{companyId}");
+        return await SendAsync<List<T>>(request, "items");
+    }
+
+    private async Task<ApiResult<CreateResponseDto>> SaveControlAsync<T>(string route, T item)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/inventory/controls/{route}")
+        {
+            Content = JsonContent.Create(item)
+        };
+        return await SendAsync<CreateResponseDto>(request, null);
+    }
+
+    private async Task<ApiResult<string>> DeleteControlAsync(string route, Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"api/{_apiConfig.Version}/inventory/controls/{route}/{id}");
+        return await SendAsync<string>(request, null);
+    }
+
     private static void EnsureAudit(CreateInventoryAggregateDto dto, string sourceDocumentType)
     {
         dto.SourceDocumentType = string.IsNullOrWhiteSpace(dto.SourceDocumentType)

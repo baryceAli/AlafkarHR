@@ -413,6 +413,83 @@ public class MenuItem
                 }
             }
         },
+        new MenuItem
+        {
+            TextEn = "Catering",
+            TextAr = "خدمات الإعاشة",
+            Icon = "bi-cup-hot",
+            PermissionPolicy = PermissionList.CateringContractPermissions.Select,
+            WorkspaceKey = NavigationMenuResolver.WorkspaceCatering,
+            KeywordsEn = "catering ramadan meals charity distribution haram squares refrigerated vehicles",
+            KeywordsAr = "إعاشة رمضان وجبات جمعية توزيع الحرم مربعات برادات",
+            Children = new()
+            {
+                new MenuItem
+                {
+                    TextEn = "Dashboard",
+                    TextAr = "لوحة الإعاشة",
+                    Icon = "bi-speedometer2",
+                    Url = "/Catering/Dashboard",
+                    PermissionPolicy = PermissionList.CateringReportsPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Contracts",
+                    TextAr = "عقود الإعاشة",
+                    Icon = "bi-file-earmark-check",
+                    Url = "/Catering/Contracts",
+                    PermissionPolicy = PermissionList.CateringContractPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Meals",
+                    TextAr = "الوجبات",
+                    Icon = "bi-box-seam",
+                    Url = "/Catering/Meals",
+                    PermissionPolicy = PermissionList.CateringMealPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Locations",
+                    TextAr = "مواقع التوزيع",
+                    Icon = "bi-geo-alt",
+                    Url = "/Catering/Locations",
+                    PermissionPolicy = PermissionList.CateringLocationPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Schedules",
+                    TextAr = "الجداول اليومية",
+                    Icon = "bi-calendar-week",
+                    Url = "/Catering/Schedules",
+                    PermissionPolicy = PermissionList.CateringSchedulePermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Deliveries",
+                    TextAr = "استلام البرادات",
+                    Icon = "bi-truck",
+                    Url = "/Catering/Deliveries",
+                    PermissionPolicy = PermissionList.CateringDeliveryPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Assignments",
+                    TextAr = "التكليفات",
+                    Icon = "bi-people",
+                    Url = "/Catering/Assignments",
+                    PermissionPolicy = PermissionList.CateringAssignmentPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Reports",
+                    TextAr = "تقارير الإعاشة",
+                    Icon = "bi-bar-chart-line",
+                    Url = "/Catering/Reports",
+                    PermissionPolicy = PermissionList.CateringReportsPermissions.View
+                }
+            }
+        },
         
         //Organizational Structure
         new MenuItem
@@ -998,6 +1075,14 @@ public class MenuItem
                         },
                         new MenuItem
                         {
+                            TextEn = "Controls",
+                            TextAr = "ضوابط المخزون",
+                            Icon = "bi-sliders",
+                            Url = "/Inventory/Controls",
+                            PermissionPolicy = PermissionList.InventoryPermissions.View,
+                        },
+                        new MenuItem
+                        {
                             TextEn = "Asset Instances",
                             TextAr = "الأصول المخزنية",
                             Icon = "bi-hdd-rack",
@@ -1104,6 +1189,54 @@ public class MenuItem
                             Icon = "bi-speedometer2",
                             Url = "/Procurement/Dashboard",
                             PermissionPolicy = PermissionList.PurchaseOrderPermissions.Select,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Procurement Controls",
+                            TextAr = "ضوابط المشتريات",
+                            Icon = "bi-diagram-3",
+                            Url = "/Procurement/Enhancements",
+                            PermissionPolicy = PermissionList.PurchaseOrderPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Supplier Items",
+                            TextAr = "أصناف الموردين",
+                            Icon = "bi-box-seam",
+                            Url = "/Procurement/SupplierItems",
+                            PermissionPolicy = PermissionList.PurchaseOrderPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Vendor Pricelists",
+                            TextAr = "قوائم أسعار الموردين",
+                            Icon = "bi-tags",
+                            Url = "/Procurement/VendorPricelists",
+                            PermissionPolicy = PermissionList.PurchaseOrderPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Reordering Rules",
+                            TextAr = "قواعد إعادة الطلب",
+                            Icon = "bi-arrow-repeat",
+                            Url = "/Procurement/ReorderingRules",
+                            PermissionPolicy = PermissionList.PurchaseRequestPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Procurement Tracker",
+                            TextAr = "متتبع المشتريات",
+                            Icon = "bi-activity",
+                            Url = "/Procurement/Tracker",
+                            PermissionPolicy = PermissionList.PurchaseOrderPermissions.View,
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Supplier Scorecard",
+                            TextAr = "تقييم الموردين",
+                            Icon = "bi-clipboard2-data",
+                            Url = "/Procurement/SupplierScorecard",
+                            PermissionPolicy = PermissionList.PurchaseOrderPermissions.View,
                         },
                         new MenuItem
                         {

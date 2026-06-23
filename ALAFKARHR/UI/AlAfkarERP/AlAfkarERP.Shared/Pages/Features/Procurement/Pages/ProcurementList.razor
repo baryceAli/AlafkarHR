@@ -67,7 +67,10 @@
                             <th>@SharedDataService.SelectViewLang("Date", "التاريخ")</th>
                             <th>@SharedDataService.SelectViewLang("Supplier", "المورد")</th>
                             <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
-                            <th>@SharedDataService.SelectViewLang("Total", "الإجمالي")</th>
+                            @if (ShowCommercialAmounts)
+                            {
+                                <th>@SharedDataService.SelectViewLang("Total", "الإجمالي")</th>
+                            }
                             <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
                         </tr>
                     </thead>
@@ -75,7 +78,7 @@
                         @if (FilteredDocuments.Count == 0)
                         {
                             <tr>
-                                <td colspan="6" class="text-center text-muted py-4">@SharedDataService.SelectViewLang("No documents found.", "لا توجد مستندات.")</td>
+                                <td colspan="@TableColumnCount" class="text-center text-muted py-4">@SharedDataService.SelectViewLang("No documents found.", "لا توجد مستندات.")</td>
                             </tr>
                         }
                         @foreach (var document in FilteredDocuments)
@@ -91,7 +94,10 @@
                                 <td>@document.DocumentDate.ToShortDateString()</td>
                                 <td>@(string.IsNullOrWhiteSpace(document.SupplierName) ? "-" : document.SupplierName)</td>
                                 <td><span class="badge text-bg-light">@document.Status</span></td>
-                                <td>@document.TotalAmount.ToString("N2")</td>
+                                @if (ShowCommercialAmounts)
+                                {
+                                    <td>@document.TotalAmount.ToString("N2")</td>
+                                }
                                 <td>
                                     <div class="d-flex justify-content-end gap-2">
                                         <button class="btn btn-outline-primary btn-sm erp-row-action" title="@SharedDataService.SelectViewLang("View", "عرض")" @onclick="() => Open(document.Id)">
@@ -129,6 +135,8 @@
     private bool CanCreate => HasPermission(ProcurementUiText.CreatePermission(kind));
     private bool CanEdit => HasPermission(ProcurementUiText.EditPermission(kind));
     private bool CanDelete => HasPermission(ProcurementUiText.DeletePermission(kind));
+    private bool ShowCommercialAmounts => kind is not ProcurementDocumentKind.PurchaseRequest and not ProcurementDocumentKind.RequestForQuotation;
+    private int TableColumnCount => ShowCommercialAmounts ? 6 : 5;
     private List<ProcurementDocumentDto> FilteredDocuments => string.IsNullOrWhiteSpace(statusFilter)
         ? documents
         : documents.Where(x => string.Equals(x.Status, statusFilter, StringComparison.OrdinalIgnoreCase)).ToList();

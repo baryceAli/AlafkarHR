@@ -1,0 +1,259 @@
+@layout AdminLayout
+@page "/Inventory/Controls"
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Inventory.Dtos
+
+@implements IDisposable
+@inject IInventoryService InventoryService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Inventory Controls", "ضوابط المخزون")"
+                Subtitle="@SharedDataService.SelectViewLang("Locations, putaway rules, quality inspections, landed costs, valuation, and projected stock.", "المواقع وقواعد التخزين وفحص الجودة والتكاليف المحملة والتقييم والمخزون المتوقع.")"
+                Overline="@SharedDataService.SelectViewLang("Inventory", "المخزون")"
+                Icon="bi bi-boxes" />
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3"></div>
+                <div class="fw-semibold">@SharedDataService.SelectViewLang("Loading inventory controls...", "جاري تحميل ضوابط المخزون...")</div>
+            </div>
+        </AppCard>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-xl-3 col-md-6">
+                <AppCard Title="@SharedDataService.SelectViewLang("Location", "الموقع")" CssClass="h-100">
+                    <EditForm Model="location" OnValidSubmit="SaveLocationAsync">
+                        <DataAnnotationsValidator />
+                        <div class="vstack gap-2">
+                            <input class="form-control" placeholder="@SharedDataService.SelectViewLang("Warehouse ID", "معرف المستودع")" @bind="location.WarehouseId" />
+                            <InputText class="form-control" placeholder="@SharedDataService.SelectViewLang("Code", "الرمز")" @bind-Value="location.Code" />
+                            <InputText class="form-control" placeholder="@SharedDataService.SelectViewLang("Arabic name", "الاسم العربي")" @bind-Value="location.Name" />
+                            <InputText class="form-control" placeholder="@SharedDataService.SelectViewLang("English name", "الاسم الإنجليزي")" @bind-Value="location.NameEng" />
+                            <InputSelect class="form-select" @bind-Value="location.LocationType">
+                                @foreach (var value in Enum.GetValues<WarehouseLocationType>())
+                                {
+                                    <option value="@value">@value</option>
+                                }
+                            </InputSelect>
+                            <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @SharedDataService.SelectViewLang("Save", "حفظ")</button>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <AppCard Title="@SharedDataService.SelectViewLang("Putaway Rule", "قاعدة التخزين")" CssClass="h-100">
+                    <EditForm Model="putawayRule" OnValidSubmit="SavePutawayRuleAsync">
+                        <DataAnnotationsValidator />
+                        <div class="vstack gap-2">
+                            <input class="form-control" placeholder="@SharedDataService.SelectViewLang("Warehouse ID", "معرف المستودع")" @bind="putawayRule.WarehouseId" />
+                            <input class="form-control" placeholder="@SharedDataService.SelectViewLang("SKU ID", "معرف SKU")" @bind="putawayRule.ProductSkuId" />
+                            <input class="form-control" placeholder="@SharedDataService.SelectViewLang("Destination Location ID", "معرف موقع التخزين")" @bind="putawayRule.DestinationLocationId" />
+                            <InputSelect class="form-select" @bind-Value="putawayRule.RemovalStrategy">
+                                @foreach (var value in Enum.GetValues<RemovalStrategy>())
+                                {
+                                    <option value="@value">@value</option>
+                                }
+                            </InputSelect>
+                            <InputNumber class="form-control" @bind-Value="putawayRule.Priority" placeholder="Priority" />
+                            <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @SharedDataService.SelectViewLang("Save", "حفظ")</button>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <AppCard Title="@SharedDataService.SelectViewLang("Quality Inspection", "فحص الجودة")" CssClass="h-100">
+                    <EditForm Model="inspection" OnValidSubmit="SaveInspectionAsync">
+                        <DataAnnotationsValidator />
+                        <div class="vstack gap-2">
+                            <input class="form-control" placeholder="@SharedDataService.SelectViewLang("Product ID", "معرف المنتج")" @bind="inspection.ProductId" />
+                            <input class="form-control" placeholder="@SharedDataService.SelectViewLang("SKU ID", "معرف SKU")" @bind="inspection.ProductSkuId" />
+                            <input class="form-control" placeholder="@SharedDataService.SelectViewLang("Batch ID", "معرف الدفعة")" @bind="inspection.BatchId" />
+                            <InputNumber class="form-control" @bind-Value="inspection.Quantity" placeholder="Quantity" />
+                            <InputSelect class="form-select" @bind-Value="inspection.Status">
+                                @foreach (var value in Enum.GetValues<QualityInspectionStatus>())
+                                {
+                                    <option value="@value">@value</option>
+                                }
+                            </InputSelect>
+                            <InputText class="form-control" placeholder="@SharedDataService.SelectViewLang("Result notes", "ملاحظات النتيجة")" @bind-Value="inspection.ResultNotes" />
+                            <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @SharedDataService.SelectViewLang("Save", "حفظ")</button>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <AppCard Title="@SharedDataService.SelectViewLang("Landed Cost", "التكلفة المحملة")" CssClass="h-100">
+                    <EditForm Model="landedCost" OnValidSubmit="SaveLandedCostAsync">
+                        <DataAnnotationsValidator />
+                        <div class="vstack gap-2">
+                            <input class="form-control" placeholder="@SharedDataService.SelectViewLang("Receipt Document ID", "معرف مستند الاستلام")" @bind="landedCost.SourceDocumentId" />
+                            <InputText class="form-control" placeholder="@SharedDataService.SelectViewLang("Receipt Number", "رقم الاستلام")" @bind-Value="landedCost.SourceDocumentNumber" />
+                            <InputSelect class="form-select" @bind-Value="landedCost.AllocationMethod">
+                                @foreach (var value in Enum.GetValues<LandedCostAllocationMethod>())
+                                {
+                                    <option value="@value">@value</option>
+                                }
+                            </InputSelect>
+                            <div class="row g-2">
+                                <div class="col"><InputNumber class="form-control" @bind-Value="landedCost.FreightAmount" placeholder="Freight" /></div>
+                                <div class="col"><InputNumber class="form-control" @bind-Value="landedCost.CustomsAmount" placeholder="Customs" /></div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col"><InputNumber class="form-control" @bind-Value="landedCost.HandlingAmount" placeholder="Handling" /></div>
+                                <div class="col"><InputNumber class="form-control" @bind-Value="landedCost.OtherAmount" placeholder="Other" /></div>
+                            </div>
+                            <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @SharedDataService.SelectViewLang("Save", "حفظ")</button>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-xl-6">
+                <AppCard Title="@SharedDataService.SelectViewLang("Projected Stock", "المخزون المتوقع")">
+                    <div class="erp-table-wrap">
+                        <table class="erp-table table">
+                            <thead>
+                                <tr>
+                                    <th>SKU</th>
+                                    <th>@SharedDataService.SelectViewLang("On hand", "المتوفر")</th>
+                                    <th>@SharedDataService.SelectViewLang("Reserved", "محجوز")</th>
+                                    <th>@SharedDataService.SelectViewLang("Incoming", "وارد")</th>
+                                    <th>@SharedDataService.SelectViewLang("Forecast", "التوقع")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in projectedStock.Take(50))
+                                {
+                                    <tr>
+                                        <td>@row.ProductSkuId</td>
+                                        <td>@row.OnHandQuantity</td>
+                                        <td>@row.ReservedQuantity</td>
+                                        <td>@row.IncomingQuantity</td>
+                                        <td>@row.ForecastedQuantity</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+            <div class="col-xl-6">
+                <AppCard Title="@SharedDataService.SelectViewLang("Valuation Layers", "طبقات التقييم")">
+                    <div class="erp-table-wrap">
+                        <table class="erp-table table">
+                            <thead>
+                                <tr>
+                                    <th>@SharedDataService.SelectViewLang("Reference", "المرجع")</th>
+                                    <th>SKU</th>
+                                    <th>@SharedDataService.SelectViewLang("Qty", "الكمية")</th>
+                                    <th>@SharedDataService.SelectViewLang("Cost", "التكلفة")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in valuationLayers.Take(50))
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">@row.ReferenceNumber</div>
+                                            <div class="text-muted small">@row.SourceDocumentType</div>
+                                        </td>
+                                        <td>@row.ProductSkuId</td>
+                                        <td>@row.Quantity</td>
+                                        <td>@row.TotalCost</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private bool isLoading = true;
+    private WarehouseLocationDto location = new();
+    private PutawayRuleDto putawayRule = new();
+    private QualityInspectionDto inspection = new();
+    private LandedCostVoucherDto landedCost = new();
+    private List<ProjectedStockRowDto> projectedStock = [];
+    private List<InventoryValuationLayerDto> valuationLayers = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var auth = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (!CompanyContext.TryGetCompanyId(auth.User, out companyId))
+        {
+            isLoading = false;
+            return;
+        }
+
+        ResetForms();
+        await LoadReportsAsync();
+        isLoading = false;
+    }
+
+    private void ResetForms()
+    {
+        location = new WarehouseLocationDto { CompanyId = companyId, IsActive = true };
+        putawayRule = new PutawayRuleDto { CompanyId = companyId, IsActive = true };
+        inspection = new QualityInspectionDto { CompanyId = companyId, InspectionDate = DateTime.UtcNow, Quantity = 1 };
+        landedCost = new LandedCostVoucherDto { CompanyId = companyId, VoucherDate = DateTime.UtcNow };
+    }
+
+    private async Task LoadReportsAsync()
+    {
+        var projected = await InventoryService.GetProjectedStockAsync(companyId);
+        if (projected.IsSuccess)
+            projectedStock = projected.Data ?? [];
+
+        var valuation = await InventoryService.GetValuationLayersAsync(companyId);
+        if (valuation.IsSuccess)
+            valuationLayers = valuation.Data ?? [];
+    }
+
+    private async Task SaveLocationAsync() => await SaveAsync(() => InventoryService.SaveWarehouseLocationAsync(location));
+    private async Task SavePutawayRuleAsync() => await SaveAsync(() => InventoryService.SavePutawayRuleAsync(putawayRule));
+    private async Task SaveInspectionAsync() => await SaveAsync(() => InventoryService.SaveQualityInspectionAsync(inspection));
+    private async Task SaveLandedCostAsync() => await SaveAsync(() => InventoryService.SaveLandedCostVoucherAsync(landedCost));
+
+    private async Task SaveAsync(Func<Task<ApiResult<CreateResponseDto>>> action)
+    {
+        var result = await action();
+        ToastService.Show(new ToastMessage
+        {
+            Type = result.IsSuccess ? "success" : "error",
+            Message = result.IsSuccess
+                ? SharedDataService.SelectViewLang("Saved.", "تم الحفظ.")
+                : result.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Save failed.", "فشل الحفظ.")
+        });
+
+        if (result.IsSuccess)
+        {
+            ResetForms();
+            await LoadReportsAsync();
+        }
+    }
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

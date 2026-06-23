@@ -12,6 +12,9 @@ public class ProcurementDbContext(DbContextOptions<ProcurementDbContext> options
     public DbSet<GoodsReceipt> GoodsReceipts => Set<GoodsReceipt>();
     public DbSet<PurchaseReturn> PurchaseReturns => Set<PurchaseReturn>();
     public DbSet<SupplierInvoice> SupplierInvoices => Set<SupplierInvoice>();
+    public DbSet<SupplierItem> SupplierItems => Set<SupplierItem>();
+    public DbSet<VendorPricelist> VendorPricelists => Set<VendorPricelist>();
+    public DbSet<ReorderingRule> ReorderingRules => Set<ReorderingRule>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

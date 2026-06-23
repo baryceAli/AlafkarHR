@@ -1,0 +1,134 @@
+﻿@page "/Catering/Contracts"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Catering.Services
+@using AlAfkarERP.Shared.Pages.Features.Customers.Services
+@using SharedWithUI.Catering.Dtos
+@using SharedWithUI.Catering.Enums
+@using SharedWithUI.Customers.Dtos
+@inject ICateringService CateringService
+@inject ICustomerService CustomerService
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Catering Contracts", "عقود الإعاشة")" Subtitle="@Text("Create charity contracts, add addendums, and monitor allowance totals.", "إنشاء عقود الجمعيات وإضافة الملاحق ومتابعة إجمالي الكميات.")" Icon="bi-file-earmark-check" />
+    @StatusBlock()
+
+    <div class="erp-card mb-3"><div class="erp-card-body">
+        <EditForm Model="contract" OnValidSubmit="SaveAsync"><DataAnnotationsValidator />
+            <div class="row g-2">
+                <div class="col-md-3"><label class="form-label">@Text("Charity", "الجمعية")</label><select class="form-select" @bind="contract.CustomerId"><option value="@Guid.Empty">@Text("Select charity", "اختر الجمعية")</option>@foreach (var c in customers) { <option value="@c.Id">@CustomerName(c)</option> }</select></div>
+                <div class="col-md-3"><label class="form-label">@Text("Meal", "الوجبة")</label><select class="form-select" @bind="contract.MealDefinitionId"><option value="@Guid.Empty">@Text("Select meal", "اختر الوجبة")</option>@foreach (var m in meals) { <option value="@m.Id">@Display(m.Name, m.NameEng)</option> }</select></div>
+                <div class="col-md-2"><label class="form-label">@Text("Service", "الخدمة")</label><InputSelect class="form-select" @bind-Value="contract.ServiceType">@foreach (var type in Enum.GetValues<CateringServiceType>()) { <option value="@type">@type</option> }</InputSelect></div>
+                <div class="col-md-2"><label class="form-label">@Text("Status", "الحالة")</label><InputSelect class="form-select" @bind-Value="contract.Status">@foreach (var status in Enum.GetValues<CateringContractStatus>()) { <option value="@status">@status</option> }</InputSelect></div>
+                <div class="col-md-2"><label class="form-label">@Text("Season", "الموسم")</label><InputText class="form-control" @bind-Value="contract.SeasonLabel" /></div>
+                <div class="col-md-2"><label class="form-label">@Text("Ramadan year", "سنة رمضان")</label><InputNumber class="form-control" @bind-Value="contract.RamadanYear" /></div>
+                <div class="col-md-2"><label class="form-label">@Text("Start", "البداية")</label><InputDate class="form-control" @bind-Value="contract.StartDate" /></div>
+                <div class="col-md-2"><label class="form-label">@Text("End", "النهاية")</label><InputDate class="form-control" @bind-Value="contract.EndDate" /></div>
+                <div class="col-md-2"><label class="form-label">@Text("Quantity", "الكمية")</label><InputNumber class="form-control" @bind-Value="contract.ContractedMealQuantity" /></div>
+                <div class="col-md-3"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="contract.Notes" /></div>
+                <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit" disabled="@busy" title="@Text("Save", "حفظ")"><i class="bi bi-save"></i></button></div>
+            </div>
+        </EditForm>
+    </div></div>
+
+    @if (selectedContract is not null)
+    {
+        <div class="erp-card mb-3"><div class="erp-card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">@Text("Addendum", "ملحق العقد") - @selectedContract.Number</h6><button class="btn btn-outline-secondary btn-sm" @onclick="() => selectedContract = null" title="@Text("Close", "إغلاق")"><i class="bi bi-x-lg"></i></button></div>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-2"><label class="form-label">@Text("Added quantity", "الكمية المضافة")</label><InputNumber class="form-control" @bind-Value="addendum.AddedQuantity" /></div>
+                <div class="col-md-2"><label class="form-label">@Text("Effective from", "يسري من")</label><InputDate class="form-control" @bind-Value="addendum.EffectiveFrom" /></div>
+                <div class="col-md-2"><label class="form-label">@Text("Effective to", "يسري إلى")</label><InputDate class="form-control" @bind-Value="addendum.EffectiveTo" /></div>
+                <div class="col-md-5"><label class="form-label">@Text("Reason", "السبب")</label><InputText class="form-control" @bind-Value="addendum.Reason" /></div>
+                <div class="col-md-1"><button class="btn btn-primary w-100" @onclick="AddAddendumAsync" disabled="@busy" title="@Text("Add", "إضافة")"><i class="bi bi-plus-lg"></i></button></div>
+            </div>
+            <div class="mt-3 text-muted">@Text("Total contracted", "إجمالي المتعاقد عليه"): @selectedContract.TotalContractedMealQuantity.ToString("N0")</div>
+        </div></div>
+    }
+
+    <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("No.", "الرقم")</th><th>@Text("Charity", "الجمعية")</th><th>@Text("Meal", "الوجبة")</th><th>@Text("Season", "الموسم")</th><th>@Text("Contract", "العقد")</th><th>@Text("Addendum", "الملاحق")</th><th>@Text("Total", "الإجمالي")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>
+        @if (loading) { <tr><td colspan="9" class="text-muted">@Text("Loading contracts...", "جاري تحميل العقود...")</td></tr> }
+        else if (!contracts.Any()) { <tr><td colspan="9" class="text-muted">@Text("No contracts found.", "لا توجد عقود.")</td></tr> }
+        @foreach (var item in contracts)
+        {
+            <tr><td>@item.Number</td><td>@Display(item.CustomerName, item.CustomerNameEng)</td><td>@Display(item.MealName ?? "-", item.MealNameEng)</td><td>@item.SeasonLabel</td><td>@item.ContractedMealQuantity.ToString("N0")</td><td>@item.AddendumMealQuantity.ToString("N0")</td><td>@item.TotalContractedMealQuantity.ToString("N0")</td><td>@item.Status</td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => Edit(item)" disabled="@busy" title="@Text("Edit", "تعديل")"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => SelectContractAsync(item.Id)" disabled="@busy" title="@Text("Addendum", "ملحق")"><i class="bi bi-plus-square"></i></button><button class="btn btn-sm btn-outline-warning me-1" @onclick="() => CloseAsync(item.Id)" disabled="@busy" title="@Text("Close", "إغلاق")"><i class="bi bi-lock"></i></button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(item.Id)" disabled="@busy" title="@Text("Delete", "حذف")"><i class="bi bi-trash"></i></button></td></tr>
+        }
+    </tbody></table></div>
+</div>
+
+@code {
+    private CateringContractDto contract = NewContract();
+    private CateringContractAddendumDto addendum = new() { EffectiveFrom = DateTime.Today };
+    private CateringContractDto? selectedContract;
+    private List<CateringContractDto> contracts = [];
+    private List<MealDefinitionDto> meals = [];
+    private List<CustomerDto> customers = [];
+    private bool loading;
+    private bool busy;
+    private string? message;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync() { SharedDataService.OnChange1 += HandleChangeAsync; await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        loading = true; errorMessage = null;
+        var contractResult = await CateringService.GetContractsAsync(0, 200, ApiConfig.CompanyId);
+        var mealResult = await CateringService.GetMealsAsync(0, 200, ApiConfig.CompanyId, activeOnly: true);
+        var customerResult = await CustomerService.GetByCompany(ApiConfig.CompanyId, 0, 500);
+        if (contractResult.IsSuccess) contracts = contractResult.Data?.Data.ToList() ?? []; else errorMessage = Error(contractResult.Error);
+        if (mealResult.IsSuccess) meals = mealResult.Data?.Data.ToList() ?? [];
+        if (customerResult.IsSuccess) customers = customerResult.Data?.Data.ToList() ?? [];
+        loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (contract.CustomerId == Guid.Empty || contract.MealDefinitionId == Guid.Empty) { errorMessage = Text("Select charity and meal.", "اختر الجمعية والوجبة."); return; }
+        var customer = customers.FirstOrDefault(x => x.Id == contract.CustomerId);
+        var selectedMeal = meals.FirstOrDefault(x => x.Id == contract.MealDefinitionId);
+        contract.CompanyId = ApiConfig.CompanyId; contract.CustomerName = customer?.Name ?? contract.CustomerName; contract.CustomerNameEng = customer?.CommercialName; contract.MealName = selectedMeal?.Name; contract.MealNameEng = selectedMeal?.NameEng;
+        busy = true;
+        var success = false;
+        string? failure = null;
+        if (contract.Id == Guid.Empty)
+        {
+            var result = await CateringService.CreateContractAsync(contract);
+            success = result.IsSuccess;
+            failure = Error(result.Error);
+        }
+        else
+        {
+            var result = await CateringService.UpdateContractAsync(contract);
+            success = result.IsSuccess;
+            failure = Error(result.Error);
+        }
+        SetStatus(success, Text("Contract saved.", "تم حفظ العقد."), failure); contract = NewContract(); await LoadAsync(); busy = false;
+    }
+
+    private void Edit(CateringContractDto item) => contract = new() { Id = item.Id, Number = item.Number, CompanyId = item.CompanyId, BranchId = item.BranchId, CustomerId = item.CustomerId, CustomerName = item.CustomerName, CustomerNameEng = item.CustomerNameEng, GenericContractId = item.GenericContractId, ServiceType = item.ServiceType, SeasonLabel = item.SeasonLabel, RamadanYear = item.RamadanYear, StartDate = item.StartDate, EndDate = item.EndDate, ContractedMealQuantity = item.ContractedMealQuantity, AddendumMealQuantity = item.AddendumMealQuantity, TotalContractedMealQuantity = item.TotalContractedMealQuantity, MealDefinitionId = item.MealDefinitionId, MealName = item.MealName, MealNameEng = item.MealNameEng, Status = item.Status, Notes = item.Notes, Addendums = item.Addendums };
+    private async Task SelectContractAsync(Guid id) { var result = await CateringService.GetContractByIdAsync(id); if (result.IsSuccess) selectedContract = result.Data; else errorMessage = Error(result.Error); }
+
+    private async Task AddAddendumAsync()
+    {
+        if (selectedContract is null) return;
+        busy = true; var result = await CateringService.AddAddendumAsync(selectedContract.Id, addendum); SetStatus(result.IsSuccess, Text("Addendum added.", "تمت إضافة الملحق."), Error(result.Error)); addendum = new() { EffectiveFrom = DateTime.Today }; await SelectContractAsync(selectedContract.Id); await LoadAsync(); busy = false;
+    }
+
+    private async Task CloseAsync(Guid id) { busy = true; var result = await CateringService.CloseContractAsync(id); SetStatus(result.IsSuccess, Text("Contract closed.", "تم إغلاق العقد."), Error(result.Error)); await LoadAsync(); busy = false; }
+    private async Task DeleteAsync(Guid id) { busy = true; var result = await CateringService.DeleteContractAsync(id); SetStatus(result.IsSuccess, Text("Contract deleted.", "تم حذف العقد."), Error(result.Error)); await LoadAsync(); busy = false; }
+
+    private RenderFragment StatusBlock() => @<div>@if (!string.IsNullOrWhiteSpace(message)) { <div class="alert alert-success py-2">@message</div> } @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger py-2">@errorMessage</div> }</div>;
+    private void SetStatus(bool success, string successMessage, string? failureMessage) { message = success ? successMessage : null; errorMessage = success ? null : failureMessage; }
+    private static CateringContractDto NewContract() => new() { StartDate = DateTime.Today, EndDate = DateTime.Today, ServiceType = CateringServiceType.Ramadan, Status = CateringContractStatus.Active };
+    private string CustomerName(CustomerDto customer) => string.IsNullOrWhiteSpace(customer.CommercialName) ? customer.Name : $"{customer.Name} - {customer.CommercialName}";
+    private string Display(string name, string? nameEng) => SharedDataService.Language == "Ar" ? name : (string.IsNullOrWhiteSpace(nameEng) ? name : nameEng);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Error(ErrorResponseDto? error) => error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Operation failed.", "تعذرت العملية.");
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}
+

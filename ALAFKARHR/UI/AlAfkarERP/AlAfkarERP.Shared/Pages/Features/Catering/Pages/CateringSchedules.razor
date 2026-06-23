@@ -1,0 +1,114 @@
+﻿@page "/Catering/Schedules"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Catering.Services
+@using SharedWithUI.Catering.Dtos
+@inject ICateringService CateringService
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Schedules", "الجداول")" Subtitle="@Text("Plan daily quantities, allocate meals to squares, and record distribution actuals.", "تخطيط الكميات اليومية وتوزيعها على المربعات وتسجيل الفعلي.")" Icon="bi-calendar2-week" />
+    @StatusBlock()
+
+    <div class="erp-card mb-3"><div class="erp-card-body">
+        <EditForm Model="schedule" OnValidSubmit="SaveScheduleAsync"><DataAnnotationsValidator />
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4"><label class="form-label">@Text("Contract", "العقد")</label><select class="form-select" @bind="schedule.CateringContractId"><option value="@Guid.Empty">@Text("Select contract", "اختر العقد")</option>@foreach (var item in contracts) { <option value="@item.Id">@item.Number - @Display(item.CustomerName, item.CustomerNameEng)</option> }</select></div>
+                <div class="col-md-2"><label class="form-label">@Text("Service date", "تاريخ الخدمة")</label><InputDate class="form-control" @bind-Value="schedule.ServiceDate" /></div>
+                <div class="col-md-2"><label class="form-label">@Text("Planned", "المخطط")</label><InputNumber class="form-control" @bind-Value="schedule.PlannedQuantity" /></div>
+                <div class="col-md-3"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="schedule.Notes" /></div>
+                <div class="col-md-1"><button class="btn btn-primary w-100" type="submit" disabled="@busy"><i class="bi bi-save"></i></button></div>
+            </div>
+        </EditForm>
+    </div></div>
+
+    @if (selectedSchedule is not null)
+    {
+        <div class="erp-card mb-3"><div class="erp-card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">@Text("Square allocations", "توزيع المربعات") - @selectedSchedule.ServiceDate.ToString("yyyy-MM-dd")</h6><button class="btn btn-outline-secondary btn-sm" @onclick="ClearSelectedSchedule"><i class="bi bi-x-lg"></i></button></div>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-5"><label class="form-label">@Text("Square", "المربع")</label><select class="form-select" @bind="allocation.SquareId"><option value="@Guid.Empty">@Text("Select square", "اختر المربع")</option>@foreach (var square in squares) { <option value="@square.Id">@square.Code - @Display(square.Name, square.NameEng)</option> }</select></div>
+                <div class="col-md-2"><label class="form-label">@Text("Planned", "المخطط")</label><InputNumber class="form-control" @bind-Value="allocation.PlannedQuantity" /></div>
+                <div class="col-md-4"><label class="form-label">@Text("Variance notes", "ملاحظات الفروقات")</label><InputText class="form-control" @bind-Value="allocation.VarianceNotes" /></div>
+                <div class="col-md-1"><button class="btn btn-primary w-100" @onclick="AddAllocationAsync" disabled="@busy"><i class="bi bi-plus-lg"></i></button></div>
+            </div>
+
+            @if (actualAllocation is not null)
+            {
+                <div class="row g-2 align-items-end mt-2">
+                    <div class="col-md-4"><label class="form-label">@Text("Actual square", "المربع الفعلي")</label><input class="form-control" value="@actualAllocation.SquareName" disabled /></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Received", "المستلم")</label><InputNumber class="form-control" @bind-Value="actualAllocation.ReceivedQuantity" /></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Distributed", "الموزع")</label><InputNumber class="form-control" @bind-Value="actualAllocation.DistributedQuantity" /></div>
+                    <div class="col-md-3"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="actualAllocation.VarianceNotes" /></div>
+                    <div class="col-md-1"><button class="btn btn-outline-primary w-100" @onclick="SaveActualsAsync" disabled="@busy"><i class="bi bi-check-lg"></i></button></div>
+                </div>
+            }
+
+            <div class="erp-table-wrap mt-3"><table class="table erp-table align-middle"><thead><tr><th>@Text("Square", "المربع")</th><th>@Text("Planned", "المخطط")</th><th>@Text("Received", "المستلم")</th><th>@Text("Distributed", "الموزع")</th><th>@Text("Variance", "الفرق")</th><th></th></tr></thead><tbody>
+                @if (!selectedSchedule.Allocations.Any()) { <tr><td colspan="6" class="text-muted">@Text("No allocations yet.", "لا توجد توزيعات بعد.")</td></tr> }
+                @foreach (var item in selectedSchedule.Allocations) { <tr><td>@Display(item.SquareName, item.SquareNameEng)</td><td>@item.PlannedQuantity.ToString("N0")</td><td>@item.ReceivedQuantity.ToString("N0")</td><td>@item.DistributedQuantity.ToString("N0")</td><td>@item.VarianceQuantity.ToString("N0")</td><td class="text-end"><button class="btn btn-sm btn-outline-primary" @onclick="() => EditActuals(item)"><i class="bi bi-pencil-square"></i></button></td></tr> }
+            </tbody></table></div>
+        </div></div>
+    }
+
+    <div class="erp-card mb-3"><div class="erp-card-body"><div class="row g-2 align-items-end"><div class="col-md-4"><label class="form-label">@Text("Filter contract", "تصفية العقد")</label><select class="form-select" @bind="filterContractId"><option value="">@Text("All contracts", "كل العقود")</option>@foreach (var item in contracts) { <option value="@item.Id">@item.Number - @Display(item.CustomerName, item.CustomerNameEng)</option> }</select></div><div class="col-md-2"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="fromDate" /></div><div class="col-md-2"><label class="form-label">@Text("To", "إلى")</label><InputDate class="form-control" @bind-Value="toDate" /></div><div class="col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadSchedulesAsync"><i class="bi bi-funnel"></i> @Text("Apply", "تطبيق")</button></div></div></div></div>
+
+    <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Contract", "العقد")</th><th>@Text("Planned", "المخطط")</th><th>@Text("Received", "المستلم")</th><th>@Text("Distributed", "الموزع")</th><th>@Text("Allocations", "التوزيعات")</th><th></th></tr></thead><tbody>
+        @if (loading) { <tr><td colspan="7" class="text-muted">@Text("Loading schedules...", "جاري تحميل الجداول...")</td></tr> }
+        else if (!schedules.Any()) { <tr><td colspan="7" class="text-muted">@Text("No schedules found.", "لا توجد جداول.")</td></tr> }
+        @foreach (var item in schedules) { <tr><td>@item.ServiceDate.ToString("yyyy-MM-dd")</td><td>@ContractLabel(item.CateringContractId)</td><td>@item.PlannedQuantity.ToString("N0")</td><td>@item.ReceivedQuantity.ToString("N0")</td><td>@item.DistributedQuantity.ToString("N0")</td><td>@item.Allocations.Count</td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditSchedule(item)"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-secondary" @onclick="() => SelectSchedule(item)"><i class="bi bi-diagram-3"></i></button></td></tr> }
+    </tbody></table></div>
+</div>
+
+@code {
+    private CateringDailyScheduleDto schedule = NewSchedule();
+    private CateringSquareAllocationDto allocation = new();
+    private CateringSquareAllocationDto? actualAllocation;
+    private CateringDailyScheduleDto? selectedSchedule;
+    private List<CateringDailyScheduleDto> schedules = [];
+    private List<CateringContractDto> contracts = [];
+    private List<CateringSquareDto> squares = [];
+    private Guid? filterContractId;
+    private DateTime? fromDate;
+    private DateTime? toDate;
+    private bool loading;
+    private bool busy;
+    private string? message;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync() { SharedDataService.OnChange1 += HandleChangeAsync; await LoadLookupsAsync(); await LoadSchedulesAsync(); }
+    private async Task LoadLookupsAsync() { var contractResult = await CateringService.GetContractsAsync(0, 300, ApiConfig.CompanyId); var squareResult = await CateringService.GetSquaresAsync(0, 500, ApiConfig.CompanyId); if (contractResult.IsSuccess) contracts = contractResult.Data?.Data.ToList() ?? []; if (squareResult.IsSuccess) squares = squareResult.Data?.Data.ToList() ?? []; }
+    private async Task LoadSchedulesAsync() { loading = true; var result = await CateringService.GetSchedulesAsync(0, 300, filterContractId, fromDate, toDate); if (result.IsSuccess) schedules = result.Data?.Data.ToList() ?? []; else errorMessage = Error(result.Error); loading = false; }
+
+    private async Task SaveScheduleAsync()
+    {
+        if (schedule.CateringContractId == Guid.Empty) { errorMessage = Text("Select contract first.", "اختر العقد أولا."); return; }
+        busy = true;
+        var success = false;
+        string? failure = null;
+        if (schedule.Id == Guid.Empty) { var result = await CateringService.CreateScheduleAsync(schedule); success = result.IsSuccess; failure = Error(result.Error); }
+        else { var result = await CateringService.UpdateScheduleAsync(schedule); success = result.IsSuccess; failure = Error(result.Error); }
+        SetStatus(success, Text("Schedule saved.", "تم حفظ الجدول."), failure); schedule = NewSchedule(); await LoadSchedulesAsync(); busy = false;
+    }
+    private void EditSchedule(CateringDailyScheduleDto item) => schedule = new() { Id = item.Id, CateringContractId = item.CateringContractId, ServiceDate = item.ServiceDate, PlannedQuantity = item.PlannedQuantity, ReceivedQuantity = item.ReceivedQuantity, DistributedQuantity = item.DistributedQuantity, Notes = item.Notes, Allocations = item.Allocations };
+    private void SelectSchedule(CateringDailyScheduleDto item) { selectedSchedule = item; allocation = new(); actualAllocation = null; }
+    private void ClearSelectedSchedule() { selectedSchedule = null; allocation = new(); actualAllocation = null; }
+
+    private async Task AddAllocationAsync() { if (selectedSchedule is null || allocation.SquareId == Guid.Empty) { errorMessage = Text("Select schedule and square.", "اختر الجدول والمربع."); return; } busy = true; var result = await CateringService.CreateAllocationAsync(selectedSchedule.Id, allocation); SetStatus(result.IsSuccess, Text("Allocation added.", "تمت إضافة التوزيع."), Error(result.Error)); allocation = new(); await ReloadSelectedScheduleAsync(); busy = false; }
+    private void EditActuals(CateringSquareAllocationDto item) => actualAllocation = new() { Id = item.Id, DailyScheduleId = item.DailyScheduleId, SquareId = item.SquareId, SquareName = item.SquareName, SquareNameEng = item.SquareNameEng, PlannedQuantity = item.PlannedQuantity, ReceivedQuantity = item.ReceivedQuantity, DistributedQuantity = item.DistributedQuantity, VarianceNotes = item.VarianceNotes };
+    private async Task SaveActualsAsync() { if (actualAllocation is null) return; busy = true; var result = await CateringService.RecordAllocationActualsAsync(actualAllocation.Id, actualAllocation.ReceivedQuantity, actualAllocation.DistributedQuantity, actualAllocation.VarianceNotes); SetStatus(result.IsSuccess, Text("Actuals saved.", "تم حفظ الفعلي."), Error(result.Error)); actualAllocation = null; await ReloadSelectedScheduleAsync(); busy = false; }
+    private async Task ReloadSelectedScheduleAsync() { await LoadSchedulesAsync(); if (selectedSchedule is not null) selectedSchedule = schedules.FirstOrDefault(x => x.Id == selectedSchedule.Id); }
+
+    private string ContractLabel(Guid id) { var contract = contracts.FirstOrDefault(x => x.Id == id); return contract is null ? id.ToString() : $"{contract.Number} - {Display(contract.CustomerName, contract.CustomerNameEng)}"; }
+    private RenderFragment StatusBlock() => @<div>@if (!string.IsNullOrWhiteSpace(message)) { <div class="alert alert-success py-2">@message</div> } @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger py-2">@errorMessage</div> }</div>;
+    private void SetStatus(bool success, string successMessage, string? failureMessage) { message = success ? successMessage : null; errorMessage = success ? null : failureMessage; }
+    private static CateringDailyScheduleDto NewSchedule() => new() { ServiceDate = DateTime.Today };
+    private string Display(string name, string? nameEng) => SharedDataService.Language == "Ar" ? name : (string.IsNullOrWhiteSpace(nameEng) ? name : nameEng);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Error(ErrorResponseDto? error) => error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Operation failed.", "تعذرت العملية.");
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}
+

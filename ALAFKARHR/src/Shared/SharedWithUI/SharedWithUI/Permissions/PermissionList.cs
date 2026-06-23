@@ -40,6 +40,14 @@ public static class PermissionList
             .. SupplierGroupPermissions.Permissions,
             .. SupplierPermissions.Permissions,
             .. CartPermissions.Permissions,
+            .. CateringContractPermissions.Permissions,
+            .. CateringMealPermissions.Permissions,
+            .. CateringLocationPermissions.Permissions,
+            .. CateringSchedulePermissions.Permissions,
+            .. CateringDeliveryPermissions.Permissions,
+            .. CateringDistributionPermissions.Permissions,
+            .. CateringAssignmentPermissions.Permissions,
+            .. CateringReportsPermissions.Permissions,
             .. OrderIntakePermissions.Permissions,
             .. PaymentPermissions.Permissions,
             .. ContractPermissions.Permissions,
@@ -1555,6 +1563,84 @@ public static class PermissionList
                 $"{Create}",
                 $"{Edit}",
             };
+    }
+
+    public static class CateringContractPermissions
+    {
+        public static string GroupName { get; set; } = "Catering.Contract";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Addendum { get; set; } = $"{GroupName}.Addendum";
+        public static string Close { get; set; } = $"{GroupName}.Close";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Addendum, Close];
+    }
+
+    public static class CateringMealPermissions
+    {
+        public static string GroupName { get; set; } = "Catering.Meal";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete];
+    }
+
+    public static class CateringLocationPermissions
+    {
+        public static string GroupName { get; set; } = "Catering.Location";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete];
+    }
+
+    public static class CateringSchedulePermissions
+    {
+        public static string GroupName { get; set; } = "Catering.Schedule";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static List<string> Permissions => [View, Create, Edit];
+    }
+
+    public static class CateringDeliveryPermissions
+    {
+        public static string GroupName { get; set; } = "Catering.Delivery";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static List<string> Permissions => [View, Create, Edit];
+    }
+
+    public static class CateringDistributionPermissions
+    {
+        public static string GroupName { get; set; } = "Catering.Distribution";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static List<string> Permissions => [View, Edit];
+    }
+
+    public static class CateringAssignmentPermissions
+    {
+        public static string GroupName { get; set; } = "Catering.Assignment";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static List<string> Permissions => [View, Create, Edit, Delete];
+    }
+
+    public static class CateringReportsPermissions
+    {
+        public static string GroupName { get; set; } = "Catering.Reports";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static List<string> Permissions => [View];
     }
 
     public static class AccountingDashboardPermissions

@@ -1,0 +1,122 @@
+﻿@page "/Catering/Locations"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Catering.Services
+@using SharedWithUI.Catering.Dtos
+@inject ICateringService CateringService
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Locations", "مواقع التوزيع")" Subtitle="@Text("Manage Haram areas and distribution squares with their operational locations.", "إدارة الساحات والمربعات التشغيلية ومواقعها.")" Icon="bi-geo-alt" />
+    @StatusBlock()
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-5"><div class="erp-card"><div class="erp-card-body">
+            <h6>@Text("Area", "الساحة")</h6>
+            <EditForm Model="area" OnValidSubmit="SaveAreaAsync"><DataAnnotationsValidator />
+                <div class="row g-2">
+                    <div class="col-md-6"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="area.Name" /></div>
+                    <div class="col-md-6"><label class="form-label">@Text("English name", "الاسم الإنجليزي")</label><InputText class="form-control" @bind-Value="area.NameEng" /></div>
+                    <div class="col-md-6"><label class="form-label">@Text("Gender group", "الفئة")</label><InputText class="form-control" @bind-Value="area.GenderGroup" placeholder="Men / Women" /></div>
+                    <div class="col-md-6"><label class="form-label">@Text("Location", "الموقع")</label><InputText class="form-control" @bind-Value="area.LocationText" /></div>
+                    <div class="col-md-6"><div class="form-check mt-2"><InputCheckbox class="form-check-input" @bind-Value="area.IsActive" /><label class="form-check-label">@Text("Active", "نشط")</label></div></div>
+                    <div class="col-md-6 text-end"><button class="btn btn-primary" type="submit" disabled="@busy"><i class="bi bi-save"></i> @Text("Save area", "حفظ الساحة")</button></div>
+                </div>
+            </EditForm>
+        </div></div></div>
+
+        <div class="col-lg-7"><div class="erp-card"><div class="erp-card-body">
+            <h6>@Text("Square", "المربع")</h6>
+            <EditForm Model="square" OnValidSubmit="SaveSquareAsync"><DataAnnotationsValidator />
+                <div class="row g-2">
+                    <div class="col-md-4"><label class="form-label">@Text("Area", "الساحة")</label><select class="form-select" @bind="square.AreaId"><option value="@Guid.Empty">@Text("Select area", "اختر الساحة")</option>@foreach (var item in areas) { <option value="@item.Id">@Display(item.Name, item.NameEng)</option> }</select></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Code", "الكود")</label><InputText class="form-control" @bind-Value="square.Code" /></div>
+                    <div class="col-md-3"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="square.Name" /></div>
+                    <div class="col-md-3"><label class="form-label">@Text("English name", "الاسم الإنجليزي")</label><InputText class="form-control" @bind-Value="square.NameEng" /></div>
+                    <div class="col-md-4"><label class="form-label">@Text("Location", "الموقع")</label><InputText class="form-control" @bind-Value="square.LocationText" /></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Latitude", "خط العرض")</label><InputNumber class="form-control" @bind-Value="square.Latitude" /></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Longitude", "خط الطول")</label><InputNumber class="form-control" @bind-Value="square.Longitude" /></div>
+                    <div class="col-md-2"><div class="form-check mt-4"><InputCheckbox class="form-check-input" @bind-Value="square.IsActive" /><label class="form-check-label">@Text("Active", "نشط")</label></div></div>
+                    <div class="col-md-2 text-end"><button class="btn btn-primary w-100" type="submit" disabled="@busy"><i class="bi bi-save"></i></button></div>
+                    <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="square.Notes" /></div>
+                </div>
+            </EditForm>
+        </div></div></div>
+    </div>
+
+    <div class="erp-card mb-3"><div class="erp-card-body"><div class="row g-2 align-items-end"><div class="col-md-4"><label class="form-label">@Text("Filter squares by area", "تصفية المربعات حسب الساحة")</label><select class="form-select" @bind="selectedAreaId"><option value="">@Text("All areas", "كل الساحات")</option>@foreach (var item in areas) { <option value="@item.Id">@Display(item.Name, item.NameEng)</option> }</select></div><div class="col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadAsync" disabled="@busy"><i class="bi bi-arrow-clockwise"></i> @Text("Refresh", "تحديث")</button></div></div></div></div>
+
+    <div class="row g-3">
+        <div class="col-lg-5"><div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Area", "الساحة")</th><th>@Text("Group", "الفئة")</th><th>@Text("State", "الحالة")</th><th></th></tr></thead><tbody>
+            @if (!areas.Any()) { <tr><td colspan="4" class="text-muted">@Text("No areas found.", "لا توجد ساحات.")</td></tr> }
+            @foreach (var item in areas) { <tr><td>@Display(item.Name, item.NameEng)</td><td>@item.GenderGroup</td><td>@(item.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))</td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditArea(item)"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-warning" @onclick="() => DeactivateAreaAsync(item)" disabled="@busy"><i class="bi bi-slash-circle"></i></button></td></tr> }
+        </tbody></table></div></div>
+        <div class="col-lg-7"><div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Square", "المربع")</th><th>@Text("Area", "الساحة")</th><th>@Text("Location", "الموقع")</th><th>@Text("State", "الحالة")</th><th></th></tr></thead><tbody>
+            @if (loading) { <tr><td colspan="5" class="text-muted">@Text("Loading locations...", "جاري تحميل المواقع...")</td></tr> }
+            else if (!VisibleSquares.Any()) { <tr><td colspan="5" class="text-muted">@Text("No squares found.", "لا توجد مربعات.")</td></tr> }
+            @foreach (var item in VisibleSquares) { <tr><td>@item.Code - @Display(item.Name, item.NameEng)</td><td>@Display(item.AreaName, item.AreaNameEng)</td><td>@item.LocationText</td><td>@(item.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))</td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditSquare(item)"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-warning" @onclick="() => DeactivateSquareAsync(item)" disabled="@busy"><i class="bi bi-slash-circle"></i></button></td></tr> }
+        </tbody></table></div></div>
+    </div>
+</div>
+
+@code {
+    private CateringAreaDto area = NewArea();
+    private CateringSquareDto square = NewSquare();
+    private List<CateringAreaDto> areas = [];
+    private List<CateringSquareDto> squares = [];
+    private Guid? selectedAreaId;
+    private bool loading;
+    private bool busy;
+    private string? message;
+    private string? errorMessage;
+    private IEnumerable<CateringSquareDto> VisibleSquares => selectedAreaId.HasValue ? squares.Where(x => x.AreaId == selectedAreaId.Value) : squares;
+
+    protected override async Task OnInitializedAsync() { SharedDataService.OnChange1 += HandleChangeAsync; await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        loading = true; errorMessage = null;
+        var areaResult = await CateringService.GetAreasAsync(0, 300, ApiConfig.CompanyId, activeOnly: false);
+        var squareResult = await CateringService.GetSquaresAsync(0, 500, ApiConfig.CompanyId, activeOnly: false);
+        if (areaResult.IsSuccess) areas = areaResult.Data?.Data.ToList() ?? []; else errorMessage = Error(areaResult.Error);
+        if (squareResult.IsSuccess) squares = squareResult.Data?.Data.ToList() ?? [];
+        loading = false;
+    }
+
+    private async Task SaveAreaAsync()
+    {
+        busy = true; area.CompanyId = ApiConfig.CompanyId;
+        var success = false;
+        string? failure = null;
+        if (area.Id == Guid.Empty) { var result = await CateringService.CreateAreaAsync(area); success = result.IsSuccess; failure = Error(result.Error); }
+        else { var result = await CateringService.UpdateAreaAsync(area); success = result.IsSuccess; failure = Error(result.Error); }
+        SetStatus(success, Text("Area saved.", "تم حفظ الساحة."), failure); area = NewArea(); await LoadAsync(); busy = false;
+    }
+    private async Task SaveSquareAsync()
+    {
+        if (square.AreaId == Guid.Empty) { errorMessage = Text("Select area first.", "اختر الساحة أولا."); return; }
+        busy = true;
+        var success = false;
+        string? failure = null;
+        if (square.Id == Guid.Empty) { var result = await CateringService.CreateSquareAsync(square); success = result.IsSuccess; failure = Error(result.Error); }
+        else { var result = await CateringService.UpdateSquareAsync(square); success = result.IsSuccess; failure = Error(result.Error); }
+        SetStatus(success, Text("Square saved.", "تم حفظ المربع."), failure); square = NewSquare(); await LoadAsync(); busy = false;
+    }
+    private void EditArea(CateringAreaDto item) => area = new() { Id = item.Id, CompanyId = item.CompanyId, Name = item.Name, NameEng = item.NameEng, GenderGroup = item.GenderGroup, LocationText = item.LocationText, IsActive = item.IsActive };
+    private void EditSquare(CateringSquareDto item) => square = new() { Id = item.Id, AreaId = item.AreaId, AreaName = item.AreaName, AreaNameEng = item.AreaNameEng, Code = item.Code, Name = item.Name, NameEng = item.NameEng, LocationText = item.LocationText, Latitude = item.Latitude, Longitude = item.Longitude, IsActive = item.IsActive, Notes = item.Notes };
+    private async Task DeactivateAreaAsync(CateringAreaDto item) { item.IsActive = false; busy = true; var result = await CateringService.UpdateAreaAsync(item); SetStatus(result.IsSuccess, Text("Area deactivated.", "تم تعطيل الساحة."), Error(result.Error)); await LoadAsync(); busy = false; }
+    private async Task DeactivateSquareAsync(CateringSquareDto item) { item.IsActive = false; busy = true; var result = await CateringService.UpdateSquareAsync(item); SetStatus(result.IsSuccess, Text("Square deactivated.", "تم تعطيل المربع."), Error(result.Error)); await LoadAsync(); busy = false; }
+
+    private RenderFragment StatusBlock() => @<div>@if (!string.IsNullOrWhiteSpace(message)) { <div class="alert alert-success py-2">@message</div> } @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger py-2">@errorMessage</div> }</div>;
+    private void SetStatus(bool success, string successMessage, string? failureMessage) { message = success ? successMessage : null; errorMessage = success ? null : failureMessage; }
+    private static CateringAreaDto NewArea() => new() { IsActive = true };
+    private static CateringSquareDto NewSquare() => new() { IsActive = true };
+    private string Display(string name, string? nameEng) => SharedDataService.Language == "Ar" ? name : (string.IsNullOrWhiteSpace(nameEng) ? name : nameEng);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Error(ErrorResponseDto? error) => error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Operation failed.", "تعذرت العملية.");
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}
+

@@ -1,0 +1,145 @@
+@layout AdminLayout
+@page "/Procurement/SupplierScorecard"
+
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.Procurement.Dtos
+
+@implements IDisposable
+@inject IProcurementService ProcurementService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Supplier Scorecard", "تقييم الموردين")"
+                Subtitle="@Text("Review supplier fulfillment and invoice matching performance.", "مراجعة أداء الموردين في التوريد ومطابقة الفواتير.")"
+                Overline="@Text("Procurement Controls", "ضوابط المشتريات")"
+                Icon="bi bi-clipboard2-data">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="Back">
+                <i class="bi bi-arrow-return-left"></i>
+                @Text("Controls", "الضوابط")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3"></div>
+                <div class="fw-semibold">@Text("Loading supplier scorecard...", "جاري تحميل تقييم الموردين...")</div>
+            </div>
+        </AppCard>
+    }
+    else if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view the supplier scorecard.", "ليست لديك صلاحية عرض تقييم الموردين.")</div>
+    }
+    else
+    {
+        <AppCard Title="@Text("Supplier Performance", "أداء الموردين")">
+            <FilterBar CssClass="mb-3">
+                <ChildContent>
+                    <div class="input-group erp-search-control">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input class="form-control" placeholder="@Text("Search supplier", "ابحث بالمورد")" @bind="searchText" @bind:event="oninput" />
+                    </div>
+                </ChildContent>
+                <Actions>
+                    <button class="btn btn-outline-secondary" @onclick="LoadAsync">
+                        <i class="bi bi-arrow-repeat"></i>
+                        @Text("Refresh", "تحديث")
+                    </button>
+                </Actions>
+            </FilterBar>
+            <div class="erp-table-wrap">
+                <table class="table erp-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>@Text("Supplier", "المورد")</th>
+                            <th>@Text("POs", "أوامر الشراء")</th>
+                            <th>@Text("Receipts", "الاستلامات")</th>
+                            <th>@Text("Invoices", "الفواتير")</th>
+                            <th>@Text("Ordered", "المطلوب")</th>
+                            <th>@Text("Received", "المستلم")</th>
+                            <th>@Text("Invoiced", "المفوتر")</th>
+                            <th>@Text("Receipt %", "نسبة الاستلام")</th>
+                            <th>@Text("Invoice %", "نسبة الفوترة")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (FilteredRows.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">@Text("No supplier scorecard rows found.", "لا توجد بيانات تقييم للموردين.")</td>
+                            </tr>
+                        }
+                        @foreach (var row in FilteredRows)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@row.SupplierName</td>
+                                <td>@row.PurchaseOrders</td>
+                                <td>@row.GoodsReceipts</td>
+                                <td>@row.SupplierInvoices</td>
+                                <td>@row.OrderedQuantity.ToString("N2")</td>
+                                <td>@row.ReceivedQuantity.ToString("N2")</td>
+                                <td>@row.InvoicedQuantity.ToString("N2")</td>
+                                <td>@Percent(row.ReceiptCompletionRate)</td>
+                                <td>@Percent(row.InvoiceMatchRate)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </AppCard>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private bool isLoading = true;
+    private string? searchText;
+    private AuthenticationState? authState;
+    private List<SupplierScorecardRowDto> rows = [];
+
+    private bool CanView => HasPermission(PermissionList.PurchaseOrderPermissions.View);
+    private List<SupplierScorecardRowDto> FilteredRows => string.IsNullOrWhiteSpace(searchText)
+        ? rows
+        : rows.Where(row => Contains(row.SupplierName, searchText)).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+        {
+            isLoading = false;
+            return;
+        }
+
+        await LoadAsync();
+        isLoading = false;
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await ProcurementService.GetSupplierScorecardAsync(companyId);
+        if (result.IsSuccess)
+            rows = result.Data ?? [];
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load supplier scorecard.", "تعذر تحميل تقييم الموردين."));
+    }
+
+    private void Back() => NavigationManager.NavigateTo("/Procurement/Enhancements");
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private static string Percent(decimal value) => $"{value:N2}%";
+    private static bool Contains(string? value, string? query) => !string.IsNullOrWhiteSpace(value) && !string.IsNullOrWhiteSpace(query) && value.Contains(query, StringComparison.OrdinalIgnoreCase);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

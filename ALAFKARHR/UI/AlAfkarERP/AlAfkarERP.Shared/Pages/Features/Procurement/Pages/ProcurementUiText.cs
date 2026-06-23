@@ -90,6 +90,7 @@ public static class ProcurementUiText
             (ProcurementDocumentKind.PurchaseRequest, "approve") => PermissionList.PurchaseRequestPermissions.Approve,
             (ProcurementDocumentKind.PurchaseRequest, "reject") => PermissionList.PurchaseRequestPermissions.Reject,
             (ProcurementDocumentKind.PurchaseRequest, "cancel") => PermissionList.PurchaseRequestPermissions.Cancel,
+            (ProcurementDocumentKind.PurchaseRequest, "convert") => PermissionList.PurchaseRequestPermissions.Close,
             (ProcurementDocumentKind.RequestForQuotation, "send") => PermissionList.RequestForQuotationPermissions.Submit,
             (ProcurementDocumentKind.RequestForQuotation, "close") => PermissionList.RequestForQuotationPermissions.Close,
             (ProcurementDocumentKind.RequestForQuotation, "cancel") => PermissionList.RequestForQuotationPermissions.Cancel,
@@ -103,8 +104,8 @@ public static class ProcurementUiText
             (ProcurementDocumentKind.GoodsReceipt, "cancel") => PermissionList.GoodsReceiptPermissions.Cancel,
             (ProcurementDocumentKind.PurchaseReturn, "post") => PermissionList.PurchaseReturnPermissions.Receive,
             (ProcurementDocumentKind.PurchaseReturn, "cancel") => PermissionList.PurchaseReturnPermissions.Cancel,
-            (ProcurementDocumentKind.SupplierInvoice, "match") => PermissionList.SupplierInvoicePermissions.Close,
-            (ProcurementDocumentKind.SupplierInvoice, "post") => PermissionList.SupplierInvoicePermissions.Approve,
+            (ProcurementDocumentKind.SupplierInvoice, "match") => PermissionList.SupplierInvoicePermissions.Approve,
+            (ProcurementDocumentKind.SupplierInvoice, "post") => PermissionList.SupplierInvoicePermissions.Close,
             (ProcurementDocumentKind.SupplierInvoice, "cancel") => PermissionList.SupplierInvoicePermissions.Cancel,
             _ => Meta(kind).Permission
         };

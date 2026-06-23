@@ -53,18 +53,21 @@
     else
     {
         <div class="row g-3 mb-3">
-            <div class="col-md-3">
+            <div class="@StatsColumnClass">
                 <StatsCard Title="@SharedDataService.SelectViewLang("Status", "الحالة")" Value="@document.Status" Icon="bi-check2-circle" />
             </div>
-            <div class="col-md-3">
+            <div class="@StatsColumnClass">
                 <StatsCard Title="@SharedDataService.SelectViewLang("Date", "التاريخ")" Value="@document.DocumentDate.ToShortDateString()" Icon="bi-calendar2" />
             </div>
-            <div class="col-md-3">
+            <div class="@StatsColumnClass">
                 <StatsCard Title="@SharedDataService.SelectViewLang("Supplier", "المورد")" Value="@(document.SupplierName ?? "-")" Icon="bi-truck" />
             </div>
-            <div class="col-md-3">
-                <StatsCard Title="@SharedDataService.SelectViewLang("Total", "الإجمالي")" Value="@document.TotalAmount.ToString("N2")" Icon="bi-cash-stack" />
-            </div>
+            @if (ShowCommercialAmounts)
+            {
+                <div class="@StatsColumnClass">
+                    <StatsCard Title="@SharedDataService.SelectViewLang("Total", "الإجمالي")" Value="@document.TotalAmount.ToString("N2")" Icon="bi-cash-stack" />
+                </div>
+            }
         </div>
 
         <AppCard Title="@SharedDataService.SelectViewLang("Document Details", "تفاصيل المستند")">
@@ -80,16 +83,19 @@
                             <th>@SharedDataService.SelectViewLang("Product", "المنتج")</th>
                             <th>@SharedDataService.SelectViewLang("SKU", "وحدة المنتج")</th>
                             <th>@SharedDataService.SelectViewLang("Quantity", "الكمية")</th>
-                            <th>@SharedDataService.SelectViewLang("Cost", "التكلفة")</th>
-                            <th>@SharedDataService.SelectViewLang("Tax", "الضريبة")</th>
-                            <th>@SharedDataService.SelectViewLang("Total", "الإجمالي")</th>
+                            @if (ShowCommercialAmounts)
+                            {
+                                <th>@SharedDataService.SelectViewLang("Cost", "التكلفة")</th>
+                                <th>@SharedDataService.SelectViewLang("Tax", "الضريبة")</th>
+                                <th>@SharedDataService.SelectViewLang("Total", "الإجمالي")</th>
+                            }
                         </tr>
                     </thead>
                     <tbody>
                         @if (document.Lines.Count == 0)
                         {
                             <tr>
-                                <td colspan="6" class="text-center text-muted py-4">@SharedDataService.SelectViewLang("No lines found.", "لا توجد بنود.")</td>
+                                <td colspan="@LineTableColumnCount" class="text-center text-muted py-4">@SharedDataService.SelectViewLang("No lines found.", "لا توجد بنود.")</td>
                             </tr>
                         }
                         @foreach (var line in document.Lines)
@@ -101,9 +107,12 @@
                                 </td>
                                 <td>@SkuDisplay(line)</td>
                                 <td>@line.Quantity.ToString("N2")</td>
-                                <td>@line.UnitCost.ToString("N2")</td>
-                                <td>@line.TaxAmount.ToString("N2")</td>
-                                <td>@line.TotalAmount.ToString("N2")</td>
+                                @if (ShowCommercialAmounts)
+                                {
+                                    <td>@line.UnitCost.ToString("N2")</td>
+                                    <td>@line.TaxAmount.ToString("N2")</td>
+                                    <td>@line.TotalAmount.ToString("N2")</td>
+                                }
                             </tr>
                         }
                     </tbody>
@@ -125,6 +134,9 @@
     private bool isLoading = true;
 
     private bool CanView => HasPermission(Meta.Permission);
+    private bool ShowCommercialAmounts => kind is not ProcurementDocumentKind.PurchaseRequest and not ProcurementDocumentKind.RequestForQuotation;
+    private string StatsColumnClass => ShowCommercialAmounts ? "col-md-3" : "col-md-4";
+    private int LineTableColumnCount => ShowCommercialAmounts ? 6 : 3;
     private string DisplaySourceReferenceLabel => kind switch
     {
         ProcurementDocumentKind.RequestForQuotation => SharedDataService.SelectViewLang("Purchase Request", "Purchase Request"),
@@ -209,6 +221,7 @@
         {
             ProcurementDocumentKind.PurchaseRequest when Is(status, "Draft") => [new("submit")],
             ProcurementDocumentKind.PurchaseRequest when Is(status, "Submitted") => [new("approve"), new("reject"), new("cancel")],
+            ProcurementDocumentKind.PurchaseRequest when Is(status, "Approved") => [new("convert"), new("cancel")],
             ProcurementDocumentKind.RequestForQuotation when Is(status, "Draft") => [new("send"), new("cancel")],
             ProcurementDocumentKind.RequestForQuotation when Is(status, "Sent") => [new("close"), new("cancel")],
             ProcurementDocumentKind.SupplierQuotation when Is(status, "Received") => [new("accept"), new("reject")],
@@ -230,6 +243,7 @@
             "approve" => SharedDataService.SelectViewLang("Approve", "اعتماد"),
             "reject" => SharedDataService.SelectViewLang("Reject", "رفض"),
             "cancel" => SharedDataService.SelectViewLang("Cancel", "إلغاء"),
+            "convert" => SharedDataService.SelectViewLang("Convert", "تحويل"),
             "send" => SharedDataService.SelectViewLang("Send", "إرسال"),
             "close" when kind == ProcurementDocumentKind.PurchaseOrder && Is(document.Status ?? string.Empty, "PartiallyReceived") => SharedDataService.SelectViewLang("Close Remaining", "إغلاق المتبقي"),
             "close" => SharedDataService.SelectViewLang("Close", "إغلاق"),

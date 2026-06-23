@@ -9,6 +9,7 @@ public static partial class NavigationMenuResolver
     public const string WorkspaceHr = "hr";
     public const string WorkspaceSales = "sales";
     public const string WorkspacePurchasing = "purchasing";
+    public const string WorkspaceCatering = "catering";
     public const string WorkspaceWarehouse = "warehouse";
     public const string WorkspaceAccountingFinance = "accounting-finance";
     public const string WorkspaceAdmin = "admin";
@@ -24,6 +25,7 @@ public static partial class NavigationMenuResolver
     public const string HubHr = WorkspaceHr;
     public const string HubSales = WorkspaceSales;
     public const string HubPurchasing = WorkspacePurchasing;
+    public const string HubCatering = WorkspaceCatering;
     public const string HubWarehouse = WorkspaceWarehouse;
     public const string HubAccountingFinance = WorkspaceAccountingFinance;
     public const string HubAdmin = WorkspaceAdmin;
@@ -36,6 +38,7 @@ public static partial class NavigationMenuResolver
         new(WorkspaceHr, "HR", "\u0627\u0644\u0645\u0648\u0627\u0631\u062f", "bi-people", "/Employee/Dashboard"),
         new(WorkspaceSales, "Sales", "\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a", "bi-graph-up-arrow", "/Sales/Dashboard"),
         new(WorkspacePurchasing, "Purchasing", "\u0627\u0644\u0645\u0634\u062a\u0631\u064a\u0627\u062a", "bi-cart-check", "/Procurement/Dashboard"),
+        new(WorkspaceCatering, "Catering", "\u062e\u062f\u0645\u0627\u062a \u0627\u0644\u0625\u0639\u0627\u0634\u0629", "bi-cup-hot", "/Catering/Dashboard"),
         new(WorkspaceWarehouse, "Warehouse", "\u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639", "bi-boxes", "/Inventory/Dashboard"),
         new(WorkspaceAccountingFinance, "Accounting / Finance", "\u0627\u0644\u0645\u062d\u0627\u0633\u0628\u0629 / \u0627\u0644\u0645\u0627\u0644\u064a\u0629", "bi-cash-stack", null),
         new(WorkspaceAdmin, "Admin", "\u0627\u0644\u0625\u062f\u0627\u0631\u0629", "bi-sliders2-vertical", "/Dashboard"),
@@ -48,6 +51,7 @@ public static partial class NavigationMenuResolver
         new(HubHr, "HR", "\u0627\u0644\u0645\u0648\u0627\u0631\u062f", "bi-people"),
         new(HubSales, "Sales", "\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a", "bi-graph-up-arrow"),
         new(HubPurchasing, "Purchasing", "\u0627\u0644\u0645\u0634\u062a\u0631\u064a\u0627\u062a", "bi-cart-check"),
+        new(HubCatering, "Catering", "\u062e\u062f\u0645\u0627\u062a \u0627\u0644\u0625\u0639\u0627\u0634\u0629", "bi-cup-hot"),
         new(HubWarehouse, "Warehouse", "\u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639", "bi-boxes"),
         new(HubAccountingFinance, "Accounting / Finance", "\u0627\u0644\u0645\u062d\u0627\u0633\u0628\u0629 / \u0627\u0644\u0645\u0627\u0644\u064a\u0629", "bi-cash-stack"),
         new(HubAdmin, "Admin", "\u0627\u0644\u0625\u062f\u0627\u0631\u0629", "bi-sliders2-vertical"),
@@ -186,6 +190,13 @@ public static partial class NavigationMenuResolver
             || text.Contains("User", StringComparison.OrdinalIgnoreCase))
         {
             return WorkspaceSecurity;
+        }
+
+        if (path.StartsWith("/catering", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Catering", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Ramadan", StringComparison.OrdinalIgnoreCase))
+        {
+            return WorkspaceCatering;
         }
 
         if (path.StartsWith("/generalsettings", StringComparison.OrdinalIgnoreCase)
@@ -699,6 +710,7 @@ public static partial class NavigationMenuResolver
             WorkspaceSales => FindSections(roots, "Sales Management"),
             WorkspaceHr => FindChildSections(roots, "People", "Human Resource", "Attendance", "Leave Management", "Payroll"),
             WorkspacePurchasing => FindChildSections(roots, "Operations", "Supplier Management", "Procurement"),
+            WorkspaceCatering => FindSections(roots, "Catering"),
             WorkspaceWarehouse => FindChildSections(roots, "Operations", "Products Management", "Inventory Management"),
             WorkspaceAccountingFinance => FindSections(roots, "Accounting"),
             WorkspaceAdmin => FindSections(roots,

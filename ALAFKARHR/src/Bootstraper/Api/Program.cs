@@ -3,6 +3,7 @@ using AttendanceDomain;
 using Auth;
 using Cart;
 using Carter;
+using Catering;
 using Catalog;
 using Contracts;
 using CustomersModule;
@@ -48,6 +49,7 @@ var authAssembly = typeof(AuthModule).Assembly;
 var accountingAssembly = typeof(AccountingModule).Assembly;
 var attendanceAssembly = typeof(AttendanceDomainModule).Assembly;
 var cartAssembly = typeof(CartModule).Assembly;
+var cateringAssembly = typeof(CateringModule).Assembly;
 var contractsAssembly = typeof(ContractsModule).Assembly;
 var documentManagementAssembly = typeof(DocumentManagementModule).Assembly;
 var organizationAssembly = typeof(OrganizationModule).Assembly;
@@ -77,6 +79,7 @@ builder.Services.AddCarterWithAssemblies(
                         authAssembly,
                         attendanceAssembly,
                         cartAssembly,
+                        cateringAssembly,
                         contractsAssembly,
                         documentManagementAssembly,
                         organizationAssembly,
@@ -110,6 +113,7 @@ builder.Services.AddMediatRWithAssemblies(
                         authAssembly,
                         attendanceAssembly,
                         cartAssembly,
+                        cateringAssembly,
                         contractsAssembly,
                         documentManagementAssembly,
                         organizationAssembly,
@@ -147,6 +151,7 @@ builder.Services
         .AddAuthModule(builder.Configuration)
         .AddAttendanceModule(builder.Configuration)
         .AddCartModule(builder.Configuration)
+        .AddCateringModule(builder.Configuration)
         .AddContractsModule(builder.Configuration)
         .AddDocumentManagementModule(builder.Configuration)
         .AddOrganizationModule(builder.Configuration)
@@ -199,6 +204,7 @@ app
     .UseAuthModule(app.Environment)
     .UseAttendanceModule(app.Environment)
     .UseCartModule(app.Environment)
+    .UseCateringModule(app.Environment)
     .UseContractsModule(app.Environment)
     .UseDocumentManagementModule(app.Environment)
     .UseGeneralSettingsModule(app.Environment)

@@ -137,13 +137,13 @@
                     @if (IsRequestForQuotation)
                     {
                         <div class="col-md-3">
-                            <label class="form-label">@SharedDataService.SelectViewLang("Related Purchase Request", "طلب الشراء المرتبط")</label>
+                            <label class="form-label">@SharedDataService.SelectViewLang("Related Purchase Request (optional)", "طلب الشراء المرتبط (اختياري)")</label>
                             <AutoCompleteComponent TItem="ProcurementDocumentDto"
                                                    Items="approvedPurchaseRequests"
                                                    ItemText="PurchaseRequestText"
                                                    Value="selectedSourcePurchaseRequest"
                                                    ValueChanged="OnSourcePurchaseRequestChanged"
-                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select approved purchase request...", "اختر طلب شراء معتمد...")" />
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select approved purchase request, or leave blank...", "اختر طلب شراء معتمد أو اتركه فارغاً...")" />
                         </div>
                     }
                     else if (IsSupplierQuotation)
@@ -331,14 +331,17 @@
                                         <InputNumber class="form-control" @bind-Value="line.Quantity" />
                                     </div>
                                 }
-                                <div class="col-lg-2 col-md-4">
-                                    <label class="form-label">@UnitCostLabel</label>
-                                    <InputNumber class="form-control" @bind-Value="line.UnitCost" />
-                                </div>
-                                <div class="col-lg-2 col-md-4">
-                                    <label class="form-label">@SharedDataService.SelectViewLang("Tax %", "الضريبة %")</label>
-                                    <InputNumber class="form-control" @bind-Value="line.TaxRate" />
-                                </div>
+                                @if (ShowLineCommercialFields)
+                                {
+                                    <div class="col-lg-2 col-md-4">
+                                        <label class="form-label">@UnitCostLabel</label>
+                                        <InputNumber class="form-control" @bind-Value="line.UnitCost" />
+                                    </div>
+                                    <div class="col-lg-2 col-md-4">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Tax %", "الضريبة %")</label>
+                                        <InputNumber class="form-control" @bind-Value="line.TaxRate" />
+                                    </div>
+                                }
                                 @if (IsGoodsReceipt && line.HasReceiptProgressInfo)
                                 {
                                     <div class="col-12">
@@ -589,6 +592,8 @@
     private bool IsPurchaseOrder => kind == ProcurementDocumentKind.PurchaseOrder;
     private bool IsGoodsReceipt => kind == ProcurementDocumentKind.GoodsReceipt;
     private bool IsSupplierInvoice => kind == ProcurementDocumentKind.SupplierInvoice;
+    private bool IsNonCommercialRequestDocument => IsPurchaseRequest || IsRequestForQuotation;
+    private bool ShowLineCommercialFields => !IsNonCommercialRequestDocument;
     private bool IsSystemNumberedDocument => IsPurchaseRequest || IsRequestForQuotation || IsSupplierQuotation || IsPurchaseOrder || IsGoodsReceipt || IsSupplierInvoice;
     private bool HideDocumentNumberField => IsSystemNumberedDocument && !Id.HasValue;
     private bool NeedsStockContext => kind is ProcurementDocumentKind.GoodsReceipt or ProcurementDocumentKind.PurchaseReturn;
@@ -888,9 +893,9 @@
                 WarehouseId = line.WarehouseId,
                 BatchId = line.BatchId,
                 Quantity = line.Quantity,
-                UnitCost = line.UnitCost,
-                DiscountRate = line.DiscountRate,
-                TaxRate = line.TaxRate,
+                UnitCost = IsNonCommercialRequestDocument ? 0 : line.UnitCost,
+                DiscountRate = IsNonCommercialRequestDocument ? 0 : line.DiscountRate,
+                TaxRate = IsNonCommercialRequestDocument ? 0 : line.TaxRate,
                 Notes = line.Notes
             }).ToList()
         };

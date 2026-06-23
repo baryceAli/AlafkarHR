@@ -102,6 +102,9 @@ public class StockInHandler(InventoryDbContext dbContext, ISender sender, IHttpC
             packageMultiplier: packageQuantity.PackageMultiplier,
             normalizedQuantity: packageQuantity.NormalizedQuantity);
         await dbContext.StockMovements.AddAsync(movement, cancellationToken);
+        await dbContext.InventoryValuationLayers.AddAsync(
+            InventoryValuationLayer.FromMovement(movement, command.InventoryAggregate.CompanyId, userId),
+            cancellationToken);
 
 
         await dbContext.SaveChangesAsync(cancellationToken);
