@@ -1,0 +1,514 @@
+@layout AdminLayout
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Services
+@using AlAfkarERP.Shared.Pages.Features.Suppliers.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Procurement.Dtos
+@using SharedWithUI.Suppliers.Dtos
+
+@implements IDisposable
+@inject IProcurementService ProcurementService
+@inject ISupplierService SupplierService
+@inject IProductService ProductService
+@inject IWarehouseService WarehouseService
+@inject ICurrencyService CurrencyService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Procurement Enhancements", "تحسينات المشتريات")"
+                Subtitle="@SharedDataService.SelectViewLang("Supplier item mapping, vendor price breaks, reorder rules, tracker, and scorecard.", "ربط أصناف الموردين وقوائم الأسعار وقواعد إعادة الطلب والتتبع والتقييم.")"
+                Overline="@SharedDataService.SelectViewLang("Procurement", "المشتريات")"
+                Icon="bi bi-diagram-3" />
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3"></div>
+                <div class="fw-semibold">@SharedDataService.SelectViewLang("Loading procurement controls...", "جاري تحميل ضوابط المشتريات...")</div>
+            </div>
+        </AppCard>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-xl-4">
+                <AppCard Title="@SharedDataService.SelectViewLang("Supplier Item", "صنف المورد")" CssClass="h-100">
+                    <EditForm Model="supplierItem" OnValidSubmit="SaveSupplierItemAsync">
+                        <DataAnnotationsValidator />
+                        <div class="vstack gap-2">
+                            <AutoCompleteComponent TItem="SupplierDto"
+                                                   Items="suppliers"
+                                                   ItemText="SupplierText"
+                                                   Value="selectedSupplierItemSupplier"
+                                                   ValueChanged="OnSupplierItemSupplierChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select supplier...", "اختر المورد...")" />
+                            <input class="form-control" placeholder="@SharedDataService.SelectViewLang("Supplier name", "اسم المورد")" @bind="supplierItem.SupplierName" />
+                            <AutoCompleteComponent TItem="ProductDto"
+                                                   Items="products"
+                                                   ItemText="ProductText"
+                                                   Value="selectedSupplierItemProduct"
+                                                   ValueChanged="OnSupplierItemProductChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select product...", "اختر المنتج...")" />
+                            <AutoCompleteComponent TItem="ProductSkuDto"
+                                                   Items="SupplierItemSkuOptions"
+                                                   ItemText="SkuText"
+                                                   Value="selectedSupplierItemSku"
+                                                   ValueChanged="OnSupplierItemSkuChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select SKU...", "اختر SKU...")" />
+                            <input class="form-control" placeholder="@SharedDataService.SelectViewLang("Supplier SKU", "رمز المورد")" @bind="supplierItem.SupplierSku" />
+                            <div class="row g-2">
+                                <div class="col">
+                                    <InputNumber class="form-control" @bind-Value="supplierItem.LeadTimeDays" placeholder="Lead days" />
+                                </div>
+                                <div class="col">
+                                    <InputNumber class="form-control" @bind-Value="supplierItem.MinimumOrderQuantity" placeholder="MOQ" />
+                                </div>
+                            </div>
+                            <label class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="supplierItem.IsPreferred" />
+                                <span class="form-check-label">@SharedDataService.SelectViewLang("Preferred supplier item", "صنف مورد مفضل")</span>
+                            </label>
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-save"></i>
+                                @SharedDataService.SelectViewLang("Save", "حفظ")
+                            </button>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+
+            <div class="col-xl-4">
+                <AppCard Title="@SharedDataService.SelectViewLang("Vendor Pricelist", "قائمة أسعار المورد")" CssClass="h-100">
+                    <EditForm Model="vendorPrice" OnValidSubmit="SaveVendorPriceAsync">
+                        <DataAnnotationsValidator />
+                        <div class="vstack gap-2">
+                            <AutoCompleteComponent TItem="SupplierDto"
+                                                   Items="suppliers"
+                                                   ItemText="SupplierText"
+                                                   Value="selectedVendorPriceSupplier"
+                                                   ValueChanged="OnVendorPriceSupplierChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select supplier...", "اختر المورد...")" />
+                            <AutoCompleteComponent TItem="ProductDto"
+                                                   Items="products"
+                                                   ItemText="ProductText"
+                                                   Value="selectedVendorPriceProduct"
+                                                   ValueChanged="OnVendorPriceProductChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select product...", "اختر المنتج...")" />
+                            <AutoCompleteComponent TItem="ProductSkuDto"
+                                                   Items="VendorPriceSkuOptions"
+                                                   ItemText="SkuText"
+                                                   Value="selectedVendorPriceSku"
+                                                   ValueChanged="OnVendorPriceSkuChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select SKU...", "اختر SKU...")" />
+                            <AutoCompleteComponent TItem="CurrencyDto"
+                                                   Items="currencies"
+                                                   ItemText="CurrencyText"
+                                                   Value="selectedVendorPriceCurrency"
+                                                   ValueChanged="OnVendorPriceCurrencyChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select currency...", "اختر العملة...")" />
+                            <div class="row g-2">
+                                <div class="col">
+                                    <InputNumber class="form-control" @bind-Value="vendorPrice.MinimumQuantity" placeholder="Min qty" />
+                                </div>
+                                <div class="col">
+                                    <InputNumber class="form-control" @bind-Value="vendorPrice.UnitCost" placeholder="Unit cost" />
+                                </div>
+                            </div>
+                            <InputNumber class="form-control" @bind-Value="vendorPrice.DiscountRate" placeholder="Discount %" />
+                            <label class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="vendorPrice.IsPreferred" />
+                                <span class="form-check-label">@SharedDataService.SelectViewLang("Preferred price", "سعر مفضل")</span>
+                            </label>
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-save"></i>
+                                @SharedDataService.SelectViewLang("Save", "حفظ")
+                            </button>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+
+            <div class="col-xl-4">
+                <AppCard Title="@SharedDataService.SelectViewLang("Reordering Rule", "قاعدة إعادة الطلب")" CssClass="h-100">
+                    <EditForm Model="reorderRule" OnValidSubmit="SaveReorderRuleAsync">
+                        <DataAnnotationsValidator />
+                        <div class="vstack gap-2">
+                            <AutoCompleteComponent TItem="ProductDto"
+                                                   Items="products"
+                                                   ItemText="ProductText"
+                                                   Value="selectedReorderRuleProduct"
+                                                   ValueChanged="OnReorderRuleProductChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select product...", "اختر المنتج...")" />
+                            <AutoCompleteComponent TItem="ProductSkuDto"
+                                                   Items="ReorderRuleSkuOptions"
+                                                   ItemText="SkuText"
+                                                   Value="selectedReorderRuleSku"
+                                                   ValueChanged="OnReorderRuleSkuChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select SKU...", "اختر SKU...")" />
+                            <AutoCompleteComponent TItem="WarehouseDto"
+                                                   Items="warehouses"
+                                                   ItemText="WarehouseText"
+                                                   Value="selectedReorderRuleWarehouse"
+                                                   ValueChanged="OnReorderRuleWarehouseChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse...", "اختر المستودع...")" />
+                            <AutoCompleteComponent TItem="SupplierDto"
+                                                   Items="suppliers"
+                                                   ItemText="SupplierText"
+                                                   Value="selectedReorderRuleSupplier"
+                                                   ValueChanged="OnReorderRuleSupplierChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select supplier...", "اختر المورد...")" />
+                            <div class="row g-2">
+                                <div class="col"><InputNumber class="form-control" @bind-Value="reorderRule.MinimumQuantity" placeholder="Min" /></div>
+                                <div class="col"><InputNumber class="form-control" @bind-Value="reorderRule.MaximumQuantity" placeholder="Max" /></div>
+                                <div class="col"><InputNumber class="form-control" @bind-Value="reorderRule.ReorderQuantity" placeholder="Reorder" /></div>
+                            </div>
+                            <InputNumber class="form-control" @bind-Value="reorderRule.LeadTimeDays" placeholder="Lead days" />
+                            <label class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="reorderRule.AutoCreatePurchaseRequest" />
+                                <span class="form-check-label">@SharedDataService.SelectViewLang("Auto-create purchase request", "إنشاء طلب شراء تلقائي")</span>
+                            </label>
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-save"></i>
+                                @SharedDataService.SelectViewLang("Save", "حفظ")
+                            </button>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-xl-6">
+                <AppCard Title="@SharedDataService.SelectViewLang("Procurement Tracker", "متتبع المشتريات")">
+                    <div class="erp-table-wrap">
+                        <table class="erp-table table">
+                            <thead>
+                                <tr>
+                                    <th>@SharedDataService.SelectViewLang("Document", "المستند")</th>
+                                    <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
+                                    <th>@SharedDataService.SelectViewLang("Open Qty", "الكمية المفتوحة")</th>
+                                    <th>@SharedDataService.SelectViewLang("Age", "العمر")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in tracker.Take(25))
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">@row.Number</div>
+                                            <div class="text-muted small">@row.Kind</div>
+                                        </td>
+                                        <td><StatusChip Text="@row.Status" Tone="info" /></td>
+                                        <td>@row.OpenQuantity</td>
+                                        <td>@row.AgeDays</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+            <div class="col-xl-6">
+                <AppCard Title="@SharedDataService.SelectViewLang("Supplier Scorecard", "تقييم الموردين")">
+                    <div class="erp-table-wrap">
+                        <table class="erp-table table">
+                            <thead>
+                                <tr>
+                                    <th>@SharedDataService.SelectViewLang("Supplier", "المورد")</th>
+                                    <th>@SharedDataService.SelectViewLang("POs", "أوامر الشراء")</th>
+                                    <th>@SharedDataService.SelectViewLang("Receipt %", "نسبة الاستلام")</th>
+                                    <th>@SharedDataService.SelectViewLang("Invoice %", "نسبة الفوترة")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in scorecard.Take(25))
+                                {
+                                    <tr>
+                                        <td>@row.SupplierName</td>
+                                        <td>@row.PurchaseOrders</td>
+                                        <td>@row.ReceiptCompletionRate</td>
+                                        <td>@row.InvoiceMatchRate</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private bool isLoading = true;
+    private SupplierItemDto supplierItem = new();
+    private VendorPricelistDto vendorPrice = new();
+    private ReorderingRuleDto reorderRule = new() { IsActive = true };
+    private readonly List<SupplierDto> suppliers = [];
+    private readonly List<ProductDto> products = [];
+    private readonly List<ProductSkuDto> allSkus = [];
+    private readonly List<WarehouseDto> warehouses = [];
+    private readonly List<CurrencyDto> currencies = [];
+    private List<ProcurementTrackerRowDto> tracker = [];
+    private List<SupplierScorecardRowDto> scorecard = [];
+    private SupplierDto? selectedSupplierItemSupplier;
+    private ProductDto? selectedSupplierItemProduct;
+    private ProductSkuDto? selectedSupplierItemSku;
+    private SupplierDto? selectedVendorPriceSupplier;
+    private ProductDto? selectedVendorPriceProduct;
+    private ProductSkuDto? selectedVendorPriceSku;
+    private CurrencyDto? selectedVendorPriceCurrency;
+    private ProductDto? selectedReorderRuleProduct;
+    private ProductSkuDto? selectedReorderRuleSku;
+    private WarehouseDto? selectedReorderRuleWarehouse;
+    private SupplierDto? selectedReorderRuleSupplier;
+
+    private List<ProductSkuDto> SupplierItemSkuOptions => SkuOptions(supplierItem.ProductId);
+    private List<ProductSkuDto> VendorPriceSkuOptions => SkuOptions(vendorPrice.ProductId);
+    private List<ProductSkuDto> ReorderRuleSkuOptions => SkuOptions(reorderRule.ProductId);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var auth = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (!CompanyContext.TryGetCompanyId(auth.User, out companyId))
+        {
+            isLoading = false;
+            return;
+        }
+
+        ResetForms();
+        await LoadLookupsAsync();
+        await LoadReportsAsync();
+        isLoading = false;
+    }
+
+    private void ResetForms()
+    {
+        supplierItem = new SupplierItemDto { CompanyId = companyId };
+        vendorPrice = new VendorPricelistDto { CompanyId = companyId, ValidFrom = DateTime.Today };
+        reorderRule = new ReorderingRuleDto { CompanyId = companyId, IsActive = true, ReorderQuantity = 1 };
+        selectedSupplierItemSupplier = null;
+        selectedSupplierItemProduct = null;
+        selectedSupplierItemSku = null;
+        selectedVendorPriceSupplier = null;
+        selectedVendorPriceProduct = null;
+        selectedVendorPriceSku = null;
+        selectedVendorPriceCurrency = null;
+        selectedReorderRuleProduct = null;
+        selectedReorderRuleSku = null;
+        selectedReorderRuleWarehouse = null;
+        selectedReorderRuleSupplier = null;
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        suppliers.Clear();
+        products.Clear();
+        allSkus.Clear();
+        warehouses.Clear();
+        currencies.Clear();
+
+        if (companyId == Guid.Empty)
+            return;
+
+        var supplierResponse = await SupplierService.GetByCompanyAsync(companyId, 0, 200);
+        if (supplierResponse.IsSuccess)
+            suppliers.AddRange(supplierResponse.Data?.Data ?? []);
+
+        var productResponse = await ProductService.GetByCompanyAsync(companyId, 0, 200);
+        if (productResponse.IsSuccess)
+        {
+            products.AddRange(productResponse.Data?.Data ?? []);
+            allSkus.AddRange(products.SelectMany(product => product.Skus ?? []));
+        }
+
+        var warehouseResponse = await WarehouseService.GetAsync(companyId, 0, 10000);
+        if (warehouseResponse.IsSuccess)
+            warehouses.AddRange(warehouseResponse.Data?.Data ?? []);
+
+        var currencyResponse = await CurrencyService.GetAsync(companyId, 0, 200);
+        if (currencyResponse.IsSuccess)
+            currencies.AddRange(currencyResponse.Data?.Data ?? []);
+    }
+
+    private async Task LoadReportsAsync()
+    {
+        var trackerResult = await ProcurementService.GetTrackerAsync(companyId);
+        if (trackerResult.IsSuccess)
+            tracker = trackerResult.Data ?? [];
+
+        var scorecardResult = await ProcurementService.GetSupplierScorecardAsync(companyId);
+        if (scorecardResult.IsSuccess)
+            scorecard = scorecardResult.Data ?? [];
+    }
+
+    private async Task SaveSupplierItemAsync() => await SaveAsync(() => ProcurementService.SaveSupplierItemAsync(supplierItem));
+    private async Task SaveVendorPriceAsync() => await SaveAsync(() => ProcurementService.SaveVendorPricelistAsync(vendorPrice));
+    private async Task SaveReorderRuleAsync() => await SaveAsync(() => ProcurementService.SaveReorderingRuleAsync(reorderRule));
+
+    private async Task SaveAsync(Func<Task<ApiResult<AlAfkarERP.Shared.Dtos.CreateResponseDto>>> action)
+    {
+        var result = await action();
+        ToastService.Show(new ToastMessage
+        {
+            Type = result.IsSuccess ? "success" : "error",
+            Message = result.IsSuccess
+                ? SharedDataService.SelectViewLang("Saved.", "تم الحفظ.")
+                : result.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Save failed.", "فشل الحفظ.")
+        });
+
+        if (result.IsSuccess)
+        {
+            ResetForms();
+            await LoadReportsAsync();
+        }
+    }
+
+    private Task OnSupplierItemSupplierChanged(SupplierDto? supplier)
+    {
+        selectedSupplierItemSupplier = supplier;
+        supplierItem.SupplierId = supplier?.Id ?? Guid.Empty;
+        supplierItem.SupplierName = supplier?.Name;
+        return Task.CompletedTask;
+    }
+
+    private Task OnSupplierItemProductChanged(ProductDto? product)
+    {
+        selectedSupplierItemProduct = product;
+        supplierItem.ProductId = product?.Id ?? Guid.Empty;
+        supplierItem.ProductName = product?.Name;
+        supplierItem.ProductNameEng = product?.NameEng;
+        selectedSupplierItemSku = null;
+        supplierItem.ProductSkuId = Guid.Empty;
+        supplierItem.SkuCode = null;
+        return Task.CompletedTask;
+    }
+
+    private Task OnSupplierItemSkuChanged(ProductSkuDto? sku)
+    {
+        selectedSupplierItemSku = sku;
+        supplierItem.ProductSkuId = sku?.Id ?? Guid.Empty;
+        supplierItem.SkuCode = sku?.SkuCode;
+        if (sku is not null && selectedSupplierItemProduct?.Id != sku.ProductId)
+        {
+            selectedSupplierItemProduct = products.FirstOrDefault(product => product.Id == sku.ProductId);
+            supplierItem.ProductId = sku.ProductId;
+            supplierItem.ProductName = selectedSupplierItemProduct?.Name ?? sku.ProductName;
+            supplierItem.ProductNameEng = selectedSupplierItemProduct?.NameEng ?? sku.ProductNameEng;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnVendorPriceSupplierChanged(SupplierDto? supplier)
+    {
+        selectedVendorPriceSupplier = supplier;
+        vendorPrice.SupplierId = supplier?.Id ?? Guid.Empty;
+        vendorPrice.SupplierName = supplier?.Name;
+        return Task.CompletedTask;
+    }
+
+    private Task OnVendorPriceProductChanged(ProductDto? product)
+    {
+        selectedVendorPriceProduct = product;
+        vendorPrice.ProductId = product?.Id ?? Guid.Empty;
+        selectedVendorPriceSku = null;
+        vendorPrice.ProductSkuId = Guid.Empty;
+        return Task.CompletedTask;
+    }
+
+    private Task OnVendorPriceSkuChanged(ProductSkuDto? sku)
+    {
+        selectedVendorPriceSku = sku;
+        vendorPrice.ProductSkuId = sku?.Id ?? Guid.Empty;
+        if (sku is not null && selectedVendorPriceProduct?.Id != sku.ProductId)
+        {
+            selectedVendorPriceProduct = products.FirstOrDefault(product => product.Id == sku.ProductId);
+            vendorPrice.ProductId = sku.ProductId;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnVendorPriceCurrencyChanged(CurrencyDto? currency)
+    {
+        selectedVendorPriceCurrency = currency;
+        vendorPrice.CurrencyId = currency?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnReorderRuleProductChanged(ProductDto? product)
+    {
+        selectedReorderRuleProduct = product;
+        reorderRule.ProductId = product?.Id ?? Guid.Empty;
+        selectedReorderRuleSku = null;
+        reorderRule.ProductSkuId = Guid.Empty;
+        return Task.CompletedTask;
+    }
+
+    private Task OnReorderRuleSkuChanged(ProductSkuDto? sku)
+    {
+        selectedReorderRuleSku = sku;
+        reorderRule.ProductSkuId = sku?.Id ?? Guid.Empty;
+        if (sku is not null && selectedReorderRuleProduct?.Id != sku.ProductId)
+        {
+            selectedReorderRuleProduct = products.FirstOrDefault(product => product.Id == sku.ProductId);
+            reorderRule.ProductId = sku.ProductId;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnReorderRuleWarehouseChanged(WarehouseDto? warehouse)
+    {
+        selectedReorderRuleWarehouse = warehouse;
+        reorderRule.WarehouseId = warehouse?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnReorderRuleSupplierChanged(SupplierDto? supplier)
+    {
+        selectedReorderRuleSupplier = supplier;
+        reorderRule.SupplierId = supplier?.Id;
+        return Task.CompletedTask;
+    }
+
+    private List<ProductSkuDto> SkuOptions(Guid productId)
+        => productId == Guid.Empty
+            ? allSkus
+            : allSkus.Where(sku => sku.ProductId == productId).ToList();
+
+    private string SupplierText(SupplierDto supplier)
+        => string.IsNullOrWhiteSpace(supplier.SupplierCode) ? supplier.Name : $"{supplier.Name} ({supplier.SupplierCode})";
+
+    private string ProductText(ProductDto product)
+        => SharedDataService.SelectViewLang(product.NameEng, product.Name);
+
+    private string SkuText(ProductSkuDto sku)
+        => FirstNonEmpty(SharedDataService.SelectViewLang(sku.NameEng ?? string.Empty, sku.Name ?? string.Empty), sku.SkuCode, sku.Name, sku.NameEng);
+
+    private string WarehouseText(WarehouseDto warehouse)
+        => SharedDataService.SelectViewLang(warehouse.NameEng, warehouse.Name);
+
+    private string CurrencyText(CurrencyDto currency)
+        => $"{currency.Code} - {currency.Name}";
+
+    private static string FirstNonEmpty(params string?[] values)
+        => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

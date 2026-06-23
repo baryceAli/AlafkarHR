@@ -1,0 +1,93 @@
+﻿@page "/Catering/Deliveries"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Catering.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.Fleet.Services
+@using SharedWithUI.Catering.Dtos
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Fleet.Dtos
+@inject ICateringService CateringService
+@inject IEmployeeService EmployeeService
+@inject IFleetService FleetService
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Deliveries", "استلام البرادات")" Subtitle="@Text("Record refrigerated vehicle arrival and received meal quantities.", "تسجيل وصول البرادات وكميات الوجبات المستلمة.")" Icon="bi-truck" />
+    @StatusBlock()
+
+    <div class="erp-card mb-3"><div class="erp-card-body">
+        <EditForm Model="delivery" OnValidSubmit="SaveAsync"><DataAnnotationsValidator />
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4"><label class="form-label">@Text("Schedule", "الجدول")</label><select class="form-select" @bind="delivery.DailyScheduleId"><option value="@Guid.Empty">@Text("Select schedule", "اختر الجدول")</option>@foreach (var item in schedules) { <option value="@item.Id">@ScheduleLabel(item)</option> }</select></div>
+                <div class="col-md-3"><label class="form-label">@Text("Refrigerated vehicle", "البرادة")</label><select class="form-select" @bind="delivery.VehicleId"><option value="@Guid.Empty">@Text("Select vehicle", "اختر المركبة")</option>@foreach (var vehicle in vehicles) { <option value="@vehicle.Id">@VehicleName(vehicle)</option> }</select></div>
+                <div class="col-md-3"><label class="form-label">@Text("Driver", "السائق")</label><select class="form-select" @bind="delivery.DriverEmployeeId"><option value="@Guid.Empty">@Text("Select driver", "اختر السائق")</option>@foreach (var employee in employees) { <option value="@employee.Id">@EmployeeName(employee)</option> }</select></div>
+                <div class="col-md-2"><label class="form-label">@Text("Arrival", "الوصول")</label><InputDate class="form-control" @bind-Value="delivery.ArrivalTime" /></div>
+                <div class="col-md-4"><label class="form-label">@Text("Receiving supervisor", "مشرف الاستلام")</label><select class="form-select" @bind="delivery.ReceivingSupervisorEmployeeId"><option value="@Guid.Empty">@Text("Select supervisor", "اختر المشرف")</option>@foreach (var employee in employees) { <option value="@employee.Id">@EmployeeName(employee)</option> }</select></div>
+                <div class="col-md-2"><label class="form-label">@Text("Received qty", "الكمية المستلمة")</label><InputNumber class="form-control" @bind-Value="delivery.ReceivedQuantity" /></div>
+                <div class="col-md-5"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="delivery.Notes" /></div>
+                <div class="col-md-1"><button class="btn btn-primary w-100" type="submit" disabled="@busy"><i class="bi bi-save"></i></button></div>
+            </div>
+        </EditForm>
+    </div></div>
+
+    <div class="erp-card mb-3"><div class="erp-card-body"><div class="row g-2 align-items-end"><div class="col-md-4"><label class="form-label">@Text("Filter schedule", "تصفية الجدول")</label><select class="form-select" @bind="filterScheduleId"><option value="">@Text("All schedules", "كل الجداول")</option>@foreach (var item in schedules) { <option value="@item.Id">@ScheduleLabel(item)</option> }</select></div><div class="col-md-2"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="fromDate" /></div><div class="col-md-2"><label class="form-label">@Text("To", "إلى")</label><InputDate class="form-control" @bind-Value="toDate" /></div><div class="col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadDeliveriesAsync"><i class="bi bi-funnel"></i> @Text("Apply", "تطبيق")</button></div></div></div></div>
+
+    <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Arrival", "الوصول")</th><th>@Text("Schedule", "الجدول")</th><th>@Text("Vehicle", "المركبة")</th><th>@Text("Driver", "السائق")</th><th>@Text("Supervisor", "المشرف")</th><th>@Text("Received", "المستلم")</th></tr></thead><tbody>
+        @if (loading) { <tr><td colspan="6" class="text-muted">@Text("Loading deliveries...", "جاري تحميل الاستلام...")</td></tr> }
+        else if (!deliveries.Any()) { <tr><td colspan="6" class="text-muted">@Text("No deliveries found.", "لا توجد عمليات استلام.")</td></tr> }
+        @foreach (var item in deliveries) { <tr><td>@item.ArrivalTime.ToString("yyyy-MM-dd HH:mm")</td><td>@ScheduleLabel(item.DailyScheduleId)</td><td>@item.VehicleName @item.PlateNumber</td><td>@item.DriverName</td><td>@item.ReceivingSupervisorName</td><td>@item.ReceivedQuantity.ToString("N0")</td></tr> }
+    </tbody></table></div>
+</div>
+
+@code {
+    private CateringVehicleDeliveryDto delivery = NewDelivery();
+    private List<CateringVehicleDeliveryDto> deliveries = [];
+    private List<CateringDailyScheduleDto> schedules = [];
+    private List<FleetVehicleDto> vehicles = [];
+    private List<EmployeeDto> employees = [];
+    private Guid? filterScheduleId;
+    private DateTime? fromDate;
+    private DateTime? toDate;
+    private bool loading;
+    private bool busy;
+    private string? message;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync() { SharedDataService.OnChange1 += HandleChangeAsync; await LoadLookupsAsync(); await LoadDeliveriesAsync(); }
+
+    private async Task LoadLookupsAsync()
+    {
+        var schedulesResult = await CateringService.GetSchedulesAsync(0, 500);
+        var vehicleResult = await FleetService.GetVehiclesAsync(0, 500, companyId: ApiConfig.CompanyId);
+        var employeeResult = await EmployeeService.GetByCompanyIdAsync(ApiConfig.CompanyId, 0, 500);
+        if (schedulesResult.IsSuccess) schedules = schedulesResult.Data?.Data.ToList() ?? [];
+        if (vehicleResult.IsSuccess) vehicles = vehicleResult.Data?.Data.ToList() ?? [];
+        if (employeeResult.IsSuccess) employees = employeeResult.Data?.Data.ToList() ?? [];
+    }
+
+    private async Task LoadDeliveriesAsync() { loading = true; var result = await CateringService.GetDeliveriesAsync(0, 300, filterScheduleId, fromDate, toDate); if (result.IsSuccess) deliveries = result.Data?.Data.ToList() ?? []; else errorMessage = Error(result.Error); loading = false; }
+
+    private async Task SaveAsync()
+    {
+        if (delivery.DailyScheduleId == Guid.Empty || delivery.VehicleId == Guid.Empty || delivery.DriverEmployeeId == Guid.Empty || delivery.ReceivingSupervisorEmployeeId == Guid.Empty) { errorMessage = Text("Select schedule, vehicle, driver, and receiving supervisor.", "اختر الجدول والمركبة والسائق ومشرف الاستلام."); return; }
+        var vehicle = vehicles.FirstOrDefault(x => x.Id == delivery.VehicleId); var driver = employees.FirstOrDefault(x => x.Id == delivery.DriverEmployeeId); var supervisor = employees.FirstOrDefault(x => x.Id == delivery.ReceivingSupervisorEmployeeId);
+        delivery.VehicleName = vehicle is null ? delivery.VehicleName : VehicleName(vehicle); delivery.PlateNumber = vehicle?.PlateNumber; delivery.DriverName = driver is null ? delivery.DriverName : EmployeeName(driver); delivery.ReceivingSupervisorName = supervisor is null ? delivery.ReceivingSupervisorName : EmployeeName(supervisor);
+        busy = true; var result = await CateringService.CreateDeliveryAsync(delivery); SetStatus(result.IsSuccess, Text("Delivery recorded.", "تم تسجيل الاستلام."), Error(result.Error)); delivery = NewDelivery(); await LoadDeliveriesAsync(); busy = false;
+    }
+
+    private string ScheduleLabel(CateringDailyScheduleDto item) => $"{item.ServiceDate:yyyy-MM-dd} - {item.PlannedQuantity:N0}";
+    private string ScheduleLabel(Guid id) { var item = schedules.FirstOrDefault(x => x.Id == id); return item is null ? id.ToString() : ScheduleLabel(item); }
+    private string VehicleName(FleetVehicleDto vehicle) => $"{vehicle.VehicleCode} - {Display(vehicle.Name, vehicle.NameEng)} {vehicle.PlateNumber}";
+    private string EmployeeName(EmployeeDto employee) => Display(employee.FullName, employee.FullNameEng);
+    private RenderFragment StatusBlock() => @<div>@if (!string.IsNullOrWhiteSpace(message)) { <div class="alert alert-success py-2">@message</div> } @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger py-2">@errorMessage</div> }</div>;
+    private void SetStatus(bool success, string successMessage, string? failureMessage) { message = success ? successMessage : null; errorMessage = success ? null : failureMessage; }
+    private static CateringVehicleDeliveryDto NewDelivery() => new() { ArrivalTime = DateTime.Now };
+    private string Display(string name, string? nameEng) => SharedDataService.Language == "Ar" ? name : (string.IsNullOrWhiteSpace(nameEng) ? name : nameEng);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Error(ErrorResponseDto? error) => error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Operation failed.", "تعذرت العملية.");
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

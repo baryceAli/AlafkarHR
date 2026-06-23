@@ -1,0 +1,106 @@
+﻿@page "/Catering/Assignments"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Catering.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using SharedWithUI.Catering.Dtos
+@using SharedWithUI.Catering.Enums
+@using SharedWithUI.Employees.Dtos
+@inject ICateringService CateringService
+@inject IEmployeeService EmployeeService
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Assignments", "التكليفات")" Subtitle="@Text("Assign distribution teams, supervisors, and photographers to squares.", "تعيين فرق التوزيع والمشرفين والمصورين للمربعات.")" Icon="bi-people" />
+    @StatusBlock()
+
+    <div class="erp-card mb-3"><div class="erp-card-body">
+        <EditForm Model="assignment" OnValidSubmit="SaveAsync"><DataAnnotationsValidator />
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4"><label class="form-label">@Text("Contract", "العقد")</label><select class="form-select" @bind="assignment.CateringContractId"><option value="@Guid.Empty">@Text("Select contract", "اختر العقد")</option>@foreach (var item in contracts) { <option value="@item.Id">@item.Number - @Display(item.CustomerName, item.CustomerNameEng)</option> }</select></div>
+                <div class="col-md-2"><label class="form-label">@Text("Role", "الدور")</label><InputSelect class="form-select" @bind-Value="assignment.Role">@foreach (var role in Enum.GetValues<CateringAssignmentRole>()) { <option value="@role">@role</option> }</InputSelect></div>
+                <div class="col-md-3"><label class="form-label">@PrimaryEmployeeLabel</label><select class="form-select" @bind="assignment.EmployeeId"><option value="@Guid.Empty">@Text("Select employee", "اختر الموظف")</option>@foreach (var employee in employees) { <option value="@employee.Id">@EmployeeName(employee)</option> }</select></div>
+                <div class="col-md-3"><label class="form-label">@Text("Primary square", "المربع الرئيسي")</label><select class="form-select" @bind="assignment.SquareId"><option value="">@Text("None", "بدون")</option>@foreach (var square in squares) { <option value="@square.Id">@square.Code - @Display(square.Name, square.NameEng)</option> }</select></div>
+                <div class="col-md-2"><label class="form-label">@Text("Start", "البداية")</label><InputDate class="form-control" @bind-Value="assignment.StartDate" /></div>
+                <div class="col-md-2"><label class="form-label">@Text("End", "النهاية")</label><InputDate class="form-control" @bind-Value="assignment.EndDate" /></div>
+                <div class="col-md-7"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="assignment.Notes" /></div>
+                <div class="col-md-1"><button class="btn btn-primary w-100" type="submit" disabled="@busy"><i class="bi bi-save"></i></button></div>
+            </div>
+        </EditForm>
+
+        <div class="row g-3 mt-2">
+            <div class="col-lg-6">
+                <h6>@Text("Covered squares", "المربعات المشمولة")</h6>
+                <div class="erp-table-wrap"><table class="table erp-table align-middle"><tbody>
+                    @foreach (var square in squares) { <tr><td><input class="form-check-input me-2" type="checkbox" checked="@assignment.CoveredSquareIds.Contains(square.Id)" @onchange="(args) => ToggleSquare(square.Id, args)" />@square.Code - @Display(square.Name, square.NameEng)</td></tr> }
+                </tbody></table></div>
+            </div>
+            <div class="col-lg-6">
+                <h6>@Text("Distributor employees", "الموزعون")</h6>
+                <div class="erp-table-wrap"><table class="table erp-table align-middle"><tbody>
+                    @foreach (var employee in employees) { <tr><td><input class="form-check-input me-2" type="checkbox" checked="@assignment.DistributorEmployeeIds.Contains(employee.Id)" @onchange="(args) => ToggleDistributor(employee.Id, args)" />@EmployeeName(employee)</td></tr> }
+                </tbody></table></div>
+            </div>
+        </div>
+    </div></div>
+
+    <div class="erp-card mb-3"><div class="erp-card-body"><div class="row g-2 align-items-end"><div class="col-md-4"><label class="form-label">@Text("Filter contract", "تصفية العقد")</label><select class="form-select" @bind="filterContractId"><option value="">@Text("All contracts", "كل العقود")</option>@foreach (var item in contracts) { <option value="@item.Id">@item.Number - @Display(item.CustomerName, item.CustomerNameEng)</option> }</select></div><div class="col-md-3"><label class="form-label">@Text("Filter role", "تصفية الدور")</label><select class="form-select" @bind="filterRole"><option value="">@Text("All roles", "كل الأدوار")</option>@foreach (var role in Enum.GetValues<CateringAssignmentRole>()) { <option value="@role">@role</option> }</select></div><div class="col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadAssignmentsAsync"><i class="bi bi-funnel"></i> @Text("Apply", "تطبيق")</button></div></div></div></div>
+
+    <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Contract", "العقد")</th><th>@Text("Role", "الدور")</th><th>@Text("Employee", "الموظف")</th><th>@Text("Square", "المربع")</th><th>@Text("Covered", "المشمولة")</th><th>@Text("Distributors", "الموزعون")</th><th></th></tr></thead><tbody>
+        @if (loading) { <tr><td colspan="7" class="text-muted">@Text("Loading assignments...", "جاري تحميل التكليفات...")</td></tr> }
+        else if (!assignments.Any()) { <tr><td colspan="7" class="text-muted">@Text("No assignments found.", "لا توجد تكليفات.")</td></tr> }
+        @foreach (var item in assignments) { <tr><td>@ContractLabel(item.CateringContractId)</td><td>@item.Role</td><td>@item.EmployeeName</td><td>@item.SquareName</td><td>@item.CoveredSquareIds.Count</td><td>@item.DistributorEmployeeIds.Count</td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => Edit(item)"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(item.Id)" disabled="@busy"><i class="bi bi-trash"></i></button></td></tr> }
+    </tbody></table></div>
+</div>
+
+@code {
+    private CateringAssignmentDto assignment = NewAssignment();
+    private List<CateringAssignmentDto> assignments = [];
+    private List<CateringContractDto> contracts = [];
+    private List<CateringSquareDto> squares = [];
+    private List<EmployeeDto> employees = [];
+    private Guid? filterContractId;
+    private CateringAssignmentRole? filterRole;
+    private bool loading;
+    private bool busy;
+    private string? message;
+    private string? errorMessage;
+    private string PrimaryEmployeeLabel => assignment.Role switch { CateringAssignmentRole.DistributionTeam => Text("Monitor", "المراقب"), CateringAssignmentRole.Supervisor => Text("Supervisor", "المشرف"), CateringAssignmentRole.Photographer => Text("Photographer", "المصور"), _ => Text("Employee", "الموظف") };
+
+    protected override async Task OnInitializedAsync() { SharedDataService.OnChange1 += HandleChangeAsync; await LoadLookupsAsync(); await LoadAssignmentsAsync(); }
+    private async Task LoadLookupsAsync() { var contractResult = await CateringService.GetContractsAsync(0, 300, ApiConfig.CompanyId); var squareResult = await CateringService.GetSquaresAsync(0, 500, ApiConfig.CompanyId); var employeeResult = await EmployeeService.GetByCompanyIdAsync(ApiConfig.CompanyId, 0, 500); if (contractResult.IsSuccess) contracts = contractResult.Data?.Data.ToList() ?? []; if (squareResult.IsSuccess) squares = squareResult.Data?.Data.ToList() ?? []; if (employeeResult.IsSuccess) employees = employeeResult.Data?.Data.ToList() ?? []; }
+    private async Task LoadAssignmentsAsync() { loading = true; var result = await CateringService.GetAssignmentsAsync(0, 300, filterContractId, filterRole); if (result.IsSuccess) assignments = result.Data?.Data.ToList() ?? []; else errorMessage = Error(result.Error); loading = false; }
+
+    private async Task SaveAsync()
+    {
+        if (assignment.CateringContractId == Guid.Empty || assignment.EmployeeId == Guid.Empty) { errorMessage = Text("Select contract and employee.", "اختر العقد والموظف."); return; }
+        var employee = employees.FirstOrDefault(x => x.Id == assignment.EmployeeId); var square = squares.FirstOrDefault(x => x.Id == assignment.SquareId);
+        assignment.EmployeeName = employee is null ? assignment.EmployeeName : EmployeeName(employee); assignment.SquareName = square is null ? null : Display(square.Name, square.NameEng);
+        busy = true;
+        var success = false;
+        string? failure = null;
+        if (assignment.Id == Guid.Empty) { var result = await CateringService.CreateAssignmentAsync(assignment); success = result.IsSuccess; failure = Error(result.Error); }
+        else { var result = await CateringService.UpdateAssignmentAsync(assignment); success = result.IsSuccess; failure = Error(result.Error); }
+        SetStatus(success, Text("Assignment saved.", "تم حفظ التكليف."), failure); assignment = NewAssignment(); await LoadAssignmentsAsync(); busy = false;
+    }
+
+    private void Edit(CateringAssignmentDto item) => assignment = new() { Id = item.Id, CateringContractId = item.CateringContractId, Role = item.Role, SquareId = item.SquareId, SquareName = item.SquareName, EmployeeId = item.EmployeeId, EmployeeName = item.EmployeeName, StartDate = item.StartDate, EndDate = item.EndDate, Notes = item.Notes, CoveredSquareIds = item.CoveredSquareIds.ToList(), DistributorEmployeeIds = item.DistributorEmployeeIds.ToList() };
+    private async Task DeleteAsync(Guid id) { busy = true; var result = await CateringService.DeleteAssignmentAsync(id); SetStatus(result.IsSuccess, Text("Assignment deleted.", "تم حذف التكليف."), Error(result.Error)); await LoadAssignmentsAsync(); busy = false; }
+    private void ToggleSquare(Guid id, ChangeEventArgs args) => Toggle(assignment.CoveredSquareIds, id, args);
+    private void ToggleDistributor(Guid id, ChangeEventArgs args) => Toggle(assignment.DistributorEmployeeIds, id, args);
+    private static void Toggle(List<Guid> list, Guid id, ChangeEventArgs args) { var isChecked = args.Value is bool b && b; if (isChecked && !list.Contains(id)) list.Add(id); if (!isChecked) list.Remove(id); }
+
+    private string ContractLabel(Guid id) { var contract = contracts.FirstOrDefault(x => x.Id == id); return contract is null ? id.ToString() : $"{contract.Number} - {Display(contract.CustomerName, contract.CustomerNameEng)}"; }
+    private string EmployeeName(EmployeeDto employee) => Display(employee.FullName, employee.FullNameEng);
+    private RenderFragment StatusBlock() => @<div>@if (!string.IsNullOrWhiteSpace(message)) { <div class="alert alert-success py-2">@message</div> } @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger py-2">@errorMessage</div> }</div>;
+    private void SetStatus(bool success, string successMessage, string? failureMessage) { message = success ? successMessage : null; errorMessage = success ? null : failureMessage; }
+    private static CateringAssignmentDto NewAssignment() => new() { Role = CateringAssignmentRole.DistributionTeam, StartDate = DateTime.Today };
+    private string Display(string name, string? nameEng) => SharedDataService.Language == "Ar" ? name : (string.IsNullOrWhiteSpace(nameEng) ? name : nameEng);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Error(ErrorResponseDto? error) => error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Operation failed.", "تعذرت العملية.");
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}
+

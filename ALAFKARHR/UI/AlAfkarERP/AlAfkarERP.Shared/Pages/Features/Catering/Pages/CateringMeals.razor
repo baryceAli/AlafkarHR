@@ -1,0 +1,140 @@
+﻿@page "/Catering/Meals"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Catering.Services
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Catering.Dtos
+@using SharedWithUI.Catering.Enums
+@inject ICateringService CateringService
+@inject IProductService ProductService
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Meals", "الوجبات")" Subtitle="@Text("Define meal recipes, calories, and catalog SKU components.", "تعريف الوجبات والسعرات ومكونات الأصناف من الكتالوج.")" Icon="bi-box-seam" />
+
+    @StatusBlock()
+
+    <div class="erp-card mb-3">
+        <div class="erp-card-body">
+            <EditForm Model="meal" OnValidSubmit="SaveMealAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-2">
+                    <div class="col-md-3"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="meal.Name" /></div>
+                    <div class="col-md-3"><label class="form-label">@Text("English name", "الاسم الإنجليزي")</label><InputText class="form-control" @bind-Value="meal.NameEng" /></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Type", "النوع")</label><InputSelect class="form-select" @bind-Value="meal.MealType">@foreach (var type in Enum.GetValues<CateringMealType>()) { <option value="@type">@type</option> }</InputSelect></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Calories", "السعرات")</label><InputNumber class="form-control" @bind-Value="meal.Calories" /></div>
+                    <div class="col-md-1 d-flex align-items-end"><div class="form-check"><InputCheckbox class="form-check-input" @bind-Value="meal.IsActive" /><label class="form-check-label">@Text("Active", "نشط")</label></div></div>
+                    <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit" disabled="@busy" title="@Text("Save", "حفظ")"><i class="bi bi-save"></i></button></div>
+                    <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputTextArea class="form-control" @bind-Value="meal.Notes" /></div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    @if (selectedMeal is not null)
+    {
+        <div class="erp-card mb-3">
+            <div class="erp-card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">@Text("Meal components", "مكونات الوجبة") - @Display(selectedMeal.Name, selectedMeal.NameEng)</h6>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="ClearSelection" disabled="@busy" title="@Text("Close", "إغلاق")"><i class="bi bi-x-lg"></i></button>
+                </div>
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-5"><label class="form-label">@Text("Catalog SKU", "صنف الكتالوج")</label><select class="form-select" @bind="componentSkuId"><option value="">@Text("Select SKU", "اختر الصنف")</option>@foreach (var sku in skus) { <option value="@sku.Id">@SkuName(sku)</option> }</select></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Qty per meal", "الكمية للوجبة")</label><InputNumber class="form-control" @bind-Value="component.QuantityPerMeal" /></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Unit", "الوحدة")</label><InputText class="form-control" @bind-Value="component.UnitName" /></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="component.Notes" /></div>
+                    <div class="col-md-1"><button class="btn btn-primary w-100" @onclick="AddComponentAsync" disabled="@busy" title="@Text("Add", "إضافة")"><i class="bi bi-plus-lg"></i></button></div>
+                </div>
+                <div class="erp-table-wrap mt-3"><table class="table erp-table align-middle"><thead><tr><th>@Text("Component", "المكون")</th><th>@Text("Qty", "الكمية")</th><th>@Text("Unit", "الوحدة")</th><th></th></tr></thead><tbody>
+                    @if (!selectedMeal.Components.Any()) { <tr><td colspan="4" class="text-muted">@Text("No components yet.", "لا توجد مكونات بعد.")</td></tr> }
+                    @foreach (var item in selectedMeal.Components) { <tr><td>@Display(item.ComponentName, item.ComponentNameEng)</td><td>@item.QuantityPerMeal.ToString("N2")</td><td>@item.UnitName</td><td class="text-end"><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteComponentAsync(item)" disabled="@busy" title="@Text("Remove", "حذف")"><i class="bi bi-trash"></i></button></td></tr> }
+                </tbody></table></div>
+            </div>
+        </div>
+    }
+
+    <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Meal", "الوجبة")</th><th>@Text("Type", "النوع")</th><th>@Text("Calories", "السعرات")</th><th>@Text("Components", "المكونات")</th><th>@Text("State", "الحالة")</th><th></th></tr></thead><tbody>
+        @if (loading) { <tr><td colspan="6" class="text-muted">@Text("Loading meals...", "جاري تحميل الوجبات...")</td></tr> }
+        else if (!meals.Any()) { <tr><td colspan="6" class="text-muted">@Text("No meals found.", "لا توجد وجبات.")</td></tr> }
+        @foreach (var item in meals)
+        {
+            <tr><td>@Display(item.Name, item.NameEng)</td><td>@item.MealType</td><td>@(item.Calories?.ToString("N0") ?? "-")</td><td>@item.Components.Count</td><td>@(item.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))</td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditMeal(item)" disabled="@busy" title="@Text("Edit", "تعديل")"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => SelectMealAsync(item.Id)" disabled="@busy" title="@Text("Components", "المكونات")"><i class="bi bi-list-check"></i></button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteMealAsync(item)" disabled="@busy" title="@Text("Delete", "حذف")"><i class="bi bi-trash"></i></button></td></tr>
+        }
+    </tbody></table></div>
+</div>
+
+@code {
+    private MealDefinitionDto meal = NewMeal();
+    private MealComponentDto component = new() { QuantityPerMeal = 1 };
+    private List<MealDefinitionDto> meals = [];
+    private List<ProductSkuDto> skus = [];
+    private MealDefinitionDto? selectedMeal;
+    private Guid? componentSkuId;
+    private bool loading;
+    private bool busy;
+    private string? message;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync() { SharedDataService.OnChange1 += HandleChangeAsync; await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        loading = true; errorMessage = null;
+        var mealResult = await CateringService.GetMealsAsync(0, 200, ApiConfig.CompanyId, activeOnly: false);
+        var skuResult = await ProductService.GetPublicStoreProductSkusAsync(new PublicStoreProductSkuRequest { PageIndex = 0, PageSize = 500 });
+        if (mealResult.IsSuccess) meals = mealResult.Data?.Data.ToList() ?? []; else errorMessage = Error(mealResult.Error);
+        if (skuResult.IsSuccess) skus = skuResult.Data?.Data.ToList() ?? [];
+        loading = false;
+    }
+
+    private async Task SaveMealAsync()
+    {
+        busy = true; meal.CompanyId = ApiConfig.CompanyId;
+        var success = false;
+        string? failure = null;
+        if (meal.Id == Guid.Empty)
+        {
+            var result = await CateringService.CreateMealAsync(meal);
+            success = result.IsSuccess;
+            failure = Error(result.Error);
+        }
+        else
+        {
+            var result = await CateringService.UpdateMealAsync(meal);
+            success = result.IsSuccess;
+            failure = Error(result.Error);
+        }
+        SetStatus(success, Text("Meal saved.", "تم حفظ الوجبة."), failure);
+        meal = NewMeal(); selectedMeal = null; await LoadAsync(); busy = false;
+    }
+
+    private void EditMeal(MealDefinitionDto item) { meal = new() { Id = item.Id, CompanyId = item.CompanyId, MealType = item.MealType, Name = item.Name, NameEng = item.NameEng, Calories = item.Calories, IsActive = item.IsActive, Notes = item.Notes, Components = item.Components }; selectedMeal = item; }
+    private async Task SelectMealAsync(Guid id) { var result = await CateringService.GetMealByIdAsync(id); if (result.IsSuccess) selectedMeal = result.Data; else errorMessage = Error(result.Error); }
+
+    private async Task AddComponentAsync()
+    {
+        if (selectedMeal is null || componentSkuId is null) { errorMessage = Text("Select a meal and SKU first.", "اختر الوجبة والصنف أولا."); return; }
+        var sku = skus.FirstOrDefault(x => x.Id == componentSkuId.Value); if (sku is null) return;
+        component.ProductId = sku.ProductId; component.ProductSkuId = sku.Id; component.ProductPackageId = sku.PackageId; component.ComponentName = SkuName(sku); component.ComponentNameEng = string.IsNullOrWhiteSpace(sku.NameEng) ? sku.Name : sku.NameEng;
+        busy = true; var result = await CateringService.AddMealComponentAsync(selectedMeal.Id, component); SetStatus(result.IsSuccess, Text("Component added.", "تمت إضافة المكون."), Error(result.Error)); component = new() { QuantityPerMeal = 1 }; componentSkuId = null; await SelectMealAsync(selectedMeal.Id); await LoadAsync(); busy = false;
+    }
+
+    private async Task DeleteComponentAsync(MealComponentDto item) { if (selectedMeal is null) return; busy = true; var result = await CateringService.DeleteMealComponentAsync(selectedMeal.Id, item.Id); SetStatus(result.IsSuccess, Text("Component removed.", "تم حذف المكون."), Error(result.Error)); await SelectMealAsync(selectedMeal.Id); await LoadAsync(); busy = false; }
+    private async Task DeleteMealAsync(MealDefinitionDto item) { busy = true; var result = await CateringService.DeleteMealAsync(item.Id); SetStatus(result.IsSuccess, Text("Meal deleted.", "تم حذف الوجبة."), Error(result.Error)); await LoadAsync(); busy = false; }
+    private void ClearSelection() { selectedMeal = null; component = new() { QuantityPerMeal = 1 }; componentSkuId = null; }
+
+    private RenderFragment StatusBlock() => @<div>@if (!string.IsNullOrWhiteSpace(message)) { <div class="alert alert-success py-2">@message</div> } @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger py-2">@errorMessage</div> }</div>;
+    private void SetStatus(bool success, string successMessage, string? failureMessage) { message = success ? successMessage : null; errorMessage = success ? null : failureMessage; }
+    private static MealDefinitionDto NewMeal() => new() { MealType = CateringMealType.Dry, IsActive = true };
+    private string SkuName(ProductSkuDto sku) => Display($"{sku.SkuCode} - {sku.Name}", string.IsNullOrWhiteSpace(sku.NameEng) ? $"{sku.SkuCode} - {sku.Name}" : $"{sku.SkuCodeEng} - {sku.NameEng}");
+    private string Display(string name, string? nameEng) => SharedDataService.Language == "Ar" ? name : (string.IsNullOrWhiteSpace(nameEng) ? name : nameEng);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Error(ErrorResponseDto? error) => error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Operation failed.", "تعذرت العملية.");
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}
+

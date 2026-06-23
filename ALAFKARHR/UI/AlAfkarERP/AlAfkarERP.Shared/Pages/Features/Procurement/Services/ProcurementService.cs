@@ -64,6 +64,81 @@ public class ProcurementService : BaseApiService, IProcurementService
         return await SendAsync<string>(request, null);
     }
 
+    public async Task<ApiResult<List<SupplierItemDto>>> GetSupplierItemsAsync(Guid companyId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/procurement/supplier-items/company/{companyId}");
+        return await SendAsync<List<SupplierItemDto>>(request, "items");
+    }
+
+    public async Task<ApiResult<CreateResponseDto>> SaveSupplierItemAsync(SupplierItemDto item)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/procurement/supplier-items")
+        {
+            Content = JsonContent.Create(item)
+        };
+        return await SendAsync<CreateResponseDto>(request, null);
+    }
+
+    public async Task<ApiResult<string>> DeleteSupplierItemAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"api/{_apiConfig.Version}/procurement/supplier-items/{id}");
+        return await SendAsync<string>(request, null);
+    }
+
+    public async Task<ApiResult<List<VendorPricelistDto>>> GetVendorPricelistsAsync(Guid companyId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/procurement/vendor-pricelists/company/{companyId}");
+        return await SendAsync<List<VendorPricelistDto>>(request, "items");
+    }
+
+    public async Task<ApiResult<CreateResponseDto>> SaveVendorPricelistAsync(VendorPricelistDto item)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/procurement/vendor-pricelists")
+        {
+            Content = JsonContent.Create(item)
+        };
+        return await SendAsync<CreateResponseDto>(request, null);
+    }
+
+    public async Task<ApiResult<string>> DeleteVendorPricelistAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"api/{_apiConfig.Version}/procurement/vendor-pricelists/{id}");
+        return await SendAsync<string>(request, null);
+    }
+
+    public async Task<ApiResult<List<ReorderingRuleDto>>> GetReorderingRulesAsync(Guid companyId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/procurement/reordering-rules/company/{companyId}");
+        return await SendAsync<List<ReorderingRuleDto>>(request, "items");
+    }
+
+    public async Task<ApiResult<CreateResponseDto>> SaveReorderingRuleAsync(ReorderingRuleDto item)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/procurement/reordering-rules")
+        {
+            Content = JsonContent.Create(item)
+        };
+        return await SendAsync<CreateResponseDto>(request, null);
+    }
+
+    public async Task<ApiResult<string>> DeleteReorderingRuleAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"api/{_apiConfig.Version}/procurement/reordering-rules/{id}");
+        return await SendAsync<string>(request, null);
+    }
+
+    public async Task<ApiResult<List<ProcurementTrackerRowDto>>> GetTrackerAsync(Guid companyId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/procurement/tracker/company/{companyId}");
+        return await SendAsync<List<ProcurementTrackerRowDto>>(request, "rows");
+    }
+
+    public async Task<ApiResult<List<SupplierScorecardRowDto>>> GetSupplierScorecardAsync(Guid companyId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/procurement/supplier-scorecard/company/{companyId}");
+        return await SendAsync<List<SupplierScorecardRowDto>>(request, "rows");
+    }
+
     private static string Route(ProcurementDocumentKind kind) =>
         kind switch
         {

@@ -1,0 +1,53 @@
+﻿@page "/Catering/Dashboard"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Catering.Services
+@using SharedWithUI.Catering.Dtos
+@inject ICateringService CateringService
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Catering Dashboard", "لوحة الإعاشة")" Subtitle="@Text("Track Ramadan catering contracts, schedules, receiving, and distribution variance.", "متابعة عقود الإعاشة والجداول والاستلام وفروقات التوزيع.")" Icon="bi-cup-hot" />
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger py-2">@errorMessage</div>
+    }
+
+    <div class="mb-3 text-end">
+        <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@loading"><i class="bi bi-arrow-clockwise"></i> @Text("Refresh", "تحديث")</button>
+    </div>
+
+    @if (loading)
+    {
+        <div class="erp-card"><div class="erp-card-body">@Text("Loading...", "جاري التحميل...")</div></div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @Metric(Text("Active contracts", "العقود النشطة"), dashboard.ActiveContracts.ToString("N0"), "bi-file-earmark-check")
+            @Metric(Text("Meals", "الوجبات"), dashboard.ActiveMeals.ToString("N0"), "bi-box-seam")
+            @Metric(Text("Squares", "المربعات"), dashboard.ActiveSquares.ToString("N0"), "bi-grid")
+            @Metric(Text("Contracted meals", "الوجبات المتعاقد عليها"), dashboard.ContractedQuantity.ToString("N0"), "bi-clipboard-data")
+            @Metric(Text("Scheduled", "المجدول"), dashboard.ScheduledQuantity.ToString("N0"), "bi-calendar-week")
+            @Metric(Text("Received", "المستلم"), dashboard.ReceivedQuantity.ToString("N0"), "bi-truck")
+            @Metric(Text("Distributed", "الموزع"), dashboard.DistributedQuantity.ToString("N0"), "bi-check2-circle")
+        </div>
+    }
+</div>
+
+@code {
+    private CateringDashboardDto dashboard = new();
+    private bool loading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync() { SharedDataService.OnChange1 += HandleChangeAsync; await LoadAsync(); }
+    private async Task LoadAsync() { loading = true; errorMessage = null; var result = await CateringService.GetDashboardAsync(ApiConfig.CompanyId); if (result.IsSuccess && result.Data is not null) dashboard = result.Data; else errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load dashboard.", "تعذر تحميل اللوحة."); loading = false; }
+
+    private RenderFragment Metric(string title, string value, string icon) => @<div class="col-12 col-md-6 col-xl-3"><div class="erp-card h-100"><div class="erp-card-body d-flex align-items-center gap-3"><div class="erp-icon-surface"><i class="bi @icon"></i></div><div><div class="text-muted small">@title</div><div class="fs-4 fw-semibold">@value</div></div></div></div></div>;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

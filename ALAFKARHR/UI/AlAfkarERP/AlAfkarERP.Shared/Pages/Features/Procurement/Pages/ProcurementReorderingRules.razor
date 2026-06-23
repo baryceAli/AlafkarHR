@@ -1,0 +1,368 @@
+@layout AdminLayout
+@page "/Procurement/ReorderingRules"
+
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Services
+@using AlAfkarERP.Shared.Pages.Features.Suppliers.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Permissions
+@using SharedWithUI.Procurement.Dtos
+@using SharedWithUI.Suppliers.Dtos
+
+@implements IDisposable
+@inject IProcurementService ProcurementService
+@inject IProductService ProductService
+@inject IWarehouseService WarehouseService
+@inject ISupplierService SupplierService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Reordering Rules", "قواعد إعادة الطلب")"
+                Subtitle="@Text("Define min/max stock policy and optional purchase request automation.", "تحديد سياسة الحد الأدنى والأقصى وإمكانية إنشاء طلبات الشراء تلقائيا.")"
+                Overline="@Text("Procurement Controls", "ضوابط المشتريات")"
+                Icon="bi bi-arrow-repeat">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="Back">
+                <i class="bi bi-arrow-return-left"></i>
+                @Text("Controls", "الضوابط")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3"></div>
+                <div class="fw-semibold">@Text("Loading reordering rules...", "جاري تحميل قواعد إعادة الطلب...")</div>
+            </div>
+        </AppCard>
+    }
+    else if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view reordering rules.", "ليست لديك صلاحية عرض قواعد إعادة الطلب.")</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-12 col-xl-4">
+                <AppCard Title="@FormTitle" CssClass="h-100">
+                    <EditForm Model="model" OnValidSubmit="SaveAsync">
+                        <DataAnnotationsValidator />
+                        <div class="vstack gap-3">
+                            <div>
+                                <label class="form-label">@Text("Product", "المنتج")</label>
+                                <AutoCompleteComponent TItem="ProductDto" Items="products" ItemText="ProductText" Value="selectedProduct" ValueChanged="OnProductChanged" PlaceHolder="@Text("Select product...", "اختر المنتج...")" />
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("SKU", "وحدة المنتج")</label>
+                                <AutoCompleteComponent TItem="ProductSkuDto" Items="SkuOptions" ItemText="SkuText" Value="selectedSku" ValueChanged="OnSkuChanged" PlaceHolder="@Text("Select SKU...", "اختر وحدة المنتج...")" />
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("Warehouse", "المستودع")</label>
+                                <AutoCompleteComponent TItem="WarehouseDto" Items="warehouses" ItemText="WarehouseText" Value="selectedWarehouse" ValueChanged="OnWarehouseChanged" PlaceHolder="@Text("Select warehouse...", "اختر المستودع...")" />
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("Preferred Supplier", "المورد المفضل")</label>
+                                <AutoCompleteComponent TItem="SupplierDto" Items="suppliers" ItemText="SupplierText" Value="selectedSupplier" ValueChanged="OnSupplierChanged" PlaceHolder="@Text("Select supplier...", "اختر المورد...")" />
+                            </div>
+                            <div class="row g-2">
+                                <div class="col">
+                                    <label class="form-label">@Text("Min", "الحد الأدنى")</label>
+                                    <InputNumber class="form-control" @bind-Value="model.MinimumQuantity" />
+                                </div>
+                                <div class="col">
+                                    <label class="form-label">@Text("Max", "الحد الأقصى")</label>
+                                    <InputNumber class="form-control" @bind-Value="model.MaximumQuantity" />
+                                </div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col">
+                                    <label class="form-label">@Text("Reorder Qty", "كمية إعادة الطلب")</label>
+                                    <InputNumber class="form-control" @bind-Value="model.ReorderQuantity" />
+                                </div>
+                                <div class="col">
+                                    <label class="form-label">@Text("Lead Days", "أيام التوريد")</label>
+                                    <InputNumber class="form-control" @bind-Value="model.LeadTimeDays" />
+                                </div>
+                            </div>
+                            <label class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="model.AutoCreatePurchaseRequest" />
+                                <span class="form-check-label">@Text("Auto-create purchase request", "إنشاء طلب شراء تلقائيا")</span>
+                            </label>
+                            <label class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="model.IsActive" />
+                                <span class="form-check-label">@Text("Active rule", "قاعدة نشطة")</span>
+                            </label>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary" type="submit" disabled="@(!CanSave)">
+                                    <i class="bi bi-save"></i>
+                                    @Text("Save", "حفظ")
+                                </button>
+                                <button class="btn btn-outline-secondary" type="button" @onclick="ResetForm">@Text("Clear", "مسح")</button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+            <div class="col-12 col-xl-8">
+                <AppCard Title="@Text("Reordering Rule List", "قائمة قواعد إعادة الطلب")">
+                    <FilterBar CssClass="mb-3">
+                        <ChildContent>
+                            <div class="input-group erp-search-control">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input class="form-control" placeholder="@Text("Search product or SKU", "ابحث بالمنتج أو وحدة المنتج")" @bind="searchText" @bind:event="oninput" />
+                            </div>
+                        </ChildContent>
+                        <Actions>
+                            <button class="btn btn-outline-secondary" @onclick="LoadItemsAsync">
+                                <i class="bi bi-arrow-repeat"></i>
+                                @Text("Refresh", "تحديث")
+                            </button>
+                        </Actions>
+                    </FilterBar>
+                    <div class="erp-table-wrap">
+                        <table class="table erp-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>@Text("Product", "المنتج")</th>
+                                    <th>@Text("Warehouse", "المستودع")</th>
+                                    <th>@Text("Min/Max/Reorder", "أدنى/أقصى/إعادة")</th>
+                                    <th>@Text("Automation", "الأتمتة")</th>
+                                    <th>@Text("Status", "الحالة")</th>
+                                    <th class="text-end">@Text("Actions", "الإجراءات")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (FilteredItems.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">@Text("No reordering rules found.", "لا توجد قواعد إعادة طلب.")</td>
+                                    </tr>
+                                }
+                                @foreach (var item in FilteredItems)
+                                {
+                                    <tr>
+                                        <td>@DisplaySku(item)</td>
+                                        <td>@Display(WarehouseName(item.WarehouseId))</td>
+                                        <td>@item.MinimumQuantity.ToString("N2") / @item.MaximumQuantity.ToString("N2") / @item.ReorderQuantity.ToString("N2")</td>
+                                        <td><StatusChip Text="@(item.AutoCreatePurchaseRequest ? Text("Auto PR", "طلب تلقائي") : Text("Manual", "يدوي"))" Tone="@(item.AutoCreatePurchaseRequest ? "info" : "muted")" /></td>
+                                        <td><StatusChip Text="@(item.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))" Tone="@(item.IsActive ? "success" : "muted")" /></td>
+                                        <td>
+                                            <div class="d-flex justify-content-end gap-2">
+                                                <button class="btn btn-outline-warning btn-sm erp-row-action" title="@Text("Edit", "تعديل")" @onclick="() => Edit(item)" disabled="@(!CanSave)">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger btn-sm erp-row-action" title="@Text("Delete", "حذف")" @onclick="() => DeleteAsync(item.Id)" disabled="@(!CanDelete)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private bool isLoading = true;
+    private string? searchText;
+    private AuthenticationState? authState;
+    private ReorderingRuleDto model = new();
+    private List<ReorderingRuleDto> items = [];
+    private readonly List<ProductDto> products = [];
+    private readonly List<ProductSkuDto> allSkus = [];
+    private readonly List<WarehouseDto> warehouses = [];
+    private readonly List<SupplierDto> suppliers = [];
+    private ProductDto? selectedProduct;
+    private ProductSkuDto? selectedSku;
+    private WarehouseDto? selectedWarehouse;
+    private SupplierDto? selectedSupplier;
+
+    private bool CanView => HasPermission(PermissionList.PurchaseRequestPermissions.View);
+    private bool CanSave => HasPermission(PermissionList.PurchaseRequestPermissions.Create);
+    private bool CanDelete => HasPermission(PermissionList.PurchaseRequestPermissions.Delete);
+    private string FormTitle => model.Id == Guid.Empty ? Text("New Reordering Rule", "قاعدة إعادة طلب جديدة") : Text("Edit Reordering Rule", "تعديل قاعدة إعادة طلب");
+    private List<ProductSkuDto> SkuOptions => model.ProductId == Guid.Empty ? allSkus : allSkus.Where(sku => sku.ProductId == model.ProductId).ToList();
+    private List<ReorderingRuleDto> FilteredItems => string.IsNullOrWhiteSpace(searchText)
+        ? items
+        : items.Where(item => Contains(DisplaySku(item), searchText)).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+        {
+            isLoading = false;
+            return;
+        }
+
+        ResetForm();
+        await LoadLookupsAsync();
+        await LoadItemsAsync();
+        isLoading = false;
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var productResponse = await ProductService.GetByCompanyAsync(companyId, 0, 200);
+        if (productResponse.IsSuccess)
+        {
+            products.AddRange(productResponse.Data?.Data ?? []);
+            allSkus.AddRange(products.SelectMany(product => product.Skus ?? []));
+        }
+
+        var warehouseResponse = await WarehouseService.GetAsync(companyId, 0, 10000);
+        if (warehouseResponse.IsSuccess)
+            warehouses.AddRange(warehouseResponse.Data?.Data ?? []);
+
+        var supplierResponse = await SupplierService.GetByCompanyAsync(companyId, 0, 200);
+        if (supplierResponse.IsSuccess)
+            suppliers.AddRange(supplierResponse.Data?.Data ?? []);
+    }
+
+    private async Task LoadItemsAsync()
+    {
+        var result = await ProcurementService.GetReorderingRulesAsync(companyId);
+        if (result.IsSuccess)
+            items = result.Data ?? [];
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load reordering rules.", "تعذر تحميل قواعد إعادة الطلب."));
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!CanSave)
+            return;
+
+        model.CompanyId = companyId;
+        var result = await ProcurementService.SaveReorderingRuleAsync(model);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Reordering rule saved.", "تم حفظ قاعدة إعادة الطلب."));
+            ResetForm();
+            await LoadItemsAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not save reordering rule.", "تعذر حفظ قاعدة إعادة الطلب."));
+        }
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        if (!CanDelete)
+            return;
+
+        var result = await ProcurementService.DeleteReorderingRuleAsync(id);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Reordering rule deleted.", "تم حذف قاعدة إعادة الطلب."));
+            if (model.Id == id)
+                ResetForm();
+            await LoadItemsAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not delete reordering rule.", "تعذر حذف قاعدة إعادة الطلب."));
+        }
+    }
+
+    private void Edit(ReorderingRuleDto item)
+    {
+        model = new ReorderingRuleDto
+        {
+            Id = item.Id,
+            CompanyId = item.CompanyId,
+            ProductId = item.ProductId,
+            ProductSkuId = item.ProductSkuId,
+            WarehouseId = item.WarehouseId,
+            SupplierId = item.SupplierId,
+            MinimumQuantity = item.MinimumQuantity,
+            MaximumQuantity = item.MaximumQuantity,
+            ReorderQuantity = item.ReorderQuantity,
+            LeadTimeDays = item.LeadTimeDays,
+            AutoCreatePurchaseRequest = item.AutoCreatePurchaseRequest,
+            IsActive = item.IsActive
+        };
+        selectedProduct = products.FirstOrDefault(product => product.Id == item.ProductId);
+        selectedSku = allSkus.FirstOrDefault(sku => sku.Id == item.ProductSkuId);
+        selectedWarehouse = warehouses.FirstOrDefault(warehouse => warehouse.Id == item.WarehouseId);
+        selectedSupplier = suppliers.FirstOrDefault(supplier => supplier.Id == item.SupplierId);
+    }
+
+    private void ResetForm()
+    {
+        model = new ReorderingRuleDto { CompanyId = companyId, IsActive = true, ReorderQuantity = 1 };
+        selectedProduct = null;
+        selectedSku = null;
+        selectedWarehouse = null;
+        selectedSupplier = null;
+    }
+
+    private Task OnProductChanged(ProductDto? product)
+    {
+        selectedProduct = product;
+        model.ProductId = product?.Id ?? Guid.Empty;
+        selectedSku = null;
+        model.ProductSkuId = Guid.Empty;
+        return Task.CompletedTask;
+    }
+
+    private Task OnSkuChanged(ProductSkuDto? sku)
+    {
+        selectedSku = sku;
+        model.ProductSkuId = sku?.Id ?? Guid.Empty;
+        if (sku is not null && selectedProduct?.Id != sku.ProductId)
+        {
+            selectedProduct = products.FirstOrDefault(product => product.Id == sku.ProductId);
+            model.ProductId = sku.ProductId;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnWarehouseChanged(WarehouseDto? warehouse)
+    {
+        selectedWarehouse = warehouse;
+        model.WarehouseId = warehouse?.Id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnSupplierChanged(SupplierDto? supplier)
+    {
+        selectedSupplier = supplier;
+        model.SupplierId = supplier?.Id;
+        return Task.CompletedTask;
+    }
+
+    private void Back() => NavigationManager.NavigateTo("/Procurement/Enhancements");
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private string DisplaySku(ReorderingRuleDto item) => Display(FirstNonEmpty(SkuName(item.ProductSkuId), allSkus.FirstOrDefault(sku => sku.Id == item.ProductSkuId)?.SkuCode));
+    private string SkuName(Guid skuId) => allSkus.FirstOrDefault(sku => sku.Id == skuId)?.ProductName ?? string.Empty;
+    private string? WarehouseName(Guid? warehouseId) => warehouses.FirstOrDefault(warehouse => warehouse.Id == warehouseId)?.Name;
+    private string ProductText(ProductDto product) => SharedDataService.SelectViewLang(product.NameEng, product.Name);
+    private string SkuText(ProductSkuDto sku) => FirstNonEmpty(SharedDataService.SelectViewLang(sku.NameEng ?? string.Empty, sku.Name ?? string.Empty), sku.SkuCode, sku.Name, sku.NameEng);
+    private string WarehouseText(WarehouseDto warehouse) => SharedDataService.SelectViewLang(warehouse.NameEng, warehouse.Name);
+    private string SupplierText(SupplierDto supplier) => string.IsNullOrWhiteSpace(supplier.SupplierCode) ? supplier.Name : $"{supplier.Name} ({supplier.SupplierCode})";
+    private static string FirstNonEmpty(params string?[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+    private static bool Contains(string? value, string? query) => !string.IsNullOrWhiteSpace(value) && !string.IsNullOrWhiteSpace(query) && value.Contains(query, StringComparison.OrdinalIgnoreCase);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

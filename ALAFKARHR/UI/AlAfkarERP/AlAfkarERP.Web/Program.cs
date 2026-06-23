@@ -3,6 +3,7 @@ using AlAfkarERP.Shared.Pages.Features.Accounting.Services;
 using AlAfkarERP.Shared.Pages.Features.Auth.Services;
 using AlAfkarERP.Shared.Pages.Features.Attendance.Services;
 using AlAfkarERP.Shared.Pages.Features.Catalog.Services;
+using AlAfkarERP.Shared.Pages.Features.Catering.Services;
 using AlAfkarERP.Shared.Pages.Features.Company.Services;
 using AlAfkarERP.Shared.Pages.Features.Contracts.Services;
 using AlAfkarERP.Shared.Pages.Features.Customers.Services;
@@ -192,6 +193,14 @@ builder.Services.AddHttpClient<IPriceListService, PriceListService>(client =>
 });
 
 #endregion Catalog Module Services
+
+#region Catering
+builder.Services.AddScoped<ICateringService, CateringService>();
+builder.Services.AddHttpClient<ICateringService, CateringService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+#endregion Catering
 
 #region Inventory
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();

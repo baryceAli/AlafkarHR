@@ -1,0 +1,370 @@
+@layout AdminLayout
+@page "/Procurement/VendorPricelists"
+
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Services
+@using AlAfkarERP.Shared.Pages.Features.Suppliers.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Permissions
+@using SharedWithUI.Procurement.Dtos
+@using SharedWithUI.Suppliers.Dtos
+
+@implements IDisposable
+@inject IProcurementService ProcurementService
+@inject ISupplierService SupplierService
+@inject IProductService ProductService
+@inject ICurrencyService CurrencyService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Vendor Pricelists", "قوائم أسعار الموردين")"
+                Subtitle="@Text("Maintain supplier price breaks, currencies, discounts, and preferred prices.", "إدارة أسعار الموردين والكميات والعملات والخصومات والأسعار المفضلة.")"
+                Overline="@Text("Procurement Controls", "ضوابط المشتريات")"
+                Icon="bi bi-tags">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="Back">
+                <i class="bi bi-arrow-return-left"></i>
+                @Text("Controls", "الضوابط")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3"></div>
+                <div class="fw-semibold">@Text("Loading vendor pricelists...", "جاري تحميل قوائم أسعار الموردين...")</div>
+            </div>
+        </AppCard>
+    }
+    else if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view vendor pricelists.", "ليست لديك صلاحية عرض قوائم أسعار الموردين.")</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-12 col-xl-4">
+                <AppCard Title="@FormTitle" CssClass="h-100">
+                    <EditForm Model="model" OnValidSubmit="SaveAsync">
+                        <DataAnnotationsValidator />
+                        <div class="vstack gap-3">
+                            <div>
+                                <label class="form-label">@Text("Supplier", "المورد")</label>
+                                <AutoCompleteComponent TItem="SupplierDto" Items="suppliers" ItemText="SupplierText" Value="selectedSupplier" ValueChanged="OnSupplierChanged" PlaceHolder="@Text("Select supplier...", "اختر المورد...")" />
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("Product", "المنتج")</label>
+                                <AutoCompleteComponent TItem="ProductDto" Items="products" ItemText="ProductText" Value="selectedProduct" ValueChanged="OnProductChanged" PlaceHolder="@Text("Select product...", "اختر المنتج...")" />
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("SKU", "وحدة المنتج")</label>
+                                <AutoCompleteComponent TItem="ProductSkuDto" Items="SkuOptions" ItemText="SkuText" Value="selectedSku" ValueChanged="OnSkuChanged" PlaceHolder="@Text("Select SKU...", "اختر وحدة المنتج...")" />
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("Currency", "العملة")</label>
+                                <AutoCompleteComponent TItem="CurrencyDto" Items="currencies" ItemText="CurrencyText" Value="selectedCurrency" ValueChanged="OnCurrencyChanged" PlaceHolder="@Text("Select currency...", "اختر العملة...")" />
+                            </div>
+                            <div class="row g-2">
+                                <div class="col">
+                                    <label class="form-label">@Text("Min Qty", "أقل كمية")</label>
+                                    <InputNumber class="form-control" @bind-Value="model.MinimumQuantity" />
+                                </div>
+                                <div class="col">
+                                    <label class="form-label">@Text("Unit Cost", "تكلفة الوحدة")</label>
+                                    <InputNumber class="form-control" @bind-Value="model.UnitCost" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("Discount %", "نسبة الخصم")</label>
+                                <InputNumber class="form-control" @bind-Value="model.DiscountRate" />
+                            </div>
+                            <div class="row g-2">
+                                <div class="col">
+                                    <label class="form-label">@Text("Valid From", "صالح من")</label>
+                                    <InputDate class="form-control" @bind-Value="model.ValidFrom" />
+                                </div>
+                                <div class="col">
+                                    <label class="form-label">@Text("Valid To", "صالح إلى")</label>
+                                    <InputDate class="form-control" @bind-Value="model.ValidTo" />
+                                </div>
+                            </div>
+                            <label class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="model.IsPreferred" />
+                                <span class="form-check-label">@Text("Preferred price", "سعر مفضل")</span>
+                            </label>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary" type="submit" disabled="@(!CanSave)">
+                                    <i class="bi bi-save"></i>
+                                    @Text("Save", "حفظ")
+                                </button>
+                                <button class="btn btn-outline-secondary" type="button" @onclick="ResetForm">@Text("Clear", "مسح")</button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+            <div class="col-12 col-xl-8">
+                <AppCard Title="@Text("Vendor Pricelist Rows", "بنود أسعار الموردين")">
+                    <FilterBar CssClass="mb-3">
+                        <ChildContent>
+                            <div class="input-group erp-search-control">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input class="form-control" placeholder="@Text("Search supplier or product", "ابحث بالمورد أو المنتج")" @bind="searchText" @bind:event="oninput" />
+                            </div>
+                        </ChildContent>
+                        <Actions>
+                            <button class="btn btn-outline-secondary" @onclick="LoadItemsAsync">
+                                <i class="bi bi-arrow-repeat"></i>
+                                @Text("Refresh", "تحديث")
+                            </button>
+                        </Actions>
+                    </FilterBar>
+                    <div class="erp-table-wrap">
+                        <table class="table erp-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>@Text("Supplier", "المورد")</th>
+                                    <th>@Text("Product", "المنتج")</th>
+                                    <th>@Text("Min Qty", "أقل كمية")</th>
+                                    <th>@Text("Unit Cost", "تكلفة الوحدة")</th>
+                                    <th>@Text("Validity", "الصلاحية")</th>
+                                    <th class="text-end">@Text("Actions", "الإجراءات")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (FilteredItems.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">@Text("No vendor pricelist rows found.", "لا توجد بنود أسعار موردين.")</td>
+                                    </tr>
+                                }
+                                @foreach (var item in FilteredItems)
+                                {
+                                    <tr>
+                                        <td>@Display(item.SupplierName)</td>
+                                        <td>@DisplayProduct(item)</td>
+                                        <td>@item.MinimumQuantity.ToString("N2")</td>
+                                        <td>@item.UnitCost.ToString("N2")</td>
+                                        <td>@ValidityText(item)</td>
+                                        <td>
+                                            <div class="d-flex justify-content-end gap-2">
+                                                <button class="btn btn-outline-warning btn-sm erp-row-action" title="@Text("Edit", "تعديل")" @onclick="() => Edit(item)" disabled="@(!CanSave)">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger btn-sm erp-row-action" title="@Text("Delete", "حذف")" @onclick="() => DeleteAsync(item.Id)" disabled="@(!CanDelete)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private bool isLoading = true;
+    private string? searchText;
+    private AuthenticationState? authState;
+    private VendorPricelistDto model = new();
+    private List<VendorPricelistDto> items = [];
+    private readonly List<SupplierDto> suppliers = [];
+    private readonly List<ProductDto> products = [];
+    private readonly List<ProductSkuDto> allSkus = [];
+    private readonly List<CurrencyDto> currencies = [];
+    private SupplierDto? selectedSupplier;
+    private ProductDto? selectedProduct;
+    private ProductSkuDto? selectedSku;
+    private CurrencyDto? selectedCurrency;
+
+    private bool CanView => HasPermission(PermissionList.PurchaseOrderPermissions.View);
+    private bool CanSave => HasPermission(PermissionList.PurchaseOrderPermissions.Create);
+    private bool CanDelete => HasPermission(PermissionList.PurchaseOrderPermissions.Delete);
+    private string FormTitle => model.Id == Guid.Empty ? Text("New Vendor Price", "سعر مورد جديد") : Text("Edit Vendor Price", "تعديل سعر مورد");
+    private List<ProductSkuDto> SkuOptions => model.ProductId == Guid.Empty ? allSkus : allSkus.Where(sku => sku.ProductId == model.ProductId).ToList();
+    private List<VendorPricelistDto> FilteredItems => string.IsNullOrWhiteSpace(searchText)
+        ? items
+        : items.Where(item => Contains(item.SupplierName, searchText) || Contains(ProductName(item), searchText)).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+        {
+            isLoading = false;
+            return;
+        }
+
+        ResetForm();
+        await LoadLookupsAsync();
+        await LoadItemsAsync();
+        isLoading = false;
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var supplierResponse = await SupplierService.GetByCompanyAsync(companyId, 0, 200);
+        if (supplierResponse.IsSuccess)
+            suppliers.AddRange(supplierResponse.Data?.Data ?? []);
+
+        var productResponse = await ProductService.GetByCompanyAsync(companyId, 0, 200);
+        if (productResponse.IsSuccess)
+        {
+            products.AddRange(productResponse.Data?.Data ?? []);
+            allSkus.AddRange(products.SelectMany(product => product.Skus ?? []));
+        }
+
+        var currencyResponse = await CurrencyService.GetAsync(companyId, 0, 200);
+        if (currencyResponse.IsSuccess)
+            currencies.AddRange(currencyResponse.Data?.Data ?? []);
+    }
+
+    private async Task LoadItemsAsync()
+    {
+        var result = await ProcurementService.GetVendorPricelistsAsync(companyId);
+        if (result.IsSuccess)
+            items = result.Data ?? [];
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load vendor pricelists.", "تعذر تحميل قوائم أسعار الموردين."));
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!CanSave)
+            return;
+
+        model.CompanyId = companyId;
+        var result = await ProcurementService.SaveVendorPricelistAsync(model);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Vendor price saved.", "تم حفظ سعر المورد."));
+            ResetForm();
+            await LoadItemsAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not save vendor price.", "تعذر حفظ سعر المورد."));
+        }
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        if (!CanDelete)
+            return;
+
+        var result = await ProcurementService.DeleteVendorPricelistAsync(id);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Vendor price deleted.", "تم حذف سعر المورد."));
+            if (model.Id == id)
+                ResetForm();
+            await LoadItemsAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not delete vendor price.", "تعذر حذف سعر المورد."));
+        }
+    }
+
+    private void Edit(VendorPricelistDto item)
+    {
+        model = new VendorPricelistDto
+        {
+            Id = item.Id,
+            CompanyId = item.CompanyId,
+            SupplierId = item.SupplierId,
+            SupplierName = item.SupplierName,
+            ProductId = item.ProductId,
+            ProductSkuId = item.ProductSkuId,
+            CurrencyId = item.CurrencyId,
+            MinimumQuantity = item.MinimumQuantity,
+            UnitCost = item.UnitCost,
+            DiscountRate = item.DiscountRate,
+            ValidFrom = item.ValidFrom,
+            ValidTo = item.ValidTo,
+            IsPreferred = item.IsPreferred
+        };
+        selectedSupplier = suppliers.FirstOrDefault(supplier => supplier.Id == item.SupplierId);
+        selectedProduct = products.FirstOrDefault(product => product.Id == item.ProductId);
+        selectedSku = allSkus.FirstOrDefault(sku => sku.Id == item.ProductSkuId);
+        selectedCurrency = currencies.FirstOrDefault(currency => currency.Id == item.CurrencyId);
+    }
+
+    private void ResetForm()
+    {
+        model = new VendorPricelistDto { CompanyId = companyId, ValidFrom = DateTime.Today };
+        selectedSupplier = null;
+        selectedProduct = null;
+        selectedSku = null;
+        selectedCurrency = null;
+    }
+
+    private Task OnSupplierChanged(SupplierDto? supplier)
+    {
+        selectedSupplier = supplier;
+        model.SupplierId = supplier?.Id ?? Guid.Empty;
+        model.SupplierName = supplier?.Name;
+        return Task.CompletedTask;
+    }
+
+    private Task OnProductChanged(ProductDto? product)
+    {
+        selectedProduct = product;
+        model.ProductId = product?.Id ?? Guid.Empty;
+        selectedSku = null;
+        model.ProductSkuId = Guid.Empty;
+        return Task.CompletedTask;
+    }
+
+    private Task OnSkuChanged(ProductSkuDto? sku)
+    {
+        selectedSku = sku;
+        model.ProductSkuId = sku?.Id ?? Guid.Empty;
+        if (sku is not null && selectedProduct?.Id != sku.ProductId)
+        {
+            selectedProduct = products.FirstOrDefault(product => product.Id == sku.ProductId);
+            model.ProductId = sku.ProductId;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnCurrencyChanged(CurrencyDto? currency)
+    {
+        selectedCurrency = currency;
+        model.CurrencyId = currency?.Id;
+        return Task.CompletedTask;
+    }
+
+    private void Back() => NavigationManager.NavigateTo("/Procurement/Enhancements");
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private string ProductName(VendorPricelistDto item) => allSkus.FirstOrDefault(sku => sku.Id == item.ProductSkuId)?.ProductName ?? string.Empty;
+    private string DisplayProduct(VendorPricelistDto item) => Display(FirstNonEmpty(ProductName(item), allSkus.FirstOrDefault(sku => sku.Id == item.ProductSkuId)?.SkuCode));
+    private string ValidityText(VendorPricelistDto item) => item.ValidTo.HasValue ? $"{item.ValidFrom:yyyy-MM-dd} - {item.ValidTo:yyyy-MM-dd}" : $"{item.ValidFrom:yyyy-MM-dd} -";
+    private string SupplierText(SupplierDto supplier) => string.IsNullOrWhiteSpace(supplier.SupplierCode) ? supplier.Name : $"{supplier.Name} ({supplier.SupplierCode})";
+    private string ProductText(ProductDto product) => SharedDataService.SelectViewLang(product.NameEng, product.Name);
+    private string SkuText(ProductSkuDto sku) => FirstNonEmpty(SharedDataService.SelectViewLang(sku.NameEng ?? string.Empty, sku.Name ?? string.Empty), sku.SkuCode, sku.Name, sku.NameEng);
+    private string CurrencyText(CurrencyDto currency) => $"{currency.Code} - {currency.Name}";
+    private static string FirstNonEmpty(params string?[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+    private static bool Contains(string? value, string? query) => !string.IsNullOrWhiteSpace(value) && !string.IsNullOrWhiteSpace(query) && value.Contains(query, StringComparison.OrdinalIgnoreCase);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

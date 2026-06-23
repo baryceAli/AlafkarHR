@@ -1,0 +1,150 @@
+@layout AdminLayout
+@page "/Procurement/Tracker"
+
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.Procurement.Dtos
+
+@implements IDisposable
+@inject IProcurementService ProcurementService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Procurement Tracker", "متتبع المشتريات")"
+                Subtitle="@Text("Track ordered, received, invoiced, and open quantities across procurement documents.", "تتبع الكميات المطلوبة والمستلمة والمفوترة والمفتوحة عبر مستندات المشتريات.")"
+                Overline="@Text("Procurement Controls", "ضوابط المشتريات")"
+                Icon="bi bi-activity">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="Back">
+                <i class="bi bi-arrow-return-left"></i>
+                @Text("Controls", "الضوابط")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3"></div>
+                <div class="fw-semibold">@Text("Loading tracker...", "جاري تحميل المتتبع...")</div>
+            </div>
+        </AppCard>
+    }
+    else if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view the procurement tracker.", "ليست لديك صلاحية عرض متتبع المشتريات.")</div>
+    }
+    else
+    {
+        <AppCard Title="@Text("Document Progress", "تقدم المستندات")">
+            <FilterBar CssClass="mb-3">
+                <ChildContent>
+                    <div class="input-group erp-search-control">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input class="form-control" placeholder="@Text("Search document, supplier, or status", "ابحث بالمستند أو المورد أو الحالة")" @bind="searchText" @bind:event="oninput" />
+                    </div>
+                </ChildContent>
+                <Actions>
+                    <button class="btn btn-outline-secondary" @onclick="LoadAsync">
+                        <i class="bi bi-arrow-repeat"></i>
+                        @Text("Refresh", "تحديث")
+                    </button>
+                </Actions>
+            </FilterBar>
+            <div class="erp-table-wrap">
+                <table class="table erp-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>@Text("Document", "المستند")</th>
+                            <th>@Text("Supplier", "المورد")</th>
+                            <th>@Text("Status", "الحالة")</th>
+                            <th>@Text("Ordered", "المطلوب")</th>
+                            <th>@Text("Received", "المستلم")</th>
+                            <th>@Text("Invoiced", "المفوتر")</th>
+                            <th>@Text("Open", "المفتوح")</th>
+                            <th>@Text("Age", "العمر")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (FilteredRows.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">@Text("No procurement tracker rows found.", "لا توجد بيانات في متتبع المشتريات.")</td>
+                            </tr>
+                        }
+                        @foreach (var row in FilteredRows)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@row.Number</div>
+                                    <div class="text-muted small">@row.Kind</div>
+                                </td>
+                                <td>@Display(row.SupplierName)</td>
+                                <td><StatusChip Text="@row.Status" Tone="info" /></td>
+                                <td>@row.OrderedQuantity.ToString("N2")</td>
+                                <td>@row.ReceivedQuantity.ToString("N2")</td>
+                                <td>@row.InvoicedQuantity.ToString("N2")</td>
+                                <td>@row.OpenQuantity.ToString("N2")</td>
+                                <td>@Text($"{row.AgeDays} days", $"{row.AgeDays} يوم")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </AppCard>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private bool isLoading = true;
+    private string? searchText;
+    private AuthenticationState? authState;
+    private List<ProcurementTrackerRowDto> rows = [];
+
+    private bool CanView => HasPermission(PermissionList.PurchaseOrderPermissions.View);
+    private List<ProcurementTrackerRowDto> FilteredRows => string.IsNullOrWhiteSpace(searchText)
+        ? rows
+        : rows.Where(row =>
+            Contains(row.Number, searchText) ||
+            Contains(row.SupplierName, searchText) ||
+            Contains(row.Status, searchText) ||
+            Contains(row.Kind.ToString(), searchText)).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+        {
+            isLoading = false;
+            return;
+        }
+
+        await LoadAsync();
+        isLoading = false;
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await ProcurementService.GetTrackerAsync(companyId);
+        if (result.IsSuccess)
+            rows = result.Data ?? [];
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load procurement tracker.", "تعذر تحميل متتبع المشتريات."));
+    }
+
+    private void Back() => NavigationManager.NavigateTo("/Procurement/Enhancements");
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private static bool Contains(string? value, string? query) => !string.IsNullOrWhiteSpace(value) && !string.IsNullOrWhiteSpace(query) && value.Contains(query, StringComparison.OrdinalIgnoreCase);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

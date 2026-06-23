@@ -1,0 +1,184 @@
+@layout AdminLayout
+@page "/Procurement/Enhancements"
+
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.Procurement.Dtos
+
+@implements IDisposable
+@inject IProcurementService ProcurementService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Procurement Controls", "ضوابط المشتريات")"
+                Subtitle="@Text("Manage supplier purchasing setup and review procurement performance.", "إدارة إعدادات الشراء من الموردين ومراجعة أداء المشتريات.")"
+                Overline="@Text("Procurement", "المشتريات")"
+                Icon="bi bi-diagram-3" />
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3"></div>
+                <div class="fw-semibold">@Text("Loading procurement controls...", "جاري تحميل ضوابط المشتريات...")</div>
+            </div>
+        </AppCard>
+    }
+    else if (companyId == Guid.Empty)
+    {
+        <div class="alert alert-warning">@Text("Select a company to open procurement controls.", "اختر شركة لفتح ضوابط المشتريات.")</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var tile in VisibleTiles)
+            {
+                <div class="col-12 col-md-6 col-xl-4">
+                    <AppCard CssClass="h-100">
+                        <div class="d-flex align-items-start justify-content-between gap-3">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <i class="bi @tile.Icon text-primary"></i>
+                                    <h2 class="h5 mb-0">@Text(tile.TitleEn, tile.TitleAr)</h2>
+                                </div>
+                                <p class="text-muted mb-3">@Text(tile.DescriptionEn, tile.DescriptionAr)</p>
+                                <div class="fw-semibold">@tile.CountText</div>
+                            </div>
+                            <button class="btn btn-outline-primary btn-sm text-nowrap" @onclick="() => NavigationManager.NavigateTo(tile.Url)">
+                                <i class="bi bi-arrow-up-right"></i>
+                                @Text("Open", "فتح")
+                            </button>
+                        </div>
+                    </AppCard>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private bool isLoading = true;
+    private AuthenticationState? authState;
+    private List<SupplierItemDto> supplierItems = [];
+    private List<VendorPricelistDto> vendorPricelists = [];
+    private List<ReorderingRuleDto> reorderingRules = [];
+    private List<ProcurementTrackerRowDto> trackerRows = [];
+    private List<SupplierScorecardRowDto> scorecardRows = [];
+
+    private IEnumerable<ControlTile> VisibleTiles => Tiles.Where(tile => HasPermission(tile.Permission));
+
+    private List<ControlTile> Tiles =>
+    [
+        new(
+            "Supplier Items",
+            "أصناف الموردين",
+            "Map supplier item codes, lead times, and preferred product/SKU relationships.",
+            "ربط رموز أصناف الموردين ومدد التوريد وعلاقات المنتج ووحدة المنتج المفضلة.",
+            "bi-box-seam",
+            "/Procurement/SupplierItems",
+            PermissionList.PurchaseOrderPermissions.View,
+            CountText(supplierItems.Count, "mapping", "mappings", "ربط")),
+        new(
+            "Vendor Pricelists",
+            "قوائم أسعار الموردين",
+            "Maintain supplier price breaks, currency, discount, and preferred pricing.",
+            "إدارة أسعار الموردين والكميات والعملات والخصومات والأسعار المفضلة.",
+            "bi-tags",
+            "/Procurement/VendorPricelists",
+            PermissionList.PurchaseOrderPermissions.View,
+            CountText(vendorPricelists.Count, "price", "prices", "سعر")),
+        new(
+            "Reordering Rules",
+            "قواعد إعادة الطلب",
+            "Define min/max quantities, reorder quantities, warehouse, and preferred supplier.",
+            "تحديد الحد الأدنى والأقصى وكميات إعادة الطلب والمستودع والمورد المفضل.",
+            "bi-arrow-repeat",
+            "/Procurement/ReorderingRules",
+            PermissionList.PurchaseRequestPermissions.View,
+            CountText(reorderingRules.Count, "rule", "rules", "قاعدة")),
+        new(
+            "Procurement Tracker",
+            "متتبع المشتريات",
+            "Track ordered, received, invoiced, and open quantities across procurement documents.",
+            "تتبع الكميات المطلوبة والمستلمة والمفوترة والمفتوحة عبر مستندات المشتريات.",
+            "bi-activity",
+            "/Procurement/Tracker",
+            PermissionList.PurchaseOrderPermissions.View,
+            CountText(trackerRows.Count, "row", "rows", "صف")),
+        new(
+            "Supplier Scorecard",
+            "تقييم الموردين",
+            "Review supplier fulfillment and invoice matching performance.",
+            "مراجعة أداء الموردين في التوريد ومطابقة الفواتير.",
+            "bi-clipboard2-data",
+            "/Procurement/SupplierScorecard",
+            PermissionList.PurchaseOrderPermissions.View,
+            CountText(scorecardRows.Count, "supplier", "suppliers", "مورد"))
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+        {
+            isLoading = false;
+            return;
+        }
+
+        await LoadCountsAsync();
+        isLoading = false;
+    }
+
+    private async Task LoadCountsAsync()
+    {
+        var supplierItemsResult = await ProcurementService.GetSupplierItemsAsync(companyId);
+        if (supplierItemsResult.IsSuccess)
+            supplierItems = supplierItemsResult.Data ?? [];
+
+        var pricelistsResult = await ProcurementService.GetVendorPricelistsAsync(companyId);
+        if (pricelistsResult.IsSuccess)
+            vendorPricelists = pricelistsResult.Data ?? [];
+
+        var reorderingRulesResult = await ProcurementService.GetReorderingRulesAsync(companyId);
+        if (reorderingRulesResult.IsSuccess)
+            reorderingRules = reorderingRulesResult.Data ?? [];
+
+        var trackerResult = await ProcurementService.GetTrackerAsync(companyId);
+        if (trackerResult.IsSuccess)
+            trackerRows = trackerResult.Data ?? [];
+
+        var scorecardResult = await ProcurementService.GetSupplierScorecardAsync(companyId);
+        if (scorecardResult.IsSuccess)
+            scorecardRows = scorecardResult.Data ?? [];
+
+        if (!supplierItemsResult.IsSuccess || !pricelistsResult.IsSuccess || !reorderingRulesResult.IsSuccess || !trackerResult.IsSuccess || !scorecardResult.IsSuccess)
+            ToastService.ShowError(Text("Some procurement control summaries could not be loaded.", "تعذر تحميل بعض ملخصات ضوابط المشتريات."));
+    }
+
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string CountText(int count, string singularEn, string pluralEn, string ar) =>
+        SharedDataService.Language == "ar"
+            ? $"{count:N0} {ar}"
+            : $"{count:N0} {(count == 1 ? singularEn : pluralEn)}";
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+
+    private readonly record struct ControlTile(
+        string TitleEn,
+        string TitleAr,
+        string DescriptionEn,
+        string DescriptionAr,
+        string Icon,
+        string Url,
+        string Permission,
+        string CountText);
+}
