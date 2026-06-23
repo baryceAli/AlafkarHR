@@ -388,6 +388,9 @@ file static class WarehouseTransferFeatureHelpers
             normalizedQuantity: item.Quantity);
 
         await dbContext.StockMovements.AddAsync(movement, cancellationToken);
+        await dbContext.InventoryValuationLayers.AddAsync(
+            InventoryValuationLayer.FromMovement(movement, transfer.CompanyId, userId),
+            cancellationToken);
     }
 
     public static async Task<WarehouseTransferDto> MapTransferAsync(InventoryDbContext dbContext, WarehouseTransfer transfer, CancellationToken cancellationToken)

@@ -18,6 +18,11 @@ public class InventoryDbContext:DbContext
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<WarehouseTransfer> WarehouseTransfers => Set<WarehouseTransfer>();
     public DbSet<TransferItem> TransferItems => Set<TransferItem>();
+    public DbSet<WarehouseLocation> WarehouseLocations => Set<WarehouseLocation>();
+    public DbSet<PutawayRule> PutawayRules => Set<PutawayRule>();
+    public DbSet<QualityInspection> QualityInspections => Set<QualityInspection>();
+    public DbSet<LandedCostVoucher> LandedCostVouchers => Set<LandedCostVoucher>();
+    public DbSet<InventoryValuationLayer> InventoryValuationLayers => Set<InventoryValuationLayer>();
     //public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
     //public DbSet<StockTransaction> StockTransactions => Set<StockTransaction>();
 

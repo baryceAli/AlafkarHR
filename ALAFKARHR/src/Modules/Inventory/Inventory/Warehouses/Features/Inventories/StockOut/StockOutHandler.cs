@@ -102,6 +102,9 @@ public class StockOutHandler(InventoryDbContext dbContext, ISender sender, IHttp
             normalizedQuantity: packageQuantity.NormalizedQuantity);
  
         await dbContext.StockMovements.AddAsync(movement, cancellationToken);
+        await dbContext.InventoryValuationLayers.AddAsync(
+            InventoryValuationLayer.FromMovement(movement, command.InventoryAggregate.CompanyId, userId),
+            cancellationToken);
 
 
         await dbContext.SaveChangesAsync(cancellationToken);
