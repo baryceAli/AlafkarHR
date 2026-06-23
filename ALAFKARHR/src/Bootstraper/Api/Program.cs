@@ -25,6 +25,7 @@ using ProjectManagement;
 using RealEstate;
 using Sales;
 using SalesOrder;
+using StoreFront;
 using Shared.Exceptions.Handler;
 using Shared.Extentions;
 using SuppliersModule;
@@ -68,6 +69,7 @@ var procurementAssembly = typeof(ProcurementModule).Assembly;
 var projectManagementAssembly = typeof(ProjectManagementModule).Assembly;
 var realEstateAssembly = typeof(RealEstateModule).Assembly;
 var salesAssembly = typeof(SalesModule).Assembly;
+var storeFrontAssembly = typeof(StoreFrontModule).Assembly;
 var payrollAssembly = typeof(PayrollModule).Assembly;
 var taskManagementAssembly = typeof(TaskManagementModule).Assembly;
 var maintenanceAssembly = typeof(MaintenanceModule).Assembly;
@@ -98,6 +100,7 @@ builder.Services.AddCarterWithAssemblies(
                         projectManagementAssembly,
                         realEstateAssembly,
                         salesAssembly,
+                        storeFrontAssembly,
                         payrollAssembly,
                         taskManagementAssembly,
                         maintenanceAssembly,
@@ -132,6 +135,7 @@ builder.Services.AddMediatRWithAssemblies(
                         projectManagementAssembly,
                         realEstateAssembly,
                         salesAssembly,
+                        storeFrontAssembly,
                         payrollAssembly,
                         taskManagementAssembly,
                         maintenanceAssembly,
@@ -164,6 +168,7 @@ builder.Services
         .AddCustomerModule(builder.Configuration)
         .AddSalesOrderModule(builder.Configuration)
         .AddSalesModule(builder.Configuration)
+        .AddStoreFrontModule(builder.Configuration)
         .AddSupplierModule(builder.Configuration)
         .AddPaymentsModule(builder.Configuration)
         .AddPricingModule(builder.Configuration)
@@ -200,6 +205,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapCarter();
 app
+    .UseOrganizationModule(app.Environment)
     .UseAccountingModule(app.Environment)
     .UseAuthModule(app.Environment)
     .UseAttendanceModule(app.Environment)
@@ -208,7 +214,6 @@ app
     .UseContractsModule(app.Environment)
     .UseDocumentManagementModule(app.Environment)
     .UseGeneralSettingsModule(app.Environment)
-    .UseOrganizationModule(app.Environment)
     .UseOrdersModule(app.Environment)
     .UseEmployeeModule(app.Environment)
     .UseCatalogModule(app.Environment)
@@ -217,6 +222,7 @@ app
     .UseCustomerModule(app.Environment)
     .UseSalesOrderModule(app.Environment)
     .UseSalesModule(app.Environment)
+    .UseStoreFrontModule(app.Environment)
     .UseSupplierModule(app.Environment)
     .UsePaymentsModule(app.Environment)
     .UsePricingModule(app.Environment)

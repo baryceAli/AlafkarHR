@@ -21,6 +21,7 @@ public class ProductSku : Entity<Guid>
     public string? Barcode { get; private set; } = default!;
 
     public decimal Price { get; private set; }
+    public decimal? Calories { get; private set; }
     public SkuProductionType ProductionType { get; private set; } = SkuProductionType.PurchasedRawMaterial;
     public string ImageUrl { get; set; }
     public Guid CompanyId { get; set; }
@@ -55,6 +56,7 @@ public class ProductSku : Entity<Guid>
    string? barcode,
    string imageUrl,
         decimal price,
+        decimal? calories,
         SkuProductionType productionType,
         bool showOnStore,
         Guid companyId
@@ -69,6 +71,7 @@ public class ProductSku : Entity<Guid>
         ImageUrl = imageUrl;
         //_options = options.ToList();
         Price = price;
+        Calories = calories;
         ProductionType = NormalizeProductionType(productionType);
         ShowOnStore = showOnStore;
         CompanyId = companyId;
@@ -88,6 +91,7 @@ public class ProductSku : Entity<Guid>
     string? barcode,
     string imageUrl,
         decimal price,
+        decimal? calories,
         SkuProductionType productionType,
         bool showOnStore,
         bool isSellable,
@@ -115,6 +119,7 @@ public class ProductSku : Entity<Guid>
             ImageUrl = imageUrl,
             Barcode = barcode,
             Price = price,
+            Calories = calories,
             ProductionType = NormalizeProductionType(productionType),
             IsSellable = showOnStore || isSellable,
             IsPurchasable = isPurchasable,
@@ -128,6 +133,7 @@ public class ProductSku : Entity<Guid>
     }
     public void Update(
         decimal price,
+        decimal? calories,
         bool showOnStore,
         string imageUrl,
         string? barcode,
@@ -151,6 +157,7 @@ public class ProductSku : Entity<Guid>
         SkuCode=skuCode;
         SkuCodeEng=skuCodeEng;
         Price = price;
+        Calories = calories;
         ProductionType = NormalizeProductionType(productionType);
         ImageUrl = imageUrl;
         IsSellable = showOnStore || isSellable;

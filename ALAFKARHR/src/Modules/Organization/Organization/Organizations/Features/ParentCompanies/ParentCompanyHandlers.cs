@@ -2,6 +2,7 @@ using Auth.Contracts.Features.CountUsersByCompanyIds;
 using Auth.Contracts.Features.CreateCompanyAdmin;
 using Auth.Contracts.Features.GetCompanyAdmin;
 using Auth.Contracts.Features.ResetCompanyAdminPassword;
+using Organization.Organizations.Features.BusinessLines;
 using Shared.Contracts.GeneralSettings.Currencies;
 using SharedWithUI.Organization.Enums;
 
@@ -39,6 +40,10 @@ public class ParentCompanyValidator : AbstractValidator<ParentCompanyDto>
         RuleFor(x => x.VatNo).NotEmpty();
         RuleFor(x => x.License.LicenseCategoryId).NotEmpty();
         RuleFor(x => x.License.EndDate).GreaterThanOrEqualTo(x => x.License.StartDate);
+        RuleForEach(x => x.License.BusinessLines).ChildRules(line =>
+        {
+            line.RuleFor(x => x.ActivationLimit).GreaterThan(0);
+        });
 
         if (requireAdmin)
         {
@@ -78,6 +83,10 @@ public class UpdateParentCompanyLicenseCommandValidator : AbstractValidator<Upda
         RuleFor(x => x.CompanyId).NotEmpty();
         RuleFor(x => x.License.LicenseCategoryId).NotEmpty();
         RuleFor(x => x.License.EndDate).GreaterThanOrEqualTo(x => x.License.StartDate);
+        RuleForEach(x => x.License.BusinessLines).ChildRules(line =>
+        {
+            line.RuleFor(x => x.ActivationLimit).GreaterThan(0);
+        });
     }
 }
 
@@ -146,13 +155,16 @@ public class ParentCompanyQueryHandler(OrganizationDbContext dbContext, ISender 
             .AsNoTracking()
             .Include(x => x.LicenseCategory)
             .FirstOrDefaultAsync(x => x.CompanyId == company.Id, cancellationToken);
+        var businessLinesByLicense = license is null
+            ? []
+            : await GetBusinessLinesByLicenseAsync(dbContext, [license.Id], cancellationToken);
 
         var branchesCount = await dbContext.Branches
             .AsNoTracking()
             .CountAsync(x => hierarchyIds.Contains(x.CompanyId), cancellationToken);
 
         var usersCount = await sender.Send(new CountUsersByCompanyIdsQuery(hierarchyIds), cancellationToken);
-        var dto = ToDto(company, license);
+        var dto = ToDto(company, license, businessLinesByLicense);
         dto.ChildCompaniesCount = childCompanyIds.Count;
         dto.BranchesCount = branchesCount;
         dto.UsersCount = usersCount.Count;
@@ -172,11 +184,14 @@ public class ParentCompanyQueryHandler(OrganizationDbContext dbContext, ISender 
         return dto;
     }
 
-    public static ParentCompanyDto ToDto(Company company, CompanyLicense? license)
+    public static ParentCompanyDto ToDto(
+        Company company,
+        CompanyLicense? license,
+        IReadOnlyDictionary<Guid, List<LicensedBusinessLineDto>>? businessLinesByLicense = null)
     {
         var licenseDto = license is null
             ? new CompanyLicenseDto { CompanyId = company.Id, PlanKey = "legacy", PlanName = "Legacy" }
-            : ToLicenseDto(license);
+            : ToLicenseDto(license, businessLinesByLicense);
 
         return new ParentCompanyDto
         {
@@ -198,7 +213,7 @@ public class ParentCompanyQueryHandler(OrganizationDbContext dbContext, ISender 
         };
     }
 
-    private static CompanyLicenseDto ToLicenseDto(CompanyLicense license) => new()
+    private static CompanyLicenseDto ToLicenseDto(CompanyLicense license, IReadOnlyDictionary<Guid, List<LicensedBusinessLineDto>>? businessLinesByLicense = null) => new()
     {
         Id = license.Id,
         CompanyId = license.CompanyId,
@@ -215,8 +230,39 @@ public class ParentCompanyQueryHandler(OrganizationDbContext dbContext, ISender 
         YearlyPrice = license.EffectiveYearlyPrice,
         CurrencyId = license.EffectiveCurrencyId,
         CurrencyCode = license.EffectiveCurrencyCode,
-        Notes = license.Notes
+        Notes = license.Notes,
+        BusinessLines = businessLinesByLicense is not null && businessLinesByLicense.TryGetValue(license.Id, out var businessLines)
+            ? businessLines
+            : []
     };
+
+    public static async Task<Dictionary<Guid, List<LicensedBusinessLineDto>>> GetBusinessLinesByLicenseAsync(
+        OrganizationDbContext dbContext,
+        IReadOnlyCollection<Guid> licenseIds,
+        CancellationToken cancellationToken)
+    {
+        if (licenseIds.Count == 0)
+            return [];
+
+        var rows = await dbContext.CompanyLicenseBusinessLines
+            .AsNoTracking()
+            .Where(x => licenseIds.Contains(x.CompanyLicenseId))
+            .Select(x => new { x.CompanyLicenseId, x.BusinessLine, x.ActivationLimit })
+            .OrderBy(x => x.BusinessLine.DisplayOrder)
+            .ThenBy(x => x.BusinessLine.Name)
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .GroupBy(x => x.CompanyLicenseId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(x =>
+                {
+                    var dto = BusinessLineQueryHandler.ToLicensedDto(x.BusinessLine);
+                    dto.ActivationLimit = x.ActivationLimit;
+                    return dto;
+                }).ToList());
+    }
 }
 
 public class CreateParentCompanyHandler(OrganizationDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
@@ -251,7 +297,16 @@ public class CreateParentCompanyHandler(OrganizationDbContext dbContext, IHttpCo
         {
             await dbContext.Companies.AddAsync(company, cancellationToken);
             await dbContext.CompanyLicenses.AddAsync(license, cancellationToken);
+            await SyncLicenseBusinessLinesAsync(license.Id, request.Company.License, category.Id, cancellationToken);
             await dbContext.SaveChangesAsync(cancellationToken);
+
+            var mainBranch = await sender.Send(new EnsureMainBranchCommand(company.Id, userId), cancellationToken);
+            await sender.Send(new EnsureBranchAccountingCommand(
+                company.Id,
+                mainBranch.BranchId,
+                "MAIN",
+                company.Name,
+                company.NameEng), cancellationToken);
 
             await sender.Send(
                 new CreateCompanyAdminCommand(
@@ -273,7 +328,8 @@ public class CreateParentCompanyHandler(OrganizationDbContext dbContext, IHttpCo
             throw;
         }
 
-        return new CreateParentCompanyResult(ParentCompanyQueryHandler.ToDto(company, license));
+        var businessLinesByLicense = await ParentCompanyQueryHandler.GetBusinessLinesByLicenseAsync(dbContext, [license.Id], cancellationToken);
+        return new CreateParentCompanyResult(ParentCompanyQueryHandler.ToDto(company, license, businessLinesByLicense));
     }
 
     private static string GetUserId(IHttpContextAccessor httpContextAccessor) =>
@@ -310,6 +366,43 @@ public class CreateParentCompanyHandler(OrganizationDbContext dbContext, IHttpCo
             dto.Notes,
             userId,
             category.Id);
+
+    private async Task SyncLicenseBusinessLinesAsync(Guid licenseId, CompanyLicenseDto dto, Guid categoryId, CancellationToken cancellationToken)
+    {
+        var selectedBusinessLines = await ResolveLicenseBusinessLinesAsync(dto, categoryId, cancellationToken);
+        foreach (var line in selectedBusinessLines)
+        {
+            await dbContext.CompanyLicenseBusinessLines.AddAsync(
+                CompanyLicenseBusinessLine.Create(licenseId, line.Key, line.Value),
+                cancellationToken);
+        }
+    }
+
+    private async Task<Dictionary<Guid, int>> ResolveLicenseBusinessLinesAsync(CompanyLicenseDto dto, Guid categoryId, CancellationToken cancellationToken)
+    {
+        var requestedLines = dto.BusinessLines
+            .Where(x => x.BusinessLineId != Guid.Empty)
+            .GroupBy(x => x.BusinessLineId)
+            .ToDictionary(x => x.Key, x => Math.Max(x.First().ActivationLimit, 1));
+
+        if (requestedLines.Count == 0)
+        {
+            requestedLines = await dbContext.LicenseCategoryBusinessLines
+                .Where(x => x.LicenseCategoryId == categoryId)
+                .ToDictionaryAsync(x => x.BusinessLineId, x => x.ActivationLimit, cancellationToken);
+        }
+
+        if (requestedLines.Count > 0)
+        {
+            var requestedIds = requestedLines.Keys.ToHashSet();
+            var activeCount = await dbContext.BusinessLines
+                .CountAsync(x => requestedIds.Contains(x.Id) && x.IsActive, cancellationToken);
+            if (activeCount != requestedIds.Count)
+                throw new InvalidOperationException("One or more selected business lines are inactive or unavailable");
+        }
+
+        return requestedLines;
+    }
 }
 
 public class UpdateParentCompanyHandler(OrganizationDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
@@ -407,6 +500,7 @@ public class UpdateParentCompanyHandler(OrganizationDbContext dbContext, IHttpCo
                 userId,
                 category.Id);
             await dbContext.CompanyLicenses.AddAsync(license, cancellationToken);
+            await SyncLicenseBusinessLinesAsync(license.Id, dto, category.Id, cancellationToken);
             return;
         }
 
@@ -422,6 +516,52 @@ public class UpdateParentCompanyHandler(OrganizationDbContext dbContext, IHttpCo
             dto.Notes,
             userId,
             category.Id);
+
+        await SyncLicenseBusinessLinesAsync(license.Id, dto, category.Id, cancellationToken);
+    }
+
+    private async Task SyncLicenseBusinessLinesAsync(Guid licenseId, CompanyLicenseDto dto, Guid categoryId, CancellationToken cancellationToken)
+    {
+        var requestedLines = dto.BusinessLines
+            .Where(x => x.BusinessLineId != Guid.Empty)
+            .GroupBy(x => x.BusinessLineId)
+            .ToDictionary(x => x.Key, x => Math.Max(x.First().ActivationLimit, 1));
+
+        if (requestedLines.Count == 0)
+        {
+            requestedLines = await dbContext.LicenseCategoryBusinessLines
+                .Where(x => x.LicenseCategoryId == categoryId)
+                .ToDictionaryAsync(x => x.BusinessLineId, x => x.ActivationLimit, cancellationToken);
+        }
+
+        if (requestedLines.Count > 0)
+        {
+            var requestedIds = requestedLines.Keys.ToHashSet();
+            var activeCount = await dbContext.BusinessLines
+                .CountAsync(x => requestedIds.Contains(x.Id) && x.IsActive, cancellationToken);
+            if (activeCount != requestedIds.Count)
+                throw new InvalidOperationException("One or more selected business lines are inactive or unavailable");
+        }
+        var requestedIdsForRemoval = requestedLines.Keys.ToHashSet();
+
+        var currentLinks = await dbContext.CompanyLicenseBusinessLines
+            .Where(x => x.CompanyLicenseId == licenseId)
+            .ToListAsync(cancellationToken);
+
+        dbContext.CompanyLicenseBusinessLines.RemoveRange(currentLinks.Where(x => !requestedIdsForRemoval.Contains(x.BusinessLineId)));
+
+        var currentIds = currentLinks.Select(x => x.BusinessLineId).ToHashSet();
+        foreach (var businessLineId in requestedIdsForRemoval.Where(id => !currentIds.Contains(id)))
+        {
+            await dbContext.CompanyLicenseBusinessLines.AddAsync(
+                CompanyLicenseBusinessLine.Create(licenseId, businessLineId, requestedLines[businessLineId]),
+                cancellationToken);
+        }
+
+        foreach (var link in currentLinks.Where(x => requestedIdsForRemoval.Contains(x.BusinessLineId)))
+        {
+            link.UpdateActivationLimit(requestedLines[link.BusinessLineId]);
+        }
     }
 
     private async Task<LicenseCategory> GetCategoryAsync(Guid? categoryId, bool requireActive, CancellationToken cancellationToken)

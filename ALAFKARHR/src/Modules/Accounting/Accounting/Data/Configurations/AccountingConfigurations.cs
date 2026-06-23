@@ -13,6 +13,7 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.Property(x => x.Role).HasConversion<int>();
         builder.Property(x => x.TemplateKey).HasMaxLength(80);
         builder.HasIndex(x => new { x.CompanyId, x.Code }).IsUnique();
+        builder.HasIndex(x => new { x.CompanyId, x.BranchId });
         builder.HasIndex(x => new { x.CompanyId, x.TemplateKey });
         builder.HasQueryFilter(x => !x.IsDeleted);
     }
@@ -29,6 +30,7 @@ public class AccountingJournalConfiguration : IEntityTypeConfiguration<Accountin
         builder.Property(x => x.Type).HasConversion<int>();
         builder.Property(x => x.ZatcaDeviceSerial).HasMaxLength(120);
         builder.HasIndex(x => new { x.CompanyId, x.Code }).IsUnique();
+        builder.HasIndex(x => new { x.CompanyId, x.BranchId, x.Type });
         builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }
@@ -83,7 +85,7 @@ public class BankAccountConfiguration : IEntityTypeConfiguration<BankAccount>
         builder.Property(x => x.BranchCode).HasMaxLength(40);
         builder.Property(x => x.Swift).HasMaxLength(40);
         builder.Property(x => x.CurrencyCode).HasMaxLength(3).IsRequired();
-        builder.HasIndex(x => new { x.CompanyId, x.DisplayName }).IsUnique();
+        builder.HasIndex(x => new { x.CompanyId, x.BranchId, x.DisplayName }).IsUnique().HasFilter(null);
         builder.HasIndex(x => new { x.CompanyId, x.IsDefault });
         builder.HasQueryFilter(x => !x.IsDeleted);
     }
@@ -96,7 +98,7 @@ public class CashAccountConfiguration : IEntityTypeConfiguration<CashAccount>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.DisplayName).HasMaxLength(160).IsRequired();
         builder.Property(x => x.CurrencyCode).HasMaxLength(3).IsRequired();
-        builder.HasIndex(x => new { x.CompanyId, x.DisplayName }).IsUnique();
+        builder.HasIndex(x => new { x.CompanyId, x.BranchId, x.DisplayName }).IsUnique().HasFilter(null);
         builder.HasIndex(x => new { x.CompanyId, x.IsDefault });
         builder.HasQueryFilter(x => !x.IsDeleted);
     }
@@ -107,6 +109,21 @@ public class CompanyAccountingSettingsConfiguration : IEntityTypeConfiguration<C
     public void Configure(EntityTypeBuilder<CompanyAccountingSettings> builder)
     {
         builder.HasKey(x => x.Id);
+        builder.HasIndex(x => x.CompanyId).IsUnique();
+        builder.HasQueryFilter(x => !x.IsDeleted);
+    }
+}
+
+public class AccountCodingSettingsConfiguration : IEntityTypeConfiguration<AccountCodingSettings>
+{
+    public void Configure(EntityTypeBuilder<AccountCodingSettings> builder)
+    {
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.AssetRootCode).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.LiabilityRootCode).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.EquityRootCode).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.RevenueRootCode).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.ExpenseRootCode).HasMaxLength(20).IsRequired();
         builder.HasIndex(x => x.CompanyId).IsUnique();
         builder.HasQueryFilter(x => !x.IsDeleted);
     }
@@ -204,6 +221,7 @@ public class JournalEntryConfiguration : IEntityTypeConfiguration<JournalEntry>
         builder.Property(x => x.SourceDocumentNumber).HasMaxLength(100);
         builder.Property(x => x.Memo).HasMaxLength(500);
         builder.HasIndex(x => new { x.CompanyId, x.Number }).IsUnique();
+        builder.HasIndex(x => new { x.CompanyId, x.BranchId, x.EntryDate });
         builder.HasQueryFilter(x => !x.IsDeleted);
 
         builder.OwnsMany(x => x.Lines, line =>
@@ -236,6 +254,7 @@ public class AccountingDocumentConfiguration : IEntityTypeConfiguration<Accounti
         builder.Property(x => x.TaxAmount).HasPrecision(18, 2);
         builder.Property(x => x.TotalAmount).HasPrecision(18, 2);
         builder.HasIndex(x => new { x.CompanyId, x.Type, x.Number }).IsUnique();
+        builder.HasIndex(x => new { x.CompanyId, x.BranchId, x.DocumentDate });
         builder.HasIndex(x => new { x.CompanyId, x.SourceDocumentId });
         builder.HasIndex(x => new { x.CompanyId, x.Type, x.SourceModule, x.SourceDocumentId })
             .IsUnique()
@@ -271,6 +290,7 @@ public class BankTransactionConfiguration : IEntityTypeConfiguration<BankTransac
         builder.Property(x => x.ReferenceNumber).HasMaxLength(120);
         builder.Property(x => x.Amount).HasPrecision(18, 2);
         builder.Property(x => x.Status).HasConversion<int>();
+        builder.HasIndex(x => new { x.CompanyId, x.BranchId, x.Status });
         builder.HasIndex(x => new { x.CompanyId, x.Status, x.TransactionDate });
         builder.HasIndex(x => new { x.CompanyId, x.ReferenceNumber });
         builder.HasQueryFilter(x => !x.IsDeleted);

@@ -14,4 +14,5 @@ public class LicenseCategoryDto
     public string? CurrencyCode { get; set; }
     public bool IsActive { get; set; } = true;
     public string? Notes { get; set; }
+    public List<LicensedBusinessLineDto> BusinessLines { get; set; } = [];
 }

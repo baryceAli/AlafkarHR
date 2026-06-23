@@ -14,6 +14,7 @@ public class MenuItem
     public string? BadgeTitleEn { get; set; }
     public string? BadgeTitleAr { get; set; }
     public string? WorkspaceKey { get; set; }
+    public string? BusinessLineKey { get; set; }
     public List<string> NavigationAliases { get; set; } = new();
     public int? MobilePriority { get; set; }
     public string? KeywordsEn { get; set; }
@@ -46,8 +47,8 @@ public class MenuItem
                     TextEn = "POS",
                     TextAr = "نقطة بيع",
                     Icon = "bi-receipt",
-                    Url = "/SalesOrder/POS",
-                    PermissionPolicy = PermissionList.SalesOrderPermissions.View,
+                    Url = "/StoreFront/POS",
+                    PermissionPolicy = PermissionList.StoreFrontPosPermissions.View,
                     WorkspaceKey = NavigationMenuResolver.WorkspacePos,
                     MobilePriority = 4,
                     KeywordsEn = "pos sales checkout cashier",
@@ -420,6 +421,7 @@ public class MenuItem
             Icon = "bi-cup-hot",
             PermissionPolicy = PermissionList.CateringContractPermissions.Select,
             WorkspaceKey = NavigationMenuResolver.WorkspaceCatering,
+            BusinessLineKey = SharedWithUI.Organization.BusinessLineKeys.Catering,
             KeywordsEn = "catering ramadan meals charity distribution haram squares refrigerated vehicles",
             KeywordsAr = "إعاشة رمضان وجبات جمعية توزيع الحرم مربعات برادات",
             Children = new()
@@ -541,6 +543,25 @@ public class MenuItem
                     TextAr = "فئات الترخيص",
                     Icon = "bi-patch-check",
                     Url = "/Organization/LicenseCategories",
+                    PermissionPolicy = PermissionList.ParentCompanyPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Store Fronts",
+                    TextAr = "واجهات المتاجر",
+                    Icon = "bi-shop",
+                    Url = "/StoreFront/Stores",
+                    PermissionPolicy = PermissionList.StoreFrontStorePermissions.View,
+                    BusinessLineKey = SharedWithUI.Organization.BusinessLineKeys.StoreFront,
+                    KeywordsEn = "store front shops grocery flowers car wash pos",
+                    KeywordsAr = "متاجر واجهة متجر بقالة زهور غسيل سيارات نقطة بيع"
+                },
+                new MenuItem
+                {
+                    TextEn = "Business Lines",
+                    TextAr = "خطوط الأعمال",
+                    Icon = "bi-grid-3x3-gap",
+                    Url = "/Organization/BusinessLines",
                     PermissionPolicy = PermissionList.ParentCompanyPermissions.View
                 },
                 new MenuItem
@@ -972,17 +993,17 @@ public class MenuItem
                             Url = "/Catalog/Product/List",
                             PermissionPolicy = PermissionList.ProductPermissions.View
                         },
-                        new MenuItem
-                        {
-                            TextEn = "Product Options",
-                            TextAr = "خيارات المنتج",
-                            Icon = "bi-sliders",
-                            Url = "/Catalog/Variant/List",
-                            PermissionPolicy = PermissionList.VariantPermissions.View
-                        },
-                        new MenuItem
-                        {
-                            TextEn = "Pakcages",
+                          new MenuItem
+                          {
+                              TextEn = "Product Options",
+                              TextAr = "خيارات المنتج",
+                              Icon = "bi-sliders",
+                             Url = "/Catalog/Variant/List",
+                             PermissionPolicy = PermissionList.VariantPermissions.View
+                          },
+                          new MenuItem
+                          {
+                              TextEn = "Pakcages",
                             TextAr = "العبوات",
                             Icon = "bi-archive-fill",
                             Url = "/Warehouse/Product/Packages/List",
@@ -1684,7 +1705,8 @@ public class MenuItem
                     TextAr = "Real Estate",
                     Icon = "bi-buildings",
                     PermissionPolicy = PermissionList.RealEstatePropertyPermissions.Select,
-                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceRealEstate,
+                    BusinessLineKey = SharedWithUI.Organization.BusinessLineKeys.RealEstate,
                     KeywordsEn = "admin real estate properties units leases rent utilities expenses",
                     KeywordsAr = "real estate properties units leases rent utilities expenses",
                     Children = new()

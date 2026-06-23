@@ -75,12 +75,13 @@
     [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
     [Parameter] public string ActiveWorkspace { get; set; } = NavigationMenuResolver.WorkspaceHome;
     [Parameter] public AuthenticationState? AuthState { get; set; }
+    [Parameter] public IReadOnlySet<string>? LicensedBusinessLineKeys { get; set; }
     [Parameter] public EventCallback<MenuItem> OnNavigate { get; set; }
 
     private string searchText = "";
     private int selectedIndex;
 
-    private IReadOnlyList<MenuItem> VisibleResults => NavigationMenuResolver.GetAuthorizedNavigableItems(AuthState?.User)
+    private IReadOnlyList<MenuItem> VisibleResults => NavigationMenuResolver.GetAuthorizedNavigableItems(AuthState?.User, LicensedBusinessLineKeys)
         .Where(MatchesMode)
         .Where(MatchesSearch)
         .Take(ResultLimit)

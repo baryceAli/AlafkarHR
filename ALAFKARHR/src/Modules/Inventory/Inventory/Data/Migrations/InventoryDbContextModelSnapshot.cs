@@ -852,6 +852,9 @@ namespace Inventory.Data.Migrations
                     b.Property<string>("Address")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uniqueidentifier");
 
@@ -908,6 +911,8 @@ namespace Inventory.Data.Migrations
                         .HasDefaultValue("Commercial");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "BranchId");
 
                     b.ToTable("Warehouses", "Inventory");
                 });

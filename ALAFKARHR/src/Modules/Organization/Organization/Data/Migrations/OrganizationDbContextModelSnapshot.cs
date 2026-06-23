@@ -178,6 +178,131 @@ namespace Organization.Data.Migrations
                     b.ToTable("Branches", "Organization");
                 });
 
+            modelBuilder.Entity("Organization.Organizations.Models.BusinessLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ActivationPolicy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.HasIndex("IsActive", "DisplayOrder");
+
+                    b.ToTable("BusinessLines", "Organization");
+                });
+
+            modelBuilder.Entity("Organization.Organizations.Models.BusinessLineActivation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BusinessLineId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("ParentCompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessLineId");
+
+                    b.HasIndex("CompanyId", "BusinessLineId", "IsActive");
+
+                    b.HasIndex("ParentCompanyId", "BusinessLineId", "IsActive");
+
+                    b.ToTable("BusinessLineActivations", "Organization");
+                });
+
             modelBuilder.Entity("Organization.Organizations.Models.Company", b =>
                 {
                     b.Property<Guid>("Id")
@@ -363,6 +488,52 @@ namespace Organization.Data.Migrations
                     b.ToTable("CompanyLicenses", "Organization");
                 });
 
+            modelBuilder.Entity("Organization.Organizations.Models.CompanyLicenseBusinessLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ActivationLimit")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("BusinessLineId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyLicenseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessLineId");
+
+                    b.HasIndex("CompanyLicenseId", "BusinessLineId")
+                        .IsUnique();
+
+                    b.ToTable("CompanyLicenseBusinessLines", "Organization");
+                });
+
             modelBuilder.Entity("Organization.Organizations.Models.Department", b =>
                 {
                     b.Property<Guid>("Id")
@@ -530,6 +701,107 @@ namespace Organization.Data.Migrations
                     b.ToTable("LicenseCategories", "Organization");
                 });
 
+            modelBuilder.Entity("Organization.Organizations.Models.LicenseCategoryBusinessLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ActivationLimit")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("BusinessLineId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("LicenseCategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessLineId");
+
+                    b.HasIndex("LicenseCategoryId", "BusinessLineId")
+                        .IsUnique();
+
+                    b.ToTable("LicenseCategoryBusinessLines", "Organization");
+                });
+
+            modelBuilder.Entity("Organization.Organizations.Models.UserBranchAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("CompanyId", "UserId", "BranchId")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.HasIndex("CompanyId", "UserId", "IsDefault");
+
+                    b.ToTable("UserBranchAssignments", "Organization");
+                });
+
             modelBuilder.Entity("Organization.Organizations.Models.Administration", b =>
                 {
                     b.HasOne("Organization.Organizations.Models.Branch", "Branch")
@@ -564,6 +836,17 @@ namespace Organization.Data.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("Organization.Organizations.Models.BusinessLineActivation", b =>
+                {
+                    b.HasOne("Organization.Organizations.Models.BusinessLine", "BusinessLine")
+                        .WithMany()
+                        .HasForeignKey("BusinessLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BusinessLine");
+                });
+
             modelBuilder.Entity("Organization.Organizations.Models.Company", b =>
                 {
                     b.HasOne("Organization.Organizations.Models.Company", "ParentCompany")
@@ -592,6 +875,25 @@ namespace Organization.Data.Migrations
                     b.Navigation("LicenseCategory");
                 });
 
+            modelBuilder.Entity("Organization.Organizations.Models.CompanyLicenseBusinessLine", b =>
+                {
+                    b.HasOne("Organization.Organizations.Models.BusinessLine", "BusinessLine")
+                        .WithMany()
+                        .HasForeignKey("BusinessLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Organization.Organizations.Models.CompanyLicense", "CompanyLicense")
+                        .WithMany()
+                        .HasForeignKey("CompanyLicenseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BusinessLine");
+
+                    b.Navigation("CompanyLicense");
+                });
+
             modelBuilder.Entity("Organization.Organizations.Models.Department", b =>
                 {
                     b.HasOne("Organization.Organizations.Models.Administration", "Administration")
@@ -609,6 +911,40 @@ namespace Organization.Data.Migrations
                     b.Navigation("Administration");
 
                     b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("Organization.Organizations.Models.LicenseCategoryBusinessLine", b =>
+                {
+                    b.HasOne("Organization.Organizations.Models.BusinessLine", "BusinessLine")
+                        .WithMany()
+                        .HasForeignKey("BusinessLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Organization.Organizations.Models.LicenseCategory", "LicenseCategory")
+                        .WithMany()
+                        .HasForeignKey("LicenseCategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BusinessLine");
+
+                    b.Navigation("LicenseCategory");
+                });
+
+            modelBuilder.Entity("Organization.Organizations.Models.UserBranchAssignment", b =>
+                {
+                    b.HasOne("Organization.Organizations.Models.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Organization.Organizations.Models.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Organization.Organizations.Models.Administration", b =>

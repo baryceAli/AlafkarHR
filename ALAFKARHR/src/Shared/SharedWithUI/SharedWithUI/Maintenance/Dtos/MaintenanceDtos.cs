@@ -82,6 +82,7 @@ public class MaintenanceWorkOrderDto
     public Guid AssetId { get; set; }
     public string AssetName { get; set; } = string.Empty;
     public MaintenanceAssetType AssetType { get; set; }
+    public Guid? BranchId { get; set; }
     public Guid RequestedByUserId { get; set; }
     public string? AssignedToUserId { get; set; }
     public MaintenancePriority Priority { get; set; }
@@ -138,6 +139,7 @@ public class UpdateMaintenanceWorkOrderDto : CreateMaintenanceWorkOrderDto
 
 public class MaintenanceWorkOrderFilterDto
 {
+    public Guid? CompanyId { get; set; }
     public Guid? AssetId { get; set; }
     public Guid? BranchId { get; set; }
     public MaintenanceAssetType? AssetType { get; set; }

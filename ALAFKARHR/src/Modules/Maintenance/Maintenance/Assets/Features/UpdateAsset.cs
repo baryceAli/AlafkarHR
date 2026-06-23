@@ -22,16 +22,33 @@ public class UpdateMaintenanceAssetEndpoint : ICarterModule
     }
 }
 
-public class UpdateMaintenanceAssetHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class UpdateMaintenanceAssetHandler(MaintenanceDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<UpdateMaintenanceAssetCommand, UpdateMaintenanceAssetResult>
 {
     public async Task<UpdateMaintenanceAssetResult> Handle(UpdateMaintenanceAssetCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = MaintenanceFeatureHelpers.GetCurrentUserId(httpContextAccessor);
-        var asset = await dbContext.MaintenanceAssets.FirstOrDefaultAsync(x => x.Id == request.Asset.Id, cancellationToken)
+        var asset = await dbContext.MaintenanceAssets.FirstOrDefaultAsync(x => x.Id == request.Asset.Id && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException("Maintenance asset", request.Asset.Id);
 
-        await MaintenanceFeatureHelpers.EnsureParentAssetAsync(dbContext, request.Asset.ParentAssetId, cancellationToken);
+        if (request.Asset.CompanyId != asset.CompanyId)
+            throw new BadRequestException("Maintenance asset company cannot be changed.");
+
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(asset.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, asset.BranchId) ||
+            !BranchScopePolicy.CanMutate(branchAccess, request.Asset.BranchId))
+        {
+            throw new ForbiddenException("You do not have permission to update this maintenance asset branch scope.");
+        }
+
+        await MaintenanceFeatureHelpers.EnsureParentAssetScopeAsync(
+            dbContext,
+            sender,
+            asset.CompanyId,
+            request.Asset.BranchId,
+            request.Asset.ParentAssetId,
+            asset.Id,
+            cancellationToken);
 
         asset.Update(
             string.IsNullOrWhiteSpace(request.Asset.AssetCode) ? asset.AssetCode : request.Asset.AssetCode,

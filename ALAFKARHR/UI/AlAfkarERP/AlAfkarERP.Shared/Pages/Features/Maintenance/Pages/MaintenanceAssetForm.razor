@@ -67,7 +67,7 @@
                     <div class="col-12 col-md-3">
                         <label class="form-label">@Text("Branch", "الفرع")</label>
                         <select class="form-select" @bind="branchIdText">
-                            <option value="">@Text("No branch", "بدون فرع")</option>
+                            <option value="">@Text("Company-level/shared", "على مستوى الشركة / مشترك")</option>
                             @foreach (var branch in branches)
                             {
                                 <option value="@branch.Id">@LocalizedName(branch.NameEng, branch.Name)</option>

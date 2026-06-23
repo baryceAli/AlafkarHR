@@ -19,6 +19,10 @@ public class GetProductSkuByIdHandler(CatalogDbContext dbContext)
             throw new Exception($"Product Sku not found: {request.Id}");
 
         var productSkuDto = productSku.Adapt<ProductSkuDto>();
+        var unit = await dbContext.Units.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == productSku.UnitId, cancellationToken);
+        productSkuDto.UnitName = unit?.UnitName;
+        productSkuDto.UnitNameEng = unit?.UnitNameEng;
         productSkuDto.Packages = productSku.Packages
             .Where(p => !p.IsDeleted && !p.ProductPackage.IsDeleted)
             .Select(p => new ProductPackageDto

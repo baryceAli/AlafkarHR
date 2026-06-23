@@ -1,0 +1,268 @@
+@layout AdminLayout
+@page "/StoreFront/POS"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
+@using AlAfkarERP.Shared.Pages.Features.StoreFront.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Cart.Dtos
+@using SharedWithUI.Orders.Enums
+@using SharedWithUI.Payments.Enums
+@using SharedWithUI.Permissions
+@using SharedWithUI.StoreFront.Dtos
+
+@inject IStoreFrontService StoreFrontService
+@inject ICartService CartService
+@inject ICurrencyService CurrencyService
+@inject ToastService ToastService
+@inject LoadingService LoadingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+<section class="pos-page" dir="@SharedDataService.PageDirection">
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")</div>
+        return;
+    }
+
+    <PageHeader Title="@Text("Store Front POS", "نقطة بيع المتجر")"
+                Subtitle="@Text("Sell from a selected store and only its assigned goods or services.", "بيع من متجر محدد وبالأصناف أو الخدمات المرتبطة به فقط.")"
+                Overline="@Text("Store Front", "واجهة المتجر")"
+                Icon="bi-receipt">
+        <Actions>
+            <a class="btn btn-outline-secondary" href="/StoreFront/Stores"><i class="bi bi-shop"></i> @Text("Stores", "المتاجر")</a>
+        </Actions>
+    </PageHeader>
+
+    <AppCard CssClass="mb-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">@Text("Store", "المتجر")</label>
+                <select class="form-select" value="@selectedStoreId" @onchange="OnStoreChangedAsync">
+                    <option value="">@Text("Select store", "اختر متجر")</option>
+                    @foreach (var store in stores.Where(x => x.IsActive))
+                    {
+                        <option value="@store.Id">@Text(store.NameEng, store.Name)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">@Text("Search", "بحث")</label>
+                <input class="form-control" @bind="searchText" @bind:after="LoadCatalogAsync" disabled="@(selectedStoreId == Guid.Empty)" />
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100" @onclick="LoadCatalogAsync" disabled="@(selectedStoreId == Guid.Empty)">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+        </div>
+    </AppCard>
+
+    <div class="row g-3">
+        <div class="col-xl-8">
+            @if (selectedStoreId == Guid.Empty)
+            {
+                <EmptyState Title="@Text("Select a store", "اختر متجر")"
+                            Message="@Text("POS catalog is scoped by store front.", "كتالوج نقطة البيع مرتبط بواجهة المتجر.")"
+                            Icon="bi-shop" />
+            }
+            else if (isLoading)
+            {
+                <AppLoader />
+            }
+            else if (!catalog.Any())
+            {
+                <EmptyState Title="@Text("No sellable items", "لا توجد أصناف للبيع")"
+                            Message="@Text("Assign goods or services to this store first.", "اربط أصنافاً أو خدمات بهذا المتجر أولاً.")"
+                            Icon="bi-box-seam" />
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var item in catalog)
+                    {
+                        <div class="col-md-6 col-xl-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body d-flex flex-column">
+                                    <div class="fw-semibold">@Text(item.Sku.NameEng, item.Sku.Name)</div>
+                                    <div class="text-muted small mb-2">@item.Sku.SkuCode</div>
+                                    <div class="fw-bold text-success mb-3">@Money(item.Sku.Price)</div>
+                                    <button class="btn btn-success mt-auto" @onclick="() => AddToCartAsync(item)" disabled="@isCartBusy">
+                                        <i class="bi bi-cart-plus"></i> @Text("Add", "إضافة")
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+        <div class="col-xl-4">
+            <AppCard Title="@Text("Cart", "السلة")">
+                @if (cart is null || !cart.Lines.Any())
+                {
+                    <EmptyState Title="@Text("Cart is empty", "السلة فارغة")" Message="@Text("Selected store items will appear here.", "ستظهر أصناف المتجر هنا.")" Icon="bi-cart" />
+                }
+                else
+                {
+                    @foreach (var line in cart.Lines)
+                    {
+                        <div class="border rounded p-2 mb-2">
+                            <div class="fw-semibold">@Text(line.ProductNameEng, line.ProductName)</div>
+                            <div class="small">@Money(line.UnitPrice) x @line.Quantity = <strong>@Money(line.TotalAmount)</strong></div>
+                        </div>
+                    }
+                    <div class="d-flex justify-content-between border-top pt-2"><span>@Text("Total", "الإجمالي")</span><strong>@Money(cart.TotalAmount)</strong></div>
+                    <div class="mt-3">
+                        <label class="form-label">@Text("Payment method", "طريقة الدفع")</label>
+                        <select class="form-select" @bind="paymentMethod">
+                            @foreach (var method in Enum.GetValues<PaymentMethodType>())
+                            {
+                                <option value="@method">@method</option>
+                            }
+                        </select>
+                    </div>
+                    <button class="btn btn-primary w-100 mt-3" @onclick="CheckoutAsync" disabled="@isCartBusy">
+                        <i class="bi bi-check2-circle"></i> @Text("Checkout", "إتمام الطلب")
+                    </button>
+                }
+            </AppCard>
+        </div>
+    </div>
+</section>
+
+@code {
+    private bool CanView;
+    private bool CanCheckout;
+    private bool isLoading;
+    private bool isCartBusy;
+    private Guid companyId;
+    private Guid selectedStoreId;
+    private string currencyCode = string.Empty;
+    private string searchText = string.Empty;
+    private string? userId;
+    private PaymentMethodType paymentMethod = PaymentMethodType.Cash;
+    private List<StoreFrontDto> stores = [];
+    private List<StoreFrontCatalogItemDto> catalog = [];
+    private CartDto? cart;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        CanView = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontPosPermissions.View);
+        CanCheckout = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontPosPermissions.Checkout);
+        userId = auth.User.Claims.FirstOrDefault(c => c.Type.EndsWith("nameidentifier", StringComparison.OrdinalIgnoreCase))?.Value;
+        if (!CompanyContext.TryGetCompanyId(auth.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+
+        if (CanView)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var storesResult = await StoreFrontService.GetStoresAsync(companyId);
+        stores = storesResult.IsSuccess ? storesResult.Data ?? [] : [];
+        var currencies = await CurrencyService.GetAsync(companyId, 0, 1000);
+        var currencyList = currencies.IsSuccess ? currencies.Data?.Data?.ToList() ?? [] : [];
+        currencyCode = currencyList.FirstOrDefault(x => x.IsDefault)?.Code ?? currencyList.FirstOrDefault()?.Code ?? string.Empty;
+    }
+
+    private async Task OnStoreChangedAsync(ChangeEventArgs args)
+    {
+        cart = null;
+        selectedStoreId = Guid.TryParse(args.Value?.ToString(), out var id) ? id : Guid.Empty;
+        await LoadCatalogAsync();
+    }
+
+    private async Task LoadCatalogAsync()
+    {
+        if (selectedStoreId == Guid.Empty) return;
+        isLoading = true;
+        var result = await StoreFrontService.GetCatalogAsync(selectedStoreId, null, searchText);
+        catalog = result.IsSuccess ? result.Data ?? [] : [];
+        isLoading = false;
+    }
+
+    private async Task AddToCartAsync(StoreFrontCatalogItemDto item)
+    {
+        var store = stores.FirstOrDefault(x => x.Id == selectedStoreId);
+        if (store is null) return;
+        isCartBusy = true;
+        try
+        {
+            if (cart is null)
+            {
+                var created = await CartService.CreateAsync(new CartDto
+                {
+                    CompanyId = companyId,
+                    CustomerId = store.DefaultCustomerId,
+                    UserId = userId,
+                    Source = OrderIntakeSource.Pos,
+                    Channel = $"StoreFront:{selectedStoreId}",
+                    PriceListId = store.PriceListId
+                });
+                if (!created.IsSuccess || created.Data is null)
+                {
+                    ToastService.ShowError(created.Error?.Detail ?? Text("Unable to create cart.", "تعذر إنشاء السلة."));
+                    return;
+                }
+                var loaded = await CartService.GetByIdAsync(created.Data.Id);
+                cart = loaded.Data ?? new CartDto { Id = created.Data.Id, CompanyId = companyId, Channel = $"StoreFront:{selectedStoreId}" };
+            }
+
+            var existing = cart.Lines.FirstOrDefault(x => x.ProductSkuId == item.Sku.Id);
+            var result = existing is null
+                ? await CartService.AddLineAsync(cart.Id, new CartLineDto
+                {
+                    ProductId = item.Sku.ProductId,
+                    ProductSkuId = item.Sku.Id,
+                    ProductName = item.Sku.Name,
+                    ProductNameEng = item.Sku.NameEng,
+                    SkuCode = item.Sku.SkuCode,
+                    UnitOfMeasureId = item.Sku.UnitId ?? Guid.Empty,
+                    Quantity = 1,
+                    UnitPrice = item.Sku.Price,
+                    DiscountRate = item.Sku.DiscountRate,
+                    TaxRate = item.Sku.TaxRate
+                })
+                : await CartService.UpdateLineAsync(cart.Id, existing.Id, existing.Quantity + 1);
+
+            if (result.IsSuccess)
+                cart = (await CartService.GetByIdAsync(cart.Id)).Data;
+            else
+                ToastService.ShowError(result.Error?.Detail ?? Text("Unable to update cart.", "تعذر تحديث السلة."));
+        }
+        finally
+        {
+            isCartBusy = false;
+        }
+    }
+
+    private async Task CheckoutAsync()
+    {
+        if (!CanCheckout || cart is null) return;
+        isCartBusy = true;
+        var result = await CartService.CheckoutAsync(cart.Id, paymentMethod, null, $"StoreFront:{selectedStoreId}");
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Checkout completed.", "تم إتمام الطلب."));
+            cart = null;
+        }
+        else ToastService.ShowError(result.Error?.Detail ?? Text("Unable to checkout cart.", "تعذر إتمام الطلب."));
+        isCartBusy = false;
+    }
+
+    private string Money(decimal amount) => string.IsNullOrWhiteSpace(currencyCode) ? $"{amount:N2}" : $"{amount:N2} {currencyCode}";
+    private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

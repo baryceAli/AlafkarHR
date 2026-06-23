@@ -20,4 +20,5 @@ public class CompanyLicenseSummaryDto
     public Guid? CurrencyId { get; set; }
     public string? CurrencyCode { get; set; }
     public bool IsExpired { get; set; }
+    public List<LicensedBusinessLineDto> BusinessLines { get; set; } = [];
 }

@@ -25,6 +25,13 @@ public class StockInHandler(InventoryDbContext dbContext, ISender sender, IHttpC
 {
     public async Task<StockInResult> Handle(StockInCommand command, CancellationToken cancellationToken)
     {
+        await global::Inventory.Warehouses.Features.Inventories.InventoryBranchScope.EnsureCanMutateWarehouseAsync(
+            dbContext,
+            sender,
+            command.InventoryAggregate.CompanyId,
+            command.InventoryAggregate.WarehouseId,
+            cancellationToken);
+
         var batch = await dbContext.Batches.AsNoTracking().FirstOrDefaultAsync(b => b.Id == command.InventoryAggregate.InitialBatchId, cancellationToken);
         if (batch is null)
             throw new NotFoundException($"Batch not found: {command.InventoryAggregate.InitialBatchId}");

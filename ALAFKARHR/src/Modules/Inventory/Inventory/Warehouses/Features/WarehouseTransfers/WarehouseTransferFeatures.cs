@@ -17,7 +17,7 @@ public record CancelWarehouseTransferCommand(Guid TransferId) : ICommand<CancelW
 public record CancelWarehouseTransferResult(bool IsSuccess);
 public record GetWarehouseTransferByIdQuery(Guid Id) : IQuery<GetWarehouseTransferByIdResult>;
 public record GetWarehouseTransferByIdResult(WarehouseTransferDto Transfer);
-public record GetWarehouseTransfersQuery(Guid CompanyId, PaginationRequest PaginationRequest, TransferStatus? Status) : IQuery<GetWarehouseTransfersResult>;
+public record GetWarehouseTransfersQuery(Guid CompanyId, PaginationRequest PaginationRequest, TransferStatus? Status, Guid? BranchId) : IQuery<GetWarehouseTransfersResult>;
 public record GetWarehouseTransfersResult(PaginatedResult<WarehouseTransferDto> TransferList);
 
 public class CreateWarehouseTransferValidator : AbstractValidator<CreateWarehouseTransferCommand>
@@ -63,10 +63,11 @@ public class WarehouseTransferEndpoint : ICarterModule
         app.MapGet("/api/v1/inventory/warehouse-transfers/company/{companyId:guid}", async (
                 Guid companyId,
                 TransferStatus? status,
+                Guid? branchId,
                 [AsParameters] PaginationRequest paginationRequest,
                 ISender sender) =>
             {
-                var result = await sender.Send(new GetWarehouseTransfersQuery(companyId, paginationRequest, status));
+                var result = await sender.Send(new GetWarehouseTransfersQuery(companyId, paginationRequest, status, branchId));
                 return Results.Ok(result);
             })
             .WithName("GetWarehouseTransfers")
@@ -138,7 +139,7 @@ public class WarehouseTransferEndpoint : ICarterModule
     }
 }
 
-public class CreateWarehouseTransferHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class CreateWarehouseTransferHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<CreateWarehouseTransferCommand, CreateWarehouseTransferResult>
 {
     public async Task<CreateWarehouseTransferResult> Handle(CreateWarehouseTransferCommand request, CancellationToken cancellationToken)
@@ -148,8 +149,9 @@ public class CreateWarehouseTransferHandler(InventoryDbContext dbContext, IHttpC
             ? $"TR-{DateTime.UtcNow:yyyyMMddHHmmssfff}"
             : request.Transfer.TransferNumber!;
 
-        await WarehouseTransferFeatureHelpers.EnsureWarehouseAsync(dbContext, request.Transfer.SourceWarehouseId, request.Transfer.CompanyId, cancellationToken);
-        await WarehouseTransferFeatureHelpers.EnsureWarehouseAsync(dbContext, request.Transfer.DestinationWarehouseId, request.Transfer.CompanyId, cancellationToken);
+        var sourceWarehouse = await WarehouseTransferFeatureHelpers.LoadWarehouseAsync(dbContext, request.Transfer.SourceWarehouseId, request.Transfer.CompanyId, cancellationToken);
+        var destinationWarehouse = await WarehouseTransferFeatureHelpers.LoadWarehouseAsync(dbContext, request.Transfer.DestinationWarehouseId, request.Transfer.CompanyId, cancellationToken);
+        await WarehouseTransferFeatureHelpers.EnsureCanMutateTransferAsync(sender, sourceWarehouse, destinationWarehouse, cancellationToken);
 
         var transfer = WarehouseTransfer.Create(
             Guid.NewGuid(),
@@ -168,12 +170,13 @@ public class CreateWarehouseTransferHandler(InventoryDbContext dbContext, IHttpC
     }
 }
 
-public class AddWarehouseTransferItemHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class AddWarehouseTransferItemHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<AddWarehouseTransferItemCommand, AddWarehouseTransferItemResult>
 {
     public async Task<AddWarehouseTransferItemResult> Handle(AddWarehouseTransferItemCommand request, CancellationToken cancellationToken)
     {
         var transfer = await WarehouseTransferFeatureHelpers.LoadTransferAsync(dbContext, request.TransferId, cancellationToken);
+        await WarehouseTransferFeatureHelpers.EnsureCanMutateTransferAsync(dbContext, sender, transfer, cancellationToken);
         var userId = WarehouseTransferFeatureHelpers.GetUserId(httpContextAccessor);
 
         transfer.AddItem(
@@ -192,24 +195,26 @@ public class AddWarehouseTransferItemHandler(InventoryDbContext dbContext, IHttp
     }
 }
 
-public class RemoveWarehouseTransferItemHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class RemoveWarehouseTransferItemHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<RemoveWarehouseTransferItemCommand, RemoveWarehouseTransferItemResult>
 {
     public async Task<RemoveWarehouseTransferItemResult> Handle(RemoveWarehouseTransferItemCommand request, CancellationToken cancellationToken)
     {
         var transfer = await WarehouseTransferFeatureHelpers.LoadTransferAsync(dbContext, request.TransferId, cancellationToken);
+        await WarehouseTransferFeatureHelpers.EnsureCanMutateTransferAsync(dbContext, sender, transfer, cancellationToken);
         transfer.RemoveItem(request.ItemId, WarehouseTransferFeatureHelpers.GetUserId(httpContextAccessor));
         await dbContext.SaveChangesAsync(cancellationToken);
         return new RemoveWarehouseTransferItemResult(true);
     }
 }
 
-public class ShipWarehouseTransferHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class ShipWarehouseTransferHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<ShipWarehouseTransferCommand, ShipWarehouseTransferResult>
 {
     public async Task<ShipWarehouseTransferResult> Handle(ShipWarehouseTransferCommand request, CancellationToken cancellationToken)
     {
         var transfer = await WarehouseTransferFeatureHelpers.LoadTransferAsync(dbContext, request.TransferId, cancellationToken);
+        await WarehouseTransferFeatureHelpers.EnsureCanMutateTransferAsync(dbContext, sender, transfer, cancellationToken);
         var userId = WarehouseTransferFeatureHelpers.GetUserId(httpContextAccessor);
 
         foreach (var item in transfer.Items)
@@ -227,12 +232,13 @@ public class ShipWarehouseTransferHandler(InventoryDbContext dbContext, IHttpCon
     }
 }
 
-public class ReceiveWarehouseTransferHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class ReceiveWarehouseTransferHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<ReceiveWarehouseTransferCommand, ReceiveWarehouseTransferResult>
 {
     public async Task<ReceiveWarehouseTransferResult> Handle(ReceiveWarehouseTransferCommand request, CancellationToken cancellationToken)
     {
         var transfer = await WarehouseTransferFeatureHelpers.LoadTransferAsync(dbContext, request.TransferId, cancellationToken);
+        await WarehouseTransferFeatureHelpers.EnsureCanMutateTransferAsync(dbContext, sender, transfer, cancellationToken);
         var userId = WarehouseTransferFeatureHelpers.GetUserId(httpContextAccessor);
         var item = transfer.Items.FirstOrDefault(x => x.Id == request.Item.ItemId)
             ?? throw new NotFoundException($"Transfer item not found: {request.Item.ItemId}");
@@ -267,19 +273,20 @@ public class ReceiveWarehouseTransferHandler(InventoryDbContext dbContext, IHttp
     }
 }
 
-public class CancelWarehouseTransferHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class CancelWarehouseTransferHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<CancelWarehouseTransferCommand, CancelWarehouseTransferResult>
 {
     public async Task<CancelWarehouseTransferResult> Handle(CancelWarehouseTransferCommand request, CancellationToken cancellationToken)
     {
         var transfer = await WarehouseTransferFeatureHelpers.LoadTransferAsync(dbContext, request.TransferId, cancellationToken);
+        await WarehouseTransferFeatureHelpers.EnsureCanMutateTransferAsync(dbContext, sender, transfer, cancellationToken);
         transfer.Cancel(WarehouseTransferFeatureHelpers.GetUserId(httpContextAccessor));
         await dbContext.SaveChangesAsync(cancellationToken);
         return new CancelWarehouseTransferResult(true);
     }
 }
 
-public class GetWarehouseTransferByIdHandler(InventoryDbContext dbContext)
+public class GetWarehouseTransferByIdHandler(InventoryDbContext dbContext, ISender sender)
     : IQueryHandler<GetWarehouseTransferByIdQuery, GetWarehouseTransferByIdResult>
 {
     public async Task<GetWarehouseTransferByIdResult> Handle(GetWarehouseTransferByIdQuery request, CancellationToken cancellationToken)
@@ -288,17 +295,46 @@ public class GetWarehouseTransferByIdHandler(InventoryDbContext dbContext)
             .FirstOrDefaultAsync(x => x.Id == request.Id && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException($"Warehouse transfer not found: {request.Id}");
 
+        await WarehouseTransferFeatureHelpers.EnsureCanReadTransferAsync(dbContext, sender, transfer, cancellationToken);
+
         return new GetWarehouseTransferByIdResult(await WarehouseTransferFeatureHelpers.MapTransferAsync(dbContext, transfer, cancellationToken));
     }
 }
 
-public class GetWarehouseTransfersHandler(InventoryDbContext dbContext)
+public class GetWarehouseTransfersHandler(InventoryDbContext dbContext, ISender sender)
     : IQueryHandler<GetWarehouseTransfersQuery, GetWarehouseTransfersResult>
 {
     public async Task<GetWarehouseTransfersResult> Handle(GetWarehouseTransfersQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.WarehouseTransfers.Include(x => x.Items).AsNoTracking()
             .Where(x => !x.IsDeleted && x.CompanyId == request.CompanyId);
+
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(request.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanFilter(branchAccess, request.BranchId))
+            throw new ForbiddenException("You do not have permission to view this branch's warehouse transfers.");
+
+        if (branchAccess.CanViewAllBranches)
+        {
+            if (request.BranchId.HasValue)
+            {
+                var filteredWarehouseIds = dbContext.Warehouses.AsNoTracking()
+                    .Where(x => x.CompanyId == request.CompanyId && !x.IsDeleted && x.BranchId == request.BranchId.Value)
+                    .Select(x => x.Id);
+                query = query.Where(x => filteredWarehouseIds.Contains(x.SourceWarehouseId) || filteredWarehouseIds.Contains(x.DestinationWarehouseId));
+            }
+        }
+        else
+        {
+            var readableWarehouseIds = dbContext.Warehouses.AsNoTracking()
+                .Where(x => x.CompanyId == request.CompanyId && !x.IsDeleted &&
+                    (x.BranchId == null || (x.BranchId.HasValue && branchAccess.BranchIds.Contains(x.BranchId.Value))));
+
+            if (request.BranchId.HasValue)
+                readableWarehouseIds = readableWarehouseIds.Where(x => x.BranchId == null || x.BranchId == request.BranchId.Value);
+
+            var ids = readableWarehouseIds.Select(x => x.Id);
+            query = query.Where(x => ids.Contains(x.SourceWarehouseId) && ids.Contains(x.DestinationWarehouseId));
+        }
 
         if (request.Status.HasValue)
             query = query.Where(x => x.Status == request.Status.Value);
@@ -340,10 +376,60 @@ file static class WarehouseTransferFeatureHelpers
             throw new NotFoundException($"Warehouse not found: {warehouseId}");
     }
 
+    public static async Task<Warehouse> LoadWarehouseAsync(InventoryDbContext dbContext, Guid warehouseId, Guid companyId, CancellationToken cancellationToken) =>
+        await dbContext.Warehouses.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == warehouseId && x.CompanyId == companyId && !x.IsDeleted, cancellationToken)
+        ?? throw new NotFoundException($"Warehouse not found: {warehouseId}");
+
     public static async Task<WarehouseTransfer> LoadTransferAsync(InventoryDbContext dbContext, Guid transferId, CancellationToken cancellationToken) =>
         await dbContext.WarehouseTransfers.Include(x => x.Items)
             .FirstOrDefaultAsync(x => x.Id == transferId && !x.IsDeleted, cancellationToken)
         ?? throw new NotFoundException($"Warehouse transfer not found: {transferId}");
+
+    public static async Task EnsureCanReadTransferAsync(InventoryDbContext dbContext, ISender sender, WarehouseTransfer transfer, CancellationToken cancellationToken)
+    {
+        var (sourceWarehouse, destinationWarehouse) = await LoadTransferWarehousesAsync(dbContext, transfer, cancellationToken);
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(transfer.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanRead(branchAccess, sourceWarehouse.BranchId) ||
+            !BranchScopePolicy.CanRead(branchAccess, destinationWarehouse.BranchId))
+        {
+            throw new ForbiddenException("You do not have permission to view this warehouse transfer.");
+        }
+    }
+
+    public static async Task EnsureCanMutateTransferAsync(InventoryDbContext dbContext, ISender sender, WarehouseTransfer transfer, CancellationToken cancellationToken)
+    {
+        var (sourceWarehouse, destinationWarehouse) = await LoadTransferWarehousesAsync(dbContext, transfer, cancellationToken);
+        await EnsureCanMutateTransferAsync(sender, sourceWarehouse, destinationWarehouse, cancellationToken);
+    }
+
+    public static async Task EnsureCanMutateTransferAsync(ISender sender, Warehouse sourceWarehouse, Warehouse destinationWarehouse, CancellationToken cancellationToken)
+    {
+        if (sourceWarehouse.CompanyId != destinationWarehouse.CompanyId)
+            throw new ForbiddenException("Warehouse transfer warehouses must belong to the same company.");
+
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(sourceWarehouse.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, sourceWarehouse.BranchId) ||
+            !BranchScopePolicy.CanMutate(branchAccess, destinationWarehouse.BranchId))
+        {
+            throw new ForbiddenException("You do not have permission to change this warehouse transfer branch scope.");
+        }
+    }
+
+    private static async Task<(Warehouse SourceWarehouse, Warehouse DestinationWarehouse)> LoadTransferWarehousesAsync(InventoryDbContext dbContext, WarehouseTransfer transfer, CancellationToken cancellationToken)
+    {
+        var warehouses = await dbContext.Warehouses.AsNoTracking()
+            .Where(x => !x.IsDeleted && x.CompanyId == transfer.CompanyId &&
+                (x.Id == transfer.SourceWarehouseId || x.Id == transfer.DestinationWarehouseId))
+            .ToListAsync(cancellationToken);
+
+        var sourceWarehouse = warehouses.FirstOrDefault(x => x.Id == transfer.SourceWarehouseId)
+            ?? throw new NotFoundException($"Warehouse not found: {transfer.SourceWarehouseId}");
+        var destinationWarehouse = warehouses.FirstOrDefault(x => x.Id == transfer.DestinationWarehouseId)
+            ?? throw new NotFoundException($"Warehouse not found: {transfer.DestinationWarehouseId}");
+
+        return (sourceWarehouse, destinationWarehouse);
+    }
 
     public static async Task<InventoryAggregate> LoadInventoryAsync(InventoryDbContext dbContext, Guid warehouseId, Guid productSkuId, CancellationToken cancellationToken) =>
         await dbContext.Inventories.Include(i => i.Batches).ThenInclude(b => b.Batch)

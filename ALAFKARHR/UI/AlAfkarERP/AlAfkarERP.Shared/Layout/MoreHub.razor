@@ -164,6 +164,7 @@
     [Parameter] public string InitialView { get; set; } = ViewDirectory;
     [Parameter] public string ActiveWorkspace { get; set; } = NavigationMenuResolver.WorkspaceHome;
     [Parameter] public AuthenticationState? AuthState { get; set; }
+    [Parameter] public IReadOnlySet<string>? LicensedBusinessLineKeys { get; set; }
     [Parameter] public EventCallback<MenuItem> OnNavigate { get; set; }
 
     public const string ViewDirectory = "directory";
@@ -179,10 +180,10 @@
     private string hubSearchText = "";
     private const int CollapsedRowCount = 6;
 
-    private IEnumerable<MenuItem> AuthorizedItems => NavigationMenuResolver.GetAuthorizedNavigableItems(AuthState?.User);
+    private IEnumerable<MenuItem> AuthorizedItems => NavigationMenuResolver.GetAuthorizedNavigableItems(AuthState?.User, LicensedBusinessLineKeys);
     private IEnumerable<MenuItem> FavoriteItems => ResolveKeys(favoriteKeys).Where(MatchesActiveWorkspace);
     private IEnumerable<MenuItem> RecentItems => ResolveKeys(recentKeys).Where(MatchesActiveWorkspace);
-    private IReadOnlyList<EnterpriseNavigationGroup> Groups => NavigationMenuResolver.GetEnterpriseNavigationGroups(AuthState?.User, activeHubWorkspace, CurrentPath);
+    private IReadOnlyList<EnterpriseNavigationGroup> Groups => NavigationMenuResolver.GetEnterpriseNavigationGroups(AuthState?.User, activeHubWorkspace, CurrentPath, LicensedBusinessLineKeys);
     private IEnumerable<EnterpriseNavigationGroup> VisibleGroups => Groups.Where(group => FilteredEntries(group).Any());
     private bool IsRecentView => string.Equals(InitialView, ViewRecent, StringComparison.OrdinalIgnoreCase);
     private bool IsFavoritesView => string.Equals(InitialView, ViewFavorites, StringComparison.OrdinalIgnoreCase);
@@ -443,8 +444,9 @@
         => kind switch
         {
             EnterpriseNavigationGroupKind.Overview => SharedDataService.SelectViewLang("Overview", "\u0646\u0638\u0631\u0629 \u0639\u0627\u0645\u0629"),
-            EnterpriseNavigationGroupKind.Documents => SharedDataService.SelectViewLang("Documents", "\u0645\u0633\u062a\u0646\u062f\u0627\u062a"),
+            EnterpriseNavigationGroupKind.Records => SharedDataService.SelectViewLang("Records", "\u0627\u0644\u0633\u062c\u0644\u0627\u062a"),
             EnterpriseNavigationGroupKind.Transactions => SharedDataService.SelectViewLang("Transactions", "\u0645\u0639\u0627\u0645\u0644\u0627\u062a"),
+            EnterpriseNavigationGroupKind.Files => SharedDataService.SelectViewLang("Files", "\u0627\u0644\u0645\u0644\u0641\u0627\u062a"),
             EnterpriseNavigationGroupKind.Reports => SharedDataService.SelectViewLang("Reports", "\u062a\u0642\u0627\u0631\u064a\u0631"),
             EnterpriseNavigationGroupKind.Setup => SharedDataService.SelectViewLang("Setup", "\u0625\u0639\u062f\u0627\u062f"),
             EnterpriseNavigationGroupKind.Related => SharedDataService.SelectViewLang("Related", "\u0645\u0631\u062a\u0628\u0637"),

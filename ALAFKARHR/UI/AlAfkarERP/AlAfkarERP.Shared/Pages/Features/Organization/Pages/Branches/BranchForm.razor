@@ -84,8 +84,8 @@
                 </div>
 
                 <div class="col-12">
-                    <div class="form-check erp-form-check-panel">
-                        <input class="form-check-input" checked="@branchDto.IsMainBranch" @bind-value="branchDto.IsMainBranch" type="checkbox" id="gridCheck1">
+                    <div class="form-check erp-form-check-panel d-none">
+                        <input class="form-check-input" checked="@branchDto.IsMainBranch" type="checkbox" id="gridCheck1" disabled>
                         <label class="form-check-label" for="gridCheck1">
                             @Text("Main Branch?", "الفرع الرئيسي؟")
                         </label>
@@ -144,6 +144,7 @@
             Random random = new Random();
             branchDto.Code = branchDto.NameEng.Substring(0, 1) + random.Next(100, 999).ToString();
             branchDto.CompanyId = companyId;
+            branchDto.IsMainBranch = false;
             var bResponse = await BranchService.CreateAsync(branchDto);
             if (bResponse.IsSuccess)
             {

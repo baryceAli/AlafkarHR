@@ -250,6 +250,9 @@ namespace Catalog.Data.Migrations
                     b.Property<Guid>("BrandId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<decimal?>("Calories")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uniqueidentifier");
 

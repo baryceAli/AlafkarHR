@@ -126,7 +126,7 @@
                                                     <div class="account-tree-inline-grid">
                                                         <div>
                                                             <label class="form-label">@T("Code", "الكود")</label>
-                                                            <InputText class="form-control form-control-sm account-code-input" @bind-Value="editingAccount!.Code" />
+                                                            <div class="form-control form-control-sm account-code-input bg-light">@GeneratedCodeLabel(editingAccount)</div>
                                                         </div>
                                                         <div>
                                                             <label class="form-label">@T("Arabic Name", "الاسم العربي")</label>
@@ -138,7 +138,7 @@
                                                         </div>
                                                         <div class="account-tree-inline-option">
                                                             <div class="form-check account-inline-check">
-                                                                <InputCheckbox id="@groupCheckboxId" class="form-check-input" @bind-Value="editingIsGroup" />
+                                                                <input id="@groupCheckboxId" class="form-check-input" type="checkbox" checked="@editingIsGroup" @onchange="OnInlineGroupChanged" />
                                                                 <label class="form-check-label" for="@groupCheckboxId">@T("Group", "مجموعة")</label>
                                                             </div>
                                                         </div>
@@ -229,7 +229,7 @@
                                                     <div class="row g-2">
                                                         <div class="col-12 col-md-2">
                                                             <label class="form-label">@T("Code", "الكود")</label>
-                                                            <InputText class="form-control form-control-sm" @bind-Value="editingAccount!.Code" />
+                                                            <div class="form-control form-control-sm bg-light">@GeneratedCodeLabel(editingAccount)</div>
                                                         </div>
                                                         <div class="col-12 col-md-3">
                                                             <label class="form-label">@T("Arabic Name", "الاسم العربي")</label>
@@ -278,7 +278,7 @@
                                                         </div>
                                                         <div class="col-12 col-md-2 d-flex align-items-end">
                                                             <div class="form-check">
-                                                                <InputCheckbox class="form-check-input" @bind-Value="editingIsGroup" />
+                                                                <input class="form-check-input" type="checkbox" checked="@editingIsGroup" @onchange="OnInlineGroupChanged" />
                                                                 <label class="form-check-label">@T("Group", "مجموعة")</label>
                                                             </div>
                                                         </div>
@@ -334,7 +334,7 @@
                         <div class="row g-3">
                             <div class="col-12 col-md-4">
                                 <label class="form-label">@T("Code", "الكود")</label>
-                                <InputText class="form-control" @bind-Value="newAccount.Code" />
+                                <div class="form-control bg-light">@GeneratedCodeLabel(newAccount)</div>
                             </div>
                             <div class="col-12 col-md-4">
                                 <label class="form-label">@T("Arabic Name", "الاسم العربي")</label>
@@ -522,7 +522,7 @@
             Type = AccountType.Asset,
             NormalBalance = NormalBalance.Debit,
             Role = AccountRole.None,
-            IsPostingAccount = true,
+            IsPostingAccount = false,
             IsActive = true
         };
         showCreate = true;
@@ -559,7 +559,7 @@
         editingAccount = new AccountDto
         {
             CompanyId = companyId,
-            Code = SuggestedChildCode(parent),
+            Code = string.Empty,
             Name = string.Empty,
             NameEng = string.Empty,
             Type = parent.Type,
@@ -636,28 +636,22 @@
         IsActive = account.IsActive
     };
 
-    private string SuggestedChildCode(AccountDto parent)
+    private void OnInlineGroupChanged(ChangeEventArgs args)
     {
-        var childCodes = accounts
-            .Where(x => x.ParentAccountId == parent.Id && x.Code.StartsWith(parent.Code, StringComparison.OrdinalIgnoreCase))
-            .Select(x => x.Code)
-            .ToList();
-
-        if (int.TryParse(parent.Code, out var parentNumber))
+        var nextIsGroup = args.Value is bool value && value;
+        if (editingAccount is null)
         {
-            var nextNumber = childCodes
-                .Select(x => int.TryParse(x, out var value) && value >= parentNumber ? value : 0)
-                .DefaultIfEmpty(parentNumber)
-                .Max() + 1;
-            return nextNumber.ToString($"D{parent.Code.Length}");
+            editingIsGroup = nextIsGroup;
+            return;
         }
 
-        var nextSuffix = childCodes
-            .Select(x => x.Length > parent.Code.Length && int.TryParse(x[parent.Code.Length..], out var suffix) ? suffix : 0)
-            .DefaultIfEmpty(0)
-            .Max() + 1;
-        return $"{parent.Code}{nextSuffix}";
+        editingIsGroup = nextIsGroup;
     }
+
+    private string GeneratedCodeLabel(AccountDto? account) =>
+        account is null || account.Id == Guid.Empty
+            ? T("Generated on save", "يتم توليده عند الحفظ")
+            : account.Code;
 
     private bool IsDescendantOf(Guid possibleDescendantId, Guid ancestorId)
     {

@@ -24,9 +24,12 @@ public class StockMovementService : BaseApiService, IStockMovementService
         string? sourceDocumentType = null,
         string? referenceNumber = null,
         DateTime? fromDate = null,
-        DateTime? toDate = null)
+        DateTime? toDate = null,
+        Guid? branchId = null)
     {
         var query = $"pageIndex={pageIndex}&pageSize={pageSize}&searchText={Uri.EscapeDataString(searchText ?? string.Empty)}";
+        if (branchId.HasValue)
+            query += $"&branchId={branchId.Value}";
         if (warehouseId.HasValue)
             query += $"&warehouseId={warehouseId.Value}";
         if (productSkuId.HasValue)

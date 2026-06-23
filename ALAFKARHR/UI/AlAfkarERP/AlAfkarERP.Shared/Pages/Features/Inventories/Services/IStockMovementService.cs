@@ -16,5 +16,6 @@ public interface IStockMovementService
         string? sourceDocumentType = null,
         string? referenceNumber = null,
         DateTime? fromDate = null,
-        DateTime? toDate = null);
+        DateTime? toDate = null,
+        Guid? branchId = null);
 }

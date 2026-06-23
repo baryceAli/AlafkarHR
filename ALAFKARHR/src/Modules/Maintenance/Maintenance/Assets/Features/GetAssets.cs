@@ -43,7 +43,7 @@ public class GetMaintenanceAssetsEndpoint : ICarterModule
     }
 }
 
-public class GetMaintenanceAssetsHandler(MaintenanceDbContext dbContext)
+public class GetMaintenanceAssetsHandler(MaintenanceDbContext dbContext, ISender sender)
     : IQueryHandler<GetMaintenanceAssetsQuery, GetMaintenanceAssetsResult>
 {
     public async Task<GetMaintenanceAssetsResult> Handle(GetMaintenanceAssetsQuery request, CancellationToken cancellationToken)
@@ -57,10 +57,25 @@ public class GetMaintenanceAssetsHandler(MaintenanceDbContext dbContext)
             query = query.Where(x => x.AssetType == request.Filter.AssetType.Value);
         if (request.Filter.Status.HasValue)
             query = query.Where(x => x.Status == request.Filter.Status.Value);
-        if (request.Filter.CompanyId.HasValue)
-            query = query.Where(x => x.CompanyId == request.Filter.CompanyId.Value);
-        if (request.Filter.BranchId.HasValue)
-            query = query.Where(x => x.BranchId == request.Filter.BranchId.Value);
+        if (!request.Filter.CompanyId.HasValue)
+            throw new BadRequestException("CompanyId is required for maintenance asset branch scope.");
+
+        query = query.Where(x => x.CompanyId == request.Filter.CompanyId.Value);
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(request.Filter.CompanyId.Value), cancellationToken);
+        if (!BranchScopePolicy.CanFilter(branchAccess, request.Filter.BranchId))
+            throw new ForbiddenException("You do not have permission to view this branch's maintenance assets.");
+
+        if (branchAccess.CanViewAllBranches)
+        {
+            if (request.Filter.BranchId.HasValue)
+                query = query.Where(x => x.BranchId == request.Filter.BranchId.Value);
+        }
+        else
+        {
+            query = request.Filter.BranchId.HasValue
+                ? query.Where(x => x.BranchId == null || x.BranchId == request.Filter.BranchId.Value)
+                : query.Where(x => x.BranchId == null || (x.BranchId.HasValue && branchAccess.BranchIds.Contains(x.BranchId.Value)));
+        }
         if (request.Filter.ParentAssetId.HasValue)
             query = query.Where(x => x.ParentAssetId == request.Filter.ParentAssetId.Value);
         if (!string.IsNullOrWhiteSpace(request.Filter.SourceModule))

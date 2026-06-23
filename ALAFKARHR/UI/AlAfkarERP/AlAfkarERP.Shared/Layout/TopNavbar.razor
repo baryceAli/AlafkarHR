@@ -21,6 +21,7 @@
             <MobileWorkspaceSwitcher ActiveWorkspace="@ActiveWorkspace"
                                      IsMoreOpen="@IsMoreOpen"
                                      AuthState="@(ShellAuthState ?? authState)"
+                                     LicensedBusinessLineKeys="@LicensedBusinessLineKeys"
                                      ActiveWorkspaceChanged="ActiveWorkspaceChanged"
                                      OnOpenMore="OnOpenMore" />
         }
@@ -117,6 +118,7 @@
     [Parameter] public string ActiveWorkspace { get; set; } = NavigationMenuResolver.WorkspaceHome;
     [Parameter] public bool IsMoreOpen { get; set; }
     [Parameter] public AuthenticationState? ShellAuthState { get; set; }
+    [Parameter] public IReadOnlySet<string>? LicensedBusinessLineKeys { get; set; }
     [Parameter] public bool IsEnterpriseNext { get; set; }
 
     private AuthenticationState? authState;

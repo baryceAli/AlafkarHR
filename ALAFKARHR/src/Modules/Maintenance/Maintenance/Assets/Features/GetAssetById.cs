@@ -20,7 +20,7 @@ public class GetMaintenanceAssetByIdEndpoint : ICarterModule
     }
 }
 
-public class GetMaintenanceAssetByIdHandler(MaintenanceDbContext dbContext)
+public class GetMaintenanceAssetByIdHandler(MaintenanceDbContext dbContext, ISender sender)
     : IQueryHandler<GetMaintenanceAssetByIdQuery, GetMaintenanceAssetByIdResult>
 {
     public async Task<GetMaintenanceAssetByIdResult> Handle(GetMaintenanceAssetByIdQuery request, CancellationToken cancellationToken)
@@ -30,6 +30,10 @@ public class GetMaintenanceAssetByIdHandler(MaintenanceDbContext dbContext)
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException("Maintenance asset", request.Id);
+
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(asset.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanRead(branchAccess, asset.BranchId))
+            throw new ForbiddenException("You do not have permission to view this maintenance asset.");
 
         return new GetMaintenanceAssetByIdResult(MaintenanceAssetMappings.ToDto(asset));
     }

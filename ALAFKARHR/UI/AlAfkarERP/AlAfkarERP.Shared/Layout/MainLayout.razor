@@ -1,5 +1,6 @@
 ﻿@using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits LayoutComponentBase
 @implements IDisposable
@@ -8,6 +9,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject ICompanyService CompanyService
 
 @* @Body *@
 @* <div class="d-flex vh-100"> *@
@@ -15,6 +17,7 @@
     <DesktopWorkspaceNav ActiveWorkspace="@activeWorkspace"
                          ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
                          AuthState="@AuthState"
+                         LicensedBusinessLineKeys="@licensedBusinessLineKeys"
                          OnOpenCommand="OpenCommandPalette" />
 
     <!-- Main Area -->
@@ -26,6 +29,7 @@
                    ActiveWorkspace="@activeWorkspace"
                    ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
                    IsMoreOpen="@isMoreHubOpen"
+                   LicensedBusinessLineKeys="@licensedBusinessLineKeys"
                    ShellAuthState="@AuthState" />
         
         <!-- Page Content -->
@@ -53,12 +57,14 @@
              InitialView="@moreHubInitialView"
              ActiveWorkspace="@activeWorkspace"
              AuthState="@AuthState"
+             LicensedBusinessLineKeys="@licensedBusinessLineKeys"
              OnNavigate="OnNavigationItemSelectedAsync" />
 
     <CommandPalette IsOpen="@isCommandPaletteOpen"
                     IsOpenChanged="SetCommandPaletteOpen"
                     ActiveWorkspace="@activeWorkspace"
                     AuthState="@AuthState"
+                    LicensedBusinessLineKeys="@licensedBusinessLineKeys"
                     OnNavigate="OnNavigationItemSelectedAsync" />
 
 </div>
@@ -75,6 +81,7 @@
     private string moreHubInitialView = MoreHub.ViewDirectory;
     private bool isMoreHubOpen;
     private bool isCommandPaletteOpen;
+    private IReadOnlySet<string>? licensedBusinessLineKeys;
 
     protected override async Task OnInitializedAsync()
     {
@@ -88,6 +95,10 @@
             if (AuthState.User.Identity?.IsAuthenticated != true)
             {
                 NavigationManager.NavigateTo("login",true);
+            }
+            else
+            {
+                await LoadLicensedBusinessLinesAsync();
             }
             activeWorkspace = await LoadActiveWorkspaceAsync();
             await InvokeAsync(StateHasChanged);
@@ -137,9 +148,23 @@
         }
     }
 
+    private async Task LoadLicensedBusinessLinesAsync()
+    {
+        if (CompanyContext.IsPlatformScoped(AuthState?.User))
+        {
+            licensedBusinessLineKeys = null;
+            return;
+        }
+
+        var result = await CompanyService.GetCurrentLicenseAsync();
+        licensedBusinessLineKeys = result.IsSuccess && result.Data is not null
+            ? result.Data.BusinessLines.Select(line => line.Key).ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    }
+
     private string EnsureAuthorizedWorkspace(string workspaceKey)
     {
-        var authorizedWorkspaces = NavigationMenuResolver.GetAuthorizedWorkspaces(AuthState?.User);
+        var authorizedWorkspaces = NavigationMenuResolver.GetAuthorizedWorkspaces(AuthState?.User, licensedBusinessLineKeys);
         if (authorizedWorkspaces.Any(workspace => workspace.Key == workspaceKey))
         {
             return workspaceKey;

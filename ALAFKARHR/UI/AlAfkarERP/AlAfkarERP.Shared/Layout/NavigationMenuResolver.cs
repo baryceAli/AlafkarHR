@@ -10,6 +10,7 @@ public static partial class NavigationMenuResolver
     public const string WorkspaceSales = "sales";
     public const string WorkspacePurchasing = "purchasing";
     public const string WorkspaceCatering = "catering";
+    public const string WorkspaceRealEstate = "real-estate";
     public const string WorkspaceWarehouse = "warehouse";
     public const string WorkspaceAccountingFinance = "accounting-finance";
     public const string WorkspaceAdmin = "admin";
@@ -26,6 +27,7 @@ public static partial class NavigationMenuResolver
     public const string HubSales = WorkspaceSales;
     public const string HubPurchasing = WorkspacePurchasing;
     public const string HubCatering = WorkspaceCatering;
+    public const string HubRealEstate = WorkspaceRealEstate;
     public const string HubWarehouse = WorkspaceWarehouse;
     public const string HubAccountingFinance = WorkspaceAccountingFinance;
     public const string HubAdmin = WorkspaceAdmin;
@@ -39,6 +41,7 @@ public static partial class NavigationMenuResolver
         new(WorkspaceSales, "Sales", "\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a", "bi-graph-up-arrow", "/Sales/Dashboard"),
         new(WorkspacePurchasing, "Purchasing", "\u0627\u0644\u0645\u0634\u062a\u0631\u064a\u0627\u062a", "bi-cart-check", "/Procurement/Dashboard"),
         new(WorkspaceCatering, "Catering", "\u062e\u062f\u0645\u0627\u062a \u0627\u0644\u0625\u0639\u0627\u0634\u0629", "bi-cup-hot", "/Catering/Dashboard"),
+        new(WorkspaceRealEstate, "Real Estate", "\u0627\u0644\u0639\u0642\u0627\u0631\u0627\u062a", "bi-buildings", "/RealEstate/Dashboard"),
         new(WorkspaceWarehouse, "Warehouse", "\u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639", "bi-boxes", "/Inventory/Dashboard"),
         new(WorkspaceAccountingFinance, "Accounting / Finance", "\u0627\u0644\u0645\u062d\u0627\u0633\u0628\u0629 / \u0627\u0644\u0645\u0627\u0644\u064a\u0629", "bi-cash-stack", null),
         new(WorkspaceAdmin, "Admin", "\u0627\u0644\u0625\u062f\u0627\u0631\u0629", "bi-sliders2-vertical", "/Dashboard"),
@@ -52,6 +55,7 @@ public static partial class NavigationMenuResolver
         new(HubSales, "Sales", "\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a", "bi-graph-up-arrow"),
         new(HubPurchasing, "Purchasing", "\u0627\u0644\u0645\u0634\u062a\u0631\u064a\u0627\u062a", "bi-cart-check"),
         new(HubCatering, "Catering", "\u062e\u062f\u0645\u0627\u062a \u0627\u0644\u0625\u0639\u0627\u0634\u0629", "bi-cup-hot"),
+        new(HubRealEstate, "Real Estate", "\u0627\u0644\u0639\u0642\u0627\u0631\u0627\u062a", "bi-buildings"),
         new(HubWarehouse, "Warehouse", "\u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639", "bi-boxes"),
         new(HubAccountingFinance, "Accounting / Finance", "\u0627\u0644\u0645\u062d\u0627\u0633\u0628\u0629 / \u0627\u0644\u0645\u0627\u0644\u064a\u0629", "bi-cash-stack"),
         new(HubAdmin, "Admin", "\u0627\u0644\u0625\u062f\u0627\u0631\u0629", "bi-sliders2-vertical"),
@@ -199,11 +203,16 @@ public static partial class NavigationMenuResolver
             return WorkspaceCatering;
         }
 
+        if (path.StartsWith("/realestate", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Real Estate", StringComparison.OrdinalIgnoreCase))
+        {
+            return WorkspaceRealEstate;
+        }
+
         if (path.StartsWith("/generalsettings", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/contracts", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/documentmanagement", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/fleet", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/realestate", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/maintenance", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/organization", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/projectmanagement", StringComparison.OrdinalIgnoreCase)
@@ -211,7 +220,6 @@ public static partial class NavigationMenuResolver
             || text.Contains("Contract", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Document", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Fleet", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Real Estate", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Maintenance", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Organization", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Company", StringComparison.OrdinalIgnoreCase)
@@ -328,25 +336,37 @@ public static partial class NavigationMenuResolver
             .ToList();
 
     public static IReadOnlyList<MenuItem> GetAuthorizedTree(ClaimsPrincipal? user)
+        => GetAuthorizedTree(user, null);
+
+    public static IReadOnlyList<MenuItem> GetAuthorizedTree(ClaimsPrincipal? user, IReadOnlySet<string>? licensedBusinessLineKeys)
         => MenuItem.Menu
-            .Select(item => FilterAuthorized(item, user))
+            .Select(item => FilterAuthorized(item, user, licensedBusinessLineKeys))
             .Where(item => item is not null)
             .Cast<MenuItem>()
             .ToList();
 
     public static IReadOnlyList<MenuItem> GetAuthorizedNavigableItems(ClaimsPrincipal? user)
+        => GetAuthorizedNavigableItems(user, null);
+
+    public static IReadOnlyList<MenuItem> GetAuthorizedNavigableItems(ClaimsPrincipal? user, IReadOnlySet<string>? licensedBusinessLineKeys)
         => Flatten(MenuItem.Menu)
-            .Where(item => HasOwnPermission(item, user) && !string.IsNullOrWhiteSpace(item.Url))
+            .Where(item => HasOwnPermission(item, user, licensedBusinessLineKeys) && !string.IsNullOrWhiteSpace(item.Url))
             .OrderBy(item => GetMobilePriority(item))
             .ThenBy(item => item.TextEn)
             .ToList();
 
     public static IReadOnlyList<NavigationWorkspace> GetAuthorizedWorkspaces(ClaimsPrincipal? user)
+        => GetAuthorizedWorkspaces(user, null);
+
+    public static IReadOnlyList<NavigationWorkspace> GetAuthorizedWorkspaces(ClaimsPrincipal? user, IReadOnlySet<string>? licensedBusinessLineKeys)
         => MobileWorkspaces
-            .Where(workspace => IsWorkspaceAvailable(workspace, user))
+            .Where(workspace => IsWorkspaceAvailable(workspace, user, licensedBusinessLineKeys))
             .ToList();
 
     public static string? GetWorkspaceDefaultUrl(string workspaceKey, ClaimsPrincipal? user)
+        => GetWorkspaceDefaultUrl(workspaceKey, user, null);
+
+    public static string? GetWorkspaceDefaultUrl(string workspaceKey, ClaimsPrincipal? user, IReadOnlySet<string>? licensedBusinessLineKeys)
     {
         if (workspaceKey == WorkspaceHome)
         {
@@ -365,7 +385,7 @@ public static partial class NavigationMenuResolver
             return "/Organization/ParentCompanies";
         }
 
-        var authorizedItems = GetAuthorizedNavigableItems(user).ToList();
+        var authorizedItems = GetAuthorizedNavigableItems(user, licensedBusinessLineKeys).ToList();
         if (workspaceKey == WorkspaceAccountingFinance
             && authorizedItems.Any(item => NormalizePath(item.Url) == "/accounting/dashboard"))
         {
@@ -425,30 +445,39 @@ public static partial class NavigationMenuResolver
     }
 
     public static IReadOnlyList<NavigationMenuRow> GetAuthorizedRows(ClaimsPrincipal? user, IEnumerable<MenuItem>? source = null)
+        => GetAuthorizedRows(user, source, null);
+
+    public static IReadOnlyList<NavigationMenuRow> GetAuthorizedRows(ClaimsPrincipal? user, IEnumerable<MenuItem>? source, IReadOnlySet<string>? licensedBusinessLineKeys)
     {
         var rows = new List<NavigationMenuRow>();
         foreach (var item in source ?? MenuItem.Menu)
         {
-            AddAuthorizedRows(item, user, [], 0, rows);
+            AddAuthorizedRows(item, user, licensedBusinessLineKeys, [], 0, rows);
         }
 
         return rows;
     }
 
     public static IReadOnlyList<NavigationMenuRow> GetAuthorizedWorkspaceRows(ClaimsPrincipal? user, string workspaceKey)
-        => GetAuthorizedRows(user)
-            .Where(row => workspaceKey == WorkspaceMore || RowBelongsToWorkspace(row.Item, workspaceKey, user))
+        => GetAuthorizedWorkspaceRows(user, workspaceKey, null);
+
+    public static IReadOnlyList<NavigationMenuRow> GetAuthorizedWorkspaceRows(ClaimsPrincipal? user, string workspaceKey, IReadOnlySet<string>? licensedBusinessLineKeys)
+        => GetAuthorizedRows(user, null, licensedBusinessLineKeys)
+            .Where(row => workspaceKey == WorkspaceMore || RowBelongsToWorkspace(row.Item, workspaceKey, user, licensedBusinessLineKeys))
             .ToList();
 
     public static IReadOnlyList<NavigationMenuRow> GetAuthorizedWorkspacePanelRows(ClaimsPrincipal? user, string workspaceKey)
+        => GetAuthorizedWorkspacePanelRows(user, workspaceKey, null);
+
+    public static IReadOnlyList<NavigationMenuRow> GetAuthorizedWorkspacePanelRows(ClaimsPrincipal? user, string workspaceKey, IReadOnlySet<string>? licensedBusinessLineKeys)
     {
         if (workspaceKey == WorkspaceMore)
         {
-            return GetAuthorizedWorkspaceRows(user, workspaceKey);
+            return GetAuthorizedWorkspaceRows(user, workspaceKey, licensedBusinessLineKeys);
         }
 
         var rows = new List<NavigationMenuRow>();
-        var roots = GetAuthorizedTree(user);
+        var roots = GetAuthorizedTree(user, licensedBusinessLineKeys);
         foreach (var section in GetWorkspacePanelSections(roots, workspaceKey))
         {
             var shapedSection = FilterWorkspacePanelSection(section, workspaceKey);
@@ -491,13 +520,26 @@ public static partial class NavigationMenuResolver
     }
 
     public static bool HasOwnPermission(MenuItem item, ClaimsPrincipal? user)
-        => CompanyContext.HasPermission(user, item.PermissionPolicy);
+        => HasOwnPermission(item, user, null);
+
+    public static bool HasOwnPermission(MenuItem item, ClaimsPrincipal? user, IReadOnlySet<string>? licensedBusinessLineKeys)
+        => IsBusinessLineAllowed(item, licensedBusinessLineKeys)
+           && CompanyContext.HasPermission(user, item.PermissionPolicy);
 
     public static bool IsAuthorized(MenuItem item, ClaimsPrincipal? user)
-        => HasOwnPermission(item, user) || item.Children.Any(child => IsAuthorized(child, user));
+        => IsAuthorized(item, user, null);
+
+    public static bool IsAuthorized(MenuItem item, ClaimsPrincipal? user, IReadOnlySet<string>? licensedBusinessLineKeys)
+        => HasOwnPermission(item, user, licensedBusinessLineKeys)
+           || item.Children.Any(child => IsAuthorized(child, user, licensedBusinessLineKeys));
 
     public static bool HasAuthorizedChildren(MenuItem item, ClaimsPrincipal? user)
         => item.Children.Any(child => IsAuthorized(child, user));
+
+    private static bool IsBusinessLineAllowed(MenuItem item, IReadOnlySet<string>? licensedBusinessLineKeys)
+        => string.IsNullOrWhiteSpace(item.BusinessLineKey)
+           || licensedBusinessLineKeys is null
+           || licensedBusinessLineKeys.Contains(item.BusinessLineKey);
 
     public static int GetMobilePriority(MenuItem item)
     {
@@ -639,15 +681,15 @@ public static partial class NavigationMenuResolver
         return currentUri;
     }
 
-    private static MenuItem? FilterAuthorized(MenuItem item, ClaimsPrincipal? user)
+    private static MenuItem? FilterAuthorized(MenuItem item, ClaimsPrincipal? user, IReadOnlySet<string>? licensedBusinessLineKeys)
     {
         var children = item.Children
-            .Select(child => FilterAuthorized(child, user))
+            .Select(child => FilterAuthorized(child, user, licensedBusinessLineKeys))
             .Where(child => child is not null)
             .Cast<MenuItem>()
             .ToList();
 
-        if (!HasOwnPermission(item, user) && children.Count == 0)
+        if (!HasOwnPermission(item, user, licensedBusinessLineKeys) && children.Count == 0)
         {
             return null;
         }
@@ -664,6 +706,7 @@ public static partial class NavigationMenuResolver
             BadgeTitleEn = item.BadgeTitleEn,
             BadgeTitleAr = item.BadgeTitleAr,
             WorkspaceKey = item.WorkspaceKey,
+            BusinessLineKey = item.BusinessLineKey,
             NavigationAliases = item.NavigationAliases.ToList(),
             MobilePriority = item.MobilePriority,
             KeywordsEn = item.KeywordsEn,
@@ -675,9 +718,9 @@ public static partial class NavigationMenuResolver
         };
     }
 
-    private static void AddAuthorizedRows(MenuItem item, ClaimsPrincipal? user, IReadOnlyList<MenuItem> ancestors, int depth, List<NavigationMenuRow> rows)
+    private static void AddAuthorizedRows(MenuItem item, ClaimsPrincipal? user, IReadOnlySet<string>? licensedBusinessLineKeys, IReadOnlyList<MenuItem> ancestors, int depth, List<NavigationMenuRow> rows)
     {
-        if (!IsAuthorized(item, user))
+        if (!IsAuthorized(item, user, licensedBusinessLineKeys))
         {
             return;
         }
@@ -687,7 +730,7 @@ public static partial class NavigationMenuResolver
 
         foreach (var child in item.Children)
         {
-            AddAuthorizedRows(child, user, path, depth + 1, rows);
+            AddAuthorizedRows(child, user, licensedBusinessLineKeys, path, depth + 1, rows);
         }
     }
 
@@ -710,6 +753,7 @@ public static partial class NavigationMenuResolver
             WorkspaceSales => FindSections(roots, "Sales Management"),
             WorkspaceHr => FindChildSections(roots, "People", "Human Resource", "Attendance", "Leave Management", "Payroll"),
             WorkspacePurchasing => FindChildSections(roots, "Operations", "Supplier Management", "Procurement"),
+            WorkspaceRealEstate => FindSections(roots, "Real Estate"),
             WorkspaceCatering => FindSections(roots, "Catering"),
             WorkspaceWarehouse => FindChildSections(roots, "Operations", "Products Management", "Inventory Management"),
             WorkspaceAccountingFinance => FindSections(roots, "Accounting"),
@@ -805,6 +849,7 @@ public static partial class NavigationMenuResolver
             BadgeTitleEn = item.BadgeTitleEn,
             BadgeTitleAr = item.BadgeTitleAr,
             WorkspaceKey = item.WorkspaceKey,
+            BusinessLineKey = item.BusinessLineKey,
             NavigationAliases = item.NavigationAliases.ToList(),
             MobilePriority = item.MobilePriority,
             KeywordsEn = item.KeywordsEn,
@@ -876,13 +921,16 @@ public static partial class NavigationMenuResolver
     }
 
     private static bool IsWorkspaceAvailable(NavigationWorkspace workspace, ClaimsPrincipal? user)
+        => IsWorkspaceAvailable(workspace, user, null);
+
+    private static bool IsWorkspaceAvailable(NavigationWorkspace workspace, ClaimsPrincipal? user, IReadOnlySet<string>? licensedBusinessLineKeys)
     {
         if (workspace.Key == WorkspaceHome)
         {
             return true;
         }
 
-        var authorizedItems = GetAuthorizedNavigableItems(user).ToList();
+        var authorizedItems = GetAuthorizedNavigableItems(user, licensedBusinessLineKeys).ToList();
         if (workspace.Key == WorkspaceMore)
         {
             return authorizedItems.Count > 0;
@@ -898,8 +946,11 @@ public static partial class NavigationMenuResolver
     }
 
     private static bool RowBelongsToWorkspace(MenuItem item, string workspaceKey, ClaimsPrincipal? user)
+        => RowBelongsToWorkspace(item, workspaceKey, user, null);
+
+    private static bool RowBelongsToWorkspace(MenuItem item, string workspaceKey, ClaimsPrincipal? user, IReadOnlySet<string>? licensedBusinessLineKeys)
     {
-        if (!IsAuthorized(item, user))
+        if (!IsAuthorized(item, user, licensedBusinessLineKeys))
         {
             return false;
         }
@@ -911,7 +962,7 @@ public static partial class NavigationMenuResolver
             return true;
         }
 
-        return item.Children.Any(child => RowBelongsToWorkspace(child, workspaceKey, user));
+        return item.Children.Any(child => RowBelongsToWorkspace(child, workspaceKey, user, licensedBusinessLineKeys));
     }
 
     private static bool PathBelongsToWorkspace(IReadOnlyList<MenuItem> path, string workspaceKey)

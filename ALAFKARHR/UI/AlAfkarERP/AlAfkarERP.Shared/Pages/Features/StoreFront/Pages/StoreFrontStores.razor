@@ -1,0 +1,375 @@
+@layout AdminLayout
+@page "/StoreFront/Stores"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Features.StoreFront.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Permissions
+@using SharedWithUI.StoreFront.Dtos
+
+@inject IStoreFrontService StoreFrontService
+@inject IProductService ProductService
+@inject IWarehouseService WarehouseService
+@inject ToastService ToastService
+@inject LoadingService LoadingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+<section dir="@SharedDataService.PageDirection">
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")</div>
+        return;
+    }
+
+    <PageHeader Title="@Text("Store Fronts", "واجهات المتاجر")"
+                Subtitle="@Text("Define stores, shop types, warehouses, and sellable goods or services.", "إدارة المتاجر وأنواعها والمستودعات والأصناف والخدمات القابلة للبيع.")"
+                Overline="@Text("Store Front", "واجهة المتجر")"
+                Icon="bi-shop">
+        <Actions>
+            @if (CanEdit)
+            {
+                <button class="btn btn-outline-secondary" @onclick="NewType"><i class="bi bi-tags"></i> @Text("Store Type", "نوع متجر")</button>
+                <button class="btn btn-primary" @onclick="NewStore"><i class="bi bi-plus-lg"></i> @Text("Store", "متجر")</button>
+            }
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <AppLoader />
+    }
+    else if (!stores.Any())
+    {
+        <EmptyState Title="@Text("No stores yet", "لا توجد متاجر")"
+                    Message="@Text("Create a store front to start using store-aware POS.", "أنشئ واجهة متجر لاستخدام نقطة بيع مرتبطة بالمتجر.")"
+                    Icon="bi-shop" />
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>@Text("Store", "المتجر")</th>
+                        <th>@Text("Type", "النوع")</th>
+                        <th>@Text("Warehouse", "المستودع")</th>
+                        <th>@Text("Items", "الأصناف")</th>
+                        <th>@Text("Status", "الحالة")</th>
+                        <th class="text-end">@Text("Actions", "الإجراءات")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var store in stores)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@Text(store.NameEng, store.Name)</div>
+                                <div class="text-muted small">@store.Code</div>
+                            </td>
+                            <td>@Text(store.StoreFrontTypeNameEng, store.StoreFrontTypeName)</td>
+                            <td>@WarehouseName(store.DefaultWarehouseId)</td>
+                            <td>@store.ActiveItemsCount</td>
+                            <td><StatusChip Text="@(store.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))" Tone="@(store.IsActive ? "success" : "secondary")" /></td>
+                            <td class="text-end">
+                                @if (CanEdit)
+                                {
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => EditStore(store)"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => EditItemsAsync(store)"><i class="bi bi-box-seam"></i></button>
+                                    <button class="btn btn-sm btn-outline-warning" @onclick="() => ToggleStoreAsync(store)"><i class="bi bi-power"></i></button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@if (showStoreModal && selectedStore is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <EditForm Model="selectedStore" OnValidSubmit="SaveStoreAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@Text("Store Front", "واجهة متجر")</h5>
+                        <button type="button" class="btn-close" @onclick="CloseModals"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Name", "الاسم")</label>
+                                <InputText class="form-control" @bind-Value="selectedStore.NameEng" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Arabic Name", "الاسم العربي")</label>
+                                <InputText class="form-control" @bind-Value="selectedStore.Name" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Code", "الرمز")</label>
+                                <InputText class="form-control" @bind-Value="selectedStore.Code" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Type", "النوع")</label>
+                                <InputSelect class="form-select" @bind-Value="selectedStore.StoreFrontTypeId">
+                                    <option value="@Guid.Empty">@Text("Select", "اختر")</option>
+                                    @foreach (var type in types.Where(x => x.IsActive))
+                                    {
+                                        <option value="@type.Id">@Text(type.NameEng, type.Name)</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Warehouse", "المستودع")</label>
+                                <InputSelect class="form-select" @bind-Value="selectedStore.DefaultWarehouseId">
+                                    <option value="@Guid.Empty">@Text("Select", "اختر")</option>
+                                    @foreach (var warehouse in warehouses)
+                                    {
+                                        <option value="@warehouse.Id">@Text(warehouse.NameEng, warehouse.Name)</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-12 form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="selectedStore.IsActive" />
+                                <label class="form-check-label">@Text("Active", "نشط")</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CloseModals">@Text("Cancel", "إلغاء")</button>
+                        <button type="submit" class="btn btn-primary">@Text("Save", "حفظ")</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (showTypeModal && selectedType is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <EditForm Model="selectedType" OnValidSubmit="SaveTypeAsync">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@Text("Store Type", "نوع متجر")</h5>
+                        <button type="button" class="btn-close" @onclick="CloseModals"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="selectedType.NameEng" /></div>
+                            <div class="col-md-6"><label class="form-label">@Text("Arabic Name", "الاسم العربي")</label><InputText class="form-control" @bind-Value="selectedType.Name" /></div>
+                            <div class="col-md-6"><label class="form-label">@Text("Code", "الرمز")</label><InputText class="form-control" @bind-Value="selectedType.Code" /></div>
+                            <div class="col-md-6 form-check align-self-end"><InputCheckbox class="form-check-input" @bind-Value="selectedType.IsActive" /><label class="form-check-label">@Text("Active", "نشط")</label></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CloseModals">@Text("Cancel", "إلغاء")</button>
+                        <button type="submit" class="btn btn-primary">@Text("Save", "حفظ")</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (showItemsModal && selectedStore is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Text("Sellable Items", "الأصناف القابلة للبيع")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModals"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead><tr><th>@Text("Sell", "بيع")</th><th>@Text("SKU", "الصنف")</th><th>@Text("Manual Price", "سعر يدوي")</th><th>@Text("Note", "ملاحظة")</th><th>@Text("Order", "الترتيب")</th></tr></thead>
+                            <tbody>
+                                @foreach (var sku in allSkus)
+                                {
+                                    var item = ItemFor(sku);
+                                    <tr>
+                                        <td><input type="checkbox" checked="@item.IsActive" @onchange="args => ToggleSku(sku, args)" /></td>
+                                        <td><div class="fw-semibold">@Text(sku.NameEng, sku.Name)</div><div class="text-muted small">@sku.SkuCode</div></td>
+                                        <td><input type="checkbox" checked="@item.AllowManualPrice" @onchange="args => item.AllowManualPrice = IsChecked(args)" /></td>
+                                        <td><input type="checkbox" checked="@item.RequireManualPriceNote" @onchange="args => item.RequireManualPriceNote = IsChecked(args)" /></td>
+                                        <td><input class="form-control form-control-sm" type="number" @bind="item.DisplayOrder" /></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="CloseModals">@Text("Cancel", "إلغاء")</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveItemsAsync">@Text("Save Items", "حفظ الأصناف")</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private bool CanView;
+    private bool CanEdit;
+    private bool isLoading;
+    private Guid companyId;
+    private List<StoreFrontDto> stores = [];
+    private List<StoreFrontTypeDto> types = [];
+    private List<WarehouseDto> warehouses = [];
+    private List<ProductSkuDto> allSkus = [];
+    private List<StoreFrontSellableItemDto> selectedItems = [];
+    private StoreFrontDto? selectedStore;
+    private StoreFrontTypeDto? selectedType;
+    private bool showStoreModal;
+    private bool showTypeModal;
+    private bool showItemsModal;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        CanView = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontStorePermissions.View);
+        CanEdit = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontStorePermissions.Edit);
+        if (!CompanyContext.TryGetCompanyId(auth.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+        if (CanView)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var typeResult = await StoreFrontService.GetTypesAsync(companyId);
+        var storeResult = await StoreFrontService.GetStoresAsync(companyId);
+        var warehouseResult = await WarehouseService.GetAsync(companyId, 0, 500);
+        types = typeResult.IsSuccess ? typeResult.Data ?? [] : [];
+        stores = storeResult.IsSuccess ? storeResult.Data ?? [] : [];
+        warehouses = warehouseResult.IsSuccess ? warehouseResult.Data?.Data?.ToList() ?? [] : [];
+        isLoading = false;
+    }
+
+    private void NewStore()
+    {
+        selectedStore = new StoreFrontDto { CompanyId = companyId, IsActive = true };
+        showStoreModal = true;
+    }
+
+    private void EditStore(StoreFrontDto store)
+    {
+        selectedStore = new StoreFrontDto
+        {
+            Id = store.Id,
+            CompanyId = store.CompanyId,
+            BranchId = store.BranchId,
+            StoreFrontTypeId = store.StoreFrontTypeId,
+            DefaultWarehouseId = store.DefaultWarehouseId,
+            DefaultCustomerId = store.DefaultCustomerId,
+            PriceListId = store.PriceListId,
+            Name = store.Name,
+            NameEng = store.NameEng,
+            Code = store.Code,
+            ReceiptHeader = store.ReceiptHeader,
+            ReceiptFooter = store.ReceiptFooter,
+            IsActive = store.IsActive
+        };
+        showStoreModal = true;
+    }
+
+    private void NewType()
+    {
+        selectedType = new StoreFrontTypeDto { CompanyId = companyId, IsActive = true };
+        showTypeModal = true;
+    }
+
+    private async Task SaveStoreAsync()
+    {
+        if (selectedStore is null) return;
+        var result = await StoreFrontService.SaveStoreAsync(selectedStore);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Store saved.", "تم حفظ المتجر."));
+            CloseModals();
+            await LoadAsync();
+        }
+        else ToastService.ShowError(result.Error?.Detail ?? Text("Unable to save store.", "تعذر حفظ المتجر."));
+    }
+
+    private async Task SaveTypeAsync()
+    {
+        if (selectedType is null) return;
+        var result = await StoreFrontService.SaveTypeAsync(selectedType);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Store type saved.", "تم حفظ نوع المتجر."));
+            CloseModals();
+            await LoadAsync();
+        }
+        else ToastService.ShowError(result.Error?.Detail ?? Text("Unable to save store type.", "تعذر حفظ نوع المتجر."));
+    }
+
+    private async Task ToggleStoreAsync(StoreFrontDto store)
+    {
+        var result = await StoreFrontService.SetStoreStatusAsync(store.Id, !store.IsActive);
+        if (result.IsSuccess) await LoadAsync();
+        else ToastService.ShowError(result.Error?.Detail ?? Text("Unable to update status.", "تعذر تحديث الحالة."));
+    }
+
+    private async Task EditItemsAsync(StoreFrontDto store)
+    {
+        selectedStore = store;
+        var products = await ProductService.GetPricedByCompanyAsync(companyId, null, 0, 1000);
+        allSkus = products.IsSuccess ? products.Data?.Data?.SelectMany(x => x.Skus).Where(x => x.IsSellable).ToList() ?? [] : [];
+        var itemResult = await StoreFrontService.GetItemsAsync(store.Id);
+        selectedItems = itemResult.IsSuccess ? itemResult.Data ?? [] : [];
+        showItemsModal = true;
+    }
+
+    private StoreFrontSellableItemDto ItemFor(ProductSkuDto sku)
+    {
+        var item = selectedItems.FirstOrDefault(x => x.ProductSkuId == sku.Id);
+        if (item is not null) return item;
+        item = new StoreFrontSellableItemDto { StoreFrontId = selectedStore?.Id ?? Guid.Empty, ProductSkuId = sku.Id, ProductName = sku.Name, ProductNameEng = sku.NameEng, SkuCode = sku.SkuCode, IsActive = false };
+        selectedItems.Add(item);
+        return item;
+    }
+
+    private void ToggleSku(ProductSkuDto sku, ChangeEventArgs args) => ItemFor(sku).IsActive = IsChecked(args);
+    private static bool IsChecked(ChangeEventArgs args) => args.Value is bool value && value;
+    private async Task SaveItemsAsync()
+    {
+        if (selectedStore is null) return;
+        var result = await StoreFrontService.SaveItemsAsync(selectedStore.Id, selectedItems.Where(x => x.IsActive).ToList());
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Sellable items saved.", "تم حفظ الأصناف."));
+            CloseModals();
+            await LoadAsync();
+        }
+        else ToastService.ShowError(result.Error?.Detail ?? Text("Unable to save items.", "تعذر حفظ الأصناف."));
+    }
+
+    private string WarehouseName(Guid id) => Text(warehouses.FirstOrDefault(x => x.Id == id)?.NameEng, warehouses.FirstOrDefault(x => x.Id == id)?.Name) ?? id.ToString();
+    private void CloseModals() { showStoreModal = showTypeModal = showItemsModal = false; selectedStore = null; selectedType = null; }
+    private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

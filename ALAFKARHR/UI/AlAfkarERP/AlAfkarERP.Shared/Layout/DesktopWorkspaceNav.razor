@@ -183,6 +183,7 @@
     [Parameter] public string ActiveWorkspace { get; set; } = NavigationMenuResolver.WorkspaceHome;
     [Parameter] public EventCallback<string> ActiveWorkspaceChanged { get; set; }
     [Parameter] public AuthenticationState? AuthState { get; set; }
+    [Parameter] public IReadOnlySet<string>? LicensedBusinessLineKeys { get; set; }
     [Parameter] public EventCallback OnOpenCommand { get; set; }
 
     private IReadOnlyList<string> favoriteKeys = [];
@@ -190,9 +191,9 @@
     private readonly HashSet<string> expandedWorkspaceRowKeys = new(StringComparer.OrdinalIgnoreCase);
     private bool isCollapsed;
 
-    private IReadOnlyList<NavigationWorkspace> AuthorizedWorkspaces => NavigationMenuResolver.GetAuthorizedWorkspaces(AuthState?.User);
-    private IEnumerable<MenuItem> AuthorizedItems => NavigationMenuResolver.GetAuthorizedNavigableItems(AuthState?.User);
-    private IEnumerable<NavigationMenuRow> WorkspaceRows => NavigationMenuResolver.GetAuthorizedWorkspacePanelRows(AuthState?.User, ActiveWorkspace);
+    private IReadOnlyList<NavigationWorkspace> AuthorizedWorkspaces => NavigationMenuResolver.GetAuthorizedWorkspaces(AuthState?.User, LicensedBusinessLineKeys);
+    private IEnumerable<MenuItem> AuthorizedItems => NavigationMenuResolver.GetAuthorizedNavigableItems(AuthState?.User, LicensedBusinessLineKeys);
+    private IEnumerable<NavigationMenuRow> WorkspaceRows => NavigationMenuResolver.GetAuthorizedWorkspacePanelRows(AuthState?.User, ActiveWorkspace, LicensedBusinessLineKeys);
     private IEnumerable<NavigationMenuRow> VisibleWorkspaceRows => WorkspaceRows.Where(row => IsVisibleWorkspaceRow(row) && !IsPanelExcludedItem(row.Item));
     private IEnumerable<MenuItem> FavoriteItems => ResolveKeys(favoriteKeys).Where(MatchesActiveWorkspace).Where(item => !IsPanelExcludedItem(item)).Take(5);
     private IEnumerable<MenuItem> RecentItems => ResolveKeys(recentKeys).Where(MatchesActiveWorkspace).Where(item => !IsPanelExcludedItem(item)).Take(NavigationShellState.MaxRecentItems);
@@ -234,7 +235,7 @@
     private async Task SelectWorkspaceAsync(NavigationWorkspace workspace)
     {
         await ActiveWorkspaceChanged.InvokeAsync(workspace.Key);
-        var url = NavigationMenuResolver.GetWorkspaceDefaultUrl(workspace.Key, AuthState?.User);
+        var url = NavigationMenuResolver.GetWorkspaceDefaultUrl(workspace.Key, AuthState?.User, LicensedBusinessLineKeys);
         if (!string.IsNullOrWhiteSpace(url))
         {
             NavigationManager.NavigateTo(url);

@@ -400,6 +400,8 @@ This pack is generated from the repository source of truth:
 - Frontend_Menu_Routes.csv: Extracted sidebar/workspace menu route inventory.
 - Frontend_Page_Routes.csv: Extracted Blazor @page route inventory.
 - Permission_Inventory.csv: Extracted permission action inventory.
+- Business_Line_UI_Coverage_Matrix.csv: Business Line-specific feature-to-UI coverage matrix for Catering, Real Estate, and licensing/catalog surfaces.
+- Business_Line_UI_Coverage_Rules.md: Maintenance rules to prevent future Business Line endpoints from becoming backend-only by accident.
 
 ## Current Counts
 
@@ -419,7 +421,8 @@ This pack is generated from the repository source of truth:
 3. Execute Role_Permission_UAT.csv early to confirm the test users are configured correctly.
 4. Execute UAT_Master_Matrix.csv by module. Fill Result, Evidence, and Notes.
 5. Review UI_Coverage_Gaps.csv; anything marked Not represented in UI is a UAT blocker until a visible UI route/action is confirmed or implemented.
-6. For every row, run the positive case, invalid input/status case where relevant, permission-denied case, and English/Arabic RTL smoke check.
+6. Review Business_Line_UI_Coverage_Matrix.csv whenever a Business Line endpoint, service method, page, or menu item changes.
+7. For every row, run the positive case, invalid input/status case where relevant, permission-denied case, and English/Arabic RTL smoke check.
 
 ## Regeneration
 

@@ -6,6 +6,7 @@ public class AccountDto
 {
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string NameEng { get; set; } = string.Empty;
@@ -62,6 +63,7 @@ public class BankAccountDto
 {
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
     public string DisplayName { get; set; } = string.Empty;
     public string BankName { get; set; } = string.Empty;
     public string? AccountNumber { get; set; }
@@ -80,6 +82,7 @@ public class CashAccountDto
 {
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
     public string DisplayName { get; set; } = string.Empty;
     public string CurrencyCode { get; set; } = "SAR";
     public Guid? LedgerAccountId { get; set; }
@@ -111,10 +114,48 @@ public class CompanyAccountingSettingsDto
     public int FiscalYearStartDay { get; set; } = 1;
 }
 
+public class AccountCodingSettingsDto
+{
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public string AssetRootCode { get; set; } = "1000";
+    public string LiabilityRootCode { get; set; } = "1001";
+    public string EquityRootCode { get; set; } = "1002";
+    public string RevenueRootCode { get; set; } = "1003";
+    public string ExpenseRootCode { get; set; } = "1004";
+    public int ChildGroupSuffixLength { get; set; } = 2;
+    public int ChildLedgerSuffixLength { get; set; } = 3;
+}
+
+public class AccountRenumberPreviewDto
+{
+    public Guid CompanyId { get; set; }
+    public bool CanApply { get; set; }
+    public bool HasPostingActivity { get; set; }
+    public List<string> Errors { get; set; } = [];
+    public List<AccountRenumberPreviewLineDto> Lines { get; set; } = [];
+}
+
+public class AccountRenumberPreviewLineDto
+{
+    public Guid AccountId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string NameEng { get; set; } = string.Empty;
+    public AccountType Type { get; set; }
+    public string OldCode { get; set; } = string.Empty;
+    public string NewCode { get; set; } = string.Empty;
+}
+
+public class ApplyAccountRenumberDto
+{
+    public AccountCodingSettingsDto Settings { get; set; } = new();
+}
+
 public class AccountingJournalDto
 {
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string NameAr { get; set; } = string.Empty;
@@ -130,6 +171,7 @@ public class JournalEntryDto
 {
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
     public string Number { get; set; } = string.Empty;
     public DateTime EntryDate { get; set; } = DateTime.UtcNow;
     public JournalEntryStatus Status { get; set; } = JournalEntryStatus.Draft;
@@ -145,6 +187,7 @@ public class JournalEntryDto
 public class CreateJournalEntryDto
 {
     public Guid CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
     public DateTime EntryDate { get; set; } = DateTime.UtcNow;
     public string? SourceModule { get; set; }
     public Guid? SourceDocumentId { get; set; }
@@ -392,6 +435,7 @@ public class AccountingSetupStatusDto
 public class QuickJournalEntryDto
 {
     public Guid CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
     public DateTime EntryDate { get; set; } = DateTime.UtcNow;
     public Guid DebitAccountId { get; set; }
     public Guid CreditAccountId { get; set; }
@@ -404,6 +448,7 @@ public class BankTransactionDto
 {
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
     public Guid? BankAccountId { get; set; }
     public Guid? CashAccountId { get; set; }
     public DateTime TransactionDate { get; set; } = DateTime.UtcNow;
@@ -462,6 +507,7 @@ public class AccountingReportDto
 {
     public AccountingReportType Type { get; set; }
     public Guid CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
     public decimal TotalDebit { get; set; }

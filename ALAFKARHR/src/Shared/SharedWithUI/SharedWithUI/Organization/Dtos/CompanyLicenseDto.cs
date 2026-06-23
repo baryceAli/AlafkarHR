@@ -20,4 +20,5 @@ public class CompanyLicenseDto
     public Guid? CurrencyId { get; set; }
     public string? CurrencyCode { get; set; }
     public string? Notes { get; set; }
+    public List<LicensedBusinessLineDto> BusinessLines { get; set; } = [];
 }

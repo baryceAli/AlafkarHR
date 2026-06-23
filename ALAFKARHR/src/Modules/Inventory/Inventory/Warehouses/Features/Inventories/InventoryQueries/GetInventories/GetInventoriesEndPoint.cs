@@ -5,9 +5,9 @@ public class GetInventoriesEndPoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/v1/inventory/inventories", async ([AsParameters] PaginationRequest request, [FromServices] ISender sender) =>
+        app.MapGet("/api/v1/inventory/inventories", async (Guid companyId, Guid? branchId, [AsParameters] PaginationRequest request, [FromServices] ISender sender) =>
         {
-            var query = new GetInventoriesQuery(request);
+            var query = new GetInventoriesQuery(companyId, request, branchId);
             var result = await sender.Send(query);
             return Results.Ok(result.Adapt<GetInventoriesResponse>());
         })

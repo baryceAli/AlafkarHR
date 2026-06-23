@@ -14,6 +14,7 @@
 
 @inject IParentCompanyService ParentCompanyService
 @inject ILicenseCategoryService LicenseCategoryService
+@inject IBusinessLineService BusinessLineService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 @inject ToastService ToastService
@@ -333,6 +334,9 @@
                                 @LicenseCategoryPreview(selectedCompany.License)
                             </div>
                             <div class="col-12">
+                                @BusinessLineSelector(selectedCompany.License)
+                            </div>
+                            <div class="col-12">
                                 <label class="form-label">@Text("Notes", "ملاحظات")</label>
                                 <InputTextArea class="form-control" @bind-Value="selectedCompany.License.Notes" />
                             </div>
@@ -422,6 +426,9 @@
                             </div>
                             <div class="col-12">
                                 @LicenseCategoryPreview(selectedCompany.License)
+                            </div>
+                            <div class="col-12">
+                                @BusinessLineSelector(selectedCompany.License)
                             </div>
                             <div class="col-12">
                                 <label class="form-label">@Text("Notes", "ملاحظات")</label>
@@ -557,6 +564,22 @@
         font-size: 0.9rem;
     }
 
+    .business-line-selector {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .business-line-option {
+        align-items: center;
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        cursor: pointer;
+        display: inline-flex;
+        gap: 0.4rem;
+        padding: 0.35rem 0.55rem;
+    }
+
     .parent-company-map {
         background: var(--erp-bg-subtle);
         border: 1px solid var(--erp-border-strong);
@@ -615,6 +638,7 @@
 @code {
     private List<ParentCompanyDto> companies = [];
     private List<LicenseCategoryDto> licenseCategories = [];
+    private List<BusinessLineDto> businessLines = [];
     private ParentCompanyDto? selectedCompany;
     private PasswordResetModel passwordReset = new();
     private AuthenticationState? AuthState;
@@ -644,6 +668,7 @@
     private bool CanDelete => IsPlatformScoped && HasPermission(PermissionList.ParentCompanyPermissions.Delete);
     private bool HasNextPage => (pageIndex + 1) * PageSize < totalCount;
     private IEnumerable<LicenseCategoryDto> ActiveLicenseCategories => licenseCategories.Where(category => category.IsActive);
+    private IEnumerable<BusinessLineDto> ActiveBusinessLines => businessLines.Where(item => item.IsActive).OrderBy(item => item.DisplayOrder).ThenBy(item => item.Name);
     private int ActiveCompaniesCount => companies.Count(company => company.IsActive);
     private int SuspendedCompaniesCount => companies.Count(company => !company.IsActive);
     private string ModalTitle => isCreateMode ? Text("Create Parent Company", "إنشاء شركة رئيسية") : Text("Edit Parent Company", "تعديل الشركة الرئيسية");
@@ -722,6 +747,17 @@
         else
         {
             Toast("warning", result.Error?.Detail ?? Text("Unable to load license categories.", "تعذر تحميل فئات الترخيص."));
+        }
+
+        var businessLineResult = await BusinessLineService.GetAsync(includeInactive: true);
+        if (businessLineResult.IsSuccess && businessLineResult.Data is not null)
+        {
+            businessLines = businessLineResult.Data;
+        }
+        else
+        {
+            businessLines = [];
+            Toast("warning", businessLineResult.Error?.Detail ?? Text("Unable to load business lines.", "تعذر تحميل خطوط الأعمال."));
         }
     }
 
@@ -1050,6 +1086,7 @@
         license.YearlyPrice = category.YearlyPrice;
         license.CurrencyId = category.CurrencyId;
         license.CurrencyCode = category.CurrencyCode;
+        license.BusinessLines = category.BusinessLines.Select(CloneBusinessLine).ToList();
     }
 
     private RenderFragment LicenseCategoryPreview(CompanyLicenseDto license) => builder =>
@@ -1079,6 +1116,75 @@
         builder.CloseElement();
         builder.CloseElement();
     }
+
+    private RenderFragment BusinessLineSelector(CompanyLicenseDto license) => builder =>
+    {
+        var sequence = 0;
+        builder.OpenElement(sequence++, "div");
+        builder.OpenElement(sequence++, "label");
+        builder.AddAttribute(sequence++, "class", "form-label");
+        builder.AddContent(sequence++, Text("Licensed Business Lines", "خطوط الأعمال المرخصة"));
+        builder.CloseElement();
+        builder.OpenElement(sequence++, "div");
+        builder.AddAttribute(sequence++, "class", "business-line-selector");
+        foreach (var businessLine in ActiveBusinessLines)
+        {
+            builder.OpenElement(sequence++, "label");
+            builder.AddAttribute(sequence++, "class", "business-line-option");
+            builder.OpenElement(sequence++, "input");
+            builder.AddAttribute(sequence++, "type", "checkbox");
+            builder.AddAttribute(sequence++, "checked", IsBusinessLineSelected(license.BusinessLines, businessLine.Id));
+            builder.AddAttribute(sequence++, "onchange", EventCallback.Factory.Create<ChangeEventArgs>(this, args => ToggleBusinessLine(license.BusinessLines, businessLine, args)));
+            builder.CloseElement();
+            builder.OpenElement(sequence++, "span");
+            builder.OpenElement(sequence++, "i");
+            builder.AddAttribute(sequence++, "class", $"bi {businessLine.Icon}");
+            builder.CloseElement();
+            builder.AddContent(sequence++, $" {BusinessLineName(businessLine)}");
+            builder.CloseElement();
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private string BusinessLineName(BusinessLineDto line)
+        => SharedDataService.Language == "Ar" ? line.NameAr : line.Name;
+
+    private static bool IsBusinessLineSelected(List<LicensedBusinessLineDto> selectedLines, Guid businessLineId)
+        => selectedLines.Any(line => line.BusinessLineId == businessLineId);
+
+    private static void ToggleBusinessLine(List<LicensedBusinessLineDto> selectedLines, BusinessLineDto businessLine, ChangeEventArgs args)
+    {
+        var isChecked = args.Value is bool value && value;
+        if (isChecked)
+        {
+            if (!selectedLines.Any(line => line.BusinessLineId == businessLine.Id))
+                selectedLines.Add(ToLicensedBusinessLine(businessLine));
+        }
+        else
+        {
+            selectedLines.RemoveAll(line => line.BusinessLineId == businessLine.Id);
+        }
+    }
+
+    private static LicensedBusinessLineDto ToLicensedBusinessLine(BusinessLineDto businessLine) => new()
+    {
+        BusinessLineId = businessLine.Id,
+        Key = businessLine.Key,
+        Name = businessLine.Name,
+        NameAr = businessLine.NameAr,
+        Icon = businessLine.Icon
+    };
+
+    private static LicensedBusinessLineDto CloneBusinessLine(LicensedBusinessLineDto line) => new()
+    {
+        BusinessLineId = line.BusinessLineId,
+        Key = line.Key,
+        Name = line.Name,
+        NameAr = line.NameAr,
+        Icon = line.Icon
+    };
 
     private double MapLatitude =>
         selectedCompany is not null && Math.Abs(selectedCompany.HqLatitude) > 0
@@ -1187,7 +1293,8 @@
             YearlyPrice = source.License.YearlyPrice,
             CurrencyId = source.License.CurrencyId,
             CurrencyCode = source.License.CurrencyCode,
-            Notes = source.License.Notes
+            Notes = source.License.Notes,
+            BusinessLines = source.License.BusinessLines.Select(CloneBusinessLine).ToList()
         }
     };
 

@@ -5,6 +5,7 @@ public class Account : Aggregate<Guid>
     private Account() { }
 
     public Guid CompanyId { get; private set; }
+    public Guid? BranchId { get; private set; }
     public string Code { get; private set; } = string.Empty;
     public string Name { get; private set; } = string.Empty;
     public string NameEng { get; private set; } = string.Empty;
@@ -22,6 +23,7 @@ public class Account : Aggregate<Guid>
         {
             Id = dto.Id == Guid.Empty ? Guid.NewGuid() : dto.Id,
             CompanyId = dto.CompanyId,
+            BranchId = dto.BranchId,
             Code = dto.Code.Trim(),
             Name = dto.Name.Trim(),
             NameEng = dto.NameEng.Trim(),
@@ -43,6 +45,7 @@ public class Account : Aggregate<Guid>
             throw new BadRequestException("Inactive account cannot be edited.");
 
         Code = dto.Code.Trim();
+        BranchId = dto.BranchId;
         Name = dto.Name.Trim();
         NameEng = dto.NameEng.Trim();
         Type = dto.Type;
@@ -52,6 +55,21 @@ public class Account : Aggregate<Guid>
         ParentAccountId = dto.ParentAccountId;
         IsPostingAccount = dto.IsPostingAccount;
         IsActive = dto.IsActive;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+
+    public void ChangeCode(string code, string userId)
+    {
+        Code = code.Trim();
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+
+    public void Rename(string name, string nameEng, string userId)
+    {
+        Name = name.Trim();
+        NameEng = nameEng.Trim();
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = userId;
     }
@@ -67,6 +85,7 @@ public class Account : Aggregate<Guid>
     {
         Id = Id,
         CompanyId = CompanyId,
+        BranchId = BranchId,
         Code = Code,
         Name = Name,
         NameEng = NameEng,
@@ -86,6 +105,7 @@ public class AccountingJournal : Aggregate<Guid>
     private AccountingJournal() { }
 
     public Guid CompanyId { get; private set; }
+    public Guid? BranchId { get; private set; }
     public string Code { get; private set; } = string.Empty;
     public string Name { get; private set; } = string.Empty;
     public string NameAr { get; private set; } = string.Empty;
@@ -101,6 +121,7 @@ public class AccountingJournal : Aggregate<Guid>
         {
             Id = dto.Id == Guid.Empty ? Guid.NewGuid() : dto.Id,
             CompanyId = dto.CompanyId,
+            BranchId = dto.BranchId,
             Code = dto.Code.Trim(),
             Name = dto.Name.Trim(),
             NameAr = dto.NameAr.Trim(),
@@ -118,6 +139,7 @@ public class AccountingJournal : Aggregate<Guid>
     {
         Id = Id,
         CompanyId = CompanyId,
+        BranchId = BranchId,
         Code = Code,
         Name = Name,
         NameAr = NameAr,
@@ -128,6 +150,81 @@ public class AccountingJournal : Aggregate<Guid>
         IsSystemJournal = IsSystemJournal,
         IsActive = IsActive
     };
+
+    public void Rename(string name, string nameAr, string userId)
+    {
+        Name = name.Trim();
+        NameAr = nameAr.Trim();
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+}
+
+public class AccountCodingSettings : Aggregate<Guid>
+{
+    private AccountCodingSettings() { }
+
+    public Guid CompanyId { get; private set; }
+    public string AssetRootCode { get; private set; } = "1000";
+    public string LiabilityRootCode { get; private set; } = "1001";
+    public string EquityRootCode { get; private set; } = "1002";
+    public string RevenueRootCode { get; private set; } = "1003";
+    public string ExpenseRootCode { get; private set; } = "1004";
+    public int ChildGroupSuffixLength { get; private set; } = 2;
+    public int ChildLedgerSuffixLength { get; private set; } = 3;
+
+    public static AccountCodingSettings Upsert(AccountCodingSettingsDto dto, string userId) =>
+        new AccountCodingSettings
+        {
+            Id = dto.Id == Guid.Empty ? Guid.NewGuid() : dto.Id,
+            CompanyId = dto.CompanyId,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = userId
+        }.Apply(dto, userId, false);
+
+    public void Update(AccountCodingSettingsDto dto, string userId) => Apply(dto, userId, true);
+
+    private AccountCodingSettings Apply(AccountCodingSettingsDto dto, string userId, bool modified)
+    {
+        CompanyId = dto.CompanyId;
+        AssetRootCode = CleanCode(dto.AssetRootCode, "1000");
+        LiabilityRootCode = CleanCode(dto.LiabilityRootCode, "1001");
+        EquityRootCode = CleanCode(dto.EquityRootCode, "1002");
+        RevenueRootCode = CleanCode(dto.RevenueRootCode, "1003");
+        ExpenseRootCode = CleanCode(dto.ExpenseRootCode, "1004");
+        ChildGroupSuffixLength = NormalizeSuffixLength(dto.ChildGroupSuffixLength, 2);
+        ChildLedgerSuffixLength = NormalizeSuffixLength(dto.ChildLedgerSuffixLength, 3);
+        if (modified)
+        {
+            ModifiedAt = DateTime.UtcNow;
+            ModifiedBy = userId;
+        }
+
+        return this;
+    }
+
+    public AccountCodingSettingsDto ToDto() => new()
+    {
+        Id = Id,
+        CompanyId = CompanyId,
+        AssetRootCode = AssetRootCode,
+        LiabilityRootCode = LiabilityRootCode,
+        EquityRootCode = EquityRootCode,
+        RevenueRootCode = RevenueRootCode,
+        ExpenseRootCode = ExpenseRootCode,
+        ChildGroupSuffixLength = ChildGroupSuffixLength,
+        ChildLedgerSuffixLength = ChildLedgerSuffixLength
+    };
+
+    public static AccountCodingSettingsDto Default(Guid companyId) => new() { CompanyId = companyId };
+
+    private static string CleanCode(string? code, string fallback)
+    {
+        var clean = string.IsNullOrWhiteSpace(code) ? fallback : code.Trim();
+        return clean.All(char.IsDigit) ? clean : fallback;
+    }
+
+    private static int NormalizeSuffixLength(int value, int fallback) => value is >= 1 and <= 8 ? value : fallback;
 }
 
 public class FiscalPeriod : Aggregate<Guid>
@@ -302,6 +399,7 @@ public class BankAccount : Aggregate<Guid>
     private BankAccount() { }
 
     public Guid CompanyId { get; private set; }
+    public Guid? BranchId { get; private set; }
     public string DisplayName { get; private set; } = string.Empty;
     public string BankName { get; private set; } = string.Empty;
     public string? AccountNumber { get; private set; }
@@ -319,6 +417,7 @@ public class BankAccount : Aggregate<Guid>
         {
             Id = dto.Id == Guid.Empty ? Guid.NewGuid() : dto.Id,
             CompanyId = dto.CompanyId,
+            BranchId = dto.BranchId,
             DisplayName = dto.DisplayName.Trim(),
             BankName = dto.BankName.Trim(),
             AccountNumber = Clean(dto.AccountNumber),
@@ -337,6 +436,7 @@ public class BankAccount : Aggregate<Guid>
     public void Update(BankAccountDto dto, Guid ledgerAccountId, Guid journalId, string userId)
     {
         DisplayName = dto.DisplayName.Trim();
+        BranchId = dto.BranchId;
         BankName = dto.BankName.Trim();
         AccountNumber = Clean(dto.AccountNumber);
         Iban = Clean(dto.Iban);
@@ -362,6 +462,7 @@ public class BankAccount : Aggregate<Guid>
     {
         Id = Id,
         CompanyId = CompanyId,
+        BranchId = BranchId,
         DisplayName = DisplayName,
         BankName = BankName,
         AccountNumber = AccountNumber,
@@ -383,6 +484,7 @@ public class CashAccount : Aggregate<Guid>
     private CashAccount() { }
 
     public Guid CompanyId { get; private set; }
+    public Guid? BranchId { get; private set; }
     public string DisplayName { get; private set; } = string.Empty;
     public string CurrencyCode { get; private set; } = "SAR";
     public Guid LedgerAccountId { get; private set; }
@@ -395,6 +497,7 @@ public class CashAccount : Aggregate<Guid>
         {
             Id = dto.Id == Guid.Empty ? Guid.NewGuid() : dto.Id,
             CompanyId = dto.CompanyId,
+            BranchId = dto.BranchId,
             DisplayName = dto.DisplayName.Trim(),
             CurrencyCode = string.IsNullOrWhiteSpace(dto.CurrencyCode) ? "SAR" : dto.CurrencyCode.Trim().ToUpperInvariant(),
             LedgerAccountId = ledgerAccountId,
@@ -408,6 +511,7 @@ public class CashAccount : Aggregate<Guid>
     public void Update(CashAccountDto dto, Guid ledgerAccountId, Guid journalId, string userId)
     {
         DisplayName = dto.DisplayName.Trim();
+        BranchId = dto.BranchId;
         CurrencyCode = string.IsNullOrWhiteSpace(dto.CurrencyCode) ? "SAR" : dto.CurrencyCode.Trim().ToUpperInvariant();
         LedgerAccountId = ledgerAccountId;
         JournalId = journalId;
@@ -428,6 +532,7 @@ public class CashAccount : Aggregate<Guid>
     {
         Id = Id,
         CompanyId = CompanyId,
+        BranchId = BranchId,
         DisplayName = DisplayName,
         CurrencyCode = CurrencyCode,
         LedgerAccountId = LedgerAccountId,
@@ -805,6 +910,7 @@ public class JournalEntry : Aggregate<Guid>
     private JournalEntry() { }
 
     public Guid CompanyId { get; private set; }
+    public Guid? BranchId { get; private set; }
     public string Number { get; private set; } = string.Empty;
     public DateTime EntryDate { get; private set; }
     public JournalEntryStatus Status { get; private set; }
@@ -816,12 +922,13 @@ public class JournalEntry : Aggregate<Guid>
     public decimal TotalDebit => Lines.Sum(x => x.Debit);
     public decimal TotalCredit => Lines.Sum(x => x.Credit);
 
-    public static JournalEntry Create(Guid companyId, string number, DateTime entryDate, string? sourceModule, Guid? sourceDocumentId, string? sourceDocumentNumber, string? memo, IEnumerable<JournalEntryLineDto> lines, string userId)
+    public static JournalEntry Create(Guid companyId, Guid? branchId, string number, DateTime entryDate, string? sourceModule, Guid? sourceDocumentId, string? sourceDocumentNumber, string? memo, IEnumerable<JournalEntryLineDto> lines, string userId)
     {
         var entry = new JournalEntry
         {
             Id = Guid.NewGuid(),
             CompanyId = companyId,
+            BranchId = branchId,
             Number = number,
             EntryDate = entryDate.Date,
             Status = JournalEntryStatus.Draft,
@@ -875,6 +982,7 @@ public class JournalEntry : Aggregate<Guid>
     {
         Id = Id,
         CompanyId = CompanyId,
+        BranchId = BranchId,
         Number = Number,
         EntryDate = EntryDate,
         Status = Status,
@@ -1099,6 +1207,7 @@ public class BankTransaction : Aggregate<Guid>
     private BankTransaction() { }
 
     public Guid CompanyId { get; private set; }
+    public Guid? BranchId { get; private set; }
     public Guid? BankAccountId { get; private set; }
     public Guid? CashAccountId { get; private set; }
     public DateTime TransactionDate { get; private set; }
@@ -1115,6 +1224,7 @@ public class BankTransaction : Aggregate<Guid>
     {
         Id = dto.Id == Guid.Empty ? Guid.NewGuid() : dto.Id,
         CompanyId = dto.CompanyId,
+        BranchId = dto.BranchId,
         BankAccountId = dto.BankAccountId,
         CashAccountId = dto.CashAccountId,
         TransactionDate = dto.TransactionDate == default ? DateTime.UtcNow.Date : dto.TransactionDate.Date,
@@ -1147,6 +1257,7 @@ public class BankTransaction : Aggregate<Guid>
     {
         Id = Id,
         CompanyId = CompanyId,
+        BranchId = BranchId,
         BankAccountId = BankAccountId,
         CashAccountId = CashAccountId,
         TransactionDate = TransactionDate,

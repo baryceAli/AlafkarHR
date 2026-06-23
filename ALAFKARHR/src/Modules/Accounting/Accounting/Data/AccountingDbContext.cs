@@ -11,6 +11,7 @@ public class AccountingDbContext(DbContextOptions<AccountingDbContext> options) 
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
     public DbSet<CashAccount> CashAccounts => Set<CashAccount>();
     public DbSet<CompanyAccountingSettings> CompanyAccountingSettings => Set<CompanyAccountingSettings>();
+    public DbSet<AccountCodingSettings> AccountCodingSettings => Set<AccountCodingSettings>();
     public DbSet<AccountingTemplate> AccountingTemplates => Set<AccountingTemplate>();
     public DbSet<AccountingJournal> AccountingJournals => Set<AccountingJournal>();
     public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();

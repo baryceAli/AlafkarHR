@@ -18,6 +18,7 @@ public class AddProductSkuCommandValidator : AbstractValidator<AddProductSkuComm
         RuleFor(x => x.ProductSku.Barcode).NotEmpty().WithMessage("Bar code is required");
         RuleFor(x => x.ProductSku.Name).NotEmpty().WithMessage("Name is required");
         RuleFor(x => x.ProductSku.NameEng).NotEmpty().WithMessage("NameEng is required");
+        RuleFor(x => x.ProductSku.Calories).NotNull().GreaterThan(0).WithMessage("Calories must be greater than 0");
     }
 }
 public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccessor httpContextAccessor)
@@ -142,6 +143,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
             command.ProductSku.Barcode,
             img,
             command.ProductSku.Price,
+            command.ProductSku.Calories,
             productionType,
             command.ProductSku.ShowOnStore,
             command.ProductSku.IsSellable,

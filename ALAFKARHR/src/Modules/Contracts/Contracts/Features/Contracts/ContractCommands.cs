@@ -1,6 +1,6 @@
 namespace Contracts.Contracts.Features.Contracts;
 
-public record GetContractsQuery(Guid? CompanyId, string? PartyType, Guid? PartyId, ContractStatus? Status, string? Type, ContractRenewalPaymentStatus? PaymentStatus, DateTime? FromDate, DateTime? ToDate, int PageIndex, int PageSize, string? SearchText)
+public record GetContractsQuery(Guid? CompanyId, Guid? BranchId, string? PartyType, Guid? PartyId, ContractStatus? Status, string? Type, ContractRenewalPaymentStatus? PaymentStatus, DateTime? FromDate, DateTime? ToDate, int PageIndex, int PageSize, string? SearchText)
     : IQuery<GetContractsResult>;
 
 public record GetContractsResult(PaginatedResult<ContractDto> Contracts);

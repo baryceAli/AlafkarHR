@@ -1,3 +1,5 @@
+using Catalog.Contracts.Products.Features.GetProductSkuSelectionContext;
+
 namespace Catering.Features;
 
 public record EntityResult(Guid Id);
@@ -78,7 +80,8 @@ public class CateringEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/v1/catering");
+        var group = app.MapGroup("/api/v1/catering")
+            .RequireBusinessLine(BusinessLineKeys.Catering);
 
         group.MapGet("/dashboard", async ([AsParameters] CompanyQuery query, ISender sender) => Results.Ok((await sender.Send(new GetCateringDashboardQuery(query.CompanyId))).Adapt<GetCateringDashboardResponse>()))
             .RequireAuthorization(PermissionList.CateringReportsPermissions.View);
@@ -164,7 +167,7 @@ public class CateringEndpoint : ICarterModule
     }
 }
 
-public class CateringHandlers(CateringDbContext dbContext, IHttpContextAccessor httpContextAccessor) :
+public class CateringHandlers(CateringDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender) :
     IQueryHandler<GetMealsQuery, GetMealsResult>, IQueryHandler<GetMealByIdQuery, GetMealByIdResult>, ICommandHandler<CreateMealCommand, EntityResult>, ICommandHandler<UpdateMealCommand, UpdateResult>, ICommandHandler<DeleteMealCommand, UpdateResult>, ICommandHandler<AddMealComponentCommand, EntityResult>, ICommandHandler<DeleteMealComponentCommand, UpdateResult>,
     IQueryHandler<GetContractsQuery, GetContractsResult>, IQueryHandler<GetContractByIdQuery, GetContractByIdResult>, ICommandHandler<CreateContractCommand, EntityResult>, ICommandHandler<UpdateContractCommand, UpdateResult>, ICommandHandler<DeleteContractCommand, UpdateResult>, ICommandHandler<CloseContractCommand, UpdateResult>, ICommandHandler<AddContractAddendumCommand, EntityResult>,
     IQueryHandler<GetAreasQuery, GetAreasResult>, ICommandHandler<CreateAreaCommand, EntityResult>, ICommandHandler<UpdateAreaCommand, UpdateResult>, IQueryHandler<GetSquaresQuery, GetSquaresResult>, ICommandHandler<CreateSquareCommand, EntityResult>, ICommandHandler<UpdateSquareCommand, UpdateResult>,
@@ -228,10 +231,32 @@ public class CateringHandlers(CateringDbContext dbContext, IHttpContextAccessor 
 
     public async Task<EntityResult> Handle(AddMealComponentCommand request, CancellationToken cancellationToken)
     {
-        await EnsureMealAsync(request.MealId, cancellationToken);
-        var component = MealComponent.Create(request.MealId, request.Component, UserId());
+        var meal = await GetMealAsync(request.MealId, cancellationToken);
+        var sku = await sender.Send(new GetProductSkuSelectionContextQuery(request.Component.ProductSkuId, meal.CompanyId), cancellationToken);
+        if (string.IsNullOrWhiteSpace(sku.UnitName))
+            throw new BadRequestException("Selected SKU must have a configured unit.");
+        if (!sku.Calories.HasValue)
+            throw new BadRequestException("Selected SKU must have a configured numeric calorie value.");
+
+        var componentDto = new MealComponentDto
+        {
+            ProductId = sku.ProductId,
+            ProductSkuId = sku.ProductSkuId,
+            ProductPackageId = sku.ProductPackageId,
+            ComponentName = $"{sku.SkuCode} - {sku.Name}",
+            ComponentNameEng = string.IsNullOrWhiteSpace(sku.NameEng)
+                ? $"{sku.SkuCode} - {sku.Name}"
+                : $"{sku.SkuCodeEng} - {sku.NameEng}",
+            QuantityPerMeal = request.Component.QuantityPerMeal,
+            UnitName = sku.UnitName,
+            CaloriesPerUnit = sku.Calories,
+            Notes = request.Component.Notes
+        };
+
+        var component = MealComponent.Create(request.MealId, componentDto, UserId());
         await dbContext.MealComponents.AddAsync(component, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
+        await RecalculateMealCaloriesAsync(request.MealId, cancellationToken);
         return new EntityResult(component.Id);
     }
 
@@ -243,6 +268,7 @@ public class CateringHandlers(CateringDbContext dbContext, IHttpContextAccessor 
         component.DeletedAt = DateTime.UtcNow;
         component.DeletedBy = UserId();
         await dbContext.SaveChangesAsync(cancellationToken);
+        await RecalculateMealCaloriesAsync(request.MealId, cancellationToken);
         return new UpdateResult(true);
     }
 
@@ -274,6 +300,7 @@ public class CateringHandlers(CateringDbContext dbContext, IHttpContextAccessor 
     public async Task<EntityResult> Handle(CreateContractCommand request, CancellationToken cancellationToken)
     {
         await EnsureMealAsync(request.Contract.MealDefinitionId, cancellationToken);
+        await ValidateContractMealCaloriesAsync(request.Contract, cancellationToken);
         var contract = CateringContract.Create(await NextContractNumberAsync(cancellationToken), request.Contract, UserId());
         await dbContext.CateringContracts.AddAsync(contract, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -285,6 +312,7 @@ public class CateringHandlers(CateringDbContext dbContext, IHttpContextAccessor 
         var contract = await dbContext.CateringContracts.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException($"Catering contract not found: {request.Id}");
         await EnsureMealAsync(request.Contract.MealDefinitionId, cancellationToken);
+        await ValidateContractMealCaloriesAsync(request.Contract, cancellationToken);
         contract.Update(request.Contract, UserId());
         await dbContext.SaveChangesAsync(cancellationToken);
         return new UpdateResult(true);
@@ -582,6 +610,41 @@ public class CateringHandlers(CateringDbContext dbContext, IHttpContextAccessor 
         if (!await dbContext.MealDefinitions.AnyAsync(x => x.Id == id, cancellationToken)) throw new NotFoundException($"Meal not found: {id}");
     }
 
+    private async Task<MealDefinition> GetMealAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await dbContext.MealDefinitions.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new NotFoundException($"Meal not found: {id}");
+    }
+
+    private async Task RecalculateMealCaloriesAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var meal = await dbContext.MealDefinitions.Include(x => x.Components).FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
+            ?? throw new NotFoundException($"Meal not found: {id}");
+
+        meal.RecalculateCalories(meal.Components, UserId());
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task ValidateContractMealCaloriesAsync(CateringContractDto contract, CancellationToken cancellationToken)
+    {
+        if (!contract.IsMealCaloriesRequired)
+            return;
+
+        var mealCalories = await dbContext.MealDefinitions.AsNoTracking()
+            .Where(x => x.Id == contract.MealDefinitionId)
+            .Select(x => x.Calories)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (!mealCalories.HasValue)
+            throw new BadRequestException("Selected meal must have calculated calories before it can be used for a calorie-required contract.");
+
+        if (contract.MinMealCalories.HasValue && mealCalories.Value < contract.MinMealCalories.Value)
+            throw new BadRequestException("Selected meal calories are below the contract minimum.");
+
+        if (contract.MaxMealCalories.HasValue && mealCalories.Value > contract.MaxMealCalories.Value)
+            throw new BadRequestException("Selected meal calories are above the contract maximum.");
+    }
+
     private async Task EnsureContractAsync(Guid id, CancellationToken cancellationToken)
     {
         if (!await dbContext.CateringContracts.AnyAsync(x => x.Id == id, cancellationToken)) throw new NotFoundException($"Catering contract not found: {id}");
@@ -644,6 +707,8 @@ public class CateringHandlers(CateringDbContext dbContext, IHttpContextAccessor 
         ComponentNameEng = item.ComponentNameEng,
         QuantityPerMeal = item.QuantityPerMeal,
         UnitName = item.UnitName,
+        CaloriesPerUnit = item.CaloriesPerUnit,
+        TotalCalories = item.TotalCalories,
         Notes = item.Notes
     };
 
@@ -673,6 +738,9 @@ public class CateringHandlers(CateringDbContext dbContext, IHttpContextAccessor 
             MealDefinitionId = item.MealDefinitionId,
             MealName = meal?.Name,
             MealNameEng = meal?.NameEng,
+            IsMealCaloriesRequired = item.IsMealCaloriesRequired,
+            MinMealCalories = item.MinMealCalories,
+            MaxMealCalories = item.MaxMealCalories,
             Status = item.Status,
             Notes = item.Notes,
             Addendums = item.Addendums.Select(ToDto).ToList()

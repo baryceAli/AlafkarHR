@@ -6,12 +6,12 @@ public class AccountingEndpoints : ICarterModule
     {
         var baseRoute = "/api/v1/accounting";
 
-        app.MapGet($"{baseRoute}/dashboard", async (Guid? companyId, ISender sender) =>
-            Results.Ok(await sender.Send(new GetAccountingDashboardQuery(companyId))))
+        app.MapGet($"{baseRoute}/dashboard", async (Guid? companyId, Guid? branchId, ISender sender) =>
+            Results.Ok(await sender.Send(new GetAccountingDashboardQuery(companyId, branchId))))
             .RequireAuthorization(PermissionList.AccountingDashboardPermissions.View);
 
-        app.MapGet($"{baseRoute}/reports", async (AccountingReportType type, Guid companyId, DateTime? fromDate, DateTime? toDate, ISender sender) =>
-            Results.Ok(await sender.Send(new GetAccountingReportQuery(type, companyId, fromDate, toDate))))
+        app.MapGet($"{baseRoute}/reports", async (AccountingReportType type, Guid companyId, Guid? branchId, DateTime? fromDate, DateTime? toDate, ISender sender) =>
+            Results.Ok(await sender.Send(new GetAccountingReportQuery(type, companyId, branchId, fromDate, toDate))))
             .RequireAuthorization(PermissionList.AccountingReportPermissions.View);
 
         app.MapGet($"{baseRoute}/setup/templates", async (Guid? companyId, ISender sender) =>
@@ -49,8 +49,24 @@ public class AccountingEndpoints : ICarterModule
             Results.Ok(await sender.Send(new ApplyAccountingTemplateCommand(setup))))
             .RequireAuthorization(PermissionList.AccountingTemplatePermissions.Apply);
 
-        app.MapGet($"{baseRoute}/accounts", async (Guid companyId, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
-            Results.Ok(await sender.Send(new GetAccountsQuery(companyId, pageIndex ?? 1, pageSize ?? 20, searchText))))
+        app.MapGet($"{baseRoute}/account-coding-settings", async (Guid companyId, ISender sender) =>
+            Results.Ok(await sender.Send(new GetAccountCodingSettingsQuery(companyId))))
+            .RequireAuthorization(PermissionList.AccountingSettingsPermissions.View);
+
+        app.MapPost($"{baseRoute}/account-coding-settings", async (AccountCodingSettingsDto settings, ISender sender) =>
+            Results.Ok(await sender.Send(new UpsertAccountCodingSettingsCommand(settings))))
+            .RequireAuthorization(PermissionList.AccountingSettingsPermissions.Edit);
+
+        app.MapPost($"{baseRoute}/account-coding-settings/preview-renumber", async (AccountCodingSettingsDto settings, ISender sender) =>
+            Results.Ok(await sender.Send(new PreviewAccountRenumberCommand(settings))))
+            .RequireAuthorization(PermissionList.AccountingSettingsPermissions.Edit);
+
+        app.MapPost($"{baseRoute}/account-coding-settings/apply-renumber", async (ApplyAccountRenumberDto renumber, ISender sender) =>
+            Results.Ok(await sender.Send(new ApplyAccountRenumberCommand(renumber))))
+            .RequireAuthorization(PermissionList.AccountingSettingsPermissions.Edit);
+
+        app.MapGet($"{baseRoute}/accounts", async (Guid companyId, Guid? branchId, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
+            Results.Ok(await sender.Send(new GetAccountsQuery(companyId, branchId, pageIndex ?? 1, pageSize ?? 20, searchText))))
             .RequireAuthorization(PermissionList.AccountPermissions.View);
 
         app.MapPost($"{baseRoute}/accounts", async (AccountDto account, ISender sender) =>
@@ -104,8 +120,8 @@ public class AccountingEndpoints : ICarterModule
             Results.Created($"{baseRoute}/posting-profiles", await sender.Send(new CreatePostingProfileCommand(profile))))
             .RequireAuthorization(PermissionList.PostingProfilePermissions.Create);
 
-        app.MapGet($"{baseRoute}/bank-accounts", async (Guid companyId, ISender sender) =>
-            Results.Ok(await sender.Send(new GetBankAccountsQuery(companyId))))
+        app.MapGet($"{baseRoute}/bank-accounts", async (Guid companyId, Guid? branchId, ISender sender) =>
+            Results.Ok(await sender.Send(new GetBankAccountsQuery(companyId, branchId))))
             .RequireAuthorization(PermissionList.BankAccountPermissions.View);
 
         app.MapPost($"{baseRoute}/bank-accounts", async (BankAccountDto bankAccount, ISender sender) =>
@@ -116,8 +132,8 @@ public class AccountingEndpoints : ICarterModule
             Results.Ok(await sender.Send(new UpsertBankAccountCommand(bankAccount))))
             .RequireAuthorization(PermissionList.BankAccountPermissions.Edit);
 
-        app.MapGet($"{baseRoute}/cash-accounts", async (Guid companyId, ISender sender) =>
-            Results.Ok(await sender.Send(new GetCashAccountsQuery(companyId))))
+        app.MapGet($"{baseRoute}/cash-accounts", async (Guid companyId, Guid? branchId, ISender sender) =>
+            Results.Ok(await sender.Send(new GetCashAccountsQuery(companyId, branchId))))
             .RequireAuthorization(PermissionList.CashAccountPermissions.View);
 
         app.MapPost($"{baseRoute}/cash-accounts", async (CashAccountDto cashAccount, ISender sender) =>
@@ -128,12 +144,12 @@ public class AccountingEndpoints : ICarterModule
             Results.Ok(await sender.Send(new UpsertCashAccountCommand(cashAccount))))
             .RequireAuthorization(PermissionList.CashAccountPermissions.Edit);
 
-        app.MapGet($"{baseRoute}/bank-reconciliation/transactions", async (Guid companyId, BankTransactionStatus? status, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
-            Results.Ok(await sender.Send(new GetBankTransactionsQuery(companyId, status, pageIndex ?? 1, pageSize ?? 20, searchText))))
+        app.MapGet($"{baseRoute}/bank-reconciliation/transactions", async (Guid companyId, Guid? branchId, BankTransactionStatus? status, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
+            Results.Ok(await sender.Send(new GetBankTransactionsQuery(companyId, branchId, status, pageIndex ?? 1, pageSize ?? 20, searchText))))
             .RequireAuthorization(PermissionList.BankReconciliationPermissions.View);
 
-        app.MapGet($"{baseRoute}/bank-reconciliation/summary", async (Guid companyId, ISender sender) =>
-            Results.Ok(await sender.Send(new GetBankReconciliationSummaryQuery(companyId))))
+        app.MapGet($"{baseRoute}/bank-reconciliation/summary", async (Guid companyId, Guid? branchId, ISender sender) =>
+            Results.Ok(await sender.Send(new GetBankReconciliationSummaryQuery(companyId, branchId))))
             .RequireAuthorization(PermissionList.BankReconciliationPermissions.View);
 
         app.MapGet($"{baseRoute}/bank-reconciliation/transactions/{{id:guid}}/matches", async (Guid id, ISender sender) =>
@@ -156,8 +172,8 @@ public class AccountingEndpoints : ICarterModule
             Results.Ok(await sender.Send(new UpsertCompanyAccountingSettingsCommand(settings))))
             .RequireAuthorization(PermissionList.AccountingSettingsPermissions.Edit);
 
-        app.MapGet($"{baseRoute}/documents", async (AccountingDocumentType? type, Guid? companyId, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
-            Results.Ok(await sender.Send(new GetAccountingDocumentsQuery(type, companyId, pageIndex ?? 1, pageSize ?? 20, searchText))))
+        app.MapGet($"{baseRoute}/documents", async (AccountingDocumentType? type, Guid? companyId, Guid? branchId, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
+            Results.Ok(await sender.Send(new GetAccountingDocumentsQuery(type, companyId, branchId, pageIndex ?? 1, pageSize ?? 20, searchText))))
             .RequireAuthorization(PermissionList.AccountingDocumentPermissions.View);
 
         app.MapPost($"{baseRoute}/documents", async (AccountingDocumentDto document, ISender sender) =>
@@ -172,8 +188,8 @@ public class AccountingEndpoints : ICarterModule
             Results.Ok(await sender.Send(new GenerateZatcaInvoiceCommand(id, invoiceType))))
             .RequireAuthorization(PermissionList.ZatcaEInvoicePermissions.Generate);
 
-        app.MapGet($"{baseRoute}/journals", async (Guid? companyId, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
-            Results.Ok(await sender.Send(new GetJournalEntriesQuery(companyId, pageIndex ?? 1, pageSize ?? 20, searchText))))
+        app.MapGet($"{baseRoute}/journals", async (Guid? companyId, Guid? branchId, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
+            Results.Ok(await sender.Send(new GetJournalEntriesQuery(companyId, branchId, pageIndex ?? 1, pageSize ?? 20, searchText))))
             .RequireAuthorization(PermissionList.JournalEntryPermissions.View);
 
         app.MapPost($"{baseRoute}/journals/quick-entry", async (QuickJournalEntryDto journalEntry, ISender sender) =>

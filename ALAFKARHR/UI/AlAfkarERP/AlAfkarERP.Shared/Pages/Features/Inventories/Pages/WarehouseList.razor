@@ -1,15 +1,18 @@
 @layout AdminLayout
 @page "/Inventory/Warehouse/List"
 
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Inventories.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 
 
 @inject IWarehouseService WarehouseService
+@inject IBranchService BranchService
 @inject ToastService ToastService
 @inject ModalService ModalService
 
@@ -54,6 +57,14 @@
                 </div>
             </ChildContent>
             <Actions>
+                <select class="form-select erp-page-size-select" @bind="branchFilterText" @bind:after="ApplyBranchFilterAsync" aria-label="@SharedDataService.SelectViewLang("Branch scope", "نطاق الفرع")">
+                    <option value="">@SharedDataService.SelectViewLang("All scopes", "كل النطاقات")</option>
+                    <option value="__shared">@SharedDataService.SelectViewLang("Company-level/shared", "على مستوى الشركة / مشترك")</option>
+                    @foreach (var branch in branches)
+                    {
+                        <option value="@branch.Id">@BranchName(branch.Id)</option>
+                    }
+                </select>
                 <select class="form-select erp-page-size-select" @onchange="OnPageSizeChanged" aria-label="@SharedDataService.SelectViewLang("Page size", "حجم الصفحة")">
                     <option value="5">5</option>
                     <option value="10">10</option>
@@ -77,6 +88,7 @@
                     @SharedDataService.SelectViewLang("Name", "الاسم")
                 </th>
                 <th @onclick="() => Sort(nameof(WarehouseDto.Location))">@SharedDataService.SelectViewLang("Location", "الموقع")</th>
+                <th>@SharedDataService.SelectViewLang("Branch scope", "نطاق الفرع")</th>
                 <th @onclick="() => Sort(nameof(WarehouseDto.Address))">@SharedDataService.SelectViewLang("Address", "العنوان")</th>
                 <th></th>
             </tr>
@@ -131,6 +143,20 @@
                                             <ValidationMessage For="() => editingItem.Latitude" />
                                         </div>
 
+                                        <div class="col-md-4">
+                                            <label class="form-label">@SharedDataService.SelectViewLang("Branch scope", "نطاق الفرع")</label>
+                                            <select class="form-select" value="@BranchEditValue(editingItem.BranchId)" @onchange="args => SetWarehouseBranch(editingItem, args.Value?.ToString())">
+                                                @if (canViewAllBranches)
+                                                {
+                                                    <option value="">@SharedDataService.SelectViewLang("Company-level/shared", "على مستوى الشركة / مشترك")</option>
+                                                }
+                                                @foreach (var branch in branches)
+                                                {
+                                                    <option value="@branch.Id">@BranchName(branch.Id)</option>
+                                                }
+                                            </select>
+                                        </div>
+
                                         <div class="col-12">
                                             <label class="form-label">@SharedDataService.SelectViewLang("Address", "العنوان")</label>
                                             <InputTextArea class="form-control" @bind-Value="editingItem.Address" />
@@ -157,6 +183,7 @@
                 <tr>
                     <td>@SharedDataService.SelectViewLang(warehouse.NameEng,warehouse.Name)</td>
                     <td>@warehouse.Location</td>
+                    <td><span class="badge bg-light text-dark border">@BranchScopeLabel(warehouse.BranchId)</span></td>
                     <td>@warehouse.Address</td>
                     <td>
                         <button class="btn btn-outline-warning btn-sm erp-row-action"
@@ -212,6 +239,9 @@
     private Guid companyId;
     private bool isEdit = false;
     private AuthenticationState AuthState;
+    private List<BranchDto> branches = [];
+    private bool canViewAllBranches;
+    private string branchFilterText = string.Empty;
     protected override async Task OnInitializedAsync()
     {
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
@@ -225,12 +255,8 @@
             NavigationManager.NavigateTo("/Dashboard");
             return;
         }
+        await LoadBranchAccessAsync();
         await LoadWarehouse();
-        // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
-        // if (branchResponse.IsSuccess)
-        // {
-        //     branches = branchResponse.Data?.ToList() ?? [];
-        // }
     }
     // Branch
     void CreateNew()
@@ -240,6 +266,7 @@
             Id = Guid.NewGuid()
         };
         newItem.CompanyId = companyId;
+        newItem.BranchId = canViewAllBranches ? null : branches.FirstOrDefault()?.Id;
         warehouses.Insert(0, newItem);
         editingWarehouseId = newItem.Id;
         isEdit = false;
@@ -277,7 +304,7 @@
                 // how fail
                 ToastService.Show(new ToastMessage
                 {
-                    Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
+                    Message = bResponse.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
                     Type = "error"
                 });
             }
@@ -305,18 +332,13 @@
                 //   fail
                 ToastService.Show(new ToastMessage
                 {
-                    Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
+                    Message = bresponse.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
                     Type = "error"
                 });
             }
         }
 
         await LoadWarehouse();
-        // var response = await BranchService.GetByCompanyIdAsync(companyId);
-        // if (response.IsSuccess)
-        // {
-        //     branches = response.Data?.ToList() ?? [];
-        // }
         editingWarehouseId = null;
     }
 
@@ -396,11 +418,23 @@
     // Pagination
     private int pageSize = 5;
     private int pageIndex = 0;
+    private async Task LoadBranchAccessAsync()
+    {
+        var accessResponse = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        canViewAllBranches = accessResponse.IsSuccess && accessResponse.Data?.CanViewAllBranches == true;
+
+        var branchResponse = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        if (branchResponse.IsSuccess)
+        {
+            branches = branchResponse.Data?.Data.ToList() ?? [];
+        }
+    }
+
     private async Task LoadWarehouse()
     {
         // var request = new PaginationRequest(pageIndex, pageSize, searchText);
 
-        var response = await WarehouseService.GetAsync(companyId, pageIndex, pageSize,searchText);//,searchText);
+        var response = await WarehouseService.GetAsync(companyId, pageIndex, pageSize,searchText, ParseBranchFilter());//,searchText);
 
         if (response.IsSuccess)
         {
@@ -412,6 +446,35 @@
             TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
         }
     }
+    private Guid? ParseBranchFilter() =>
+        Guid.TryParse(branchFilterText, out var branchId) ? branchId : null;
+
+    private async Task ApplyBranchFilterAsync()
+    {
+        pageIndex = 0;
+        await LoadWarehouse();
+    }
+
+    private string BranchEditValue(Guid? branchId) => branchId?.ToString() ?? string.Empty;
+
+    private void SetWarehouseBranch(WarehouseDto warehouse, string? value)
+    {
+        warehouse.BranchId = Guid.TryParse(value, out var branchId) ? branchId : null;
+    }
+
+    private string BranchScopeLabel(Guid? branchId) =>
+        branchId.HasValue
+            ? BranchName(branchId.Value)
+            : SharedDataService.SelectViewLang("Company-level/shared", "على مستوى الشركة / مشترك");
+
+    private string BranchName(Guid branchId)
+    {
+        var branch = branches.FirstOrDefault(x => x.Id == branchId);
+        return branch is null
+            ? SharedDataService.SelectViewLang("Unknown branch", "فرع غير معروف")
+            : SharedDataService.SelectViewLang(branch.NameEng, branch.Name);
+    }
+
     async Task OnPageSizeChanged(ChangeEventArgs e)
     {
         pageSize = int.Parse(e.Value!.ToString()!);
@@ -429,9 +492,7 @@
         )
 
         // 🎯 Filter
-        // .Where(b =>
-        //     filterMainBranch == null || b.IsMainBranch == filterMainBranch
-        // )
+        .Where(b => branchFilterText != "__shared" || b.BranchId == null)
 
         // 🔃 Sorting
         .OrderByDynamic(sortColumn, sortAscending);

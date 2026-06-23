@@ -100,6 +100,7 @@
                         <th>@Text("Name", "الاسم")</th>
                         <th>@Text("Type", "النوع")</th>
                         <th>@Text("Status", "الحالة")</th>
+                        <th>@Text("Branch scope", "نطاق الفرع")</th>
                         <th>@Text("Parent", "الأصل الرئيسي")</th>
                         <th>@Text("Location", "الموقع")</th>
                         <th></th>
@@ -108,11 +109,11 @@
                 <tbody>
                     @if (isLoading)
                     {
-                        <tr><td colspan="7" class="text-muted">@Text("Loading assets...", "جاري تحميل الأصول...")</td></tr>
+                        <tr><td colspan="8" class="text-muted">@Text("Loading assets...", "جاري تحميل الأصول...")</td></tr>
                     }
                     else if (!assets.Any())
                     {
-                        <tr><td colspan="7" class="text-muted">@Text("No assets found.", "لا توجد أصول.")</td></tr>
+                        <tr><td colspan="8" class="text-muted">@Text("No assets found.", "لا توجد أصول.")</td></tr>
                     }
                     else
                     {
@@ -123,6 +124,7 @@
                                 <td>@LocalizedName(asset.NameEng, asset.Name)</td>
                                 <td><StatusChip Text="@asset.AssetType.ToString()" Tone="info" /></td>
                                 <td><StatusChip Text="@asset.Status.ToString()" Tone="@AssetStatusTone(asset.Status)" /></td>
+                                <td><span class="badge bg-light text-dark border">@BranchScopeLabel(asset.BranchId)</span></td>
                                 <td>@asset.ParentAssetName</td>
                                 <td>@asset.Location</td>
                                 <td class="text-end">
@@ -321,6 +323,17 @@
     private bool Can(string permission) => authState?.User.Claims.Any(claim => claim.Value == permission) == true;
     private string AssetStatusTone(MaintenanceAssetStatus status) => status == MaintenanceAssetStatus.Active ? "success" : status == MaintenanceAssetStatus.UnderMaintenance ? "warning" : "muted";
     private string AssetText(MaintenanceAssetDto asset) => $"{asset.AssetCode} - {LocalizedName(asset.NameEng, asset.Name)}";
+    private string BranchScopeLabel(Guid? branchId) =>
+        branchId.HasValue
+            ? BranchName(branchId.Value)
+            : Text("Company-level/shared", "على مستوى الشركة / مشترك");
+
+    private string BranchName(Guid branchId)
+    {
+        var branch = branches.FirstOrDefault(x => x.Id == branchId);
+        return branch is null ? Text("Unknown branch", "فرع غير معروف") : LocalizedName(branch.NameEng, branch.Name);
+    }
+
     private string LocalizedName(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);

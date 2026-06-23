@@ -17,16 +17,24 @@ public class InventoryService : BaseApiService, IInventoryService
 
     
 
-    public async Task<ApiResult<PaginatedResult<InventoryAggregateDto>>> GetAsync(int pageIndex, int pageSize, string? searchText)
+    public async Task<ApiResult<PaginatedResult<InventoryAggregateDto>>> GetAsync(int pageIndex, int pageSize, string? searchText, Guid? branchId = null)
     {
         ///api/v1/inventory/inventories
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}");
+        var url = $"{_path}?companyId={_apiConfig.CompanyId}&pageIndex={pageIndex}&pageSize={pageSize}&searchText={Uri.EscapeDataString(searchText ?? string.Empty)}";
+        if (branchId.HasValue)
+            url += $"&branchId={branchId.Value}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
         return await SendAsync<PaginatedResult<InventoryAggregateDto>>(request, "inventoryList");
     }
-    public async Task<ApiResult<PaginatedResult<InventoryAggregateDto>>> GetAsync(Guid companyId, int pageIndex, int pageSize, string? searchText)
+    public async Task<ApiResult<PaginatedResult<InventoryAggregateDto>>> GetAsync(Guid companyId, int pageIndex, int pageSize, string? searchText, Guid? branchId = null)
     {
         ///api/v1/inventory/inventories/company/{companyId}
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/company/{companyId}?pageIndex={pageIndex}&pageSize={pageSize}&searchText={searchText}");
+        var url = $"{_path}/company/{companyId}?pageIndex={pageIndex}&pageSize={pageSize}&searchText={Uri.EscapeDataString(searchText ?? string.Empty)}";
+        if (branchId.HasValue)
+            url += $"&branchId={branchId.Value}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
         return await SendAsync<PaginatedResult<InventoryAggregateDto>>(request, "inventoryList");
     }
 

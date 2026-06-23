@@ -22,11 +22,17 @@ public class GetCurrentCompanyLicenseHandler(
             .AsNoTracking()
             .Include(x => x.LicenseCategory)
             .FirstOrDefaultAsync(x => x.CompanyId == parentCompanyId, cancellationToken);
+        var businessLinesByLicense = license is null
+            ? []
+            : await ParentCompanies.ParentCompanyQueryHandler.GetBusinessLinesByLicenseAsync(dbContext, [license.Id], cancellationToken);
 
-        return new GetCurrentCompanyLicenseResult(ToSummary(parentCompanyId, license));
+        return new GetCurrentCompanyLicenseResult(ToSummary(parentCompanyId, license, businessLinesByLicense));
     }
 
-    private static CompanyLicenseSummaryDto ToSummary(Guid companyId, CompanyLicense? license)
+    private static CompanyLicenseSummaryDto ToSummary(
+        Guid companyId,
+        CompanyLicense? license,
+        IReadOnlyDictionary<Guid, List<LicensedBusinessLineDto>>? businessLinesByLicense = null)
     {
         if (license is null)
         {
@@ -68,7 +74,10 @@ public class GetCurrentCompanyLicenseHandler(
             YearlyPrice = license.EffectiveYearlyPrice,
             CurrencyId = license.EffectiveCurrencyId,
             CurrencyCode = license.EffectiveCurrencyCode,
-            IsExpired = isExpired
+            IsExpired = isExpired,
+            BusinessLines = businessLinesByLicense is not null && businessLinesByLicense.TryGetValue(license.Id, out var businessLines)
+                ? businessLines
+                : []
         };
     }
 }

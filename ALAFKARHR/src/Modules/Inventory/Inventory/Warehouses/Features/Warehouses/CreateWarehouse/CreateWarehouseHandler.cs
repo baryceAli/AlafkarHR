@@ -19,13 +19,20 @@ public class CreateWarehouseValidator : AbstractValidator<CreateWarehouseCommand
         RuleFor(x => x.Warehouse.Location).NotEmpty().MaximumLength(200).WithMessage("Location is required");
     }
 }
-public class CreateWarehouseHandler (InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor): ICommandHandler<CreateWarehouseCommand, CreateWarehouseResult>
+public class CreateWarehouseHandler (InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender): ICommandHandler<CreateWarehouseCommand, CreateWarehouseResult>
 {
     public async Task<CreateWarehouseResult> Handle(CreateWarehouseCommand request, CancellationToken cancellationToken)
     {
 
         var user = httpContextAccessor.HttpContext?.User;
         var userId = user?.FindFirst(c=> c.Type==ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new UnauthorizedAccessException("User is not authenticated.");
+
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(request.Warehouse.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, request.Warehouse.BranchId))
+            throw new ForbiddenException("You do not have permission to create a warehouse in this branch scope.");
+
         var warehouse= Warehouse.Create(
             Guid.NewGuid(), 
             request.Warehouse.Name, 
@@ -35,6 +42,7 @@ public class CreateWarehouseHandler (InventoryDbContext dbContext, IHttpContextA
             request.Warehouse.Longitude, 
             request.Warehouse.Latitude,
             request.Warehouse.CompanyId,
+            request.Warehouse.BranchId,
             request.Warehouse.WarehouseType,
             userId);
 

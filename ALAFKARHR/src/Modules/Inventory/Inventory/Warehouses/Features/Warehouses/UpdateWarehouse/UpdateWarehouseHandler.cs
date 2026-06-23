@@ -13,7 +13,7 @@ public class UpdateWarehouseCommandValidator : AbstractValidator<UpdateWarehouse
         RuleFor(x => x.Warehouse.Location).NotEmpty().WithMessage("Location is required");
     }
 }
-public class UpdateWarehouseHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class UpdateWarehouseHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<UpdateWarehouseCommand, UpdateWarehouseResult>
 {
     public async Task<UpdateWarehouseResult> Handle(UpdateWarehouseCommand request, CancellationToken cancellationToken)
@@ -22,8 +22,18 @@ public class UpdateWarehouseHandler(InventoryDbContext dbContext, IHttpContextAc
         if (warehouse is null)
             throw new Exception($"Warehouse not found: {request.Warehouse.Id}");
 
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(warehouse.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, warehouse.BranchId) ||
+            !BranchScopePolicy.CanMutate(branchAccess, request.Warehouse.BranchId))
+        {
+            throw new ForbiddenException("You do not have permission to update this warehouse branch scope.");
+        }
+
         var user = httpContextAccessor.HttpContext?.User;
-        var userId = user.FindFirst(ClaimTypes.NameIdentifier).Value;
+        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new UnauthorizedAccessException("User is not authenticated.");
+
         warehouse.Update(
             request.Warehouse.Name, 
             request.Warehouse.NameEng,
@@ -31,6 +41,7 @@ public class UpdateWarehouseHandler(InventoryDbContext dbContext, IHttpContextAc
             request.Warehouse.Address, 
             request.Warehouse.Longitude, 
             request.Warehouse.Latitude,
+            request.Warehouse.BranchId,
             request.Warehouse.WarehouseType,
             userId);
         await dbContext.SaveChangesAsync();

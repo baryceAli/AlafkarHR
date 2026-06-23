@@ -24,7 +24,8 @@ public class CreateMaintenanceAssetEndpoint : ICarterModule
 public class CreateMaintenanceAssetHandler(
     MaintenanceDbContext dbContext,
     IMaintenanceNumberGenerator numberGenerator,
-    IHttpContextAccessor httpContextAccessor)
+    IHttpContextAccessor httpContextAccessor,
+    ISender sender)
     : ICommandHandler<CreateMaintenanceAssetCommand, CreateMaintenanceAssetResult>
 {
     public async Task<CreateMaintenanceAssetResult> Handle(CreateMaintenanceAssetCommand request, CancellationToken cancellationToken)
@@ -34,7 +35,18 @@ public class CreateMaintenanceAssetHandler(
             ? await numberGenerator.GenerateAssetCodeAsync(request.Asset.AssetType, cancellationToken)
             : request.Asset.AssetCode.Trim();
 
-        await MaintenanceFeatureHelpers.EnsureParentAssetAsync(dbContext, request.Asset.ParentAssetId, cancellationToken);
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(request.Asset.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, request.Asset.BranchId))
+            throw new ForbiddenException("You do not have permission to create a maintenance asset in this branch scope.");
+
+        await MaintenanceFeatureHelpers.EnsureParentAssetScopeAsync(
+            dbContext,
+            sender,
+            request.Asset.CompanyId,
+            request.Asset.BranchId,
+            request.Asset.ParentAssetId,
+            null,
+            cancellationToken);
 
         var asset = MaintenanceAsset.Create(
             assetCode,
