@@ -3,7 +3,7 @@ using AlAfkarERP.Shared.Utilities;
 
 namespace AlAfkarERP.Shared.Layout;
 
-public static class NavigationMenuResolver
+public static partial class NavigationMenuResolver
 {
     public const string WorkspaceHome = "home";
     public const string WorkspaceHr = "hr";

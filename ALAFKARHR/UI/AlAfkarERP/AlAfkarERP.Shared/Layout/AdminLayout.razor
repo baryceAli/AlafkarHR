@@ -15,10 +15,20 @@
 @* @Body *@
 @* <div class="d-flex vh-100"> *@
 <div class="erp-shell mobile-first-shell d-flex vh-100 overflow-hidden">
-    <DesktopWorkspaceNav ActiveWorkspace="@activeWorkspace"
-                         ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
-                         AuthState="@AuthState"
-                         OnOpenCommand="OpenCommandPalette" />
+    @if (IsEnterpriseNext)
+    {
+        <EnterpriseNavigationPanel ActiveWorkspace="@activeWorkspace"
+                                   ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
+                                   AuthState="@AuthState"
+                                   OnOpenCommand="OpenCommandPalette" />
+    }
+    else
+    {
+        <DesktopWorkspaceNav ActiveWorkspace="@activeWorkspace"
+                             ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
+                             AuthState="@AuthState"
+                             OnOpenCommand="OpenCommandPalette" />
+    }
 
     <!-- Main Area -->
     @* <div class="flex-grow-1 d-flex flex-column"> *@
@@ -29,7 +39,8 @@
                    ActiveWorkspace="@activeWorkspace"
                    ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
                    IsMoreOpen="@isMoreHubOpen"
-                   ShellAuthState="@AuthState" />
+                   ShellAuthState="@AuthState"
+                   IsEnterpriseNext="@IsEnterpriseNext" />
         
         <!-- Page Content -->
         @* <main class="flex-grow-1 p-3 overflow-auto bg-light" dir="@SharedDataService.PageDirection"> *@
@@ -80,7 +91,9 @@
     private string moreHubInitialView = MoreHub.ViewDirectory;
     private bool isMoreHubOpen;
     private bool isCommandPaletteOpen;
+    private string stylePreset = "classic";
     private DotNetObjectReference<AdminLayout>? shortcutReference;
+    private bool IsEnterpriseNext => string.Equals(stylePreset, "enterprise-next", StringComparison.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()
     {
@@ -100,8 +113,10 @@
                 await RunTaskDailyCheckSilentlyAsync();
             }
             activeWorkspace = await LoadActiveWorkspaceAsync();
+            stylePreset = await LoadStylePresetAsync();
             shortcutReference = DotNetObjectReference.Create(this);
             await JSRuntime.InvokeVoidAsync("alafkarNavigation.bindShortcuts", shortcutReference);
+            await JSRuntime.InvokeVoidAsync("alafkarTheme.bindThemeChanged", shortcutReference);
             await InvokeAsync(StateHasChanged);
             // NavigationManager.NavigateTo("/login");
         }
@@ -135,6 +150,23 @@
         }
 
         return EnsureAuthorizedWorkspace(resolvedWorkspace);
+    }
+
+    private async Task<string> LoadStylePresetAsync()
+    {
+        try
+        {
+            var theme = await JSRuntime.InvokeAsync<ThemeState>("alafkarTheme.get");
+            return theme.StylePreset ?? "classic";
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        catch (JSException)
+        {
+        }
+
+        return "classic";
     }
 
     private async Task SetActiveWorkspaceAsync(string workspaceKey)
@@ -202,6 +234,13 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    [JSInvokable]
+    public async Task OnThemeChanged(string nextStylePreset)
+    {
+        stylePreset = string.IsNullOrWhiteSpace(nextStylePreset) ? "classic" : nextStylePreset;
+        await InvokeAsync(StateHasChanged);
+    }
+
     private Task SetMoreHubOpen(bool value)
     {
         isMoreHubOpen = value;
@@ -241,6 +280,12 @@
         SharedDataService.OnChange1 -= HandleChangeAsync;
         NavigationManager.LocationChanged -= HandleLocationChanged;
         _ = JSRuntime.InvokeVoidAsync("alafkarNavigation.unbindShortcuts");
+        _ = JSRuntime.InvokeVoidAsync("alafkarTheme.unbindThemeChanged");
         shortcutReference?.Dispose();
+    }
+
+    private sealed class ThemeState
+    {
+        public string? StylePreset { get; set; }
     }
 }

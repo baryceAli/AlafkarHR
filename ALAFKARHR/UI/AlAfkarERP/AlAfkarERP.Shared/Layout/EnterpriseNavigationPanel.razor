@@ -1,0 +1,454 @@
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<aside class="enterprise-nav-shell" aria-label="@Text("Enterprise navigation", "\u062a\u0646\u0642\u0644 \u0627\u0644\u0645\u0624\u0633\u0633\u0629")">
+    <nav class="enterprise-app-switcher" aria-label="@Text("Applications", "\u0627\u0644\u062a\u0637\u0628\u064a\u0642\u0627\u062a")">
+        <button type="button"
+                class="enterprise-app-button enterprise-command-button"
+                title="@Text("Command search", "\u0628\u062d\u062b \u0627\u0644\u0623\u0648\u0627\u0645\u0631")"
+                aria-label="@Text("Command search", "\u0628\u062d\u062b \u0627\u0644\u0623\u0648\u0627\u0645\u0631")"
+                @onclick="() => OnOpenCommand.InvokeAsync()">
+            <i class="bi bi-command"></i>
+            <span>Ctrl K</span>
+        </button>
+
+        <div class="enterprise-app-list">
+            @foreach (var workspace in AuthorizedWorkspaces.Where(item => item.Key != NavigationMenuResolver.WorkspaceMore))
+            {
+                <button type="button"
+                        class="enterprise-app-button @(ActiveWorkspace == workspace.Key ? "is-active" : "")"
+                        title="@Label(workspace)"
+                        aria-label="@Label(workspace)"
+                        aria-current="@(ActiveWorkspace == workspace.Key ? "page" : null)"
+                        @onclick="() => SelectWorkspaceAsync(workspace)">
+                    <i class="bi @workspace.Icon"></i>
+                    <span>@Label(workspace)</span>
+                </button>
+            }
+        </div>
+
+        @if (AuthorizedWorkspaces.Any(item => item.Key == NavigationMenuResolver.WorkspaceMore))
+        {
+            <button type="button"
+                    class="enterprise-app-button @(ActiveWorkspace == NavigationMenuResolver.WorkspaceMore ? "is-active" : "")"
+                    title="@Text("All apps", "\u0643\u0644 \u0627\u0644\u062a\u0637\u0628\u064a\u0642\u0627\u062a")"
+                    aria-label="@Text("All apps", "\u0643\u0644 \u0627\u0644\u062a\u0637\u0628\u064a\u0642\u0627\u062a")"
+                    @onclick="SelectMoreAsync">
+                <i class="bi bi-grid-3x3-gap"></i>
+                <span>@Text("All", "\u0627\u0644\u0643\u0644")</span>
+            </button>
+        }
+    </nav>
+
+    <section class="enterprise-nav-panel">
+        <CompanySwitcher AuthState="@AuthState" />
+
+        <header class="enterprise-workspace-header">
+            <div>
+                <span>@Text("Workspace", "\u0645\u0633\u0627\u062d\u0629 \u0627\u0644\u0639\u0645\u0644")</span>
+                <strong>@WorkspaceLabel</strong>
+            </div>
+            <button type="button"
+                    class="btn erp-icon-btn"
+                    title="@Text("Open command search", "\u0641\u062a\u062d \u0628\u062d\u062b \u0627\u0644\u0623\u0648\u0627\u0645\u0631")"
+                    @onclick="() => OnOpenCommand.InvokeAsync()">
+                <i class="bi bi-search"></i>
+            </button>
+        </header>
+
+        <div class="enterprise-nav-search">
+            <i class="bi bi-search"></i>
+            <input class="form-control"
+                   value="@searchText"
+                   @oninput="OnSearchInput"
+                   placeholder="@Text("Search pages in this workspace", "\u0627\u0628\u062d\u062b \u0641\u064a \u0635\u0641\u062d\u0627\u062a \u0647\u0630\u0647 \u0627\u0644\u0645\u0633\u0627\u062d\u0629")" />
+            @if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                <button type="button"
+                        class="btn erp-icon-btn btn-sm"
+                        title="@Text("Clear", "\u0645\u0633\u062d")"
+                        @onclick="ClearSearch">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            }
+        </div>
+
+        @if (string.IsNullOrWhiteSpace(searchText) && QuickLinks.Any())
+        {
+            <section class="enterprise-quick-links" aria-label="@Text("Quick links", "\u0631\u0648\u0627\u0628\u0637 \u0633\u0631\u064a\u0639\u0629")">
+                @foreach (var item in QuickLinks)
+                {
+                    <button type="button" class="enterprise-quick-link" @onclick="() => NavigateAsync(item)">
+                        <i class="bi @item.Icon"></i>
+                        <span>@Label(item)</span>
+                    </button>
+                }
+            </section>
+        }
+
+        <div class="enterprise-section-list">
+            @if (!VisibleGroups.Any())
+            {
+                <div class="enterprise-nav-empty">
+                    <i class="bi bi-search"></i>
+                    <strong>@Text("No pages found", "\u0644\u0627 \u062a\u0648\u062c\u062f \u0635\u0641\u062d\u0627\u062a")</strong>
+                    <span>@Text("Try another workspace or search term.", "\u062c\u0631\u0628 \u0645\u0633\u0627\u062d\u0629 \u0623\u062e\u0631\u0649 \u0623\u0648 \u0643\u0644\u0645\u0629 \u0628\u062d\u062b \u0645\u062e\u062a\u0644\u0641\u0629.")</span>
+                </div>
+            }
+            else
+            {
+                @foreach (var group in VisibleGroups)
+                {
+                    var entries = FilteredEntries(group).ToList();
+                    <section class="enterprise-nav-section">
+                        <button type="button"
+                                class="enterprise-section-header"
+                                aria-expanded="@IsGroupExpanded(group.Key)"
+                                @onclick="() => ToggleGroup(group.Key)">
+                            <span class="enterprise-section-icon"><i class="bi @group.Icon"></i></span>
+                            <span>
+                                <strong>@Label(group)</strong>
+                                <small>@GroupKindLabel(group.Kind) &middot; @Text($"{entries.Count} pages", $"{entries.Count} \u0635\u0641\u062d\u0627\u062a")</small>
+                            </span>
+                            <i class="bi @(IsGroupExpanded(group.Key) ? "bi-chevron-up" : "bi-chevron-down") enterprise-section-chevron"></i>
+                        </button>
+
+                        @if (IsGroupExpanded(group.Key))
+                        {
+                            <div class="enterprise-link-list">
+                                @foreach (var entry in entries)
+                                {
+                                    <div class="enterprise-link-row depth-@Math.Min(entry.Depth, 4) priority-@entry.Priority">
+                                        <button type="button"
+                                                class="@EnterpriseLinkClass(entry)"
+                                                disabled="@(!CanNavigate(entry.Item))"
+                                                @onclick="() => NavigateAsync(entry.Item)">
+                                            <i class="bi @entry.Item.Icon"></i>
+                                            <span>
+                                                <strong>@Label(entry.Item)</strong>
+                                                <small>@PathLabel(entry)</small>
+                                            </span>
+                                        </button>
+                                        @if (CanFavorite(entry.Item))
+                                        {
+                                            <button type="button"
+                                                    class="btn enterprise-favorite-toggle @(IsFavorite(entry.Item) ? "is-active" : "")"
+                                                    title="@FavoriteTitle(entry.Item)"
+                                                    aria-label="@FavoriteTitle(entry.Item)"
+                                                    @onclick="() => ToggleFavoriteAsync(entry.Item)">
+                                                <i class="bi @(IsFavorite(entry.Item) ? "bi-star-fill" : "bi-star")"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </section>
+                }
+            }
+        </div>
+    </section>
+</aside>
+
+@code {
+    [Parameter] public string ActiveWorkspace { get; set; } = NavigationMenuResolver.WorkspaceHome;
+    [Parameter] public EventCallback<string> ActiveWorkspaceChanged { get; set; }
+    [Parameter] public AuthenticationState? AuthState { get; set; }
+    [Parameter] public EventCallback OnOpenCommand { get; set; }
+
+    private IReadOnlyList<string> favoriteKeys = [];
+    private IReadOnlyList<string> recentKeys = [];
+    private readonly HashSet<string> expandedGroupKeys = new(StringComparer.OrdinalIgnoreCase);
+    private string searchText = "";
+
+    private IReadOnlyList<NavigationWorkspace> AuthorizedWorkspaces => NavigationMenuResolver.GetAuthorizedWorkspaces(AuthState?.User);
+    private IEnumerable<MenuItem> AuthorizedItems => NavigationMenuResolver.GetAuthorizedNavigableItems(AuthState?.User);
+    private IReadOnlyList<EnterpriseNavigationGroup> Groups => NavigationMenuResolver.GetEnterpriseNavigationGroups(AuthState?.User, EnterpriseWorkspaceKey, CurrentPath);
+    private IEnumerable<EnterpriseNavigationGroup> VisibleGroups => Groups.Where(group => FilteredEntries(group).Any());
+    private IEnumerable<MenuItem> CurrentItems => Groups.SelectMany(group => group.Entries).Select(entry => entry.Item);
+    private IEnumerable<MenuItem> FavoriteItems => ResolveKeys(favoriteKeys).Where(MatchesCurrentWorkspace);
+    private IEnumerable<MenuItem> RecentItems => ResolveKeys(recentKeys).Where(MatchesCurrentWorkspace);
+    private IEnumerable<MenuItem> QuickLinks => CurrentItems.Where(IsActive)
+        .Concat(FavoriteItems)
+        .Concat(RecentItems)
+        .DistinctBy(NavigationMenuResolver.GetStorageKey)
+        .Take(6);
+    private string CurrentPath => NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+    private string EnterpriseWorkspaceKey => ActiveWorkspace == NavigationMenuResolver.WorkspaceMore
+        ? NavigationMenuResolver.WorkspaceMore
+        : NavigationMenuResolver.ResolveEnterpriseWorkspaceKey(ActiveWorkspace);
+
+    private string WorkspaceLabel
+        => ActiveWorkspace == NavigationMenuResolver.WorkspaceMore
+            ? Text("All apps", "\u0643\u0644 \u0627\u0644\u062a\u0637\u0628\u064a\u0642\u0627\u062a")
+            : AuthorizedWorkspaces
+                .Where(item => item.Key == ActiveWorkspace)
+                .Select(Label)
+                .FirstOrDefault() ?? Text("Workspace", "\u0645\u0633\u0627\u062d\u0629 \u0627\u0644\u0639\u0645\u0644");
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        NavigationManager.LocationChanged += HandleLocationChanged;
+        await LoadStateAsync();
+        ExpandRelevantGroups();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadStateAsync();
+        ExpandRelevantGroups();
+    }
+
+    private async Task SelectWorkspaceAsync(NavigationWorkspace workspace)
+    {
+        await ActiveWorkspaceChanged.InvokeAsync(workspace.Key);
+        var url = NavigationMenuResolver.GetWorkspaceDefaultUrl(workspace.Key, AuthState?.User);
+        if (!string.IsNullOrWhiteSpace(url))
+        {
+            NavigationManager.NavigateTo(url);
+        }
+    }
+
+    private async Task SelectMoreAsync()
+    {
+        await ActiveWorkspaceChanged.InvokeAsync(NavigationMenuResolver.WorkspaceMore);
+    }
+
+    private async Task NavigateAsync(MenuItem item)
+    {
+        if (!CanNavigate(item))
+        {
+            return;
+        }
+
+        await ActiveWorkspaceChanged.InvokeAsync(NavigationMenuResolver.ResolveNavigationWorkspace(item, ActiveWorkspace));
+        await SaveRecentAsync(item);
+        NavigationManager.NavigateTo(item.Url!);
+    }
+
+    private IEnumerable<EnterpriseNavigationEntry> FilteredEntries(EnterpriseNavigationGroup group)
+        => group.Entries
+            .Where(entry => CanNavigate(entry.Item))
+            .Where(MatchesSearch)
+            .GroupBy(entry => NavigationMenuResolver.GetStorageKey(entry.Item), StringComparer.OrdinalIgnoreCase)
+            .Select(entryGroup => entryGroup.First());
+
+    private bool MatchesSearch(EnterpriseNavigationEntry entry)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            return true;
+        }
+
+        var term = searchText.Trim();
+        var haystack = string.Join(" ", entry.Path.Select(item => $"{item.TextEn} {item.TextAr} {item.Url} {item.KeywordsEn} {item.KeywordsAr}"));
+        return haystack.Contains(term, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool MatchesCurrentWorkspace(MenuItem item)
+        => ActiveWorkspace == NavigationMenuResolver.WorkspaceMore
+           || NavigationMenuResolver.GetWorkspaceKey(item) == ActiveWorkspace
+           || ActiveWorkspace == NavigationMenuResolver.WorkspaceSales && NavigationMenuResolver.GetWorkspaceKey(item) == NavigationMenuResolver.WorkspacePos
+           || Groups.SelectMany(group => group.Entries).Any(entry => NavigationMenuResolver.GetStorageKey(entry.Item) == NavigationMenuResolver.GetStorageKey(item));
+
+    private bool CanNavigate(MenuItem item)
+        => !string.IsNullOrWhiteSpace(item.Url)
+           && NavigationMenuResolver.HasOwnPermission(item, AuthState?.User);
+
+    private bool CanFavorite(MenuItem item)
+        => item.IsFavoriteCandidate && CanNavigate(item);
+
+    private bool IsFavorite(MenuItem item)
+        => favoriteKeys.Contains(NavigationMenuResolver.GetStorageKey(item), StringComparer.OrdinalIgnoreCase);
+
+    private string EnterpriseLinkClass(EnterpriseNavigationEntry entry)
+    {
+        var classes = new List<string> { "enterprise-nav-link" };
+        if (IsActive(entry.Item))
+        {
+            classes.Add("is-active");
+        }
+
+        if (entry.IsRelated)
+        {
+            classes.Add("is-related");
+        }
+
+        return string.Join(" ", classes);
+    }
+
+    private bool IsActive(MenuItem item)
+        => NavigationMenuResolver.IsPathWithinItem(CurrentPath, item);
+
+    private void ToggleGroup(string groupKey)
+    {
+        if (!expandedGroupKeys.Add(groupKey))
+        {
+            expandedGroupKeys.Remove(groupKey);
+        }
+    }
+
+    private bool IsGroupExpanded(string groupKey)
+        => expandedGroupKeys.Contains(groupKey);
+
+    private void ExpandRelevantGroups()
+    {
+        var currentGroups = Groups;
+        if (!expandedGroupKeys.Any())
+        {
+            foreach (var group in currentGroups.Where(group => group.Kind is EnterpriseNavigationGroupKind.Overview or EnterpriseNavigationGroupKind.Transactions))
+            {
+                expandedGroupKeys.Add(group.Key);
+            }
+        }
+
+        foreach (var group in currentGroups.Where(group => group.Entries.Any(entry => IsActive(entry.Item))))
+        {
+            expandedGroupKeys.Add(group.Key);
+        }
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs args)
+    {
+        searchText = args.Value?.ToString() ?? "";
+        if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            foreach (var group in Groups)
+            {
+                expandedGroupKeys.Add(group.Key);
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ClearSearch()
+    {
+        searchText = "";
+        ExpandRelevantGroups();
+    }
+
+    private IEnumerable<MenuItem> ResolveKeys(IEnumerable<string> keys)
+    {
+        var items = AuthorizedItems.ToList();
+        foreach (var key in keys)
+        {
+            var item = items.FirstOrDefault(candidate => NavigationMenuResolver.GetStorageKey(candidate) == key);
+            if (item is not null)
+            {
+                yield return item;
+            }
+        }
+    }
+
+    private async Task SaveRecentAsync(MenuItem item)
+    {
+        recentKeys = NavigationShellState.AddRecent(recentKeys, NavigationMenuResolver.GetStorageKey(item));
+        await TrySetLocalStorageItemAsync(NavigationShellState.RecentStorageKey, NavigationShellState.SerializeKeys(recentKeys));
+    }
+
+    private async Task ToggleFavoriteAsync(MenuItem item)
+    {
+        var key = NavigationMenuResolver.GetStorageKey(item);
+        favoriteKeys = IsFavorite(item)
+            ? favoriteKeys.Where(existingKey => !string.Equals(existingKey, key, StringComparison.OrdinalIgnoreCase)).ToList()
+            : favoriteKeys.Concat([key]).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        await TrySetLocalStorageItemAsync(NavigationShellState.FavoriteStorageKey, NavigationShellState.SerializeKeys(favoriteKeys));
+    }
+
+    private async Task LoadStateAsync()
+    {
+        favoriteKeys = NavigationShellState.ParseKeys(await TryGetLocalStorageItemAsync(NavigationShellState.FavoriteStorageKey));
+        recentKeys = NavigationShellState.ParseKeys(await TryGetLocalStorageItemAsync(NavigationShellState.RecentStorageKey));
+    }
+
+    private async Task<string?> TryGetLocalStorageItemAsync(string key)
+    {
+        try
+        {
+            return await JSRuntime.InvokeAsync<string?>("localStorage.getItem", key);
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        catch (JSException)
+        {
+        }
+        catch (OperationCanceledException)
+        {
+        }
+
+        return null;
+    }
+
+    private async Task TrySetLocalStorageItemAsync(string key, string value)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", key, value);
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        catch (JSException)
+        {
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private string GroupKindLabel(EnterpriseNavigationGroupKind kind)
+        => kind switch
+        {
+            EnterpriseNavigationGroupKind.Overview => Text("Overview", "\u0646\u0638\u0631\u0629 \u0639\u0627\u0645\u0629"),
+            EnterpriseNavigationGroupKind.Documents => Text("Documents", "\u0645\u0633\u062a\u0646\u062f\u0627\u062a"),
+            EnterpriseNavigationGroupKind.Transactions => Text("Transactions", "\u0645\u0639\u0627\u0645\u0644\u0627\u062a"),
+            EnterpriseNavigationGroupKind.Reports => Text("Reports", "\u062a\u0642\u0627\u0631\u064a\u0631"),
+            EnterpriseNavigationGroupKind.Setup => Text("Setup", "\u0625\u0639\u062f\u0627\u062f"),
+            EnterpriseNavigationGroupKind.Related => Text("Related", "\u0645\u0631\u062a\u0628\u0637"),
+            _ => Text("Pages", "\u0635\u0641\u062d\u0627\u062a")
+        };
+
+    private string FavoriteTitle(MenuItem item)
+        => IsFavorite(item)
+            ? Text("Remove from favorites", "\u0625\u0632\u0627\u0644\u0629 \u0645\u0646 \u0627\u0644\u0645\u0641\u0636\u0644\u0629")
+            : Text("Add to favorites", "\u0625\u0636\u0627\u0641\u0629 \u0644\u0644\u0645\u0641\u0636\u0644\u0629");
+
+    private string Label(NavigationWorkspace workspace) => Text(workspace.TextEn, workspace.TextAr);
+    private string Label(EnterpriseNavigationGroup group) => Text(group.TextEn, group.TextAr);
+    private string Label(MenuItem item) => Text(item.TextEn, item.TextAr);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private string PathLabel(EnterpriseNavigationEntry entry)
+        => entry.Path.Count > 1
+            ? string.Join(" / ", entry.Path.Select(Label).Take(Math.Max(1, entry.Path.Count - 1)))
+            : entry.Item.Url ?? "";
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        ExpandRelevantGroups();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+        NavigationManager.LocationChanged -= HandleLocationChanged;
+    }
+}
