@@ -53,6 +53,7 @@ public record UpsertBiometricImportRowRequestBody(UpsertBiometricImportRowDto Ro
 public record ReviewBiometricImportRowRequestBody(ReviewBiometricImportRowDto Review);
 public record GenerateAttendanceWorkEntriesRequestBody(GenerateAttendanceWorkEntriesDto Request);
 public record UpsertAttendanceWorkEntryRequestBody(UpsertAttendanceWorkEntryDto Entry);
+public record UpsertRosterSubstituteConfigurationRequestBody(UpsertAttendanceRosterSubstituteConfigurationDto Configuration);
 
 public class AttendanceEndpoints : ICarterModule
 {
@@ -304,6 +305,23 @@ public class AttendanceEndpoints : ICarterModule
         group.MapPost("/shift-schedules/{scheduleId:guid}/cancel", CancelShiftSchedule)
             .WithName("CancelShiftSchedule")
             .Produces<UpsertShiftScheduleResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Edit);
+
+        group.MapGet("/roster-substitute-configurations", GetRosterSubstituteConfigurations)
+            .WithName("GetRosterSubstituteConfigurations")
+            .Produces<GetRosterSubstituteConfigurationsResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.View);
+
+        group.MapPost("/roster-substitute-configurations", UpsertRosterSubstituteConfiguration)
+            .WithName("UpsertRosterSubstituteConfiguration")
+            .Produces<UpsertRosterSubstituteConfigurationResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Edit);
+
+        group.MapPut("/roster-substitute-configurations/{configurationId:guid}", UpsertRosterSubstituteConfiguration)
+            .WithName("UpdateRosterSubstituteConfiguration")
+            .Produces<UpsertRosterSubstituteConfigurationResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Edit);
 
         group.MapGet("/shift-schedule-assignments", GetShiftScheduleAssignments)
@@ -670,6 +688,21 @@ public class AttendanceEndpoints : ICarterModule
 
     private static async Task<Ok<UpsertShiftScheduleResult>> CancelShiftSchedule(Guid scheduleId, ClaimsPrincipal user, ISender sender)
         => TypedResults.Ok(await sender.Send(new ChangeShiftScheduleStatusCommand(scheduleId, AttendanceRosterStatus.Cancelled, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+
+    private static async Task<Ok<GetRosterSubstituteConfigurationsResult>> GetRosterSubstituteConfigurations([FromQuery] Guid companyId, ISender sender)
+        => TypedResults.Ok(await sender.Send(new GetRosterSubstituteConfigurationsQuery(companyId)));
+
+    private static async Task<Ok<UpsertRosterSubstituteConfigurationResult>> UpsertRosterSubstituteConfiguration(
+        Guid? configurationId,
+        [FromBody] UpsertRosterSubstituteConfigurationRequestBody request,
+        ClaimsPrincipal user,
+        ISender sender)
+    {
+        request.Configuration.Id = configurationId ?? request.Configuration.Id;
+        return TypedResults.Ok(await sender.Send(new UpsertRosterSubstituteConfigurationCommand(
+            request.Configuration,
+            user.FindFirstValue(ClaimTypes.NameIdentifier))));
+    }
 
     private static async Task<Ok<GetShiftScheduleAssignmentsResult>> GetShiftScheduleAssignments([FromQuery] Guid? scheduleId, [FromQuery] Guid? employeeId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [AsParameters] PaginationRequest request, ISender sender)
         => TypedResults.Ok(await sender.Send(new GetShiftScheduleAssignmentsQuery(scheduleId, employeeId, fromDate, toDate, request)));

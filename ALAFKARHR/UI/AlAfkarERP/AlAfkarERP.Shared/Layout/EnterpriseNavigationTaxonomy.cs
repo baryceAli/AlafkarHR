@@ -15,11 +15,20 @@ public static partial class NavigationMenuResolver
         string workspaceKey,
         string? currentPath,
         IReadOnlySet<string>? licensedBusinessLineKeys)
+        => GetEnterpriseNavigationGroups(user, workspaceKey, currentPath, licensedBusinessLineKeys, null);
+
+    public static IReadOnlyList<EnterpriseNavigationGroup> GetEnterpriseNavigationGroups(
+        ClaimsPrincipal? user,
+        string workspaceKey,
+        string? currentPath,
+        IReadOnlySet<string>? licensedBusinessLineKeys,
+        string? functionalGroupKey)
     {
         var resolvedWorkspaceKey = ResolveEnterpriseWorkspaceKey(workspaceKey);
         var normalizedCurrentPath = NormalizePath(currentPath);
         var entries = GetAuthorizedRows(user, null, licensedBusinessLineKeys)
             .Where(row => !string.IsNullOrWhiteSpace(row.Item.Url) && HasOwnPermission(row.Item, user, licensedBusinessLineKeys))
+            .Where(row => FunctionalGroupMatches(row.Item, functionalGroupKey))
             .Select(row => GetEnterpriseNavigationEntry(row, resolvedWorkspaceKey, normalizedCurrentPath))
             .Where(entry => entry is not null)
             .Cast<EnterpriseNavigationEntry>()
@@ -177,10 +186,10 @@ public static partial class NavigationMenuResolver
     private static readonly IReadOnlyList<EnterpriseGroupDefinition> EnterpriseGroupDefinitions =
     [
         new(EnterpriseNavigationGroupKind.Start, "Start / Overview", "\u0627\u0644\u0628\u062f\u0621 / \u0646\u0638\u0631\u0629 \u0639\u0627\u0645\u0629", "bi-speedometer2"),
-        new(EnterpriseNavigationGroupKind.Setup, "Setup", "\u0627\u0644\u0625\u0639\u062f\u0627\u062f", "bi-sliders2"),
-        new(EnterpriseNavigationGroupKind.MasterData, "Master Data", "\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629", "bi-collection"),
-        new(EnterpriseNavigationGroupKind.DailyWork, "Daily Work", "\u0627\u0644\u0639\u0645\u0644 \u0627\u0644\u064a\u0648\u0645\u064a", "bi-arrow-left-right"),
         new(EnterpriseNavigationGroupKind.Approvals, "Approvals", "\u0627\u0644\u0627\u0639\u062a\u0645\u0627\u062f\u0627\u062a", "bi-patch-check"),
+        new(EnterpriseNavigationGroupKind.DailyWork, "Daily Work", "\u0627\u0644\u0639\u0645\u0644 \u0627\u0644\u064a\u0648\u0645\u064a", "bi-arrow-left-right"),
+        new(EnterpriseNavigationGroupKind.MasterData, "Master Data", "\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629", "bi-collection"),
+        new(EnterpriseNavigationGroupKind.Setup, "Setup", "\u0627\u0644\u0625\u0639\u062f\u0627\u062f", "bi-sliders2"),
         new(EnterpriseNavigationGroupKind.Adjustments, "Adjustments / Exceptions", "\u0627\u0644\u062a\u0633\u0648\u064a\u0627\u062a / \u0627\u0644\u0627\u0633\u062a\u062b\u0646\u0627\u0621\u0627\u062a", "bi-sliders"),
         new(EnterpriseNavigationGroupKind.Reports, "Reports", "\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631", "bi-bar-chart-line"),
         new(EnterpriseNavigationGroupKind.Administration, "Administration", "\u0627\u0644\u0625\u062f\u0627\u0631\u0629", "bi-shield-lock"),

@@ -23,11 +23,22 @@ public class GetAttendanceRosterControlHandler(
     {
         var filter = NormalizeFilter(request.Filter);
         var employeeResult = await sender.Send(new GetCompanyEmployeeRosterProfilesQuery(filter.CompanyId), cancellationToken);
+        var substituteConfigs = await attendanceDbContext.AttendanceRosterSubstituteConfigurations.AsNoTracking()
+            .Where(x => x.CompanyId == filter.CompanyId && !x.IsDeleted)
+            .ToDictionaryAsync(x => x.EmployeeId, cancellationToken);
         var employees = employeeResult.Employees
-            .Where(x => !filter.DepartmentId.HasValue || x.DepartmentId == filter.DepartmentId.Value)
+            .Where(x => x.IsActive && x.AdministrationId != Guid.Empty)
+            .Where(x => IsRosterVisible(x, substituteConfigs))
+            .ToList();
+        var candidateEmployees = employeeResult.Employees
+            .Where(x => x.IsActive && x.AdministrationId != Guid.Empty)
+            .Where(x => IsSubstituteEligible(x, substituteConfigs))
             .ToList();
 
-        var employeeIds = employees.Select(x => x.EmployeeId).ToHashSet();
+        var queryEmployeeIds = employees
+            .Select(x => x.EmployeeId)
+            .Concat(candidateEmployees.Select(x => x.EmployeeId))
+            .ToHashSet();
         var shifts = await attendanceDbContext.Shifts.AsNoTracking()
             .Where(x => x.CompanyId == filter.CompanyId && !x.IsDeleted)
             .ToDictionaryAsync(x => x.Id, cancellationToken);
@@ -37,7 +48,7 @@ public class GetAttendanceRosterControlHandler(
                 && x.WorkDate >= filter.FromDate
                 && x.WorkDate <= filter.ToDate
                 && !x.IsDeleted
-                && employeeIds.Contains(x.EmployeeId))
+                && queryEmployeeIds.Contains(x.EmployeeId))
             .ToListAsync(cancellationToken);
 
         var baseAssignments = await attendanceDbContext.EmployeeShifts.AsNoTracking()
@@ -53,7 +64,7 @@ public class GetAttendanceRosterControlHandler(
             .Where(x => x.CompanyId == filter.CompanyId
                 && x.ShiftStart.Date >= filter.FromDate
                 && x.ShiftStart.Date <= filter.ToDate
-                && employeeIds.Contains(x.EmployeeId))
+                && queryEmployeeIds.Contains(x.EmployeeId))
             .ToListAsync(cancellationToken);
 
         var leaveApplications = await leaveDbContext.LeaveApplications.AsNoTracking()
@@ -61,7 +72,7 @@ public class GetAttendanceRosterControlHandler(
                 && x.Status == LeaveApplicationStatus.Approved
                 && x.StartDate.Date <= filter.ToDate
                 && x.EndDate.Date >= filter.FromDate
-                && employeeIds.Contains(x.EmployeeId))
+                && queryEmployeeIds.Contains(x.EmployeeId))
             .ToListAsync(cancellationToken);
 
         var leaveTypeIds = leaveApplications.Select(x => x.LeaveTypeId).Distinct().ToList();
@@ -74,7 +85,7 @@ public class GetAttendanceRosterControlHandler(
                 && x.Status == AttendanceExceptionStatus.Approved
                 && x.StartDate.Date <= filter.ToDate
                 && x.EndDate.Date >= filter.FromDate
-                && employeeIds.Contains(x.EmployeeId))
+                && queryEmployeeIds.Contains(x.EmployeeId))
             .ToListAsync(cancellationToken);
 
         var rows = new List<AttendanceRosterControlRowDto>();
@@ -131,14 +142,15 @@ public class GetAttendanceRosterControlHandler(
             }
         }
 
+        AddSubstituteCandidates(rows, rows, candidateEmployees, sessions, leaveApplications, emergencyLeaves);
+
         rows = rows
+            .Where(x => !filter.DepartmentId.HasValue || x.DepartmentId == filter.DepartmentId.Value)
             .Where(x => !filter.Status.HasValue || x.Status == filter.Status.Value)
             .OrderBy(x => x.WorkDate)
             .ThenBy(x => x.DepartmentName)
             .ThenBy(x => x.EmployeeNameEng ?? x.EmployeeName)
             .ToList();
-
-        AddSubstituteCandidates(rows, employees, leaveApplications, emergencyLeaves);
 
         return new GetAttendanceRosterControlResult(new AttendanceRosterControlDto
         {
@@ -250,40 +262,76 @@ public class GetAttendanceRosterControlHandler(
 
     private static void AddSubstituteCandidates(
         List<AttendanceRosterControlRowDto> rows,
+        List<AttendanceRosterControlRowDto> plannedRows,
         List<EmployeeRosterProfileDto> employees,
+        List<AttendanceSession> sessions,
         List<LeaveManagement.Leave.Models.LeaveApplication> leaveApplications,
         List<LeaveManagement.Leave.Models.EmergencyLeaveRequest> emergencyLeaves)
     {
         foreach (var row in rows.Where(x => x.Status is AttendanceRosterControlStatus.Absent or AttendanceRosterControlStatus.OnApprovedLeave))
         {
-            var busyEmployeeIds = rows
+            var busyEmployeeIds = plannedRows
                 .Where(x => x.WorkDate == row.WorkDate)
                 .Select(x => x.EmployeeId)
                 .ToHashSet();
+            var presentEmployeeIds = sessions
+                .Where(x => x.ShiftStart.Date == row.WorkDate)
+                .Select(x => x.EmployeeId)
+                .ToHashSet();
 
-            row.SubstituteCandidates = employees
+            var availableEmployees = employees
                 .Where(x => x.EmployeeId != row.EmployeeId)
                 .Where(x => !busyEmployeeIds.Contains(x.EmployeeId))
+                .Where(x => !presentEmployeeIds.Contains(x.EmployeeId))
                 .Where(x => !HasApprovedLeave(x.EmployeeId, row.WorkDate, leaveApplications, emergencyLeaves))
-                .OrderByDescending(x => row.DepartmentId.HasValue && x.DepartmentId == row.DepartmentId)
-                .ThenByDescending(x => row.PositionId.HasValue && x.PositionId == row.PositionId)
-                .ThenBy(x => x.FullNameEng ?? x.FullName)
-                .Take(5)
-                .Select(x => new AttendanceRosterSubstituteCandidateDto
-                {
-                    EmployeeId = x.EmployeeId,
-                    EmployeeNo = x.EmployeeNo,
-                    EmployeeCode = x.Code,
-                    EmployeeName = x.FullName,
-                    EmployeeNameEng = x.FullNameEng,
-                    DepartmentId = x.DepartmentId,
-                    PositionId = x.PositionId,
-                    PositionName = x.PositionName,
-                    PositionNameEng = x.PositionNameEng
-                })
                 .ToList();
+
+            var departmentCandidates = row.DepartmentId.HasValue
+                ? availableEmployees.Where(x => x.DepartmentId == row.DepartmentId.Value).ToList()
+                : [];
+
+            row.SubstituteCandidates = departmentCandidates.Count > 0
+                ? ToCandidates(departmentCandidates, row, AttendanceRosterSubstituteCandidateSource.Department)
+                : ToCandidates(
+                    availableEmployees.Where(x => x.AdministrationId == row.AdministrationId).ToList(),
+                    row,
+                    AttendanceRosterSubstituteCandidateSource.Administration);
         }
     }
+
+    private static List<AttendanceRosterSubstituteCandidateDto> ToCandidates(
+        List<EmployeeRosterProfileDto> employees,
+        AttendanceRosterControlRowDto row,
+        AttendanceRosterSubstituteCandidateSource source)
+        => employees
+            .OrderByDescending(x => row.PositionId.HasValue && x.PositionId == row.PositionId)
+            .ThenBy(x => x.FullNameEng ?? x.FullName)
+            .Take(5)
+            .Select(x => new AttendanceRosterSubstituteCandidateDto
+            {
+                EmployeeId = x.EmployeeId,
+                EmployeeNo = x.EmployeeNo,
+                EmployeeCode = x.Code,
+                EmployeeName = x.FullName,
+                EmployeeNameEng = x.FullNameEng,
+                DepartmentId = x.DepartmentId,
+                PositionId = x.PositionId,
+                PositionName = x.PositionName,
+                PositionNameEng = x.PositionNameEng,
+                Source = source
+            })
+            .ToList();
+
+    private static bool IsRosterVisible(
+        EmployeeRosterProfileDto employee,
+        Dictionary<Guid, AttendanceRosterSubstituteConfiguration> configs)
+        => !configs.TryGetValue(employee.EmployeeId, out var config) || config.IsRosterVisible;
+
+    private static bool IsSubstituteEligible(
+        EmployeeRosterProfileDto employee,
+        Dictionary<Guid, AttendanceRosterSubstituteConfiguration> configs)
+        => !configs.TryGetValue(employee.EmployeeId, out var config)
+            || (config.IsRosterVisible && config.IsSubstituteEligible);
 
     private static bool HasApprovedLeave(
         Guid employeeId,

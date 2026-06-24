@@ -37,6 +37,8 @@ public interface IAttendanceService
     Task<ApiResult<MidDayPermissionRequestDto>> ReviewMidDayPermissionAsync(ReviewMidDayPermissionRequestDto review);
     Task<ApiResult<AttendanceReportDto>> GetReportAsync(AttendanceReportFilterDto filter);
     Task<ApiResult<AttendanceRosterControlDto>> GetRosterControlAsync(AttendanceRosterControlFilterDto filter);
+    Task<ApiResult<List<AttendanceRosterSubstituteConfigurationDto>>> GetRosterSubstituteConfigurationsAsync(Guid companyId);
+    Task<ApiResult<AttendanceRosterSubstituteConfigurationDto>> UpsertRosterSubstituteConfigurationAsync(UpsertAttendanceRosterSubstituteConfigurationDto configuration);
     Task<ApiResult<List<ShiftScheduleDto>>> GetShiftSchedulesAsync(Guid companyId, AttendanceRosterStatus? status = null);
     Task<ApiResult<ShiftScheduleDto>> UpsertShiftScheduleAsync(UpsertShiftScheduleDto schedule);
     Task<ApiResult<ShiftScheduleDto>> PublishShiftScheduleAsync(Guid scheduleId);

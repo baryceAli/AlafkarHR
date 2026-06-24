@@ -24,6 +24,9 @@ public class AdministrationConfiguration : IEntityTypeConfiguration<Administrati
         builder.Property(x => x.BranchId).IsRequired(false);
         builder.Property(x => x.CompanyId).IsRequired();
         builder.Property(x => x.ParentAdministrationId).IsRequired(false);
+        builder.Property(x => x.IsHigherManagement)
+            .IsRequired()
+            .HasDefaultValue(false);
 
 
 

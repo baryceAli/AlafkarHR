@@ -28,6 +28,7 @@ public class AttendanceDbContext(DbContextOptions<AttendanceDbContext> options) 
     public DbSet<BiometricImportBatch> BiometricImportBatches => Set<BiometricImportBatch>();
     public DbSet<BiometricImportRow> BiometricImportRows => Set<BiometricImportRow>();
     public DbSet<AttendanceWorkEntry> AttendanceWorkEntries => Set<AttendanceWorkEntry>();
+    public DbSet<AttendanceRosterSubstituteConfiguration> AttendanceRosterSubstituteConfigurations => Set<AttendanceRosterSubstituteConfiguration>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

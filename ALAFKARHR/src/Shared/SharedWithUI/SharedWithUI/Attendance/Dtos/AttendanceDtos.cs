@@ -408,6 +408,12 @@ public enum AttendanceRosterControlStatus
     Absent
 }
 
+public enum AttendanceRosterSubstituteCandidateSource
+{
+    Department,
+    Administration
+}
+
 public class AttendanceRosterControlFilterDto
 {
     public Guid CompanyId { get; set; }
@@ -480,6 +486,36 @@ public class AttendanceRosterSubstituteCandidateDto
     public Guid? PositionId { get; set; }
     public string? PositionName { get; set; }
     public string? PositionNameEng { get; set; }
+    public AttendanceRosterSubstituteCandidateSource Source { get; set; } = AttendanceRosterSubstituteCandidateSource.Department;
+}
+
+public class AttendanceRosterSubstituteConfigurationDto
+{
+    public Guid? Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid EmployeeId { get; set; }
+    public string? EmployeeNo { get; set; }
+    public string? EmployeeCode { get; set; }
+    public string? EmployeeName { get; set; }
+    public string? EmployeeNameEng { get; set; }
+    public Guid AdministrationId { get; set; }
+    public Guid? DepartmentId { get; set; }
+    public Guid? PositionId { get; set; }
+    public string? PositionName { get; set; }
+    public string? PositionNameEng { get; set; }
+    public bool IsRosterVisible { get; set; } = true;
+    public bool IsSubstituteEligible { get; set; } = true;
+    public string? Notes { get; set; }
+}
+
+public class UpsertAttendanceRosterSubstituteConfigurationDto
+{
+    public Guid? Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid EmployeeId { get; set; }
+    public bool IsRosterVisible { get; set; } = true;
+    public bool IsSubstituteEligible { get; set; } = true;
+    public string? Notes { get; set; }
 }
 
 public class ShiftScheduleDto
@@ -584,6 +620,9 @@ public class AttendanceCorrectionDto
     public Guid EmployeeId { get; set; }
     public Guid? SessionId { get; set; }
     public DateTime WorkDate { get; set; }
+    public DateTime? CurrentCheckInUtc { get; set; }
+    public DateTime? CurrentCheckOutUtc { get; set; }
+    public AttendanceSessionStatus? CurrentSessionStatus { get; set; }
     public DateTime? CorrectedCheckInUtc { get; set; }
     public DateTime? CorrectedCheckOutUtc { get; set; }
     public AttendanceExceptionStatus Status { get; set; }

@@ -235,6 +235,12 @@
     private async Task SelectWorkspaceAsync(NavigationWorkspace workspace)
     {
         await ActiveWorkspaceChanged.InvokeAsync(workspace.Key);
+        expandedWorkspaceRowKeys.Clear();
+        if (NavigationMenuResolver.HasFunctionalGroups(workspace.Key))
+        {
+            return;
+        }
+
         var url = NavigationMenuResolver.GetWorkspaceDefaultUrl(workspace.Key, AuthState?.User, LicensedBusinessLineKeys);
         if (!string.IsNullOrWhiteSpace(url))
         {
@@ -385,6 +391,17 @@
 
     private void ExpandActivePath()
     {
+        var activePanelRow = WorkspaceRows.FirstOrDefault(row => IsActive(row.Item));
+        if (activePanelRow is not null)
+        {
+            foreach (var item in activePanelRow.Path.Take(Math.Max(0, activePanelRow.Path.Count - 1)))
+            {
+                expandedWorkspaceRowKeys.Add(NavigationMenuResolver.GetStorageKey(item));
+            }
+
+            return;
+        }
+
         var activePath = NavigationMenuResolver.GetActivePath(NavigationManager.Uri, NavigationManager.BaseUri, ActiveWorkspace);
         foreach (var item in activePath.Take(Math.Max(0, activePath.Count - 1)))
         {

@@ -13,6 +13,7 @@ public class Administration:Entity<Guid>
 
     public string Code { get; private set; }
     public Guid? ManagerId { get; private set; } // future employee reference
+    public bool IsHigherManagement { get; private set; }
     public bool IsActive { get; private set; }
 
     public Guid CompanyId { get; private set; }
@@ -43,6 +44,7 @@ public class Administration:Entity<Guid>
         Guid? branchId,
         Guid? parentAdministrationId,
         Guid?managerId,
+        bool isHigherManagement,
         bool isActive,
         Guid comapnyId,
         string createdBy)
@@ -60,6 +62,7 @@ public class Administration:Entity<Guid>
             BranchId = branchId,
             ParentAdministrationId = parentAdministrationId,
             ManagerId=managerId,
+            IsHigherManagement = isHigherManagement,
             IsActive=isActive,
             CompanyId = comapnyId,
             CreatedAt = DateTime.UtcNow,
@@ -69,6 +72,7 @@ public class Administration:Entity<Guid>
     public void Update(
         string name,
         string nameEng,
+        bool isHigherManagement,
         bool isActive,
         Guid? parentAdministrationId,
         Guid? managerId,
@@ -78,6 +82,7 @@ public class Administration:Entity<Guid>
         ArgumentNullException.ThrowIfNullOrEmpty(nameEng, "NameEng is required");
         Name = name; 
         NameEng=nameEng;
+        IsHigherManagement = isHigherManagement;
         IsActive = isActive;
         ParentAdministrationId = parentAdministrationId;
         ManagerId = managerId;

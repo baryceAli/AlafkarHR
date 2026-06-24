@@ -325,6 +325,25 @@ public class AttendanceService : BaseApiService, IAttendanceService
         return await SendAsync<AttendanceRosterControlDto>(new HttpRequestMessage(HttpMethod.Get, url), "roster");
     }
 
+    public async Task<ApiResult<List<AttendanceRosterSubstituteConfigurationDto>>> GetRosterSubstituteConfigurationsAsync(Guid companyId)
+        => await SendAsync<List<AttendanceRosterSubstituteConfigurationDto>>(
+            new HttpRequestMessage(HttpMethod.Get, $"{path}/roster-substitute-configurations?companyId={companyId}"),
+            "configurationList");
+
+    public async Task<ApiResult<AttendanceRosterSubstituteConfigurationDto>> UpsertRosterSubstituteConfigurationAsync(
+        UpsertAttendanceRosterSubstituteConfigurationDto configuration)
+    {
+        var method = configuration.Id.HasValue && configuration.Id.Value != Guid.Empty ? HttpMethod.Put : HttpMethod.Post;
+        var url = configuration.Id.HasValue && configuration.Id.Value != Guid.Empty
+            ? $"{path}/roster-substitute-configurations/{configuration.Id.Value}"
+            : $"{path}/roster-substitute-configurations";
+
+        return await SendAsync<AttendanceRosterSubstituteConfigurationDto>(new HttpRequestMessage(method, url)
+        {
+            Content = JsonContent.Create(new { Configuration = configuration })
+        }, "configuration");
+    }
+
     public async Task<ApiResult<List<ShiftScheduleDto>>> GetShiftSchedulesAsync(Guid companyId, AttendanceRosterStatus? status = null)
     {
         var url = $"{path}/shift-schedules?companyId={companyId}";

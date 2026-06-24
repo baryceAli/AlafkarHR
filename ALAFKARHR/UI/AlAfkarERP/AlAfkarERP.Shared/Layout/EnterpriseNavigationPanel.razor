@@ -78,7 +78,21 @@
             }
         </div>
 
-        @if (string.IsNullOrWhiteSpace(searchText) && QuickLinks.Any())
+        @if (ShouldUseFunctionalDrilldown && SelectedFunctionalGroup is not null)
+        {
+            <section class="enterprise-quick-links" aria-label="@Text("Functional area", "\u0645\u062c\u0627\u0644 \u0648\u0638\u064a\u0641\u064a")">
+                <button type="button" class="enterprise-quick-link" @onclick="ShowFunctionalGroupChooser">
+                    <i class="bi bi-chevron-left"></i>
+                    <span>@Text("Functional areas", "\u0627\u0644\u0645\u062c\u0627\u0644\u0627\u062a \u0627\u0644\u0648\u0638\u064a\u0641\u064a\u0629")</span>
+                </button>
+                <button type="button" class="enterprise-quick-link" disabled>
+                    <i class="bi @SelectedFunctionalGroup.Icon"></i>
+                    <span>@Label(SelectedFunctionalGroup)</span>
+                </button>
+            </section>
+        }
+
+        @if (string.IsNullOrWhiteSpace(searchText) && !ShouldShowFunctionalGroupChooser && QuickLinks.Any())
         {
             <section class="enterprise-quick-links" aria-label="@Text("Quick links", "\u0631\u0648\u0627\u0628\u0637 \u0633\u0631\u064a\u0639\u0629")">
                 @foreach (var item in QuickLinks)
@@ -91,7 +105,29 @@
             </section>
         }
 
-        <div class="enterprise-section-list">
+        @if (ShouldShowFunctionalGroupChooser)
+        {
+            <div class="enterprise-section-list">
+                @foreach (var group in FunctionalGroups)
+                {
+                    <section class="enterprise-nav-section">
+                        <button type="button"
+                                class="enterprise-section-header"
+                                @onclick="() => SelectFunctionalGroup(group)">
+                            <span class="enterprise-section-icon"><i class="bi @group.Icon"></i></span>
+                            <span>
+                                <strong>@Label(group)</strong>
+                                <small>@Text("Functional area", "\u0645\u062c\u0627\u0644 \u0648\u0638\u064a\u0641\u064a")</small>
+                            </span>
+                            <i class="bi bi-chevron-right enterprise-section-chevron"></i>
+                        </button>
+                    </section>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="enterprise-section-list">
             @if (!VisibleGroups.Any())
             {
                 <div class="enterprise-nav-empty">
@@ -151,7 +187,8 @@
                     </section>
                 }
             }
-        </div>
+            </div>
+        }
     </section>
 </aside>
 
@@ -166,10 +203,14 @@
     private IReadOnlyList<string> recentKeys = [];
     private readonly HashSet<string> expandedGroupKeys = new(StringComparer.OrdinalIgnoreCase);
     private string searchText = "";
+    private string? selectedFunctionalGroupKey;
+    private bool showFunctionalChooserRequested;
 
     private IReadOnlyList<NavigationWorkspace> AuthorizedWorkspaces => NavigationMenuResolver.GetAuthorizedWorkspaces(AuthState?.User, LicensedBusinessLineKeys);
     private IEnumerable<MenuItem> AuthorizedItems => NavigationMenuResolver.GetAuthorizedNavigableItems(AuthState?.User, LicensedBusinessLineKeys);
-    private IReadOnlyList<EnterpriseNavigationGroup> Groups => NavigationMenuResolver.GetEnterpriseNavigationGroups(AuthState?.User, EnterpriseWorkspaceKey, CurrentPath, LicensedBusinessLineKeys);
+    private IReadOnlyList<NavigationFunctionalGroup> FunctionalGroups => NavigationMenuResolver.GetAuthorizedWorkspaceFunctionalGroups(AuthState?.User, FunctionalWorkspaceKey, LicensedBusinessLineKeys);
+    private NavigationFunctionalGroup? SelectedFunctionalGroup => FunctionalGroups.FirstOrDefault(group => group.Key == selectedFunctionalGroupKey);
+    private IReadOnlyList<EnterpriseNavigationGroup> Groups => NavigationMenuResolver.GetEnterpriseNavigationGroups(AuthState?.User, EnterpriseWorkspaceKey, CurrentPath, LicensedBusinessLineKeys, EffectiveFunctionalGroupKey);
     private IEnumerable<EnterpriseNavigationGroup> VisibleGroups => Groups.Where(group => FilteredEntries(group).Any());
     private IEnumerable<MenuItem> CurrentItems => Groups.SelectMany(group => group.Entries).Select(entry => entry.Item);
     private IEnumerable<MenuItem> FavoriteItems => ResolveKeys(favoriteKeys).Where(MatchesCurrentWorkspace);
@@ -183,6 +224,14 @@
     private string EnterpriseWorkspaceKey => ActiveWorkspace == NavigationMenuResolver.WorkspaceMore
         ? NavigationMenuResolver.WorkspaceMore
         : NavigationMenuResolver.ResolveEnterpriseWorkspaceKey(ActiveWorkspace);
+    private string FunctionalWorkspaceKey => ActiveWorkspace == NavigationMenuResolver.WorkspaceMore
+        ? NavigationMenuResolver.WorkspaceMore
+        : ActiveWorkspace;
+    private bool IsFunctionalWorkspace => ActiveWorkspace != NavigationMenuResolver.WorkspaceMore
+        && NavigationMenuResolver.HasFunctionalGroups(FunctionalWorkspaceKey);
+    private bool ShouldUseFunctionalDrilldown => IsFunctionalWorkspace && string.IsNullOrWhiteSpace(searchText);
+    private bool ShouldShowFunctionalGroupChooser => ShouldUseFunctionalDrilldown && string.IsNullOrWhiteSpace(selectedFunctionalGroupKey);
+    private string? EffectiveFunctionalGroupKey => ShouldUseFunctionalDrilldown ? selectedFunctionalGroupKey : null;
 
     private string WorkspaceLabel
         => ActiveWorkspace == NavigationMenuResolver.WorkspaceMore
@@ -197,18 +246,30 @@
         SharedDataService.OnChange1 += HandleChangeAsync;
         NavigationManager.LocationChanged += HandleLocationChanged;
         await LoadStateAsync();
+        SyncSelectedFunctionalGroupWithCurrentPath();
         ExpandRelevantGroups();
     }
 
     protected override async Task OnParametersSetAsync()
     {
         await LoadStateAsync();
+        SyncSelectedFunctionalGroupWithCurrentPath();
         ExpandRelevantGroups();
     }
 
     private async Task SelectWorkspaceAsync(NavigationWorkspace workspace)
     {
         await ActiveWorkspaceChanged.InvokeAsync(workspace.Key);
+        expandedGroupKeys.Clear();
+        if (NavigationMenuResolver.HasFunctionalGroups(workspace.Key))
+        {
+            selectedFunctionalGroupKey = null;
+            showFunctionalChooserRequested = true;
+            return;
+        }
+
+        selectedFunctionalGroupKey = null;
+        showFunctionalChooserRequested = false;
         var url = NavigationMenuResolver.GetWorkspaceDefaultUrl(workspace.Key, AuthState?.User, LicensedBusinessLineKeys);
         if (!string.IsNullOrWhiteSpace(url))
         {
@@ -218,7 +279,24 @@
 
     private async Task SelectMoreAsync()
     {
+        selectedFunctionalGroupKey = null;
+        showFunctionalChooserRequested = false;
         await ActiveWorkspaceChanged.InvokeAsync(NavigationMenuResolver.WorkspaceMore);
+    }
+
+    private void SelectFunctionalGroup(NavigationFunctionalGroup group)
+    {
+        selectedFunctionalGroupKey = group.Key;
+        showFunctionalChooserRequested = false;
+        expandedGroupKeys.Clear();
+        ExpandRelevantGroups();
+    }
+
+    private void ShowFunctionalGroupChooser()
+    {
+        selectedFunctionalGroupKey = null;
+        showFunctionalChooserRequested = true;
+        expandedGroupKeys.Clear();
     }
 
     private async Task NavigateAsync(MenuItem item)
@@ -332,6 +410,7 @@
     private void ClearSearch()
     {
         searchText = "";
+        SyncSelectedFunctionalGroupWithCurrentPath();
         ExpandRelevantGroups();
     }
 
@@ -433,6 +512,7 @@
             : Text("Add to favorites", "\u0625\u0636\u0627\u0641\u0629 \u0644\u0644\u0645\u0641\u0636\u0644\u0629");
 
     private string Label(NavigationWorkspace workspace) => Text(workspace.TextEn, workspace.TextAr);
+    private string Label(NavigationFunctionalGroup group) => Text(group.TextEn, group.TextAr);
     private string Label(EnterpriseNavigationGroup group) => Text(group.TextEn, group.TextAr);
     private string Label(MenuItem item) => Text(item.TextEn, item.TextAr);
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
@@ -446,8 +526,28 @@
 
     private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
     {
+        showFunctionalChooserRequested = false;
+        SyncSelectedFunctionalGroupWithCurrentPath();
         ExpandRelevantGroups();
         _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void SyncSelectedFunctionalGroupWithCurrentPath()
+    {
+        if (!IsFunctionalWorkspace || showFunctionalChooserRequested)
+        {
+            if (!IsFunctionalWorkspace)
+            {
+                selectedFunctionalGroupKey = null;
+            }
+
+            return;
+        }
+
+        selectedFunctionalGroupKey = NavigationMenuResolver.ResolveActiveFunctionalGroupKey(
+            NavigationManager.Uri,
+            NavigationManager.BaseUri,
+            FunctionalWorkspaceKey);
     }
 
     public void Dispose()

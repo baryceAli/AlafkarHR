@@ -15,6 +15,7 @@ public class MenuItem
     public string? BadgeTitleAr { get; set; }
     public string? WorkspaceKey { get; set; }
     public string? BusinessLineKey { get; set; }
+    public string? NavigationFunctionalGroupKey { get; set; }
     public string? NavigationGroupKey { get; set; }
     public int? NavigationOrder { get; set; }
     public string? ProcessKey { get; set; }
@@ -41,6 +42,7 @@ public class MenuItem
             Icon = "bi-graph-up-arrow",
             PermissionPolicy = PermissionList.SalesOrderPermissions.Select,
             WorkspaceKey = NavigationMenuResolver.WorkspaceSales,
+            NavigationFunctionalGroupKey = NavigationMenuResolver.SalesFunctionalGroupSales,
             KeywordsEn = "sales orders order intakes dashboard pos",
             KeywordsAr = "مبيعات أوامر طلبات لوحة نقطة بيع",
             Children = new()
@@ -53,6 +55,7 @@ public class MenuItem
                     Url = "/StoreFront/POS",
                     PermissionPolicy = PermissionList.StoreFrontPosPermissions.View,
                     WorkspaceKey = NavigationMenuResolver.WorkspacePos,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.SalesFunctionalGroupPos,
                     MobilePriority = 4,
                     KeywordsEn = "pos sales checkout cashier",
                     KeywordsAr = "نقطة بيع مبيعات كاشير"
@@ -111,7 +114,8 @@ public class MenuItem
                     TextAr = "تقارير المبيعات",
                     Icon = "bi-bar-chart-line",
                     Url = "/Sales/Dashboard",
-                    PermissionPolicy = PermissionList.SalesReportPermissions.View
+                    PermissionPolicy = PermissionList.SalesReportPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.SalesFunctionalGroupReports
                 },
                 new MenuItem
                 {
@@ -120,6 +124,7 @@ public class MenuItem
                     Icon = "bi-person-vcard-fill",
                     PermissionPolicy = PermissionList.CustomerPermissions.Select,
                     WorkspaceKey = NavigationMenuResolver.WorkspaceSales,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.SalesFunctionalGroupCustomers,
                     KeywordsEn = "sales customers customer groups customer pricing",
                     KeywordsAr = "مبيعات عملاء مجموعات العملاء تسعير العملاء",
                     Children = new()
@@ -167,6 +172,7 @@ public class MenuItem
             Icon = "bi-calculator",
             PermissionPolicy = PermissionList.AccountingDashboardPermissions.View,
             WorkspaceKey = NavigationMenuResolver.WorkspaceAccountingFinance,
+            NavigationFunctionalGroupKey = NavigationMenuResolver.AccountingFunctionalGroupSetup,
             NavigationAliases = new()
             {
                 "/Sales",
@@ -210,7 +216,8 @@ public class MenuItem
                     TextAr = "دليل الحسابات",
                     Icon = "bi-diagram-3",
                     Url = "/Accounting/Accounts",
-                    PermissionPolicy = PermissionList.AccountPermissions.View
+                    PermissionPolicy = PermissionList.AccountPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AccountingFunctionalGroupChartOfAccounts
                 },
                 new MenuItem
                 {
@@ -226,7 +233,8 @@ public class MenuItem
                     TextAr = "أكواد الضريبة",
                     Icon = "bi-percent",
                     Url = "/Accounting/TaxCodes",
-                    PermissionPolicy = PermissionList.TaxCodePermissions.View
+                    PermissionPolicy = PermissionList.TaxCodePermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AccountingFunctionalGroupTaxZatca
                 },
                 new MenuItem
                 {
@@ -242,7 +250,8 @@ public class MenuItem
                     TextAr = "الحسابات البنكية والنقدية",
                     Icon = "bi-bank",
                     Url = "/Accounting/BankCashAccounts",
-                    PermissionPolicy = PermissionList.BankAccountPermissions.View
+                    PermissionPolicy = PermissionList.BankAccountPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AccountingFunctionalGroupBankingCash
                 },
                 new MenuItem
                 {
@@ -250,7 +259,8 @@ public class MenuItem
                     TextAr = "الحسابات النقدية",
                     Icon = "bi-wallet2",
                     Url = "/Accounting/BankCashAccounts",
-                    PermissionPolicy = PermissionList.CashAccountPermissions.View
+                    PermissionPolicy = PermissionList.CashAccountPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AccountingFunctionalGroupBankingCash
                 },
                 new MenuItem
                 {
@@ -266,7 +276,8 @@ public class MenuItem
                     TextAr = "القيود اليومية",
                     Icon = "bi-journal-check",
                     Url = "/Accounting/Journals",
-                    PermissionPolicy = PermissionList.JournalEntryPermissions.View
+                    PermissionPolicy = PermissionList.JournalEntryPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AccountingFunctionalGroupJournalsDocuments
                 },
                 new MenuItem
                 {
@@ -274,7 +285,8 @@ public class MenuItem
                     TextAr = "كل المستندات",
                     Icon = "bi-files",
                     Url = "/Accounting/Documents",
-                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View
+                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AccountingFunctionalGroupJournalsDocuments
                 },
                 new MenuItem
                 {
@@ -287,7 +299,8 @@ public class MenuItem
                         "/Sales/Orders",
                         "/Orders/Intakes"
                     },
-                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View
+                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AccountingFunctionalGroupInvoices
                 },
                 new MenuItem
                 {
@@ -299,7 +312,8 @@ public class MenuItem
                     {
                         "/Procurement/supplier-invoices"
                     },
-                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View
+                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AccountingFunctionalGroupInvoices
                 },
                 new MenuItem
                 {
@@ -307,7 +321,8 @@ public class MenuItem
                     TextAr = "المقبوضات والمدفوعات",
                     Icon = "bi-cash-stack",
                     Url = "/Accounting/ReceiptsPayments",
-                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View
+                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AccountingFunctionalGroupReceiptsPayments
                 },
                 new MenuItem
                 {
@@ -315,7 +330,8 @@ public class MenuItem
                     TextAr = "الإشعارات الدائنة",
                     Icon = "bi-arrow-counterclockwise",
                     Url = "/Accounting/CreditNotes",
-                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View
+                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AccountingFunctionalGroupAdjustments
                 },
                 new MenuItem
                 {
@@ -323,7 +339,8 @@ public class MenuItem
                     TextAr = "الإشعارات المدينة",
                     Icon = "bi-arrow-clockwise",
                     Url = "/Accounting/DebitNotes",
-                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View
+                    PermissionPolicy = PermissionList.AccountingDocumentPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AccountingFunctionalGroupAdjustments
                 },
                 new MenuItem
                 {
@@ -331,7 +348,8 @@ public class MenuItem
                     TextAr = "تسوية البنك",
                     Icon = "bi-shuffle",
                     Url = "/Accounting/BankReconciliation",
-                    PermissionPolicy = PermissionList.BankReconciliationPermissions.View
+                    PermissionPolicy = PermissionList.BankReconciliationPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AccountingFunctionalGroupBankingCash
                 },
                 new MenuItem
                 {
@@ -339,7 +357,8 @@ public class MenuItem
                     TextAr = "التقارير",
                     Icon = "bi-bar-chart-line",
                     Url = "/Accounting/Reports",
-                    PermissionPolicy = PermissionList.AccountingReportPermissions.View
+                    PermissionPolicy = PermissionList.AccountingReportPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AccountingFunctionalGroupReports
                 },
                 new MenuItem
                 {
@@ -347,7 +366,8 @@ public class MenuItem
                     TextAr = "إرسالات زاتكا",
                     Icon = "bi-cloud-arrow-up",
                     Url = "/Accounting/Zatca/Submissions",
-                    PermissionPolicy = PermissionList.ZatcaEInvoicePermissions.View
+                    PermissionPolicy = PermissionList.ZatcaEInvoicePermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AccountingFunctionalGroupTaxZatca
                 },
                 new MenuItem
                 {
@@ -355,7 +375,8 @@ public class MenuItem
                     TextAr = "إعدادات زاتكا",
                     Icon = "bi-shield-check",
                     Url = "/Accounting/Zatca/Settings",
-                    PermissionPolicy = PermissionList.ZatcaSettingsPermissions.View
+                    PermissionPolicy = PermissionList.ZatcaSettingsPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AccountingFunctionalGroupTaxZatca
                 }
             }
         },
@@ -368,6 +389,7 @@ public class MenuItem
             Url = "/Dashboard",
             PermissionPolicy = "View.Dashboard",
             WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupOrganization,
             MobilePriority = 1,
             KeywordsEn = "control panel admin dashboard overview",
             KeywordsAr = "لوحة التحكم الإدارة نظرة عامة"
@@ -379,6 +401,7 @@ public class MenuItem
             Icon = "bi-file-earmark-check",
             PermissionPolicy = PermissionList.ContractPermissions.Select,
             WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupContracts,
             KeywordsEn = "admin contracts agreements renewals templates fees",
             KeywordsAr = "إدارة عقود اتفاقيات تجديدات قوالب رسوم",
             Children = new()
@@ -424,6 +447,7 @@ public class MenuItem
             Icon = "bi-cup-hot",
             PermissionPolicy = PermissionList.CateringContractPermissions.Select,
             WorkspaceKey = NavigationMenuResolver.WorkspaceCatering,
+            NavigationFunctionalGroupKey = NavigationMenuResolver.CateringFunctionalGroupContracts,
             BusinessLineKey = SharedWithUI.Organization.BusinessLineKeys.Catering,
             KeywordsEn = "catering ramadan meals charity distribution haram squares refrigerated vehicles",
             KeywordsAr = "إعاشة رمضان وجبات جمعية توزيع الحرم مربعات برادات",
@@ -451,7 +475,8 @@ public class MenuItem
                     TextAr = "الوجبات",
                     Icon = "bi-box-seam",
                     Url = "/Catering/Meals",
-                    PermissionPolicy = PermissionList.CateringMealPermissions.View
+                    PermissionPolicy = PermissionList.CateringMealPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.CateringFunctionalGroupMeals
                 },
                 new MenuItem
                 {
@@ -459,7 +484,8 @@ public class MenuItem
                     TextAr = "مواقع التوزيع",
                     Icon = "bi-geo-alt",
                     Url = "/Catering/Locations",
-                    PermissionPolicy = PermissionList.CateringLocationPermissions.View
+                    PermissionPolicy = PermissionList.CateringLocationPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.CateringFunctionalGroupLocations
                 },
                 new MenuItem
                 {
@@ -467,7 +493,8 @@ public class MenuItem
                     TextAr = "الجداول اليومية",
                     Icon = "bi-calendar-week",
                     Url = "/Catering/Schedules",
-                    PermissionPolicy = PermissionList.CateringSchedulePermissions.View
+                    PermissionPolicy = PermissionList.CateringSchedulePermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.CateringFunctionalGroupSchedules
                 },
                 new MenuItem
                 {
@@ -475,7 +502,8 @@ public class MenuItem
                     TextAr = "استلام البرادات",
                     Icon = "bi-truck",
                     Url = "/Catering/Deliveries",
-                    PermissionPolicy = PermissionList.CateringDeliveryPermissions.View
+                    PermissionPolicy = PermissionList.CateringDeliveryPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.CateringFunctionalGroupDeliveries
                 },
                 new MenuItem
                 {
@@ -483,7 +511,8 @@ public class MenuItem
                     TextAr = "التكليفات",
                     Icon = "bi-people",
                     Url = "/Catering/Assignments",
-                    PermissionPolicy = PermissionList.CateringAssignmentPermissions.View
+                    PermissionPolicy = PermissionList.CateringAssignmentPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.CateringFunctionalGroupAssignments
                 },
                 new MenuItem
                 {
@@ -491,7 +520,8 @@ public class MenuItem
                     TextAr = "تقارير الإعاشة",
                     Icon = "bi-bar-chart-line",
                     Url = "/Catering/Reports",
-                    PermissionPolicy = PermissionList.CateringReportsPermissions.View
+                    PermissionPolicy = PermissionList.CateringReportsPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.CateringFunctionalGroupReports
                 }
             }
         },
@@ -504,6 +534,7 @@ public class MenuItem
             Icon = "bi-diagram-3",
             PermissionPolicy = $"{PermissionList.CompanyPermissions.Select}",
             WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupOrganization,
             KeywordsEn = "admin organization company branch department structure",
             KeywordsAr = "إدارة هيكل تنظيمي شركة فروع أقسام",
             Children = new()
@@ -611,6 +642,7 @@ public class MenuItem
                     Icon = "bi-person-workspace",
                     PermissionPolicy = PermissionList.EmployeePermissions.Select,
                     WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupEmployees,
                     KeywordsEn = "hr employees positions specializations",
                     KeywordsAr = "موارد بشرية موظفين مسميات تخصصات",
                     Children = new()
@@ -709,7 +741,8 @@ public class MenuItem
                             TextAr = "التوظيف",
                             Icon = "bi-person-plus",
                             Url = "/HR/Recruitment",
-                            PermissionPolicy = PermissionList.RecruitmentPermissions.View
+                            PermissionPolicy = PermissionList.RecruitmentPermissions.View,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupRecruitment
                         },
                         new MenuItem
                         {
@@ -717,7 +750,8 @@ public class MenuItem
                             TextAr = "الأداء",
                             Icon = "bi-graph-up-arrow",
                             Url = "/HR/Performance",
-                            PermissionPolicy = PermissionList.PerformancePermissions.View
+                            PermissionPolicy = PermissionList.PerformancePermissions.View,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupPerformance
                         },
                         new MenuItem
                         {
@@ -725,7 +759,8 @@ public class MenuItem
                             TextAr = "التدريب",
                             Icon = "bi-award",
                             Url = "/HR/Training",
-                            PermissionPolicy = PermissionList.TrainingPermissions.View
+                            PermissionPolicy = PermissionList.TrainingPermissions.View,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupTraining
                         },
                         new MenuItem
                         {
@@ -744,6 +779,7 @@ public class MenuItem
                     Icon = "bi-calendar-check",
                     PermissionPolicy = PermissionList.AttendancePermissions.Select,
                     WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupAttendance,
                     KeywordsEn = "attendance setup configuration shifts shift assignments roster schedules sessions work entries holidays permission requests approvals reports",
                     KeywordsAr = "حضور انصراف إعداد تهيئة ورديات تعيين الورديات جداول جلسات مدخلات عمل عطلات أذونات اعتماد تقارير",
                     Children = new()
@@ -1011,6 +1047,7 @@ public class MenuItem
                     Icon = "bi-calendar-heart",
                     PermissionPolicy = PermissionList.LeavePermissions.RequestEmergencyLeave,
                     WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupLeaves,
                     KeywordsEn = "leave emergency balances reports approvals",
                     KeywordsAr = "إجازات طارئة أرصدة تقارير اعتماد",
                     Children = new()
@@ -1080,6 +1117,7 @@ public class MenuItem
                     Icon = "bi-cash-stack",
                     PermissionPolicy = PermissionList.SalaryRunPermissions.Select,
                     WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupPayroll,
                     KeywordsEn = "hr payroll salaries contracts loans deductions",
                     KeywordsAr = "الموارد رواتب عقود سلف خصومات",
                     Children = new()
@@ -1179,6 +1217,7 @@ public class MenuItem
                     Icon = "bi-tags-fill",
                     PermissionPolicy = PermissionList.ProductPermissions.Select,
                     WorkspaceKey = NavigationMenuResolver.WorkspaceWarehouse,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.WarehouseFunctionalGroupProducts,
                     KeywordsEn = "warehouse products sku variants packages brand categories units",
                     KeywordsAr = "مستودع منتجات أصناف خيارات عبوات علامات وحدات",
                     Children = new()
@@ -1264,6 +1303,7 @@ public class MenuItem
                     Icon = "bi-boxes",
                     PermissionPolicy = PermissionList.InventoryPermissions.Select,
                     WorkspaceKey = NavigationMenuResolver.WorkspaceWarehouse,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.WarehouseFunctionalGroupInventory,
                     KeywordsEn = "warehouse inventory stock batches operations reserve release",
                     KeywordsAr = "مستودع مخزون دفعات عمليات حجز إطلاق",
                     Children = new()
@@ -1338,6 +1378,7 @@ public class MenuItem
                             TextAr = "عمليات المخزون",
                             Icon = "bi-arrow-left-right",
                             PermissionPolicy = PermissionList.InventoryPermissions.View,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.WarehouseFunctionalGroupStockOperations,
 
                             Children = new()
                             {
@@ -1392,6 +1433,7 @@ public class MenuItem
                     Icon = "bi-truck",
                     PermissionPolicy = PermissionList.SupplierPermissions.Select,
                     WorkspaceKey = NavigationMenuResolver.WorkspacePurchasing,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.PurchasingFunctionalGroupSuppliers,
                     KeywordsEn = "purchasing suppliers supplier groups",
                     KeywordsAr = "مشتريات موردين مجموعات الموردين",
                     Children = new()
@@ -1421,6 +1463,7 @@ public class MenuItem
                     Icon = "bi-cart-check",
                     PermissionPolicy = PermissionList.PurchaseOrderPermissions.Select,
                     WorkspaceKey = NavigationMenuResolver.WorkspacePurchasing,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.PurchasingFunctionalGroupProcurement,
                     KeywordsEn = "purchasing procurement purchase requests rfq quotations orders receipts invoices",
                     KeywordsAr = "مشتريات طلبات شراء عروض أسعار أوامر استلام فواتير",
                     Children = new()
@@ -1594,6 +1637,7 @@ public class MenuItem
             Icon = "bi-files",
             PermissionPolicy = PermissionList.DocumentManagementPermissions.Select,
             WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupDocuments,
             KeywordsEn = "admin documents attachments files versions collaboration",
             KeywordsAr = "إدارة مستندات مرفقات ملفات إصدارات تعاون",
             Children = new()
@@ -1657,6 +1701,7 @@ public class MenuItem
             Icon = "bi-images",
             PermissionPolicy = PermissionList.MediaCenterPermissions.Select,
             WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupDocuments,
             KeywordsEn = "admin media library activities photos videos audio documents gallery",
             KeywordsAr = "إدارة مركز إعلامي مكتبة أنشطة صور فيديو صوت مستندات معرض",
             Children = new()
@@ -1690,6 +1735,7 @@ public class MenuItem
             Icon = "bi-diagram-3",
             PermissionPolicy = PermissionList.ProjectManagementPermissions.Select,
             WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupProjects,
             KeywordsEn = "projects meals distribution customers locations budget resources",
             KeywordsAr = "مشاريع وجبات توزيع عملاء مواقع ميزانية موارد",
             Children = new()
@@ -1786,6 +1832,7 @@ public class MenuItem
             Icon = "bi-kanban-fill",
             PermissionPolicy = PermissionList.TaskManagementPermissions.Select,
             WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupTasks,
             KeywordsEn = "admin tasks notifications kanban reports",
             KeywordsAr = "إدارة مهام تنبيهات كانبان تقارير",
             Children = new()
@@ -1848,6 +1895,7 @@ public class MenuItem
             TextAr = "عمليات المنصة",
             Icon = "bi-building-gear",
             WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupFleet,
             KeywordsEn = "admin platform operations fleet vehicles real estate properties maintenance assets repairs",
             KeywordsAr = "إدارة عمليات المنصة أسطول مركبات عقارات صيانة أصول إصلاحات",
             Children = new()
@@ -1859,6 +1907,7 @@ public class MenuItem
                     Icon = "bi-truck-front",
                     PermissionPolicy = PermissionList.FleetVehiclePermissions.Select,
                     WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupFleet,
                     KeywordsEn = "admin fleet vehicles cars rented owned assignments expenses fuel oil documents renewals maintenance",
                     KeywordsAr = "إدارة أسطول مركبات سيارات مؤجرة مملوكة عهد مصروفات وقود زيت مستندات تجديد صيانة",
                     Children = new()
@@ -1928,6 +1977,7 @@ public class MenuItem
                     Icon = "bi-buildings",
                     PermissionPolicy = PermissionList.RealEstatePropertyPermissions.Select,
                     WorkspaceKey = NavigationMenuResolver.WorkspaceRealEstate,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.RealEstateFunctionalGroupProperties,
                     BusinessLineKey = SharedWithUI.Organization.BusinessLineKeys.RealEstate,
                     KeywordsEn = "admin real estate properties units leases rent utilities expenses",
                     KeywordsAr = "real estate properties units leases rent utilities expenses",
@@ -1964,6 +2014,7 @@ public class MenuItem
                             Icon = "bi-file-earmark-minus",
                             Url = "/RealEstate/OwnerLeases",
                             PermissionPolicy = PermissionList.RealEstateLeasePermissions.View,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.RealEstateFunctionalGroupLeasing
                         },
                         new MenuItem
                         {
@@ -1972,6 +2023,7 @@ public class MenuItem
                             Icon = "bi-file-earmark-check",
                             Url = "/RealEstate/TenantLeases",
                             PermissionPolicy = PermissionList.RealEstateLeasePermissions.View,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.RealEstateFunctionalGroupLeasing
                         },
                         new MenuItem
                         {
@@ -1980,6 +2032,7 @@ public class MenuItem
                             Icon = "bi-cash-coin",
                             Url = "/RealEstate/Collections",
                             PermissionPolicy = PermissionList.RealEstateInstallmentPermissions.View,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.RealEstateFunctionalGroupCollections
                         },
                         new MenuItem
                         {
@@ -1988,6 +2041,7 @@ public class MenuItem
                             Icon = "bi-lightning-charge",
                             Url = "/RealEstate/Utilities",
                             PermissionPolicy = PermissionList.RealEstateUtilityPermissions.View,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.RealEstateFunctionalGroupUtilitiesExpenses
                         },
                         new MenuItem
                         {
@@ -1996,6 +2050,7 @@ public class MenuItem
                             Icon = "bi-receipt",
                             Url = "/RealEstate/Expenses",
                             PermissionPolicy = PermissionList.RealEstateExpensePermissions.View,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.RealEstateFunctionalGroupUtilitiesExpenses
                         },
                         new MenuItem
                         {
@@ -2004,6 +2059,7 @@ public class MenuItem
                             Icon = "bi-bar-chart-line",
                             Url = "/RealEstate/Reports",
                             PermissionPolicy = PermissionList.RealEstateReportsPermissions.View,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.RealEstateFunctionalGroupReports
                         }
                     }
                 },
@@ -2014,6 +2070,7 @@ public class MenuItem
                     Icon = "bi-tools",
                     PermissionPolicy = PermissionList.MaintenanceWorkOrderPermissions.Select,
                     WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupMaintenance,
                     KeywordsEn = "admin maintenance assets buildings apartments offices vehicles work orders repairs",
                     KeywordsAr = "إدارة صيانة أصول مباني شقق مكاتب مركبات أوامر عمل إصلاحات",
                     Children = new()
@@ -2071,6 +2128,7 @@ public class MenuItem
             Icon = "bi-gear-wide-connected",
             PermissionPolicy = PermissionList.SystemSettingsPermissions.Select,
             WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+            NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupGeneralSettings,
             KeywordsEn = "admin general settings system settings currencies configuration",
             KeywordsAr = "إدارة إعدادات عامة إعدادات النظام عملات تهيئة",
             Children = new()
@@ -2110,6 +2168,7 @@ public class MenuItem
             Icon = "bi-shield-lock-fill",
             PermissionPolicy = PermissionList.UsersPermissions.Select,
             WorkspaceKey = NavigationMenuResolver.WorkspaceSecurity,
+            NavigationFunctionalGroupKey = NavigationMenuResolver.SecurityFunctionalGroupSecurity,
             KeywordsEn = "it security roles users permissions",
             KeywordsAr = "تقنية أمن أدوار مستخدمين صلاحيات",
             Children = new()
@@ -2128,7 +2187,8 @@ public class MenuItem
                     TextAr = "إدارة الصلاحيات",
                     Icon = "bi-shield-check",
                     Url = "/Auth/Role/List",
-                    PermissionPolicy = PermissionList.RolesPermissions.View
+                    PermissionPolicy = PermissionList.RolesPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.SecurityFunctionalGroupRoles
                 },
                 new MenuItem
                 {
@@ -2136,7 +2196,8 @@ public class MenuItem
                     TextAr = "تعيين صلاحيات المستخدمين",
                     Icon = "bi-person-gear",
                     Url = "/Auth/User/AssignRole",
-                    PermissionPolicy = PermissionList.UsersPermissions.View
+                    PermissionPolicy = PermissionList.UsersPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.SecurityFunctionalGroupUserAccess
                 }
             }
         }
