@@ -78,21 +78,7 @@
             }
         </div>
 
-        @if (ShouldUseFunctionalDrilldown && SelectedFunctionalGroup is not null)
-        {
-            <section class="enterprise-quick-links" aria-label="@Text("Functional area", "\u0645\u062c\u0627\u0644 \u0648\u0638\u064a\u0641\u064a")">
-                <button type="button" class="enterprise-quick-link" @onclick="ShowFunctionalGroupChooser">
-                    <i class="bi bi-chevron-left"></i>
-                    <span>@Text("Functional areas", "\u0627\u0644\u0645\u062c\u0627\u0644\u0627\u062a \u0627\u0644\u0648\u0638\u064a\u0641\u064a\u0629")</span>
-                </button>
-                <button type="button" class="enterprise-quick-link" disabled>
-                    <i class="bi @SelectedFunctionalGroup.Icon"></i>
-                    <span>@Label(SelectedFunctionalGroup)</span>
-                </button>
-            </section>
-        }
-
-        @if (string.IsNullOrWhiteSpace(searchText) && !ShouldShowFunctionalGroupChooser && QuickLinks.Any())
+        @if (string.IsNullOrWhiteSpace(searchText) && QuickLinks.Any())
         {
             <section class="enterprise-quick-links" aria-label="@Text("Quick links", "\u0631\u0648\u0627\u0628\u0637 \u0633\u0631\u064a\u0639\u0629")">
                 @foreach (var item in QuickLinks)
@@ -105,22 +91,79 @@
             </section>
         }
 
-        @if (ShouldShowFunctionalGroupChooser)
+        @if (ShouldUseFunctionalDrilldown)
         {
             <div class="enterprise-section-list">
                 @foreach (var group in FunctionalGroups)
                 {
+                    var journeyGroups = VisibleGroupsForFunctionalGroup(group.Key).ToList();
+                    var entryCount = journeyGroups.SelectMany(navigationGroup => FilteredEntries(navigationGroup)).Count();
                     <section class="enterprise-nav-section">
                         <button type="button"
                                 class="enterprise-section-header"
+                                aria-expanded="@IsFunctionalGroupExpanded(group.Key)"
                                 @onclick="() => SelectFunctionalGroup(group)">
                             <span class="enterprise-section-icon"><i class="bi @group.Icon"></i></span>
                             <span>
                                 <strong>@Label(group)</strong>
-                                <small>@Text("Functional area", "\u0645\u062c\u0627\u0644 \u0648\u0638\u064a\u0641\u064a")</small>
+                                <small>@Text($"{entryCount} pages", $"{entryCount} \u0635\u0641\u062d\u0627\u062a")</small>
                             </span>
-                            <i class="bi bi-chevron-right enterprise-section-chevron"></i>
+                            <i class="bi @(IsFunctionalGroupExpanded(group.Key) ? "bi-chevron-up" : "bi-chevron-down") enterprise-section-chevron"></i>
                         </button>
+
+                        @if (IsFunctionalGroupExpanded(group.Key))
+                        {
+                            <div class="enterprise-section-list">
+                                @foreach (var journeyGroup in journeyGroups)
+                                {
+                                    var entries = FilteredEntries(journeyGroup).ToList();
+                                    <section class="enterprise-nav-section">
+                                        <button type="button"
+                                                class="enterprise-section-header"
+                                                aria-expanded="@IsGroupExpanded(journeyGroup.Key)"
+                                                @onclick="() => ToggleGroup(journeyGroup.Key)">
+                                            <span class="enterprise-section-icon"><i class="bi @journeyGroup.Icon"></i></span>
+                                            <span>
+                                                <strong>@Label(journeyGroup)</strong>
+                                                <small>@GroupKindLabel(journeyGroup.Kind) &middot; @Text($"{entries.Count} pages", $"{entries.Count} \u0635\u0641\u062d\u0627\u062a")</small>
+                                            </span>
+                                            <i class="bi @(IsGroupExpanded(journeyGroup.Key) ? "bi-chevron-up" : "bi-chevron-down") enterprise-section-chevron"></i>
+                                        </button>
+
+                                        @if (IsGroupExpanded(journeyGroup.Key))
+                                        {
+                                            <div class="enterprise-link-list">
+                                                @foreach (var entry in entries)
+                                                {
+                                                    <div class="enterprise-link-row depth-@Math.Min(entry.Depth, 4) priority-@entry.Priority">
+                                                        <button type="button"
+                                                                class="@EnterpriseLinkClass(entry)"
+                                                                disabled="@(!CanNavigate(entry.Item))"
+                                                                @onclick="() => NavigateAsync(entry.Item)">
+                                                            <i class="bi @entry.Item.Icon"></i>
+                                                            <span>
+                                                                <strong>@Label(entry.Item)</strong>
+                                                                <small>@PathLabel(entry)</small>
+                                                            </span>
+                                                        </button>
+                                                        @if (CanFavorite(entry.Item))
+                                                        {
+                                                            <button type="button"
+                                                                    class="btn enterprise-favorite-toggle @(IsFavorite(entry.Item) ? "is-active" : "")"
+                                                                    title="@FavoriteTitle(entry.Item)"
+                                                                    aria-label="@FavoriteTitle(entry.Item)"
+                                                                    @onclick="() => ToggleFavoriteAsync(entry.Item)">
+                                                                <i class="bi @(IsFavorite(entry.Item) ? "bi-star-fill" : "bi-star")"></i>
+                                                            </button>
+                                                        }
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    </section>
+                                }
+                            </div>
+                        }
                     </section>
                 }
             </div>
@@ -204,12 +247,10 @@
     private readonly HashSet<string> expandedGroupKeys = new(StringComparer.OrdinalIgnoreCase);
     private string searchText = "";
     private string? selectedFunctionalGroupKey;
-    private bool showFunctionalChooserRequested;
 
     private IReadOnlyList<NavigationWorkspace> AuthorizedWorkspaces => NavigationMenuResolver.GetAuthorizedWorkspaces(AuthState?.User, LicensedBusinessLineKeys);
     private IEnumerable<MenuItem> AuthorizedItems => NavigationMenuResolver.GetAuthorizedNavigableItems(AuthState?.User, LicensedBusinessLineKeys);
     private IReadOnlyList<NavigationFunctionalGroup> FunctionalGroups => NavigationMenuResolver.GetAuthorizedWorkspaceFunctionalGroups(AuthState?.User, FunctionalWorkspaceKey, LicensedBusinessLineKeys);
-    private NavigationFunctionalGroup? SelectedFunctionalGroup => FunctionalGroups.FirstOrDefault(group => group.Key == selectedFunctionalGroupKey);
     private IReadOnlyList<EnterpriseNavigationGroup> Groups => NavigationMenuResolver.GetEnterpriseNavigationGroups(AuthState?.User, EnterpriseWorkspaceKey, CurrentPath, LicensedBusinessLineKeys, EffectiveFunctionalGroupKey);
     private IEnumerable<EnterpriseNavigationGroup> VisibleGroups => Groups.Where(group => FilteredEntries(group).Any());
     private IEnumerable<MenuItem> CurrentItems => Groups.SelectMany(group => group.Entries).Select(entry => entry.Item);
@@ -230,7 +271,6 @@
     private bool IsFunctionalWorkspace => ActiveWorkspace != NavigationMenuResolver.WorkspaceMore
         && NavigationMenuResolver.HasFunctionalGroups(FunctionalWorkspaceKey);
     private bool ShouldUseFunctionalDrilldown => IsFunctionalWorkspace && string.IsNullOrWhiteSpace(searchText);
-    private bool ShouldShowFunctionalGroupChooser => ShouldUseFunctionalDrilldown && string.IsNullOrWhiteSpace(selectedFunctionalGroupKey);
     private string? EffectiveFunctionalGroupKey => ShouldUseFunctionalDrilldown ? selectedFunctionalGroupKey : null;
 
     private string WorkspaceLabel
@@ -263,13 +303,14 @@
         expandedGroupKeys.Clear();
         if (NavigationMenuResolver.HasFunctionalGroups(workspace.Key))
         {
-            selectedFunctionalGroupKey = null;
-            showFunctionalChooserRequested = true;
+            selectedFunctionalGroupKey = NavigationMenuResolver.ResolveActiveFunctionalGroupKey(
+                NavigationManager.Uri,
+                NavigationManager.BaseUri,
+                workspace.Key);
             return;
         }
 
         selectedFunctionalGroupKey = null;
-        showFunctionalChooserRequested = false;
         var url = NavigationMenuResolver.GetWorkspaceDefaultUrl(workspace.Key, AuthState?.User, LicensedBusinessLineKeys);
         if (!string.IsNullOrWhiteSpace(url))
         {
@@ -280,23 +321,14 @@
     private async Task SelectMoreAsync()
     {
         selectedFunctionalGroupKey = null;
-        showFunctionalChooserRequested = false;
         await ActiveWorkspaceChanged.InvokeAsync(NavigationMenuResolver.WorkspaceMore);
     }
 
     private void SelectFunctionalGroup(NavigationFunctionalGroup group)
     {
         selectedFunctionalGroupKey = group.Key;
-        showFunctionalChooserRequested = false;
         expandedGroupKeys.Clear();
         ExpandRelevantGroups();
-    }
-
-    private void ShowFunctionalGroupChooser()
-    {
-        selectedFunctionalGroupKey = null;
-        showFunctionalChooserRequested = true;
-        expandedGroupKeys.Clear();
     }
 
     private async Task NavigateAsync(MenuItem item)
@@ -317,6 +349,11 @@
             .Where(MatchesSearch)
             .GroupBy(entry => NavigationMenuResolver.GetStorageKey(entry.Item), StringComparer.OrdinalIgnoreCase)
             .Select(entryGroup => entryGroup.First());
+
+    private IEnumerable<EnterpriseNavigationGroup> VisibleGroupsForFunctionalGroup(string functionalGroupKey)
+        => NavigationMenuResolver
+            .GetEnterpriseNavigationGroups(AuthState?.User, EnterpriseWorkspaceKey, CurrentPath, LicensedBusinessLineKeys, functionalGroupKey)
+            .Where(group => FilteredEntries(group).Any());
 
     private bool MatchesSearch(EnterpriseNavigationEntry entry)
     {
@@ -375,6 +412,9 @@
 
     private bool IsGroupExpanded(string groupKey)
         => expandedGroupKeys.Contains(groupKey);
+
+    private bool IsFunctionalGroupExpanded(string functionalGroupKey)
+        => string.Equals(selectedFunctionalGroupKey, functionalGroupKey, StringComparison.OrdinalIgnoreCase);
 
     private void ExpandRelevantGroups()
     {
@@ -526,7 +566,6 @@
 
     private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
     {
-        showFunctionalChooserRequested = false;
         SyncSelectedFunctionalGroupWithCurrentPath();
         ExpandRelevantGroups();
         _ = InvokeAsync(StateHasChanged);
@@ -534,20 +573,21 @@
 
     private void SyncSelectedFunctionalGroupWithCurrentPath()
     {
-        if (!IsFunctionalWorkspace || showFunctionalChooserRequested)
+        if (!IsFunctionalWorkspace)
         {
-            if (!IsFunctionalWorkspace)
-            {
-                selectedFunctionalGroupKey = null;
-            }
-
+            selectedFunctionalGroupKey = null;
             return;
         }
 
-        selectedFunctionalGroupKey = NavigationMenuResolver.ResolveActiveFunctionalGroupKey(
+        var activeFunctionalGroupKey = NavigationMenuResolver.ResolveActiveFunctionalGroupKey(
             NavigationManager.Uri,
             NavigationManager.BaseUri,
             FunctionalWorkspaceKey);
+
+        if (!string.IsNullOrWhiteSpace(activeFunctionalGroupKey))
+        {
+            selectedFunctionalGroupKey = activeFunctionalGroupKey;
+        }
     }
 
     public void Dispose()

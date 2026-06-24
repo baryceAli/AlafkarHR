@@ -113,6 +113,8 @@ Assign every business navigation entry to one of the workspace functional groups
 - Update both `DesktopWorkspaceNav` and `EnterpriseNavigationPanel` when changing workspace drilldown behavior.
 - For direct navigation to a page, expand or select the matching functional group and journey group.
 - When clicking a workspace icon, show the workspace's functional group level first when that workspace has functional groups.
+- When a user selects a functional group, keep the other authorized functional groups visible as collapsed sibling headers; do not replace the functional group list with only the selected group.
+- Use visible-collapsed functional siblings for future workspace drilldown changes across all workspaces with functional groups, including HR, Sales, Purchasing, Warehouse, Accounting / Finance, Catering, Real Estate, Admin, and IT / Security.
 - Keep POS compatible with both entry points: POS remains its own workspace icon and is also discoverable under the Sales POS functional group.
 - Keep accounting sales/purchase aliases under Accounting / Finance unless the user explicitly asks to move accounting links into Sales or Purchasing.
 
