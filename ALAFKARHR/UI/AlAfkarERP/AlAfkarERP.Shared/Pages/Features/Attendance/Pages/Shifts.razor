@@ -19,6 +19,10 @@
                 Overline="@Text("Attendance", "الحضور والانصراف")"
                 Icon="bi-calendar2-week">
         <Actions>
+            <button class="btn btn-primary" @onclick="StartCreateShift" disabled="@isBusy">
+                <i class="bi bi-plus-circle"></i>
+                @Text("Create shift", "انشاء وردية")
+            </button>
             <button class="btn btn-outline-primary" @onclick="LoadShifts" disabled="@isBusy">
                 <i class="bi bi-arrow-clockwise"></i>
                 @Text("Refresh", "تحديث")
@@ -31,19 +35,18 @@
         <div class="alert @messageClass">@message</div>
     }
 
+    @if (isFormVisible)
+    {
     <section class="attendance-workspace-card">
         <div class="attendance-section-title">
             <div>
                 <h2>@(isEditing ? Text("Update shift", "تعديل الوردية") : Text("Create shift", "انشاء وردية"))</h2>
                 <span>@Text("The shift will be saved for the signed-in user's company.", "سيتم حفظ الوردية على شركة المستخدم الحالي.")</span>
             </div>
-            @if (isEditing)
-            {
-                <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelEdit" disabled="@isBusy">
+            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelForm" disabled="@isBusy">
                     <i class="bi bi-x-lg"></i>
-                    @Text("Cancel edit", "الغاء التعديل")
-                </button>
-            }
+                    @(isEditing ? Text("Cancel edit", "الغاء التعديل") : Text("Cancel", "الغاء"))
+            </button>
         </div>
 
         <div class="form-grid">
@@ -84,6 +87,7 @@
             </button>
         </div>
     </section>
+    }
 
     <section class="attendance-workspace-card mt-3">
         <div class="attendance-section-title">
@@ -120,7 +124,7 @@
                     }
                     @foreach (var shift in shifts)
                     {
-                        <tr class="@(model.Id == shift.Id ? "table-active" : "")">
+                        <tr class="@(isFormVisible && model.Id == shift.Id ? "table-active" : "")">
                             <td class="fw-semibold">@shift.Name</td>
                             <td>@FormatLocalShiftTime(shift.StartTime) - @FormatLocalShiftTime(shift.EndTime)</td>
                             <td>@shift.GracePeriodMinutes @Text("min", "دقيقة")</td>
@@ -161,6 +165,7 @@
     private TimeOnly endTime = new(17, 0);
     private bool isBusy;
     private bool isEditing;
+    private bool isFormVisible;
     private string? message;
     private string messageClass = "alert-info";
 
@@ -223,6 +228,7 @@
                 "alert-success");
 
             ResetModel();
+            isFormVisible = false;
             await LoadShifts();
         }
         else
@@ -252,6 +258,7 @@
         startTime = ToLocalTimeOnly(shift.StartTime);
         endTime = ToLocalTimeOnly(shift.EndTime);
         isEditing = true;
+        isFormVisible = true;
         message = null;
     }
 
@@ -274,6 +281,7 @@
                     if (model.Id == shift.Id)
                     {
                         ResetModel();
+                        isFormVisible = false;
                     }
 
                     await LoadShifts();
@@ -289,7 +297,19 @@
         });
     }
 
-    private void CancelEdit() => ResetModel();
+    private void StartCreateShift()
+    {
+        ResetModel();
+        isFormVisible = true;
+        message = null;
+    }
+
+    private void CancelForm()
+    {
+        ResetModel();
+        isFormVisible = false;
+        message = null;
+    }
 
     private bool ValidateModel()
     {

@@ -23,6 +23,15 @@ public static partial class NavigationMenuResolver
     public const string WorkspacePos = "pos";
     public const string WorkspaceProcurement = WorkspacePurchasing;
 
+    public const string NavigationGroupStart = "start";
+    public const string NavigationGroupSetup = "setup";
+    public const string NavigationGroupMasterData = "master-data";
+    public const string NavigationGroupDailyWork = "daily-work";
+    public const string NavigationGroupApprovals = "approvals";
+    public const string NavigationGroupAdjustments = "adjustments";
+    public const string NavigationGroupReports = "reports";
+    public const string NavigationGroupAdministration = "administration";
+
     public const string HubHr = WorkspaceHr;
     public const string HubSales = WorkspaceSales;
     public const string HubPurchasing = WorkspacePurchasing;
@@ -476,6 +485,17 @@ public static partial class NavigationMenuResolver
             return GetAuthorizedWorkspaceRows(user, workspaceKey, licensedBusinessLineKeys);
         }
 
+        var journeyRows = new List<NavigationMenuRow>();
+        foreach (var section in BuildJourneyPanelSections(user, workspaceKey, licensedBusinessLineKeys))
+        {
+            AddPanelRows(section, [], 0, journeyRows);
+        }
+
+        if (journeyRows.Count > 0)
+        {
+            return journeyRows;
+        }
+
         var rows = new List<NavigationMenuRow>();
         var roots = GetAuthorizedTree(user, licensedBusinessLineKeys);
         foreach (var section in GetWorkspacePanelSections(roots, workspaceKey))
@@ -575,6 +595,78 @@ public static partial class NavigationMenuResolver
             "/auth/user/assignrole" => 21,
             _ => 100
         };
+    }
+
+    public static NavigationJourneyGroup GetNavigationJourneyGroup(MenuItem item)
+    {
+        var key = ResolveNavigationGroupKey(item);
+        return NavigationJourneyGroups.FirstOrDefault(group => group.Key == key)
+               ?? NavigationJourneyGroups.First(group => group.Key == NavigationGroupDailyWork);
+    }
+
+    public static string ResolveNavigationGroupKey(MenuItem item)
+    {
+        if (!string.IsNullOrWhiteSpace(item.NavigationGroupKey))
+        {
+            return item.NavigationGroupKey;
+        }
+
+        var path = NormalizePath(item.Url);
+        var text = GetNavigationHaystack(item);
+
+        if (IsJourneyStart(path, text))
+        {
+            return NavigationGroupStart;
+        }
+
+        if (IsJourneyReport(path, text))
+        {
+            return NavigationGroupReports;
+        }
+
+        if (IsJourneyApproval(path, text))
+        {
+            return NavigationGroupApprovals;
+        }
+
+        if (IsJourneySetup(path, text))
+        {
+            return NavigationGroupSetup;
+        }
+
+        if (IsJourneyAdministration(path, text))
+        {
+            return NavigationGroupAdministration;
+        }
+
+        if (IsJourneyAdjustment(path, text))
+        {
+            return NavigationGroupAdjustments;
+        }
+
+        if (IsJourneyMasterData(path, text))
+        {
+            return NavigationGroupMasterData;
+        }
+
+        return NavigationGroupDailyWork;
+    }
+
+    public static int GetNavigationJourneyOrder(MenuItem item)
+    {
+        if (item.NavigationOrder.HasValue)
+        {
+            return item.NavigationOrder.Value;
+        }
+
+        var path = NormalizePath(item.Url);
+        if (JourneyPathPriorities.TryGetValue(path, out var pathPriority))
+        {
+            return pathPriority;
+        }
+
+        var group = GetNavigationJourneyGroup(item);
+        return group.Order * 1000 + GetMobilePriority(item);
     }
 
     public static IEnumerable<MenuItem> Flatten(IEnumerable<MenuItem> items)
@@ -707,6 +799,9 @@ public static partial class NavigationMenuResolver
             BadgeTitleAr = item.BadgeTitleAr,
             WorkspaceKey = item.WorkspaceKey,
             BusinessLineKey = item.BusinessLineKey,
+            NavigationGroupKey = item.NavigationGroupKey,
+            NavigationOrder = item.NavigationOrder,
+            ProcessKey = item.ProcessKey,
             NavigationAliases = item.NavigationAliases.ToList(),
             MobilePriority = item.MobilePriority,
             KeywordsEn = item.KeywordsEn,
@@ -744,6 +839,59 @@ public static partial class NavigationMenuResolver
             AddPanelRows(child, path, depth + 1, rows);
         }
     }
+
+    private static IReadOnlyList<MenuItem> BuildJourneyPanelSections(
+        ClaimsPrincipal? user,
+        string workspaceKey,
+        IReadOnlySet<string>? licensedBusinessLineKeys)
+    {
+        var items = GetAuthorizedRows(user, null, licensedBusinessLineKeys)
+            .Where(row => !string.IsNullOrWhiteSpace(row.Item.Url)
+                          && HasOwnPermission(row.Item, user, licensedBusinessLineKeys)
+                          && RowBelongsToWorkspace(row.Item, workspaceKey, user, licensedBusinessLineKeys))
+            .Select(row => row.Item)
+            .GroupBy(GetStorageKey, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group
+                .OrderBy(GetNavigationJourneyOrder)
+                .ThenBy(item => GetMenuPath(item, workspaceKey).Count)
+                .First())
+            .ToList();
+
+        if (items.Count == 0)
+        {
+            return [];
+        }
+
+        return NavigationJourneyGroups
+            .Select(group =>
+            {
+                var children = items
+                    .Where(item => ResolveNavigationGroupKey(item) == group.Key)
+                    .OrderBy(GetNavigationJourneyOrder)
+                    .ThenBy(item => item.TextEn)
+                    .Select(item => ClonePanelItem(item, []))
+                    .ToList();
+
+                return children.Count == 0 ? null : CreateJourneySection(group, workspaceKey, children);
+            })
+            .Where(section => section is not null)
+            .Cast<MenuItem>()
+            .ToList();
+    }
+
+    private static MenuItem CreateJourneySection(NavigationJourneyGroup group, string workspaceKey, List<MenuItem> children)
+        => new()
+        {
+            TextEn = group.TextEn,
+            TextAr = group.TextAr,
+            Icon = group.Icon,
+            PermissionPolicy = string.Empty,
+            WorkspaceKey = workspaceKey,
+            NavigationGroupKey = group.Key,
+            NavigationOrder = group.Order,
+            IsFavoriteCandidate = false,
+            Children = children
+        };
 
     private static IReadOnlyList<MenuItem> GetWorkspacePanelSections(IReadOnlyList<MenuItem> roots, string workspaceKey)
         => workspaceKey switch
@@ -850,6 +998,9 @@ public static partial class NavigationMenuResolver
             BadgeTitleAr = item.BadgeTitleAr,
             WorkspaceKey = item.WorkspaceKey,
             BusinessLineKey = item.BusinessLineKey,
+            NavigationGroupKey = item.NavigationGroupKey,
+            NavigationOrder = item.NavigationOrder,
+            ProcessKey = item.ProcessKey,
             NavigationAliases = item.NavigationAliases.ToList(),
             MobilePriority = item.MobilePriority,
             KeywordsEn = item.KeywordsEn,
@@ -1072,9 +1223,212 @@ public static partial class NavigationMenuResolver
         workspaceKey = GetWorkspaceKey(match);
         return true;
     }
+
+    private static bool IsJourneyStart(string path, string text)
+        => path == "/dashboard"
+           || path.EndsWith("/dashboard", StringComparison.OrdinalIgnoreCase)
+           || ContainsNavigationAny(text, " dashboard ", " command center ", " overview ", " pos ", "\u0644\u0648\u062d\u0629");
+
+    private static bool IsJourneyReport(string path, string text)
+        => path.Contains("/reports", StringComparison.OrdinalIgnoreCase)
+           || ContainsNavigationAny(text, " report ", " reports ", " analytics ", " scorecard ", "\u062a\u0642\u0631\u064a\u0631", "\u062a\u0642\u0627\u0631\u064a\u0631");
+
+    private static bool IsJourneyApproval(string path, string text)
+        => path.Contains("/approve", StringComparison.OrdinalIgnoreCase)
+           || ContainsNavigationAny(text, " approve ", " approval ", " review ", " late requests ", "\u0627\u0639\u062a\u0645\u0627\u062f", "\u0645\u0631\u0627\u062c\u0639\u0629");
+
+    private static bool IsJourneySetup(string path, string text)
+        => ContainsNavigationAny(text,
+            " setup ",
+            " setting ",
+            " settings ",
+            " configuration ",
+            " configure ",
+            " template ",
+            " templates ",
+            " policy ",
+            " policies ",
+            " structure ",
+            " structures ",
+            " component ",
+            " components ",
+            " position ",
+            " positions ",
+            " specialization ",
+            " specializations ",
+            " academic institution ",
+            " academic institutions ",
+            " shift ",
+            " shifts ",
+            " holiday ",
+            " holidays ",
+            " pricing list ",
+            " fiscal ",
+            " tax ",
+            " posting ",
+            " profile ",
+            " profiles ",
+            " chart of accounts ",
+            " controls ",
+            " rule ",
+            " rules ",
+            "\u0625\u0639\u062f\u0627\u062f",
+            "\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a",
+            "\u0642\u0627\u0644\u0628",
+            "\u0642\u0648\u0627\u0644\u0628",
+            "\u0633\u064a\u0627\u0633\u0627\u062a",
+            "\u0636\u0648\u0627\u0628\u0637");
+
+    private static bool IsJourneyAdministration(string path, string text)
+        => path.StartsWith("/auth", StringComparison.OrdinalIgnoreCase)
+           || path.StartsWith("/generalsettings", StringComparison.OrdinalIgnoreCase)
+           || ContainsNavigationAny(text, " role ", " roles ", " permission ", " permissions ", " assign user roles ", " system settings ", " administration ");
+
+    private static bool IsJourneyAdjustment(string path, string text)
+        => ContainsNavigationAny(text,
+            " adjustment ",
+            " adjustments ",
+            " return ",
+            " returns ",
+            " credit note ",
+            " credit notes ",
+            " debit note ",
+            " debit notes ",
+            " reconciliation ",
+            " exception ",
+            " exceptions ",
+            "\u062a\u0633\u0648\u064a\u0627\u062a",
+            "\u0645\u0631\u062a\u062c\u0639",
+            "\u0625\u0634\u0639\u0627\u0631");
+
+    private static bool IsJourneyMasterData(string path, string text)
+        => ContainsNavigationAny(text,
+            " employee ",
+            " employees ",
+            " team ",
+            " teams ",
+            " document ",
+            " documents ",
+            " emergency contacts ",
+            " skills ",
+            " certifications ",
+            " contract ",
+            " contracts ",
+            " customer ",
+            " customers ",
+            " supplier ",
+            " suppliers ",
+            " product ",
+            " products ",
+            " sku ",
+            " brand ",
+            " category ",
+            " categories ",
+            " unit ",
+            " units ",
+            " warehouse ",
+            " warehouses ",
+            " current stock ",
+            " batch ",
+            " batches ",
+            " account ",
+            " accounts ",
+            " bank cash accounts ",
+            " vehicle ",
+            " vehicles ",
+            " asset ",
+            " assets ",
+            " property ",
+            " properties ",
+            "\u0645\u0648\u0638\u0641",
+            "\u0645\u0648\u0638\u0641\u064a\u0646",
+            "\u0639\u0645\u064a\u0644",
+            "\u0639\u0645\u0644\u0627\u0621",
+            "\u0645\u0648\u0631\u062f",
+            "\u0645\u0648\u0631\u062f\u0648\u0646",
+            "\u0645\u0646\u062a\u062c",
+            "\u0645\u0646\u062a\u062c\u0627\u062a",
+            "\u0645\u0633\u062a\u0646\u062f\u0627\u062a",
+            "\u0645\u062e\u0632\u0648\u0646");
+
+    private static string GetNavigationHaystack(MenuItem item)
+        => $" {item.TextEn} {item.TextAr} {item.Url} {item.KeywordsEn} {item.KeywordsAr} {item.PermissionPolicy} "
+            .ToLowerInvariant()
+            .Replace('-', ' ')
+            .Replace('/', ' ');
+
+    private static bool ContainsNavigationAny(string value, params string[] terms)
+        => terms.Any(term => value.Contains(term, StringComparison.OrdinalIgnoreCase));
+
+    private static readonly IReadOnlyList<NavigationJourneyGroup> NavigationJourneyGroups =
+    [
+        new(NavigationGroupStart, "Start / Overview", "\u0627\u0644\u0628\u062f\u0621 / \u0646\u0638\u0631\u0629 \u0639\u0627\u0645\u0629", "bi-speedometer2", 0),
+        new(NavigationGroupSetup, "Setup", "\u0627\u0644\u0625\u0639\u062f\u0627\u062f", "bi-sliders2", 1),
+        new(NavigationGroupMasterData, "Master Data", "\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629", "bi-collection", 2),
+        new(NavigationGroupDailyWork, "Daily Work", "\u0627\u0644\u0639\u0645\u0644 \u0627\u0644\u064a\u0648\u0645\u064a", "bi-arrow-left-right", 3),
+        new(NavigationGroupApprovals, "Approvals", "\u0627\u0644\u0627\u0639\u062a\u0645\u0627\u062f\u0627\u062a", "bi-patch-check", 4),
+        new(NavigationGroupAdjustments, "Adjustments / Exceptions", "\u0627\u0644\u062a\u0633\u0648\u064a\u0627\u062a / \u0627\u0644\u0627\u0633\u062a\u062b\u0646\u0627\u0621\u0627\u062a", "bi-sliders", 5),
+        new(NavigationGroupReports, "Reports", "\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631", "bi-bar-chart-line", 6),
+        new(NavigationGroupAdministration, "Administration", "\u0627\u0644\u0625\u062f\u0627\u0631\u0629", "bi-shield-lock", 7)
+    ];
+
+    private static readonly IReadOnlyDictionary<string, int> JourneyPathPriorities = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["/employee/dashboard"] = 0,
+        ["/hr/commandcenter"] = 1,
+        ["/attendance/dashboard"] = 2,
+        ["/sales/dashboard"] = 3,
+        ["/procurement/dashboard"] = 4,
+        ["/inventory/dashboard"] = 5,
+        ["/accounting/dashboard"] = 6,
+        ["/auth/dashboard"] = 7,
+
+        ["/employee/position/list"] = 100,
+        ["/employee/teams"] = 101,
+        ["/employee/academicinistitution/list"] = 102,
+        ["/employee/specialization/list"] = 103,
+        ["/attendance/configuration"] = 110,
+        ["/attendance/shifts"] = 111,
+        ["/attendance/shiftassignments"] = 112,
+        ["/attendance/holidays"] = 113,
+        ["/hr/leavepolicies"] = 120,
+        ["/payroll/components"] = 130,
+        ["/hr/payrollstructures"] = 131,
+
+        ["/employee/employee/list"] = 200,
+        ["/hr/employeelifecycle"] = 201,
+        ["/hr/employeedocuments"] = 202,
+        ["/hr/employeeemergencycontacts"] = 203,
+        ["/hr/employeeskills"] = 204,
+        ["/payroll/contracts"] = 230,
+        ["/payroll/assigncontract"] = 231,
+
+        ["/attendance/myattendance"] = 300,
+        ["/attendance/sessions"] = 301,
+        ["/hr/attendanceroster"] = 302,
+        ["/hr/workentries"] = 303,
+        ["/hr/leaveapplications"] = 320,
+        ["/leavesmanagement/emergencyleaves"] = 321,
+        ["/leavesmanagement/balances"] = 322,
+        ["/leavesmanagement/ledger"] = 323,
+        ["/hr/leaveledger"] = 324,
+        ["/payroll/salaryruns"] = 330,
+        ["/hr/payslips"] = 331,
+        ["/hr/saudipayroll"] = 332,
+        ["/payroll/loans"] = 333,
+
+        ["/attendance/laterequests"] = 400,
+        ["/attendance/approvepermissionrequests"] = 401,
+        ["/leavesmanagement/approveemergencyleaves"] = 402,
+
+        ["/hr/reports"] = 600,
+        ["/attendance/reports"] = 601,
+        ["/leavesmanagement/reports"] = 602
+    };
 }
 
 public sealed record NavigationWorkspace(string Key, string TextEn, string TextAr, string Icon, string? Url);
 public sealed record NavigationHubWorkspace(string Key, string TextEn, string TextAr, string Icon);
 public sealed record NavigationHubSection(string Key, string TextEn, string TextAr, string Icon, string WorkspaceKey, IReadOnlyList<NavigationMenuRow> Rows);
 public sealed record NavigationMenuRow(MenuItem Item, int Depth, IReadOnlyList<MenuItem> Path);
+public sealed record NavigationJourneyGroup(string Key, string TextEn, string TextAr, string Icon, int Order);
