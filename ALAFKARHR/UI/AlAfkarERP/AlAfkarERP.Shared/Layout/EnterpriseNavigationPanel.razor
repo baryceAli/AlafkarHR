@@ -303,7 +303,7 @@
         var currentGroups = Groups;
         if (!expandedGroupKeys.Any())
         {
-            foreach (var group in currentGroups.Where(group => group.Kind is EnterpriseNavigationGroupKind.Overview or EnterpriseNavigationGroupKind.Transactions))
+            foreach (var group in currentGroups.Where(group => group.Kind is EnterpriseNavigationGroupKind.Start or EnterpriseNavigationGroupKind.DailyWork))
             {
                 expandedGroupKeys.Add(group.Key);
             }
@@ -415,12 +415,14 @@
     private string GroupKindLabel(EnterpriseNavigationGroupKind kind)
         => kind switch
         {
-            EnterpriseNavigationGroupKind.Overview => Text("Overview", "\u0646\u0638\u0631\u0629 \u0639\u0627\u0645\u0629"),
-            EnterpriseNavigationGroupKind.Records => Text("Records", "\u0627\u0644\u0633\u062c\u0644\u0627\u062a"),
-            EnterpriseNavigationGroupKind.Transactions => Text("Transactions", "\u0645\u0639\u0627\u0645\u0644\u0627\u062a"),
-            EnterpriseNavigationGroupKind.Files => Text("Files", "\u0627\u0644\u0645\u0644\u0641\u0627\u062a"),
-            EnterpriseNavigationGroupKind.Reports => Text("Reports", "\u062a\u0642\u0627\u0631\u064a\u0631"),
-            EnterpriseNavigationGroupKind.Setup => Text("Setup", "\u0625\u0639\u062f\u0627\u062f"),
+            EnterpriseNavigationGroupKind.Start => Text("Start / Overview", "\u0627\u0644\u0628\u062f\u0621 / \u0646\u0638\u0631\u0629 \u0639\u0627\u0645\u0629"),
+            EnterpriseNavigationGroupKind.Setup => Text("Setup", "\u0627\u0644\u0625\u0639\u062f\u0627\u062f"),
+            EnterpriseNavigationGroupKind.MasterData => Text("Master Data", "\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629"),
+            EnterpriseNavigationGroupKind.DailyWork => Text("Daily Work", "\u0627\u0644\u0639\u0645\u0644 \u0627\u0644\u064a\u0648\u0645\u064a"),
+            EnterpriseNavigationGroupKind.Approvals => Text("Approvals", "\u0627\u0644\u0627\u0639\u062a\u0645\u0627\u062f\u0627\u062a"),
+            EnterpriseNavigationGroupKind.Adjustments => Text("Adjustments / Exceptions", "\u0627\u0644\u062a\u0633\u0648\u064a\u0627\u062a / \u0627\u0644\u0627\u0633\u062a\u062b\u0646\u0627\u0621\u0627\u062a"),
+            EnterpriseNavigationGroupKind.Reports => Text("Reports", "\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631"),
+            EnterpriseNavigationGroupKind.Administration => Text("Administration", "\u0627\u0644\u0625\u062f\u0627\u0631\u0629"),
             EnterpriseNavigationGroupKind.Related => Text("Related", "\u0645\u0631\u062a\u0628\u0637"),
             _ => Text("Pages", "\u0635\u0641\u062d\u0627\u062a")
         };

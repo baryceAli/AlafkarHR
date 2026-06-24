@@ -15,6 +15,9 @@ public class MenuItem
     public string? BadgeTitleAr { get; set; }
     public string? WorkspaceKey { get; set; }
     public string? BusinessLineKey { get; set; }
+    public string? NavigationGroupKey { get; set; }
+    public int? NavigationOrder { get; set; }
+    public string? ProcessKey { get; set; }
     public List<string> NavigationAliases { get; set; } = new();
     public int? MobilePriority { get; set; }
     public string? KeywordsEn { get; set; }
