@@ -112,22 +112,16 @@ public static partial class NavigationMenuResolver
     }
 
     public static string ResolveEnterpriseWorkspaceKey(string workspaceKey)
-        => workspaceKey == WorkspacePos ? WorkspaceSales : workspaceKey;
+        => workspaceKey;
 
     private static bool IsEnterpriseWorkspaceMatch(MenuItem item, string workspaceKey, string itemWorkspaceKey, bool isRelated)
         => workspaceKey == WorkspaceMore
            || itemWorkspaceKey == workspaceKey
-           || workspaceKey == WorkspaceSales && itemWorkspaceKey == WorkspacePos
            || isRelated;
 
     private static bool IsEnterpriseRelated(MenuItem item, string workspaceKey, string itemWorkspaceKey)
     {
         if (workspaceKey == WorkspaceMore || itemWorkspaceKey == workspaceKey)
-        {
-            return false;
-        }
-
-        if (workspaceKey == WorkspaceSales && itemWorkspaceKey == WorkspacePos)
         {
             return false;
         }

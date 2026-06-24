@@ -305,7 +305,6 @@
     private bool MatchesActiveWorkspace(MenuItem item)
         => activeHubWorkspace == NavigationMenuResolver.WorkspaceMore
            || NavigationMenuResolver.GetWorkspaceKey(item) == activeHubWorkspace
-           || activeHubWorkspace == NavigationMenuResolver.WorkspaceSales && NavigationMenuResolver.GetWorkspaceKey(item) == NavigationMenuResolver.WorkspacePos
            || Groups.SelectMany(group => group.Entries).Any(entry => NavigationMenuResolver.GetStorageKey(entry.Item) == NavigationMenuResolver.GetStorageKey(item));
 
     private string PathLabel(EnterpriseNavigationEntry entry)
@@ -322,7 +321,7 @@
         {
             return ActiveWorkspace switch
             {
-                NavigationMenuResolver.WorkspacePos => NavigationMenuResolver.HubSales,
+                NavigationMenuResolver.WorkspaceStoreFront => NavigationMenuResolver.HubStoreFront,
                 NavigationMenuResolver.WorkspaceHr => NavigationMenuResolver.HubHr,
                 NavigationMenuResolver.WorkspaceSales => NavigationMenuResolver.HubSales,
                 NavigationMenuResolver.WorkspacePurchasing => NavigationMenuResolver.HubPurchasing,

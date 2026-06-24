@@ -20,7 +20,8 @@ public static partial class NavigationMenuResolver
     public const string WorkspaceOperations = WorkspaceSales;
     public const string WorkspaceFinancePayroll = WorkspaceHr;
     public const string WorkspaceInventory = WorkspaceWarehouse;
-    public const string WorkspacePos = "pos";
+    public const string WorkspaceStoreFront = "store-front";
+    public const string WorkspacePos = WorkspaceStoreFront;
     public const string WorkspaceProcurement = WorkspacePurchasing;
 
     public const string NavigationGroupStart = "start";
@@ -40,9 +41,10 @@ public static partial class NavigationMenuResolver
     public const string HrFunctionalGroupPerformance = "hr-performance";
     public const string HrFunctionalGroupTraining = "hr-training";
 
-    public const string PosFunctionalGroupCheckout = "pos-checkout";
+    public const string StoreFrontFunctionalGroupCheckout = "store-front-checkout";
+    public const string StoreFrontFunctionalGroupStores = "store-front-stores";
+    public const string PosFunctionalGroupCheckout = StoreFrontFunctionalGroupCheckout;
 
-    public const string SalesFunctionalGroupPos = PosFunctionalGroupCheckout;
     public const string SalesFunctionalGroupSales = "sales-sales";
     public const string SalesFunctionalGroupCustomers = "sales-customers";
     public const string SalesFunctionalGroupReports = "sales-reports";
@@ -92,6 +94,7 @@ public static partial class NavigationMenuResolver
     public const string SecurityFunctionalGroupUserAccess = "security-user-access";
 
     public const string HubHr = WorkspaceHr;
+    public const string HubStoreFront = WorkspaceStoreFront;
     public const string HubSales = WorkspaceSales;
     public const string HubPurchasing = WorkspacePurchasing;
     public const string HubCatering = WorkspaceCatering;
@@ -104,7 +107,7 @@ public static partial class NavigationMenuResolver
     public static readonly IReadOnlyList<NavigationWorkspace> MobileWorkspaces =
     [
         new(WorkspaceHome, "Home", "\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629", "bi-house-door", "/Dashboard"),
-        new(WorkspacePos, "POS", "\u0646\u0642\u0637\u0629 \u0628\u064a\u0639", "bi-receipt", "/SalesOrder/POS"),
+        new(WorkspaceStoreFront, "StoreFront", "\u0648\u0627\u062c\u0647\u0627\u062a \u0627\u0644\u0645\u062a\u0627\u062c\u0631", "bi-shop", "/StoreFront/POS"),
         new(WorkspaceHr, "HR", "\u0627\u0644\u0645\u0648\u0627\u0631\u062f", "bi-people", "/Employee/Dashboard"),
         new(WorkspaceSales, "Sales", "\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a", "bi-graph-up-arrow", "/Sales/Dashboard"),
         new(WorkspacePurchasing, "Purchasing", "\u0627\u0644\u0645\u0634\u062a\u0631\u064a\u0627\u062a", "bi-cart-check", "/Procurement/Dashboard"),
@@ -120,6 +123,7 @@ public static partial class NavigationMenuResolver
     public static readonly IReadOnlyList<NavigationHubWorkspace> HubWorkspaces =
     [
         new(HubHr, "HR", "\u0627\u0644\u0645\u0648\u0627\u0631\u062f", "bi-people"),
+        new(HubStoreFront, "StoreFront", "\u0648\u0627\u062c\u0647\u0627\u062a \u0627\u0644\u0645\u062a\u0627\u062c\u0631", "bi-shop"),
         new(HubSales, "Sales", "\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a", "bi-graph-up-arrow"),
         new(HubPurchasing, "Purchasing", "\u0627\u0644\u0645\u0634\u062a\u0631\u064a\u0627\u062a", "bi-cart-check"),
         new(HubCatering, "Catering", "\u062e\u062f\u0645\u0627\u062a \u0627\u0644\u0625\u0639\u0627\u0634\u0629", "bi-cup-hot"),
@@ -246,9 +250,13 @@ public static partial class NavigationMenuResolver
             return WorkspaceAccountingFinance;
         }
 
-        if (path == "/salesorder/pos" || text.Equals("POS", StringComparison.OrdinalIgnoreCase))
+        if (path.StartsWith("/storefront", StringComparison.OrdinalIgnoreCase)
+            || path == "/salesorder/pos"
+            || text.Equals("POS", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("StoreFront", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Store Front", StringComparison.OrdinalIgnoreCase))
         {
-            return WorkspacePos;
+            return WorkspaceStoreFront;
         }
 
         if (text.Contains("Finance", StringComparison.OrdinalIgnoreCase))
@@ -315,12 +323,6 @@ public static partial class NavigationMenuResolver
             || text.Contains("Leave", StringComparison.OrdinalIgnoreCase))
         {
             return WorkspaceHr;
-        }
-
-        if (path == "/salesorder/pos"
-            || text.Equals("POS", StringComparison.OrdinalIgnoreCase))
-        {
-            return WorkspacePos;
         }
 
         if (path.StartsWith("/salesorder", StringComparison.OrdinalIgnoreCase)
@@ -513,11 +515,6 @@ public static partial class NavigationMenuResolver
     public static string ResolveHubWorkspaceKey(MenuItem item)
     {
         var workspaceKey = GetWorkspaceKey(item);
-        if (workspaceKey == WorkspacePos)
-        {
-            return HubSales;
-        }
-
         return workspaceKey == WorkspaceMore ? HubAdmin : workspaceKey;
     }
 
@@ -1050,7 +1047,7 @@ public static partial class NavigationMenuResolver
         => workspaceKey switch
         {
             WorkspaceHome => FindSections(roots, "Control Panel"),
-            WorkspacePos => FindSections(roots, "POS"),
+            WorkspaceStoreFront => FindSections(roots, "POS", "Store Fronts"),
             WorkspaceSales => FindSections(roots, "Sales Management"),
             WorkspaceHr => FindChildSections(roots, "People", "Human Resource", "Attendance", "Leave Management", "Payroll"),
             WorkspacePurchasing => FindChildSections(roots, "Operations", "Supplier Management", "Procurement"),
@@ -1261,8 +1258,7 @@ public static partial class NavigationMenuResolver
         }
 
         var itemWorkspaceKey = GetWorkspaceKey(item);
-        if (itemWorkspaceKey == workspaceKey
-            || workspaceKey == WorkspaceSales && itemWorkspaceKey == WorkspacePos)
+        if (itemWorkspaceKey == workspaceKey)
         {
             return true;
         }
@@ -1565,12 +1561,12 @@ public static partial class NavigationMenuResolver
     [
         ..HrFunctionalGroups,
 
-        new(PosFunctionalGroupCheckout, "Checkout", "\u0627\u0644\u0628\u064a\u0639 \u0648\u0627\u0644\u0643\u0627\u0634\u064a\u0631", "bi-receipt", WorkspacePos, 0),
+        new(StoreFrontFunctionalGroupCheckout, "Checkout", "\u0627\u0644\u0628\u064a\u0639 \u0648\u0627\u0644\u0643\u0627\u0634\u064a\u0631", "bi-receipt", WorkspaceStoreFront, 0),
+        new(StoreFrontFunctionalGroupStores, "Stores", "\u0627\u0644\u0645\u062a\u0627\u062c\u0631", "bi-shop", WorkspaceStoreFront, 1),
 
-        new(SalesFunctionalGroupPos, "POS", "\u0646\u0642\u0637\u0629 \u0628\u064a\u0639", "bi-receipt", WorkspaceSales, 0),
-        new(SalesFunctionalGroupSales, "Sales", "\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a", "bi-graph-up-arrow", WorkspaceSales, 1),
-        new(SalesFunctionalGroupCustomers, "Customers", "\u0627\u0644\u0639\u0645\u0644\u0627\u0621", "bi-person-vcard", WorkspaceSales, 2),
-        new(SalesFunctionalGroupReports, "Reports", "\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631", "bi-bar-chart-line", WorkspaceSales, 3),
+        new(SalesFunctionalGroupSales, "Sales", "\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a", "bi-graph-up-arrow", WorkspaceSales, 0),
+        new(SalesFunctionalGroupCustomers, "Customers", "\u0627\u0644\u0639\u0645\u0644\u0627\u0621", "bi-person-vcard", WorkspaceSales, 1),
+        new(SalesFunctionalGroupReports, "Reports", "\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631", "bi-bar-chart-line", WorkspaceSales, 2),
 
         new(PurchasingFunctionalGroupSuppliers, "Suppliers", "\u0627\u0644\u0645\u0648\u0631\u062f\u0648\u0646", "bi-truck", WorkspacePurchasing, 0),
         new(PurchasingFunctionalGroupProcurement, "Procurement", "\u0627\u0644\u0645\u0634\u062a\u0631\u064a\u0627\u062a", "bi-cart-check", WorkspacePurchasing, 1),

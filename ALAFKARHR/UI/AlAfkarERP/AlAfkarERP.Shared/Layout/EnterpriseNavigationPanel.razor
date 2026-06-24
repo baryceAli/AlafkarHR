@@ -370,7 +370,6 @@
     private bool MatchesCurrentWorkspace(MenuItem item)
         => ActiveWorkspace == NavigationMenuResolver.WorkspaceMore
            || NavigationMenuResolver.GetWorkspaceKey(item) == ActiveWorkspace
-           || ActiveWorkspace == NavigationMenuResolver.WorkspaceSales && NavigationMenuResolver.GetWorkspaceKey(item) == NavigationMenuResolver.WorkspacePos
            || Groups.SelectMany(group => group.Entries).Any(entry => NavigationMenuResolver.GetStorageKey(entry.Item) == NavigationMenuResolver.GetStorageKey(item));
 
     private bool CanNavigate(MenuItem item)

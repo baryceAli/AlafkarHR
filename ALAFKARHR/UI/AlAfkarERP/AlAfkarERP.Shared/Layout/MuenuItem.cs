@@ -54,11 +54,13 @@ public class MenuItem
                     Icon = "bi-receipt",
                     Url = "/StoreFront/POS",
                     PermissionPolicy = PermissionList.StoreFrontPosPermissions.View,
-                    WorkspaceKey = NavigationMenuResolver.WorkspacePos,
-                    NavigationFunctionalGroupKey = NavigationMenuResolver.SalesFunctionalGroupPos,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceStoreFront,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.StoreFrontFunctionalGroupCheckout,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                    NavigationOrder = 200,
                     MobilePriority = 4,
-                    KeywordsEn = "pos sales checkout cashier",
-                    KeywordsAr = "نقطة بيع مبيعات كاشير"
+                    KeywordsEn = "storefront pos store front checkout cashier",
+                    KeywordsAr = "واجهة متجر متجر نقطة بيع مبيعات كاشير"
                 },
                 new MenuItem
                 {
@@ -586,6 +588,10 @@ public class MenuItem
                     Icon = "bi-shop",
                     Url = "/StoreFront/Stores",
                     PermissionPolicy = PermissionList.StoreFrontStorePermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceStoreFront,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.StoreFrontFunctionalGroupStores,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                    NavigationOrder = 100,
                     KeywordsEn = "store front shops grocery flowers car wash pos",
                     KeywordsAr = "متاجر واجهة متجر بقالة زهور غسيل سيارات نقطة بيع"
                 },
