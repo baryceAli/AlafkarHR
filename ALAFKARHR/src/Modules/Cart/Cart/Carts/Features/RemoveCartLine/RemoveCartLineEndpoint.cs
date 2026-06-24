@@ -13,6 +13,6 @@ public class RemoveCartLineEndpoint : ICarterModule
         })
         .WithName("RemoveCartLine")
         .Produces<RemoveCartLineResponse>(StatusCodes.Status200OK)
-        .RequireAuthorization(PermissionList.CartPermissions.Edit);
+        .RequireAuthorization();
     }
 }

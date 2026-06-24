@@ -76,6 +76,46 @@ public class BranchService : BaseApiService, IBranchService
         return await SendAsync<AssignUserBranchesResultDto>(request, null);
     }
 
+    public async Task<ApiResult<List<BranchRoleProfileDto>>> GetBranchRoleProfilesAsync()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiConfig.BaseURL}/api/{_apiConfig.Version}/organization/branch-access/role-profiles");
+        return await SendAsync<List<BranchRoleProfileDto>>(request, "profiles");
+    }
+
+    public async Task<ApiResult<CurrentUserBranchRoleAccessDto>> GetCurrentUserBranchRoleAccessAsync(Guid companyId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiConfig.BaseURL}/api/{_apiConfig.Version}/organization/branch-access/current/roles?companyId={companyId}");
+        return await SendAsync<CurrentUserBranchRoleAccessDto>(request, null);
+    }
+
+    public async Task<ApiResult<List<BranchRoleAssignmentDto>>> GetUserBranchRoleAssignmentsAsync(Guid userId, Guid companyId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiConfig.BaseURL}/api/{_apiConfig.Version}/organization/branch-access/users/{userId}/roles?companyId={companyId}");
+        return await SendAsync<List<BranchRoleAssignmentDto>>(request, "assignments");
+    }
+
+    public async Task<ApiResult<List<BranchRoleAssignmentDto>>> GetCompanyBranchRoleAssignmentsAsync(Guid companyId, Guid? branchId = null)
+    {
+        var branchQuery = branchId.HasValue ? $"&branchId={branchId.Value}" : string.Empty;
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiConfig.BaseURL}/api/{_apiConfig.Version}/organization/branch-access/roles?companyId={companyId}{branchQuery}");
+        return await SendAsync<List<BranchRoleAssignmentDto>>(request, "assignments");
+    }
+
+    public async Task<ApiResult<Guid>> AssignUserBranchRoleAsync(AssignBranchRoleDto assignment)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiConfig.BaseURL}/api/{_apiConfig.Version}/organization/branch-access/users/{assignment.UserId}/roles")
+        {
+            Content = JsonContent.Create(assignment)
+        };
+        return await SendAsync<Guid>(request, "id");
+    }
+
+    public async Task<ApiResult<bool>> RemoveUserBranchRoleAsync(Guid assignmentId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"{_apiConfig.BaseURL}/api/{_apiConfig.Version}/organization/branch-access/users/roles/{assignmentId}");
+        return await SendAsync<bool>(request, "isSuccess");
+    }
+
     public async Task<ApiResult<UpdateDeleteResponseDto>> UpdateAsync(BranchDto branch)
     {
         var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}")

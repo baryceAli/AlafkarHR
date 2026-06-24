@@ -29,6 +29,10 @@ public class BranchConfiguration : IEntityTypeConfiguration<Branch>
         builder.Property(x => x.Latitude)
             .HasPrecision(10, 6);
 
+        builder.Property(x => x.Specialization)
+            .HasConversion<int>()
+            .HasDefaultValue(BranchSpecialization.General);
+
         // 🔗 Shadow FK (until you add OrganizationId property)
         //builder.Property<Guid>("CompanyId");
 
@@ -36,6 +40,7 @@ public class BranchConfiguration : IEntityTypeConfiguration<Branch>
 
         // 🔍 Indexes
         builder.HasIndex(x => x.CompanyId);
+        builder.HasIndex(x => new { x.CompanyId, x.Specialization });
         builder.HasIndex(x => x.Code);
         builder.HasIndex(x => new { x.CompanyId, x.Code }).IsUnique();
         // 🧾 Audit

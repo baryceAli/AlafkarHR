@@ -2288,6 +2288,49 @@ body {
     overflow-wrap: anywhere;
 }
 
+.payroll-summary-grid {
+    display: grid;
+    gap: var(--erp-space-3);
+    grid-template-columns: 1fr;
+}
+
+.payroll-summary-card {
+    width: 100%;
+}
+
+.payroll-summary-card .erp-stat-icon {
+    flex: 0 0 46px;
+}
+
+.payroll-summary-card .erp-stat-label {
+    overflow: hidden;
+    overflow-wrap: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.payroll-summary-card .erp-stat-value {
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: normal;
+}
+
+.payroll-summary-card-money .erp-stat-value {
+    font-size: 1.35rem;
+    white-space: nowrap;
+}
+
+@media (min-width: 576px) {
+    .payroll-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1200px) {
+    .payroll-summary-grid {
+        grid-template-columns: minmax(132px, 0.85fr) minmax(132px, 0.85fr) minmax(210px, 1.3fr) minmax(210px, 1.3fr);
+    }
+}
+
 .erp-stat-primary {
     border-inline-start-color: var(--erp-primary);
 }

@@ -24,16 +24,23 @@
     return;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3" dir="@SharedDataService.PageDirection">
-    <h5 class="text-black mb-0">@SharedDataService.SelectViewLang("Payroll Components", "Payroll Components")</h5>
-    <button class="btn btn-primary" @onclick="ShowCreate" disabled="@(!CanCreate)">
-        <i class="bi bi-plus-lg"></i> @SharedDataService.SelectViewLang("New Component", "New Component")
-    </button>
-</div>
+<section class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Payroll Components", "Payroll Components")"
+                Subtitle="@SharedDataService.SelectViewLang("Maintain reusable salary components for contracts and payroll calculations.", "Maintain reusable salary components for contracts and payroll calculations.")"
+                Overline="@SharedDataService.SelectViewLang("Payroll", "Payroll")"
+                Icon="bi-list-check">
+        <Actions>
+            <button class="btn btn-primary" @onclick="ShowCreate" disabled="@(!CanCreate)">
+                <i class="bi bi-plus-lg"></i> @SharedDataService.SelectViewLang("New Component", "New Component")
+            </button>
+        </Actions>
+    </PageHeader>
 
 @if (editingComponent is not null)
 {
-    <div class="border rounded p-3 mb-3 bg-light">
+    <AppCard Title="@SharedDataService.SelectViewLang("Component Details", "Component Details")"
+             Subtitle="@SharedDataService.SelectViewLang("Define the payroll component name, type, order, and calculation flags.", "Define the payroll component name, type, order, and calculation flags.")"
+             CssClass="mb-3">
         <EditForm Model="editingComponent" OnValidSubmit="SaveComponent">
             <DataAnnotationsValidator />
             <ValidationSummary />
@@ -85,10 +92,11 @@
                 </div>
             </div>
         </EditForm>
-    </div>
+    </AppCard>
 }
 
-<div class="border rounded p-3">
+<AppCard Title="@SharedDataService.SelectViewLang("Components", "Components")"
+         Subtitle="@SharedDataService.SelectViewLang("Search, review, and maintain payroll component definitions.", "Search, review, and maintain payroll component definitions.")">
     <div class="row g-2 align-items-center mb-3">
         <div class="col-md-4">
             <input class="form-control" placeholder="@SharedDataService.SelectViewLang("Search", "Search")" @bind="searchText" @bind:event="oninput" />
@@ -100,12 +108,12 @@
         </div>
     </div>
 
-            <div class="d-flex justify-content-end mb-2">
+            <div class="erp-table-toolbar">
             <TableExportActions />
         </div>
 
-
-    <table class="table table-sm align-middle">
+    <div class="erp-table-wrap">
+    <table class="table erp-table align-middle mb-0">
         <thead>
             <tr>
                 <th>@SharedDataService.SelectViewLang("Name", "Name")</th>
@@ -125,18 +133,16 @@
                         <div>@SharedDataService.SelectViewLang(item.NameEng, item.Name)</div>
                         <div class="text-muted small">@item.NameEng</div>
                     </td>
-                    <td><span class="badge text-bg-light">@item.ComponentType</span></td>
+                    <td><StatusChip Text="@item.ComponentType.ToString()" Tone="muted" /></td>
                     <td>@item.Order</td>
                     <td>@item.Description</td>
                     <td>
-                        <span class="badge @(item.IsTaxable ? "text-bg-info" : "text-bg-light")">
-                            @(item.IsTaxable ? SharedDataService.SelectViewLang("Taxable", "Taxable") : SharedDataService.SelectViewLang("No", "No"))
-                        </span>
+                        <StatusChip Text="@(item.IsTaxable ? SharedDataService.SelectViewLang("Taxable", "Taxable") : SharedDataService.SelectViewLang("No", "No"))"
+                                    Tone="@(item.IsTaxable ? "info" : "muted")" />
                     </td>
                     <td>
-                        <span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">
-                            @(item.IsActive ? SharedDataService.SelectViewLang("Active", "Active") : SharedDataService.SelectViewLang("Inactive", "Inactive"))
-                        </span>
+                        <StatusChip Text="@(item.IsActive ? SharedDataService.SelectViewLang("Active", "Active") : SharedDataService.SelectViewLang("Inactive", "Inactive"))"
+                                    Tone="@(item.IsActive ? "success" : "muted")" />
                     </td>
                     <td class="text-end">
                         <button class="btn btn-outline-warning btn-sm erp-row-action"
@@ -156,7 +162,9 @@
             }
         </tbody>
     </table>
-</div>
+    </div>
+</AppCard>
+</section>
 
 @code {
     private AuthenticationState? AuthState;

@@ -6,6 +6,18 @@ namespace Organization.Organizations.Features.BranchAccess;
 public record AssignUserBranchesCommand(Guid UserId, Guid CompanyId, List<Guid> BranchIds, Guid? DefaultBranchId) : ICommand<AssignUserBranchesResult>;
 
 public record AssignUserBranchesResult(int AssignedCount);
+public record GetBranchRoleProfilesQuery() : IQuery<GetBranchRoleProfilesResult>;
+public record GetBranchRoleProfilesResult(List<BranchRoleProfileDto> Profiles);
+public record AssignUserBranchRoleCommand(Guid UserId, Guid CompanyId, Guid BranchId, string TemplateKey) : ICommand<AssignUserBranchRoleResult>;
+public record AssignUserBranchRoleResult(Guid Id);
+public record RemoveUserBranchRoleCommand(Guid AssignmentId) : ICommand<RemoveUserBranchRoleResult>;
+public record RemoveUserBranchRoleResult(bool IsSuccess);
+public record GetUserBranchRoleAssignmentsQuery(Guid UserId, Guid CompanyId) : IQuery<GetUserBranchRoleAssignmentsResult>;
+public record GetUserBranchRoleAssignmentsResult(List<BranchRoleAssignmentDto> Assignments);
+public record GetCompanyBranchRoleAssignmentsQuery(Guid CompanyId, Guid? BranchId = null) : IQuery<GetCompanyBranchRoleAssignmentsResult>;
+public record GetCompanyBranchRoleAssignmentsResult(List<BranchRoleAssignmentDto> Assignments);
+public record GetCurrentUserBranchRoleAccessQuery(Guid CompanyId) : IQuery<GetCurrentUserBranchRoleAccessResult>;
+public record GetCurrentUserBranchRoleAccessResult(CurrentUserBranchRoleAccessDto Access);
 
 public class BranchAccessCommandValidator : AbstractValidator<AssignUserBranchesCommand>
 {
@@ -20,9 +32,22 @@ public class BranchAccessCommandValidator : AbstractValidator<AssignUserBranches
 public class BranchAccessHandlers(OrganizationDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<EnsureMainBranchCommand, EnsureMainBranchResult>,
       ICommandHandler<AssignUserBranchesCommand, AssignUserBranchesResult>,
+      ICommandHandler<AssignUserBranchRoleCommand, AssignUserBranchRoleResult>,
+      ICommandHandler<RemoveUserBranchRoleCommand, RemoveUserBranchRoleResult>,
+      ICommandHandler<EnsureStoreFrontBranchCommand, EnsureStoreFrontBranchResult>,
       IQueryHandler<GetCurrentUserBranchAccessQuery, GetCurrentUserBranchAccessResult>,
       IQueryHandler<GetCompanyBranchesForAccountingQuery, GetCompanyBranchesForAccountingResult>,
-      IQueryHandler<GetUserBranchAssignmentsQuery, GetUserBranchAssignmentsResult>
+      IQueryHandler<GetUserBranchAssignmentsQuery, GetUserBranchAssignmentsResult>,
+      IQueryHandler<GetCompanyUserBranchAssignmentsQuery, GetCompanyUserBranchAssignmentsResult>,
+      IQueryHandler<GetBranchScopeInfoQuery, GetBranchScopeInfoResult>,
+      IQueryHandler<EnsureCurrentUserBranchPermissionQuery, EnsureCurrentUserBranchPermissionResult>,
+      IQueryHandler<GetCurrentUserBranchRolePermissionsQuery, GetCurrentUserBranchRolePermissionsResult>,
+      IQueryHandler<GetCurrentUserBranchRoleAccessForAuthorizationQuery, GetCurrentUserBranchRoleAccessForAuthorizationResult>,
+      IQueryHandler<GetBranchRoleProfilesQuery, GetBranchRoleProfilesResult>,
+      IQueryHandler<GetUserBranchRoleAssignmentsQuery, GetUserBranchRoleAssignmentsResult>,
+      IQueryHandler<GetCompanyBranchRoleAssignmentsForDashboardQuery, GetCompanyBranchRoleAssignmentsForDashboardResult>,
+      IQueryHandler<GetCompanyBranchRoleAssignmentsQuery, GetCompanyBranchRoleAssignmentsResult>,
+      IQueryHandler<GetCurrentUserBranchRoleAccessQuery, GetCurrentUserBranchRoleAccessResult>
 {
     public async Task<EnsureMainBranchResult> Handle(EnsureMainBranchCommand request, CancellationToken cancellationToken)
     {
@@ -45,6 +70,7 @@ public class BranchAccessHandlers(OrganizationDbContext dbContext, IHttpContextA
                 legacyMainCodeBranch.Phone,
                 legacyMainCodeBranch.Email,
                 true,
+                legacyMainCodeBranch.Specialization,
                 request.UserId);
             await dbContext.SaveChangesAsync(cancellationToken);
             return new EnsureMainBranchResult(legacyMainCodeBranch.Id);
@@ -65,6 +91,7 @@ public class BranchAccessHandlers(OrganizationDbContext dbContext, IHttpContextA
             company.Phone,
             company.Email,
             true,
+            BranchSpecialization.General,
             company.Id,
             request.UserId);
 
@@ -154,6 +181,237 @@ public class BranchAccessHandlers(OrganizationDbContext dbContext, IHttpContextA
             assignments.FirstOrDefault(x => x.IsDefault)?.BranchId);
     }
 
+    public async Task<GetCompanyUserBranchAssignmentsResult> Handle(GetCompanyUserBranchAssignmentsQuery request, CancellationToken cancellationToken)
+    {
+        var assignments = await dbContext.UserBranchAssignments.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId)
+            .Select(x => new UserBranchAssignmentInfo(x.UserId, x.CompanyId, x.BranchId, x.IsDefault))
+            .ToListAsync(cancellationToken);
+
+        return new GetCompanyUserBranchAssignmentsResult(assignments);
+    }
+
+    public Task<GetBranchRoleProfilesResult> Handle(GetBranchRoleProfilesQuery request, CancellationToken cancellationToken)
+        => Task.FromResult(new GetBranchRoleProfilesResult(BranchRoleProfiles.All.Select(CloneProfile).ToList()));
+
+    public async Task<EnsureStoreFrontBranchResult> Handle(EnsureStoreFrontBranchCommand request, CancellationToken cancellationToken)
+    {
+        if (request.CompanyId == Guid.Empty)
+            throw new BadRequestException("Company is required.");
+
+        var userId = string.IsNullOrWhiteSpace(request.UserId) ? CurrentUserId() : request.UserId;
+
+        if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
+        {
+            var branch = await dbContext.Branches.FirstOrDefaultAsync(x => x.Id == request.BranchId.Value, cancellationToken)
+                ?? throw new NotFoundException($"Branch not found: {request.BranchId.Value}");
+            if (branch.CompanyId != request.CompanyId)
+                throw new BadRequestException("Selected branch does not belong to the selected company.");
+            if (branch.Specialization != BranchSpecialization.StoreFront)
+                throw new BadRequestException("Selected branch must be a StoreFront branch.");
+            return new EnsureStoreFrontBranchResult(branch.Id);
+        }
+
+        var code = NormalizeCode(request.Code);
+        var existing = await dbContext.Branches
+            .FirstOrDefaultAsync(x => x.CompanyId == request.CompanyId && x.Code == code, cancellationToken);
+        if (existing is not null)
+        {
+            if (existing.Specialization != BranchSpecialization.StoreFront)
+                throw new BadRequestException("A non-StoreFront branch already uses this store code.");
+            return new EnsureStoreFrontBranchResult(existing.Id);
+        }
+
+        var company = await dbContext.Companies.FirstOrDefaultAsync(x => x.Id == request.CompanyId, cancellationToken)
+            ?? throw new NotFoundException($"Company not found: {request.CompanyId}");
+
+        var createdBranch = Branch.Create(
+            Guid.NewGuid(),
+            string.IsNullOrWhiteSpace(request.Name) ? request.NameEng : request.Name,
+            string.IsNullOrWhiteSpace(request.NameEng) ? request.Name : request.NameEng,
+            company.HqLocation,
+            company.HqLongitude,
+            company.HqLatitude,
+            code,
+            string.IsNullOrWhiteSpace(request.Phone) ? company.Phone : request.Phone,
+            string.IsNullOrWhiteSpace(request.Email) ? company.Email : request.Email,
+            false,
+            BranchSpecialization.StoreFront,
+            request.CompanyId,
+            userId);
+
+        await dbContext.Branches.AddAsync(createdBranch, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await sender.Send(new EnsureBranchAccountingCommand(
+            createdBranch.CompanyId,
+            createdBranch.Id,
+            createdBranch.Code,
+            createdBranch.Name,
+            createdBranch.NameEng), cancellationToken);
+
+        return new EnsureStoreFrontBranchResult(createdBranch.Id);
+    }
+
+    public async Task<GetBranchScopeInfoResult> Handle(GetBranchScopeInfoQuery request, CancellationToken cancellationToken)
+    {
+        var branch = await dbContext.Branches.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.BranchId && x.CompanyId == request.CompanyId, cancellationToken)
+            ?? throw new NotFoundException($"Branch not found: {request.BranchId}");
+        return new GetBranchScopeInfoResult(branch.Id, branch.CompanyId, (int)branch.Specialization);
+    }
+
+    public async Task<AssignUserBranchRoleResult> Handle(AssignUserBranchRoleCommand request, CancellationToken cancellationToken)
+    {
+        var profile = BranchRoleProfiles.GetRequired(request.TemplateKey);
+        var currentUserId = CurrentUserId();
+
+        var userMembership = await sender.Send(new UserBelongsToCompanyQuery(request.UserId, request.CompanyId), cancellationToken);
+        if (!userMembership.BelongsToCompany)
+            throw new BadRequestException("User does not belong to the selected company.");
+
+        var branch = await dbContext.Branches.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.BranchId && x.CompanyId == request.CompanyId, cancellationToken)
+            ?? throw new BadRequestException("Branch does not belong to the selected company.");
+        if (branch.Specialization != BranchSpecialization.StoreFront)
+            throw new BadRequestException("Store roles can only be assigned to StoreFront branches.");
+
+        var existing = await dbContext.UserBranchRoleAssignments
+            .FirstOrDefaultAsync(x => x.CompanyId == request.CompanyId
+                && x.UserId == request.UserId
+                && x.BranchId == request.BranchId
+                && x.TemplateKey == profile.TemplateKey, cancellationToken);
+        if (existing is not null)
+            return new AssignUserBranchRoleResult(existing.Id);
+
+        var assignment = UserBranchRoleAssignment.Create(request.UserId, request.CompanyId, request.BranchId, profile.TemplateKey, currentUserId);
+        await dbContext.UserBranchRoleAssignments.AddAsync(assignment, cancellationToken);
+
+        var hasBranchAccess = await dbContext.UserBranchAssignments
+            .AnyAsync(x => x.CompanyId == request.CompanyId && x.UserId == request.UserId && x.BranchId == request.BranchId, cancellationToken);
+        if (!hasBranchAccess)
+        {
+            await dbContext.UserBranchAssignments.AddAsync(
+                UserBranchAssignment.Create(request.UserId, request.CompanyId, request.BranchId, false, currentUserId),
+                cancellationToken);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new AssignUserBranchRoleResult(assignment.Id);
+    }
+
+    public async Task<RemoveUserBranchRoleResult> Handle(RemoveUserBranchRoleCommand request, CancellationToken cancellationToken)
+    {
+        var assignment = await dbContext.UserBranchRoleAssignments.FirstOrDefaultAsync(x => x.Id == request.AssignmentId, cancellationToken)
+            ?? throw new NotFoundException($"Branch role assignment not found: {request.AssignmentId}");
+        assignment.Remove(CurrentUserId());
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new RemoveUserBranchRoleResult(true);
+    }
+
+    public async Task<GetUserBranchRoleAssignmentsResult> Handle(GetUserBranchRoleAssignmentsQuery request, CancellationToken cancellationToken)
+    {
+        var assignments = await dbContext.UserBranchRoleAssignments.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId && x.UserId == request.UserId)
+            .OrderBy(x => x.BranchId)
+            .ThenBy(x => x.TemplateKey)
+            .ToListAsync(cancellationToken);
+
+        return new GetUserBranchRoleAssignmentsResult(assignments.Select(ToDto).ToList());
+    }
+
+    public async Task<GetCompanyBranchRoleAssignmentsResult> Handle(GetCompanyBranchRoleAssignmentsQuery request, CancellationToken cancellationToken)
+    {
+        var query = dbContext.UserBranchRoleAssignments.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId);
+
+        if (request.BranchId.HasValue && request.BranchId.Value != Guid.Empty)
+            query = query.Where(x => x.BranchId == request.BranchId.Value);
+
+        var assignments = await query
+            .OrderBy(x => x.BranchId)
+            .ThenBy(x => x.UserId)
+            .ThenBy(x => x.TemplateKey)
+            .ToListAsync(cancellationToken);
+
+        return new GetCompanyBranchRoleAssignmentsResult(assignments.Select(ToDto).ToList());
+    }
+
+    public async Task<GetCompanyBranchRoleAssignmentsForDashboardResult> Handle(GetCompanyBranchRoleAssignmentsForDashboardQuery request, CancellationToken cancellationToken)
+    {
+        var assignments = await dbContext.UserBranchRoleAssignments.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId)
+            .Select(x => new BranchRoleAssignmentInfo(x.Id, x.UserId, x.CompanyId, x.BranchId, x.TemplateKey, x.CreatedAt))
+            .ToListAsync(cancellationToken);
+
+        return new GetCompanyBranchRoleAssignmentsForDashboardResult(assignments);
+    }
+
+    public async Task<GetCurrentUserBranchRoleAccessResult> Handle(GetCurrentUserBranchRoleAccessQuery request, CancellationToken cancellationToken)
+    {
+        var userId = CurrentUserGuid();
+        var assignments = await dbContext.UserBranchRoleAssignments.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId && x.UserId == userId)
+            .ToListAsync(cancellationToken);
+        var dtoAssignments = assignments.Select(ToDto).ToList();
+        return new GetCurrentUserBranchRoleAccessResult(new CurrentUserBranchRoleAccessDto
+        {
+            CompanyId = request.CompanyId,
+            Assignments = dtoAssignments,
+            EffectivePermissions = dtoAssignments.SelectMany(x => x.Permissions).Distinct(StringComparer.Ordinal).ToList()
+        });
+    }
+
+    public async Task<GetCurrentUserBranchRolePermissionsResult> Handle(GetCurrentUserBranchRolePermissionsQuery request, CancellationToken cancellationToken)
+    {
+        var userId = request.UserId ?? CurrentUserGuid();
+        var templateKeys = await dbContext.UserBranchRoleAssignments.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId && x.UserId == userId)
+            .Select(x => x.TemplateKey)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        var permissions = templateKeys
+            .Select(BranchRoleProfiles.GetRequired)
+            .SelectMany(x => x.Permissions)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        return new GetCurrentUserBranchRolePermissionsResult(permissions);
+    }
+
+    public async Task<GetCurrentUserBranchRoleAccessForAuthorizationResult> Handle(GetCurrentUserBranchRoleAccessForAuthorizationQuery request, CancellationToken cancellationToken)
+    {
+        var userId = CurrentUserGuid();
+        var assignments = await dbContext.UserBranchRoleAssignments.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId && x.UserId == userId)
+            .Select(x => new { x.BranchId, x.TemplateKey })
+            .ToListAsync(cancellationToken);
+
+        var access = assignments
+            .GroupBy(x => x.BranchId)
+            .Select(group => new BranchRolePermissionAccess(
+                group.Key,
+                group.SelectMany(x => BranchRoleProfiles.GetRequired(x.TemplateKey).Permissions).Distinct(StringComparer.Ordinal).ToList()))
+            .ToList();
+        return new GetCurrentUserBranchRoleAccessForAuthorizationResult(access);
+    }
+
+    public async Task<EnsureCurrentUserBranchPermissionResult> Handle(EnsureCurrentUserBranchPermissionQuery request, CancellationToken cancellationToken)
+    {
+        var user = httpContextAccessor.HttpContext?.User ?? throw new UnauthorizedAccessException("User is not authenticated");
+        if (user.Claims.Any(x => x.Type == "Permission" && x.Value == request.Permission))
+            return new EnsureCurrentUserBranchPermissionResult(true);
+
+        var userId = CurrentUserGuid();
+        var templateKeys = await dbContext.UserBranchRoleAssignments.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId && x.UserId == userId && x.BranchId == request.BranchId)
+            .Select(x => x.TemplateKey)
+            .ToListAsync(cancellationToken);
+        var hasScopedPermission = templateKeys.Any(templateKey => BranchRoleProfiles.HasPermission(templateKey, request.Permission));
+        if (!hasScopedPermission)
+            throw new ForbiddenException("You do not have permission for this store branch.");
+
+        return new EnsureCurrentUserBranchPermissionResult(true);
+    }
+
     private string CurrentUserId() =>
         httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value
@@ -167,4 +425,30 @@ public class BranchAccessHandlers(OrganizationDbContext dbContext, IHttpContextA
             ? userId
             : throw new UnauthorizedAccessException("User identifier is not valid.");
     }
+
+    private static BranchRoleAssignmentDto ToDto(UserBranchRoleAssignment assignment)
+    {
+        var profile = BranchRoleProfiles.GetRequired(assignment.TemplateKey);
+        return new BranchRoleAssignmentDto
+        {
+            Id = assignment.Id,
+            UserId = assignment.UserId,
+            CompanyId = assignment.CompanyId,
+            BranchId = assignment.BranchId,
+            TemplateKey = profile.TemplateKey,
+            RoleName = profile.Name,
+            RoleNameAr = profile.NameAr,
+            Permissions = profile.Permissions.ToList()
+        };
+    }
+
+    private static BranchRoleProfileDto CloneProfile(BranchRoleProfileDto profile) => new()
+    {
+        TemplateKey = profile.TemplateKey,
+        Name = profile.Name,
+        NameAr = profile.NameAr,
+        Permissions = profile.Permissions.ToList()
+    };
+
+    private static string NormalizeCode(string value) => value.Trim().ToUpperInvariant();
 }

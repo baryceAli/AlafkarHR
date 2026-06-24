@@ -20,22 +20,25 @@
 @inject SharedDataService SharedDataService
 
 <section class="erp-page" dir="@SharedDataService.PageDirection">
-    <div class="d-flex justify-content-between align-items-start mb-3">
-        <div>
-            <p class="text-muted mb-1">@Text("Attendance", "الحضور والانصراف")</p>
-            <h3 class="mb-1">@Text("Attendance Configuration", "اعدادات الحضور")</h3>
-            <p class="text-muted mb-0">@Text("Configure weekly working times and break policy rules. Weekend days are maintained under Attendance > Holidays.", "تحديد أوقات العمل الأسبوعية وسياسات الاستراحة. تتم إدارة أيام نهاية الأسبوع من الحضور > العطلات.")</p>
-        </div>
-        <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">@Text("Refresh", "تحديث")</button>
-    </div>
+    <PageHeader Title="@Text("Attendance Configuration", "إعدادات الحضور")"
+                Subtitle="@Text("Configure weekly working times and break policy rules.", "تحديد أوقات العمل الأسبوعية وسياسات الاستراحة.")"
+                Overline="@Text("Attendance", "الحضور والانصراف")"
+                Icon="bi-sliders">
+        <Actions>
+            <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+        </Actions>
+    </PageHeader>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <div class="alert @messageClass">@message</div>
     }
 
-    <div class="card mb-3">
-        <div class="card-body">
+    <div class="erp-card mb-3">
+        <div class="erp-card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0">@Text("Weekly Working Time", "أوقات العمل الأسبوعية")</h5>
                 <button class="btn btn-primary" @onclick="SaveConfigurationAsync" disabled="@isBusy">@Text("Save", "حفظ")</button>
@@ -57,8 +60,8 @@
                 </div>
             </div>
 
-            <div class="table-responsive">
-                <table class="table align-middle mb-0">
+            <div class="erp-table-wrap">
+                <table class="table erp-table align-middle mb-0">
                     <thead>
                         <tr>
                             <th>@Text("Day", "اليوم")</th>
@@ -83,8 +86,8 @@
         </div>
     </div>
 
-    <div class="card mb-3">
-        <div class="card-body">
+    <div class="erp-card mb-3">
+        <div class="erp-card-body">
             <h5>@Text("Break Policy", "سياسة الاستراحة")</h5>
             <div class="alert alert-info">
                 @Text("Flexible: employees can start break anytime during the working day. Strict: employees can start break only between the configured break start and end time.", "المرن: يمكن للموظف بدء الاستراحة في أي وقت خلال يوم العمل. المحدد: يمكن بدء الاستراحة فقط بين وقت بداية ونهاية الاستراحة المحددين.")
@@ -107,7 +110,7 @@
                                                Items="administrations"
                                                ItemText="AdministrationSearchText"
                                                Value="selectedAdministration"
-                                               PlaceHolder="@Text("Search administration by name or code", "ابحث عن الادارة بالاسم أو الكود")"
+                                               PlaceHolder="@Text("Search administration by name or code", "ابحث عن الإدارة بالاسم أو الكود")"
                                                ValueChanged="OnAdministrationSelected" />
                     </div>
                 }
@@ -175,11 +178,11 @@
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-body">
+    <div class="erp-card">
+        <div class="erp-card-body">
             <h5>@Text("Configured Policies", "السياسات المحفوظة")</h5>
-            <div class="table-responsive">
-                <table class="table align-middle">
+            <div class="erp-table-wrap">
+                <table class="table erp-table align-middle mb-0">
                     <thead>
                         <tr>
                             <th>@Text("Scope", "النطاق")</th>

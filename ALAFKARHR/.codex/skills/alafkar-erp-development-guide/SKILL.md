@@ -101,7 +101,11 @@ Dashboard pages should use stats cards, section titles, clear responsive grids, 
 
 Permissions are centralized in `src/Shared/SharedWithUI/SharedWithUI/Permissions/PermissionList.cs`. The naming convention is `Group.Entity.Action`, with common actions `Select`, `View`, `Create`, `Edit`, and `Delete`; some modules add specialized actions such as review or workflow permissions.
 
-Blazor menu visibility uses `MenuItem.PermissionPolicy` and user claims. Backend endpoints use `.RequireAuthorization(PermissionList.<Entity>Permissions.<Action>)`. Role/user pages use grouped permissions from `PermissionList.GetGroupedPermissions(...)`. Preserve all permission checks during redesigns and add new permissions in the same nested static-class style.
+Company-wide role permissions are emitted as `Permission` claims from company roles. Backend authorization policies are registered from `PermissionList.GetAuthorizationPolicyPermissions()` and are evaluated by `PermissionHandler`, which checks only `Permission` claims. Backend endpoints use `.RequireAuthorization(PermissionList.<Entity>Permissions.<Action>)` for normal company-wide permissions.
+
+`ScopedPermission` JWT claims may exist for branch-role visibility and UI hints, but they are not authorization policies by themselves. Do not protect endpoints with `.RequireAuthorization(scopedPermission)` and do not assume a `ScopedPermission` claim grants company-wide access. Scoped branch permissions must be enforced inside handlers after resolving the relevant company and branch, usually with `EnsureCurrentUserBranchPermissionQuery(companyId, branchId, permission)`.
+
+Blazor menu visibility uses `MenuItem.PermissionPolicy` and normal permission claims. Menus do not understand branch-scoped permissions unless a page explicitly loads branch-role access and handles scoped visibility itself. Role/user pages use grouped permissions from `PermissionList.GetGroupedPermissions(...)`. Preserve all permission checks during redesigns and add new permissions in the same nested static-class style.
 
 ## 16. Localization and RTL/LTR
 
@@ -148,15 +152,25 @@ IDs are usually `Guid`. Shared entity base classes provide audit fields and soft
 
 Before adding or changing any business entity, workflow, query, command, page, or report, identify whether it is company-level, branch-level, or mixed. Company-level data must use `CompanyId`; branch-level data must use `CompanyId` plus nullable or required `BranchId` according to the existing model and workflow. Preserve the parent/child company model: respect `Company.ParentCompanyId` and `CompanyHierarchyContext`, and do not let child companies manage child companies.
 
-Branch-aware backend features must use `GetCurrentUserBranchAccessQuery` and `BranchScopePolicy` for read, filter, and mutation decisions. Reads and filters may allow all branches when the user has a branch-access view-all permission; mutations require view-all access or an explicit assigned branch. Never trust a UI-selected `BranchId` without backend validation that the branch belongs to the company and is allowed for the current user.
+Branch-aware backend features must use `GetCurrentUserBranchAccessQuery(companyId)` and `BranchScopePolicy` for visibility and mutation decisions. Use `BranchScopePolicy.CanFilter(access, branchId)` before applying an optional user-selected branch filter. Use `BranchScopePolicy.CanRead(access, branchId)` before returning a specific branch-scoped entity. Use `BranchScopePolicy.CanMutate(access, branchId)` before create, update, delete, post, approve, checkout, transfer, or other state-changing operations. `CanRead` and `CanFilter` allow unassigned/null branch data; `CanMutate` requires `CanViewAllBranches` or an explicit assigned branch.
+
+Never trust a UI-selected `CompanyId`, `BranchId`, store, warehouse, customer, employee, account, document, or related entity without backend validation that it belongs to the expected company and is allowed for the current user's scope. When an operation moves data between branches or changes a branch assignment, validate both the existing branch and the requested new branch.
 
 Every company must have a main branch. Create or reuse it through `EnsureMainBranchCommand`; legacy company branches with `Code == "MAIN"` are promoted to main branch. Creating or updating a branch must call `EnsureBranchAccountingCommand`. Applying accounting templates and accounting seeders must ensure branch accounting for every company branch. Branch accounting creates or renames system account groups under the top-level company account groups and ensures default Cash and Bank journals. Accounting queries for accounts, documents, journals, bank/cash accounts, and transactions must apply branch access filtering.
 
-Branch assignment is controlled by `PermissionList.BranchPermissions.AssignUsers` (`Organization.Branch.AssignUsers`). View-all branch bypass permissions are `PermissionList.OrganizationBranchAccessPermissions.ViewAll` (`Organization.BranchAccess.ViewAll`) and `PermissionList.AccountingBranchAccessPermissions.ViewAll` (`Accounting.BranchAccess.ViewAll`). These permissions only control branch scope visibility; normal endpoint, menu, and action permissions still apply.
+Branch assignment is controlled by `PermissionList.BranchPermissions.AssignUsers` (`Organization.Branch.AssignUsers`). View-all branch bypass permissions are `PermissionList.OrganizationBranchAccessPermissions.ViewAll` (`Organization.BranchAccess.ViewAll`) and `PermissionList.AccountingBranchAccessPermissions.ViewAll` (`Accounting.BranchAccess.ViewAll`). These permissions only control branch scope visibility; normal endpoint, menu, and action permissions still apply. A user with a branch-access view-all permission still needs the relevant normal `Permission` claim or scoped branch permission for the action being performed.
 
 Role templates are company-scoped through `CompanyRoleTemplates`. Default roles are seeded per company; template roles have `TemplateKey`, are synchronized from the template definition, and are protected from deletion. Company role internal names use `CompanyRole-{companyId:N}-{slug}` and company system admins use `SystemAdmin-{companyId:N}`. Custom roles may only use tenant permissions from `PermissionList.GetTenantPermissions()`.
 
-Branch-aware Blazor pages must load branch access where needed and hide or disable branch filters/actions according to that access, while keeping backend enforcement as the source of truth. User role management must preserve the branch assignment workflow: selected branches plus optional default branch, where the default branch must be included in the selected branches. Menu and action visibility uses permission claims; branch access filtering is additional and must not replace backend authorization.
+Branch-aware Blazor pages must load `GetCurrentUserBranchAccessAsync(companyId)` when showing branch filters, branch selectors, or branch-dependent actions. Hide or disable branch filters/actions according to that access, while keeping backend enforcement as the source of truth. User role management must preserve the branch assignment workflow: selected branches plus optional default branch, where the default branch must be included in the selected branches. Menu and action visibility uses normal permission claims; branch access filtering is additional and must not replace backend authorization.
+
+### StoreFront Branch Roles
+
+StoreFront stores must be linked to specialized `BranchSpecialization.StoreFront` branches. Store creation or linking should use `EnsureStoreFrontBranchCommand` where applicable; do not create ad hoc StoreFront branch records outside the Organization branch-access flow. StoreFront branch scope can be resolved through `GetStoreFrontBranchScopeQuery` when another module, such as Cart/POS, needs to authorize a store-linked operation.
+
+Store branch roles live in `UserBranchRoleAssignments` and are defined by `BranchRoleProfiles`. These roles grant permissions for a specific StoreFront branch, not company-wide permissions. StoreFront handlers must combine branch access checks with scoped permission checks: first validate read or mutation scope with `GetCurrentUserBranchAccessQuery` and `BranchScopePolicy`, then enforce the requested StoreFront permission with `EnsureCurrentUserBranchPermissionQuery(companyId, branchId, permission)`.
+
+For StoreFront/POS UI, load `GetCurrentUserBranchRoleAccessAsync(companyId)` when actions depend on store branch roles. UI may hide or disable store actions based on company permissions plus branch-role permissions, but backend handlers remain the source of truth. Cart/POS StoreFront access should resolve the store branch with `GetStoreFrontBranchScopeQuery` and then enforce the relevant StoreFront scoped permission.
 
 ## 20. Menu and Navigation
 
@@ -175,6 +189,8 @@ Avoid tight coupling between modules. Use shared contracts for data crossing mod
 For future development tasks, respond with: brief understanding; files/modules to inspect; minimal implementation plan; files changed; UI exposure; manual test checklist; assumptions or risks.
 
 UI exposure: describe where the user can access the feature, including route/menu/action/button/form changes, or state explicitly that the user requested backend-only work.
+
+For every new or changed business feature, include a scope and permission note in the implementation summary or assumptions. Identify whether the feature is company-level, branch-level, mixed, or StoreFront branch-role scoped. Name the permission layer used: normal `Permission`, branch access, scoped branch role, or a combination. Confirm backend validation for UI-selected `CompanyId`, `BranchId`, store, warehouse, and related entity ownership. Confirm read/filter/mutate paths use the correct `BranchScopePolicy` method. Confirm the UI reflects scope-aware access without replacing backend enforcement.
 
 ## 24. UI Migration Strategy
 

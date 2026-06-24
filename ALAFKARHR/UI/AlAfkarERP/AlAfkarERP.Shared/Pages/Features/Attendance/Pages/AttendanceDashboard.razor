@@ -1,4 +1,4 @@
-@layout AdminLayout
+﻿@layout AdminLayout
 @page "/Attendance/Dashboard"
 @implements IDisposable
 
@@ -11,14 +11,13 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-<section class="attendance-page" dir="@SharedDataService.PageDirection">
-    <div class="attendance-header">
-        <div>
-            <p class="eyebrow">@Text("Attendance", "الحضور والانصراف")</p>
-            <h1>@Text("Live attendance dashboard", "لوحة الحضور المباشرة")</h1>
-        </div>
-        <div class="header-actions">
-            <button class="btn btn-outline-primary" @onclick="LoadDashboard">
+<section class="erp-page attendance-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@PageTitle"
+                Subtitle="@PageSubtitle"
+                Overline="@PageOverline"
+                Icon="bi-person-check">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="LoadDashboard">
                 <i class="bi bi-arrow-clockwise"></i>
                 @Text("Refresh", "تحديث")
             </button>
@@ -26,8 +25,8 @@
                 <i class="bi bi-person-check"></i>
                 @Text("Employee terminal", "بوابة الموظف")
             </button>
-        </div>
-    </div>
+        </Actions>
+    </PageHeader>
 
     @if (!string.IsNullOrWhiteSpace(errorMessage))
     {
@@ -36,120 +35,118 @@
 
     @if (isLoading)
     {
-        <div class="attendance-empty">@Text("Loading attendance dashboard...", "جاري تحميل لوحة الحضور...")</div>
+        <div class="erp-loading py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2">@Text("Loading attendance dashboard...", "جاري تحميل لوحة الحضور...")</div>
+        </div>
     }
     else if (dashboard is not null)
     {
-        <div class="metric-grid">
-            <div class="metric-card">
-                <span>@Text("Active", "نشط")</span>
-                <strong>@dashboard.ActiveSessions</strong>
-            </div>
-            <div class="metric-card warning">
-                <span>@Text("On break", "في استراحة")</span>
-                <strong>@dashboard.OnBreakSessions</strong>
-            </div>
-            <div class="metric-card success">
-                <span>@Text("Completed today", "مكتمل اليوم")</span>
-                <strong>@dashboard.CompletedToday</strong>
-            </div>
-            <div class="metric-card danger">
-                <span>@Text("Pending requests", "طلبات معلقة")</span>
-                <strong>@dashboard.PendingLateCheckInRequests</strong>
-            </div>
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Active", "نشط")" Value="@dashboard.ActiveSessions.ToString("N0")" Icon="bi-play-circle" Tone="primary" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("On break", "في استراحة")" Value="@dashboard.OnBreakSessions.ToString("N0")" Icon="bi-cup-hot" Tone="warning" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Completed today", "مكتمل اليوم")" Value="@dashboard.CompletedToday.ToString("N0")" Icon="bi-check2-circle" Tone="success" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Pending requests", "طلبات معلقة")" Value="@dashboard.PendingLateCheckInRequests.ToString("N0")" Icon="bi-exclamation-triangle" Tone="danger" /></div>
         </div>
 
-        <div class="attendance-layout">
-            <section class="panel">
-                <div class="panel-title">
-                    <h2>@Text("Today by attendance type", "اليوم حسب نوع الحضور")</h2>
-                </div>
-                <div class="type-bars">
-                    <div>
-                        <div class="d-flex justify-content-between">
-                            <span>@Text("Fixed location", "موقع ثابت")</span>
-                            <strong>@dashboard.FixedLocationSessionsToday</strong>
+        <div class="row g-3">
+            <div class="col-lg-7">
+                <AppCard Title="@AttendanceTypeCardTitle" CssClass="h-100">
+                    <div class="attendance-type-bars">
+                        <div>
+                            <div class="d-flex justify-content-between">
+                                <span>@Text("Fixed location", "موقع ثابت")</span>
+                                <strong>@dashboard.FixedLocationSessionsToday</strong>
+                            </div>
+                            <div class="erp-progress">
+                                <div class="progress-bar" style="--erp-progress-value:@FixedPercent%"></div>
+                            </div>
                         </div>
-                        <div class="progress">
-                            <div class="progress-bar" style="--erp-progress-value:@FixedPercent%"></div>
+                        <div>
+                            <div class="d-flex justify-content-between">
+                                <span>@Text("Mobile", "متنقل")</span>
+                                <strong>@dashboard.MobileSessionsToday</strong>
+                            </div>
+                            <div class="erp-progress">
+                                <div class="progress-bar bg-info" style="--erp-progress-value:@MobilePercent%"></div>
+                            </div>
                         </div>
                     </div>
-                    <div>
-                        <div class="d-flex justify-content-between">
-                            <span>@Text("Mobile", "متنقل")</span>
-                            <strong>@dashboard.MobileSessionsToday</strong>
-                        </div>
-                        <div class="progress">
-                            <div class="progress-bar bg-info" style="--erp-progress-value:@MobilePercent%"></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                </AppCard>
+            </div>
 
-            <section class="panel">
-                <div class="panel-title">
-                    <h2>@Text("Pending late check-ins", "طلبات الحضور المتأخر المعلقة")</h2>
-                    <button class="btn btn-sm btn-outline-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/LateRequests")'>@Text("Review", "مراجعة")</button>
-                </div>
-                @if (!dashboard.PendingRequests.Any())
-                {
-                    <p class="muted">@Text("No pending requests.", "لا توجد طلبات معلقة.")</p>
-                }
-                else
-                {
-                    <div class="request-list">
-                        @foreach (var request in dashboard.PendingRequests)
+            <div class="col-lg-5">
+                <AppCard Title="@PendingCardTitle" CssClass="h-100">
+                    <Actions>
+                        <button class="btn btn-sm btn-outline-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/LateRequests")'>@Text("Review", "مراجعة")</button>
+                    </Actions>
+
+                    <ChildContent>
+                        @if (!dashboard.PendingRequests.Any())
                         {
-                            <div class="request-row">
-                                <div>
-                                    <strong>@ShortId(request.EmployeeId)</strong>
-                                    <span>@request.RequestedCheckInTimeUtc.ToLocalTime().ToString("g")</span>
-                                </div>
-                                <span class="badge text-bg-warning">@LateRequestStatusText(request.Status)</span>
+                            <EmptyState Title="@NoPendingTitle"
+                                        Message="@NoPendingMessage"
+                                        Icon="bi-inboxes" />
+                        }
+                        else
+                        {
+                            <div class="attendance-request-list">
+                                @foreach (var request in dashboard.PendingRequests)
+                                {
+                                    <div class="attendance-request-row">
+                                        <div>
+                                            <strong>@ShortId(request.EmployeeId)</strong>
+                                            <span>@request.RequestedCheckInTimeUtc.ToLocalTime().ToString("g")</span>
+                                        </div>
+                                        <StatusChip Text="@LateRequestStatusText(request.Status)" Tone="warning" />
+                                    </div>
+                                }
                             </div>
                         }
-                    </div>
-                }
-            </section>
+                    </ChildContent>
+                </AppCard>
+            </div>
         </div>
 
-        <section class="panel mt-3">
-            <div class="panel-title">
-                <h2>@Text("Recent sessions", "أحدث جلسات الحضور")</h2>
+        <AppCard Title="@RecentSessionsTitle" CssClass="mt-3">
+            <Actions>
                 <button class="btn btn-sm btn-outline-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/Sessions")'>@Text("View all", "عرض الكل")</button>
-            </div>
-            <div class="table-responsive">
-                        <div class="d-flex justify-content-end mb-2">
-            <TableExportActions />
-        </div>
+            </Actions>
 
-                <table class="table align-middle">
-                    <thead>
-                        <tr>
-                            <th>@Text("Employee", "الموظف")</th>
-                            <th>@Text("Type", "النوع")</th>
-                            <th>@Text("Status", "الحالة")</th>
-                            <th>@Text("Start", "البداية")</th>
-                            <th>@Text("End", "النهاية")</th>
-                            <th>@Text("Hours", "الساعات")</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var session in dashboard.RecentSessions)
-                        {
+            <ChildContent>
+                <div class="erp-table-toolbar">
+                    <TableExportActions />
+                </div>
+
+                <div class="erp-table-wrap">
+                    <table class="table erp-table align-middle mb-0">
+                        <thead>
                             <tr>
-                                <td>@EmployeeLabel(session)</td>
-                                <td>@AttendanceTypeText(session.AttendanceType)</td>
-                                <td><span class="badge @StatusClass(session.Status)">@SessionStatusText(session.Status)</span></td>
-                                <td>@FormatDate(session.ActualStartTime ?? session.ShiftStart)</td>
-                                <td>@FormatNullable(session.ActualEndTime)</td>
-                                <td>@session.TotalHours</td>
+                                <th>@Text("Employee", "الموظف")</th>
+                                <th>@Text("Type", "النوع")</th>
+                                <th>@Text("Status", "الحالة")</th>
+                                <th>@Text("Start", "البداية")</th>
+                                <th>@Text("End", "النهاية")</th>
+                                <th>@Text("Hours", "الساعات")</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </section>
+                        </thead>
+                        <tbody>
+                            @foreach (var session in dashboard.RecentSessions)
+                            {
+                                <tr>
+                                    <td>@EmployeeLabel(session)</td>
+                                    <td>@AttendanceTypeText(session.AttendanceType)</td>
+                                    <td><StatusChip Text="@SessionStatusText(session.Status)" Tone="@StatusTone(session.Status)" /></td>
+                                    <td>@FormatDate(session.ActualStartTime ?? session.ShiftStart)</td>
+                                    <td>@FormatNullable(session.ActualEndTime)</td>
+                                    <td>@session.TotalHours</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </ChildContent>
+        </AppCard>
     }
 </section>
 
@@ -161,6 +158,14 @@
     private int TotalToday => (dashboard?.FixedLocationSessionsToday ?? 0) + (dashboard?.MobileSessionsToday ?? 0);
     private int FixedPercent => TotalToday == 0 ? 0 : (dashboard!.FixedLocationSessionsToday * 100 / TotalToday);
     private int MobilePercent => TotalToday == 0 ? 0 : (dashboard!.MobileSessionsToday * 100 / TotalToday);
+    private string PageTitle => Text("Live attendance dashboard", "لوحة الحضور المباشرة");
+    private string PageSubtitle => Text("Monitor attendance sessions, pending requests, and today's attendance type split.", "متابعة جلسات الحضور والطلبات المعلقة وتوزيع أنواع الحضور اليوم.");
+    private string PageOverline => Text("Attendance", "الحضور والانصراف");
+    private string AttendanceTypeCardTitle => Text("Today by attendance type", "اليوم حسب نوع الحضور");
+    private string PendingCardTitle => Text("Pending late check-ins", "طلبات الحضور المتأخر المعلقة");
+    private string NoPendingTitle => Text("No pending requests", "لا توجد طلبات معلقة");
+    private string NoPendingMessage => Text("Late check-in requests that need review will appear here.", "ستظهر هنا طلبات الحضور المتأخر التي تحتاج إلى مراجعة.");
+    private string RecentSessionsTitle => Text("Recent sessions", "أحدث جلسات الحضور");
 
     protected override async Task OnInitializedAsync() => await LoadDashboard();
 
@@ -215,13 +220,15 @@
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 
-    private static string StatusClass(AttendanceSessionStatus status) => status switch
+    private static string StatusTone(AttendanceSessionStatus status) => status switch
     {
-        AttendanceSessionStatus.Active => "text-bg-success",
-        AttendanceSessionStatus.OnBreak => "text-bg-warning",
-        AttendanceSessionStatus.Completed => "text-bg-secondary",
-        _ => "text-bg-light"
+        AttendanceSessionStatus.Active => "success",
+        AttendanceSessionStatus.OnBreak => "warning",
+        AttendanceSessionStatus.Completed => "muted",
+        AttendanceSessionStatus.Cancelled => "danger",
+        _ => "muted"
     };
+
     protected override void OnInitialized()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
@@ -239,149 +246,26 @@
 }
 
 <style>
-    .attendance-page {
-        color: var(--erp-text);
+    .attendance-type-bars,
+    .attendance-request-list {
+        display: grid;
+        gap: var(--erp-space-4);
     }
 
-    .attendance-header {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
+    .attendance-request-row {
         align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .attendance-header h1 {
-        margin: 0;
-        font-size: 1.6rem;
-        font-weight: 700;
-    }
-
-    .eyebrow {
-        margin: 0 0 .25rem;
-        color: var(--erp-text-muted);
-        font-size: .78rem;
-        text-transform: uppercase;
-        letter-spacing: .06em;
-    }
-
-    .header-actions {
-        display: flex;
-        gap: .5rem;
-        flex-wrap: wrap;
-    }
-
-    .metric-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: .75rem;
-        margin-bottom: .75rem;
-    }
-
-    .metric-card,
-    .panel {
-        background: var(--erp-surface);
-        border: 1px solid var(--erp-border);
-        border-radius: var(--erp-radius-lg);
-        box-shadow: var(--erp-shadow-sm);
-    }
-
-    .metric-card {
-        padding: 1rem;
-        border-top: 3px solid var(--erp-primary);
-    }
-
-    .metric-card.warning { border-top-color: var(--erp-warning); }
-    .metric-card.success { border-top-color: var(--erp-success); }
-    .metric-card.danger { border-top-color: var(--erp-danger); }
-
-    .metric-card span {
-        color: var(--erp-text-muted);
-        font-size: .85rem;
-    }
-
-    .metric-card strong {
-        display: block;
-        font-size: 2rem;
-        line-height: 1.1;
-        margin-top: .35rem;
-    }
-
-    .attendance-layout {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(320px, .8fr);
-        gap: .75rem;
-    }
-
-    .panel {
-        padding: 1rem;
-    }
-
-    .panel-title {
-        display: flex;
-        justify-content: space-between;
-        gap: .75rem;
-        align-items: center;
-        margin-bottom: .75rem;
-    }
-
-    .panel-title h2 {
-        margin: 0;
-        font-size: 1rem;
-        font-weight: 700;
-    }
-
-    .type-bars {
-        display: grid;
-        gap: 1rem;
-    }
-
-    .request-list {
-        display: grid;
-        gap: .5rem;
-    }
-
-    .request-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: .75rem;
         background: var(--erp-surface-muted);
-        border-radius: var(--erp-radius-lg);
-    }
-
-    .request-row span,
-    .muted {
-        color: var(--erp-text-muted);
-    }
-
-    .attendance-empty {
-        padding: 2rem;
-        background: var(--erp-surface);
         border: 1px solid var(--erp-border);
         border-radius: var(--erp-radius-lg);
+        display: flex;
+        gap: var(--erp-space-3);
+        justify-content: space-between;
+        padding: var(--erp-space-3);
+    }
+
+    .attendance-request-row span {
         color: var(--erp-text-muted);
-    }
-
-    @@media (max-width: 900px) {
-        .attendance-header,
-        .attendance-layout {
-            display: block;
-        }
-
-        .header-actions,
-        .panel {
-            margin-top: .75rem;
-        }
-
-        .metric-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-    }
-
-    @@media (max-width: 560px) {
-        .metric-grid {
-            grid-template-columns: 1fr;
-        }
+        display: block;
+        margin-top: var(--erp-space-1);
     }
 </style>

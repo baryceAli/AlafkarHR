@@ -13,26 +13,26 @@
 @inject ModalService ModalService
 @inject SharedDataService SharedDataService
 
-<section class="shift-page" dir="@SharedDataService.PageDirection">
-    <div class="shift-header">
-        <div>
-            <p class="eyebrow">@Text("Attendance", "الحضور والانصراف")</p>
-            <h1>@Text("Shifts", "الورديات")</h1>
-            <p class="subtitle">@Text("Create and maintain company shifts, late rules, and check-in cutoff rules.", "انشاء وادارة ورديات الشركة وقواعد التأخير ومنع تسجيل الحضور.")</p>
-        </div>
-        <button class="btn btn-outline-primary" @onclick="LoadShifts" disabled="@isBusy">
-            <i class="bi bi-arrow-clockwise"></i>
-            @Text("Refresh", "تحديث")
-        </button>
-    </div>
+<section class="erp-page attendance-shift-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Shifts", "الورديات")"
+                Subtitle="@Text("Create and maintain company shifts, late rules, and check-in cutoff rules.", "إنشاء وإدارة ورديات الشركة وقواعد التأخير ومنع تسجيل الحضور.")"
+                Overline="@Text("Attendance", "الحضور والانصراف")"
+                Icon="bi-calendar2-week">
+        <Actions>
+            <button class="btn btn-outline-primary" @onclick="LoadShifts" disabled="@isBusy">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+        </Actions>
+    </PageHeader>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <div class="alert @messageClass">@message</div>
     }
 
-    <section class="shift-panel">
-        <div class="panel-title">
+    <section class="attendance-workspace-card">
+        <div class="attendance-section-title">
             <div>
                 <h2>@(isEditing ? Text("Update shift", "تعديل الوردية") : Text("Create shift", "انشاء وردية"))</h2>
                 <span>@Text("The shift will be saved for the signed-in user's company.", "سيتم حفظ الوردية على شركة المستخدم الحالي.")</span>
@@ -85,19 +85,19 @@
         </div>
     </section>
 
-    <section class="shift-panel mt-3">
-        <div class="panel-title">
+    <section class="attendance-workspace-card mt-3">
+        <div class="attendance-section-title">
             <div>
                 <h2>@Text("Existing shifts", "الورديات الحالية")</h2>
                 <span>@Text($"{shifts.Count} shift(s)", $"{shifts.Count} وردية")</span>
             </div>
         </div>
-        <div class="table-responsive">
+        <div class="erp-table-wrap">
                     <div class="d-flex justify-content-end mb-2">
             <TableExportActions />
         </div>
 
-            <table class="table align-middle shift-table">
+            <table class="table erp-table align-middle shift-table">
                 <thead>
                     <tr>
                         <th>@Text("Name", "الاسم")</th>
@@ -394,7 +394,7 @@
     }
 
     .shift-header,
-    .panel-title,
+    .attendance-section-title,
     .action-row {
         align-items: center;
         display: flex;
@@ -425,7 +425,7 @@
         text-transform: uppercase;
     }
 
-    .shift-panel {
+    .attendance-workspace-card {
         background: var(--erp-surface);
         border: 1px solid var(--erp-border);
         border-radius: var(--erp-radius-lg);
@@ -433,17 +433,17 @@
         padding: 1rem;
     }
 
-    .panel-title {
+    .attendance-section-title {
         margin-bottom: .75rem;
     }
 
-    .panel-title h2 {
+    .attendance-section-title h2 {
         font-size: 1rem;
         font-weight: 700;
         margin: 0;
     }
 
-    .panel-title span {
+    .attendance-section-title span {
         color: var(--erp-text-muted);
         font-size: .9rem;
     }
@@ -492,7 +492,7 @@
 
     @@media (max-width: 760px) {
         .shift-header,
-        .panel-title {
+        .attendance-section-title {
             align-items: stretch;
             flex-direction: column;
         }

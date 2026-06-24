@@ -16,4 +16,10 @@ public interface IBranchService
     Task<ApiResult<CurrentUserBranchAccessDto>> GetCurrentUserBranchAccessAsync(Guid companyId);
     Task<ApiResult<UserBranchAssignmentsDto>> GetUserBranchAssignmentsAsync(Guid userId, Guid companyId);
     Task<ApiResult<AssignUserBranchesResultDto>> AssignUserBranchesAsync(AssignUserBranchesDto assignment);
+    Task<ApiResult<List<BranchRoleProfileDto>>> GetBranchRoleProfilesAsync();
+    Task<ApiResult<CurrentUserBranchRoleAccessDto>> GetCurrentUserBranchRoleAccessAsync(Guid companyId);
+    Task<ApiResult<List<BranchRoleAssignmentDto>>> GetUserBranchRoleAssignmentsAsync(Guid userId, Guid companyId);
+    Task<ApiResult<List<BranchRoleAssignmentDto>>> GetCompanyBranchRoleAssignmentsAsync(Guid companyId, Guid? branchId = null);
+    Task<ApiResult<Guid>> AssignUserBranchRoleAsync(AssignBranchRoleDto assignment);
+    Task<ApiResult<bool>> RemoveUserBranchRoleAsync(Guid assignmentId);
 }

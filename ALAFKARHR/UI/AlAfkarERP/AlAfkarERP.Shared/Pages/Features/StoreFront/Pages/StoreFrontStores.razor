@@ -3,6 +3,7 @@
 @implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Auth.Services
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Customers.Services
 @using AlAfkarERP.Shared.Pages.Features.Inventories.Services
@@ -10,6 +11,7 @@
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.JSInterop
+@using SharedWithUI.Auth.Dtos
 @using SharedWithUI.Catalog.Dtos
 @using SharedWithUI.Customers.Dtos
 @using SharedWithUI.Inventory.Dtos
@@ -19,6 +21,7 @@
 @using SharedWithUI.StoreFront.Dtos
 
 @inject IStoreFrontService StoreFrontService
+@inject IUserService UserService
 @inject IProductService ProductService
 @inject IWarehouseService WarehouseService
 @inject IBranchService BranchService
@@ -56,6 +59,13 @@
     }
     else
     {
+        @if (HasStoreFrontScopeButNoStores)
+        {
+            <div class="alert alert-info">
+                @Text("You have StoreFront branch access, but no accessible stores were returned. Ask an admin to link your StoreFront branch to an active store.", "لديك صلاحية فرع واجهة متجر، لكن لا توجد متاجر متاحة. اطلب من المدير ربط فرع واجهة المتجر بمتجر نشط.")
+            </div>
+        }
+
         <AppCard CssClass="mb-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <div>
@@ -125,20 +135,30 @@
                                 <td>@CustomerName(store.DefaultCustomerId)</td>
                                 <td>@PriceListName(store.PriceListId)</td>
                                 <td>@store.ActiveItemsCount</td>
-                                <td><StatusChip Text="@(store.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))" Tone="@(store.IsActive ? "success" : "secondary")" /></td>
+                                <td>
+                                    <StatusChip Text="@(store.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))" Tone="@(store.IsActive ? "success" : "secondary")" />
+                                    @if (!store.BranchId.HasValue)
+                                    {
+                                        <div class="text-warning small mt-1">@Text("Branch link pending", "ربط الفرع معلق")</div>
+                                    }
+                                </td>
                                 <td class="text-end">
                                     @if (CanEdit)
                                     {
-                                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => EditStore(store)"><i class="bi bi-pencil"></i></button>
-                                        <button class="btn btn-sm btn-outline-warning" @onclick="() => ToggleStoreAsync(store)"><i class="bi bi-power"></i></button>
+                                        <button class="btn btn-sm btn-outline-secondary" disabled="@(!CanStore(store, PermissionList.StoreFrontStorePermissions.Edit))" @onclick="() => EditStore(store)"><i class="bi bi-pencil"></i></button>
+                                        <button class="btn btn-sm btn-outline-warning" disabled="@(!CanStore(store, PermissionList.StoreFrontStorePermissions.Edit))" @onclick="() => ToggleStoreAsync(store)"><i class="bi bi-power"></i></button>
                                     }
                                     @if (CanViewItems || CanEditItems)
                                     {
-                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => EditItemsAsync(store)"><i class="bi bi-box-seam"></i></button>
+                                        <button class="btn btn-sm btn-outline-primary" disabled="@(!CanStore(store, PermissionList.StoreFrontItemPermissions.View))" @onclick="() => EditItemsAsync(store)"><i class="bi bi-box-seam"></i></button>
+                                    }
+                                    @if (CanAssignStoreRoles)
+                                    {
+                                        <button class="btn btn-sm btn-outline-info" @onclick="() => OpenStoreRolesAsync(store)"><i class="bi bi-person-gear"></i></button>
                                     }
                                     @if (CanDelete)
                                     {
-                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteStoreAsync(store)"><i class="bi bi-trash"></i></button>
+                                        <button class="btn btn-sm btn-outline-danger" disabled="@(!CanStore(store, PermissionList.StoreFrontStorePermissions.Delete))" @onclick="() => DeleteStoreAsync(store)"><i class="bi bi-trash"></i></button>
                                     }
                                 </td>
                             </tr>
@@ -164,8 +184,31 @@
                             <div class="col-md-6"><label class="form-label">@Text("Arabic Name", "الاسم العربي")</label><InputText class="form-control" @bind-Value="selectedStore.Name" /></div>
                             <div class="col-md-3"><label class="form-label">@Text("Code", "الرمز")</label><InputText class="form-control" @bind-Value="selectedStore.Code" /></div>
                             <div class="col-md-3"><label class="form-label">@Text("Type", "النوع")</label><InputSelect class="form-select" @bind-Value="selectedStore.StoreFrontTypeId"><option value="@Guid.Empty">@Text("Select", "اختر")</option>@foreach (var type in types.Where(x => x.IsActive || x.Id == selectedStore.StoreFrontTypeId)){<option value="@type.Id">@Text(type.NameEng, type.Name)</option>}</InputSelect></div>
-                            <div class="col-md-3"><label class="form-label">@Text("Branch", "الفرع")</label><InputSelect class="form-select" @bind-Value="selectedStore.BranchId"><option value="">@Text("Company-wide", "على مستوى الشركة")</option>@foreach (var branch in SelectableBranches){<option value="@branch.Id">@Text(branch.NameEng, branch.Name)</option>}</InputSelect></div>
-                            <div class="col-md-3"><label class="form-label">@Text("Warehouse", "المستودع")</label><InputSelect class="form-select" @bind-Value="selectedStore.DefaultWarehouseId"><option value="@Guid.Empty">@Text("Select", "اختر")</option>@foreach (var warehouse in SelectableWarehouses){<option value="@warehouse.Id">@Text(warehouse.NameEng, warehouse.Name)</option>}</InputSelect></div>
+                            <div class="col-md-3">
+                                <label class="form-label">@Text("Store Branch", "فرع المتجر")</label>
+                                <InputSelect class="form-select" @bind-Value="selectedStore.BranchId">
+                                    <option value="">@Text("Auto-create from store", "إنشاء تلقائي من المتجر")</option>
+                                    @foreach (var branch in SelectableStoreFrontBranches)
+                                    {
+                                        <option value="@branch.Id">@Text(branch.NameEng, branch.Name)</option>
+                                    }
+                                </InputSelect>
+                                <div class="text-muted small">@Text("Stores use specialized StoreFront branches for branch-scoped roles.", "تستخدم المتاجر فروعا مخصصة لواجهة المتجر لصلاحيات الفروع.")</div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">@Text("Warehouse", "المستودع")</label>
+                                <InputSelect class="form-select" @bind-Value="selectedStore.DefaultWarehouseId">
+                                    <option value="@Guid.Empty">@Text("Select", "اختر")</option>
+                                    @foreach (var warehouse in SelectableWarehouses)
+                                    {
+                                        <option value="@warehouse.Id">@Text(warehouse.NameEng, warehouse.Name)</option>
+                                    }
+                                </InputSelect>
+                                @if (selectedStore.BranchId.HasValue && !SelectableWarehouses.Any())
+                                {
+                                    <div class="text-warning small">@Text("No warehouses belong to this store branch.", "لا توجد مستودعات مرتبطة بفرع هذا المتجر.")</div>
+                                }
+                            </div>
                             <div class="col-md-6"><label class="form-label">@Text("Default Customer", "العميل الافتراضي")</label><InputSelect class="form-select" @bind-Value="selectedStore.DefaultCustomerId"><option value="">@Text("No default customer", "بدون عميل افتراضي")</option>@foreach (var customer in customers){<option value="@customer.Id">@customer.Name</option>}</InputSelect></div>
                             <div class="col-md-6"><label class="form-label">@Text("Price List", "قائمة الأسعار")</label><InputSelect class="form-select" @bind-Value="selectedStore.PriceListId"><option value="">@Text("Default pricing", "التسعير الافتراضي")</option>@foreach (var priceList in priceLists.Where(x => x.IsActive || x.Id == selectedStore.PriceListId)){<option value="@priceList.Id">@PriceListLabel(priceList)</option>}</InputSelect></div>
                             <div class="col-md-6"><label class="form-label">@Text("Receipt Header", "رأس الإيصال")</label><InputTextArea class="form-control" @bind-Value="selectedStore.ReceiptHeader" /></div>
@@ -191,6 +234,90 @@
     <div class="modal fade show d-block" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">@Text("Sellable Items", "الأصناف القابلة للبيع")</h5><button type="button" class="btn-close" @onclick="CloseModals"></button></div><div class="modal-body"><div class="table-responsive"><table class="table align-middle"><thead><tr><th>@Text("Sell", "بيع")</th><th>@Text("SKU", "الصنف")</th><th>@Text("Manual Price", "سعر يدوي")</th><th>@Text("Require Note", "يتطلب ملاحظة")</th><th>@Text("Min", "الحد الأدنى")</th><th>@Text("Max", "الحد الأعلى")</th><th>@Text("Order", "الترتيب")</th></tr></thead><tbody>@foreach (var sku in allSkus){var item = ItemFor(sku);<tr><td><input type="checkbox" checked="@item.IsActive" disabled="@(!CanEditItems)" @onchange="args => ToggleSku(sku, args)" /></td><td><div class="fw-semibold">@Text(sku.NameEng, sku.Name)</div><div class="text-muted small">@sku.SkuCode</div></td><td><input type="checkbox" checked="@item.AllowManualPrice" disabled="@(!CanEditItems)" @onchange="args => ToggleManualPrice(item, args)" /></td><td><input type="checkbox" checked="@item.RequireManualPriceNote" disabled="@(!CanEditItems || !item.AllowManualPrice)" @onchange="args => item.RequireManualPriceNote = IsChecked(args)" /></td><td><InputNumber class="form-control form-control-sm" @bind-Value="item.MinimumManualPrice" disabled="@(!CanEditItems || !item.AllowManualPrice)" /></td><td><InputNumber class="form-control form-control-sm" @bind-Value="item.MaximumManualPrice" disabled="@(!CanEditItems || !item.AllowManualPrice)" /></td><td><InputNumber class="form-control form-control-sm" @bind-Value="item.DisplayOrder" disabled="@(!CanEditItems)" /></td></tr>}</tbody></table></div></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" @onclick="CloseModals">@Text("Cancel", "إلغاء")</button>@if (CanEditItems){<button type="button" class="btn btn-primary" @onclick="SaveItemsAsync">@Text("Save Items", "حفظ الأصناف")</button>}</div></div></div></div><div class="modal-backdrop fade show"></div>
 }
 
+@if (showRolesModal && selectedStore is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Text("Store Roles", "صلاحيات المتجر")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModals"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-light border d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">@Text(selectedStore.NameEng, selectedStore.Name)</div>
+                            <div class="text-muted small">@Text("Store branch", "فرع المتجر"): @BranchName(selectedStore.BranchId)</div>
+                        </div>
+                        <span class="badge text-bg-secondary">@storeRoleAssignments.Count @Text("roles", "صلاحيات")</span>
+                    </div>
+
+                    <div class="row g-2 align-items-end mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">@Text("Filter users", "تصفية المستخدمين")</label>
+                            <input class="form-control" @bind="selectedRoleUserFilter" @bind:event="oninput" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">@Text("User", "المستخدم")</label>
+                            <select class="form-select" value="@selectedRoleUserId" @onchange="OnRoleUserChanged">
+                                <option value="">@Text("Select user", "اختر مستخدم")</option>
+                                @foreach (var user in FilteredRoleUsers)
+                                {
+                                    <option value="@user.Id">@user.UserName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">@Text("Role", "الدور")</label>
+                            <select class="form-select" @bind="selectedRoleTemplateKey">
+                                <option value="">@Text("Select role", "اختر دور")</option>
+                                @foreach (var profile in roleProfiles)
+                                {
+                                    <option value="@profile.TemplateKey">@Text(profile.Name, profile.NameAr)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <button class="btn btn-primary w-100" @onclick="AssignStoreRoleAsync" disabled="@(selectedRoleUserId == Guid.Empty || string.IsNullOrWhiteSpace(selectedRoleTemplateKey))">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (!storeRoleAssignments.Any())
+                    {
+                        <EmptyState Title="@Text("No store roles", "لا توجد صلاحيات متجر")" Message="@Text("Assign users to roles for this exact store branch.", "عيّن المستخدمين لأدوار على فرع هذا المتجر فقط.")" Icon="bi-person-gear" />
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-0">
+                                <thead><tr><th>@Text("User", "المستخدم")</th><th>@Text("Role", "الدور")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                                <tbody>
+                                    @foreach (var assignment in storeRoleAssignments)
+                                    {
+                                        <tr>
+                                            <td>@UserName(assignment.UserId)</td>
+                                            <td>@Text(assignment.RoleName, assignment.RoleNameAr)</td>
+                                            <td class="text-end">
+                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveStoreRoleAsync(assignment.Id)"><i class="bi bi-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="CloseModals">@Text("Close", "إغلاق")</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
 @code {
     private bool CanView;
     private bool CanCreate;
@@ -198,6 +325,7 @@
     private bool CanDelete;
     private bool CanViewItems;
     private bool CanEditItems;
+    private bool CanAssignStoreRoles;
     private bool isLoading;
     private Guid companyId;
     private List<StoreFrontDto> stores = [];
@@ -208,26 +336,50 @@
     private List<PriceListDto> priceLists = [];
     private List<ProductSkuDto> allSkus = [];
     private List<StoreFrontSellableItemDto> selectedItems = [];
+    private List<UserDto> users = [];
+    private List<BranchRoleProfileDto> roleProfiles = [];
+    private List<BranchRoleAssignmentDto> allBranchRoleAssignments = [];
+    private List<BranchRoleAssignmentDto> storeRoleAssignments = [];
+    private HashSet<string> companyPermissions = new(StringComparer.Ordinal);
     private CurrentUserBranchAccessDto branchAccess = new();
+    private CurrentUserBranchRoleAccessDto branchRoleAccess = new();
     private StoreFrontDto? selectedStore;
     private StoreFrontTypeDto? selectedType;
+    private Guid selectedRoleUserId;
+    private string selectedRoleUserFilter = string.Empty;
+    private string selectedRoleTemplateKey = string.Empty;
     private bool showStoreModal;
     private bool showTypeModal;
     private bool showItemsModal;
+    private bool showRolesModal;
 
     private IEnumerable<BranchDto> SelectableBranches => branchAccess.CanViewAllBranches ? branches : branches.Where(branch => branchAccess.BranchIds.Contains(branch.Id));
-    private IEnumerable<WarehouseDto> SelectableWarehouses => selectedStore?.BranchId is Guid branchId ? warehouses.Where(warehouse => warehouse.BranchId is null || warehouse.BranchId == branchId) : warehouses;
+    private IEnumerable<BranchDto> SelectableStoreFrontBranches => SelectableBranches.Where(branch => branch.Specialization == BranchSpecialization.StoreFront);
+    private IEnumerable<WarehouseDto> SelectableWarehouses => selectedStore?.BranchId is Guid branchId ? warehouses.Where(warehouse => warehouse.BranchId == branchId) : warehouses;
+    private IEnumerable<UserDto> FilteredRoleUsers => users
+        .Where(user => string.IsNullOrWhiteSpace(selectedRoleUserFilter)
+            || (user.UserName?.Contains(selectedRoleUserFilter, StringComparison.OrdinalIgnoreCase) ?? false)
+            || user.Id.ToString().Contains(selectedRoleUserFilter, StringComparison.OrdinalIgnoreCase))
+        .OrderBy(user => user.UserName);
+    private bool HasStoreFrontScopeButNoStores => !stores.Any()
+        && branchRoleAccess.Assignments.Any(assignment =>
+            assignment.Permissions.Any(permission => permission.StartsWith("StoreFront.", StringComparison.Ordinal)));
 
     protected override async Task OnInitializedAsync()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
         var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        companyPermissions = auth.User.Claims
+            .Where(c => c.Type == "Permission")
+            .Select(c => c.Value)
+            .ToHashSet(StringComparer.Ordinal);
         CanView = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontStorePermissions.View);
         CanCreate = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontStorePermissions.Create);
         CanEdit = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontStorePermissions.Edit);
         CanDelete = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontStorePermissions.Delete);
         CanViewItems = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontItemPermissions.View);
         CanEditItems = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontItemPermissions.Edit);
+        CanAssignStoreRoles = auth.User.Claims.Any(c => c.Value == PermissionList.BranchPermissions.AssignUsers);
         if (!CompanyContext.TryGetCompanyId(auth.User, out companyId))
         {
             NavigationManager.NavigateTo("/Dashboard");
@@ -245,6 +397,7 @@
         var warehouseResult = await WarehouseService.GetAsync(companyId, 0, 500);
         var branchResult = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
         var accessResult = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        var roleAccessResult = await BranchService.GetCurrentUserBranchRoleAccessAsync(companyId);
         var customerResult = await CustomerService.GetByCompany(companyId, 0, 1000);
         var priceListResult = await PriceListService.GetByCompanyId(companyId, 0, 1000);
         types = typeResult.IsSuccess ? typeResult.Data ?? [] : [];
@@ -252,8 +405,16 @@
         warehouses = warehouseResult.IsSuccess ? warehouseResult.Data?.Data?.ToList() ?? [] : [];
         branches = branchResult.IsSuccess ? branchResult.Data?.Data?.ToList() ?? [] : [];
         branchAccess = accessResult.IsSuccess ? accessResult.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+        branchRoleAccess = roleAccessResult.IsSuccess ? roleAccessResult.Data ?? new CurrentUserBranchRoleAccessDto() : new CurrentUserBranchRoleAccessDto();
         customers = customerResult.IsSuccess ? customerResult.Data?.Data?.ToList() ?? [] : [];
         priceLists = priceListResult.IsSuccess ? priceListResult.Data?.Data?.ToList() ?? [] : [];
+        if (CanAssignStoreRoles)
+        {
+            var usersResult = await UserService.GetUsersByCompany(companyId, 0, 10000);
+            users = usersResult.IsSuccess ? usersResult.Data?.Data?.ToList() ?? [] : [];
+            var profilesResult = await BranchService.GetBranchRoleProfilesAsync();
+            roleProfiles = profilesResult.IsSuccess ? profilesResult.Data ?? [] : [];
+        }
         isLoading = false;
     }
 
@@ -274,6 +435,25 @@
         {
             ToastService.ShowError(Text("You cannot assign this store to an inaccessible branch.", "لا يمكنك ربط المتجر بفرع غير متاح لك."));
             return;
+        }
+        if (selectedStore.BranchId.HasValue && branches.FirstOrDefault(x => x.Id == selectedStore.BranchId.Value)?.Specialization != BranchSpecialization.StoreFront)
+        {
+            ToastService.ShowError(Text("Store branch must be a StoreFront branch.", "يجب أن يكون فرع المتجر من نوع واجهة متجر."));
+            return;
+        }
+        if (selectedStore.BranchId.HasValue)
+        {
+            var warehouse = warehouses.FirstOrDefault(x => x.Id == selectedStore.DefaultWarehouseId);
+            if (warehouse is null)
+            {
+                ToastService.ShowError(Text("Default warehouse is required.", "المستودع الافتراضي مطلوب."));
+                return;
+            }
+            if (warehouse.BranchId != selectedStore.BranchId.Value)
+            {
+                ToastService.ShowError(Text("Default warehouse must belong to the selected store branch.", "يجب أن يتبع المستودع الافتراضي فرع المتجر المحدد."));
+                return;
+            }
         }
         var result = await StoreFrontService.SaveStoreAsync(selectedStore);
         if (result.IsSuccess) { ToastService.ShowSuccess(Text("Store saved.", "تم حفظ المتجر.")); CloseModals(); await LoadAsync(); }
@@ -313,6 +493,7 @@
 
     private async Task EditItemsAsync(StoreFrontDto store)
     {
+        if (!CanStore(store, PermissionList.StoreFrontItemPermissions.View)) return;
         selectedStore = store;
         var products = await ProductService.GetPricedByCompanyAsync(companyId, store.PriceListId, 0, 1000);
         allSkus = products.IsSuccess ? products.Data?.Data?.SelectMany(x => x.Skus).Where(x => x.IsSellable).ToList() ?? [] : [];
@@ -337,6 +518,7 @@
     private async Task SaveItemsAsync()
     {
         if (selectedStore is null) return;
+        if (!CanStore(selectedStore, PermissionList.StoreFrontItemPermissions.Edit)) return;
         var invalid = selectedItems.FirstOrDefault(item => item.IsActive && item.MinimumManualPrice.HasValue && item.MaximumManualPrice.HasValue && item.MinimumManualPrice.Value > item.MaximumManualPrice.Value);
         if (invalid is not null) { ToastService.ShowError(Text("Minimum manual price cannot be greater than maximum manual price.", "لا يمكن أن يكون الحد الأدنى للسعر اليدوي أكبر من الحد الأعلى.")); return; }
         var result = await StoreFrontService.SaveItemsAsync(selectedStore.Id, selectedItems.Where(x => x.IsActive).ToList());
@@ -345,12 +527,84 @@
     }
 
     private string WarehouseName(Guid id) => Text(warehouses.FirstOrDefault(x => x.Id == id)?.NameEng, warehouses.FirstOrDefault(x => x.Id == id)?.Name) ?? id.ToString();
-    private string BranchName(Guid? id) => id.HasValue ? Text(branches.FirstOrDefault(x => x.Id == id)?.NameEng, branches.FirstOrDefault(x => x.Id == id)?.Name) ?? id.Value.ToString() : Text("Company-wide", "على مستوى الشركة");
+    private string BranchName(Guid? id) => id.HasValue ? Text(branches.FirstOrDefault(x => x.Id == id)?.NameEng, branches.FirstOrDefault(x => x.Id == id)?.Name) ?? id.Value.ToString() : Text("Auto-created", "ينشأ تلقائيا");
     private string CustomerName(Guid? id) => id.HasValue ? customers.FirstOrDefault(x => x.Id == id)?.Name ?? id.Value.ToString() : Text("Default", "افتراضي");
     private string PriceListName(Guid? id) => id.HasValue ? PriceListLabel(priceLists.FirstOrDefault(x => x.Id == id)) ?? id.Value.ToString() : Text("Default", "افتراضي");
     private static string? PriceListLabel(PriceListDto? priceList) => priceList is null ? null : string.IsNullOrWhiteSpace(priceList.Code) ? priceList.Name : $"{priceList.Name} ({priceList.Code})";
     private async Task<bool> ConfirmAsync(string message) => await JSRuntime.InvokeAsync<bool>("confirm", message);
-    private void CloseModals() { showStoreModal = showTypeModal = showItemsModal = false; selectedStore = null; selectedType = null; }
+    private async Task OpenStoreRolesAsync(StoreFrontDto store)
+    {
+        if (!store.BranchId.HasValue)
+        {
+            ToastService.ShowError(Text("Save the store first so it has a StoreFront branch.", "احفظ المتجر أولا حتى يتم إنشاء فرع واجهة المتجر."));
+            return;
+        }
+
+        selectedStore = store;
+        selectedRoleUserId = Guid.Empty;
+        selectedRoleUserFilter = string.Empty;
+        selectedRoleTemplateKey = string.Empty;
+        var result = await BranchService.GetCompanyBranchRoleAssignmentsAsync(companyId, store.BranchId.Value);
+        if (!result.IsSuccess)
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to load store role assignments.", "تعذر تحميل صلاحيات المتجر."));
+            return;
+        }
+        allBranchRoleAssignments = result.Data ?? [];
+        storeRoleAssignments = allBranchRoleAssignments.Where(x => x.BranchId == store.BranchId.Value).ToList();
+        showRolesModal = true;
+    }
+
+    private async Task AssignStoreRoleAsync()
+    {
+        if (selectedStore?.BranchId is not Guid branchId || selectedRoleUserId == Guid.Empty || string.IsNullOrWhiteSpace(selectedRoleTemplateKey))
+            return;
+
+        var result = await BranchService.AssignUserBranchRoleAsync(new AssignBranchRoleDto
+        {
+            UserId = selectedRoleUserId,
+            CompanyId = companyId,
+            BranchId = branchId,
+            TemplateKey = selectedRoleTemplateKey
+        });
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Store role assigned.", "تم تعيين صلاحية المتجر."));
+            await OpenStoreRolesAsync(selectedStore);
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to assign store role.", "تعذر تعيين صلاحية المتجر."));
+        }
+    }
+
+    private async Task RemoveStoreRoleAsync(Guid assignmentId)
+    {
+        var result = await BranchService.RemoveUserBranchRoleAsync(assignmentId);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Store role removed.", "تم حذف صلاحية المتجر."));
+            if (selectedStore is not null)
+                await OpenStoreRolesAsync(selectedStore);
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to remove store role.", "تعذر حذف صلاحية المتجر."));
+        }
+    }
+
+    private bool CanStore(StoreFrontDto store, string permission)
+        => HasCompanyPermission(permission)
+           || (store.BranchId.HasValue && branchRoleAccess.Assignments.Any(assignment =>
+               assignment.BranchId == store.BranchId.Value
+               && assignment.Permissions.Contains(permission, StringComparer.Ordinal)));
+
+    private bool HasCompanyPermission(string permission)
+        => companyPermissions.Contains(permission);
+
+    private string UserName(Guid userId) => users.FirstOrDefault(x => x.Id == userId)?.UserName ?? userId.ToString();
+    private void OnRoleUserChanged(ChangeEventArgs args) => selectedRoleUserId = Guid.TryParse(args.Value?.ToString(), out var userId) ? userId : Guid.Empty;
+    private void CloseModals() { showStoreModal = showTypeModal = showItemsModal = showRolesModal = false; selectedStore = null; selectedType = null; }
     private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;

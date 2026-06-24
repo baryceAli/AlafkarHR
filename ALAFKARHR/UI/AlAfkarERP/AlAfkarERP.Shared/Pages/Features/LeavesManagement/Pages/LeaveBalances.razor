@@ -16,24 +16,26 @@
 @inject SharedDataService SharedDataService
 
 <section class="erp-page" dir="@SharedDataService.PageDirection">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
-        <div>
-            <p class="text-muted mb-1">@Text("Leave Management", "Leave Management")</p>
-            <h3 class="mb-1">@Text("Employee Leave Balances", "Employee Leave Balances")</h3>
-            <p class="text-muted mb-0">@Text("View annual leave balances and manage entitlement configuration when permitted.", "View annual leave balances and manage entitlement configuration when permitted.")</p>
-        </div>
-        <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">
-            <i class="bi bi-arrow-clockwise me-1"></i>@Text("Refresh", "Refresh")
-        </button>
-    </div>
+    <PageHeader Title="@Text("Employee Leave Balances", "Employee Leave Balances")"
+                Subtitle="@Text("View annual leave balances and manage entitlement configuration when permitted.", "View annual leave balances and manage entitlement configuration when permitted.")"
+                Overline="@Text("Leave Management", "Leave Management")"
+                Icon="bi-calendar2-check">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="LoadAsync" disabled="@isBusy">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "Refresh")
+            </button>
+        </Actions>
+    </PageHeader>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <div class="alert @messageClass">@message</div>
     }
 
-    <div class="card mb-3">
-        <div class="card-body">
+    <AppCard Title="@Text("Balance Filters", "Balance Filters")"
+             Subtitle="@Text("Narrow the balance table by year and employee.", "Narrow the balance table by year and employee.")"
+             CssClass="mb-3">
             <div class="row g-3 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label">@Text("Year", "Year")</label>
@@ -52,17 +54,17 @@
                 <div class="col-md-4 text-md-end">
                     @if (!CanManageBalances)
                     {
-                        <span class="badge text-bg-light">@Text("Read only", "Read only")</span>
+                        <StatusChip Text="@Text("Read only", "Read only")" Tone="muted" />
                     }
                 </div>
             </div>
-        </div>
-    </div>
+    </AppCard>
 
     @if (CanManageBalances)
     {
-        <div class="card mb-3">
-            <div class="card-body">
+        <AppCard Title="@Text("Entitlement Configuration", "Entitlement Configuration")"
+                 Subtitle="@Text("Set annual days and carry-forward rules for a selected employee.", "Set annual days and carry-forward rules for a selected employee.")"
+                 CssClass="mb-3">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-4">
                         <label class="form-label">@Text("Employee", "Employee")</label>
@@ -95,13 +97,13 @@
                         <button class="btn btn-outline-secondary" @onclick="ResetModel" disabled="@isBusy">@Text("New", "New")</button>
                     </div>
                 </div>
-            </div>
-        </div>
+        </AppCard>
     }
 
-    <div class="card">
-        <div class="card-body table-responsive">
-            <table class="table align-middle">
+    <AppCard Title="@Text("Leave Balances", "Leave Balances")"
+             Subtitle="@Text("Review available, taken, and remaining leave by employee.", "Review available, taken, and remaining leave by employee.")">
+        <div class="erp-table-wrap">
+            <table class="table erp-table align-middle mb-0">
                 <thead>
                     <tr>
                         <th>@Text("Employee", "Employee")</th>
@@ -121,7 +123,11 @@
                     @if (balances.Count == 0)
                     {
                         <tr>
-                            <td colspan="@(CanManageBalances ? 8 : 7)" class="text-center text-muted py-4">@Text("No leave balances configured for this filter.", "No leave balances configured for this filter.")</td>
+                            <td colspan="@(CanManageBalances ? 8 : 7)">
+                                <EmptyState Title="@Text("No leave balances", "No leave balances")"
+                                            Message="@Text("No leave balances are configured for this filter.", "No leave balances are configured for this filter.")"
+                                            Icon="bi-calendar-x" />
+                            </td>
                         </tr>
                     }
                     else
@@ -135,11 +141,14 @@
                                 <td>@FormatDays(balance.CarriedForwardDays)</td>
                                 <td>@FormatDays(balance.AvailableDays)</td>
                                 <td>@FormatDays(balance.TakenDays)</td>
-                                <td><span class="badge text-bg-@(balance.RemainingDays <= 0 ? "danger" : "success")">@FormatDays(balance.RemainingDays)</span></td>
+                                <td><StatusChip Text="@FormatDays(balance.RemainingDays)" Tone="@(balance.RemainingDays <= 0 ? "danger" : "success")" /></td>
                                 @if (CanManageBalances)
                                 {
                                     <td class="text-end">
-                                        <button class="btn btn-outline-primary btn-sm" @onclick="() => Edit(balance)">@Text("Edit", "Edit")</button>
+                                        <button class="btn btn-outline-primary btn-sm" @onclick="() => Edit(balance)">
+                                            <i class="bi bi-pencil"></i>
+                                            @Text("Edit", "Edit")
+                                        </button>
                                     </td>
                                 }
                             </tr>
@@ -148,7 +157,7 @@
                 </tbody>
             </table>
         </div>
-    </div>
+    </AppCard>
 </section>
 
 @code {

@@ -78,6 +78,12 @@ builder.Services.AddHttpClient<IUserService, UserService>(client =>
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
 
+builder.Services.AddScoped<IAuthDashboardService, AuthDashboardService>();
+builder.Services.AddHttpClient<IAuthDashboardService, AuthDashboardService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+
 
 #region Organization Module Services
 builder.Services.AddScoped<ICompanyService, CompanyService>();

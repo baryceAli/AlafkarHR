@@ -19,19 +19,20 @@
 @inject SharedDataService SharedDataService
 @inject IJSRuntime JSRuntime
 
-<section class="sessions-page" dir="@SharedDataService.PageDirection">
-    <div class="sessions-header">
-        <div>
-            <p class="eyebrow">@Text("Attendance", "الحضور والانصراف")</p>
-            <h1>@Text("Attendance sessions", "جلسات الحضور")</h1>
-        </div>
-        <button class="btn btn-outline-primary" @onclick="LoadSessions">
-            <i class="bi bi-arrow-clockwise"></i>
-            @Text("Refresh", "تحديث")
-        </button>
-    </div>
+<section class="erp-page attendance-sessions-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Attendance sessions", "جلسات الحضور")"
+                Subtitle="@Text("Review employee sessions, attendance status, and normalization requests.", "مراجعة جلسات الموظفين وحالات الحضور وطلبات التصحيح.")"
+                Overline="@Text("Attendance", "الحضور والانصراف")"
+                Icon="bi-calendar-check">
+        <Actions>
+            <button class="btn btn-outline-primary" @onclick="LoadSessions">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+        </Actions>
+    </PageHeader>
 
-    <section class="filter-panel">
+    <section class="attendance-filter-bar">
         <select class="form-select" @bind="employeeIdFilter">
             <option value="">@Text("All employees", "كل الموظفين")</option>
             @foreach (var employee in employees)
@@ -52,7 +53,7 @@
         <div class="alert alert-danger">@errorMessage</div>
     }
 
-    <section class="sessions-panel mb-3">
+    <section class="attendance-workspace-card mb-3">
         <div class="d-flex justify-content-between align-items-center mb-2">
             <h5 class="mb-0">@Text("Configured Working Week", "أسبوع العمل المحدد")</h5>
             <span class="badge bg-light text-dark">@Text("Weekend:", "نهاية الأسبوع:") @string.Join(", ", configuration.WeekendDays.Select(DayName))</span>
@@ -60,14 +61,12 @@
         <div class="d-flex flex-wrap gap-2">
             @foreach (var day in configuration.DaySchedules.OrderBy(x => DayOrder(x.DayOfWeek)))
             {
-                <span class="badge @(day.IsWorkingDay ? "text-bg-primary" : "text-bg-secondary")">
-                    @DayName(day.DayOfWeek): @(day.IsWorkingDay ? $"{FormatTime(day.StartTime)} - {FormatTime(day.EndTime)}" : Text("Non-working", "غير عمل"))
-                </span>
+                <StatusChip Text="@DayScheduleText(day)" Tone="@DayScheduleTone(day)" />
             }
         </div>
     </section>
 
-    <section class="sessions-panel">
+    <section class="attendance-workspace-card">
         @if (isLoading)
         {
             <div class="empty-state">@Text("Loading sessions...", "جاري تحميل الجلسات...")</div>
@@ -78,12 +77,12 @@
         }
         else
         {
-            <div class="table-responsive">
+            <div class="erp-table-wrap">
                         <div class="d-flex justify-content-end mb-2">
             <TableExportActions />
         </div>
 
-                <table class="table align-middle">
+                <table class="table erp-table align-middle mb-0">
                     <thead>
                         <tr>
                             <th>@Text("Employee", "الموظف")</th>
@@ -104,10 +103,10 @@
                                 <td>@EmployeeLabel(session.EmployeeId)</td>
                                 <td>@AttendanceTypeText(session.AttendanceType)</td>
                                 <td>
-                                    <span class="badge @StatusClass(session.Status)">@SessionStatusText(session.Status)</span>
+                                    <StatusChip Text="@SessionStatusText(session.Status)" Tone="@StatusTone(session.Status)" />
                                     @if (session.RequiresNormalization)
                                     {
-                                        <span class="badge text-bg-warning ms-1">@NormalizationStatusText(session.NormalizationStatus)</span>
+                                        <StatusChip Text="@NormalizationStatusText(session.NormalizationStatus)" Tone="warning" />
                                     }
                                 </td>
                                 <td dir="ltr">@FormatDate(session.ActualStartTime)</td>
@@ -368,13 +367,19 @@
         _ => status.ToString()
     };
 
-    private static string StatusClass(AttendanceSessionStatus status) => status switch
+    private static string StatusTone(AttendanceSessionStatus status) => status switch
     {
-        AttendanceSessionStatus.Active => "text-bg-success",
-        AttendanceSessionStatus.OnBreak => "text-bg-warning",
-        AttendanceSessionStatus.Completed => "text-bg-secondary",
-        _ => "text-bg-light"
+        AttendanceSessionStatus.Active => "success",
+        AttendanceSessionStatus.OnBreak => "warning",
+        AttendanceSessionStatus.Completed => "muted",
+        _ => "muted"
     };
+
+    private string DayScheduleText(AttendanceDayScheduleDto day)
+        => $"{DayName(day.DayOfWeek)}: {(day.IsWorkingDay ? $"{FormatTime(day.StartTime)} - {FormatTime(day.EndTime)}" : Text("Non-working", "غير عمل"))}";
+
+    private static string DayScheduleTone(AttendanceDayScheduleDto day)
+        => day.IsWorkingDay ? "primary" : "muted";
 
     private static string SessionRowClass(AttendanceSessionDto session)
         => session.RequiresNormalization ? "session-needs-normalization" : "";
@@ -420,7 +425,7 @@
     }
 
     .sessions-header,
-    .filter-panel {
+    .attendance-filter-bar {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -445,8 +450,8 @@
         letter-spacing: .06em;
     }
 
-    .filter-panel,
-    .sessions-panel {
+    .attendance-filter-bar,
+    .attendance-workspace-card {
         background: var(--erp-surface);
         border: 1px solid var(--erp-border);
         border-radius: var(--erp-radius-lg);
@@ -454,16 +459,16 @@
         box-shadow: var(--erp-shadow-sm);
     }
 
-    .filter-panel {
+    .attendance-filter-bar {
         margin-bottom: .75rem;
         justify-content: flex-start;
     }
 
-    .filter-panel .form-select {
+    .attendance-filter-bar .form-select {
         max-width: 320px;
     }
 
-    .filter-panel .form-control {
+    .attendance-filter-bar .form-control {
         max-width: 180px;
     }
 
@@ -533,14 +538,14 @@
 
     @@media (max-width: 760px) {
         .sessions-header,
-        .filter-panel {
+        .attendance-filter-bar {
             align-items: stretch;
             flex-direction: column;
         }
 
-        .filter-panel .form-select,
-        .filter-panel .form-control,
-        .filter-panel .btn {
+        .attendance-filter-bar .form-select,
+        .attendance-filter-bar .form-control,
+        .attendance-filter-bar .btn {
             max-width: none;
             width: 100%;
         }

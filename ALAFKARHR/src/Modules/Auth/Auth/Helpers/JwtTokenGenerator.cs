@@ -1,10 +1,14 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Auth.Data;
 using Auth.Users.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using MediatR;
+using Shared.Contracts.Organization;
 
 namespace Auth.Helpers;
 
@@ -12,16 +16,19 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 {
     private readonly JwtOptions _options;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly RoleManager<ApplicationRole> _roleManager;
+    private readonly AuthDbContext _authDbContext;
+    private readonly ISender _sender;
 
     public JwtTokenGenerator(
         IOptions<JwtOptions> options,
         UserManager<ApplicationUser> userManager,
-        RoleManager<ApplicationRole> roleManager)
+        AuthDbContext authDbContext,
+        ISender sender)
     {
         _options = options.Value;
         _userManager = userManager;
-        _roleManager = roleManager;
+        _authDbContext = authDbContext;
+        _sender = sender;
     }
 
     public async Task<string> GenerateTokenAsync(ApplicationUser user)
@@ -40,24 +47,59 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             claims.Add(new Claim("company_id", user.CompanyId.Value.ToString()));
         }
 
+        var existingClaims = claims
+            .Select(claim => (claim.Type, claim.Value))
+            .ToHashSet();
+        var existingClaimValues = claims
+            .Select(claim => claim.Value)
+            .ToHashSet();
+
         // ✅ Get Roles
         var roles = await _userManager.GetRolesAsync(user);
+        var roleNames = roles
+            .Where(role => !string.IsNullOrWhiteSpace(role))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
 
-        foreach (var role in roles)
+        foreach (var role in roleNames)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));
+            existingClaims.Add((ClaimTypes.Role, role));
+            existingClaimValues.Add(role);
+        }
 
-            var roleEntity = await _roleManager.FindByNameAsync(role);
-            if (roleEntity is null) continue;
-            if (!RoleMatchesUserScope(roleEntity, user)) continue;
+        var scopedRoleIds = await _authDbContext.Roles
+            .AsNoTracking()
+            .Where(role => roleNames.Contains(role.Name!) && role.CompanyId == user.CompanyId)
+            .Select(role => role.Id)
+            .ToListAsync();
 
-            var roleClaims = await _roleManager.GetClaimsAsync(roleEntity);
+        var roleClaims = scopedRoleIds.Count == 0
+            ? []
+            : await _authDbContext.Set<IdentityRoleClaim<Guid>>()
+                .AsNoTracking()
+                .Where(roleClaim => scopedRoleIds.Contains(roleClaim.RoleId))
+                .Select(roleClaim => new Claim(roleClaim.ClaimType ?? string.Empty, roleClaim.ClaimValue ?? string.Empty))
+                .ToListAsync();
 
-            foreach (var rc in roleClaims)
+        foreach (var rc in roleClaims)
+        {
+            if (existingClaims.Add((rc.Type, rc.Value)))
             {
-                if (!claims.Any(claim => claim.Type == rc.Type && claim.Value == rc.Value))
+                claims.Add(rc);
+                existingClaimValues.Add(rc.Value);
+            }
+        }
+
+        if (user.CompanyId.HasValue)
+        {
+            var scopedPermissions = await _sender.Send(new GetCurrentUserBranchRolePermissionsQuery(user.CompanyId.Value, user.Id));
+            foreach (var permission in scopedPermissions.Permissions)
+            {
+                if (existingClaimValues.Add(permission))
                 {
-                    claims.Add(rc);
+                    claims.Add(new Claim("ScopedPermission", permission));
+                    existingClaims.Add(("ScopedPermission", permission));
                 }
             }
         }
@@ -76,7 +118,4 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-
-    private static bool RoleMatchesUserScope(ApplicationRole role, ApplicationUser user)
-        => role.CompanyId == user.CompanyId;
 }

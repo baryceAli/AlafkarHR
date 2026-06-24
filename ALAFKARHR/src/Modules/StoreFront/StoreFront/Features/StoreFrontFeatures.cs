@@ -56,12 +56,13 @@ public class StoreFrontValidator : AbstractValidator<SaveStoreFrontCommand>
     }
 }
 
-public class StoreFrontQueryHandler(StoreFrontDbContext dbContext, ISender sender)
+public class StoreFrontQueryHandler(StoreFrontDbContext dbContext, ISender sender, IHttpContextAccessor httpContextAccessor)
     : IQueryHandler<GetStoreFrontTypesQuery, GetStoreFrontTypesResult>,
       IQueryHandler<GetStoreFrontsByCompanyQuery, GetStoreFrontsByCompanyResult>,
       IQueryHandler<GetStoreFrontByIdQuery, GetStoreFrontByIdResult>,
       IQueryHandler<GetStoreFrontItemsQuery, GetStoreFrontItemsResult>,
-      IQueryHandler<GetStoreFrontCatalogQuery, GetStoreFrontCatalogResult>
+      IQueryHandler<GetStoreFrontCatalogQuery, GetStoreFrontCatalogResult>,
+      IQueryHandler<GetStoreFrontBranchScopeQuery, GetStoreFrontBranchScopeResult>
 {
     public async Task<GetStoreFrontTypesResult> Handle(GetStoreFrontTypesQuery request, CancellationToken cancellationToken)
     {
@@ -86,11 +87,21 @@ public class StoreFrontQueryHandler(StoreFrontDbContext dbContext, ISender sende
     public async Task<GetStoreFrontsByCompanyResult> Handle(GetStoreFrontsByCompanyQuery request, CancellationToken cancellationToken)
     {
         var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(request.CompanyId), cancellationToken);
+        var canViewCompanyStores = HasCompanyPermission(PermissionList.StoreFrontStorePermissions.View);
+        var branchRoleAccess = canViewCompanyStores
+            ? null
+            : await sender.Send(new GetCurrentUserBranchRoleAccessForAuthorizationQuery(request.CompanyId), cancellationToken);
+        var permittedBranchIds = branchRoleAccess?.Assignments
+            .Where(x => x.Permissions.Contains(PermissionList.StoreFrontStorePermissions.View, StringComparer.Ordinal))
+            .Select(x => x.BranchId)
+            .ToHashSet() ?? [];
+
         var stores = await dbContext.StoreFronts
             .AsNoTracking()
             .Include(x => x.StoreFrontType)
             .Where(x => x.CompanyId == request.CompanyId)
             .Where(x => branchAccess.CanViewAllBranches || x.BranchId == null || (x.BranchId.HasValue && branchAccess.BranchIds.Contains(x.BranchId.Value)))
+            .Where(x => canViewCompanyStores || (x.BranchId.HasValue && permittedBranchIds.Contains(x.BranchId.Value)))
             .OrderBy(x => x.Name)
             .Select(x => ToStoreDto(x, x.SellableItems.Count(item => item.IsActive && !item.IsDeleted)))
             .ToListAsync(cancellationToken);
@@ -107,7 +118,7 @@ public class StoreFrontQueryHandler(StoreFrontDbContext dbContext, ISender sende
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException($"Store front not found: {request.Id}");
 
-        await EnsureCanReadStoreAsync(store.CompanyId, store.BranchId, cancellationToken);
+        await EnsureCanAccessStoreAsync(store.CompanyId, store.BranchId, PermissionList.StoreFrontStorePermissions.View, cancellationToken);
         return new GetStoreFrontByIdResult(ToStoreDto(store, store.SellableItems.Count(x => x.IsActive && !x.IsDeleted)));
     }
 
@@ -116,7 +127,7 @@ public class StoreFrontQueryHandler(StoreFrontDbContext dbContext, ISender sende
         var store = await dbContext.StoreFronts.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == request.StoreFrontId, cancellationToken)
             ?? throw new NotFoundException($"Store front not found: {request.StoreFrontId}");
-        await EnsureCanReadStoreAsync(store.CompanyId, store.BranchId, cancellationToken);
+        await EnsureCanAccessStoreAsync(store.CompanyId, store.BranchId, PermissionList.StoreFrontItemPermissions.View, cancellationToken);
 
         var items = await dbContext.StoreFrontSellableItems
             .AsNoTracking()
@@ -136,7 +147,7 @@ public class StoreFrontQueryHandler(StoreFrontDbContext dbContext, ISender sende
             .FirstOrDefaultAsync(x => x.Id == request.StoreFrontId && x.IsActive, cancellationToken)
             ?? throw new NotFoundException($"Active store front not found: {request.StoreFrontId}");
 
-        await EnsureCanReadStoreAsync(store.CompanyId, store.BranchId, cancellationToken);
+        await EnsureCanAccessStoreAsync(store.CompanyId, store.BranchId, PermissionList.StoreFrontPosPermissions.View, cancellationToken);
 
         var assignedItems = await dbContext.StoreFrontSellableItems
             .AsNoTracking()
@@ -163,6 +174,16 @@ public class StoreFrontQueryHandler(StoreFrontDbContext dbContext, ISender sende
             .ToList();
 
         return new GetStoreFrontCatalogResult(catalogItems);
+    }
+
+    public async Task<GetStoreFrontBranchScopeResult> Handle(GetStoreFrontBranchScopeQuery request, CancellationToken cancellationToken)
+    {
+        var store = await dbContext.StoreFronts.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.StoreFrontId, cancellationToken)
+            ?? throw new NotFoundException($"Store front not found: {request.StoreFrontId}");
+        if (!store.BranchId.HasValue)
+            throw new BadRequestException("Store front is not linked to a branch.");
+        return new GetStoreFrontBranchScopeResult(store.Id, store.CompanyId, store.BranchId.Value);
     }
 
     private static StoreFrontDto ToStoreDto(StoreFrontStore store, int activeItemsCount) => new()
@@ -201,12 +222,18 @@ public class StoreFrontQueryHandler(StoreFrontDbContext dbContext, ISender sende
         MaximumManualPrice = item.MaximumManualPrice
     };
 
-    private async Task EnsureCanReadStoreAsync(Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    private async Task EnsureCanAccessStoreAsync(Guid companyId, Guid? branchId, string permission, CancellationToken cancellationToken)
     {
+        if (!branchId.HasValue)
+            throw new ForbiddenException("Store front is not linked to a branch.");
         var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
         if (!BranchScopePolicy.CanRead(branchAccess, branchId))
             throw new ForbiddenException("You do not have permission to view this storefront branch scope.");
+        await sender.Send(new EnsureCurrentUserBranchPermissionQuery(companyId, branchId.Value, permission), cancellationToken);
     }
+
+    private bool HasCompanyPermission(string permission)
+        => httpContextAccessor.HttpContext?.User.Claims.Any(x => x.Type == "Permission" && x.Value == permission) == true;
 }
 
 public class StoreFrontCommandHandler(
@@ -271,9 +298,24 @@ public class StoreFrontCommandHandler(
             throw new BadRequestException("Store front company cannot be changed.");
 
         if (existing is not null)
-            await EnsureCanMutateStoreAsync(existing.CompanyId, existing.BranchId, cancellationToken);
+            await EnsureCanMutateStoreAsync(existing.CompanyId, existing.BranchId, PermissionList.StoreFrontStorePermissions.Edit, cancellationToken);
 
-        await EnsureCanMutateStoreAsync(request.Store.CompanyId, request.Store.BranchId, cancellationToken);
+        var ensuredBranch = await sender.Send(new EnsureStoreFrontBranchCommand(
+            request.Store.CompanyId,
+            request.Store.BranchId,
+            request.Store.Name,
+            request.Store.NameEng,
+            request.Store.Code,
+            null,
+            null,
+            GetUserId()), cancellationToken);
+        request.Store.BranchId = ensuredBranch.BranchId;
+
+        await EnsureCanMutateStoreAsync(
+            request.Store.CompanyId,
+            request.Store.BranchId,
+            existing is null ? PermissionList.StoreFrontStorePermissions.Create : PermissionList.StoreFrontStorePermissions.Edit,
+            cancellationToken);
         await EnsureTypeAsync(request.Store.CompanyId, request.Store.StoreFrontTypeId, cancellationToken);
 
         StoreFrontStore store;
@@ -298,7 +340,7 @@ public class StoreFrontCommandHandler(
         var store = await dbContext.StoreFronts.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException($"Store front not found: {request.Id}");
 
-        await EnsureCanMutateStoreAsync(store.CompanyId, store.BranchId, cancellationToken);
+        await EnsureCanMutateStoreAsync(store.CompanyId, store.BranchId, PermissionList.StoreFrontStorePermissions.Edit, cancellationToken);
 
         if (request.IsActive && !store.IsActive)
             await EnsureStoreActivationAvailableAsync(store.CompanyId, store.Id, cancellationToken);
@@ -313,7 +355,7 @@ public class StoreFrontCommandHandler(
         var store = await dbContext.StoreFronts.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException($"Store front not found: {request.Id}");
 
-        await EnsureCanMutateStoreAsync(store.CompanyId, store.BranchId, cancellationToken);
+        await EnsureCanMutateStoreAsync(store.CompanyId, store.BranchId, PermissionList.StoreFrontStorePermissions.Delete, cancellationToken);
 
         var userId = GetUserId();
         store.Remove(userId);
@@ -333,7 +375,7 @@ public class StoreFrontCommandHandler(
         var store = await dbContext.StoreFronts.FirstOrDefaultAsync(x => x.Id == request.StoreFrontId, cancellationToken)
             ?? throw new NotFoundException($"Store front not found: {request.StoreFrontId}");
 
-        await EnsureCanMutateStoreAsync(store.CompanyId, store.BranchId, cancellationToken);
+        await EnsureCanMutateStoreAsync(store.CompanyId, store.BranchId, PermissionList.StoreFrontItemPermissions.Edit, cancellationToken);
 
         var requestedBySku = request.Items
             .Where(x => x.ProductSkuId != Guid.Empty)
@@ -381,11 +423,14 @@ public class StoreFrontCommandHandler(
             throw new InvalidOperationException("Store front type is not active or does not belong to this company");
     }
 
-    private async Task EnsureCanMutateStoreAsync(Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    private async Task EnsureCanMutateStoreAsync(Guid companyId, Guid? branchId, string permission, CancellationToken cancellationToken)
     {
+        if (!branchId.HasValue)
+            throw new ForbiddenException("Store front is not linked to a branch.");
         var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
         if (!BranchScopePolicy.CanMutate(branchAccess, branchId))
             throw new ForbiddenException("You do not have permission to change this storefront branch scope.");
+        await sender.Send(new EnsureCurrentUserBranchPermissionQuery(companyId, branchId.Value, permission), cancellationToken);
     }
 
     private string GetUserId() =>
@@ -424,19 +469,16 @@ public class StoreFrontEndpoints : ICarterModule
         {
             var result = await sender.Send(new GetStoreFrontsByCompanyQuery(companyId));
             return Results.Ok(result);
-        }).RequireAuthorization(PermissionList.StoreFrontStorePermissions.View);
+        }).RequireAuthorization();
 
         app.MapGet($"{Route}/stores/{{id:guid}}", async (Guid id, ISender sender) =>
         {
             var result = await sender.Send(new GetStoreFrontByIdQuery(id));
             return Results.Ok(result);
-        }).RequireAuthorization(PermissionList.StoreFrontStorePermissions.View);
+        }).RequireAuthorization();
 
         app.MapPost($"{Route}/stores", async (SaveStoreFrontRequest request, HttpContext context, ISender sender) =>
         {
-            EnsurePermission(
-                context.User,
-                request.Store.Id == Guid.Empty ? PermissionList.StoreFrontStorePermissions.Create : PermissionList.StoreFrontStorePermissions.Edit);
             var result = await sender.Send(new SaveStoreFrontCommand(request.Store));
             return Results.Ok(result.Adapt<SaveStoreFrontResponse>());
         }).RequireAuthorization();
@@ -445,31 +487,31 @@ public class StoreFrontEndpoints : ICarterModule
         {
             var result = await sender.Send(new SetStoreFrontStatusCommand(id, request.IsActive));
             return Results.Ok(result);
-        }).RequireAuthorization(PermissionList.StoreFrontStorePermissions.Edit);
+        }).RequireAuthorization();
 
         app.MapDelete($"{Route}/stores/{{id:guid}}", async (Guid id, ISender sender) =>
         {
             var result = await sender.Send(new DeleteStoreFrontCommand(id));
             return Results.Ok(result);
-        }).RequireAuthorization(PermissionList.StoreFrontStorePermissions.Delete);
+        }).RequireAuthorization();
 
         app.MapGet($"{Route}/stores/{{id:guid}}/items", async (Guid id, ISender sender) =>
         {
             var result = await sender.Send(new GetStoreFrontItemsQuery(id));
             return Results.Ok(result);
-        }).RequireAuthorization(PermissionList.StoreFrontItemPermissions.View);
+        }).RequireAuthorization();
 
         app.MapPut($"{Route}/stores/{{id:guid}}/items", async (Guid id, SaveStoreFrontItemsRequest request, ISender sender) =>
         {
             var result = await sender.Send(new SaveStoreFrontItemsCommand(id, request.Items));
             return Results.Ok(result);
-        }).RequireAuthorization(PermissionList.StoreFrontItemPermissions.Edit);
+        }).RequireAuthorization();
 
         app.MapGet($"{Route}/stores/{{id:guid}}/catalog", async (Guid id, Guid? customerId, string? searchText, ISender sender) =>
         {
             var result = await sender.Send(new GetStoreFrontCatalogQuery(id, customerId, searchText));
             return Results.Ok(result);
-        }).RequireAuthorization(PermissionList.StoreFrontPosPermissions.View);
+        }).RequireAuthorization();
     }
 
     private static void EnsurePermission(ClaimsPrincipal user, string permission)

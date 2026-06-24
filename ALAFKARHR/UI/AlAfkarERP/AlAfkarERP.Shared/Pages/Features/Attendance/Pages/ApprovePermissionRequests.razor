@@ -13,31 +13,32 @@
 @inject SharedDataService SharedDataService
 
 <section class="erp-page" dir="@SharedDataService.PageDirection">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
-        <div>
-            <p class="text-muted mb-1">@Text("Attendance", "الحضور والانصراف")</p>
-            <h3 class="mb-1">@Text("Approve Permission Requests", "اعتماد طلبات الاذن")</h3>
-            <p class="text-muted mb-0">@Text("Review pending permission requests for employees in your department, or administration when no department scope applies.", "مراجعة طلبات الاذن المعلقة لموظفي القسم، أو الادارة عند عدم توفر نطاق القسم.")</p>
-        </div>
-        <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">
-            <i class="bi bi-arrow-clockwise me-1"></i>@Text("Refresh", "تحديث")
-        </button>
-    </div>
+    <PageHeader Title="@Text("Approve Permission Requests", "اعتماد طلبات الإذن")"
+                Subtitle="@Text("Review pending permission requests for employees in your approval scope.", "مراجعة طلبات الإذن المعلقة ضمن نطاق الاعتماد.")"
+                Overline="@Text("Attendance", "الحضور والانصراف")"
+                Icon="bi-patch-check">
+        <Actions>
+            <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+        </Actions>
+    </PageHeader>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <div class="alert @messageClass">@message</div>
     }
 
-    <div class="card">
-        <div class="card-body">
+    <div class="erp-card">
+        <div class="erp-card-body">
             <div class="row g-3 align-items-end mb-3">
                 <div class="col-md-8">
                     <label class="form-label">@Text("Approval comment", "تعليق الاعتماد")</label>
                     <textarea class="form-control" rows="2" @bind="reviewComment" placeholder="@Text("Optional note for the employee", "ملاحظة اختيارية للموظف")"></textarea>
                 </div>
                 <div class="col-md-4 text-md-end">
-                    <span class="badge text-bg-warning">@Text("Pending", "معلق"): @requests.Count</span>
+                    <StatusChip Text="@PendingCountText" Tone="warning" />
                 </div>
             </div>
 
@@ -54,8 +55,8 @@
             }
             else
             {
-                <div class="table-responsive">
-                    <table class="table align-middle">
+                <div class="erp-table-wrap">
+                    <table class="table erp-table align-middle mb-0">
                         <thead>
                             <tr>
                                 <th>@Text("Employee", "الموظف")</th>
@@ -74,7 +75,7 @@
                                     <td>@FormatTimeRange(request.RequestedStartUtc, request.RequestedEndUtc)</td>
                                     <td>@request.Reason</td>
                                     <td class="text-end">
-                                        <div class="btn-group btn-group-sm" role="group" aria-label="@Text("Approval actions", "اجراءات الاعتماد")">
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="@Text("Approval actions", "إجراءات الاعتماد")">
                                             <button class="btn btn-outline-success" @onclick="() => ReviewAsync(request, true)" disabled="@isBusy">
                                                 @Text("Approve", "اعتماد")
                                             </button>
@@ -164,6 +165,8 @@
     {
         await InvokeAsync(StateHasChanged);
     }
+
+    private string PendingCountText => $"{Text("Pending", "معلق")}: {requests.Count}";
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private void SetMessage(string text, string cssClass) { message = text; messageClass = cssClass; }

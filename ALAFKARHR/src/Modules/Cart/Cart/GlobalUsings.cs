@@ -8,6 +8,8 @@ global using Microsoft.AspNetCore.Routing;
 global using Microsoft.EntityFrameworkCore;
 global using Cart.Data;
 global using Shared.Contracts.CQRS;
+global using Shared.Contracts.Organization;
+global using Shared.Contracts.StoreFront;
 global using Shared.Exceptions;
 global using SharedWithUI.Cart.Dtos;
 global using SharedWithUI.Orders.Dtos;
