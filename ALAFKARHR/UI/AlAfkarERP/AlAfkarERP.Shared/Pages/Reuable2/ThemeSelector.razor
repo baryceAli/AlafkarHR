@@ -3,14 +3,6 @@
 @inject AlAfkarERP.Shared.Utilities.SharedDataService SharedDataService
 
 <div class="theme-selector d-flex align-items-center gap-2">
-    <select class="form-select form-select-sm theme-style-select"
-            title="@Text("Interface style", "\u0646\u0645\u0637 \u0627\u0644\u0648\u0627\u062c\u0647\u0629")"
-            aria-label="@Text("Interface style", "\u0646\u0645\u0637 \u0627\u0644\u0648\u0627\u062c\u0647\u0629")"
-            value="@stylePreset"
-            @onchange="OnStyleChanged">
-        <option value="classic">@Text("Classic", "\u0643\u0644\u0627\u0633\u064a\u0643\u064a")</option>
-        <option value="enterprise-next">@Text("Enterprise Next", "\u0625\u0646\u062a\u0631\u0628\u0631\u0627\u064a\u0632 \u0646\u0643\u0633\u062a")</option>
-    </select>
     <select class="form-select form-select-sm"
             title="@Text("Interface color", "لون الواجهة")"
             aria-label="@Text("Interface color", "لون الواجهة")"
@@ -31,7 +23,6 @@
 </div>
 
 @code {
-    private string stylePreset = "classic";
     private string colorScheme = "blue";
     private string mode = "light";
 
@@ -43,35 +34,27 @@
         }
 
         var theme = await JSRuntime.InvokeAsync<ThemeState>("alafkarTheme.get");
-        stylePreset = theme.StylePreset ?? "classic";
         colorScheme = theme.ColorScheme ?? "blue";
         mode = theme.Mode ?? "light";
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task OnStyleChanged(ChangeEventArgs e)
-    {
-        stylePreset = e.Value?.ToString() ?? "classic";
-        await JSRuntime.InvokeVoidAsync("alafkarTheme.set", colorScheme, mode, stylePreset);
-    }
-
     private async Task OnColorChanged(ChangeEventArgs e)
     {
         colorScheme = e.Value?.ToString() ?? "blue";
-        await JSRuntime.InvokeVoidAsync("alafkarTheme.set", colorScheme, mode, stylePreset);
+        await JSRuntime.InvokeVoidAsync("alafkarTheme.set", colorScheme, mode);
     }
 
     private async Task ToggleMode()
     {
         mode = mode == "dark" ? "light" : "dark";
-        await JSRuntime.InvokeVoidAsync("alafkarTheme.set", colorScheme, mode, stylePreset);
+        await JSRuntime.InvokeVoidAsync("alafkarTheme.set", colorScheme, mode);
     }
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 
     private sealed class ThemeState
     {
-        public string? StylePreset { get; set; }
         public string? ColorScheme { get; set; }
         public string? Mode { get; set; }
     }

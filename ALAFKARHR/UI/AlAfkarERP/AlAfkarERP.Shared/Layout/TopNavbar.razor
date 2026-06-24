@@ -26,54 +26,36 @@
                                      OnOpenMore="OnOpenMore" />
         }
 
-        @if (IsEnterpriseNext)
-        {
-            <div class="enterprise-topbar-context min-w-0">
-                <div class="enterprise-context-primary">
-                    <span class="enterprise-app-pill">
-                        <i class="bi @ActiveWorkspaceIcon"></i>
-                        @WorkspaceLabel
-                    </span>
-                    <button type="button"
-                            class="enterprise-command-trigger"
-                            @onclick="() => OnOpenCommand.InvokeAsync()">
-                        <i class="bi bi-search"></i>
-                        <span>@SharedDataService.SelectViewLang("Search or jump to page", "\u0627\u0628\u062d\u062b \u0623\u0648 \u0627\u0646\u062a\u0642\u0644 \u0644\u0635\u0641\u062d\u0629")</span>
-                        <kbd>Ctrl K</kbd>
-                    </button>
-                </div>
-                <ol class="enterprise-context-trail" aria-label="Workspace trail">
-                    @if (ActivePath.Count == 0)
-                    {
-                        <li>@CurrentTitle</li>
-                    }
-                    else
-                    {
-                        @foreach (var item in ActivePath)
-                        {
-                            <li class="@(ReferenceEquals(item, ActivePath.LastOrDefault()) ? "is-current" : "")">
-                                @SharedDataService.SelectViewLang(item.TextEn, item.TextAr)
-                            </li>
-                        }
-                    }
-                </ol>
+        <div class="enterprise-topbar-context min-w-0">
+            <div class="enterprise-context-primary">
+                <span class="enterprise-app-pill">
+                    <i class="bi @ActiveWorkspaceIcon"></i>
+                    @WorkspaceLabel
+                </span>
+                <button type="button"
+                        class="enterprise-command-trigger"
+                        @onclick="() => OnOpenCommand.InvokeAsync()">
+                    <i class="bi bi-search"></i>
+                    <span>@SharedDataService.SelectViewLang("Search or jump to page", "\u0627\u0628\u062d\u062b \u0623\u0648 \u0627\u0646\u062a\u0642\u0644 \u0644\u0635\u0641\u062d\u0629")</span>
+                    <kbd>Ctrl K</kbd>
+                </button>
             </div>
-        }
-        else
-        {
-            <div class="topbar-page-context min-w-0">
-                <span class="erp-topbar-title">@CurrentTitle</span>
-                @if (ActivePath.Count > 1)
+            <ol class="enterprise-context-trail" aria-label="Workspace trail">
+                @if (ActivePath.Count == 0)
                 {
-                    <ol class="topbar-breadcrumb" aria-label="Breadcrumb">
-                        @foreach (var item in ActivePath)
-                        {
-                            <li>@SharedDataService.SelectViewLang(item.TextEn, item.TextAr)</li>
-                        }
-                    </ol>
+                    <li>@CurrentTitle</li>
                 }
-            </div>
-        }
+                else
+                {
+                    @foreach (var item in ActivePath)
+                    {
+                        <li class="@(ReferenceEquals(item, ActivePath.LastOrDefault()) ? "is-current" : "")">
+                            @SharedDataService.SelectViewLang(item.TextEn, item.TextAr)
+                        </li>
+                    }
+                }
+            </ol>
+        </div>
     </div>
 
     <div class="ms-auto d-flex align-items-center topbar-actions">
@@ -119,7 +101,6 @@
     [Parameter] public bool IsMoreOpen { get; set; }
     [Parameter] public AuthenticationState? ShellAuthState { get; set; }
     [Parameter] public IReadOnlySet<string>? LicensedBusinessLineKeys { get; set; }
-    [Parameter] public bool IsEnterpriseNext { get; set; }
 
     private AuthenticationState? authState;
     private IReadOnlyList<MenuItem> ActivePath { get; set; } = Array.Empty<MenuItem>();

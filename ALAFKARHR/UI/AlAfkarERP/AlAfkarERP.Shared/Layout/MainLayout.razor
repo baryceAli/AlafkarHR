@@ -14,11 +14,11 @@
 @* @Body *@
 @* <div class="d-flex vh-100"> *@
 <div class="erp-shell mobile-first-shell d-flex vh-100 overflow-hidden">
-    <DesktopWorkspaceNav ActiveWorkspace="@activeWorkspace"
-                         ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
-                         AuthState="@AuthState"
-                         LicensedBusinessLineKeys="@licensedBusinessLineKeys"
-                         OnOpenCommand="OpenCommandPalette" />
+    <EnterpriseNavigationPanel ActiveWorkspace="@activeWorkspace"
+                               ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
+                               AuthState="@AuthState"
+                               LicensedBusinessLineKeys="@licensedBusinessLineKeys"
+                               OnOpenCommand="OpenCommandPalette" />
 
     <!-- Main Area -->
     <div class="flex-grow-1 d-flex flex-column min-vw-0">
