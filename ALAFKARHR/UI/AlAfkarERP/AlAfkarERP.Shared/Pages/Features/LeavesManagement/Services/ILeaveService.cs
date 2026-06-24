@@ -18,6 +18,27 @@ public interface ILeaveService
     Task<ApiResult<List<EmployeeLeaveBalanceDto>>> GetLeaveBalancesAsync(Guid companyId, int year, Guid? employeeId = null);
     Task<ApiResult<EmployeeLeaveBalanceDto>> UpsertLeaveBalanceAsync(UpsertEmployeeLeaveBalanceDto balance);
     Task<ApiResult<LeaveReportDto>> GetLeaveReportAsync(LeaveReportFilterDto filter);
+    Task<ApiResult<List<LeaveTypeDto>>> GetLeaveTypesAsync(Guid companyId);
+    Task<ApiResult<LeaveTypeDto>> UpsertLeaveTypeAsync(UpsertLeaveTypeDto leaveType);
+    Task<ApiResult<bool>> DeleteLeaveTypeAsync(Guid id);
+    Task<ApiResult<List<LeavePeriodDto>>> GetLeavePeriodsAsync(Guid companyId);
+    Task<ApiResult<LeavePeriodDto>> UpsertLeavePeriodAsync(UpsertLeavePeriodDto leavePeriod);
+    Task<ApiResult<bool>> DeleteLeavePeriodAsync(Guid id);
+    Task<ApiResult<List<LeavePolicyDto>>> GetLeavePoliciesAsync(Guid companyId);
+    Task<ApiResult<LeavePolicyDto>> UpsertLeavePolicyAsync(UpsertLeavePolicyDto leavePolicy);
+    Task<ApiResult<bool>> DeleteLeavePolicyAsync(Guid id);
+    Task<ApiResult<List<LeavePolicyAssignmentDto>>> GetLeavePolicyAssignmentsAsync(Guid companyId);
+    Task<ApiResult<LeavePolicyAssignmentDto>> UpsertLeavePolicyAssignmentAsync(UpsertLeavePolicyAssignmentDto assignment);
+    Task<ApiResult<bool>> DeleteLeavePolicyAssignmentAsync(Guid id);
+    Task<ApiResult<int>> GenerateLeaveAllocationsAsync(GenerateLeaveAllocationsDto request);
+    Task<ApiResult<List<LeaveApplicationDto>>> GetLeaveApplicationsAsync(Guid companyId, Guid? employeeId = null, LeaveApplicationStatus? status = null);
+    Task<ApiResult<LeaveApplicationDto>> UpsertLeaveApplicationAsync(UpsertLeaveApplicationDto application);
+    Task<ApiResult<LeaveApplicationDto>> SubmitLeaveApplicationAsync(Guid id);
+    Task<ApiResult<LeaveApplicationDto>> ReviewLeaveApplicationAsync(ReviewLeaveApplicationDto review);
+    Task<ApiResult<LeaveApplicationDto>> CancelLeaveApplicationAsync(Guid id);
+    Task<ApiResult<List<LeaveLedgerEntryDto>>> GetLeaveLedgerEntriesAsync(Guid companyId, Guid? employeeId = null, Guid? leaveTypeId = null, Guid? leavePeriodId = null);
+    Task<ApiResult<LeaveLedgerEntryDto>> CreateLeaveLedgerAdjustmentAsync(CreateLeaveLedgerAdjustmentDto adjustment);
+    Task<ApiResult<(LeaveEncashmentDto? Encashment, LeaveLedgerEntryDto? Entry)>> CreateLeaveEncashmentAsync(CreateLeaveEncashmentDto encashment);
 }
 
 public class LeaveService : BaseApiService, ILeaveService
@@ -123,5 +144,118 @@ public class LeaveService : BaseApiService, ILeaveService
         {
             Content = JsonContent.Create(new { Filter = filter })
         }, "report");
+    }
+
+    public async Task<ApiResult<List<LeaveTypeDto>>> GetLeaveTypesAsync(Guid companyId)
+        => await SendAsync<List<LeaveTypeDto>>(new HttpRequestMessage(HttpMethod.Get, $"{path}/leave-types?companyId={companyId}"), "leaveTypes");
+
+    public async Task<ApiResult<LeaveTypeDto>> UpsertLeaveTypeAsync(UpsertLeaveTypeDto leaveType)
+        => await SendAsync<LeaveTypeDto>(new HttpRequestMessage(leaveType.Id.HasValue ? HttpMethod.Put : HttpMethod.Post, leaveType.Id.HasValue ? $"{path}/leave-types/{leaveType.Id}" : $"{path}/leave-types")
+        {
+            Content = JsonContent.Create(new { LeaveType = leaveType })
+        }, "leaveType");
+
+    public async Task<ApiResult<bool>> DeleteLeaveTypeAsync(Guid id)
+        => await SendAsync<bool>(new HttpRequestMessage(HttpMethod.Delete, $"{path}/leave-types/{id}"), "success");
+
+    public async Task<ApiResult<List<LeavePeriodDto>>> GetLeavePeriodsAsync(Guid companyId)
+        => await SendAsync<List<LeavePeriodDto>>(new HttpRequestMessage(HttpMethod.Get, $"{path}/leave-periods?companyId={companyId}"), "leavePeriods");
+
+    public async Task<ApiResult<LeavePeriodDto>> UpsertLeavePeriodAsync(UpsertLeavePeriodDto leavePeriod)
+        => await SendAsync<LeavePeriodDto>(new HttpRequestMessage(leavePeriod.Id.HasValue ? HttpMethod.Put : HttpMethod.Post, leavePeriod.Id.HasValue ? $"{path}/leave-periods/{leavePeriod.Id}" : $"{path}/leave-periods")
+        {
+            Content = JsonContent.Create(new { LeavePeriod = leavePeriod })
+        }, "leavePeriod");
+
+    public async Task<ApiResult<bool>> DeleteLeavePeriodAsync(Guid id)
+        => await SendAsync<bool>(new HttpRequestMessage(HttpMethod.Delete, $"{path}/leave-periods/{id}"), "success");
+
+    public async Task<ApiResult<List<LeavePolicyDto>>> GetLeavePoliciesAsync(Guid companyId)
+        => await SendAsync<List<LeavePolicyDto>>(new HttpRequestMessage(HttpMethod.Get, $"{path}/leave-policies?companyId={companyId}"), "leavePolicies");
+
+    public async Task<ApiResult<LeavePolicyDto>> UpsertLeavePolicyAsync(UpsertLeavePolicyDto leavePolicy)
+        => await SendAsync<LeavePolicyDto>(new HttpRequestMessage(leavePolicy.Id.HasValue ? HttpMethod.Put : HttpMethod.Post, leavePolicy.Id.HasValue ? $"{path}/leave-policies/{leavePolicy.Id}" : $"{path}/leave-policies")
+        {
+            Content = JsonContent.Create(new { LeavePolicy = leavePolicy })
+        }, "leavePolicy");
+
+    public async Task<ApiResult<bool>> DeleteLeavePolicyAsync(Guid id)
+        => await SendAsync<bool>(new HttpRequestMessage(HttpMethod.Delete, $"{path}/leave-policies/{id}"), "success");
+
+    public async Task<ApiResult<List<LeavePolicyAssignmentDto>>> GetLeavePolicyAssignmentsAsync(Guid companyId)
+        => await SendAsync<List<LeavePolicyAssignmentDto>>(new HttpRequestMessage(HttpMethod.Get, $"{path}/leave-policy-assignments?companyId={companyId}"), "assignments");
+
+    public async Task<ApiResult<LeavePolicyAssignmentDto>> UpsertLeavePolicyAssignmentAsync(UpsertLeavePolicyAssignmentDto assignment)
+        => await SendAsync<LeavePolicyAssignmentDto>(new HttpRequestMessage(assignment.Id.HasValue ? HttpMethod.Put : HttpMethod.Post, assignment.Id.HasValue ? $"{path}/leave-policy-assignments/{assignment.Id}" : $"{path}/leave-policy-assignments")
+        {
+            Content = JsonContent.Create(new { Assignment = assignment })
+        }, "assignment");
+
+    public async Task<ApiResult<bool>> DeleteLeavePolicyAssignmentAsync(Guid id)
+        => await SendAsync<bool>(new HttpRequestMessage(HttpMethod.Delete, $"{path}/leave-policy-assignments/{id}"), "success");
+
+    public async Task<ApiResult<int>> GenerateLeaveAllocationsAsync(GenerateLeaveAllocationsDto request)
+        => await SendAsync<int>(new HttpRequestMessage(HttpMethod.Post, $"{path}/leave-allocations/generate")
+        {
+            Content = JsonContent.Create(new { Request = request })
+        }, "createdEntries");
+
+    public async Task<ApiResult<List<LeaveApplicationDto>>> GetLeaveApplicationsAsync(Guid companyId, Guid? employeeId = null, LeaveApplicationStatus? status = null)
+    {
+        var url = $"{path}/leave-applications?companyId={companyId}";
+        if (employeeId.HasValue) url += $"&employeeId={employeeId.Value}";
+        if (status.HasValue) url += $"&status={status.Value}";
+        return await SendAsync<List<LeaveApplicationDto>>(new HttpRequestMessage(HttpMethod.Get, url), "applications");
+    }
+
+    public async Task<ApiResult<LeaveApplicationDto>> UpsertLeaveApplicationAsync(UpsertLeaveApplicationDto application)
+        => await SendAsync<LeaveApplicationDto>(new HttpRequestMessage(application.Id.HasValue ? HttpMethod.Put : HttpMethod.Post, application.Id.HasValue ? $"{path}/leave-applications/{application.Id}" : $"{path}/leave-applications")
+        {
+            Content = JsonContent.Create(new { Application = application })
+        }, "application");
+
+    public async Task<ApiResult<LeaveApplicationDto>> SubmitLeaveApplicationAsync(Guid id)
+        => await SendAsync<LeaveApplicationDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/leave-applications/{id}/submit"), "application");
+
+    public async Task<ApiResult<LeaveApplicationDto>> ReviewLeaveApplicationAsync(ReviewLeaveApplicationDto review)
+        => await SendAsync<LeaveApplicationDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/leave-applications/review")
+        {
+            Content = JsonContent.Create(new { Review = review })
+        }, "application");
+
+    public async Task<ApiResult<LeaveApplicationDto>> CancelLeaveApplicationAsync(Guid id)
+        => await SendAsync<LeaveApplicationDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/leave-applications/{id}/cancel"), "application");
+
+    public async Task<ApiResult<List<LeaveLedgerEntryDto>>> GetLeaveLedgerEntriesAsync(Guid companyId, Guid? employeeId = null, Guid? leaveTypeId = null, Guid? leavePeriodId = null)
+    {
+        var url = $"{path}/leave-ledger?companyId={companyId}";
+        if (employeeId.HasValue) url += $"&employeeId={employeeId.Value}";
+        if (leaveTypeId.HasValue) url += $"&leaveTypeId={leaveTypeId.Value}";
+        if (leavePeriodId.HasValue) url += $"&leavePeriodId={leavePeriodId.Value}";
+        return await SendAsync<List<LeaveLedgerEntryDto>>(new HttpRequestMessage(HttpMethod.Get, url), "entries");
+    }
+
+    public async Task<ApiResult<LeaveLedgerEntryDto>> CreateLeaveLedgerAdjustmentAsync(CreateLeaveLedgerAdjustmentDto adjustment)
+        => await SendAsync<LeaveLedgerEntryDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/leave-ledger/adjustments")
+        {
+            Content = JsonContent.Create(new { Adjustment = adjustment })
+        }, "entry");
+
+    public async Task<ApiResult<(LeaveEncashmentDto? Encashment, LeaveLedgerEntryDto? Entry)>> CreateLeaveEncashmentAsync(CreateLeaveEncashmentDto encashment)
+    {
+        var result = await SendAsync<CreateLeaveEncashmentResponse>(new HttpRequestMessage(HttpMethod.Post, $"{path}/leave-ledger/encashments")
+        {
+            Content = JsonContent.Create(new { Encashment = encashment })
+        }, null);
+
+        return result.IsSuccess
+            ? ApiResult<(LeaveEncashmentDto? Encashment, LeaveLedgerEntryDto? Entry)>.Success((result.Data?.Encashment, result.Data?.Entry))
+            : ApiResult<(LeaveEncashmentDto? Encashment, LeaveLedgerEntryDto? Entry)>.Failure(result.Error!);
+    }
+
+    private sealed class CreateLeaveEncashmentResponse
+    {
+        public LeaveEncashmentDto? Encashment { get; set; }
+        public LeaveLedgerEntryDto? Entry { get; set; }
     }
 }

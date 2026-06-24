@@ -1,0 +1,168 @@
+﻿@layout AdminLayout
+@page "/HR/EmployeeDocuments"
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Utilities
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.HRCore.Dtos
+@inject IEmployeeService EmployeeService
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Employee Documents", "مستندات الموظفين")" Subtitle="@Text("Link HR document metadata to employee records while keeping file storage in Document Management.", "ربط بيانات مستندات الموارد البشرية بسجلات الموظفين مع إبقاء تخزين الملفات في إدارة المستندات.")" Overline="@Text("HR Core", "أساس الموارد البشرية")" Icon="bi-folder2-open" />
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    <AppCard CssClass="mb-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-lg-7">
+                <label class="form-label">@Text("Employee", "الموظف")</label>
+                <select class="form-select" @onchange="OnEmployeeChanged" value="@selectedEmployeeIdText">
+                    <option value="">@Text("Select employee", "اختر الموظف")</option>
+                    @foreach (var employee in employees)
+                    {
+                        <option value="@employee.Id">@EmployeeDisplay(employee)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-lg-2"><button class="btn btn-outline-primary w-100" type="button" @onclick="LoadDocumentsAsync"><i class="bi bi-arrow-repeat"></i> @Text("Load", "تحميل")</button></div>
+            <div class="col-6 col-lg-3"><button class="btn btn-primary w-100" type="button" disabled="@(!SelectedEmployeeId.HasValue)" @onclick="NewDocument"><i class="bi bi-plus-lg"></i> @Text("New Link", "ربط جديد")</button></div>
+        </div>
+    </AppCard>
+
+    @if (isEditing)
+    {
+        <AppCard Title="@FormTitle" CssClass="mb-3">
+            <EditForm Model="editingDocument" OnValidSubmit="SaveDocumentAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-12 col-md-4"><label class="form-label">@Text("Document Type", "نوع المستند")</label><InputText class="form-control" @bind-Value="editingDocument.DocumentType" /></div>
+                    <div class="col-12 col-md-4"><label class="form-label">@Text("Title", "العنوان")</label><InputText class="form-control" @bind-Value="editingDocument.Title" /></div>
+                    <div class="col-12 col-md-4"><label class="form-label">@Text("Document Id", "معرف المستند")</label><input class="form-control" value="@documentIdText" @oninput="OnDocumentIdInput" placeholder="@Text("Optional DocumentManagement id", "معرف اختياري من إدارة المستندات")" /></div>
+                    <div class="col-12 col-md-4"><label class="form-label">@Text("Issue Date", "تاريخ الإصدار")</label><InputDate class="form-control" @bind-Value="editingDocument.IssueDate" /></div>
+                    <div class="col-12 col-md-4"><label class="form-label">@Text("Expiry Date", "تاريخ الانتهاء")</label><InputDate class="form-control" @bind-Value="editingDocument.ExpiryDate" /></div>
+                    <div class="col-12 col-md-4"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="editingDocument.Notes" /></div>
+                </div>
+                <div class="d-flex justify-content-end gap-2 mt-3"><button class="btn btn-outline-secondary" type="button" @onclick="CancelEdit">@Text("Cancel", "إلغاء")</button><button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @Text("Save", "حفظ")</button></div>
+            </EditForm>
+        </AppCard>
+    }
+
+    <AppCard Title="@Text("Document Links", "روابط المستندات")" BodyClass="p-0">
+        @if (isLoading)
+        {
+            <div class="p-4 text-center text-muted">@Text("Loading documents...", "جاري تحميل المستندات...")</div>
+        }
+        else if (!SelectedEmployeeId.HasValue)
+        {
+            <EmptyState Icon="bi-person-check" Title="@Text("Select an employee", "اختر موظفا")" Message="@Text("Employee HR document links will appear here.", "ستظهر روابط مستندات الموظف هنا.")" />
+        }
+        else if (!documents.Any())
+        {
+            <EmptyState Icon="bi-folder2-open" Title="@Text("No documents", "لا توجد مستندات")" Message="@Text("Add a document link for this employee.", "أضف رابط مستند لهذا الموظف.")" />
+        }
+        else
+        {
+            <div class="erp-table-wrap"><table class="table align-middle mb-0"><thead><tr><th>@Text("Title", "العنوان")</th><th>@Text("Type", "النوع")</th><th>@Text("Issue", "الإصدار")</th><th>@Text("Expiry", "الانتهاء")</th><th>@Text("Document Id", "معرف المستند")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead><tbody>
+            @foreach (var document in documents)
+            {
+                <tr><td><div class="fw-semibold">@document.Title</div><div class="text-muted small">@document.Notes</div></td><td>@document.DocumentType</td><td>@FormatDate(document.IssueDate)</td><td><span class="badge rounded-pill @(document.RequiresRenewal ? "text-bg-warning" : "text-bg-light")">@FormatDate(document.ExpiryDate)</span></td><td>@ShortId(document.DocumentId)</td><td class="text-end"><div class="btn-group btn-group-sm"><button class="btn btn-outline-primary" type="button" @onclick="() => EditDocument(document)"><i class="bi bi-pencil"></i></button><button class="btn btn-outline-danger" type="button" @onclick="() => DeleteDocumentAsync(document.Id)"><i class="bi bi-trash"></i></button></div></td></tr>
+            }
+            </tbody></table></div>
+        }
+    </AppCard>
+</main>
+
+@code {
+    private List<EmployeeDto> employees = [];
+    private List<EmployeeDocumentLinkDto> documents = [];
+    private EmployeeDocumentLinkDto editingDocument = NewDocumentDto();
+    private string selectedEmployeeIdText = string.Empty;
+    private string documentIdText = string.Empty;
+    private string? errorMessage;
+    private bool isLoading;
+    private bool isEditing;
+
+    private Guid? SelectedEmployeeId => Guid.TryParse(selectedEmployeeIdText, out var id) ? id : null;
+    private string FormTitle => editingDocument.Id == Guid.Empty ? Text("New Document Link", "رابط مستند جديد") : Text("Edit Document Link", "تعديل رابط المستند");
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadEmployeesAsync();
+    }
+
+    private async Task LoadEmployeesAsync()
+    {
+        if (ApiConfig.CompanyId == Guid.Empty) return;
+        var result = await EmployeeService.GetByCompanyIdAsync(ApiConfig.CompanyId, 0, 1000);
+        if (result.IsSuccess) employees = result.Data?.Data.ToList() ?? [];
+        else errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language);
+    }
+
+    private async Task OnEmployeeChanged(ChangeEventArgs args)
+    {
+        selectedEmployeeIdText = args.Value?.ToString() ?? string.Empty;
+        CancelEdit();
+        await LoadDocumentsAsync();
+    }
+
+    private async Task LoadDocumentsAsync()
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+        isLoading = true;
+        var result = await EmployeeService.GetDocumentLinksAsync(SelectedEmployeeId.Value);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        documents = result.IsSuccess ? result.Data ?? [] : [];
+        isLoading = false;
+    }
+
+    private void NewDocument()
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+        editingDocument = NewDocumentDto();
+        documentIdText = string.Empty;
+        isEditing = true;
+    }
+
+    private void EditDocument(EmployeeDocumentLinkDto document)
+    {
+        editingDocument = new() { Id = document.Id, EmployeeId = document.EmployeeId, CompanyId = document.CompanyId, DocumentId = document.DocumentId, DocumentType = document.DocumentType, Title = document.Title, IssueDate = document.IssueDate, ExpiryDate = document.ExpiryDate, Notes = document.Notes };
+        documentIdText = document.DocumentId?.ToString() ?? string.Empty;
+        isEditing = true;
+    }
+
+    private async Task SaveDocumentAsync()
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+        editingDocument.EmployeeId = SelectedEmployeeId.Value;
+        editingDocument.CompanyId = ApiConfig.CompanyId;
+        editingDocument.DocumentId = Guid.TryParse(documentIdText, out var documentId) ? documentId : null;
+        var result = editingDocument.Id == Guid.Empty ? await EmployeeService.CreateDocumentLinkAsync(SelectedEmployeeId.Value, editingDocument) : await EmployeeService.UpdateDocumentLinkAsync(SelectedEmployeeId.Value, editingDocument);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) { CancelEdit(); await LoadDocumentsAsync(); }
+    }
+
+    private async Task DeleteDocumentAsync(Guid id)
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+        var result = await EmployeeService.DeleteDocumentLinkAsync(SelectedEmployeeId.Value, id);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) await LoadDocumentsAsync();
+    }
+
+    private void CancelEdit() { editingDocument = NewDocumentDto(); documentIdText = string.Empty; isEditing = false; }
+    private void OnDocumentIdInput(ChangeEventArgs args) => documentIdText = args.Value?.ToString() ?? string.Empty;
+    private static EmployeeDocumentLinkDto NewDocumentDto() => new() { IssueDate = DateTime.Today };
+    private string EmployeeDisplay(EmployeeDto employee) => $"{(SharedDataService.Language == "Ar" ? employee.FullName : employee.FullNameEng)} ({employee.EmployeeNo})";
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string FormatDate(DateTime? date) => date.HasValue ? date.Value.ToString("yyyy/MM/dd") : "-";
+    private string ShortId(Guid? id) => id.HasValue && id.Value != Guid.Empty ? id.Value.ToString()[..8] : "-";
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

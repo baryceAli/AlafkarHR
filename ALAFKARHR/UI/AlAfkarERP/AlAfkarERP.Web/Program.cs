@@ -16,13 +16,16 @@ using AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services;
 using AlAfkarERP.Shared.Pages.Features.Maintenance.Services;
 using AlAfkarERP.Shared.Pages.Features.MediaCenter.Services;
 using AlAfkarERP.Shared.Pages.Features.Payroll.Services;
+using AlAfkarERP.Shared.Pages.Features.Performance.Services;
 using AlAfkarERP.Shared.Pages.Features.Procurement.Services;
 using AlAfkarERP.Shared.Pages.Features.ProjectManagement.Services;
 using AlAfkarERP.Shared.Pages.Features.RealEstate.Services;
+using AlAfkarERP.Shared.Pages.Features.Recruitment.Services;
 using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services;
 using AlAfkarERP.Shared.Pages.Features.StoreFront.Services;
 using AlAfkarERP.Shared.Pages.Features.Suppliers.Services;
 using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services;
+using AlAfkarERP.Shared.Pages.Features.Training.Services;
 using AlAfkarERP.Shared.Pages.Reuable2;
 using AlAfkarERP.Shared.Utilities;
 using AlAfkarERP.Web.Components;
@@ -367,6 +370,30 @@ builder.Services.AddHttpClient<IPayrollService, PayrollService>(client =>
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
 #endregion Payroll
+
+#region Performance
+builder.Services.AddScoped<IPerformanceService, PerformanceService>();
+builder.Services.AddHttpClient<IPerformanceService, PerformanceService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+#endregion Performance
+
+#region Recruitment
+builder.Services.AddScoped<IRecruitmentService, RecruitmentService>();
+builder.Services.AddHttpClient<IRecruitmentService, RecruitmentService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+#endregion Recruitment
+
+#region Training
+builder.Services.AddScoped<ITrainingService, TrainingService>();
+builder.Services.AddHttpClient<ITrainingService, TrainingService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
+#endregion Training
 
 #region Procurement
 builder.Services.AddScoped<IProcurementService, ProcurementService>();

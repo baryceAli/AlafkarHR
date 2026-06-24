@@ -2,6 +2,7 @@ using AttendanceDomain.Attendance.Features.Breaks;
 using AttendanceDomain.Attendance.Features.BreakPolicies;
 using AttendanceDomain.Attendance.Features.CheckIns;
 using AttendanceDomain.Attendance.Features.EndSession;
+using AttendanceDomain.Attendance.Features.Enhancements;
 using AttendanceDomain.Attendance.Features.Configuration;
 using AttendanceDomain.Attendance.Features.Holidays;
 using AttendanceDomain.Attendance.Features.LateCheckInRequests;
@@ -42,6 +43,18 @@ public record UpsertAttendanceBreakPolicyRequest(UpsertAttendanceBreakPolicyDto 
 public record CreateMidDayPermissionRequestRequest(CreateMidDayPermissionRequestDto Request);
 public record ReviewMidDayPermissionRequestRequest(ReviewMidDayPermissionRequestDto Review);
 public record GetAttendanceReportRequest(AttendanceReportFilterDto Filter);
+public record UpsertShiftScheduleRequest(UpsertShiftScheduleDto Schedule);
+public record UpsertShiftScheduleAssignmentRequest(UpsertShiftScheduleAssignmentDto Assignment);
+public record BulkShiftScheduleAssignmentRequest(BulkShiftScheduleAssignmentDto Assignment);
+public record CreateShiftSwapRequestBody(CreateShiftSwapRequestDto Request);
+public record ReviewShiftSwapRequestBody(ReviewShiftSwapRequestDto Review);
+public record CreateAttendanceCorrectionRequestBody(CreateAttendanceCorrectionDto Correction);
+public record ReviewAttendanceCorrectionRequestBody(ReviewAttendanceCorrectionDto Review);
+public record CreateBiometricImportBatchRequestBody(CreateBiometricImportBatchDto Batch);
+public record UpsertBiometricImportRowRequestBody(UpsertBiometricImportRowDto Row);
+public record ReviewBiometricImportRowRequestBody(ReviewBiometricImportRowDto Review);
+public record GenerateAttendanceWorkEntriesRequestBody(GenerateAttendanceWorkEntriesDto Request);
+public record UpsertAttendanceWorkEntryRequestBody(UpsertAttendanceWorkEntryDto Entry);
 
 public class AttendanceEndpoints : ICarterModule
 {
@@ -275,6 +288,163 @@ public class AttendanceEndpoints : ICarterModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Get detailed attendance report rows")
             .RequireAuthorization(PermissionList.AttendancePermissions.ViewReports);
+
+        group.MapGet("/shift-schedules", GetShiftSchedules)
+            .WithName("GetShiftSchedules")
+            .Produces<GetShiftSchedulesResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.View);
+
+        group.MapPost("/shift-schedules", UpsertShiftSchedule)
+            .WithName("CreateShiftSchedule")
+            .Produces<UpsertShiftScheduleResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Create);
+
+        group.MapPut("/shift-schedules/{scheduleId:guid}", UpsertShiftSchedule)
+            .WithName("UpdateShiftSchedule")
+            .Produces<UpsertShiftScheduleResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Edit);
+
+        group.MapPost("/shift-schedules/{scheduleId:guid}/publish", PublishShiftSchedule)
+            .WithName("PublishShiftSchedule")
+            .Produces<UpsertShiftScheduleResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Publish);
+
+        group.MapPost("/shift-schedules/{scheduleId:guid}/lock", LockShiftSchedule)
+            .WithName("LockShiftSchedule")
+            .Produces<UpsertShiftScheduleResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Publish);
+
+        group.MapPost("/shift-schedules/{scheduleId:guid}/cancel", CancelShiftSchedule)
+            .WithName("CancelShiftSchedule")
+            .Produces<UpsertShiftScheduleResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Edit);
+
+        group.MapGet("/shift-schedule-assignments", GetShiftScheduleAssignments)
+            .WithName("GetShiftScheduleAssignments")
+            .Produces<GetShiftScheduleAssignmentsResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.View);
+
+        group.MapPost("/shift-schedule-assignments", UpsertShiftScheduleAssignment)
+            .WithName("CreateShiftScheduleAssignment")
+            .Produces<UpsertShiftScheduleAssignmentResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Create);
+
+        group.MapPut("/shift-schedule-assignments/{assignmentId:guid}", UpsertShiftScheduleAssignment)
+            .WithName("UpdateShiftScheduleAssignment")
+            .Produces<UpsertShiftScheduleAssignmentResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Edit);
+
+        group.MapPost("/shift-schedule-assignments/bulk", BulkShiftScheduleAssignment)
+            .WithName("BulkShiftScheduleAssignment")
+            .Produces<BulkShiftScheduleAssignmentResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Create);
+
+        group.MapDelete("/shift-schedule-assignments/{assignmentId:guid}", DeleteShiftScheduleAssignment)
+            .WithName("DeleteShiftScheduleAssignment")
+            .Produces<DeleteShiftScheduleAssignmentResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Edit);
+
+        group.MapGet("/shift-swap-requests", GetShiftSwapRequests)
+            .WithName("GetShiftSwapRequests")
+            .Produces<GetShiftSwapRequestsResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.View);
+
+        group.MapPost("/shift-swap-requests", CreateShiftSwapRequest)
+            .WithName("CreateShiftSwapRequest")
+            .Produces<CreateShiftSwapRequestResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Create);
+
+        group.MapPost("/shift-swap-requests/review", ReviewShiftSwapRequest)
+            .WithName("ReviewShiftSwapRequest")
+            .Produces<ReviewShiftSwapRequestResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.ApproveSwap);
+
+        group.MapPost("/shift-swap-requests/{requestId:guid}/cancel", CancelShiftSwapRequest)
+            .WithName("CancelShiftSwapRequest")
+            .Produces<ReviewShiftSwapRequestResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Edit);
+
+        group.MapGet("/attendance-corrections", GetAttendanceCorrections)
+            .WithName("GetAttendanceCorrections")
+            .Produces<GetAttendanceCorrectionsResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.View);
+
+        group.MapPost("/attendance-corrections", CreateAttendanceCorrection)
+            .WithName("CreateAttendanceCorrection")
+            .Produces<CreateAttendanceCorrectionResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Create);
+
+        group.MapPost("/attendance-corrections/review", ReviewAttendanceCorrection)
+            .WithName("ReviewAttendanceCorrection")
+            .Produces<ReviewAttendanceCorrectionResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Edit);
+
+        group.MapPost("/attendance-corrections/{correctionId:guid}/apply", ApplyAttendanceCorrection)
+            .WithName("ApplyAttendanceCorrection")
+            .Produces<ReviewAttendanceCorrectionResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Edit);
+
+        group.MapGet("/device-import-batches", GetBiometricImportBatches)
+            .WithName("GetBiometricImportBatches")
+            .Produces<GetBiometricImportBatchesResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.View);
+
+        group.MapPost("/device-import-batches", CreateBiometricImportBatch)
+            .WithName("CreateBiometricImportBatch")
+            .Produces<CreateBiometricImportBatchResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Create);
+
+        group.MapPost("/device-import-rows", UpsertBiometricImportRow)
+            .WithName("CreateBiometricImportRow")
+            .Produces<UpsertBiometricImportRowResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Create);
+
+        group.MapPut("/device-import-rows/{rowId:guid}", UpsertBiometricImportRow)
+            .WithName("UpdateBiometricImportRow")
+            .Produces<UpsertBiometricImportRowResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Edit);
+
+        group.MapPost("/device-import-rows/review", ReviewBiometricImportRow)
+            .WithName("ReviewBiometricImportRow")
+            .Produces<UpsertBiometricImportRowResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Edit);
+
+        group.MapPost("/device-import-batches/{batchId:guid}/post", PostBiometricImportBatch)
+            .WithName("PostBiometricImportBatch")
+            .Produces<CreateBiometricImportBatchResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.Publish);
+
+        group.MapGet("/work-entries", GetAttendanceWorkEntries)
+            .WithName("GetAttendanceWorkEntries")
+            .Produces<GetAttendanceWorkEntriesResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceWorkEntryPermissions.View);
+
+        group.MapPost("/work-entries/generate", GenerateAttendanceWorkEntries)
+            .WithName("GenerateAttendanceWorkEntries")
+            .Produces<GenerateAttendanceWorkEntriesResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceWorkEntryPermissions.Generate);
+
+        group.MapPost("/work-entries", UpsertAttendanceWorkEntry)
+            .WithName("CreateAttendanceWorkEntry")
+            .Produces<UpsertAttendanceWorkEntryResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceWorkEntryPermissions.Edit);
+
+        group.MapPut("/work-entries/{entryId:guid}", UpsertAttendanceWorkEntry)
+            .WithName("UpdateAttendanceWorkEntry")
+            .Produces<UpsertAttendanceWorkEntryResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceWorkEntryPermissions.Edit);
+
+        group.MapPost("/work-entries/{entryId:guid}/approve", ApproveAttendanceWorkEntry)
+            .WithName("ApproveAttendanceWorkEntry")
+            .Produces<UpsertAttendanceWorkEntryResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceWorkEntryPermissions.Approve);
+
+        group.MapPost("/work-entries/{entryId:guid}/lock", LockAttendanceWorkEntry)
+            .WithName("LockAttendanceWorkEntry")
+            .Produces<UpsertAttendanceWorkEntryResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.AttendanceWorkEntryPermissions.Approve);
     }
 
     private static async Task<Ok<GetAttendanceDashboardResult>> GetDashboard(
@@ -514,6 +684,99 @@ public class AttendanceEndpoints : ICarterModule
         var result = await sender.Send(new GetAttendanceReportQuery(request.Filter));
         return TypedResults.Ok(result);
     }
+
+    private static async Task<Ok<GetShiftSchedulesResult>> GetShiftSchedules([FromQuery] Guid companyId, [FromQuery] AttendanceRosterStatus? status, ISender sender)
+        => TypedResults.Ok(await sender.Send(new GetShiftSchedulesQuery(companyId, status)));
+
+    private static async Task<Ok<UpsertShiftScheduleResult>> UpsertShiftSchedule(Guid? scheduleId, [FromBody] UpsertShiftScheduleRequest request, ClaimsPrincipal user, ISender sender)
+    {
+        request.Schedule.Id = scheduleId ?? request.Schedule.Id;
+        return TypedResults.Ok(await sender.Send(new UpsertShiftScheduleCommand(request.Schedule, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+    }
+
+    private static async Task<Ok<UpsertShiftScheduleResult>> PublishShiftSchedule(Guid scheduleId, ClaimsPrincipal user, ISender sender)
+        => TypedResults.Ok(await sender.Send(new ChangeShiftScheduleStatusCommand(scheduleId, AttendanceRosterStatus.Published, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+
+    private static async Task<Ok<UpsertShiftScheduleResult>> LockShiftSchedule(Guid scheduleId, ClaimsPrincipal user, ISender sender)
+        => TypedResults.Ok(await sender.Send(new ChangeShiftScheduleStatusCommand(scheduleId, AttendanceRosterStatus.Locked, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+
+    private static async Task<Ok<UpsertShiftScheduleResult>> CancelShiftSchedule(Guid scheduleId, ClaimsPrincipal user, ISender sender)
+        => TypedResults.Ok(await sender.Send(new ChangeShiftScheduleStatusCommand(scheduleId, AttendanceRosterStatus.Cancelled, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+
+    private static async Task<Ok<GetShiftScheduleAssignmentsResult>> GetShiftScheduleAssignments([FromQuery] Guid? scheduleId, [FromQuery] Guid? employeeId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [AsParameters] PaginationRequest request, ISender sender)
+        => TypedResults.Ok(await sender.Send(new GetShiftScheduleAssignmentsQuery(scheduleId, employeeId, fromDate, toDate, request)));
+
+    private static async Task<Ok<UpsertShiftScheduleAssignmentResult>> UpsertShiftScheduleAssignment(Guid? assignmentId, [FromBody] UpsertShiftScheduleAssignmentRequest request, ClaimsPrincipal user, ISender sender)
+    {
+        request.Assignment.Id = assignmentId ?? request.Assignment.Id;
+        return TypedResults.Ok(await sender.Send(new UpsertShiftScheduleAssignmentCommand(request.Assignment, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+    }
+
+    private static async Task<Ok<BulkShiftScheduleAssignmentResult>> BulkShiftScheduleAssignment([FromBody] BulkShiftScheduleAssignmentRequest request, ClaimsPrincipal user, ISender sender)
+        => TypedResults.Ok(await sender.Send(new BulkShiftScheduleAssignmentCommand(request.Assignment, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+
+    private static async Task<Ok<DeleteShiftScheduleAssignmentResult>> DeleteShiftScheduleAssignment(Guid assignmentId, ClaimsPrincipal user, ISender sender)
+        => TypedResults.Ok(await sender.Send(new DeleteShiftScheduleAssignmentCommand(assignmentId, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+
+    private static async Task<Ok<GetShiftSwapRequestsResult>> GetShiftSwapRequests([FromQuery] Guid companyId, [FromQuery] AttendanceExceptionStatus? status, [FromQuery] Guid? employeeId, ISender sender)
+        => TypedResults.Ok(await sender.Send(new GetShiftSwapRequestsQuery(companyId, status, employeeId)));
+
+    private static async Task<Ok<CreateShiftSwapRequestResult>> CreateShiftSwapRequest([FromBody] CreateShiftSwapRequestBody request, ISender sender)
+        => TypedResults.Ok(await sender.Send(new CreateShiftSwapRequestCommand(request.Request)));
+
+    private static async Task<Ok<ReviewShiftSwapRequestResult>> ReviewShiftSwapRequest([FromBody] ReviewShiftSwapRequestBody request, ClaimsPrincipal user, ISender sender)
+        => TypedResults.Ok(await sender.Send(new ReviewShiftSwapRequestCommand(request.Review, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+
+    private static async Task<Ok<ReviewShiftSwapRequestResult>> CancelShiftSwapRequest(Guid requestId, ClaimsPrincipal user, ISender sender)
+        => TypedResults.Ok(await sender.Send(new CancelShiftSwapRequestCommand(requestId, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+
+    private static async Task<Ok<GetAttendanceCorrectionsResult>> GetAttendanceCorrections([FromQuery] Guid companyId, [FromQuery] AttendanceExceptionStatus? status, [FromQuery] Guid? employeeId, ISender sender)
+        => TypedResults.Ok(await sender.Send(new GetAttendanceCorrectionsQuery(companyId, status, employeeId)));
+
+    private static async Task<Ok<CreateAttendanceCorrectionResult>> CreateAttendanceCorrection([FromBody] CreateAttendanceCorrectionRequestBody request, ISender sender)
+        => TypedResults.Ok(await sender.Send(new CreateAttendanceCorrectionCommand(request.Correction)));
+
+    private static async Task<Ok<ReviewAttendanceCorrectionResult>> ReviewAttendanceCorrection([FromBody] ReviewAttendanceCorrectionRequestBody request, ClaimsPrincipal user, ISender sender)
+        => TypedResults.Ok(await sender.Send(new ReviewAttendanceCorrectionCommand(request.Review, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+
+    private static async Task<Ok<ReviewAttendanceCorrectionResult>> ApplyAttendanceCorrection(Guid correctionId, ClaimsPrincipal user, ISender sender)
+        => TypedResults.Ok(await sender.Send(new ApplyAttendanceCorrectionCommand(correctionId, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+
+    private static async Task<Ok<GetBiometricImportBatchesResult>> GetBiometricImportBatches([FromQuery] Guid companyId, ISender sender)
+        => TypedResults.Ok(await sender.Send(new GetBiometricImportBatchesQuery(companyId)));
+
+    private static async Task<Ok<CreateBiometricImportBatchResult>> CreateBiometricImportBatch([FromBody] CreateBiometricImportBatchRequestBody request, ISender sender)
+        => TypedResults.Ok(await sender.Send(new CreateBiometricImportBatchCommand(request.Batch)));
+
+    private static async Task<Ok<UpsertBiometricImportRowResult>> UpsertBiometricImportRow(Guid? rowId, [FromBody] UpsertBiometricImportRowRequestBody request, ClaimsPrincipal user, ISender sender)
+    {
+        request.Row.Id = rowId ?? request.Row.Id;
+        return TypedResults.Ok(await sender.Send(new UpsertBiometricImportRowCommand(request.Row, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+    }
+
+    private static async Task<Ok<UpsertBiometricImportRowResult>> ReviewBiometricImportRow([FromBody] ReviewBiometricImportRowRequestBody request, ClaimsPrincipal user, ISender sender)
+        => TypedResults.Ok(await sender.Send(new ReviewBiometricImportRowCommand(request.Review, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+
+    private static async Task<Ok<CreateBiometricImportBatchResult>> PostBiometricImportBatch(Guid batchId, ClaimsPrincipal user, ISender sender)
+        => TypedResults.Ok(await sender.Send(new PostBiometricImportBatchCommand(batchId, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+
+    private static async Task<Ok<GetAttendanceWorkEntriesResult>> GetAttendanceWorkEntries([FromQuery] Guid companyId, [FromQuery] Guid? employeeId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] AttendanceWorkEntryStatus? status, ISender sender)
+        => TypedResults.Ok(await sender.Send(new GetAttendanceWorkEntriesQuery(companyId, employeeId, fromDate, toDate, status)));
+
+    private static async Task<Ok<GenerateAttendanceWorkEntriesResult>> GenerateAttendanceWorkEntries([FromBody] GenerateAttendanceWorkEntriesRequestBody request, ClaimsPrincipal user, ISender sender)
+        => TypedResults.Ok(await sender.Send(new GenerateAttendanceWorkEntriesCommand(request.Request, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+
+    private static async Task<Ok<UpsertAttendanceWorkEntryResult>> UpsertAttendanceWorkEntry(Guid? entryId, [FromBody] UpsertAttendanceWorkEntryRequestBody request, ClaimsPrincipal user, ISender sender)
+    {
+        request.Entry.Id = entryId ?? request.Entry.Id;
+        return TypedResults.Ok(await sender.Send(new UpsertAttendanceWorkEntryCommand(request.Entry, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+    }
+
+    private static async Task<Ok<UpsertAttendanceWorkEntryResult>> ApproveAttendanceWorkEntry(Guid entryId, ClaimsPrincipal user, ISender sender)
+        => TypedResults.Ok(await sender.Send(new ChangeAttendanceWorkEntryStatusCommand(entryId, AttendanceWorkEntryStatus.Approved, user.FindFirstValue(ClaimTypes.NameIdentifier))));
+
+    private static async Task<Ok<UpsertAttendanceWorkEntryResult>> LockAttendanceWorkEntry(Guid entryId, ClaimsPrincipal user, ISender sender)
+        => TypedResults.Ok(await sender.Send(new ChangeAttendanceWorkEntryStatusCommand(entryId, AttendanceWorkEntryStatus.Locked, user.FindFirstValue(ClaimTypes.NameIdentifier))));
 
     private static async Task<Ok<StartAttendanceSessionResult>> StartSession(
         [FromBody] StartAttendanceSessionRequest request,

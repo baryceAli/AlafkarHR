@@ -1,0 +1,170 @@
+@layout AdminLayout
+@page "/HR/WorkEntries"
+@implements IDisposable
+@using SharedWithUI.Permissions
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Employees.Dtos
+@inject IAttendanceService AttendanceService
+@inject IEmployeeService EmployeeService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Payroll Work Entries", "مدخلات عمل الرواتب")" Subtitle="@Text("Generate, review, approve, and lock attendance-owned payroll work entries.", "توليد ومراجعة واعتماد وإقفال مدخلات العمل المرتبطة بالحضور.")" Overline="@Text("HR Attendance", "حضور الموارد البشرية")" Icon="bi-journal-check" />
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @messageClass">@message</div>
+    }
+
+    <AppCard Title="@Text("Filters and generation", "الفلاتر والتوليد")" CssClass="mb-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">@Text("Employee", "الموظف")</label>
+                <select class="form-select" @bind="filterEmployeeId">
+                    <option value="">@Text("All employees", "كل الموظفين")</option>
+                    @foreach (var employee in employees)
+                    {
+                        <option value="@employee.Id">@EmployeeName(employee)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="fromDate" /></div>
+            <div class="col-md-2"><label class="form-label">@Text("To", "إلى")</label><InputDate class="form-control" @bind-Value="toDate" /></div>
+            <div class="col-md-2"><label class="form-label">@Text("Status", "الحالة")</label><select class="form-select" @bind="filterStatus"><option value="">@Text("All", "الكل")</option>@foreach (var status in Enum.GetValues<AttendanceWorkEntryStatus>()){<option value="@status">@status</option>}</select></div>
+            <div class="col-md-3 d-flex gap-2">
+                <button class="btn btn-outline-secondary flex-fill" type="button" @onclick="LoadEntriesAsync"><i class="bi bi-arrow-repeat"></i> @Text("Load", "تحميل")</button>
+                <button class="btn btn-primary flex-fill" type="button" @onclick="GenerateAsync" disabled="@(!Can(PermissionList.AttendanceWorkEntryPermissions.Generate))"><i class="bi bi-magic"></i> @Text("Generate", "توليد")</button>
+            </div>
+        </div>
+    </AppCard>
+
+    <AppCard Title="@Text("Manual correction entry", "مدخل تصحيح يدوي")" CssClass="mb-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3"><label class="form-label">@Text("Employee", "الموظف")</label><select class="form-select" @bind="manualEmployeeId"><option value="">@Text("Select employee", "اختر الموظف")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div>
+            <div class="col-md-2"><label class="form-label">@Text("Date", "التاريخ")</label><InputDate class="form-control" @bind-Value="manualEntry.WorkDate" /></div>
+            <div class="col-md-2"><label class="form-label">@Text("Type", "النوع")</label><select class="form-select" @bind="manualEntry.EntryType">@foreach (var type in Enum.GetValues<AttendanceWorkEntryType>()){<option value="@type">@type</option>}</select></div>
+            <div class="col-md-2"><label class="form-label">@Text("Hours", "الساعات")</label><InputNumber class="form-control" @bind-Value="manualEntry.Hours" /></div>
+            <div class="col-md-2"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="manualEntry.Notes" /></div>
+            <div class="col-md-1"><button class="btn btn-primary w-100" type="button" @onclick="SaveManualEntryAsync" disabled="@(!Can(PermissionList.AttendanceWorkEntryPermissions.Edit))"><i class="bi bi-save"></i></button></div>
+        </div>
+    </AppCard>
+
+    <AppCard Title="@Text("Work entries", "مدخلات العمل")">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Employee", "الموظف")</th><th>@Text("Type", "النوع")</th><th>@Text("Hours", "الساعات")</th><th>@Text("Source", "المصدر")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                <tbody>
+                    @if (entries.Count == 0)
+                    {
+                        <tr><td colspan="7" class="text-center text-muted py-4">@Text("No work entries found.", "لا توجد مدخلات عمل.")</td></tr>
+                    }
+                    @foreach (var entry in entries)
+                    {
+                        <tr>
+                            <td>@entry.WorkDate.ToString("yyyy-MM-dd")</td>
+                            <td>@EmployeeName(entry.EmployeeId)</td>
+                            <td>@entry.EntryType</td>
+                            <td>@entry.Hours.ToString("0.##")</td>
+                            <td>@entry.SourceModule</td>
+                            <td><span class="badge text-bg-@StatusCss(entry.Status)">@entry.Status</span></td>
+                            <td class="text-end">
+                                <button class="btn btn-outline-success btn-sm" type="button" disabled="@(entry.Status != AttendanceWorkEntryStatus.Draft || !Can(PermissionList.AttendanceWorkEntryPermissions.Approve))" @onclick="() => ApproveAsync(entry.Id)">@Text("Approve", "اعتماد")</button>
+                                <button class="btn btn-outline-dark btn-sm" type="button" disabled="@(entry.Status != AttendanceWorkEntryStatus.Approved || !Can(PermissionList.AttendanceWorkEntryPermissions.Approve))" @onclick="() => LockAsync(entry.Id)">@Text("Lock", "إقفال")</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </AppCard>
+</main>
+
+@code {
+    private Guid companyId;
+    private AuthenticationState? authState;
+    private string? message;
+    private string messageClass = "alert-info";
+    private List<EmployeeDto> employees = [];
+    private List<PayrollWorkEntryDto> entries = [];
+    private DateTime fromDate = DateTime.Today.AddDays(-7);
+    private DateTime toDate = DateTime.Today;
+    private string? filterEmployeeId;
+    private string? filterStatus;
+    private string? manualEmployeeId;
+    private UpsertAttendanceWorkEntryDto manualEntry = NewManual();
+
+    protected override void OnInitialized() => SharedDataService.OnChange1 += HandleChangeAsync;
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        companyId = await ResolveCompanyIdAsync();
+        manualEntry.CompanyId = companyId;
+        employees = (await EmployeeService.GetByCompanyIdAsync(companyId, 0, 5000)).Data?.Data.ToList() ?? [];
+        await LoadEntriesAsync();
+    }
+
+    private async Task LoadEntriesAsync()
+    {
+        var status = Enum.TryParse<AttendanceWorkEntryStatus>(filterStatus, out var parsedStatus) ? parsedStatus : (AttendanceWorkEntryStatus?)null;
+        var result = await AttendanceService.GetAttendanceWorkEntriesAsync(companyId, ParseNullable(filterEmployeeId), fromDate, toDate, status);
+        entries = result.IsSuccess ? result.Data ?? [] : [];
+        if (!result.IsSuccess) SetMessage(Error(result), "alert-danger");
+    }
+
+    private async Task GenerateAsync()
+    {
+        var result = await AttendanceService.GenerateAttendanceWorkEntriesAsync(new GenerateAttendanceWorkEntriesDto { CompanyId = companyId, EmployeeId = ParseNullable(filterEmployeeId), FromDate = fromDate, ToDate = toDate });
+        SetMessage(result.IsSuccess ? Text("Work entries generated.", "تم توليد مدخلات العمل.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger");
+        if (result.IsSuccess) entries = result.Data ?? [];
+    }
+
+    private async Task SaveManualEntryAsync()
+    {
+        manualEntry.CompanyId = companyId;
+        manualEntry.EmployeeId = Parse(manualEmployeeId);
+        manualEntry.SourceModule = "Manual";
+        var result = await AttendanceService.UpsertAttendanceWorkEntryAsync(manualEntry);
+        SetMessage(result.IsSuccess ? Text("Manual entry saved.", "تم حفظ المدخل اليدوي.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger");
+        if (result.IsSuccess)
+        {
+            manualEntry = NewManual(companyId);
+            manualEmployeeId = null;
+            await LoadEntriesAsync();
+        }
+    }
+
+    private async Task ApproveAsync(Guid id)
+    {
+        var result = await AttendanceService.ApproveAttendanceWorkEntryAsync(id);
+        SetMessage(result.IsSuccess ? Text("Entry approved.", "تم اعتماد المدخل.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger");
+        if (result.IsSuccess) await LoadEntriesAsync();
+    }
+
+    private async Task LockAsync(Guid id)
+    {
+        var result = await AttendanceService.LockAttendanceWorkEntryAsync(id);
+        SetMessage(result.IsSuccess ? Text("Entry locked.", "تم إقفال المدخل.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger");
+        if (result.IsSuccess) await LoadEntriesAsync();
+    }
+
+    private static UpsertAttendanceWorkEntryDto NewManual(Guid companyId = default) => new() { CompanyId = companyId, WorkDate = DateTime.Today, EntryType = AttendanceWorkEntryType.ManualCorrection };
+    private string EmployeeName(Guid id) => employees.FirstOrDefault(x => x.Id == id) is { } employee ? EmployeeName(employee) : id.ToString();
+    private string EmployeeName(EmployeeDto employee) => SharedDataService.SelectViewLang(employee.FullNameEng, employee.FullName);
+    private static string StatusCss(AttendanceWorkEntryStatus status) => status switch { AttendanceWorkEntryStatus.Approved => "success", AttendanceWorkEntryStatus.Locked => "dark", AttendanceWorkEntryStatus.Cancelled => "secondary", _ => "light" };
+    private bool Can(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private static Guid Parse(string? value) => Guid.TryParse(value, out var id) ? id : Guid.Empty;
+    private static Guid? ParseNullable(string? value) => Guid.TryParse(value, out var id) ? id : null;
+    private string Error<T>(ApiResult<T> result) => result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Operation failed.", "تعذر تنفيذ العملية.");
+    private void SetMessage(string text, string css) { message = text; messageClass = css; }
+    private async Task<Guid> ResolveCompanyIdAsync() => Guid.TryParse((await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync()).User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

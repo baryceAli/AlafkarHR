@@ -13,4 +13,27 @@ public class GoalDefinition : Aggregate<Guid>
     public Guid CompanyId { get; private set; }
 
     private GoalDefinition() { }
+
+    public static GoalDefinition Create(Guid id, Guid companyId, string name, string code, decimal weight, string createdBy)
+    {
+        return new GoalDefinition
+        {
+            Id = id,
+            CompanyId = companyId,
+            Name = name,
+            Code = code,
+            Weight = weight,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = createdBy
+        };
+    }
+
+    public void Update(string name, string code, decimal weight, string modifiedBy)
+    {
+        Name = name;
+        Code = code;
+        Weight = weight;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
 }

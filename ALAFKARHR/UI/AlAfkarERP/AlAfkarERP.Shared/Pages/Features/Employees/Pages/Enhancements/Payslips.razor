@@ -1,0 +1,434 @@
+﻿@layout AdminLayout
+@page "/HR/Payslips"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.Payroll.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Payroll.Dtos
+@using SharedWithUI.Payroll.Enums
+@using SharedWithUI.Permissions
+
+@inject IPayrollService PayrollService
+@inject IEmployeeService EmployeeService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+
+<div dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Payslips", "مسيرات الموظفين")"
+                Subtitle="@Text("Create payroll periods, generate payslips, add payroll inputs, and run approval/payment actions.", "إنشاء فترات الرواتب وتوليد المسيرات وإضافة المدخلات وتنفيذ الاعتماد والدفع.")"
+                Icon="bi-receipt" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page.", "ليست لديك صلاحية عرض هذه الصفحة.")</div>
+    }
+    else if (isLoading)
+    {
+        <div class="text-muted">@Text("Loading payslips...", "جاري تحميل المسيرات...")</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-xl-4">
+                <AppCard>
+                    <h6 class="mb-3">@Text("Payroll Period", "فترة الرواتب")</h6>
+                    <EditForm Model="periodModel" OnValidSubmit="SavePeriod">
+                        <DataAnnotationsValidator />
+                        <div class="row g-2">
+                            <div class="col-6"><label class="form-label">@Text("Month", "الشهر")</label><InputNumber class="form-control" @bind-Value="periodModel.Month" /></div>
+                            <div class="col-6"><label class="form-label">@Text("Year", "السنة")</label><InputNumber class="form-control" @bind-Value="periodModel.Year" /></div>
+                            <div class="col-6"><label class="form-label">@Text("Start", "البداية")</label><InputDate class="form-control" @bind-Value="periodModel.StartDate" /></div>
+                            <div class="col-6"><label class="form-label">@Text("End", "النهاية")</label><InputDate class="form-control" @bind-Value="periodModel.EndDate" /></div>
+                            <div class="col-12 d-flex gap-2">
+                                <button class="btn btn-primary" type="submit" disabled="@(!CanGenerate || isSaving)"><i class="bi bi-calendar-check"></i> @Text("Save Period", "حفظ الفترة")</button>
+                                <button class="btn btn-outline-secondary" type="button" @onclick="ResetPeriod">@Text("Reset", "إعادة ضبط")</button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+            <div class="col-xl-8">
+                <AppCard>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">@Text("Periods", "الفترات")</h6>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="LoadData"><i class="bi bi-arrow-clockwise"></i></button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead><tr><th>@Text("Period", "الفترة")</th><th>@Text("Dates", "التواريخ")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var item in periods)
+                                {
+                                    <tr class="@(selectedPeriodId == item.Id ? "table-primary" : string.Empty)">
+                                        <td>@item.PeriodName</td>
+                                        <td>@item.StartDate.ToShortDateString() - @item.EndDate.ToShortDateString()</td>
+                                        <td><span class="badge @(item.IsClosed ? "text-bg-secondary" : "text-bg-success")">@item.StatusLabel</span></td>
+                                        <td class="text-end">
+                                            <button class="btn btn-outline-primary btn-sm" @onclick="() => SelectPeriod(item)"><i class="bi bi-check2-square"></i></button>
+                                            <button class="btn btn-outline-success btn-sm" @onclick="() => OpenPeriod(item)" disabled="@(!CanGenerate || item.Status == PayrollPeriodStatus.Open)"><i class="bi bi-play"></i></button>
+                                            <button class="btn btn-outline-warning btn-sm" @onclick="() => ReopenPeriod(item)" disabled="@(!CanApprove || !item.IsClosed)"><i class="bi bi-unlock"></i></button>
+                                            <button class="btn btn-outline-danger btn-sm" @onclick="() => ClosePeriod(item)" disabled="@(!CanApprove || item.IsClosed)"><i class="bi bi-lock"></i></button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-xl-4">
+                <AppCard>
+                    <h6 class="mb-3">@Text("Payroll Entry", "قيد الرواتب")</h6>
+                    <div class="mb-2">
+                        <label class="form-label">@Text("Period", "الفترة")</label>
+                        <select class="form-select" @bind="selectedPeriodId" @bind:after="LoadPeriodData">
+                            <option value="@Guid.Empty">@Text("Select period", "اختر الفترة")</option>
+                            @foreach (var period in periods)
+                            {
+                                <option value="@period.Id">@period.PeriodName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">@Text("Employees", "الموظفون")</label>
+                        <select class="form-select" @bind="entryEmployeeId">
+                            <option value="@Guid.Empty">@Text("All assigned employees", "كل الموظفين المعينين")</option>
+                            @foreach (var employee in employees)
+                            {
+                                <option value="@employee.Id">@EmployeeName(employee)</option>
+                            }
+                        </select>
+                    </div>
+                    <button class="btn btn-primary w-100" @onclick="CreateEntry" disabled="@(!CanGenerate || selectedPeriodId == Guid.Empty || isSaving)"><i class="bi bi-play-fill"></i> @Text("Create Payroll Entry", "إنشاء قيد رواتب")</button>
+                </AppCard>
+            </div>
+            <div class="col-xl-8">
+                <AppCard>
+                    <h6 class="mb-3">@Text("Entries", "القيود")</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead><tr><th>@Text("Period", "الفترة")</th><th>@Text("Employees", "الموظفون")</th><th>@Text("Net", "الصافي")</th><th>@Text("Status", "الحالة")</th><th>@Text("Accounting", "المحاسبة")</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var item in entries)
+                                {
+                                    <tr class="@(selectedEntryId == item.Id ? "table-primary" : string.Empty)">
+                                        <td>@item.PeriodName</td>
+                                        <td>@item.EmployeeCount</td>
+                                        <td>@item.NetAmount.ToString("N2")</td>
+                                        <td><span class="badge text-bg-light">@item.StatusLabel</span></td>
+                                        <td>
+                                            <span class="badge @(item.IsPostedToAccounting ? "text-bg-success" : "text-bg-secondary")">
+                                                @(item.IsPostedToAccounting ? Text("Posted", "مرحل") : Text("Not posted", "غير مرحل"))
+                                            </span>
+                                            @if (!string.IsNullOrWhiteSpace(item.AccountingJournalNumber))
+                                            {
+                                                <div class="text-muted small">@item.AccountingJournalNumber</div>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <button class="btn btn-outline-primary btn-sm" @onclick="() => SelectEntry(item)"><i class="bi bi-list-check"></i></button>
+                                            <button class="btn btn-outline-success btn-sm" @onclick="() => GenerateEntry(item)" disabled="@(!CanGenerate)"><i class="bi bi-magic"></i></button>
+                                            <button class="btn btn-outline-warning btn-sm" @onclick="() => ApproveEntry(item)" disabled="@(!CanApprove)"><i class="bi bi-check-circle"></i></button>
+                                            <button class="btn btn-outline-dark btn-sm" @onclick="() => PostEntry(item)" disabled="@(!CanApprove || item.IsPostedToAccounting)"><i class="bi bi-journal-check"></i></button>
+                                            <button class="btn btn-outline-secondary btn-sm" @onclick="() => CloseEntry(item)" disabled="@(!CanApprove || item.Status is PayrollEntryStatus.Closed or PayrollEntryStatus.Cancelled)"><i class="bi bi-lock"></i></button>
+                                            <button class="btn btn-outline-info btn-sm" @onclick="() => ReopenEntry(item)" disabled="@(!CanApprove || item.Status != PayrollEntryStatus.Closed)"><i class="bi bi-unlock"></i></button>
+                                            <button class="btn btn-outline-danger btn-sm" @onclick="() => CancelEntry(item)" disabled="@(!CanApprove)"><i class="bi bi-x-circle"></i></button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-xl-4">
+                <AppCard>
+                    <h6 class="mb-3">@Text("Payroll Input", "مدخل راتب")</h6>
+                    <EditForm Model="inputModel" OnValidSubmit="SaveInput">
+                        <DataAnnotationsValidator />
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label">@Text("Employee", "الموظف")</label>
+                                <select class="form-select" @bind="inputModel.EmployeeId">
+                                    <option value="@Guid.Empty">@Text("Select employee", "اختر الموظف")</option>
+                                    @foreach (var employee in employees)
+                                    {
+                                        <option value="@employee.Id">@EmployeeName(employee)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">@Text("Type", "النوع")</label>
+                                <InputSelect class="form-select" @bind-Value="inputModel.InputType">
+                                    @foreach (var type in Enum.GetValues<PayrollInputType>())
+                                    {
+                                        <option value="@type">@type</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-6"><label class="form-label">@Text("Amount", "المبلغ")</label><InputNumber class="form-control" @bind-Value="inputModel.Amount" /></div>
+                            <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="inputModel.Notes" /></div>
+                            <div class="col-12 d-flex gap-2">
+                                <button class="btn btn-primary" type="submit" disabled="@(!CanGenerate || isSaving)"><i class="bi bi-plus-circle"></i> @Text("Save Input", "حفظ المدخل")</button>
+                                <button class="btn btn-outline-secondary" type="button" @onclick="ResetInput">@Text("Reset", "إعادة ضبط")</button>
+                            </div>
+                        </div>
+                    </EditForm>
+                    @if (inputs.Count == 0)
+                    {
+                        <p class="text-muted small mt-3 mb-0">@Text("No payroll inputs for this filter.", "لا توجد مدخلات رواتب لهذا المرشح.")</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive mt-3">
+                            <table class="table table-sm align-middle">
+                                <thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Type", "النوع")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead>
+                                <tbody>
+                                    @foreach (var item in inputs)
+                                    {
+                                        <tr>
+                                            <td>@EmployeeName(item.EmployeeId)</td>
+                                            <td>@item.InputType</td>
+                                            <td>@item.Amount.ToString("N2")</td>
+                                            <td><span class="badge @(item.IsProcessed ? "text-bg-secondary" : "text-bg-light")">@StatusLabel(item.StatusLabel, item.IsProcessed)</span></td>
+                                            <td class="text-end">
+                                                <button class="btn btn-outline-primary btn-sm" @onclick="() => EditInput(item)" disabled="@(!CanGenerate || item.IsProcessed)"><i class="bi bi-pencil"></i></button>
+                                                <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteInput(item)" disabled="@(!CanGenerate || item.IsProcessed)"><i class="bi bi-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </AppCard>
+            </div>
+            <div class="col-xl-8">
+                <AppCard>
+                    <h6 class="mb-3">@Text("Payslips", "المسيرات")</h6>
+                    @if (payslips.Count == 0)
+                    {
+                        <EmptyState Title="@Text("No payslips", "لا توجد مسيرات")" Message="@Text("Create and generate a payroll entry to produce payslips.", "أنشئ قيد رواتب وقم بتوليده لإنتاج المسيرات.")" Icon="bi-receipt" />
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Gross", "الإجمالي")</th><th>@Text("Deductions", "الخصومات")</th><th>@Text("Net", "الصافي")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead>
+                                <tbody>
+                                    @foreach (var item in payslips)
+                                    {
+                                        <tr>
+                                            <td>@EmployeeName(item.EmployeeId)</td>
+                                            <td>@item.GrossAmount.ToString("N2")</td>
+                                            <td>@(item.TotalDeductions + item.TotalLoans).ToString("N2")</td>
+                                            <td class="fw-semibold">@item.NetAmount.ToString("N2")</td>
+                                            <td><span class="badge text-bg-light">@item.StatusLabel</span></td>
+                                            <td class="text-end">
+                                                <button class="btn btn-outline-secondary btn-sm" @onclick="() => LoadPayslipDetail(item.Id)"><i class="bi bi-eye"></i></button>
+                                                <button class="btn btn-outline-success btn-sm" @onclick="() => RecalculatePayslip(item)" disabled="@(!CanGenerate)"><i class="bi bi-arrow-repeat"></i></button>
+                                                <button class="btn btn-outline-warning btn-sm" @onclick="() => ApprovePayslip(item)" disabled="@(!CanApprove)"><i class="bi bi-check2"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm" @onclick="() => MarkPaid(item)" disabled="@(!CanApprove)"><i class="bi bi-cash"></i></button>
+                                                <button class="btn btn-outline-danger btn-sm" @onclick="() => CancelPayslip(item)" disabled="@(!CanApprove || item.Status is PayslipStatus.Paid or PayslipStatus.Closed or PayslipStatus.Cancelled)"><i class="bi bi-x-circle"></i></button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </AppCard>
+            </div>
+        </div>
+
+        @if (selectedPayslip is not null)
+        {
+            <AppCard Class="mt-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">@Text("Payslip Detail", "تفاصيل المسير") - @EmployeeName(selectedPayslip.EmployeeId)</h6>
+                    <span class="badge text-bg-light">@selectedPayslip.StatusLabel</span>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-md-3"><strong>@Text("Gross", "الإجمالي"):</strong> @selectedPayslip.GrossAmount.ToString("N2")</div>
+                    <div class="col-md-3"><strong>@Text("Deductions", "الخصومات"):</strong> @(selectedPayslip.TotalDeductions + selectedPayslip.TotalLoans).ToString("N2")</div>
+                    <div class="col-md-3"><strong>@Text("Net", "الصافي"):</strong> @selectedPayslip.NetAmount.ToString("N2")</div>
+                    <div class="col-md-3"><strong>@Text("Period", "الفترة"):</strong> @selectedPayslip.Year-@selectedPayslip.Month.ToString("00")</div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead><tr><th>@Text("Line", "البند")</th><th>@Text("Type", "النوع")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Source", "المصدر")</th></tr></thead>
+                        <tbody>
+                            @foreach (var line in selectedPayslip.Lines)
+                            {
+                                <tr>
+                                    <td>@Text(line.NameEng ?? line.Name, line.Name)</td>
+                                    <td>@(line.IsDeduction ? Text("Deduction", "خصم") : Text("Earning", "استحقاق"))</td>
+                                    <td>@line.Amount.ToString("N2")</td>
+                                    <td>@line.SourceType</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </AppCard>
+        }
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private Guid selectedPeriodId;
+    private Guid selectedEntryId;
+    private Guid entryEmployeeId;
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool CanView;
+    private bool CanGenerate;
+    private bool CanApprove;
+    private List<EmployeeDto> employees = [];
+    private List<PayrollPeriodDto> periods = [];
+    private List<PayrollEntryDto> entries = [];
+    private List<PayslipDto> payslips = [];
+    private List<PayrollInputDto> inputs = [];
+    private PayrollPeriodUpsertDto periodModel = new();
+    private PayrollInputUpsertDto inputModel = new();
+    private PayslipDto? selectedPayslip;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        CanView = auth.User.HasClaim("Permission", PermissionList.PayrollPayslipPermissions.View);
+        CanGenerate = auth.User.HasClaim("Permission", PermissionList.PayrollPayslipPermissions.Generate);
+        CanApprove = auth.User.HasClaim("Permission", PermissionList.PayrollPayslipPermissions.Approve) || auth.User.HasClaim("Permission", PermissionList.PayrollPayslipPermissions.Pay) || auth.User.HasClaim("Permission", PermissionList.PayrollPayslipPermissions.Close);
+        CompanyContext.TryGetCompanyId(auth.User, out companyId);
+        ResetPeriod();
+        ResetInput();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        if (companyId == Guid.Empty || !CanView) { isLoading = false; return; }
+        isLoading = true;
+        employees = (await EmployeeService.GetByCompanyIdAsync(companyId, 0, 500)).Data?.Data?.ToList() ?? [];
+        periods = (await PayrollService.GetPayrollPeriodsAsync(companyId)).Data ?? [];
+        if (selectedPeriodId == Guid.Empty && periods.Count > 0) selectedPeriodId = periods[0].Id;
+        await LoadPeriodData();
+        isLoading = false;
+    }
+
+    private async Task LoadPeriodData()
+    {
+        entries = selectedPeriodId == Guid.Empty ? [] : (await PayrollService.GetPayrollEntriesAsync(companyId, selectedPeriodId)).Data ?? [];
+        if (selectedEntryId != Guid.Empty && entries.All(x => x.Id != selectedEntryId)) selectedEntryId = Guid.Empty;
+        payslips = selectedEntryId == Guid.Empty ? [] : (await PayrollService.GetPayslipsAsync(companyId, selectedEntryId)).Data ?? [];
+        inputs = selectedPeriodId == Guid.Empty ? [] : (await PayrollService.GetPayrollInputsAsync(companyId, selectedPeriodId)).Data ?? [];
+        inputModel.PayrollPeriodId = selectedPeriodId == Guid.Empty ? null : selectedPeriodId;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SavePeriod()
+    {
+        isSaving = true;
+        periodModel.CompanyId = companyId;
+        var result = periodModel.Id == Guid.Empty ? await PayrollService.CreatePayrollPeriodAsync(periodModel) : await PayrollService.UpdatePayrollPeriodAsync(periodModel);
+        ToastService.ShowSuccess(result.Data?.Message ?? Text("Saved", "تم الحفظ"));
+        ResetPeriod();
+        await LoadData();
+        isSaving = false;
+    }
+
+    private void SelectPeriod(PayrollPeriodDto period)
+    {
+        selectedPeriodId = period.Id;
+        periodModel = new PayrollPeriodUpsertDto { Id = period.Id, CompanyId = period.CompanyId, Month = period.Month, Year = period.Year, StartDate = period.StartDate, EndDate = period.EndDate };
+        _ = LoadPeriodData();
+    }
+
+    private async Task OpenPeriod(PayrollPeriodDto period) { await PayrollService.OpenPayrollPeriodAsync(period.Id); await LoadData(); }
+    private async Task ClosePeriod(PayrollPeriodDto period) { await PayrollService.ClosePayrollPeriodAsync(period.Id); await LoadData(); }
+    private async Task ReopenPeriod(PayrollPeriodDto period) { await PayrollService.ReopenPayrollPeriodAsync(period.Id); await LoadData(); }
+
+    private async Task CreateEntry()
+    {
+        isSaving = true;
+        var employeeIds = entryEmployeeId == Guid.Empty ? [] : new List<Guid> { entryEmployeeId };
+        var result = await PayrollService.CreatePayrollEntryAsync(new PayrollEntryCreateDto { CompanyId = companyId, PayrollPeriodId = selectedPeriodId, EmployeeIds = employeeIds });
+        selectedEntryId = result.Data?.Id ?? Guid.Empty;
+        ToastService.ShowSuccess(result.Data?.Message ?? Text("Created", "تم الإنشاء"));
+        await LoadPeriodData();
+        isSaving = false;
+    }
+
+    private void SelectEntry(PayrollEntryDto entry)
+    {
+        selectedEntryId = entry.Id;
+        _ = LoadPeriodData();
+    }
+
+    private async Task GenerateEntry(PayrollEntryDto entry) { await PayrollService.GeneratePayrollEntryAsync(entry.Id); selectedEntryId = entry.Id; await LoadPeriodData(); }
+    private async Task ApproveEntry(PayrollEntryDto entry) { await PayrollService.ApprovePayrollEntryAsync(entry.Id); selectedEntryId = entry.Id; await LoadPeriodData(); }
+    private async Task PostEntry(PayrollEntryDto entry) { var result = await PayrollService.PostPayrollEntryAccountingAsync(entry.Id); ToastService.ShowSuccess(result.Data?.Message ?? Text("Posted", "تم الترحيل")); selectedEntryId = entry.Id; await LoadPeriodData(); }
+    private async Task CloseEntry(PayrollEntryDto entry) { await PayrollService.ClosePayrollEntryAsync(entry.Id); selectedEntryId = entry.Id; await LoadPeriodData(); }
+    private async Task ReopenEntry(PayrollEntryDto entry) { await PayrollService.ReopenPayrollEntryAsync(entry.Id); selectedEntryId = entry.Id; await LoadPeriodData(); }
+    private async Task CancelEntry(PayrollEntryDto entry) { await PayrollService.CancelPayrollEntryAsync(entry.Id); selectedEntryId = Guid.Empty; await LoadPeriodData(); }
+
+    private async Task SaveInput()
+    {
+        isSaving = true;
+        inputModel.CompanyId = companyId;
+        inputModel.PayrollPeriodId = selectedPeriodId == Guid.Empty ? null : selectedPeriodId;
+        var result = inputModel.Id == Guid.Empty ? await PayrollService.CreatePayrollInputAsync(inputModel) : await PayrollService.UpdatePayrollInputAsync(inputModel);
+        ToastService.ShowSuccess(result.Data?.Message ?? Text("Saved", "تم الحفظ"));
+        ResetInput();
+        await LoadPeriodData();
+        isSaving = false;
+    }
+
+    private void EditInput(PayrollInputDto item) => inputModel = new PayrollInputUpsertDto { Id = item.Id, CompanyId = item.CompanyId, EmployeeId = item.EmployeeId, PayrollPeriodId = item.PayrollPeriodId, InputType = item.InputType, Amount = item.Amount, Notes = item.Notes };
+
+    private async Task DeleteInput(PayrollInputDto item)
+    {
+        var result = await PayrollService.DeletePayrollInputAsync(item.Id);
+        ToastService.ShowSuccess(result.Data?.Message ?? Text("Deleted", "تم الحذف"));
+        await LoadPeriodData();
+    }
+
+    private async Task LoadPayslipDetail(Guid id) => selectedPayslip = (await PayrollService.GetPayslipAsync(id)).Data;
+    private async Task RecalculatePayslip(PayslipDto item) { await PayrollService.RecalculatePayslipAsync(item.Id); await RefreshPayslips(item.Id); }
+    private async Task ApprovePayslip(PayslipDto item) { await PayrollService.ApprovePayslipAsync(item.Id); await RefreshPayslips(item.Id); }
+    private async Task MarkPaid(PayslipDto item) { await PayrollService.MarkPayslipPaidAsync(item.Id); await RefreshPayslips(item.Id); }
+    private async Task CancelPayslip(PayslipDto item) { await PayrollService.CancelPayslipAsync(item.Id); await RefreshPayslips(item.Id); }
+
+    private async Task RefreshPayslips(Guid? detailId = null)
+    {
+        if (selectedEntryId != Guid.Empty) payslips = (await PayrollService.GetPayslipsAsync(companyId, selectedEntryId)).Data ?? [];
+        if (detailId.HasValue) selectedPayslip = (await PayrollService.GetPayslipAsync(detailId.Value)).Data;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ResetPeriod()
+    {
+        var today = DateTime.Today;
+        periodModel = new PayrollPeriodUpsertDto { CompanyId = companyId, Month = today.Month, Year = today.Year, StartDate = new DateTime(today.Year, today.Month, 1), EndDate = new DateTime(today.Year, today.Month, DateTime.DaysInMonth(today.Year, today.Month)) };
+    }
+
+    private void ResetInput() => inputModel = new PayrollInputUpsertDto { CompanyId = companyId, PayrollPeriodId = selectedPeriodId == Guid.Empty ? null : selectedPeriodId, InputType = PayrollInputType.Allowance };
+    private string StatusLabel(string? label, bool processed) => !string.IsNullOrWhiteSpace(label) ? label : processed ? Text("Processed", "معالج") : Text("Draft", "مسودة");
+    private string EmployeeName(EmployeeDto employee) => Text(employee.FullNameEng ?? employee.FullName ?? employee.Id.ToString("N")[..8], employee.FullName ?? employee.FullNameEng ?? employee.Id.ToString("N")[..8]);
+    private string EmployeeName(Guid employeeId) => employees.FirstOrDefault(x => x.Id == employeeId) is { } employee ? EmployeeName(employee) : employeeId.ToString("N")[..8];
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

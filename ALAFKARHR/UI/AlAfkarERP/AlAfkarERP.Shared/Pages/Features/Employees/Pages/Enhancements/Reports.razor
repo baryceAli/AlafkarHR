@@ -1,0 +1,307 @@
+﻿@layout AdminLayout
+@page "/HR/Reports"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services
+@using AlAfkarERP.Shared.Pages.Features.Payroll.Services
+@using AlAfkarERP.Shared.Pages.Features.Performance.Services
+@using AlAfkarERP.Shared.Pages.Features.Recruitment.Services
+@using AlAfkarERP.Shared.Pages.Features.Training.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Attendance.Enums
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.HRCore.Dtos
+@using SharedWithUI.Leave.Dtos
+@using SharedWithUI.Payroll.Dtos
+@using SharedWithUI.Performance.Dtos
+@using SharedWithUI.Permissions
+@using SharedWithUI.Recruitment.Dtos
+@using SharedWithUI.Training.Dtos
+@using System.Security.Claims
+
+@inject IEmployeeService EmployeeService
+@inject IAttendanceService AttendanceService
+@inject ILeaveService LeaveService
+@inject IPayrollService PayrollService
+@inject IRecruitmentService RecruitmentService
+@inject IPerformanceService PerformanceService
+@inject ITrainingService TrainingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+
+<div dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("HR Reports", "تقارير الموارد البشرية")"
+                Subtitle="@Text("A cross-module report launcher with live previews from the current HR services.", "مشغل تقارير عابر للوحدات مع معاينات مباشرة من خدمات الموارد البشرية الحالية.")"
+                Icon="bi-bar-chart-line" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permission to view HR reports.", "ليست لديك صلاحية عرض تقارير الموارد البشرية.")</div>
+    }
+    else if (isLoading)
+    {
+        <div class="text-muted">@Text("Loading HR report launcher...", "جاري تحميل مشغل تقارير الموارد البشرية...")</div>
+    }
+    else
+    {
+        @if (loadWarnings.Count > 0)
+        {
+            <div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> @Text("Some report previews could not be loaded:", "تعذر تحميل بعض معاينات التقارير:") @string.Join(" · ", loadWarnings.Select(x => $"{x}: {Text("Preview unavailable", "المعاينة غير متاحة")}"))</div>
+        }
+
+        <AppCard Title="@Text("Report Filters", "مرشحات التقارير")" CssClass="mb-3">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">@Text("Employee", "الموظف")</label>
+                    <select class="form-select" @bind="selectedEmployeeId">
+                        <option value="@Guid.Empty">@Text("All employees", "كل الموظفين")</option>
+                        @foreach (var employee in employees)
+                        {
+                            <option value="@employee.Id">@EmployeeName(employee)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="fromDate" /></div>
+                <div class="col-md-3"><label class="form-label">@Text("To", "إلى")</label><InputDate class="form-control" @bind-Value="toDate" /></div>
+                <div class="col-md-2 d-grid"><button class="btn btn-outline-primary" @onclick="LoadData"><i class="bi bi-arrow-clockwise"></i> @Text("Refresh", "تحديث")</button></div>
+            </div>
+        </AppCard>
+
+        <div class="row g-3 mb-3">
+            @foreach (var report in reports)
+            {
+                <div class="col-12 col-md-6 col-xl-4">
+                    <button type="button" class="erp-card erp-stat-action w-100 text-start @(selectedReport == report.Key ? "border-primary" : string.Empty)" @onclick="() => SelectReport(report.Key)">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="erp-stat-icon"><i class="bi @report.Icon"></i></div>
+                            <div>
+                                <div class="fw-semibold">@Text(report.TitleEn, report.TitleAr)</div>
+                                <div class="text-muted small">@Text(report.DescriptionEn, report.DescriptionAr)</div>
+                                <span class="badge bg-light text-dark border mt-2">@ReportCount(report.Key).ToString("N0")</span>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            }
+        </div>
+
+        <AppCard Title="@SelectedReportTitle" Subtitle="@Text("Preview uses existing module APIs. Open the source page for full workflow actions.", "تستخدم المعاينة واجهات الوحدات الحالية. افتح صفحة المصدر لإجراءات العمل الكاملة.")" Actions="@PreviewActions">
+            @if (selectedReport == "employee360")
+            {
+                @PreviewEmployee360()
+            }
+            else if (selectedReport == "employees")
+            {
+                @PreviewEmployees()
+            }
+            else if (selectedReport == "leave")
+            {
+                @PreviewLeave()
+            }
+            else if (selectedReport == "attendance")
+            {
+                @PreviewAttendance()
+            }
+            else if (selectedReport == "payroll")
+            {
+                @PreviewPayroll()
+            }
+            else if (selectedReport == "talent")
+            {
+                @PreviewTalent()
+            }
+            else if (selectedReport == "compliance")
+            {
+                @PreviewCompliance()
+            }
+        </AppCard>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private Guid selectedEmployeeId;
+    private DateTime fromDate = DateTime.Today.AddMonths(-1);
+    private DateTime toDate = DateTime.Today;
+    private bool isLoading = true;
+    private ClaimsPrincipal? user;
+    private string selectedReport = "employees";
+    private readonly List<string> loadWarnings = [];
+    private List<EmployeeDto> employees = [];
+    private List<EmployeeDocumentLinkDto> employeeDocuments = [];
+    private List<LeaveApplicationDto> leaveApplications = [];
+    private List<LeaveLedgerEntryDto> leaveLedger = [];
+    private List<AttendanceCorrectionDto> attendanceCorrections = [];
+    private List<PayrollWorkEntryDto> workEntries = [];
+    private List<PayrollEntryDto> payrollEntries = [];
+    private List<PayslipDto> payslips = [];
+    private List<JobRequisitionDto> requisitions = [];
+    private List<ApplicantDto> applicants = [];
+    private List<TrainingEventDto> trainingEvents = [];
+    private List<EmployeeAppraisalDto> appraisals = [];
+
+    private bool CanView => Has(PermissionList.EmployeePermissions.View);
+    private string SelectedReportTitle => Text(reports.First(x => x.Key == selectedReport).TitleEn, reports.First(x => x.Key == selectedReport).TitleAr);
+    private ReportCard SelectedReport => reports.First(x => x.Key == selectedReport);
+    private RenderFragment PreviewActions => @<button class="btn btn-sm btn-outline-primary" @onclick="() => Go(SelectedReport.Url)"><i class="bi bi-box-arrow-up-right"></i> @Text("Open source page", "فتح صفحة المصدر")</button>;
+
+    private readonly List<ReportCard> reports =
+    [
+        new("employee360", "Employee 360", "عرض الموظف 360", "Employee-level HR snapshot launcher.", "مشغل لقطة موارد بشرية شاملة على مستوى الموظف.", "bi-person-vcard", "/Employee/Employee/List"),
+        new("employees", "Employees", "الموظفون", "Directory, lifecycle, documents, skills, and certifications.", "الدليل ودورة الحياة والمستندات والمهارات والشهادات.", "bi-people", "/Employee/Employee/List"),
+        new("leave", "Leave", "الإجازات", "Applications, ledger movements, balances, carry-forward, and encashment.", "الطلبات وحركات السجل والأرصدة والترحيل والاستبدال النقدي.", "bi-calendar-heart", "/HR/LeaveLedger"),
+        new("attendance", "Attendance", "الحضور", "Corrections, rosters, exceptions, and payroll work entries.", "التصحيحات والجداول والاستثناءات وقيود العمل للرواتب.", "bi-calendar-check", "/HR/WorkEntries"),
+        new("payroll", "Payroll", "الرواتب", "Payroll entries, payslips, WPS readiness, EOS, and posting state.", "قيود الرواتب والمسيرات وجاهزية حماية الأجور ونهاية الخدمة وحالة الترحيل.", "bi-cash-stack", "/HR/Payslips"),
+        new("talent", "Talent", "المواهب", "Recruitment funnel, training matrix, and appraisal outcomes.", "مسار التوظيف ومصفوفة التدريب ونتائج التقييم.", "bi-mortarboard", "/HR/Recruitment"),
+        new("compliance", "Compliance", "الامتثال", "Expiring documents, Saudi payroll data, WPS, and EOS signals.", "المستندات المنتهية وبيانات الرواتب السعودية وحماية الأجور ونهاية الخدمة.", "bi-shield-check", "/HR/SaudiPayroll")
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        user = auth.User;
+        CompanyContext.TryGetCompanyId(auth.User, out companyId);
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        if (companyId == Guid.Empty || !CanView) { isLoading = false; return; }
+        isLoading = true;
+        loadWarnings.Clear();
+        await SafeLoad(Text("Employees", "الموظفون"), async () => employees = (await EmployeeService.GetByCompanyIdAsync(companyId, 0, 100)).Data?.Data?.ToList() ?? []);
+        await LoadEmployeeDocumentSignals();
+        await SafeLoad(Text("Leave", "الإجازات"), async () =>
+        {
+            Guid? employeeId = selectedEmployeeId == Guid.Empty ? null : selectedEmployeeId;
+            leaveApplications = (await LeaveService.GetLeaveApplicationsAsync(companyId, employeeId)).Data ?? [];
+            leaveLedger = (await LeaveService.GetLeaveLedgerEntriesAsync(companyId, employeeId)).Data ?? [];
+        });
+        await SafeLoad(Text("Attendance", "الحضور"), async () =>
+        {
+            Guid? employeeId = selectedEmployeeId == Guid.Empty ? null : selectedEmployeeId;
+            attendanceCorrections = (await AttendanceService.GetAttendanceCorrectionsAsync(companyId, employeeId: employeeId)).Data ?? [];
+            workEntries = (await AttendanceService.GetAttendanceWorkEntriesAsync(companyId, employeeId, fromDate, toDate)).Data ?? [];
+        });
+        await SafeLoad(Text("Payroll", "الرواتب"), async () =>
+        {
+            Guid? employeeId = selectedEmployeeId == Guid.Empty ? null : selectedEmployeeId;
+            payrollEntries = (await PayrollService.GetPayrollEntriesAsync(companyId)).Data ?? [];
+            payslips = (await PayrollService.GetPayslipsAsync(companyId, employeeId: employeeId)).Data ?? [];
+        });
+        await SafeLoad(Text("Talent", "المواهب"), async () =>
+        {
+            requisitions = (await RecruitmentService.GetJobRequisitionsAsync(companyId)).Data ?? [];
+            applicants = (await RecruitmentService.GetApplicantsAsync(companyId)).Data ?? [];
+            trainingEvents = (await TrainingService.GetEventsAsync(companyId)).Data ?? [];
+            appraisals = (await PerformanceService.GetEvaluationsAsync(companyId, employeeId: selectedEmployeeId == Guid.Empty ? null : selectedEmployeeId)).Data ?? [];
+        });
+        isLoading = false;
+    }
+
+    private async Task LoadEmployeeDocumentSignals()
+    {
+        employeeDocuments.Clear();
+        await SafeLoad(Text("Employee documents", "مستندات الموظفين"), async () =>
+        {
+            foreach (var employee in employees.Take(100))
+            {
+                var docs = (await EmployeeService.GetDocumentLinksAsync(employee.Id)).Data ?? [];
+                employeeDocuments.AddRange(docs.Where(x => x.RequiresRenewal));
+            }
+        });
+    }
+
+    private RenderFragment PreviewEmployees() => employees.Count == 0
+        ? EmptyPreview(Text("No employee data", "لا توجد بيانات موظفين"), Text("Employee directory preview will appear here when employees are loaded.", "ستظهر معاينة دليل الموظفين هنا عند تحميل الموظفين."), "bi-people")
+        : @<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("No", "الرقم")</th><th>@Text("Status", "الحالة")</th><th>@Text("Work location", "موقع العمل")</th></tr></thead><tbody>@foreach (var item in employees.Take(12)){<tr><td>@EmployeeName(item)</td><td>@item.EmployeeNo</td><td>@EmployeeStatus(item)</td><td>@item.WorkLocation</td></tr>}</tbody></table></div>;
+
+    private RenderFragment PreviewEmployee360()
+    {
+        var selectedEmployee = SelectedEmployee;
+        if (selectedEmployeeId == Guid.Empty)
+        {
+            return EmptyPreview(Text("Select an employee", "اختر موظفا"), Text("Choose an employee from the report filters to open the Employee 360 report.", "اختر موظفا من مرشحات التقارير لفتح تقرير عرض الموظف 360."), "bi-person-vcard");
+        }
+
+        if (selectedEmployee is null)
+        {
+            return EmptyPreview(Text("Employee not loaded", "لم يتم تحميل الموظف"), Text("The selected employee is not in the loaded report list. Refresh the report or open the employee list.", "الموظف المحدد غير موجود في قائمة التقارير المحملة. حدّث التقرير أو افتح قائمة الموظفين."), "bi-person-exclamation");
+        }
+
+        return @<div class="row g-3">
+            <div class="col-md-6 col-xl-3"><StatsCard Title="@Text("Employee", "الموظف")" Value="@EmployeeName(selectedEmployee)" Subtitle="@selectedEmployee.EmployeeNo" Icon="bi-person-vcard" /></div>
+            <div class="col-md-6 col-xl-3"><StatsCard Title="@Text("Status", "الحالة")" Value="@EmployeeStatus(selectedEmployee)" Subtitle="@Text("Employee 360", "عرض الموظف 360")" Icon="bi-activity" /></div>
+            <div class="col-md-6 col-xl-3"><StatsCard Title="@Text("Work location", "موقع العمل")" Value="@EmptyValue(selectedEmployee.WorkLocation)" Subtitle="@EmptyValue(selectedEmployee.BranchName)" Icon="bi-geo-alt" /></div>
+            <div class="col-md-6 col-xl-3"><StatsCard Title="@Text("Manager", "المدير")" Value="@EmptyValue(Text(selectedEmployee.ManagerNameEng ?? selectedEmployee.ManagerName ?? "-", selectedEmployee.ManagerName ?? selectedEmployee.ManagerNameEng ?? "-"))" Subtitle="@EmptyValue(selectedEmployee.PositionName)" Icon="bi-person-check" /></div>
+            <div class="col-12">
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-primary" href="/Employee/Employee/360/@selectedEmployee.Id"><i class="bi bi-person-vcard"></i> @Text("Open Employee 360", "فتح عرض الموظف 360")</a>
+                    <a class="btn btn-outline-primary" href="/Employee/Employee/view/@selectedEmployee.Id"><i class="bi bi-eye"></i> @Text("Open Employee Profile", "فتح ملف الموظف")</a>
+                    <a class="btn btn-outline-secondary" href="/Employee/Employee/List"><i class="bi bi-people"></i> @Text("Open Employee List", "فتح قائمة الموظفين")</a>
+                </div>
+            </div>
+        </div>;
+    }
+
+    private RenderFragment PreviewLeave() => leaveApplications.Count == 0 && leaveLedger.Count == 0
+        ? EmptyPreview(Text("No leave report data", "لا توجد بيانات إجازات"), Text("Applications and ledger movements will appear here when available.", "ستظهر الطلبات وحركات السجل هنا عند توفرها."), "bi-calendar-heart")
+        : @<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Period", "الفترة")</th><th>@Text("Status", "الحالة")</th><th>@Text("Ledger", "السجل")</th></tr></thead><tbody>@foreach (var item in leaveApplications.Take(10)){<tr><td>@EmployeeName(item.EmployeeId)</td><td>@item.StartDate.ToShortDateString() - @item.EndDate.ToShortDateString()</td><td>@item.Status</td><td>@leaveLedger.Count(x => x.EmployeeId == item.EmployeeId)</td></tr>}</tbody></table></div>;
+
+    private RenderFragment PreviewAttendance() => attendanceCorrections.Count == 0 && workEntries.Count == 0
+        ? EmptyPreview(Text("No attendance report data", "لا توجد بيانات حضور"), Text("Corrections and work entries will appear here when available.", "ستظهر التصحيحات وقيود العمل هنا عند توفرها."), "bi-calendar-check")
+        : @<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Date", "التاريخ")</th><th>@Text("Status", "الحالة")</th><th>@Text("Work entries", "قيود العمل")</th></tr></thead><tbody>@foreach (var item in attendanceCorrections.Take(10)){<tr><td>@EmployeeName(item.EmployeeId)</td><td>@item.WorkDate.ToShortDateString()</td><td>@item.Status</td><td>@workEntries.Count(x => x.EmployeeId == item.EmployeeId)</td></tr>}@foreach (var item in workEntries.Take(10)){<tr><td>@EmployeeName(item.EmployeeId)</td><td>@item.WorkDate.ToShortDateString()</td><td>@item.Status</td><td>@item.EntryType</td></tr>}</tbody></table></div>;
+
+    private RenderFragment PreviewPayroll() => payrollEntries.Count == 0 && payslips.Count == 0
+        ? EmptyPreview(Text("No payroll report data", "لا توجد بيانات رواتب"), Text("Payroll entries and payslip status will appear here when available.", "ستظهر قيود الرواتب وحالة المسيرات هنا عند توفرها."), "bi-cash-stack")
+        : @<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Entry", "القيد")</th><th>@Text("Status", "الحالة")</th><th>@Text("Employees", "الموظفون")</th><th>@Text("Net", "الصافي")</th></tr></thead><tbody>@foreach (var item in payrollEntries.Take(10)){<tr><td>@item.PeriodName</td><td>@item.Status</td><td>@item.EmployeeCount</td><td>@item.NetAmount.ToString("N2")</td></tr>}@foreach (var item in payslips.Take(10)){<tr><td>@(item.EmployeeName ?? EmployeeName(item.EmployeeId))</td><td>@item.Status</td><td>@(item.IsWpsEligible ? Text("WPS eligible", "مؤهل حماية الأجور") : Text("Not WPS ready", "غير جاهز لحماية الأجور"))</td><td>@item.NetAmount.ToString("N2")</td></tr>}</tbody></table></div>;
+
+    private RenderFragment PreviewTalent() => requisitions.Count == 0 && applicants.Count == 0 && trainingEvents.Count == 0 && appraisals.Count == 0
+        ? EmptyPreview(Text("No talent report data", "لا توجد بيانات مواهب"), Text("Recruitment, training, and appraisal previews will appear here.", "ستظهر هنا معاينات التوظيف والتدريب والتقييم."), "bi-mortarboard")
+        : @<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Area", "المجال")</th><th>@Text("Item", "البند")</th><th>@Text("Status", "الحالة")</th><th>@Text("Reference", "المرجع")</th></tr></thead><tbody>@foreach (var item in requisitions.Take(4)){<tr><td>@Text("Recruitment", "التوظيف")</td><td>@item.Title</td><td>@item.Status</td><td>@item.RequestedAt.ToShortDateString()</td></tr>}@foreach (var item in applicants.Take(4)){<tr><td>@Text("Applicants", "المتقدمون")</td><td>@item.FullName</td><td>@item.Status</td><td>@(item.JobRequisitionTitle ?? "-")</td></tr>}@foreach (var item in trainingEvents.Take(4)){<tr><td>@Text("Training", "التدريب")</td><td>@item.Title</td><td>@item.Status</td><td>@item.StartAt.ToShortDateString()</td></tr>}@foreach (var item in appraisals.Take(4)){<tr><td>@Text("Performance", "الأداء")</td><td>@(item.EmployeeName ?? EmployeeName(item.EmployeeId))</td><td>@item.Status</td><td>@item.Rating</td></tr>}</tbody></table></div>;
+
+    private RenderFragment PreviewCompliance() => employeeDocuments.Count == 0 && payslips.Count == 0 && trainingEvents.Count == 0
+        ? EmptyPreview(Text("No compliance signals", "لا توجد مؤشرات امتثال"), Text("Renewal documents, WPS readiness, paid payslips, and active training signals will appear here.", "ستظهر هنا المستندات التي تحتاج تجديدا وجاهزية حماية الأجور والمسيرات المدفوعة والتدريب النشط."), "bi-shield-check")
+        : @<div class="row g-3"><div class="col-md-3"><StatsCard Title="@Text("Renewal docs", "مستندات تحتاج تجديد")" Value="@employeeDocuments.Count.ToString("N0")" Icon="bi-file-earmark-text" /></div><div class="col-md-3"><StatsCard Title="@Text("WPS eligible", "مؤهل حماية الأجور")" Value="@payslips.Count(x => x.IsWpsEligible).ToString("N0")" Icon="bi-bank" /></div><div class="col-md-3"><StatsCard Title="@Text("Paid payslips", "مسيرات مدفوعة")" Value="@payslips.Count(x => x.Status is PayslipStatus.Paid or PayslipStatus.Closed).ToString("N0")" Icon="bi-cash" /></div><div class="col-md-3"><StatsCard Title="@Text("Active training", "تدريب نشط")" Value="@trainingEvents.Count(x => x.Status is TrainingEventStatus.Open or TrainingEventStatus.InProgress).ToString("N0")" Icon="bi-award" /></div></div>;
+
+    private async Task SafeLoad(string label, Func<Task> action)
+    {
+        try { await action(); }
+        catch { if (!loadWarnings.Contains(label)) loadWarnings.Add(label); }
+    }
+
+    private int ReportCount(string key) => key switch
+    {
+        "employee360" => SelectedEmployee is null ? 0 : 1,
+        "employees" => employees.Count,
+        "leave" => leaveApplications.Count + leaveLedger.Count,
+        "attendance" => attendanceCorrections.Count + workEntries.Count,
+        "payroll" => payrollEntries.Count + payslips.Count,
+        "talent" => requisitions.Count + applicants.Count + trainingEvents.Count + appraisals.Count,
+        "compliance" => employeeDocuments.Count + payslips.Count(x => x.IsWpsEligible || x.Status is PayslipStatus.Paid or PayslipStatus.Closed) + trainingEvents.Count(x => x.Status is TrainingEventStatus.Open or TrainingEventStatus.InProgress),
+        _ => 0
+    };
+
+    private RenderFragment EmptyPreview(string title, string message, string icon) => @<EmptyState Title="@title" Message="@message" Icon="@icon" />;
+
+    private void SelectReport(string key) => selectedReport = key;
+    private bool Has(string permission) => user?.HasClaim("Permission", permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private EmployeeDto? SelectedEmployee => selectedEmployeeId == Guid.Empty ? null : employees.FirstOrDefault(x => x.Id == selectedEmployeeId);
+    private string EmployeeName(EmployeeDto item) => Text(item.FullNameEng, item.FullName);
+    private string EmployeeName(Guid id) => employees.FirstOrDefault(x => x.Id == id) is { } employee ? EmployeeName(employee) : id.ToString("N")[..8];
+    private string EmployeeStatus(EmployeeDto item) => item.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط");
+    private static string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private void Go(string url) => NavigationManager.NavigateTo(url);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+
+    private sealed record ReportCard(string Key, string TitleEn, string TitleAr, string DescriptionEn, string DescriptionAr, string Icon, string Url);
+}

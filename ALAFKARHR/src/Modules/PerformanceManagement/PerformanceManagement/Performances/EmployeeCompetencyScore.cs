@@ -12,4 +12,25 @@ public class EmployeeCompetencyScore : Entity<Guid>
     public Guid PerformanceCycleId { get; private set; }
 
     public decimal Weight { get; private set; }
+
+    private EmployeeCompetencyScore() { }
+
+    public static EmployeeCompetencyScore Create(Guid id, Guid employeeId, Guid competencyId, Guid cycleId, decimal score, decimal weight)
+    {
+        return new EmployeeCompetencyScore
+        {
+            Id = id,
+            EmployeeId = employeeId,
+            CompetencyId = competencyId,
+            PerformanceCycleId = cycleId,
+            Score = score,
+            Weight = weight
+        };
+    }
+
+    public void Update(decimal score, decimal weight)
+    {
+        Score = score;
+        Weight = weight;
+    }
 }

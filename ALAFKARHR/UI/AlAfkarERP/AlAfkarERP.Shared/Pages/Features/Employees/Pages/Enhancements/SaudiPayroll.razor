@@ -1,0 +1,342 @@
+﻿@layout AdminLayout
+@page "/HR/SaudiPayroll"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.Payroll.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Payroll.Dtos
+@using SharedWithUI.Permissions
+
+@inject IPayrollService PayrollService
+@inject IEmployeeService EmployeeService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+
+<div dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Saudi Payroll", "رواتب السعودية")"
+                Subtitle="@Text("Manage GOSI/WPS data, WPS batches, EOS provision snapshots, and imported payroll work entries.", "إدارة بيانات التأمينات وحماية الأجور ومخصصات نهاية الخدمة ومدخلات العمل للرواتب.")"
+                Icon="bi-bank" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page.", "ليست لديك صلاحية عرض هذه الصفحة.")</div>
+    }
+    else if (isLoading)
+    {
+        <div class="text-muted">@Text("Loading Saudi payroll data...", "جاري تحميل بيانات رواتب السعودية...")</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-xl-4">
+                <AppCard>
+                    <h6 class="mb-3">@Text("Employee Saudi Payroll Info", "بيانات راتب الموظف السعودي")</h6>
+                    <EditForm Model="saudiModel" OnValidSubmit="SaveSaudiInfo">
+                        <DataAnnotationsValidator />
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label">@Text("Employee", "الموظف")</label>
+                                <select class="form-select" @bind="saudiModel.EmployeeId">
+                                    <option value="@Guid.Empty">@Text("Select employee", "اختر الموظف")</option>
+                                    @foreach (var employee in employees)
+                                    {
+                                        <option value="@employee.Id">@EmployeeName(employee)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-12"><label class="form-label">IBAN</label><InputText class="form-control" @bind-Value="saudiModel.Iban" /></div>
+                            <div class="col-6"><label class="form-label">@Text("Bank Code", "رمز البنك")</label><InputText class="form-control" @bind-Value="saudiModel.BankCode" /></div>
+                            <div class="col-6"><label class="form-label">@Text("Bank Name", "اسم البنك")</label><InputText class="form-control" @bind-Value="saudiModel.BankName" /></div>
+                            <div class="col-12"><label class="form-label">@Text("GOSI Number", "رقم التأمينات")</label><InputText class="form-control" @bind-Value="saudiModel.GosiNumber" /></div>
+                            <div class="col-6"><label class="form-label">@Text("GOSI Employee %", "نسبة الموظف")</label><InputNumber class="form-control" @bind-Value="saudiModel.GosiEmployeePercentage" /></div>
+                            <div class="col-6"><label class="form-label">@Text("GOSI Employer %", "نسبة الشركة")</label><InputNumber class="form-control" @bind-Value="saudiModel.GosiEmployerPercentage" /></div>
+                            <div class="col-6"><label class="form-label">@Text("EOS Salary Basis", "أساس نهاية الخدمة")</label><InputNumber class="form-control" @bind-Value="saudiModel.EosBasicSalary" /></div>
+                            <div class="col-6"><label class="form-label">@Text("Service Start", "بداية الخدمة")</label><InputDate class="form-control" @bind-Value="saudiModel.EosServiceStartDate" /></div>
+                            <div class="col-12 form-check mt-2">
+                                <InputCheckbox class="form-check-input" @bind-Value="saudiModel.IncludeInWps" />
+                                <label class="form-check-label">@Text("Include in WPS", "تضمين في حماية الأجور")</label>
+                            </div>
+                            <div class="col-12 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary" disabled="@(!CanGenerate || isSaving)"><i class="bi bi-check2"></i> @Text("Save", "حفظ")</button>
+                                <button type="button" class="btn btn-outline-secondary" @onclick="ResetSaudiInfo">@Text("Reset", "إعادة ضبط")</button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+            <div class="col-xl-8">
+                <AppCard>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">@Text("Saudi Payroll Records", "سجلات رواتب السعودية")</h6>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="LoadData"><i class="bi bi-arrow-clockwise"></i></button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead><tr><th>@Text("Employee", "الموظف")</th><th>IBAN</th><th>@Text("GOSI", "التأمينات")</th><th>@Text("WPS", "حماية الأجور")</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var item in saudiInfos)
+                                {
+                                    <tr>
+                                        <td>@EmployeeName(item.EmployeeId)</td>
+                                        <td>@item.Iban</td>
+                                        <td>@item.GosiNumber</td>
+                                        <td><span class="badge @(item.IncludeInWps ? "text-bg-success" : "text-bg-secondary")">@item.StatusLabel</span></td>
+                                        <td class="text-end"><button class="btn btn-outline-warning btn-sm" @onclick="() => EditSaudiInfo(item)" disabled="@(!CanGenerate)"><i class="bi bi-pencil"></i></button></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-xl-4">
+                <AppCard>
+                    <h6 class="mb-3">@Text("WPS / EOS Controls", "حماية الأجور ونهاية الخدمة")</h6>
+                    <div class="mb-2">
+                        <label class="form-label">@Text("Payroll Period", "فترة الرواتب")</label>
+                        <select class="form-select" @bind="selectedPeriodId" @bind:after="LoadPeriodData">
+                            <option value="@Guid.Empty">@Text("Select period", "اختر الفترة")</option>
+                            @foreach (var period in periods)
+                            {
+                                <option value="@period.Id">@period.PeriodName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">@Text("Payroll Entry", "قيد الرواتب")</label>
+                        <select class="form-select" @bind="selectedEntryId">
+                            <option value="@Guid.Empty">@Text("All period payslips", "كل مسيرات الفترة")</option>
+                            @foreach (var entry in entries)
+                            {
+                                <option value="@entry.Id">@entry.PeriodName - @entry.NetAmount.ToString("N2")</option>
+                            }
+                        </select>
+                    </div>
+                    <button class="btn btn-primary w-100 mb-2" @onclick="CreateWpsBatch" disabled="@(!CanGenerate || selectedPeriodId == Guid.Empty)"><i class="bi bi-file-earmark-spreadsheet"></i> @Text("Create WPS Batch", "إنشاء دفعة حماية الأجور")</button>
+                    <div class="border rounded p-2 mt-3">
+                        <div class="mb-2">
+                            <label class="form-label">@Text("EOS Employee", "موظف نهاية الخدمة")</label>
+                            <select class="form-select" @bind="eosEmployeeId">
+                                <option value="@Guid.Empty">@Text("Select employee", "اختر الموظف")</option>
+                                @foreach (var employee in employees)
+                                {
+                                    <option value="@employee.Id">@EmployeeName(employee)</option>
+                                }
+                            </select>
+                        </div>
+                        <button class="btn btn-outline-primary w-100" @onclick="CreateEosSnapshot" disabled="@(!CanGenerate || selectedPeriodId == Guid.Empty || eosEmployeeId == Guid.Empty)"><i class="bi bi-calculator"></i> @Text("Create EOS Snapshot", "إنشاء لقطة نهاية خدمة")</button>
+                    </div>
+                </AppCard>
+            </div>
+            <div class="col-xl-8">
+                <AppCard>
+                    <h6 class="mb-3">@Text("WPS Batches", "دفعات حماية الأجور")</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead><tr><th>@Text("Batch", "الدفعة")</th><th>@Text("Employees", "الموظفون")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var batch in wpsBatches)
+                                {
+                                    <tr>
+                                        <td>@batch.BatchNumber</td>
+                                        <td>@batch.EmployeeCount</td>
+                                        <td>@batch.TotalAmount.ToString("N2")</td>
+                                        <td><span class="badge @(batch.Status == WpsBatchStatus.Exported ? "text-bg-success" : "text-bg-warning")">@batch.StatusLabel</span></td>
+                                        <td class="text-end"><button class="btn btn-outline-success btn-sm" @onclick="() => MarkWpsExported(batch)" disabled="@(!CanClose || batch.Status == WpsBatchStatus.Exported)"><i class="bi bi-download"></i></button></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-xl-4">
+                <AppCard>
+                    <h6 class="mb-3">@Text("Import Payroll Work Entry", "استيراد مدخل عمل للراتب")</h6>
+                    <EditForm Model="workEntryModel" OnValidSubmit="ImportWorkEntry">
+                        <DataAnnotationsValidator />
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label">@Text("Employee", "الموظف")</label>
+                                <select class="form-select" @bind="workEntryModel.EmployeeId">
+                                    <option value="@Guid.Empty">@Text("Select employee", "اختر الموظف")</option>
+                                    @foreach (var employee in employees)
+                                    {
+                                        <option value="@employee.Id">@EmployeeName(employee)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-6"><label class="form-label">@Text("Date", "التاريخ")</label><InputDate class="form-control" @bind-Value="workEntryModel.WorkDate" /></div>
+                            <div class="col-6"><label class="form-label">@Text("Type", "النوع")</label><InputText class="form-control" @bind-Value="workEntryModel.EntryType" /></div>
+                            <div class="col-6"><label class="form-label">@Text("Hours", "الساعات")</label><InputNumber class="form-control" @bind-Value="workEntryModel.Hours" /></div>
+                            <div class="col-6"><label class="form-label">@Text("Amount", "المبلغ")</label><InputNumber class="form-control" @bind-Value="workEntryModel.Amount" /></div>
+                            <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="workEntryModel.Notes" /></div>
+                            <div class="col-12"><button class="btn btn-primary w-100" type="submit" disabled="@(!CanImportWorkEntries || selectedPeriodId == Guid.Empty)"><i class="bi bi-journal-plus"></i> @Text("Import", "استيراد")</button></div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+            <div class="col-xl-8">
+                <AppCard>
+                    <h6 class="mb-3">@Text("EOS Snapshots and Work Entries", "لقطات نهاية الخدمة ومدخلات العمل")</h6>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm align-middle">
+                            <thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Basis", "الأساس")</th><th>@Text("Provision", "المخصص")</th><th>@Text("Service End", "نهاية الخدمة")</th></tr></thead>
+                            <tbody>
+                                @foreach (var snapshot in eosSnapshots)
+                                {
+                                    <tr><td>@EmployeeName(snapshot.EmployeeId)</td><td>@snapshot.GrossPayBasis.ToString("N2")</td><td>@snapshot.ProvisionAmount.ToString("N2")</td><td>@snapshot.ServiceEndDate.ToShortDateString()</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Date", "التاريخ")</th><th>@Text("Type", "النوع")</th><th>@Text("Amount", "المبلغ")</th></tr></thead>
+                            <tbody>
+                                @foreach (var item in workEntries)
+                                {
+                                    <tr><td>@EmployeeName(item.EmployeeId)</td><td>@item.WorkDate.ToShortDateString()</td><td>@item.EntryType</td><td>@item.Amount.ToString("N2")</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private Guid selectedPeriodId;
+    private Guid selectedEntryId;
+    private Guid eosEmployeeId;
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool CanView;
+    private bool CanGenerate;
+    private bool CanClose;
+    private bool CanImportWorkEntries;
+    private List<EmployeeDto> employees = [];
+    private List<SaudiPayrollInfoDto> saudiInfos = [];
+    private List<PayrollPeriodDto> periods = [];
+    private List<PayrollEntryDto> entries = [];
+    private List<WpsBatchDto> wpsBatches = [];
+    private List<EosProvisionSnapshotDto> eosSnapshots = [];
+    private List<PayrollWorkEntryImportDto> workEntries = [];
+    private SaudiPayrollInfoUpsertDto saudiModel = new();
+    private PayrollWorkEntryImportDto workEntryModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        CanView = auth.User.HasClaim("Permission", PermissionList.PayrollPayslipPermissions.View);
+        CanGenerate = auth.User.HasClaim("Permission", PermissionList.PayrollPayslipPermissions.Generate);
+        CanClose = auth.User.HasClaim("Permission", PermissionList.PayrollPayslipPermissions.Close);
+        CanImportWorkEntries = auth.User.HasClaim("Permission", PermissionList.PayrollWorkEntryPermissions.Import);
+        CompanyContext.TryGetCompanyId(auth.User, out companyId);
+        ResetSaudiInfo();
+        ResetWorkEntry();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        if (companyId == Guid.Empty || !CanView) { isLoading = false; return; }
+        isLoading = true;
+        employees = (await EmployeeService.GetByCompanyIdAsync(companyId, 0, 500)).Data?.Data?.ToList() ?? [];
+        saudiInfos = (await PayrollService.GetSaudiPayrollInfosAsync(companyId)).Data ?? [];
+        periods = (await PayrollService.GetPayrollPeriodsAsync(companyId)).Data ?? [];
+        if (selectedPeriodId == Guid.Empty && periods.Count > 0) selectedPeriodId = periods[0].Id;
+        await LoadPeriodData();
+        isLoading = false;
+    }
+
+    private async Task LoadPeriodData()
+    {
+        entries = selectedPeriodId == Guid.Empty ? [] : (await PayrollService.GetPayrollEntriesAsync(companyId, selectedPeriodId)).Data ?? [];
+        wpsBatches = (await PayrollService.GetWpsBatchesAsync(companyId, selectedPeriodId == Guid.Empty ? null : selectedPeriodId)).Data ?? [];
+        eosSnapshots = (await PayrollService.GetEosProvisionSnapshotsAsync(companyId, selectedPeriodId == Guid.Empty ? null : selectedPeriodId)).Data ?? [];
+        workEntries = (await PayrollService.GetImportedPayrollWorkEntriesAsync(companyId, selectedPeriodId == Guid.Empty ? null : selectedPeriodId)).Data ?? [];
+        ResetWorkEntry();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SaveSaudiInfo()
+    {
+        isSaving = true;
+        saudiModel.CompanyId = companyId;
+        var result = await PayrollService.UpsertSaudiPayrollInfoAsync(saudiModel);
+        ToastService.ShowSuccess(result.Data?.Message ?? Text("Saved", "تم الحفظ"));
+        ResetSaudiInfo();
+        await LoadData();
+        isSaving = false;
+    }
+
+    private void EditSaudiInfo(SaudiPayrollInfoDto item) => saudiModel = new()
+    {
+        Id = item.Id,
+        CompanyId = item.CompanyId,
+        EmployeeId = item.EmployeeId,
+        Iban = item.Iban,
+        BankCode = item.BankCode,
+        BankName = item.BankName,
+        GosiNumber = item.GosiNumber,
+        GosiEmployeePercentage = item.GosiEmployeePercentage,
+        GosiEmployerPercentage = item.GosiEmployerPercentage,
+        EosBasicSalary = item.EosBasicSalary,
+        EosServiceStartDate = item.EosServiceStartDate,
+        IncludeInWps = item.IncludeInWps
+    };
+
+    private async Task CreateWpsBatch()
+    {
+        var result = await PayrollService.CreateWpsBatchAsync(new CreateWpsBatchDto { CompanyId = companyId, PayrollPeriodId = selectedPeriodId, PayrollEntryId = selectedEntryId == Guid.Empty ? null : selectedEntryId });
+        ToastService.ShowSuccess(result.Data?.Message ?? Text("Created", "تم الإنشاء"));
+        await LoadPeriodData();
+    }
+
+    private async Task MarkWpsExported(WpsBatchDto batch)
+    {
+        var result = await PayrollService.MarkWpsBatchExportedAsync(batch.Id);
+        ToastService.ShowSuccess(result.Data?.Message ?? Text("Exported", "تم التصدير"));
+        await LoadPeriodData();
+    }
+
+    private async Task CreateEosSnapshot()
+    {
+        var result = await PayrollService.CreateEosProvisionSnapshotAsync(new CreateEosProvisionSnapshotDto { CompanyId = companyId, PayrollPeriodId = selectedPeriodId, EmployeeId = eosEmployeeId });
+        ToastService.ShowSuccess(result.Data?.Message ?? Text("Created", "تم الإنشاء"));
+        await LoadPeriodData();
+    }
+
+    private async Task ImportWorkEntry()
+    {
+        workEntryModel.CompanyId = companyId;
+        workEntryModel.PayrollPeriodId = selectedPeriodId;
+        var result = await PayrollService.ImportPayrollWorkEntryAsync(workEntryModel);
+        ToastService.ShowSuccess(result.Data?.Message ?? Text("Imported", "تم الاستيراد"));
+        ResetWorkEntry();
+        await LoadPeriodData();
+    }
+
+    private void ResetSaudiInfo() => saudiModel = new SaudiPayrollInfoUpsertDto { CompanyId = companyId, IncludeInWps = true, GosiEmployeePercentage = 9, GosiEmployerPercentage = 11 };
+    private void ResetWorkEntry() => workEntryModel = new PayrollWorkEntryImportDto { CompanyId = companyId, PayrollPeriodId = selectedPeriodId, WorkDate = DateTime.Today, EntryType = "Overtime" };
+    private string EmployeeName(EmployeeDto employee) => Text(employee.FullNameEng ?? employee.FullName ?? employee.Id.ToString("N")[..8], employee.FullName ?? employee.FullNameEng ?? employee.Id.ToString("N")[..8]);
+    private string EmployeeName(Guid employeeId) => employees.FirstOrDefault(x => x.Id == employeeId) is { } employee ? EmployeeName(employee) : employeeId.ToString("N")[..8];
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

@@ -1,0 +1,225 @@
+﻿@layout AdminLayout
+@page "/HR/Recruitment"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.Recruitment.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Permissions
+@using SharedWithUI.Recruitment.Dtos
+@using System.Security.Claims
+
+@inject IRecruitmentService RecruitmentService
+@inject IEmployeeService EmployeeService
+@inject IPositionService PositionService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+
+<div dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Recruitment", "التوظيف")"
+                Subtitle="@Text("Manage staffing plans, requisitions, candidates, interviews, offers, and hire readiness.", "إدارة خطط التوظيف وطلبات الوظائف والمرشحين والمقابلات والعروض وجاهزية التعيين.")"
+                Icon="bi-person-plus" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permission to view recruitment.", "ليست لديك صلاحية عرض التوظيف.")</div>
+    }
+    else if (isLoading)
+    {
+        <div class="text-muted">@Text("Loading recruitment workspace...", "جاري تحميل مساحة التوظيف...")</div>
+    }
+    else
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Plans", "الخطط")" Value="@staffingPlans.Count.ToString("N0")" Icon="bi-calendar2-check" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Requisitions", "طلبات الوظائف")" Value="@jobRequisitions.Count.ToString("N0")" Icon="bi-megaphone" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Applicants", "المتقدمون")" Value="@applicants.Count.ToString("N0")" Icon="bi-people" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Offers", "العروض")" Value="@jobOffers.Count.ToString("N0")" Icon="bi-file-earmark-check" /></div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-xl-4">
+                <AppCard Title="@Text("Staffing Plan", "خطة التوظيف")" CssClass="h-100">
+                    <EditForm Model="staffingPlanModel" OnValidSubmit="SaveStaffingPlan">
+                        <DataAnnotationsValidator />
+                        <div class="row g-2">
+                            <div class="col-6"><label class="form-label">@Text("Year", "السنة")</label><InputNumber class="form-control" @bind-Value="staffingPlanModel.Year" /></div>
+                            <div class="col-6"><label class="form-label">@Text("Headcount", "العدد")</label><InputNumber class="form-control" @bind-Value="staffingPlanModel.PlannedHeadcount" /></div>
+                            <div class="col-12"><label class="form-label">@Text("Position", "المسمى")</label><select class="form-select" @bind="staffingPlanModel.PositionId"><option value="">@Text("Any position", "أي مسمى")</option>@foreach (var position in positions){<option value="@position.Id">@PositionName(position)</option>}</select></div>
+                            <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputTextArea class="form-control" rows="2" @bind-Value="staffingPlanModel.Notes" /></div>
+                            <div class="col-12 d-flex gap-2"><button class="btn btn-primary" type="submit" disabled="@(!CanCreateOrEdit || isSaving)"><i class="bi bi-check2"></i> @Text("Save", "حفظ")</button><button class="btn btn-outline-secondary" type="button" @onclick="ResetStaffingPlan">@Text("Reset", "إعادة ضبط")</button></div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+            <div class="col-xl-8">
+                <AppCard Title="@Text("Staffing Plans", "خطط التوظيف")" CssClass="h-100">
+                    @if (staffingPlans.Count == 0)
+                    {
+                        <EmptyState Title="@Text("No staffing plans", "لا توجد خطط توظيف")" Message="@Text("Create a plan to capture hiring demand.", "أنشئ خطة لتسجيل احتياج التوظيف.")" Icon="bi-calendar2-check" />
+                    }
+                    else
+                    {
+                        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Year", "السنة")</th><th>@Text("Position", "المسمى")</th><th>@Text("Headcount", "العدد")</th><th></th></tr></thead><tbody>@foreach (var item in staffingPlans){<tr><td>@item.Year</td><td>@PositionName(item.PositionId)</td><td>@item.PlannedHeadcount</td><td class="text-end"><button class="btn btn-outline-warning btn-sm" @onclick="() => EditStaffingPlan(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteStaffingPlan(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>
+                    }
+                </AppCard>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-xl-4">
+                <AppCard Title="@Text("Job Requisition", "طلب وظيفة")" CssClass="h-100">
+                    <EditForm Model="requisitionModel" OnValidSubmit="SaveRequisition">
+                        <DataAnnotationsValidator />
+                        <div class="row g-2">
+                            <div class="col-12"><label class="form-label">@Text("Title", "العنوان")</label><InputText class="form-control" @bind-Value="requisitionModel.Title" /></div>
+                            <div class="col-6"><label class="form-label">@Text("Openings", "الشواغر")</label><InputNumber class="form-control" @bind-Value="requisitionModel.Openings" /></div>
+                            <div class="col-6"><label class="form-label">@Text("Requested", "تاريخ الطلب")</label><InputDate class="form-control" @bind-Value="requisitionModel.RequestedAt" /></div>
+                            <div class="col-12"><label class="form-label">@Text("Position", "المسمى")</label><select class="form-select" @bind="requisitionModel.PositionId"><option value="">@Text("Any position", "أي مسمى")</option>@foreach (var position in positions){<option value="@position.Id">@PositionName(position)</option>}</select></div>
+                            <div class="col-12 d-flex gap-2"><button class="btn btn-primary" type="submit" disabled="@(!CanCreateOrEdit || isSaving)"><i class="bi bi-check2"></i> @Text("Save", "حفظ")</button><button class="btn btn-outline-secondary" type="button" @onclick="ResetRequisition">@Text("Reset", "إعادة ضبط")</button></div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+            <div class="col-xl-8">
+                <AppCard Title="@Text("Requisition Pipeline", "مسار طلبات الوظائف")" CssClass="h-100">
+                    <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Title", "العنوان")</th><th>@Text("Openings", "الشواغر")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>@foreach (var item in jobRequisitions){<tr><td><div class="fw-semibold">@item.Title</div><div class="text-muted small">@PositionName(item.PositionId)</div></td><td>@item.Openings</td><td><span class="badge @StatusClass(item.Status)">@StatusText(item.Status)</span></td><td class="text-end"><button class="btn btn-outline-warning btn-sm" @onclick="() => EditRequisition(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenRequisition(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-megaphone"></i></button> <button class="btn btn-outline-success btn-sm" @onclick="() => CloseRequisition(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-check2-circle"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => CancelRequisition(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-x-circle"></i></button></td></tr>}</tbody></table></div>
+                </AppCard>
+            </div>
+        </div>
+
+        <AppCard Title="@Text("Applicant Pipeline", "مسار المتقدمين")" CssClass="mt-3">
+            <div class="row g-2 align-items-end mb-3">
+                <div class="col-md-4"><label class="form-label">@Text("Full name", "الاسم الكامل")</label><InputText class="form-control" @bind-Value="applicantModel.FullName" /></div>
+                <div class="col-md-3"><label class="form-label">@Text("Email", "البريد")</label><InputText class="form-control" @bind-Value="applicantModel.Email" /></div>
+                <div class="col-md-2"><label class="form-label">@Text("Phone", "الهاتف")</label><InputText class="form-control" @bind-Value="applicantModel.Phone" /></div>
+                <div class="col-md-3"><label class="form-label">@Text("Requisition", "طلب الوظيفة")</label><select class="form-select" @bind="applicantModel.JobRequisitionId"><option value="">@Text("No requisition", "بدون طلب")</option>@foreach (var req in jobRequisitions){<option value="@req.Id">@req.Title</option>}</select></div>
+                <div class="col-12 d-flex gap-2"><button class="btn btn-primary" @onclick="SaveApplicant" disabled="@(!CanCreateOrEdit)"><i class="bi bi-person-plus"></i> @Text("Save Applicant", "حفظ المتقدم")</button><button class="btn btn-outline-secondary" @onclick="ResetApplicant">@Text("Reset", "إعادة ضبط")</button></div>
+            </div>
+            <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Applicant", "المتقدم")</th><th>@Text("Requisition", "طلب الوظيفة")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>@foreach (var item in applicants){<tr class="@(selectedApplicantId == item.Id ? "table-active" : string.Empty)"><td><div class="fw-semibold">@item.FullName</div><div class="text-muted small">@item.Email · @item.Phone</div></td><td>@(item.JobRequisitionTitle ?? Text("Unassigned", "غير معين"))</td><td><span class="badge @StatusClass(item.Status)">@StatusText(item.Status)</span></td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => SelectApplicant(item)"><i class="bi bi-eye"></i></button> <button class="btn btn-outline-warning btn-sm" @onclick="() => EditApplicant(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-secondary btn-sm" @onclick="() => MoveApplicant(item.Id, RecruitmentRequestStatus.Interviewing)" disabled="@(!CanEdit)">@Text("Interview", "مقابلة")</button> <button class="btn btn-outline-info btn-sm" @onclick="() => MoveApplicant(item.Id, RecruitmentRequestStatus.Offered)" disabled="@(!CanEdit)">@Text("Offer", "عرض")</button> <button class="btn btn-outline-danger btn-sm" @onclick="() => MoveApplicant(item.Id, RecruitmentRequestStatus.Cancelled)" disabled="@(!CanEdit)"><i class="bi bi-x-circle"></i></button></td></tr>}</tbody></table></div>
+        </AppCard>
+
+        <AppCard Title="@Text("Applicant Detail", "تفاصيل المتقدم")" CssClass="mt-3">
+            @if (SelectedApplicant is null)
+            {
+                <EmptyState Title="@Text("Select an applicant", "اختر متقدما")" Message="@Text("Interview feedback and offers appear here.", "ستظهر المقابلات والعروض هنا.")" Icon="bi-person-vcard" />
+            }
+            else
+            {
+                <div class="d-flex justify-content-between flex-wrap gap-2 mb-3"><div><h6 class="mb-1">@SelectedApplicant.FullName</h6><div class="text-muted small">@SelectedApplicant.Email · @SelectedApplicant.Phone</div></div><span class="badge @StatusClass(SelectedApplicant.Status)">@StatusText(SelectedApplicant.Status)</span></div>
+                <div class="row g-3">
+                    <div class="col-xl-6">
+                        <h6>@Text("Interview Feedback", "ملاحظات المقابلة")</h6>
+                        <div class="row g-2 mb-2"><div class="col-md-5"><select class="form-select" @bind="interviewModel.InterviewerEmployeeId"><option value="@Guid.Empty">@Text("Interviewer", "المقابل")</option>@foreach (var emp in employees){<option value="@emp.Id">@EmployeeName(emp)</option>}</select></div><div class="col-md-3"><InputDate class="form-control" @bind-Value="interviewModel.InterviewAt" /></div><div class="col-md-2"><InputNumber class="form-control" @bind-Value="interviewModel.Rating" /></div><div class="col-md-2 d-grid"><button class="btn btn-outline-primary" @onclick="SaveInterview" disabled="@(!CanCreateOrEdit)"><i class="bi bi-check2"></i></button></div><div class="col-12"><InputTextArea class="form-control" rows="2" placeholder="@Text("Feedback", "الملاحظات")" @bind-Value="interviewModel.Feedback" /></div></div>
+                        <div class="table-responsive"><table class="table table-sm"><tbody>@foreach (var item in interviews){<tr><td><div class="fw-semibold">@EmployeeName(item.InterviewerEmployeeId)</div><div class="text-muted small">@item.InterviewAt.ToShortDateString() · @Text("Rating", "التقييم") @item.Rating</div><div>@item.Feedback</div></td><td class="text-end"><button class="btn btn-outline-warning btn-sm" @onclick="() => EditInterview(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteInterview(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>
+                    </div>
+                    <div class="col-xl-6">
+                        <h6>@Text("Offers", "العروض")</h6>
+                        <div class="row g-2 mb-2"><div class="col-md-4"><InputDate class="form-control" @bind-Value="offerModel.OfferDate" /></div><div class="col-md-4"><InputNumber class="form-control" @bind-Value="offerModel.ProposedSalary" /></div><div class="col-md-4 d-grid"><button class="btn btn-outline-primary" @onclick="SaveOffer" disabled="@(!CanCreateOrEdit)">@Text("Save Offer", "حفظ العرض")</button></div></div>
+                        <div class="table-responsive"><table class="table table-sm align-middle"><tbody>@foreach (var item in jobOffers.Where(x => x.ApplicantId == selectedApplicantId)){<tr><td><div class="fw-semibold">@item.ProposedSalary?.ToString("N2")</div><div class="text-muted small">@item.OfferDate.ToShortDateString() · @item.StatusLabel</div></td><td class="text-end"><button class="btn btn-outline-warning btn-sm" @onclick="() => EditOffer(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-success btn-sm" @onclick="() => AcceptOffer(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-check2"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => RejectOffer(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-x"></i></button></td></tr>}</tbody></table></div>
+                        <div class="row g-2 mt-2"><div class="col-md-8"><select class="form-select" @bind="createdEmployeeId"><option value="@Guid.Empty">@Text("Created employee", "الموظف المنشأ")</option>@foreach (var emp in employees){<option value="@emp.Id">@EmployeeName(emp)</option>}</select></div><div class="col-md-4 d-grid"><button class="btn btn-outline-success" @onclick="MarkSelectedOfferEmployeeCreated" disabled="@(!CanHire || selectedOfferId == Guid.Empty || createdEmployeeId == Guid.Empty)">@Text("Mark Hired", "تأكيد التعيين")</button></div></div>
+                    </div>
+                </div>
+            }
+        </AppCard>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private bool isLoading = true;
+    private bool isSaving;
+    private ClaimsPrincipal? user;
+    private List<StaffingPlanDto> staffingPlans = [];
+    private List<JobRequisitionDto> jobRequisitions = [];
+    private List<ApplicantDto> applicants = [];
+    private List<InterviewFeedbackDto> interviews = [];
+    private List<JobOfferDto> jobOffers = [];
+    private List<EmployeeDto> employees = [];
+    private List<PositionDto> positions = [];
+    private UpsertStaffingPlanDto staffingPlanModel = new();
+    private UpsertJobRequisitionDto requisitionModel = new();
+    private UpsertApplicantDto applicantModel = new();
+    private UpsertInterviewFeedbackDto interviewModel = new();
+    private UpsertJobOfferDto offerModel = new();
+    private Guid selectedApplicantId;
+    private Guid selectedOfferId;
+    private Guid createdEmployeeId;
+
+    private ApplicantDto? SelectedApplicant => applicants.FirstOrDefault(x => x.Id == selectedApplicantId);
+    private bool CanView => Has(PermissionList.RecruitmentPermissions.View);
+    private bool CanCreate => Has(PermissionList.RecruitmentPermissions.Create);
+    private bool CanEdit => Has(PermissionList.RecruitmentPermissions.Edit);
+    private bool CanApprove => Has(PermissionList.RecruitmentPermissions.Approve);
+    private bool CanHire => Has(PermissionList.RecruitmentPermissions.Hire);
+    private bool CanCreateOrEdit => CanCreate || CanEdit;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        user = auth.User;
+        CompanyContext.TryGetCompanyId(auth.User, out companyId);
+        ResetModels();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        if (companyId == Guid.Empty || !CanView) { isLoading = false; return; }
+        isLoading = true;
+        staffingPlans = (await RecruitmentService.GetStaffingPlansAsync(companyId)).Data ?? [];
+        jobRequisitions = (await RecruitmentService.GetJobRequisitionsAsync(companyId)).Data ?? [];
+        applicants = (await RecruitmentService.GetApplicantsAsync(companyId)).Data ?? [];
+        jobOffers = (await RecruitmentService.GetJobOffersAsync(companyId)).Data ?? [];
+        employees = (await EmployeeService.GetByCompanyIdAsync(companyId, 0, 500)).Data?.Data?.ToList() ?? [];
+        positions = (await PositionService.GetAsync(companyId, 0, 500)).Data?.Data?.ToList() ?? [];
+        if (selectedApplicantId != Guid.Empty) await LoadApplicantDetail();
+        isLoading = false;
+    }
+
+    private async Task SaveStaffingPlan(){ isSaving = true; staffingPlanModel.CompanyId = companyId; Show(staffingPlanModel.Id == Guid.Empty ? await RecruitmentService.CreateStaffingPlanAsync(staffingPlanModel) : await RecruitmentService.UpdateStaffingPlanAsync(staffingPlanModel)); ResetStaffingPlan(); await LoadData(); isSaving = false; }
+    private async Task DeleteStaffingPlan(Guid id){ Show(await RecruitmentService.DeleteStaffingPlanAsync(id)); await LoadData(); }
+    private async Task SaveRequisition(){ isSaving = true; requisitionModel.CompanyId = companyId; Show(requisitionModel.Id == Guid.Empty ? await RecruitmentService.CreateJobRequisitionAsync(requisitionModel) : await RecruitmentService.UpdateJobRequisitionAsync(requisitionModel)); ResetRequisition(); await LoadData(); isSaving = false; }
+    private async Task OpenRequisition(Guid id){ Show(await RecruitmentService.OpenJobRequisitionAsync(id)); await LoadData(); }
+    private async Task CloseRequisition(Guid id){ Show(await RecruitmentService.CloseJobRequisitionAsync(id)); await LoadData(); }
+    private async Task CancelRequisition(Guid id){ Show(await RecruitmentService.CancelJobRequisitionAsync(id)); await LoadData(); }
+    private async Task SaveApplicant(){ applicantModel.CompanyId = companyId; Show(applicantModel.Id == Guid.Empty ? await RecruitmentService.CreateApplicantAsync(applicantModel) : await RecruitmentService.UpdateApplicantAsync(applicantModel)); ResetApplicant(); await LoadData(); }
+    private async Task MoveApplicant(Guid id, RecruitmentRequestStatus status){ Show(await RecruitmentService.MoveApplicantAsync(id, status)); await LoadData(); }
+    private async Task SaveInterview(){ interviewModel.ApplicantId = selectedApplicantId; Show(interviewModel.Id == Guid.Empty ? await RecruitmentService.CreateInterviewFeedbackAsync(interviewModel) : await RecruitmentService.UpdateInterviewFeedbackAsync(interviewModel)); ResetInterview(); await LoadApplicantDetail(); }
+    private async Task DeleteInterview(Guid id){ Show(await RecruitmentService.DeleteInterviewFeedbackAsync(id)); await LoadApplicantDetail(); }
+    private async Task SaveOffer(){ offerModel.ApplicantId = selectedApplicantId; Show(offerModel.Id == Guid.Empty ? await RecruitmentService.CreateJobOfferAsync(offerModel) : await RecruitmentService.UpdateJobOfferAsync(offerModel)); ResetOffer(); await LoadData(); }
+    private async Task AcceptOffer(Guid id){ selectedOfferId = id; Show(await RecruitmentService.AcceptJobOfferAsync(id)); await LoadData(); }
+    private async Task RejectOffer(Guid id){ Show(await RecruitmentService.RejectJobOfferAsync(id)); await LoadData(); }
+    private async Task MarkSelectedOfferEmployeeCreated(){ Show(await RecruitmentService.MarkOfferEmployeeCreatedAsync(selectedOfferId, createdEmployeeId)); createdEmployeeId = Guid.Empty; await LoadData(); }
+
+    private async Task SelectApplicant(ApplicantDto applicant){ selectedApplicantId = applicant.Id; await LoadApplicantDetail(); }
+    private async Task LoadApplicantDetail(){ interviews = (await RecruitmentService.GetInterviewFeedbackAsync(selectedApplicantId)).Data ?? []; jobOffers = (await RecruitmentService.GetJobOffersAsync(companyId)).Data ?? []; }
+    private void EditStaffingPlan(StaffingPlanDto item) => staffingPlanModel = new() { Id = item.Id, CompanyId = item.CompanyId, Year = item.Year, DepartmentId = item.DepartmentId, PositionId = item.PositionId, PlannedHeadcount = item.PlannedHeadcount, Notes = item.Notes };
+    private void EditRequisition(JobRequisitionDto item) => requisitionModel = new() { Id = item.Id, CompanyId = item.CompanyId, DepartmentId = item.DepartmentId, PositionId = item.PositionId, Title = item.Title, Openings = item.Openings, RequestedAt = item.RequestedAt };
+    private void EditApplicant(ApplicantDto item) => applicantModel = new() { Id = item.Id, CompanyId = item.CompanyId, JobRequisitionId = item.JobRequisitionId, FullName = item.FullName, Email = item.Email, Phone = item.Phone };
+    private void EditInterview(InterviewFeedbackDto item) => interviewModel = new() { Id = item.Id, ApplicantId = item.ApplicantId, InterviewerEmployeeId = item.InterviewerEmployeeId, InterviewAt = item.InterviewAt, Rating = item.Rating, Feedback = item.Feedback };
+    private void EditOffer(JobOfferDto item){ selectedOfferId = item.Id; offerModel = new() { Id = item.Id, ApplicantId = item.ApplicantId, OfferDate = item.OfferDate, ProposedSalary = item.ProposedSalary }; }
+    private void ResetModels(){ ResetStaffingPlan(); ResetRequisition(); ResetApplicant(); ResetInterview(); ResetOffer(); }
+    private void ResetStaffingPlan() => staffingPlanModel = new() { CompanyId = companyId, Year = DateTime.Today.Year, PlannedHeadcount = 1 };
+    private void ResetRequisition() => requisitionModel = new() { CompanyId = companyId, RequestedAt = DateTime.Today, Openings = 1 };
+    private void ResetApplicant() => applicantModel = new() { CompanyId = companyId };
+    private void ResetInterview() => interviewModel = new() { ApplicantId = selectedApplicantId, InterviewAt = DateTime.Today, Rating = 3 };
+    private void ResetOffer() => offerModel = new() { ApplicantId = selectedApplicantId, OfferDate = DateTime.Today };
+
+    private void Show(ApiResult<RecruitmentActionResultDto> result){ if (result.IsSuccess) ToastService.ShowSuccess(result.Data?.Message ?? Text("Saved", "تم الحفظ")); else ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Action failed", "فشل الإجراء")); }
+    private bool Has(string permission) => user?.HasClaim("Permission", permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string EmployeeName(EmployeeDto item) => Text(item.FullNameEng, item.FullName);
+    private string EmployeeName(Guid id) => employees.FirstOrDefault(x => x.Id == id) is { } employee ? EmployeeName(employee) : id.ToString("N")[..8];
+    private string PositionName(PositionDto item) => Text(item.TitleEng, item.Title);
+    private string PositionName(Guid? id) => id.HasValue && positions.FirstOrDefault(x => x.Id == id.Value) is { } position ? PositionName(position) : Text("Any position", "أي مسمى");
+    private string StatusText(RecruitmentRequestStatus status) => status.ToString();
+    private string StatusClass(RecruitmentRequestStatus status) => status switch { RecruitmentRequestStatus.Open => "text-bg-primary", RecruitmentRequestStatus.Interviewing => "text-bg-info", RecruitmentRequestStatus.Offered => "text-bg-warning", RecruitmentRequestStatus.Hired => "text-bg-success", RecruitmentRequestStatus.Cancelled => "text-bg-danger", _ => "text-bg-secondary" };
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

@@ -16,6 +16,9 @@ public static class PermissionList
             ..AcademicInistitutionPermissions.Permissions,
             ..SpecializationPermissions.Permissions,
             ..EmployeePermissions.Permissions,
+            ..EmployeeLifecyclePermissions.Permissions,
+            ..EmployeeDocumentPermissions.Permissions,
+            ..EmployeeSkillPermissions.Permissions,
             ..TeamPermissions.Permissions,
             ..PositionPermissions.Permissions,
             ..CompanyPermissions.Permissions,
@@ -76,8 +79,19 @@ public static class PermissionList
             .. PayrollContractPermissions.Permissions,
             .. PayrollLoanPermissions.Permissions,
             .. SalaryRunPermissions.Permissions,
+            .. PayrollStructurePermissions.Permissions,
+            .. PayrollPayslipPermissions.Permissions,
+            .. PayrollWorkEntryPermissions.Permissions,
             .. AttendancePermissions.Permissions,
+            .. AttendanceRosterPermissions.Permissions,
+            .. AttendanceWorkEntryPermissions.Permissions,
             .. LeavePermissions.Permissions,
+            .. LeavePolicyPermissions.Permissions,
+            .. LeaveApplicationPermissions.Permissions,
+            .. LeaveLedgerPermissions.Permissions,
+            .. RecruitmentPermissions.Permissions,
+            .. PerformancePermissions.Permissions,
+            .. TrainingPermissions.Permissions,
             .. TaskManagementPermissions.Permissions,
             .. ProjectManagementPermissions.Permissions,
             .. MaintenanceAssetPermissions.Permissions,
@@ -259,6 +273,44 @@ public static class PermissionList
             };
 
     }
+
+    public static class EmployeeLifecyclePermissions
+    {
+        public static string GroupName { get; set; } = "Employees.Lifecycle";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Approve { get; set; } = $"{GroupName}.Approve";
+        public static string Complete { get; set; } = $"{GroupName}.Complete";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Approve, Complete];
+    }
+
+    public static class EmployeeDocumentPermissions
+    {
+        public static string GroupName { get; set; } = "Employees.Document";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Renew { get; set; } = $"{GroupName}.Renew";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Renew];
+    }
+
+    public static class EmployeeSkillPermissions
+    {
+        public static string GroupName { get; set; } = "Employees.Skill";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Verify { get; set; } = $"{GroupName}.Verify";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Verify];
+    }
+
     public static class TeamPermissions
     {
 
@@ -1223,6 +1275,40 @@ public static class PermissionList
             };
     }
 
+    public static class PayrollStructurePermissions
+    {
+        public static string GroupName { get; set; } = "Payroll.Structure";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Assign { get; set; } = $"{GroupName}.Assign";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Assign];
+    }
+
+    public static class PayrollPayslipPermissions
+    {
+        public static string GroupName { get; set; } = "Payroll.Payslip";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Generate { get; set; } = $"{GroupName}.Generate";
+        public static string Approve { get; set; } = $"{GroupName}.Approve";
+        public static string Pay { get; set; } = $"{GroupName}.Pay";
+        public static string Close { get; set; } = $"{GroupName}.Close";
+        public static List<string> Permissions => [Select, View, Generate, Approve, Pay, Close];
+    }
+
+    public static class PayrollWorkEntryPermissions
+    {
+        public static string GroupName { get; set; } = "Payroll.WorkEntry";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Import { get; set; } = $"{GroupName}.Import";
+        public static string Approve { get; set; } = $"{GroupName}.Approve";
+        public static List<string> Permissions => [Select, View, Import, Approve];
+    }
+
     public static class SupplierGroupPermissions
     {
 
@@ -1546,6 +1632,29 @@ public static class PermissionList
             };
     }
 
+    public static class AttendanceRosterPermissions
+    {
+        public static string GroupName { get; set; } = "Attendance.Roster";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Publish { get; set; } = $"{GroupName}.Publish";
+        public static string ApproveSwap { get; set; } = $"{GroupName}.ApproveSwap";
+        public static List<string> Permissions => [Select, View, Create, Edit, Publish, ApproveSwap];
+    }
+
+    public static class AttendanceWorkEntryPermissions
+    {
+        public static string GroupName { get; set; } = "Attendance.WorkEntry";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Generate { get; set; } = $"{GroupName}.Generate";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Approve { get; set; } = $"{GroupName}.Approve";
+        public static List<string> Permissions => [Select, View, Generate, Edit, Approve];
+    }
+
     public static class LeavePermissions
     {
         public static string GroupName { get; set; } = "Leave.Leave";
@@ -1563,6 +1672,75 @@ public static class PermissionList
                 ManageLeaveBalances,
                 ViewLeaveReports
             ];
+    }
+
+    public static class LeavePolicyPermissions
+    {
+        public static string GroupName { get; set; } = "Leave.Policy";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string Assign { get; set; } = $"{GroupName}.Assign";
+        public static List<string> Permissions => [Select, View, Create, Edit, Delete, Assign];
+    }
+
+    public static class LeaveApplicationPermissions
+    {
+        public static string GroupName { get; set; } = "Leave.Application";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Approve { get; set; } = $"{GroupName}.Approve";
+        public static string Cancel { get; set; } = $"{GroupName}.Cancel";
+        public static List<string> Permissions => [Select, View, Create, Edit, Approve, Cancel];
+    }
+
+    public static class LeaveLedgerPermissions
+    {
+        public static string GroupName { get; set; } = "Leave.Ledger";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Adjust { get; set; } = $"{GroupName}.Adjust";
+        public static string Encash { get; set; } = $"{GroupName}.Encash";
+        public static List<string> Permissions => [Select, View, Adjust, Encash];
+    }
+
+    public static class RecruitmentPermissions
+    {
+        public static string GroupName { get; set; } = "HR.Recruitment";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Approve { get; set; } = $"{GroupName}.Approve";
+        public static string Hire { get; set; } = $"{GroupName}.Hire";
+        public static List<string> Permissions => [Select, View, Create, Edit, Approve, Hire];
+    }
+
+    public static class PerformancePermissions
+    {
+        public static string GroupName { get; set; } = "HR.Performance";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Review { get; set; } = $"{GroupName}.Review";
+        public static string Approve { get; set; } = $"{GroupName}.Approve";
+        public static List<string> Permissions => [Select, View, Create, Edit, Review, Approve];
+    }
+
+    public static class TrainingPermissions
+    {
+        public static string GroupName { get; set; } = "HR.Training";
+        public static string Select { get; set; } = $"{GroupName}.Select";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Complete { get; set; } = $"{GroupName}.Complete";
+        public static List<string> Permissions => [Select, View, Create, Edit, Complete];
     }
 
     public static class SystemSettingsPermissions

@@ -40,6 +40,12 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
             .WithMany()
             .HasForeignKey(x => x.PositionId);
 
+        builder.Property(x => x.Grade)
+            .HasMaxLength(100);
+
+        builder.Property(x => x.WorkLocation)
+            .HasMaxLength(250);
+
        builder.Property(x => x.DepartmentId)
        .IsRequired(false);
 
@@ -77,5 +83,7 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.HasIndex(x => x.CompanyId);
         builder.HasIndex(x => x.BranchId);
         builder.HasIndex(x => x.PositionId);
+        builder.HasIndex(x => x.ManagerEmployeeId);
+        builder.HasIndex(x => x.LinkedUserId);
     }
 }

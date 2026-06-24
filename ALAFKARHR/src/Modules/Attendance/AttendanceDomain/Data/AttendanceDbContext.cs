@@ -20,6 +20,15 @@ public class AttendanceDbContext(DbContextOptions<AttendanceDbContext> options) 
     public DbSet<AttendanceHoliday> AttendanceHolidays => Set<AttendanceHoliday>();
     public DbSet<AttendanceBreakPolicy> AttendanceBreakPolicies => Set<AttendanceBreakPolicy>();
     public DbSet<MidDayPermissionRequest> MidDayPermissionRequests => Set<MidDayPermissionRequest>();
+    public DbSet<LegacyAttendanceEmergencyLeaveRequest> LegacyEmergencyLeaveRequests => Set<LegacyAttendanceEmergencyLeaveRequest>();
+    public DbSet<LegacyAttendanceEmployeeLeaveBalance> LegacyEmployeeLeaveBalances => Set<LegacyAttendanceEmployeeLeaveBalance>();
+    public DbSet<ShiftSchedule> ShiftSchedules => Set<ShiftSchedule>();
+    public DbSet<ShiftScheduleAssignment> ShiftScheduleAssignments => Set<ShiftScheduleAssignment>();
+    public DbSet<ShiftSwapRequest> ShiftSwapRequests => Set<ShiftSwapRequest>();
+    public DbSet<AttendanceCorrection> AttendanceCorrections => Set<AttendanceCorrection>();
+    public DbSet<BiometricImportBatch> BiometricImportBatches => Set<BiometricImportBatch>();
+    public DbSet<BiometricImportRow> BiometricImportRows => Set<BiometricImportRow>();
+    public DbSet<AttendanceWorkEntry> AttendanceWorkEntries => Set<AttendanceWorkEntry>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

@@ -1,0 +1,291 @@
+﻿@layout AdminLayout
+@page "/HR/AttendanceRoster"
+@implements IDisposable
+@using SharedWithUI.Permissions
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Attendance.Enums
+@using SharedWithUI.Employees.Dtos
+@inject IAttendanceService AttendanceService
+@inject IEmployeeService EmployeeService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Attendance Roster", "جداول الحضور")" Subtitle="@Text("Manage schedules, assignments, swaps, corrections, and device import batches.", "إدارة الجداول والتعيينات والتبديل والتصحيحات ودفعات استيراد الأجهزة.")" Overline="@Text("HR Attendance", "حضور الموارد البشرية")" Icon="bi-calendar3" />
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @messageClass">@message</div>
+    }
+
+    <AppCard Title="@Text("Schedule setup", "إعداد الجدول")" CssClass="mb-3">
+        <EditForm Model="scheduleModel" OnValidSubmit="SaveScheduleAsync">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="scheduleModel.Name" /></div>
+                <div class="col-md-2"><label class="form-label">@Text("Start", "البداية")</label><InputDate class="form-control" @bind-Value="scheduleModel.StartDate" /></div>
+                <div class="col-md-2"><label class="form-label">@Text("End", "النهاية")</label><InputDate class="form-control" @bind-Value="scheduleModel.EndDate" /></div>
+                <div class="col-md-3"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="scheduleModel.Notes" /></div>
+                <div class="col-md-2"><button class="btn btn-primary w-100" type="submit" disabled="@(!Can(PermissionList.AttendanceRosterPermissions.Create) && !Can(PermissionList.AttendanceRosterPermissions.Edit))"><i class="bi bi-save"></i> @Text("Save", "حفظ")</button></div>
+            </div>
+        </EditForm>
+        <div class="table-responsive mt-3">
+            <table class="table align-middle">
+                <thead><tr><th>@Text("Schedule", "الجدول")</th><th>@Text("Dates", "التواريخ")</th><th>@Text("Status", "الحالة")</th><th>@Text("Assignments", "التعيينات")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                <tbody>
+                    @if (schedules.Count == 0)
+                    {
+                        <tr><td colspan="5" class="text-center text-muted py-4">@Text("No schedules found.", "لا توجد جداول.")</td></tr>
+                    }
+                    @foreach (var schedule in schedules)
+                    {
+                        <tr>
+                            <td>@schedule.Name</td>
+                            <td>@Date(schedule.StartDate) - @Date(schedule.EndDate)</td>
+                            <td><span class="badge text-bg-@RosterCss(schedule.Status)">@schedule.Status</span></td>
+                            <td>@schedule.AssignmentCount</td>
+                            <td class="text-end">
+                                <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="() => EditSchedule(schedule)">@Text("Edit", "تعديل")</button>
+                                <button class="btn btn-outline-primary btn-sm" type="button" disabled="@(schedule.Status != AttendanceRosterStatus.Draft || !Can(PermissionList.AttendanceRosterPermissions.Publish))" @onclick="() => PublishScheduleAsync(schedule.Id)">@Text("Publish", "نشر")</button>
+                                <button class="btn btn-outline-dark btn-sm" type="button" disabled="@(schedule.Status != AttendanceRosterStatus.Published || !Can(PermissionList.AttendanceRosterPermissions.Publish))" @onclick="() => LockScheduleAsync(schedule.Id)">@Text("Lock", "إقفال")</button>
+                                <button class="btn btn-outline-danger btn-sm" type="button" disabled="@(schedule.Status == AttendanceRosterStatus.Locked || schedule.Status == AttendanceRosterStatus.Cancelled || !Can(PermissionList.AttendanceRosterPermissions.Edit))" @onclick="() => CancelScheduleAsync(schedule.Id)">@Text("Cancel", "إلغاء")</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </AppCard>
+
+    <AppCard Title="@Text("Roster assignments", "تعيينات الورديات")" CssClass="mb-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3"><label class="form-label">@Text("Schedule", "الجدول")</label><select class="form-select" @bind="assignmentModel.ScheduleId"><option value="@Guid.Empty">@Text("Select schedule", "اختر الجدول")</option>@foreach (var s in schedules){<option value="@s.Id">@s.Name</option>}</select></div>
+            <div class="col-md-3"><label class="form-label">@Text("Employee", "الموظف")</label><select class="form-select" @bind="assignmentEmployeeId"><option value="">@Text("Select employee", "اختر الموظف")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div>
+            <div class="col-md-2"><label class="form-label">@Text("Shift", "الوردية")</label><select class="form-select" @bind="assignmentModel.ShiftId"><option value="@Guid.Empty">@Text("Select shift", "اختر الوردية")</option>@foreach (var shift in shifts){<option value="@shift.Id">@shift.Name</option>}</select></div>
+            <div class="col-md-2"><label class="form-label">@Text("Work Date", "تاريخ العمل")</label><InputDate class="form-control" @bind-Value="assignmentModel.WorkDate" /></div>
+            <div class="col-md-2"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="assignmentModel.Notes" /></div>
+            <div class="col-md-2"><button class="btn btn-primary w-100" type="button" @onclick="SaveAssignmentAsync" disabled="@(!Can(PermissionList.AttendanceRosterPermissions.Create) && !Can(PermissionList.AttendanceRosterPermissions.Edit))"><i class="bi bi-save"></i> @Text("Save Single", "حفظ مفرد")</button></div>
+            <div class="col-md-2"><button class="btn btn-outline-secondary w-100" type="button" @onclick="ResetAssignment">@Text("Reset", "إعادة ضبط")</button></div>
+            <div class="col-md-2"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="bulkStartDate" /></div>
+            <div class="col-md-2"><label class="form-label">@Text("To", "إلى")</label><InputDate class="form-control" @bind-Value="bulkEndDate" /></div>
+            <div class="col-md-2"><button class="btn btn-outline-primary w-100" type="button" @onclick="AssignRosterAsync" disabled="@(!Can(PermissionList.AttendanceRosterPermissions.Create))"><i class="bi bi-people"></i> @Text("Bulk Assign", "تعيين جماعي")</button></div>
+            <div class="col-md-2"><button class="btn btn-outline-secondary w-100" type="button" @onclick="LoadAssignmentsAsync"><i class="bi bi-arrow-repeat"></i> @Text("Load", "تحميل")</button></div>
+        </div>
+        <div class="table-responsive mt-3">
+            <table class="table align-middle"><thead><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Employee", "الموظف")</th><th>@Text("Shift", "الوردية")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead><tbody>
+                @foreach (var item in assignments)
+                {
+                    <tr><td>@Date(item.WorkDate)</td><td>@EmployeeName(item.EmployeeId)</td><td>@ShiftName(item.ShiftId)</td><td class="text-end"><button class="btn btn-outline-primary btn-sm" type="button" @onclick="() => EditAssignment(item)">@Text("Edit", "تعديل")</button> <button class="btn btn-outline-danger btn-sm" type="button" @onclick="() => DeleteAssignmentAsync(item.Id)">@Text("Delete", "حذف")</button></td></tr>
+                }
+            </tbody></table>
+        </div>
+    </AppCard>
+
+    <div class="row g-3">
+        <div class="col-xl-4">
+            <AppCard Title="@Text("Swap requests", "طلبات التبديل")">
+                <div class="row g-2">
+                    <div class="col-6"><select class="form-select" @bind="swapRequestingEmployeeId"><option value="">@Text("Requester", "الطالب")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div>
+                    <div class="col-6"><select class="form-select" @bind="swapTargetEmployeeId"><option value="">@Text("Target", "البديل")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div>
+                    <div class="col-7"><InputDate class="form-control" @bind-Value="swapModel.WorkDate" /></div>
+                    <div class="col-5"><button class="btn btn-primary w-100" type="button" @onclick="CreateSwapAsync">@Text("Create", "إنشاء")</button></div>
+                </div>
+                <div class="table-responsive mt-3"><table class="table align-middle"><tbody>
+                    @foreach (var item in swapRequests)
+                    {
+                        <tr><td>@Date(item.WorkDate)<br />@EmployeeName(item.RequestingEmployeeId) -> @EmployeeName(item.TargetEmployeeId)</td><td><span class="badge text-bg-@ExceptionCss(item.Status)">@item.Status</span></td><td class="text-end"><button class="btn btn-outline-success btn-sm" disabled="@(item.Status != AttendanceExceptionStatus.Pending)" @onclick="() => ReviewSwapAsync(item.Id, true)">@Text("Approve", "اعتماد")</button> <button class="btn btn-outline-danger btn-sm" disabled="@(item.Status != AttendanceExceptionStatus.Pending)" @onclick="() => ReviewSwapAsync(item.Id, false)">@Text("Reject", "رفض")</button> <button class="btn btn-outline-warning btn-sm" disabled="@(item.Status != AttendanceExceptionStatus.Pending)" @onclick="() => CancelSwapAsync(item.Id)">@Text("Cancel", "إلغاء")</button></td></tr>
+                    }
+                </tbody></table></div>
+            </AppCard>
+        </div>
+        <div class="col-xl-4">
+            <AppCard Title="@Text("Corrections", "التصحيحات")">
+                <div class="row g-2">
+                    <div class="col-7"><select class="form-select" @bind="correctionEmployeeId"><option value="">@Text("Employee", "الموظف")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div>
+                    <div class="col-5"><InputDate class="form-control" @bind-Value="correctionModel.WorkDate" /></div>
+                    <div class="col-12"><input class="form-control" placeholder="@Text("Reason", "السبب")" @bind="correctionModel.Reason" /></div>
+                    <div class="col-12"><button class="btn btn-primary w-100" type="button" @onclick="CreateCorrectionAsync">@Text("Create correction", "إنشاء تصحيح")</button></div>
+                </div>
+                <div class="table-responsive mt-3"><table class="table align-middle"><tbody>
+                    @foreach (var item in corrections)
+                    {
+                        <tr><td>@Date(item.WorkDate)<br />@EmployeeName(item.EmployeeId)</td><td><span class="badge text-bg-@ExceptionCss(item.Status)">@item.Status</span></td><td class="text-end"><button class="btn btn-outline-success btn-sm" disabled="@(item.Status != AttendanceExceptionStatus.Pending)" @onclick="() => ReviewCorrectionAsync(item.Id, true)">@Text("Approve", "اعتماد")</button> <button class="btn btn-outline-danger btn-sm" disabled="@(item.Status != AttendanceExceptionStatus.Pending)" @onclick="() => ReviewCorrectionAsync(item.Id, false)">@Text("Reject", "رفض")</button> <button class="btn btn-outline-primary btn-sm" disabled="@(item.Status != AttendanceExceptionStatus.Approved || item.AppliedAtUtc.HasValue)" @onclick="() => ApplyCorrectionAsync(item.Id)">@Text("Apply", "تطبيق")</button></td></tr>
+                    }
+                </tbody></table></div>
+            </AppCard>
+        </div>
+        <div class="col-xl-4">
+            <AppCard Title="@Text("Device imports", "استيراد الأجهزة")">
+                <div class="row g-2">
+                    <div class="col-12"><input class="form-control" placeholder="@Text("Source", "المصدر")" @bind="batchModel.SourceName" /></div>
+                    <div class="col-12"><input class="form-control" placeholder="@Text("Notes", "ملاحظات")" @bind="batchModel.Notes" /></div>
+                    <div class="col-12"><button class="btn btn-primary w-100" type="button" @onclick="CreateBatchAsync">@Text("Create batch", "إنشاء دفعة")</button></div>
+                </div>
+                <div class="table-responsive mt-3"><table class="table align-middle"><tbody>
+                    @foreach (var batch in batches)
+                    {
+                        <tr class="@(selectedBatchId == batch.Id ? "table-primary" : string.Empty)"><td>@batch.SourceName<br />@batch.Status</td><td>@batch.AcceptedRows / @batch.TotalRows</td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => SelectBatch(batch)">@Text("Rows", "الصفوف")</button> <button class="btn btn-outline-dark btn-sm" disabled="@(batch.Status == AttendanceImportBatchStatus.Posted)" @onclick="() => PostBatchAsync(batch.Id)">@Text("Post", "ترحيل")</button></td></tr>
+                    }
+                </tbody></table></div>
+                @if (selectedBatch is not null)
+                {
+                    <div class="border-top pt-3 mt-3">
+                        <h6 class="mb-2">@Text("Staged rows", "الصفوف المرحلية")</h6>
+                        <div class="row g-2">
+                            <div class="col-6"><select class="form-select" @bind="importRowEmployeeId"><option value="">@Text("Employee", "الموظف")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div>
+                            <div class="col-6"><InputText class="form-control" placeholder="@Text("Device code", "رمز الجهاز")" @bind-Value="importRowModel.DeviceEmployeeCode" /></div>
+                            <div class="col-6"><InputDate class="form-control" @bind-Value="importRowPunchDate" /></div>
+                            <div class="col-6"><InputText class="form-control" placeholder="HH:mm" @bind-Value="importRowPunchTime" /></div>
+                            <div class="col-12"><label class="form-check"><InputCheckbox class="form-check-input" @bind-Value="importRowModel.IsCheckOut" /> <span class="form-check-label">@Text("Checkout punch", "بصمة خروج")</span></label></div>
+                            <div class="col-12 d-flex gap-2"><button class="btn btn-primary btn-sm" type="button" @onclick="SaveImportRowAsync" disabled="@(selectedBatch.Status == AttendanceImportBatchStatus.Posted)"><i class="bi bi-save"></i> @Text("Save Row", "حفظ الصف")</button><button class="btn btn-outline-secondary btn-sm" type="button" @onclick="ResetImportRow">@Text("Reset", "إعادة ضبط")</button></div>
+                        </div>
+                        <div class="table-responsive mt-2"><table class="table table-sm align-middle"><tbody>
+                            @foreach (var row in selectedBatch.Rows)
+                            {
+                                <tr><td>@(row.EmployeeName ?? row.DeviceEmployeeCode ?? "-")<br /><span class="text-muted small">@row.PunchTimeUtc.ToString("yyyy-MM-dd HH:mm")</span></td><td><span class="badge text-bg-@ImportRowCss(row.Status)">@row.Status</span></td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => EditImportRow(row)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-success btn-sm" disabled="@(row.Status == AttendanceImportRowStatus.Posted)" @onclick="() => ReviewImportRowAsync(row.Id, true)">@Text("Accept", "قبول")</button> <button class="btn btn-outline-danger btn-sm" disabled="@(row.Status == AttendanceImportRowStatus.Posted)" @onclick="() => ReviewImportRowAsync(row.Id, false)">@Text("Reject", "رفض")</button></td></tr>
+                            }
+                        </tbody></table></div>
+                    </div>
+                }
+            </AppCard>
+        </div>
+    </div>
+</main>
+
+@code {
+    private Guid companyId;
+    private AuthenticationState? authState;
+    private string? message;
+    private string messageClass = "alert-info";
+    private List<EmployeeDto> employees = [];
+    private List<ShiftDto> shifts = [];
+    private List<ShiftScheduleDto> schedules = [];
+    private List<ShiftScheduleAssignmentDto> assignments = [];
+    private List<ShiftSwapRequestDto> swapRequests = [];
+    private List<AttendanceCorrectionDto> corrections = [];
+    private List<BiometricImportBatchDto> batches = [];
+    private Guid selectedBatchId;
+    private UpsertShiftScheduleDto scheduleModel = NewSchedule();
+    private UpsertShiftScheduleAssignmentDto assignmentModel = new() { WorkDate = DateTime.Today };
+    private DateTime bulkStartDate = DateTime.Today;
+    private DateTime bulkEndDate = DateTime.Today;
+    private string? assignmentEmployeeId;
+    private CreateShiftSwapRequestDto swapModel = new() { WorkDate = DateTime.Today };
+    private string? swapRequestingEmployeeId;
+    private string? swapTargetEmployeeId;
+    private CreateAttendanceCorrectionDto correctionModel = new() { WorkDate = DateTime.Today };
+    private string? correctionEmployeeId;
+    private CreateBiometricImportBatchDto batchModel = new();
+    private UpsertBiometricImportRowDto importRowModel = new();
+    private string? importRowEmployeeId;
+    private DateTime importRowPunchDate = DateTime.Today;
+    private string importRowPunchTime = DateTime.Now.ToString("HH:mm");
+    private BiometricImportBatchDto? selectedBatch => batches.FirstOrDefault(x => x.Id == selectedBatchId);
+
+    protected override void OnInitialized() => SharedDataService.OnChange1 += HandleChangeAsync;
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        companyId = await ResolveCompanyIdAsync();
+        scheduleModel.CompanyId = companyId;
+        ResetAssignment();
+        swapModel.CompanyId = companyId;
+        correctionModel.CompanyId = companyId;
+        batchModel.CompanyId = companyId;
+        ResetImportRow();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        employees = (await EmployeeService.GetByCompanyIdAsync(companyId, 0, 5000)).Data?.Data.ToList() ?? [];
+        shifts = (await AttendanceService.GetShiftsAsync(companyId)).Data ?? [];
+        await LoadSchedulesAsync();
+        await LoadAssignmentsAsync();
+        swapRequests = (await AttendanceService.GetShiftSwapRequestsAsync(companyId)).Data ?? [];
+        corrections = (await AttendanceService.GetAttendanceCorrectionsAsync(companyId)).Data ?? [];
+        batches = (await AttendanceService.GetBiometricImportBatchesAsync(companyId)).Data ?? [];
+    }
+
+    private async Task LoadSchedulesAsync() => schedules = (await AttendanceService.GetShiftSchedulesAsync(companyId)).Data ?? [];
+    private async Task LoadAssignmentsAsync() => assignments = (await AttendanceService.GetShiftScheduleAssignmentsAsync(0, 200, null, null, DateTime.Today.AddDays(-30), DateTime.Today.AddDays(30))).Data?.Data.ToList() ?? [];
+    private async Task SaveScheduleAsync()
+    {
+        scheduleModel.CompanyId = companyId;
+        var result = await AttendanceService.UpsertShiftScheduleAsync(scheduleModel);
+        SetMessage(result.IsSuccess ? Text("Schedule saved.", "تم حفظ الجدول.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger");
+        if (result.IsSuccess) { scheduleModel = NewSchedule(companyId); await LoadSchedulesAsync(); }
+    }
+
+    private async Task SaveAssignmentAsync()
+    {
+        assignmentModel.CompanyId = companyId;
+        assignmentModel.EmployeeId = Parse(assignmentEmployeeId);
+        var result = await AttendanceService.UpsertShiftScheduleAssignmentAsync(assignmentModel);
+        SetMessage(result.IsSuccess ? Text("Roster assignment saved.", "تم حفظ تعيين الوردية.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger");
+        if (result.IsSuccess) { ResetAssignment(); await LoadAssignmentsAsync(); }
+    }
+
+    private async Task AssignRosterAsync()
+    {
+        var employeeId = Parse(assignmentEmployeeId);
+        var result = await AttendanceService.BulkShiftScheduleAssignmentAsync(new BulkShiftScheduleAssignmentDto { ScheduleId = assignmentModel.ScheduleId, CompanyId = companyId, ShiftId = assignmentModel.ShiftId, EmployeeIds = employeeId == Guid.Empty ? [] : [employeeId], StartDate = bulkStartDate, EndDate = bulkEndDate, Notes = assignmentModel.Notes });
+        SetMessage(result.IsSuccess ? Text("Roster assignment saved.", "تم حفظ تعيين الوردية.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger");
+        if (result.IsSuccess) await LoadAssignmentsAsync();
+    }
+
+    private async Task CreateSwapAsync() { swapModel.CompanyId = companyId; swapModel.RequestingEmployeeId = Parse(swapRequestingEmployeeId); swapModel.TargetEmployeeId = Parse(swapTargetEmployeeId); var result = await AttendanceService.CreateShiftSwapRequestAsync(swapModel); SetMessage(result.IsSuccess ? Text("Swap request created.", "تم إنشاء طلب التبديل.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger"); if (result.IsSuccess) { swapModel = new() { CompanyId = companyId, WorkDate = DateTime.Today }; swapRequestingEmployeeId = null; swapTargetEmployeeId = null; swapRequests = (await AttendanceService.GetShiftSwapRequestsAsync(companyId)).Data ?? []; } }
+    private async Task CreateCorrectionAsync() { correctionModel.CompanyId = companyId; correctionModel.EmployeeId = Parse(correctionEmployeeId); var result = await AttendanceService.CreateAttendanceCorrectionAsync(correctionModel); SetMessage(result.IsSuccess ? Text("Correction created.", "تم إنشاء التصحيح.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger"); if (result.IsSuccess) { correctionModel = new() { CompanyId = companyId, WorkDate = DateTime.Today }; correctionEmployeeId = null; corrections = (await AttendanceService.GetAttendanceCorrectionsAsync(companyId)).Data ?? []; } }
+    private async Task CreateBatchAsync() { batchModel.CompanyId = companyId; var result = await AttendanceService.CreateBiometricImportBatchAsync(batchModel); SetMessage(result.IsSuccess ? Text("Import batch created.", "تم إنشاء دفعة الاستيراد.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger"); if (result.IsSuccess) { batchModel = new() { CompanyId = companyId }; batches = (await AttendanceService.GetBiometricImportBatchesAsync(companyId)).Data ?? []; } }
+    private async Task ScheduleActionAsync(Func<Task<ApiResult<ShiftScheduleDto>>> action, string success) { var result = await action(); SetMessage(result.IsSuccess ? success : Error(result), result.IsSuccess ? "alert-success" : "alert-danger"); if (result.IsSuccess) await LoadSchedulesAsync(); }
+    private async Task PublishScheduleAsync(Guid id) => await ScheduleActionAsync(() => AttendanceService.PublishShiftScheduleAsync(id), Text("Schedule published.", "تم نشر الجدول."));
+    private async Task LockScheduleAsync(Guid id) => await ScheduleActionAsync(() => AttendanceService.LockShiftScheduleAsync(id), Text("Schedule locked.", "تم إقفال الجدول."));
+    private async Task CancelScheduleAsync(Guid id) => await ScheduleActionAsync(() => AttendanceService.CancelShiftScheduleAsync(id), Text("Schedule cancelled.", "تم إلغاء الجدول."));
+    private async Task ReviewSwapAsync(Guid id, bool approve) => await ApplyRosterActionAsync(() => AttendanceService.ReviewShiftSwapRequestAsync(new ReviewShiftSwapRequestDto { RequestId = id, IsApproved = approve }), async () => swapRequests = (await AttendanceService.GetShiftSwapRequestsAsync(companyId)).Data ?? []);
+    private async Task CancelSwapAsync(Guid id) => await ApplyRosterActionAsync(() => AttendanceService.CancelShiftSwapRequestAsync(id), async () => swapRequests = (await AttendanceService.GetShiftSwapRequestsAsync(companyId)).Data ?? []);
+    private async Task ReviewCorrectionAsync(Guid id, bool approve) => await ApplyRosterActionAsync(() => AttendanceService.ReviewAttendanceCorrectionAsync(new ReviewAttendanceCorrectionDto { CorrectionId = id, IsApproved = approve }), async () => corrections = (await AttendanceService.GetAttendanceCorrectionsAsync(companyId)).Data ?? []);
+    private async Task ApplyCorrectionAsync(Guid id) => await ApplyRosterActionAsync(() => AttendanceService.ApplyAttendanceCorrectionAsync(id), async () => corrections = (await AttendanceService.GetAttendanceCorrectionsAsync(companyId)).Data ?? []);
+    private async Task PostBatchAsync(Guid id) => await ApplyRosterActionAsync(() => AttendanceService.PostBiometricImportBatchAsync(id), async () => batches = (await AttendanceService.GetBiometricImportBatchesAsync(companyId)).Data ?? []);
+    private async Task ApplyRosterActionAsync<T>(Func<Task<ApiResult<T>>> action, Func<Task> reload) { var result = await action(); SetMessage(result.IsSuccess ? Text("Action completed.", "تم تنفيذ الإجراء.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger"); if (result.IsSuccess) await reload(); }
+    private async Task DeleteAssignmentAsync(Guid id) { var result = await AttendanceService.DeleteShiftScheduleAssignmentAsync(id); SetMessage(result.IsSuccess ? Text("Assignment deleted.", "تم حذف التعيين.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger"); if (result.IsSuccess) await LoadAssignmentsAsync(); }
+    private void EditSchedule(ShiftScheduleDto schedule) => scheduleModel = new() { Id = schedule.Id, CompanyId = schedule.CompanyId, Name = schedule.Name, StartDate = schedule.StartDate, EndDate = schedule.EndDate, Notes = schedule.Notes };
+    private void EditAssignment(ShiftScheduleAssignmentDto item) { assignmentModel = new() { Id = item.Id, CompanyId = item.CompanyId, ScheduleId = item.ScheduleId, EmployeeId = item.EmployeeId, ShiftId = item.ShiftId, WorkDate = item.WorkDate, Notes = item.Notes }; assignmentEmployeeId = item.EmployeeId.ToString(); }
+    private void ResetAssignment() { assignmentModel = new() { CompanyId = companyId, WorkDate = DateTime.Today }; assignmentEmployeeId = null; }
+    private void SelectBatch(BiometricImportBatchDto batch) { selectedBatchId = batch.Id; ResetImportRow(); }
+    private async Task SaveImportRowAsync()
+    {
+        if (selectedBatchId == Guid.Empty) return;
+        importRowModel.BatchId = selectedBatchId;
+        importRowModel.CompanyId = companyId;
+        importRowModel.EmployeeId = ParseNullable(importRowEmployeeId);
+        importRowModel.PunchTimeUtc = importRowPunchDate.Date + (TimeSpan.TryParse(importRowPunchTime, out var time) ? time : TimeSpan.Zero);
+        var result = await AttendanceService.UpsertBiometricImportRowAsync(importRowModel);
+        SetMessage(result.IsSuccess ? Text("Import row saved.", "تم حفظ صف الاستيراد.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger");
+        if (result.IsSuccess) { ResetImportRow(); batches = (await AttendanceService.GetBiometricImportBatchesAsync(companyId)).Data ?? []; }
+    }
+    private async Task ReviewImportRowAsync(Guid rowId, bool accept) => await ApplyRosterActionAsync(() => AttendanceService.ReviewBiometricImportRowAsync(new ReviewBiometricImportRowDto { RowId = rowId, IsAccepted = accept }), async () => batches = (await AttendanceService.GetBiometricImportBatchesAsync(companyId)).Data ?? []);
+    private void EditImportRow(BiometricImportRowDto row) { importRowModel = new() { Id = row.Id, BatchId = row.BatchId, CompanyId = row.CompanyId, EmployeeId = row.EmployeeId, DeviceEmployeeCode = row.DeviceEmployeeCode, PunchTimeUtc = row.PunchTimeUtc, IsCheckOut = row.IsCheckOut, ErrorMessage = row.ErrorMessage }; importRowEmployeeId = row.EmployeeId?.ToString(); importRowPunchDate = row.PunchTimeUtc.Date; importRowPunchTime = row.PunchTimeUtc.ToString("HH:mm"); }
+    private void ResetImportRow() { importRowModel = new() { CompanyId = companyId, BatchId = selectedBatchId, PunchTimeUtc = DateTime.UtcNow }; importRowEmployeeId = null; importRowPunchDate = DateTime.Today; importRowPunchTime = DateTime.Now.ToString("HH:mm"); }
+    private static UpsertShiftScheduleDto NewSchedule(Guid companyId = default) => new() { CompanyId = companyId, StartDate = DateTime.Today, EndDate = DateTime.Today.AddDays(6) };
+    private string EmployeeName(Guid id) => employees.FirstOrDefault(x => x.Id == id) is { } employee ? EmployeeName(employee) : id.ToString();
+    private string EmployeeName(EmployeeDto employee) => SharedDataService.SelectViewLang(employee.FullNameEng, employee.FullName);
+    private string ShiftName(Guid id) => shifts.FirstOrDefault(x => x.Id == id)?.Name ?? id.ToString();
+    private static string Date(DateTime value) => value.ToString("yyyy-MM-dd");
+    private static string RosterCss(AttendanceRosterStatus status) => status switch { AttendanceRosterStatus.Published => "primary", AttendanceRosterStatus.Locked => "dark", AttendanceRosterStatus.Cancelled => "secondary", _ => "light" };
+    private static string ExceptionCss(AttendanceExceptionStatus status) => status switch { AttendanceExceptionStatus.Approved => "success", AttendanceExceptionStatus.Rejected => "danger", AttendanceExceptionStatus.Cancelled => "secondary", _ => "warning" };
+    private static string ImportRowCss(AttendanceImportRowStatus status) => status switch { AttendanceImportRowStatus.Accepted => "success", AttendanceImportRowStatus.Rejected => "danger", AttendanceImportRowStatus.Posted => "dark", _ => "warning" };
+    private bool Can(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private static Guid Parse(string? value) => Guid.TryParse(value, out var id) ? id : Guid.Empty;
+    private static Guid? ParseNullable(string? value) => Guid.TryParse(value, out var id) ? id : null;
+    private string Error<T>(ApiResult<T> result) => result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Operation failed.", "تعذر تنفيذ العملية.");
+    private void SetMessage(string text, string css) { message = text; messageClass = css; }
+    private async Task<Guid> ResolveCompanyIdAsync() => Guid.TryParse((await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync()).User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}
+

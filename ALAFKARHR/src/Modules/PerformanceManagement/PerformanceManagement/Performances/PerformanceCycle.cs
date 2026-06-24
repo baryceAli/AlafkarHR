@@ -12,6 +12,7 @@ public class PerformanceCycle : Aggregate<Guid>
 
     public bool IsActive { get; private set; }
     public bool IsClosed { get; private set; }
+    public bool IsCancelled { get; private set; }
 
     public Guid CompanyId { get; private set; }
 
@@ -30,14 +31,49 @@ public class PerformanceCycle : Aggregate<Guid>
             Name = name,
             StartDate = start,
             EndDate = end,
-            IsActive = true,
+            IsActive = false,
             CompanyId = companyId
         };
     }
 
-    public void Close()
+    public void Update(string name, DateTime start, DateTime end, string modifiedBy)
+    {
+        if (IsClosed || IsCancelled)
+            throw new InvalidOperationException("Closed or cancelled cycles cannot be updated");
+
+        Name = name;
+        StartDate = start;
+        EndDate = end;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+
+    public void Start(string modifiedBy)
+    {
+        if (IsClosed || IsCancelled)
+            throw new InvalidOperationException("Closed or cancelled cycles cannot be started");
+
+        IsActive = true;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+
+    public void Close(string modifiedBy)
     {
         IsClosed = true;
         IsActive = false;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+
+    public void Cancel(string modifiedBy)
+    {
+        if (IsClosed)
+            throw new InvalidOperationException("Closed cycles cannot be cancelled");
+
+        IsCancelled = true;
+        IsActive = false;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
     }
 }

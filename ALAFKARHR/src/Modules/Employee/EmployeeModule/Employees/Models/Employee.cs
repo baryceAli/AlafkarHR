@@ -44,8 +44,10 @@ public class Employee : Aggregate<Guid>
     public Guid PositionId { get; private set; }
     public Position Position { get; private set; }
 
-    //public Guid? ManagerId { get; private set; }
-    //public Employee? Manager { get; private set; }
+    public Guid? ManagerEmployeeId { get; private set; }
+    public string? Grade { get; private set; }
+    public string? WorkLocation { get; private set; }
+    public Guid? LinkedUserId { get; private set; }
 
     // 🔐 System
     public string Code { get; private set; }
@@ -86,6 +88,10 @@ public class Employee : Aggregate<Guid>
         Guid administrationId,
         Guid? departmentId,
         Guid positionId,
+        Guid? managerEmployeeId,
+        string? grade,
+        string? workLocation,
+        Guid? linkedUserId,
         IdentityType identityType,
         Gender gender,
         string code,
@@ -146,6 +152,10 @@ public class Employee : Aggregate<Guid>
             AdministrationId = administrationId,
             DepartmentId = departmentId,
             PositionId = positionId,
+            ManagerEmployeeId = managerEmployeeId,
+            Grade = Normalize(grade),
+            WorkLocation = Normalize(workLocation),
+            LinkedUserId = linkedUserId,
 
             Status = EmployeeStatus.Active,
             Gender = gender,
@@ -190,6 +200,10 @@ public class Employee : Aggregate<Guid>
         Guid specializationId,
         Guid academicInstituteId,
         int graduationYear,
+        Guid? managerEmployeeId,
+        string? grade,
+        string? workLocation,
+        Guid? linkedUserId,
         //string nationality,
         string modifiedBy)
     {
@@ -213,15 +227,23 @@ public class Employee : Aggregate<Guid>
         SpecializationId = specializationId;
         AcademicInstituteId= academicInstituteId;
         GraduationYear= graduationYear;
+        ManagerEmployeeId = managerEmployeeId;
+        Grade = Normalize(grade);
+        WorkLocation = Normalize(workLocation);
+        LinkedUserId = linkedUserId;
         //Nationality= nationality;
         ModifiedBy = modifiedBy;
         ModifiedAt = DateTime.UtcNow;
     }
-    //public void AssignManager(Guid managerId)
-    //{
-    //    //ManagerId = managerId;
-    //    ModifiedAt = DateTime.UtcNow;
-    //}
+    public void UpdateHrPlacement(Guid? managerEmployeeId, string? grade, string? workLocation, Guid? linkedUserId, string modifiedBy)
+    {
+        ManagerEmployeeId = managerEmployeeId;
+        Grade = Normalize(grade);
+        WorkLocation = Normalize(workLocation);
+        LinkedUserId = linkedUserId;
+        ModifiedBy = modifiedBy;
+        ModifiedAt = DateTime.UtcNow;
+    }
 
     public void TransferDepartment(Guid branchId, Guid administrationId, Guid? departmentId, string modifiedBy)
     {
@@ -261,4 +283,6 @@ public class Employee : Aggregate<Guid>
         ModifiedBy = modifiedBy;
         ModifiedAt = DateTime.UtcNow;
     }
+
+    private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

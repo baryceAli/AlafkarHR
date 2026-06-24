@@ -315,6 +315,9 @@ public static class CompanyRoleTemplates
         PermissionList.PricingPermissions.View,
         PermissionList.CustomerPermissions.Select,
         PermissionList.CustomerPermissions.View,
+        PermissionList.StoreFrontStorePermissions.View,
+        PermissionList.StoreFrontPosPermissions.View,
+        PermissionList.StoreFrontPosPermissions.Checkout,
     ];
 
     private static List<string> SalesEmployeePermissions() =>
@@ -331,6 +334,7 @@ public static class CompanyRoleTemplates
         PermissionList.OrderIntakePermissions.Create,
         PermissionList.OrderIntakePermissions.Edit,
         PermissionList.SalesOrderPermissions.Edit,
+        PermissionList.StoreFrontItemPermissions.View,
     ];
 
     private static List<string> SalesManagerPermissions() =>

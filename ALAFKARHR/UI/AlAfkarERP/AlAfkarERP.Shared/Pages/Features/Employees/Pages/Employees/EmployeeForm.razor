@@ -365,6 +365,32 @@
                     </div>
 
                     <div class="employee-field">
+                        <label class="form-label">@SharedDataService.SelectViewLang("Manager", "المدير")</label>
+                        <select class="form-select" @bind="managerEmployeeIdText">
+                            <option value="">@SharedDataService.SelectViewLang("No manager", "بدون مدير")</option>
+                            @foreach (var manager in managerEmployees.Where(e => e.Id != employee.Id))
+                            {
+                                <option value="@manager.Id">@EmployeeDisplay(manager)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="employee-field">
+                        <label for="employee-grade" class="form-label">@SharedDataService.SelectViewLang("Grade", "الدرجة")</label>
+                        <InputText class="form-control" id="employee-grade" @bind-Value="employee.Grade" />
+                    </div>
+
+                    <div class="employee-field">
+                        <label for="employee-work-location" class="form-label">@SharedDataService.SelectViewLang("Work Location", "موقع العمل")</label>
+                        <InputText class="form-control" id="employee-work-location" @bind-Value="employee.WorkLocation" />
+                    </div>
+
+                    <div class="employee-field">
+                        <label for="employee-linked-user" class="form-label">@SharedDataService.SelectViewLang("Linked User Id", "معرف المستخدم المرتبط")</label>
+                        <input class="form-control" id="employee-linked-user" @bind="linkedUserIdText" placeholder="@SharedDataService.SelectViewLang("Optional user id", "معرف مستخدم اختياري")" />
+                    </div>
+
+                    <div class="employee-field">
                         <label for="employee-employment-type" class="form-label">@SharedDataService.SelectViewLang("Employment Type", "نوع الدوام")</label>
                         <InputSelect class="form-select" id="employee-employment-type" @bind-Value="employee.EmploymentType">
                             @foreach (var employmentType in Enum.GetValues<EmploymentType>())
@@ -432,10 +458,13 @@
     private List<AdministrationDto> administrations = [];
     private List<DepartmentDto> departments = [];
     private List<PositionDto> positions = [];
+    private List<EmployeeDto> managerEmployees = [];
     private List<AcademicInstitutionDto> academicInstitutions = [];
     private List<SpecializationDto> specializations = [];
     private List<int> graduationYears = [];
     private EmployeeDto employee = new();
+    private string managerEmployeeIdText = string.Empty;
+    private string linkedUserIdText = string.Empty;
 
     private Guid companyId;
 
@@ -462,6 +491,11 @@
         if (posResponse.IsSuccess)
         {
             positions = posResponse.Data?.Data?.ToList() ?? [];
+        }
+        var managerResponse = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 1000);
+        if (managerResponse.IsSuccess)
+        {
+            managerEmployees = managerResponse.Data?.Data?.ToList() ?? [];
         }
         var academicResponse = await AcademicInistitutionService.GetByCompanyAsync(companyId, 0, 1000);
         if (academicResponse.IsSuccess)
@@ -497,6 +531,8 @@
                 selectedAdministration = administrations.FirstOrDefault(a => a.Id == employee.AdministrationId);
                 await OnAdministrationSelected(selectedAdministration);
                 selectedDepartment = departments.FirstOrDefault(d => d.Id == employee.DepartmentId);
+                managerEmployeeIdText = employee.ManagerEmployeeId?.ToString() ?? string.Empty;
+                linkedUserIdText = employee.LinkedUserId?.ToString() ?? string.Empty;
                 StateHasChanged();
             }
             else
@@ -544,11 +580,15 @@
         selectedBranch = null;
         selectedAdministration=null;
         selectedDepartment = null;
+        managerEmployeeIdText = string.Empty;
+        linkedUserIdText = string.Empty;
 
     }
     private async Task HandleSubmit()
     {
         LoadingService.Show();
+        employee.ManagerEmployeeId = Guid.TryParse(managerEmployeeIdText, out var managerId) ? managerId : null;
+        employee.LinkedUserId = Guid.TryParse(linkedUserIdText, out var linkedUserId) ? linkedUserId : null;
 
         if (!Id.HasValue || Id == Guid.Empty)
         {
@@ -699,6 +739,17 @@
     {
         selectedPosition = position;
         employee.PositionId = selectedPosition?.Id??null;
+    }
+
+    private string EmployeeDisplay(EmployeeDto manager)
+    {
+        var name = SharedDataService.Language == "Ar" ? manager.FullName : manager.FullNameEng;
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = manager.FullName;
+        }
+
+        return string.IsNullOrWhiteSpace(manager.EmployeeNo) ? name : $"{name} ({manager.EmployeeNo})";
     }
 
 

@@ -1,10 +1,10 @@
-@layout AdminLayout
+﻿@layout AdminLayout
 @page "/StoreFront/POS"
 @implements IDisposable
 
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
 @using AlAfkarERP.Shared.Pages.Features.StoreFront.Services
-@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Cart.Dtos
@@ -17,7 +17,6 @@
 @inject ICartService CartService
 @inject ICurrencyService CurrencyService
 @inject ToastService ToastService
-@inject LoadingService LoadingService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
@@ -28,13 +27,21 @@
         <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")</div>
         return;
     }
+    @if (!CanViewStores)
+    {
+        <div class="alert alert-warning">@Text("POS requires StoreFront.Store.View so stores can be loaded.", "تتطلب نقطة البيع صلاحية عرض المتاجر لتحميل المتاجر.")</div>
+        return;
+    }
 
     <PageHeader Title="@Text("Store Front POS", "نقطة بيع المتجر")"
                 Subtitle="@Text("Sell from a selected store and only its assigned goods or services.", "بيع من متجر محدد وبالأصناف أو الخدمات المرتبطة به فقط.")"
                 Overline="@Text("Store Front", "واجهة المتجر")"
                 Icon="bi-receipt">
         <Actions>
-            <a class="btn btn-outline-secondary" href="/StoreFront/Stores"><i class="bi bi-shop"></i> @Text("Stores", "المتاجر")</a>
+            @if (CanOpenStoresPage)
+            {
+                <a class="btn btn-outline-secondary" href="/StoreFront/Stores"><i class="bi bi-shop"></i> @Text("Stores", "المتاجر")</a>
+            }
         </Actions>
     </PageHeader>
 
@@ -55,9 +62,7 @@
                 <input class="form-control" @bind="searchText" @bind:after="LoadCatalogAsync" disabled="@(selectedStoreId == Guid.Empty)" />
             </div>
             <div class="col-md-2">
-                <button class="btn btn-outline-secondary w-100" @onclick="LoadCatalogAsync" disabled="@(selectedStoreId == Guid.Empty)">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
+                <button class="btn btn-outline-secondary w-100" @onclick="LoadCatalogAsync" disabled="@(selectedStoreId == Guid.Empty)"><i class="bi bi-arrow-clockwise"></i></button>
             </div>
         </div>
     </AppCard>
@@ -66,9 +71,7 @@
         <div class="col-xl-8">
             @if (selectedStoreId == Guid.Empty)
             {
-                <EmptyState Title="@Text("Select a store", "اختر متجر")"
-                            Message="@Text("POS catalog is scoped by store front.", "كتالوج نقطة البيع مرتبط بواجهة المتجر.")"
-                            Icon="bi-shop" />
+                <EmptyState Title="@Text("Select a store", "اختر متجر")" Message="@Text("POS catalog is scoped by store front.", "كتالوج نقطة البيع مرتبط بواجهة المتجر.")" Icon="bi-shop" />
             }
             else if (isLoading)
             {
@@ -76,24 +79,40 @@
             }
             else if (!catalog.Any())
             {
-                <EmptyState Title="@Text("No sellable items", "لا توجد أصناف للبيع")"
-                            Message="@Text("Assign goods or services to this store first.", "اربط أصنافاً أو خدمات بهذا المتجر أولاً.")"
-                            Icon="bi-box-seam" />
+                <EmptyState Title="@Text("No sellable items", "لا توجد أصناف للبيع")" Message="@Text("Assign goods or services to this store first.", "اربط أصنافا أو خدمات بهذا المتجر أولا.")" Icon="bi-box-seam" />
             }
             else
             {
                 <div class="row g-3">
                     @foreach (var item in catalog)
                     {
+                        var draft = DraftFor(item);
                         <div class="col-md-6 col-xl-4">
                             <div class="card h-100 border-0 shadow-sm">
                                 <div class="card-body d-flex flex-column">
                                     <div class="fw-semibold">@Text(item.Sku.NameEng, item.Sku.Name)</div>
                                     <div class="text-muted small mb-2">@item.Sku.SkuCode</div>
-                                    <div class="fw-bold text-success mb-3">@Money(item.Sku.Price)</div>
-                                    <button class="btn btn-success mt-auto" @onclick="() => AddToCartAsync(item)" disabled="@isCartBusy">
-                                        <i class="bi bi-cart-plus"></i> @Text("Add", "إضافة")
-                                    </button>
+                                    <div class="fw-bold text-success mb-3">@Money(EffectivePrice(item))</div>
+                                    @if (item.Settings.AllowManualPrice && CanPriceOverride)
+                                    {
+                                        <div class="mb-2">
+                                            <label class="form-label small">@Text("Manual price", "سعر يدوي")</label>
+                                            <InputNumber class="form-control form-control-sm" @bind-Value="draft.ManualPrice" />
+                                            <div class="text-muted small">@ManualPriceHint(item)</div>
+                                        </div>
+                                        @if (item.Settings.RequireManualPriceNote)
+                                        {
+                                            <div class="mb-2">
+                                                <label class="form-label small">@Text("Override note", "ملاحظة التعديل")</label>
+                                                <InputText class="form-control form-control-sm" @bind-Value="draft.Note" />
+                                            </div>
+                                        }
+                                    }
+                                    else if (item.Settings.AllowManualPrice && !CanPriceOverride)
+                                    {
+                                        <div class="alert alert-light py-1 small">@Text("Manual price requires permission.", "السعر اليدوي يتطلب صلاحية.")</div>
+                                    }
+                                    <button class="btn btn-success mt-auto" @onclick="() => AddToCartAsync(item)" disabled="@isCartBusy"><i class="bi bi-cart-plus"></i> @Text("Add", "إضافة")</button>
                                 </div>
                             </div>
                         </div>
@@ -111,24 +130,15 @@
                 {
                     @foreach (var line in cart.Lines)
                     {
-                        <div class="border rounded p-2 mb-2">
-                            <div class="fw-semibold">@Text(line.ProductNameEng, line.ProductName)</div>
-                            <div class="small">@Money(line.UnitPrice) x @line.Quantity = <strong>@Money(line.TotalAmount)</strong></div>
-                        </div>
+                        <div class="border rounded p-2 mb-2"><div class="fw-semibold">@Text(line.ProductNameEng, line.ProductName)</div><div class="small">@Money(line.UnitPrice) x @line.Quantity = <strong>@Money(line.TotalAmount)</strong></div>@if (!string.IsNullOrWhiteSpace(line.Notes)){<div class="text-muted small">@line.Notes</div>}</div>
                     }
                     <div class="d-flex justify-content-between border-top pt-2"><span>@Text("Total", "الإجمالي")</span><strong>@Money(cart.TotalAmount)</strong></div>
-                    <div class="mt-3">
-                        <label class="form-label">@Text("Payment method", "طريقة الدفع")</label>
-                        <select class="form-select" @bind="paymentMethod">
-                            @foreach (var method in Enum.GetValues<PaymentMethodType>())
-                            {
-                                <option value="@method">@method</option>
-                            }
-                        </select>
-                    </div>
-                    <button class="btn btn-primary w-100 mt-3" @onclick="CheckoutAsync" disabled="@isCartBusy">
-                        <i class="bi bi-check2-circle"></i> @Text("Checkout", "إتمام الطلب")
-                    </button>
+                    <div class="mt-3"><label class="form-label">@Text("Payment method", "طريقة الدفع")</label><select class="form-select" @bind="paymentMethod">@foreach (var method in Enum.GetValues<PaymentMethodType>()){<option value="@method">@method</option>}</select></div>
+                    @if (!CanCheckout)
+                    {
+                        <div class="alert alert-warning mt-3 mb-0">@Text("Checkout requires StoreFront.POS.Checkout.", "إتمام البيع يتطلب صلاحية إتمام نقطة البيع.")</div>
+                    }
+                    <button class="btn btn-primary w-100 mt-3" @onclick="CheckoutAsync" disabled="@(isCartBusy || !CanCheckout)"><i class="bi bi-check2-circle"></i> @Text("Checkout", "إتمام الطلب")</button>
                 }
             </AppCard>
         </div>
@@ -138,6 +148,9 @@
 @code {
     private bool CanView;
     private bool CanCheckout;
+    private bool CanPriceOverride;
+    private bool CanViewStores;
+    private bool CanOpenStoresPage;
     private bool isLoading;
     private bool isCartBusy;
     private Guid companyId;
@@ -148,6 +161,7 @@
     private PaymentMethodType paymentMethod = PaymentMethodType.Cash;
     private List<StoreFrontDto> stores = [];
     private List<StoreFrontCatalogItemDto> catalog = [];
+    private Dictionary<Guid, PosItemDraft> drafts = new();
     private CartDto? cart;
 
     protected override async Task OnInitializedAsync()
@@ -156,14 +170,16 @@
         var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         CanView = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontPosPermissions.View);
         CanCheckout = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontPosPermissions.Checkout);
+        CanPriceOverride = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontPosPermissions.PriceOverride);
+        CanViewStores = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontStorePermissions.View);
+        CanOpenStoresPage = CanViewStores;
         userId = auth.User.Claims.FirstOrDefault(c => c.Type.EndsWith("nameidentifier", StringComparison.OrdinalIgnoreCase))?.Value;
         if (!CompanyContext.TryGetCompanyId(auth.User, out companyId))
         {
             NavigationManager.NavigateTo("/Dashboard");
             return;
         }
-
-        if (CanView)
+        if (CanView && CanViewStores)
             await LoadAsync();
     }
 
@@ -179,6 +195,8 @@
     private async Task OnStoreChangedAsync(ChangeEventArgs args)
     {
         cart = null;
+        catalog = [];
+        drafts.Clear();
         selectedStoreId = Guid.TryParse(args.Value?.ToString(), out var id) ? id : Guid.Empty;
         await LoadCatalogAsync();
     }
@@ -189,6 +207,8 @@
         isLoading = true;
         var result = await StoreFrontService.GetCatalogAsync(selectedStoreId, null, searchText);
         catalog = result.IsSuccess ? result.Data ?? [] : [];
+        foreach (var item in catalog)
+            _ = DraftFor(item);
         isLoading = false;
     }
 
@@ -196,20 +216,18 @@
     {
         var store = stores.FirstOrDefault(x => x.Id == selectedStoreId);
         if (store is null) return;
+
+        var draft = DraftFor(item);
+        var unitPrice = EffectivePrice(item);
+        if (!ValidateManualPrice(item, draft, unitPrice))
+            return;
+
         isCartBusy = true;
         try
         {
             if (cart is null)
             {
-                var created = await CartService.CreateAsync(new CartDto
-                {
-                    CompanyId = companyId,
-                    CustomerId = store.DefaultCustomerId,
-                    UserId = userId,
-                    Source = OrderIntakeSource.Pos,
-                    Channel = $"StoreFront:{selectedStoreId}",
-                    PriceListId = store.PriceListId
-                });
+                var created = await CartService.CreateAsync(new CartDto { CompanyId = companyId, CustomerId = store.DefaultCustomerId, UserId = userId, Source = OrderIntakeSource.Pos, Channel = $"StoreFront:{selectedStoreId}", PriceListId = store.PriceListId });
                 if (!created.IsSuccess || created.Data is null)
                 {
                     ToastService.ShowError(created.Error?.Detail ?? Text("Unable to create cart.", "تعذر إنشاء السلة."));
@@ -219,21 +237,9 @@
                 cart = loaded.Data ?? new CartDto { Id = created.Data.Id, CompanyId = companyId, Channel = $"StoreFront:{selectedStoreId}" };
             }
 
-            var existing = cart.Lines.FirstOrDefault(x => x.ProductSkuId == item.Sku.Id);
+            var existing = cart.Lines.FirstOrDefault(x => x.ProductSkuId == item.Sku.Id && x.UnitPrice == unitPrice);
             var result = existing is null
-                ? await CartService.AddLineAsync(cart.Id, new CartLineDto
-                {
-                    ProductId = item.Sku.ProductId,
-                    ProductSkuId = item.Sku.Id,
-                    ProductName = item.Sku.Name,
-                    ProductNameEng = item.Sku.NameEng,
-                    SkuCode = item.Sku.SkuCode,
-                    UnitOfMeasureId = item.Sku.UnitId ?? Guid.Empty,
-                    Quantity = 1,
-                    UnitPrice = item.Sku.Price,
-                    DiscountRate = item.Sku.DiscountRate,
-                    TaxRate = item.Sku.TaxRate
-                })
+                ? await CartService.AddLineAsync(cart.Id, new CartLineDto { ProductId = item.Sku.ProductId, ProductSkuId = item.Sku.Id, ProductName = item.Sku.Name, ProductNameEng = item.Sku.NameEng, SkuCode = item.Sku.SkuCode, UnitOfMeasureId = item.Sku.UnitId ?? Guid.Empty, Quantity = 1, UnitPrice = unitPrice, DiscountRate = item.Sku.DiscountRate, TaxRate = item.Sku.TaxRate, Notes = draft.Note })
                 : await CartService.UpdateLineAsync(cart.Id, existing.Id, existing.Quantity + 1);
 
             if (result.IsSuccess)
@@ -245,6 +251,33 @@
         {
             isCartBusy = false;
         }
+    }
+
+    private bool ValidateManualPrice(StoreFrontCatalogItemDto item, PosItemDraft draft, decimal unitPrice)
+    {
+        if (!item.Settings.AllowManualPrice || !draft.ManualPrice.HasValue)
+            return true;
+        if (!CanPriceOverride)
+        {
+            ToastService.ShowError(Text("You do not have permission to override prices.", "ليست لديك صلاحية تعديل الأسعار."));
+            return false;
+        }
+        if (item.Settings.MinimumManualPrice.HasValue && unitPrice < item.Settings.MinimumManualPrice.Value)
+        {
+            ToastService.ShowError(Text("Manual price is below the minimum allowed price.", "السعر اليدوي أقل من الحد الأدنى المسموح."));
+            return false;
+        }
+        if (item.Settings.MaximumManualPrice.HasValue && unitPrice > item.Settings.MaximumManualPrice.Value)
+        {
+            ToastService.ShowError(Text("Manual price is above the maximum allowed price.", "السعر اليدوي أعلى من الحد الأعلى المسموح."));
+            return false;
+        }
+        if (item.Settings.RequireManualPriceNote && string.IsNullOrWhiteSpace(draft.Note))
+        {
+            ToastService.ShowError(Text("Manual price note is required.", "ملاحظة السعر اليدوي مطلوبة."));
+            return false;
+        }
+        return true;
     }
 
     private async Task CheckoutAsync()
@@ -261,8 +294,38 @@
         isCartBusy = false;
     }
 
+    private PosItemDraft DraftFor(StoreFrontCatalogItemDto item)
+    {
+        if (!drafts.TryGetValue(item.Sku.Id, out var draft))
+        {
+            draft = new PosItemDraft();
+            drafts[item.Sku.Id] = draft;
+        }
+        return draft;
+    }
+
+    private decimal EffectivePrice(StoreFrontCatalogItemDto item)
+    {
+        var draft = DraftFor(item);
+        return item.Settings.AllowManualPrice && CanPriceOverride && draft.ManualPrice.HasValue ? draft.ManualPrice.Value : item.Sku.Price;
+    }
+
+    private string ManualPriceHint(StoreFrontCatalogItemDto item)
+    {
+        var parts = new List<string>();
+        if (item.Settings.MinimumManualPrice.HasValue) parts.Add($"Min {Money(item.Settings.MinimumManualPrice.Value)}");
+        if (item.Settings.MaximumManualPrice.HasValue) parts.Add($"Max {Money(item.Settings.MaximumManualPrice.Value)}");
+        return parts.Count == 0 ? Text("Optional override", "تعديل اختياري") : string.Join(" / ", parts);
+    }
+
     private string Money(decimal amount) => string.IsNullOrWhiteSpace(currencyCode) ? $"{amount:N2}" : $"{amount:N2} {currencyCode}";
     private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+
+    private sealed class PosItemDraft
+    {
+        public decimal? ManualPrice { get; set; }
+        public string? Note { get; set; }
+    }
 }

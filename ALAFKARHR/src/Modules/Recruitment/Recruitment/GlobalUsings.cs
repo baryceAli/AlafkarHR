@@ -1,0 +1,12 @@
+global using Carter;
+global using MediatR;
+global using Microsoft.AspNetCore.Builder;
+global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Routing;
+global using Microsoft.EntityFrameworkCore;
+global using Recruitment.Data;
+global using Recruitment.Recruitment.Models;
+global using Shared.Contracts.CQRS;
+global using SharedWithUI.Permissions;
+global using SharedWithUI.Recruitment.Dtos;
+global using System.Security.Claims;

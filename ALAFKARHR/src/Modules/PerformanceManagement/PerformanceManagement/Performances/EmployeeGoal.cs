@@ -16,6 +16,26 @@ public class EmployeeGoal : Entity<Guid>
 
     private EmployeeGoal() { }
 
+    public static EmployeeGoal Create(Guid id, Guid employeeId, Guid goalDefinitionId, Guid cycleId, decimal targetValue, decimal weight)
+    {
+        return new EmployeeGoal
+        {
+            Id = id,
+            EmployeeId = employeeId,
+            GoalDefinitionId = goalDefinitionId,
+            PerformanceCycleId = cycleId,
+            TargetValue = targetValue,
+            Weight = weight,
+            AchievedValue = 0
+        };
+    }
+
+    public void Update(decimal targetValue, decimal weight)
+    {
+        TargetValue = targetValue;
+        Weight = weight;
+    }
+
     public void UpdateAchievement(decimal value)
     {
         AchievedValue = value;

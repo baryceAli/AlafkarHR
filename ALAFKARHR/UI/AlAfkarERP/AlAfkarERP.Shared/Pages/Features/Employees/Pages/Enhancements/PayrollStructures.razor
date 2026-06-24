@@ -1,0 +1,279 @@
+﻿@layout AdminLayout
+@page "/HR/PayrollStructures"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.Payroll.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Payroll.Dtos
+@using SharedWithUI.Payroll.Enums
+@using SharedWithUI.Permissions
+
+@inject IPayrollService PayrollService
+@inject IEmployeeService EmployeeService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+
+<div dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Salary Structures", "هياكل الرواتب")"
+                Subtitle="@Text("Build reusable payroll structures and assign them to employees.", "إنشاء هياكل رواتب قابلة لإعادة الاستخدام وتعيينها للموظفين.")"
+                Icon="bi-diagram-3" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page.", "ليست لديك صلاحية عرض هذه الصفحة.")</div>
+    }
+    else if (isLoading)
+    {
+        <div class="text-muted">@Text("Loading payroll structures...", "جاري تحميل هياكل الرواتب...")</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-xl-4">
+                <AppCard>
+                    <h6 class="mb-3">@Text("Structure Setup", "إعداد الهيكل")</h6>
+                    <EditForm Model="structureModel" OnValidSubmit="SaveStructure">
+                        <DataAnnotationsValidator />
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label">@Text("Arabic Name", "الاسم العربي")</label>
+                                <InputText class="form-control" @bind-Value="structureModel.Name" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">@Text("English Name", "الاسم الإنجليزي")</label>
+                                <InputText class="form-control" @bind-Value="structureModel.NameEng" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">@Text("Description", "الوصف")</label>
+                                <InputText class="form-control" @bind-Value="structureModel.Description" />
+                            </div>
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fw-semibold">@Text("Lines", "البنود")</span>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddLine" disabled="@(!CanEditStructures)"><i class="bi bi-plus-lg"></i></button>
+                                </div>
+                                @foreach (var line in structureModel.Lines)
+                                {
+                                    <div class="border rounded p-2 mb-2">
+                                        <div class="row g-2">
+                                            <div class="col-12">
+                                                <select class="form-select" @bind="line.ComponentId">
+                                                    <option value="@Guid.Empty">@Text("Select component", "اختر المكون")</option>
+                                                    @foreach (var component in components)
+                                                    {
+                                                        <option value="@component.Id">@Text(component.NameEng, component.Name)</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div class="col-5">
+                                                <InputSelect class="form-select" @bind-Value="line.ComponentType">
+                                                    @foreach (var type in Enum.GetValues<ComponentType>())
+                                                    {
+                                                        <option value="@type">@type</option>
+                                                    }
+                                                </InputSelect>
+                                            </div>
+                                            <div class="col-5"><InputNumber class="form-control" @bind-Value="line.Amount" /></div>
+                                            <div class="col-2"><button type="button" class="btn btn-outline-danger w-100" @onclick="() => RemoveLine(line)"><i class="bi bi-trash"></i></button></div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                            <div class="col-12 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary" disabled="@(!CanEditStructures || isSaving)"><i class="bi bi-check2"></i> @Text("Save", "حفظ")</button>
+                                <button type="button" class="btn btn-outline-secondary" @onclick="ResetStructure">@Text("Reset", "إعادة ضبط")</button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+            <div class="col-xl-8">
+                <AppCard>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">@Text("Structures", "الهياكل")</h6>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="LoadData"><i class="bi bi-arrow-clockwise"></i></button>
+                    </div>
+                    @if (structures.Count == 0)
+                    {
+                        <EmptyState Title="@Text("No salary structures", "لا توجد هياكل رواتب")" Message="@Text("Create the first structure to use it in payslip generation.", "أنشئ أول هيكل لاستخدامه في توليد المسيرات.")" Icon="bi-diagram-3" />
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead><tr><th>@Text("Name", "الاسم")</th><th>@Text("Lines", "البنود")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead>
+                                <tbody>
+                                    @foreach (var item in structures)
+                                    {
+                                        <tr>
+                                            <td><div class="fw-semibold">@Text(item.NameEng, item.Name)</div><div class="text-muted small">@item.Description</div></td>
+                                            <td>@item.Lines.Count</td>
+                                            <td><span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@item.StatusLabel</span></td>
+                                            <td class="text-end">
+                                                <button class="btn btn-outline-warning btn-sm" @onclick="() => EditStructure(item)" disabled="@(!CanEditStructures)"><i class="bi bi-pencil"></i></button>
+                                                <button class="btn btn-outline-secondary btn-sm" @onclick="() => ToggleStructure(item)" disabled="@(!CanEditStructures)"><i class="bi @(item.IsActive ? "bi-pause" : "bi-play")"></i></button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </AppCard>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-xl-4">
+                <AppCard>
+                    <h6 class="mb-3">@Text("Assign Structure", "تعيين هيكل")</h6>
+                    <EditForm Model="assignmentModel" OnValidSubmit="SaveAssignment">
+                        <DataAnnotationsValidator />
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label">@Text("Employee", "الموظف")</label>
+                                <select class="form-select" @bind="assignmentModel.EmployeeId">
+                                    <option value="@Guid.Empty">@Text("Select employee", "اختر الموظف")</option>
+                                    @foreach (var employee in employees)
+                                    {
+                                        <option value="@employee.Id">@EmployeeName(employee)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">@Text("Structure", "الهيكل")</label>
+                                <select class="form-select" @bind="assignmentModel.SalaryStructureId">
+                                    <option value="@Guid.Empty">@Text("Select structure", "اختر الهيكل")</option>
+                                    @foreach (var structure in structures.Where(x => x.IsActive))
+                                    {
+                                        <option value="@structure.Id">@Text(structure.NameEng, structure.Name)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-6"><label class="form-label">@Text("Effective From", "ساري من")</label><InputDate class="form-control" @bind-Value="assignmentModel.EffectiveFrom" /></div>
+                            <div class="col-6"><label class="form-label">@Text("Effective To", "ساري إلى")</label><InputDate class="form-control" @bind-Value="assignmentModel.EffectiveTo" /></div>
+                            <div class="col-12 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary" disabled="@(!CanEditStructures || isSaving)"><i class="bi bi-person-check"></i> @Text("Assign", "تعيين")</button>
+                                <button type="button" class="btn btn-outline-secondary" @onclick="ResetAssignment">@Text("Reset", "إعادة ضبط")</button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+            <div class="col-xl-8">
+                <AppCard>
+                    <h6 class="mb-3">@Text("Assignment History", "سجل التعيينات")</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Structure", "الهيكل")</th><th>@Text("Dates", "التواريخ")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var item in assignments)
+                                {
+                                    <tr>
+                                        <td>@EmployeeName(item.EmployeeId)</td>
+                                        <td>@Text(item.SalaryStructureNameEng ?? item.SalaryStructureName ?? string.Empty, item.SalaryStructureName ?? string.Empty)</td>
+                                        <td>@item.EffectiveFrom.ToShortDateString() - @(item.EffectiveTo?.ToShortDateString() ?? Text("Open", "مفتوح"))</td>
+                                        <td><span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@item.StatusLabel</span></td>
+                                        <td class="text-end">
+                                            <button class="btn btn-outline-warning btn-sm" @onclick="() => EditAssignment(item)" disabled="@(!CanEditStructures)"><i class="bi bi-pencil"></i></button>
+                                            <button class="btn btn-outline-danger btn-sm" @onclick="() => EndAssignment(item)" disabled="@(!CanEditStructures || !item.IsActive)"><i class="bi bi-stop-circle"></i></button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool CanView;
+    private bool CanEditStructures;
+    private List<SalaryStructureDto> structures = [];
+    private List<SalaryStructureAssignmentDto> assignments = [];
+    private List<ComponentDto> components = [];
+    private List<EmployeeDto> employees = [];
+    private SalaryStructureUpsertDto structureModel = new();
+    private SalaryStructureAssignmentUpsertDto assignmentModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        CanView = auth.User.HasClaim("Permission", PermissionList.PayrollStructurePermissions.View);
+        CanEditStructures = auth.User.HasClaim("Permission", PermissionList.PayrollStructurePermissions.Create) || auth.User.HasClaim("Permission", PermissionList.PayrollStructurePermissions.Edit);
+        CompanyContext.TryGetCompanyId(auth.User, out companyId);
+        ResetStructure();
+        ResetAssignment();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        if (companyId == Guid.Empty || !CanView) { isLoading = false; return; }
+        isLoading = true;
+        structures = (await PayrollService.GetSalaryStructuresAsync(companyId)).Data ?? [];
+        assignments = (await PayrollService.GetSalaryStructureAssignmentsAsync(companyId)).Data ?? [];
+        components = (await PayrollService.GetComponentsByCompanyAsync(companyId, 0, 500)).Data?.Data?.ToList() ?? [];
+        employees = (await EmployeeService.GetByCompanyIdAsync(companyId, 0, 500)).Data?.Data?.ToList() ?? [];
+        isLoading = false;
+    }
+
+    private async Task SaveStructure()
+    {
+        isSaving = true;
+        structureModel.CompanyId = companyId;
+        var result = structureModel.Id == Guid.Empty ? await PayrollService.CreateSalaryStructureAsync(structureModel) : await PayrollService.UpdateSalaryStructureAsync(structureModel);
+        ToastService.ShowSuccess(result.Data?.Message ?? Text("Saved", "تم الحفظ"));
+        ResetStructure();
+        await LoadData();
+        isSaving = false;
+    }
+
+    private async Task ToggleStructure(SalaryStructureDto item)
+    {
+        var result = item.IsActive ? await PayrollService.DeactivateSalaryStructureAsync(item.Id) : await PayrollService.ActivateSalaryStructureAsync(item.Id);
+        ToastService.ShowSuccess(result.Data?.Message ?? Text("Updated", "تم التحديث"));
+        await LoadData();
+    }
+
+    private async Task SaveAssignment()
+    {
+        isSaving = true;
+        assignmentModel.CompanyId = companyId;
+        var result = assignmentModel.Id == Guid.Empty ? await PayrollService.CreateSalaryStructureAssignmentAsync(assignmentModel) : await PayrollService.UpdateSalaryStructureAssignmentAsync(assignmentModel);
+        ToastService.ShowSuccess(result.Data?.Message ?? Text("Saved", "تم الحفظ"));
+        ResetAssignment();
+        await LoadData();
+        isSaving = false;
+    }
+
+    private async Task EndAssignment(SalaryStructureAssignmentDto item)
+    {
+        var result = await PayrollService.EndSalaryStructureAssignmentAsync(item.Id, DateTime.Today);
+        ToastService.ShowSuccess(result.Data?.Message ?? Text("Ended", "تم الإنهاء"));
+        await LoadData();
+    }
+
+    private void EditStructure(SalaryStructureDto item) => structureModel = new() { Id = item.Id, CompanyId = item.CompanyId, Name = item.Name, NameEng = item.NameEng, Description = item.Description, Lines = item.Lines.Select(x => new SalaryStructureLineDto { Id = x.Id, ComponentId = x.ComponentId, ComponentType = x.ComponentType, Amount = x.Amount, IsRecurring = x.IsRecurring, DisplayOrder = x.DisplayOrder }).ToList() };
+    private void EditAssignment(SalaryStructureAssignmentDto item) => assignmentModel = new() { Id = item.Id, CompanyId = item.CompanyId, EmployeeId = item.EmployeeId, SalaryStructureId = item.SalaryStructureId, EffectiveFrom = item.EffectiveFrom, EffectiveTo = item.EffectiveTo };
+    private void AddLine() => structureModel.Lines.Add(new SalaryStructureLineDto { IsRecurring = true, DisplayOrder = structureModel.Lines.Count + 1 });
+    private void RemoveLine(SalaryStructureLineDto line) => structureModel.Lines.Remove(line);
+    private void ResetStructure() => structureModel = new SalaryStructureUpsertDto { CompanyId = companyId, Lines = [new SalaryStructureLineDto { IsRecurring = true, DisplayOrder = 1 }] };
+    private void ResetAssignment() => assignmentModel = new SalaryStructureAssignmentUpsertDto { CompanyId = companyId, EffectiveFrom = DateTime.Today };
+    private string EmployeeName(EmployeeDto employee) => Text(employee.FullNameEng ?? employee.FullName ?? employee.Id.ToString("N")[..8], employee.FullName ?? employee.FullNameEng ?? employee.Id.ToString("N")[..8]);
+    private string EmployeeName(Guid employeeId) => employees.FirstOrDefault(x => x.Id == employeeId) is { } employee ? EmployeeName(employee) : employeeId.ToString("N")[..8];
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}
