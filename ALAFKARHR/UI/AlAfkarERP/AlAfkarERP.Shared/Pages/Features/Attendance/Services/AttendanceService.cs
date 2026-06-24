@@ -10,10 +10,12 @@ namespace AlAfkarERP.Shared.Pages.Features.Attendance.Services;
 public class AttendanceService : BaseApiService, IAttendanceService
 {
     private readonly string path;
+    private readonly string leavePath;
 
     public AttendanceService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig) : base(http, tokenService, apiConfig)
     {
         path = $"api/{apiConfig.Version}/attendance";
+        leavePath = $"api/{apiConfig.Version}/leave";
     }
 
     public async Task<ApiResult<AttendanceDashboardDto>> GetDashboardAsync(Guid? employeeId = null)
@@ -308,6 +310,19 @@ public class AttendanceService : BaseApiService, IAttendanceService
         {
             Content = JsonContent.Create(new { Filter = filter })
         }, "report");
+    }
+
+    public async Task<ApiResult<AttendanceRosterControlDto>> GetRosterControlAsync(AttendanceRosterControlFilterDto filter)
+    {
+        var url = $"{leavePath}/attendance-roster-control?companyId={filter.CompanyId}"
+            + $"&fromDate={Uri.EscapeDataString(filter.FromDate.ToUniversalTime().ToString("O"))}"
+            + $"&toDate={Uri.EscapeDataString(filter.ToDate.ToUniversalTime().ToString("O"))}";
+
+        if (filter.DepartmentId.HasValue) url += $"&departmentId={filter.DepartmentId.Value}";
+        if (filter.ShiftId.HasValue) url += $"&shiftId={filter.ShiftId.Value}";
+        if (filter.Status.HasValue) url += $"&status={filter.Status.Value}";
+
+        return await SendAsync<AttendanceRosterControlDto>(new HttpRequestMessage(HttpMethod.Get, url), "roster");
     }
 
     public async Task<ApiResult<List<ShiftScheduleDto>>> GetShiftSchedulesAsync(Guid companyId, AttendanceRosterStatus? status = null)

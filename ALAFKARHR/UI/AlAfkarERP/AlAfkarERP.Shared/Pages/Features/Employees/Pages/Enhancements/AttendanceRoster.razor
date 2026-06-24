@@ -10,6 +10,7 @@
 @using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
 @using SharedWithUI.Employees.Dtos
+@using AlAfkarERP.Shared.Pages.Reuable2
 @inject IAttendanceService AttendanceService
 @inject IEmployeeService EmployeeService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -22,6 +23,137 @@
     {
         <div class="alert @messageClass">@message</div>
     }
+
+    <AppCard Title="@Text("Control board", "لوحة التحكم")" CssClass="mb-3">
+        <div class="row g-3 align-items-end mb-3">
+            <div class="col-md-2">
+                <label class="form-label">@Text("From", "من")</label>
+                <InputDate class="form-control" @bind-Value="rosterFromDate" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">@Text("To", "إلى")</label>
+                <InputDate class="form-control" @bind-Value="rosterToDate" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">@Text("Department", "القسم")</label>
+                <select class="form-select" @bind="rosterDepartmentId">
+                    <option value="">@Text("All departments", "كل الأقسام")</option>
+                    @foreach (var department in DepartmentOptions)
+                    {
+                        <option value="@department.Id">@department.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">@Text("Shift", "الوردية")</label>
+                <select class="form-select" @bind="rosterShiftId">
+                    <option value="">@Text("All shifts", "كل الورديات")</option>
+                    @foreach (var shift in shifts)
+                    {
+                        <option value="@shift.Id">@shift.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">@Text("Status", "الحالة")</label>
+                <select class="form-select" @bind="rosterStatus">
+                    <option value="">@Text("All statuses", "كل الحالات")</option>
+                    @foreach (var status in Enum.GetValues<AttendanceRosterControlStatus>())
+                    {
+                        <option value="@status">@RosterStatusText(status)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button class="btn btn-primary w-100" type="button" @onclick="LoadRosterControlAsync" disabled="@isLoadingRoster">
+                    <i class="bi bi-funnel"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="roster-kpis mb-3">
+            @RosterKpi(Text("Planned", "المخطط"), rosterControl.Summary.Planned, "bi-calendar-check")
+            @RosterKpi(Text("Present", "الحاضرون"), rosterControl.Summary.Present, "bi-person-check")
+            @RosterKpi(Text("Absent", "الغياب"), rosterControl.Summary.Absent, "bi-person-x")
+            @RosterKpi(Text("On leave", "في إجازة"), rosterControl.Summary.OnApprovedLeave, "bi-calendar-heart")
+            @RosterKpi(Text("Uncovered", "أقسام بلا تغطية"), rosterControl.Summary.UncoveredDepartments, "bi-exclamation-triangle")
+        </div>
+
+        @if (isLoadingRoster)
+        {
+            <div class="erp-loading">@Text("Loading roster control board...", "جاري تحميل لوحة التحكم...")</div>
+        }
+        else if (rosterControl.Rows.Count == 0)
+        {
+            <EmptyState Icon="bi-calendar2-week" Title="@Text("No planned staff", "لا يوجد موظفون مخططون")" Message="@Text("No roster rows match the selected date, shift, department, and status.", "لا توجد صفوف مطابقة للتاريخ والوردية والقسم والحالة المحددة.")" />
+        }
+        else
+        {
+            @foreach (var group in rosterControl.Rows.GroupBy(x => new { x.WorkDate, x.DepartmentId, x.DepartmentName }).OrderBy(x => x.Key.WorkDate).ThenBy(x => x.Key.DepartmentName))
+            {
+                <div class="roster-group-title">
+                    <div>
+                        <strong>@Date(group.Key.WorkDate)</strong>
+                        <span>@(string.IsNullOrWhiteSpace(group.Key.DepartmentName) ? Text("Unassigned department", "قسم غير محدد") : group.Key.DepartmentName)</span>
+                    </div>
+                    <span class="text-muted small">@Text("Planned", "المخطط"): @group.Count() · @Text("Present", "الحاضرون"): @group.Count(x => IsPresent(x.Status))</span>
+                </div>
+                <div class="erp-table-wrap mb-3">
+                    <table class="table erp-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@Text("Employee", "الموظف")</th>
+                                <th>@Text("Position", "المسمى")</th>
+                                <th>@Text("Shift", "الوردية")</th>
+                                <th>@Text("Attendance", "الحضور")</th>
+                                <th>@Text("Reason", "السبب")</th>
+                                <th>@Text("Substitute candidates", "مرشحو البديل")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in group)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">@RosterEmployeeName(row)</div>
+                                        <div class="text-muted small">@((row.EmployeeNo ?? row.EmployeeCode) ?? row.EmployeeId.ToString()[..8])</div>
+                                    </td>
+                                    <td>@(TextValue(row.PositionNameEng, row.PositionName) ?? "-")</td>
+                                    <td>
+                                        <div>@(row.ShiftName ?? row.ShiftId.ToString()[..8])</div>
+                                        <div class="text-muted small">@row.PlannedShiftStartUtc.ToLocalTime().ToString("HH:mm") - @row.PlannedShiftEndUtc.ToLocalTime().ToString("HH:mm")</div>
+                                    </td>
+                                    <td><StatusChip Text="@RosterStatusText(row.Status)" Tone="@RosterStatusTone(row.Status)" /></td>
+                                    <td>
+                                        @if (row.Status == AttendanceRosterControlStatus.OnApprovedLeave)
+                                        {
+                                            <div class="fw-semibold">@TextValue(row.LeaveTypeNameEng, row.LeaveTypeName)</div>
+                                        }
+                                        <div class="text-muted small">@(row.AbsenceReason ?? "-")</div>
+                                    </td>
+                                    <td>
+                                        @if (row.SubstituteCandidates.Count == 0)
+                                        {
+                                            <span class="text-muted small">@Text("No available candidates", "لا يوجد مرشحون متاحون")</span>
+                                        }
+                                        else
+                                        {
+                                            <div class="candidate-list">
+                                                @foreach (var candidate in row.SubstituteCandidates)
+                                                {
+                                                    <span class="candidate-chip">@RosterCandidateName(candidate)</span>
+                                                }
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+    </AppCard>
 
     <AppCard Title="@Text("Schedule setup", "إعداد الجدول")" CssClass="mb-3">
         <EditForm Model="scheduleModel" OnValidSubmit="SaveScheduleAsync">
@@ -168,6 +300,13 @@
     private List<ShiftSwapRequestDto> swapRequests = [];
     private List<AttendanceCorrectionDto> corrections = [];
     private List<BiometricImportBatchDto> batches = [];
+    private AttendanceRosterControlDto rosterControl = new();
+    private DateTime rosterFromDate = DateTime.Today;
+    private DateTime rosterToDate = DateTime.Today.AddDays(6);
+    private string? rosterDepartmentId;
+    private string? rosterShiftId;
+    private string? rosterStatus;
+    private bool isLoadingRoster;
     private Guid selectedBatchId;
     private UpsertShiftScheduleDto scheduleModel = NewSchedule();
     private UpsertShiftScheduleAssignmentDto assignmentModel = new() { WorkDate = DateTime.Today };
@@ -204,6 +343,7 @@
     {
         employees = (await EmployeeService.GetByCompanyIdAsync(companyId, 0, 5000)).Data?.Data.ToList() ?? [];
         shifts = (await AttendanceService.GetShiftsAsync(companyId)).Data ?? [];
+        await LoadRosterControlAsync();
         await LoadSchedulesAsync();
         await LoadAssignmentsAsync();
         swapRequests = (await AttendanceService.GetShiftSwapRequestsAsync(companyId)).Data ?? [];
@@ -211,7 +351,53 @@
         batches = (await AttendanceService.GetBiometricImportBatchesAsync(companyId)).Data ?? [];
     }
 
+    private async Task LoadRosterControlAsync()
+    {
+        if (companyId == Guid.Empty)
+        {
+            return;
+        }
+
+        isLoadingRoster = true;
+        var result = await AttendanceService.GetRosterControlAsync(new AttendanceRosterControlFilterDto
+        {
+            CompanyId = companyId,
+            FromDate = rosterFromDate,
+            ToDate = rosterToDate,
+            DepartmentId = ParseNullable(rosterDepartmentId),
+            ShiftId = ParseNullable(rosterShiftId),
+            Status = Enum.TryParse<AttendanceRosterControlStatus>(rosterStatus, out var status) ? status : null
+        });
+
+        if (result.IsSuccess)
+        {
+            rosterControl = result.Data ?? new();
+            EnrichRosterRows();
+        }
+        else
+        {
+            rosterControl = new();
+            SetMessage(Error(result), "alert-danger");
+        }
+
+        isLoadingRoster = false;
+    }
+
     private async Task LoadSchedulesAsync() => schedules = (await AttendanceService.GetShiftSchedulesAsync(companyId)).Data ?? [];
+    private void EnrichRosterRows()
+    {
+        var employeeLookup = employees.ToDictionary(x => x.Id);
+        foreach (var row in rosterControl.Rows)
+        {
+            if (employeeLookup.TryGetValue(row.EmployeeId, out var employee))
+            {
+                row.DepartmentName ??= employee.DepartmentName;
+                row.BranchName ??= employee.BranchName;
+                row.AdministrationName ??= employee.AdministrationName;
+                row.PositionName ??= employee.PositionName;
+            }
+        }
+    }
     private async Task LoadAssignmentsAsync() => assignments = (await AttendanceService.GetShiftScheduleAssignmentsAsync(0, 200, null, null, DateTime.Today.AddDays(-30), DateTime.Today.AddDays(30))).Data?.Data.ToList() ?? [];
     private async Task SaveScheduleAsync()
     {
@@ -276,6 +462,26 @@
     private string ShiftName(Guid id) => shifts.FirstOrDefault(x => x.Id == id)?.Name ?? id.ToString();
     private static string Date(DateTime value) => value.ToString("yyyy-MM-dd");
     private static string RosterCss(AttendanceRosterStatus status) => status switch { AttendanceRosterStatus.Published => "primary", AttendanceRosterStatus.Locked => "dark", AttendanceRosterStatus.Cancelled => "secondary", _ => "light" };
+    private string RosterStatusText(AttendanceRosterControlStatus status) => status switch
+    {
+        AttendanceRosterControlStatus.Active => Text("Active", "نشط"),
+        AttendanceRosterControlStatus.OnBreak => Text("On break", "في استراحة"),
+        AttendanceRosterControlStatus.Completed => Text("Completed", "مكتمل"),
+        AttendanceRosterControlStatus.OnApprovedLeave => Text("On approved leave", "في إجازة معتمدة"),
+        AttendanceRosterControlStatus.Absent => Text("Absent", "غائب"),
+        _ => Text("Planned", "مخطط")
+    };
+    private static string RosterStatusTone(AttendanceRosterControlStatus status) => status switch
+    {
+        AttendanceRosterControlStatus.Active => "success",
+        AttendanceRosterControlStatus.OnBreak => "warning",
+        AttendanceRosterControlStatus.Completed => "primary",
+        AttendanceRosterControlStatus.OnApprovedLeave => "info",
+        AttendanceRosterControlStatus.Absent => "danger",
+        _ => "muted"
+    };
+    private static bool IsPresent(AttendanceRosterControlStatus status)
+        => status is AttendanceRosterControlStatus.Active or AttendanceRosterControlStatus.OnBreak or AttendanceRosterControlStatus.Completed;
     private static string ExceptionCss(AttendanceExceptionStatus status) => status switch { AttendanceExceptionStatus.Approved => "success", AttendanceExceptionStatus.Rejected => "danger", AttendanceExceptionStatus.Cancelled => "secondary", _ => "warning" };
     private static string ImportRowCss(AttendanceImportRowStatus status) => status switch { AttendanceImportRowStatus.Accepted => "success", AttendanceImportRowStatus.Rejected => "danger", AttendanceImportRowStatus.Posted => "dark", _ => "warning" };
     private bool Can(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
@@ -286,6 +492,114 @@
     private async Task<Guid> ResolveCompanyIdAsync() => Guid.TryParse((await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync()).User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string? TextValue(string? en, string? ar)
+    {
+        var value = SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+    private string RosterEmployeeName(AttendanceRosterControlRowDto row)
+        => TextValue(row.EmployeeNameEng, row.EmployeeName) ?? row.EmployeeId.ToString()[..8];
+    private string RosterCandidateName(AttendanceRosterSubstituteCandidateDto candidate)
+        => TextValue(candidate.EmployeeNameEng, candidate.EmployeeName) ?? candidate.EmployeeId.ToString()[..8];
+    private IEnumerable<DepartmentOption> DepartmentOptions => employees
+        .Where(x => x.DepartmentId.HasValue)
+        .GroupBy(x => x.DepartmentId!.Value)
+        .Select(x => new DepartmentOption(x.Key, x.Select(e => e.DepartmentName).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n)) ?? x.Key.ToString()[..8]))
+        .OrderBy(x => x.Name);
+    private RenderFragment RosterKpi(string label, int value, string icon) => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "roster-kpi");
+        builder.OpenElement(2, "i");
+        builder.AddAttribute(3, "class", $"bi {icon}");
+        builder.CloseElement();
+        builder.OpenElement(4, "div");
+        builder.OpenElement(5, "span");
+        builder.AddContent(6, label);
+        builder.CloseElement();
+        builder.OpenElement(7, "strong");
+        builder.AddContent(8, value);
+        builder.CloseElement();
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+    private sealed record DepartmentOption(Guid Id, string Name);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
 }
+
+<style>
+    .roster-kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: var(--erp-space-3, .75rem);
+    }
+
+    .roster-kpi {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: .75rem;
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        background: var(--erp-surface);
+    }
+
+    .roster-kpi i {
+        color: var(--erp-primary);
+        font-size: 1.1rem;
+    }
+
+    .roster-kpi span {
+        display: block;
+        color: var(--erp-text-muted);
+        font-size: .78rem;
+        font-weight: 600;
+    }
+
+    .roster-kpi strong {
+        display: block;
+        color: var(--erp-text);
+        font-size: 1.25rem;
+        line-height: 1.3;
+    }
+
+    .roster-group-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        padding-block: .5rem;
+    }
+
+    .roster-group-title span {
+        color: var(--erp-text-muted);
+        margin-inline-start: .5rem;
+    }
+
+    .candidate-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .35rem;
+    }
+
+    .candidate-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.5rem;
+        padding-inline: .5rem;
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-full);
+        background: var(--erp-surface-level-0, var(--erp-bg));
+        color: var(--erp-text);
+        font-size: .78rem;
+        font-weight: 600;
+    }
+
+    @@media (max-width: 760px) {
+        .roster-group-title {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+    }
+</style>
 
