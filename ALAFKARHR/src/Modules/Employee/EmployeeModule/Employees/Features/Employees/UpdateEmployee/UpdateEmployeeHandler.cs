@@ -107,6 +107,10 @@ public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             request.Employee.SpecializationId.Value,
             request.Employee.AcademicInstituteId.Value,
             request.Employee.GraduationYear,
+            request.Employee.ManagerEmployeeId,
+            request.Employee.Grade,
+            request.Employee.WorkLocation,
+            request.Employee.LinkedUserId,
             userId);
 
         employee.ChangePosition(request.Employee.PositionId!.Value, userId);

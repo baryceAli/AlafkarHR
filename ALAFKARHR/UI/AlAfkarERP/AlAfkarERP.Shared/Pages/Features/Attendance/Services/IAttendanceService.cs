@@ -38,6 +38,33 @@ public interface IAttendanceService
     Task<ApiResult<MidDayPermissionRequestDto>> CreateMidDayPermissionAsync(CreateMidDayPermissionRequestDto request);
     Task<ApiResult<MidDayPermissionRequestDto>> ReviewMidDayPermissionAsync(ReviewMidDayPermissionRequestDto review);
     Task<ApiResult<AttendanceReportDto>> GetReportAsync(AttendanceReportFilterDto filter);
+    Task<ApiResult<List<ShiftScheduleDto>>> GetShiftSchedulesAsync(Guid companyId, AttendanceRosterStatus? status = null);
+    Task<ApiResult<ShiftScheduleDto>> UpsertShiftScheduleAsync(UpsertShiftScheduleDto schedule);
+    Task<ApiResult<ShiftScheduleDto>> PublishShiftScheduleAsync(Guid scheduleId);
+    Task<ApiResult<ShiftScheduleDto>> LockShiftScheduleAsync(Guid scheduleId);
+    Task<ApiResult<ShiftScheduleDto>> CancelShiftScheduleAsync(Guid scheduleId);
+    Task<ApiResult<PaginatedResult<ShiftScheduleAssignmentDto>>> GetShiftScheduleAssignmentsAsync(int pageIndex, int pageSize, Guid? scheduleId = null, Guid? employeeId = null, DateTime? fromDate = null, DateTime? toDate = null);
+    Task<ApiResult<ShiftScheduleAssignmentDto>> UpsertShiftScheduleAssignmentAsync(UpsertShiftScheduleAssignmentDto assignment);
+    Task<ApiResult<int>> BulkShiftScheduleAssignmentAsync(BulkShiftScheduleAssignmentDto assignment);
+    Task<ApiResult<bool>> DeleteShiftScheduleAssignmentAsync(Guid assignmentId);
+    Task<ApiResult<List<ShiftSwapRequestDto>>> GetShiftSwapRequestsAsync(Guid companyId, AttendanceExceptionStatus? status = null, Guid? employeeId = null);
+    Task<ApiResult<ShiftSwapRequestDto>> CreateShiftSwapRequestAsync(CreateShiftSwapRequestDto request);
+    Task<ApiResult<ShiftSwapRequestDto>> ReviewShiftSwapRequestAsync(ReviewShiftSwapRequestDto review);
+    Task<ApiResult<ShiftSwapRequestDto>> CancelShiftSwapRequestAsync(Guid requestId);
+    Task<ApiResult<List<AttendanceCorrectionDto>>> GetAttendanceCorrectionsAsync(Guid companyId, AttendanceExceptionStatus? status = null, Guid? employeeId = null);
+    Task<ApiResult<AttendanceCorrectionDto>> CreateAttendanceCorrectionAsync(CreateAttendanceCorrectionDto correction);
+    Task<ApiResult<AttendanceCorrectionDto>> ReviewAttendanceCorrectionAsync(ReviewAttendanceCorrectionDto review);
+    Task<ApiResult<AttendanceCorrectionDto>> ApplyAttendanceCorrectionAsync(Guid correctionId);
+    Task<ApiResult<List<BiometricImportBatchDto>>> GetBiometricImportBatchesAsync(Guid companyId);
+    Task<ApiResult<BiometricImportBatchDto>> CreateBiometricImportBatchAsync(CreateBiometricImportBatchDto batch);
+    Task<ApiResult<BiometricImportRowDto>> UpsertBiometricImportRowAsync(UpsertBiometricImportRowDto row);
+    Task<ApiResult<BiometricImportRowDto>> ReviewBiometricImportRowAsync(ReviewBiometricImportRowDto review);
+    Task<ApiResult<BiometricImportBatchDto>> PostBiometricImportBatchAsync(Guid batchId);
+    Task<ApiResult<List<PayrollWorkEntryDto>>> GetAttendanceWorkEntriesAsync(Guid companyId, Guid? employeeId = null, DateTime? fromDate = null, DateTime? toDate = null, AttendanceWorkEntryStatus? status = null);
+    Task<ApiResult<List<PayrollWorkEntryDto>>> GenerateAttendanceWorkEntriesAsync(GenerateAttendanceWorkEntriesDto request);
+    Task<ApiResult<PayrollWorkEntryDto>> UpsertAttendanceWorkEntryAsync(UpsertAttendanceWorkEntryDto entry);
+    Task<ApiResult<PayrollWorkEntryDto>> ApproveAttendanceWorkEntryAsync(Guid entryId);
+    Task<ApiResult<PayrollWorkEntryDto>> LockAttendanceWorkEntryAsync(Guid entryId);
 }
 
 public class LateCheckInReviewResultDto

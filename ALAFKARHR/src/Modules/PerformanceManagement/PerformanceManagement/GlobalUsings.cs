@@ -1,0 +1,13 @@
+global using Carter;
+global using MediatR;
+global using Microsoft.AspNetCore.Builder;
+global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Routing;
+global using Microsoft.EntityFrameworkCore;
+global using PerformanceManagement.Data;
+global using PerformanceManagement.Performances;
+global using PerformanceManagement.Performances.Enums;
+global using Shared.Contracts.CQRS;
+global using SharedWithUI.Performance.Dtos;
+global using SharedWithUI.Permissions;
+global using System.Security.Claims;

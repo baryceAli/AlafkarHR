@@ -6,6 +6,8 @@ public record GetStoreFrontTypesQuery(Guid CompanyId) : IQuery<GetStoreFrontType
 public record GetStoreFrontTypesResult(List<StoreFrontTypeDto> Types);
 public record SaveStoreFrontTypeCommand(StoreFrontTypeDto Type) : ICommand<SaveStoreFrontTypeResult>;
 public record SaveStoreFrontTypeResult(StoreFrontTypeDto Type);
+public record DeleteStoreFrontTypeCommand(Guid Id) : ICommand<DeleteStoreFrontTypeResult>;
+public record DeleteStoreFrontTypeResult(bool IsSuccess);
 public record GetStoreFrontsByCompanyQuery(Guid CompanyId) : IQuery<GetStoreFrontsByCompanyResult>;
 public record GetStoreFrontsByCompanyResult(List<StoreFrontDto> Stores);
 public record GetStoreFrontByIdQuery(Guid Id) : IQuery<GetStoreFrontByIdResult>;
@@ -14,6 +16,8 @@ public record SaveStoreFrontCommand(StoreFrontDto Store) : ICommand<SaveStoreFro
 public record SaveStoreFrontResult(StoreFrontDto Store);
 public record SetStoreFrontStatusCommand(Guid Id, bool IsActive) : ICommand<SetStoreFrontStatusResult>;
 public record SetStoreFrontStatusResult(bool IsSuccess);
+public record DeleteStoreFrontCommand(Guid Id) : ICommand<DeleteStoreFrontResult>;
+public record DeleteStoreFrontResult(bool IsSuccess);
 public record GetStoreFrontItemsQuery(Guid StoreFrontId) : IQuery<GetStoreFrontItemsResult>;
 public record GetStoreFrontItemsResult(List<StoreFrontSellableItemDto> Items);
 public record SaveStoreFrontItemsCommand(Guid StoreFrontId, List<StoreFrontSellableItemDto> Items) : ICommand<SaveStoreFrontItemsResult>;
@@ -212,8 +216,10 @@ public class StoreFrontCommandHandler(
     ICompanyHierarchyReader companyHierarchyReader,
     ISender sender)
     : ICommandHandler<SaveStoreFrontTypeCommand, SaveStoreFrontTypeResult>,
+      ICommandHandler<DeleteStoreFrontTypeCommand, DeleteStoreFrontTypeResult>,
       ICommandHandler<SaveStoreFrontCommand, SaveStoreFrontResult>,
       ICommandHandler<SetStoreFrontStatusCommand, SetStoreFrontStatusResult>,
+      ICommandHandler<DeleteStoreFrontCommand, DeleteStoreFrontResult>,
       ICommandHandler<SaveStoreFrontItemsCommand, SaveStoreFrontItemsResult>
 {
     public async Task<SaveStoreFrontTypeResult> Handle(SaveStoreFrontTypeCommand request, CancellationToken cancellationToken)
@@ -236,6 +242,20 @@ public class StoreFrontCommandHandler(
         request.Type.Id = type.Id;
         request.Type.Code = type.Code;
         return new SaveStoreFrontTypeResult(request.Type);
+    }
+
+    public async Task<DeleteStoreFrontTypeResult> Handle(DeleteStoreFrontTypeCommand request, CancellationToken cancellationToken)
+    {
+        var type = await dbContext.StoreFrontTypes.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
+            ?? throw new NotFoundException($"Store front type not found: {request.Id}");
+
+        var isUsed = await dbContext.StoreFronts.AnyAsync(x => x.StoreFrontTypeId == request.Id, cancellationToken);
+        if (isUsed)
+            throw new BadRequestException("Store front type is used by one or more stores.");
+
+        type.Remove(GetUserId());
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new DeleteStoreFrontTypeResult(true);
     }
 
     public async Task<SaveStoreFrontResult> Handle(SaveStoreFrontCommand request, CancellationToken cancellationToken)
@@ -286,6 +306,26 @@ public class StoreFrontCommandHandler(
         store.SetActive(request.IsActive, GetUserId());
         await dbContext.SaveChangesAsync(cancellationToken);
         return new SetStoreFrontStatusResult(true);
+    }
+
+    public async Task<DeleteStoreFrontResult> Handle(DeleteStoreFrontCommand request, CancellationToken cancellationToken)
+    {
+        var store = await dbContext.StoreFronts.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
+            ?? throw new NotFoundException($"Store front not found: {request.Id}");
+
+        await EnsureCanMutateStoreAsync(store.CompanyId, store.BranchId, cancellationToken);
+
+        var userId = GetUserId();
+        store.Remove(userId);
+
+        var items = await dbContext.StoreFrontSellableItems
+            .Where(x => x.StoreFrontId == request.Id)
+            .ToListAsync(cancellationToken);
+        foreach (var item in items)
+            item.Remove(userId);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new DeleteStoreFrontResult(true);
     }
 
     public async Task<SaveStoreFrontItemsResult> Handle(SaveStoreFrontItemsCommand request, CancellationToken cancellationToken)
@@ -365,11 +405,20 @@ public class StoreFrontEndpoints : ICarterModule
             return Results.Ok(result);
         }).RequireAuthorization(PermissionList.StoreFrontStorePermissions.View);
 
-        app.MapPost($"{Route}/types", async (SaveStoreFrontTypeRequest request, ISender sender) =>
+        app.MapPost($"{Route}/types", async (SaveStoreFrontTypeRequest request, HttpContext context, ISender sender) =>
         {
+            EnsurePermission(
+                context.User,
+                request.Type.Id == Guid.Empty ? PermissionList.StoreFrontStorePermissions.Create : PermissionList.StoreFrontStorePermissions.Edit);
             var result = await sender.Send(new SaveStoreFrontTypeCommand(request.Type));
             return Results.Ok(result);
-        }).RequireAuthorization(PermissionList.StoreFrontStorePermissions.Edit);
+        }).RequireAuthorization();
+
+        app.MapDelete($"{Route}/types/{{id:guid}}", async (Guid id, ISender sender) =>
+        {
+            var result = await sender.Send(new DeleteStoreFrontTypeCommand(id));
+            return Results.Ok(result);
+        }).RequireAuthorization(PermissionList.StoreFrontStorePermissions.Delete);
 
         app.MapGet($"{Route}/stores/company/{{companyId:guid}}", async (Guid companyId, ISender sender) =>
         {
@@ -383,17 +432,26 @@ public class StoreFrontEndpoints : ICarterModule
             return Results.Ok(result);
         }).RequireAuthorization(PermissionList.StoreFrontStorePermissions.View);
 
-        app.MapPost($"{Route}/stores", async (SaveStoreFrontRequest request, ISender sender) =>
+        app.MapPost($"{Route}/stores", async (SaveStoreFrontRequest request, HttpContext context, ISender sender) =>
         {
+            EnsurePermission(
+                context.User,
+                request.Store.Id == Guid.Empty ? PermissionList.StoreFrontStorePermissions.Create : PermissionList.StoreFrontStorePermissions.Edit);
             var result = await sender.Send(new SaveStoreFrontCommand(request.Store));
             return Results.Ok(result.Adapt<SaveStoreFrontResponse>());
-        }).RequireAuthorization(PermissionList.StoreFrontStorePermissions.Edit);
+        }).RequireAuthorization();
 
         app.MapPatch($"{Route}/stores/{{id:guid}}/status", async (Guid id, SetStoreFrontStatusRequest request, ISender sender) =>
         {
             var result = await sender.Send(new SetStoreFrontStatusCommand(id, request.IsActive));
             return Results.Ok(result);
         }).RequireAuthorization(PermissionList.StoreFrontStorePermissions.Edit);
+
+        app.MapDelete($"{Route}/stores/{{id:guid}}", async (Guid id, ISender sender) =>
+        {
+            var result = await sender.Send(new DeleteStoreFrontCommand(id));
+            return Results.Ok(result);
+        }).RequireAuthorization(PermissionList.StoreFrontStorePermissions.Delete);
 
         app.MapGet($"{Route}/stores/{{id:guid}}/items", async (Guid id, ISender sender) =>
         {
@@ -412,5 +470,11 @@ public class StoreFrontEndpoints : ICarterModule
             var result = await sender.Send(new GetStoreFrontCatalogQuery(id, customerId, searchText));
             return Results.Ok(result);
         }).RequireAuthorization(PermissionList.StoreFrontPosPermissions.View);
+    }
+
+    private static void EnsurePermission(ClaimsPrincipal user, string permission)
+    {
+        if (!user.Claims.Any(c => c.Value == permission))
+            throw new ForbiddenException($"Missing permission: {permission}");
     }
 }

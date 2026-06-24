@@ -1,0 +1,248 @@
+﻿@layout AdminLayout
+@page "/HR/EmployeeSkills"
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Utilities
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.HRCore.Dtos
+@inject IEmployeeService EmployeeService
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Employee Skills & Certifications", "مهارات وشهادات الموظفين")" Subtitle="@Text("Maintain employee skill profiles, verification evidence, and certification expiry tracking.", "إدارة مهارات الموظفين وأدلة التحقق وتتبع انتهاء الشهادات.")" Overline="@Text("HR Core", "أساس الموارد البشرية")" Icon="bi-stars" />
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    <AppCard CssClass="mb-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-lg-7">
+                <label class="form-label">@Text("Employee", "الموظف")</label>
+                <select class="form-select" @onchange="OnEmployeeChanged" value="@selectedEmployeeIdText">
+                    <option value="">@Text("Select employee", "اختر الموظف")</option>
+                    @foreach (var employee in employees)
+                    {
+                        <option value="@employee.Id">@EmployeeDisplay(employee)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-lg-2">
+                <button class="btn btn-outline-primary w-100" type="button" @onclick="LoadHrSkillsAsync"><i class="bi bi-arrow-repeat"></i> @Text("Load", "تحميل")</button>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="btn-group w-100">
+                    <button class="btn btn-primary" type="button" disabled="@(!SelectedEmployeeId.HasValue)" @onclick="NewSkill"><i class="bi bi-plus-lg"></i> @Text("Skill", "مهارة")</button>
+                    <button class="btn btn-outline-primary" type="button" disabled="@(!SelectedEmployeeId.HasValue)" @onclick="NewCertification"><i class="bi bi-patch-plus"></i> @Text("Certificate", "شهادة")</button>
+                </div>
+            </div>
+        </div>
+    </AppCard>
+
+    @if (isEditingSkill)
+    {
+        <AppCard Title="@SkillFormTitle" CssClass="mb-3">
+            <EditForm Model="editingSkill" OnValidSubmit="SaveSkillAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-12 col-md-4"><label class="form-label">@Text("Skill Name", "اسم المهارة")</label><InputText class="form-control" @bind-Value="editingSkill.SkillName" /></div>
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("Category", "التصنيف")</label><InputText class="form-control" @bind-Value="editingSkill.Category" /></div>
+                    <div class="col-12 col-md-2"><label class="form-label">@Text("Level", "المستوى")</label><InputNumber class="form-control" min="0" max="5" @bind-Value="editingSkill.ProficiencyLevel" /></div>
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("Source", "المصدر")</label><InputText class="form-control" @bind-Value="editingSkill.Source" /></div>
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("Verified At", "تاريخ التحقق")</label><InputDate class="form-control" @bind-Value="editingSkill.VerifiedAt" /></div>
+                </div>
+                <div class="d-flex justify-content-end gap-2 mt-3"><button class="btn btn-outline-secondary" type="button" @onclick="CancelSkillEdit">@Text("Cancel", "إلغاء")</button><button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @Text("Save", "حفظ")</button></div>
+            </EditForm>
+        </AppCard>
+    }
+
+    @if (isEditingCertification)
+    {
+        <AppCard Title="@CertificationFormTitle" CssClass="mb-3">
+            <EditForm Model="editingCertification" OnValidSubmit="SaveCertificationAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-12 col-md-4"><label class="form-label">@Text("Certification", "الشهادة")</label><InputText class="form-control" @bind-Value="editingCertification.Name" /></div>
+                    <div class="col-12 col-md-4"><label class="form-label">@Text("Issuer", "الجهة المصدرة")</label><InputText class="form-control" @bind-Value="editingCertification.Issuer" /></div>
+                    <div class="col-12 col-md-4"><label class="form-label">@Text("Document Id", "معرف المستند")</label><input class="form-control" value="@certificationDocumentIdText" @oninput="OnCertificationDocumentIdInput" /></div>
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("Issued At", "تاريخ الإصدار")</label><InputDate class="form-control" @bind-Value="editingCertification.IssuedAt" /></div>
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("Expires At", "تاريخ الانتهاء")</label><InputDate class="form-control" @bind-Value="editingCertification.ExpiresAt" /></div>
+                    <div class="col-12 col-md-3"><label class="form-label">@Text("Verified At", "تاريخ التحقق")</label><InputDate class="form-control" @bind-Value="editingCertification.VerifiedAt" /></div>
+                </div>
+                <div class="d-flex justify-content-end gap-2 mt-3"><button class="btn btn-outline-secondary" type="button" @onclick="CancelCertificationEdit">@Text("Cancel", "إلغاء")</button><button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @Text("Save", "حفظ")</button></div>
+            </EditForm>
+        </AppCard>
+    }
+
+    <div class="row g-4">
+        <div class="col-xl-6">
+            <AppCard Title="@Text("Skills", "المهارات")" BodyClass="p-0">
+                @if (!SelectedEmployeeId.HasValue)
+                {
+                    <EmptyState Icon="bi-person-check" Title="@Text("Select an employee", "اختر موظفا")" Message="@Text("Skills will appear here.", "ستظهر المهارات هنا.")" />
+                }
+                else if (!skills.Any())
+                {
+                    <EmptyState Icon="bi-stars" Title="@Text("No skills", "لا توجد مهارات")" Message="@Text("Add a skill profile for this employee.", "أضف مهارة لهذا الموظف.")" />
+                }
+                else
+                {
+                    <div class="erp-table-wrap"><table class="table align-middle mb-0"><thead><tr><th>@Text("Skill", "المهارة")</th><th>@Text("Level", "المستوى")</th><th>@Text("Verified", "التحقق")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead><tbody>
+                    @foreach (var skill in skills)
+                    {
+                        <tr><td><div class="fw-semibold">@skill.SkillName</div><div class="text-muted small">@skill.Category / @skill.Source</div></td><td>@skill.ProficiencyLevel</td><td>@FormatDate(skill.VerifiedAt)</td><td class="text-end"><div class="btn-group btn-group-sm"><button class="btn btn-outline-primary" type="button" @onclick="() => EditSkill(skill)"><i class="bi bi-pencil"></i></button><button class="btn btn-outline-danger" type="button" @onclick="() => DeleteSkillAsync(skill.Id)"><i class="bi bi-trash"></i></button></div></td></tr>
+                    }
+                    </tbody></table></div>
+                }
+            </AppCard>
+        </div>
+        <div class="col-xl-6">
+            <AppCard Title="@Text("Certifications", "الشهادات")" BodyClass="p-0">
+                @if (!SelectedEmployeeId.HasValue)
+                {
+                    <EmptyState Icon="bi-person-check" Title="@Text("Select an employee", "اختر موظفا")" Message="@Text("Certifications will appear here.", "ستظهر الشهادات هنا.")" />
+                }
+                else if (!certifications.Any())
+                {
+                    <EmptyState Icon="bi-patch-check" Title="@Text("No certifications", "لا توجد شهادات")" Message="@Text("Add certification evidence for this employee.", "أضف بيانات شهادة لهذا الموظف.")" />
+                }
+                else
+                {
+                    <div class="erp-table-wrap"><table class="table align-middle mb-0"><thead><tr><th>@Text("Certification", "الشهادة")</th><th>@Text("Expiry", "الانتهاء")</th><th>@Text("Document", "المستند")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead><tbody>
+                    @foreach (var cert in certifications)
+                    {
+                        <tr><td><div class="fw-semibold">@cert.Name</div><div class="text-muted small">@cert.Issuer</div></td><td><span class="badge rounded-pill @(cert.IsExpired ? "text-bg-danger" : "text-bg-light")">@FormatDate(cert.ExpiresAt)</span></td><td>@ShortId(cert.DocumentId)</td><td class="text-end"><div class="btn-group btn-group-sm"><button class="btn btn-outline-primary" type="button" @onclick="() => EditCertification(cert)"><i class="bi bi-pencil"></i></button><button class="btn btn-outline-danger" type="button" @onclick="() => DeleteCertificationAsync(cert.Id)"><i class="bi bi-trash"></i></button></div></td></tr>
+                    }
+                    </tbody></table></div>
+                }
+            </AppCard>
+        </div>
+    </div>
+</main>
+
+@code {
+    private List<EmployeeDto> employees = [];
+    private List<EmployeeSkillDto> skills = [];
+    private List<EmployeeCertificationDto> certifications = [];
+    private EmployeeSkillDto editingSkill = NewSkillDto();
+    private EmployeeCertificationDto editingCertification = NewCertificationDto();
+    private string selectedEmployeeIdText = string.Empty;
+    private string certificationDocumentIdText = string.Empty;
+    private string? errorMessage;
+    private bool isEditingSkill;
+    private bool isEditingCertification;
+
+    private Guid? SelectedEmployeeId => Guid.TryParse(selectedEmployeeIdText, out var id) ? id : null;
+    private string SkillFormTitle => editingSkill.Id == Guid.Empty ? Text("New Skill", "مهارة جديدة") : Text("Edit Skill", "تعديل المهارة");
+    private string CertificationFormTitle => editingCertification.Id == Guid.Empty ? Text("New Certification", "شهادة جديدة") : Text("Edit Certification", "تعديل الشهادة");
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadEmployeesAsync();
+    }
+
+    private async Task LoadEmployeesAsync()
+    {
+        if (ApiConfig.CompanyId == Guid.Empty) return;
+        var result = await EmployeeService.GetByCompanyIdAsync(ApiConfig.CompanyId, 0, 1000);
+        if (result.IsSuccess) employees = result.Data?.Data.ToList() ?? [];
+        else errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language);
+    }
+
+    private async Task OnEmployeeChanged(ChangeEventArgs args)
+    {
+        selectedEmployeeIdText = args.Value?.ToString() ?? string.Empty;
+        CancelSkillEdit();
+        CancelCertificationEdit();
+        await LoadHrSkillsAsync();
+    }
+
+    private async Task LoadHrSkillsAsync()
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+        var skillsResult = await EmployeeService.GetSkillsAsync(SelectedEmployeeId.Value);
+        var certificationsResult = await EmployeeService.GetCertificationsAsync(SelectedEmployeeId.Value);
+        errorMessage = skillsResult.IsSuccess && certificationsResult.IsSuccess ? null : (skillsResult.Error ?? certificationsResult.Error)?.GetDisplayMessage(SharedDataService.Language);
+        skills = skillsResult.IsSuccess ? skillsResult.Data ?? [] : [];
+        certifications = certificationsResult.IsSuccess ? certificationsResult.Data ?? [] : [];
+    }
+
+    private void NewSkill()
+    {
+        editingSkill = NewSkillDto();
+        isEditingSkill = true;
+    }
+
+    private void EditSkill(EmployeeSkillDto skill)
+    {
+        editingSkill = new() { Id = skill.Id, EmployeeId = skill.EmployeeId, CompanyId = skill.CompanyId, SkillName = skill.SkillName, Category = skill.Category, ProficiencyLevel = skill.ProficiencyLevel, Source = skill.Source, VerifiedAt = skill.VerifiedAt };
+        isEditingSkill = true;
+    }
+
+    private async Task SaveSkillAsync()
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+        editingSkill.EmployeeId = SelectedEmployeeId.Value;
+        editingSkill.CompanyId = ApiConfig.CompanyId;
+        var result = editingSkill.Id == Guid.Empty ? await EmployeeService.CreateSkillAsync(SelectedEmployeeId.Value, editingSkill) : await EmployeeService.UpdateSkillAsync(SelectedEmployeeId.Value, editingSkill);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) { CancelSkillEdit(); await LoadHrSkillsAsync(); }
+    }
+
+    private async Task DeleteSkillAsync(Guid id)
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+        var result = await EmployeeService.DeleteSkillAsync(SelectedEmployeeId.Value, id);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) await LoadHrSkillsAsync();
+    }
+
+    private void NewCertification()
+    {
+        editingCertification = NewCertificationDto();
+        certificationDocumentIdText = string.Empty;
+        isEditingCertification = true;
+    }
+
+    private void EditCertification(EmployeeCertificationDto cert)
+    {
+        editingCertification = new() { Id = cert.Id, EmployeeId = cert.EmployeeId, CompanyId = cert.CompanyId, Name = cert.Name, Issuer = cert.Issuer, IssuedAt = cert.IssuedAt, ExpiresAt = cert.ExpiresAt, DocumentId = cert.DocumentId, VerifiedAt = cert.VerifiedAt };
+        certificationDocumentIdText = cert.DocumentId?.ToString() ?? string.Empty;
+        isEditingCertification = true;
+    }
+
+    private async Task SaveCertificationAsync()
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+        editingCertification.EmployeeId = SelectedEmployeeId.Value;
+        editingCertification.CompanyId = ApiConfig.CompanyId;
+        editingCertification.DocumentId = Guid.TryParse(certificationDocumentIdText, out var documentId) ? documentId : null;
+        var result = editingCertification.Id == Guid.Empty ? await EmployeeService.CreateCertificationAsync(SelectedEmployeeId.Value, editingCertification) : await EmployeeService.UpdateCertificationAsync(SelectedEmployeeId.Value, editingCertification);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) { CancelCertificationEdit(); await LoadHrSkillsAsync(); }
+    }
+
+    private async Task DeleteCertificationAsync(Guid id)
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+        var result = await EmployeeService.DeleteCertificationAsync(SelectedEmployeeId.Value, id);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) await LoadHrSkillsAsync();
+    }
+
+    private void CancelSkillEdit() { editingSkill = NewSkillDto(); isEditingSkill = false; }
+    private void CancelCertificationEdit() { editingCertification = NewCertificationDto(); certificationDocumentIdText = string.Empty; isEditingCertification = false; }
+    private void OnCertificationDocumentIdInput(ChangeEventArgs args) => certificationDocumentIdText = args.Value?.ToString() ?? string.Empty;
+    private static EmployeeSkillDto NewSkillDto() => new() { ProficiencyLevel = 1 };
+    private static EmployeeCertificationDto NewCertificationDto() => new() { IssuedAt = DateTime.Today };
+    private string EmployeeDisplay(EmployeeDto employee) => $"{(SharedDataService.Language == "Ar" ? employee.FullName : employee.FullNameEng)} ({employee.EmployeeNo})";
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string FormatDate(DateTime? date) => date.HasValue ? date.Value.ToString("yyyy/MM/dd") : "-";
+    private string ShortId(Guid? id) => id.HasValue && id.Value != Guid.Empty ? id.Value.ToString()[..8] : "-";
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

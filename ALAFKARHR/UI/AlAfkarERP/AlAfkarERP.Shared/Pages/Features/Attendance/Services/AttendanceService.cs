@@ -324,4 +324,181 @@ public class AttendanceService : BaseApiService, IAttendanceService
             Content = JsonContent.Create(new { Filter = filter })
         }, "report");
     }
+
+    public async Task<ApiResult<List<ShiftScheduleDto>>> GetShiftSchedulesAsync(Guid companyId, AttendanceRosterStatus? status = null)
+    {
+        var url = $"{path}/shift-schedules?companyId={companyId}";
+        if (status.HasValue) url += $"&status={status.Value}";
+        return await SendAsync<List<ShiftScheduleDto>>(new HttpRequestMessage(HttpMethod.Get, url), "scheduleList");
+    }
+
+    public async Task<ApiResult<ShiftScheduleDto>> UpsertShiftScheduleAsync(UpsertShiftScheduleDto schedule)
+    {
+        var method = schedule.Id.HasValue && schedule.Id.Value != Guid.Empty ? HttpMethod.Put : HttpMethod.Post;
+        var url = schedule.Id.HasValue && schedule.Id.Value != Guid.Empty ? $"{path}/shift-schedules/{schedule.Id.Value}" : $"{path}/shift-schedules";
+        return await SendAsync<ShiftScheduleDto>(new HttpRequestMessage(method, url)
+        {
+            Content = JsonContent.Create(new { Schedule = schedule })
+        }, "schedule");
+    }
+
+    public async Task<ApiResult<ShiftScheduleDto>> PublishShiftScheduleAsync(Guid scheduleId)
+        => await SendAsync<ShiftScheduleDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/shift-schedules/{scheduleId}/publish"), "schedule");
+
+    public async Task<ApiResult<ShiftScheduleDto>> LockShiftScheduleAsync(Guid scheduleId)
+        => await SendAsync<ShiftScheduleDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/shift-schedules/{scheduleId}/lock"), "schedule");
+
+    public async Task<ApiResult<ShiftScheduleDto>> CancelShiftScheduleAsync(Guid scheduleId)
+        => await SendAsync<ShiftScheduleDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/shift-schedules/{scheduleId}/cancel"), "schedule");
+
+    public async Task<ApiResult<PaginatedResult<ShiftScheduleAssignmentDto>>> GetShiftScheduleAssignmentsAsync(int pageIndex, int pageSize, Guid? scheduleId = null, Guid? employeeId = null, DateTime? fromDate = null, DateTime? toDate = null)
+    {
+        var url = $"{path}/shift-schedule-assignments?pageIndex={pageIndex}&pageSize={pageSize}";
+        if (scheduleId.HasValue) url += $"&scheduleId={scheduleId.Value}";
+        if (employeeId.HasValue) url += $"&employeeId={employeeId.Value}";
+        if (fromDate.HasValue) url += $"&fromDate={Uri.EscapeDataString(fromDate.Value.ToUniversalTime().ToString("O"))}";
+        if (toDate.HasValue) url += $"&toDate={Uri.EscapeDataString(toDate.Value.ToUniversalTime().ToString("O"))}";
+        return await SendAsync<PaginatedResult<ShiftScheduleAssignmentDto>>(new HttpRequestMessage(HttpMethod.Get, url), "assignmentList");
+    }
+
+    public async Task<ApiResult<ShiftScheduleAssignmentDto>> UpsertShiftScheduleAssignmentAsync(UpsertShiftScheduleAssignmentDto assignment)
+    {
+        var method = assignment.Id.HasValue && assignment.Id.Value != Guid.Empty ? HttpMethod.Put : HttpMethod.Post;
+        var url = assignment.Id.HasValue && assignment.Id.Value != Guid.Empty ? $"{path}/shift-schedule-assignments/{assignment.Id.Value}" : $"{path}/shift-schedule-assignments";
+        return await SendAsync<ShiftScheduleAssignmentDto>(new HttpRequestMessage(method, url)
+        {
+            Content = JsonContent.Create(new { Assignment = assignment })
+        }, "assignment");
+    }
+
+    public async Task<ApiResult<int>> BulkShiftScheduleAssignmentAsync(BulkShiftScheduleAssignmentDto assignment)
+    {
+        return await SendAsync<int>(new HttpRequestMessage(HttpMethod.Post, $"{path}/shift-schedule-assignments/bulk")
+        {
+            Content = JsonContent.Create(new { Assignment = assignment })
+        }, "createdCount");
+    }
+
+    public async Task<ApiResult<bool>> DeleteShiftScheduleAssignmentAsync(Guid assignmentId)
+        => await SendAsync<bool>(new HttpRequestMessage(HttpMethod.Delete, $"{path}/shift-schedule-assignments/{assignmentId}"), "isSuccess");
+
+    public async Task<ApiResult<List<ShiftSwapRequestDto>>> GetShiftSwapRequestsAsync(Guid companyId, AttendanceExceptionStatus? status = null, Guid? employeeId = null)
+    {
+        var url = $"{path}/shift-swap-requests?companyId={companyId}";
+        if (status.HasValue) url += $"&status={status.Value}";
+        if (employeeId.HasValue) url += $"&employeeId={employeeId.Value}";
+        return await SendAsync<List<ShiftSwapRequestDto>>(new HttpRequestMessage(HttpMethod.Get, url), "requestList");
+    }
+
+    public async Task<ApiResult<ShiftSwapRequestDto>> CreateShiftSwapRequestAsync(CreateShiftSwapRequestDto request)
+    {
+        return await SendAsync<ShiftSwapRequestDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/shift-swap-requests")
+        {
+            Content = JsonContent.Create(new { Request = request })
+        }, "request");
+    }
+
+    public async Task<ApiResult<ShiftSwapRequestDto>> ReviewShiftSwapRequestAsync(ReviewShiftSwapRequestDto review)
+    {
+        return await SendAsync<ShiftSwapRequestDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/shift-swap-requests/review")
+        {
+            Content = JsonContent.Create(new { Review = review })
+        }, "request");
+    }
+
+    public async Task<ApiResult<ShiftSwapRequestDto>> CancelShiftSwapRequestAsync(Guid requestId)
+        => await SendAsync<ShiftSwapRequestDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/shift-swap-requests/{requestId}/cancel"), "request");
+
+    public async Task<ApiResult<List<AttendanceCorrectionDto>>> GetAttendanceCorrectionsAsync(Guid companyId, AttendanceExceptionStatus? status = null, Guid? employeeId = null)
+    {
+        var url = $"{path}/attendance-corrections?companyId={companyId}";
+        if (status.HasValue) url += $"&status={status.Value}";
+        if (employeeId.HasValue) url += $"&employeeId={employeeId.Value}";
+        return await SendAsync<List<AttendanceCorrectionDto>>(new HttpRequestMessage(HttpMethod.Get, url), "correctionList");
+    }
+
+    public async Task<ApiResult<AttendanceCorrectionDto>> CreateAttendanceCorrectionAsync(CreateAttendanceCorrectionDto correction)
+    {
+        return await SendAsync<AttendanceCorrectionDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/attendance-corrections")
+        {
+            Content = JsonContent.Create(new { Correction = correction })
+        }, "correction");
+    }
+
+    public async Task<ApiResult<AttendanceCorrectionDto>> ReviewAttendanceCorrectionAsync(ReviewAttendanceCorrectionDto review)
+    {
+        return await SendAsync<AttendanceCorrectionDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/attendance-corrections/review")
+        {
+            Content = JsonContent.Create(new { Review = review })
+        }, "correction");
+    }
+
+    public async Task<ApiResult<AttendanceCorrectionDto>> ApplyAttendanceCorrectionAsync(Guid correctionId)
+        => await SendAsync<AttendanceCorrectionDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/attendance-corrections/{correctionId}/apply"), "correction");
+
+    public async Task<ApiResult<List<BiometricImportBatchDto>>> GetBiometricImportBatchesAsync(Guid companyId)
+        => await SendAsync<List<BiometricImportBatchDto>>(new HttpRequestMessage(HttpMethod.Get, $"{path}/device-import-batches?companyId={companyId}"), "batchList");
+
+    public async Task<ApiResult<BiometricImportBatchDto>> CreateBiometricImportBatchAsync(CreateBiometricImportBatchDto batch)
+    {
+        return await SendAsync<BiometricImportBatchDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/device-import-batches")
+        {
+            Content = JsonContent.Create(new { Batch = batch })
+        }, "batch");
+    }
+
+    public async Task<ApiResult<BiometricImportRowDto>> UpsertBiometricImportRowAsync(UpsertBiometricImportRowDto row)
+    {
+        var method = row.Id.HasValue && row.Id.Value != Guid.Empty ? HttpMethod.Put : HttpMethod.Post;
+        var url = row.Id.HasValue && row.Id.Value != Guid.Empty ? $"{path}/device-import-rows/{row.Id.Value}" : $"{path}/device-import-rows";
+        return await SendAsync<BiometricImportRowDto>(new HttpRequestMessage(method, url)
+        {
+            Content = JsonContent.Create(new { Row = row })
+        }, "row");
+    }
+
+    public async Task<ApiResult<BiometricImportRowDto>> ReviewBiometricImportRowAsync(ReviewBiometricImportRowDto review)
+    {
+        return await SendAsync<BiometricImportRowDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/device-import-rows/review")
+        {
+            Content = JsonContent.Create(new { Review = review })
+        }, "row");
+    }
+
+    public async Task<ApiResult<BiometricImportBatchDto>> PostBiometricImportBatchAsync(Guid batchId)
+        => await SendAsync<BiometricImportBatchDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/device-import-batches/{batchId}/post"), "batch");
+
+    public async Task<ApiResult<List<PayrollWorkEntryDto>>> GetAttendanceWorkEntriesAsync(Guid companyId, Guid? employeeId = null, DateTime? fromDate = null, DateTime? toDate = null, AttendanceWorkEntryStatus? status = null)
+    {
+        var url = $"{path}/work-entries?companyId={companyId}";
+        if (employeeId.HasValue) url += $"&employeeId={employeeId.Value}";
+        if (fromDate.HasValue) url += $"&fromDate={Uri.EscapeDataString(fromDate.Value.ToUniversalTime().ToString("O"))}";
+        if (toDate.HasValue) url += $"&toDate={Uri.EscapeDataString(toDate.Value.ToUniversalTime().ToString("O"))}";
+        if (status.HasValue) url += $"&status={status.Value}";
+        return await SendAsync<List<PayrollWorkEntryDto>>(new HttpRequestMessage(HttpMethod.Get, url), "entryList");
+    }
+
+    public async Task<ApiResult<List<PayrollWorkEntryDto>>> GenerateAttendanceWorkEntriesAsync(GenerateAttendanceWorkEntriesDto request)
+    {
+        return await SendAsync<List<PayrollWorkEntryDto>>(new HttpRequestMessage(HttpMethod.Post, $"{path}/work-entries/generate")
+        {
+            Content = JsonContent.Create(new { Request = request })
+        }, "entryList");
+    }
+
+    public async Task<ApiResult<PayrollWorkEntryDto>> UpsertAttendanceWorkEntryAsync(UpsertAttendanceWorkEntryDto entry)
+    {
+        var method = entry.Id.HasValue && entry.Id.Value != Guid.Empty ? HttpMethod.Put : HttpMethod.Post;
+        var url = entry.Id.HasValue && entry.Id.Value != Guid.Empty ? $"{path}/work-entries/{entry.Id.Value}" : $"{path}/work-entries";
+        return await SendAsync<PayrollWorkEntryDto>(new HttpRequestMessage(method, url)
+        {
+            Content = JsonContent.Create(new { Entry = entry })
+        }, "entry");
+    }
+
+    public async Task<ApiResult<PayrollWorkEntryDto>> ApproveAttendanceWorkEntryAsync(Guid entryId)
+        => await SendAsync<PayrollWorkEntryDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/work-entries/{entryId}/approve"), "entry");
+
+    public async Task<ApiResult<PayrollWorkEntryDto>> LockAttendanceWorkEntryAsync(Guid entryId)
+        => await SendAsync<PayrollWorkEntryDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/work-entries/{entryId}/lock"), "entry");
 }

@@ -24,6 +24,20 @@ public class PerformanceEvaluation : Aggregate<Guid>
 
     private PerformanceEvaluation() { }
 
+    public static PerformanceEvaluation Create(Guid id, Guid companyId, Guid employeeId, Guid performanceCycleId, string createdBy)
+    {
+        return new PerformanceEvaluation
+        {
+            Id = id,
+            CompanyId = companyId,
+            EmployeeId = employeeId,
+            PerformanceCycleId = performanceCycleId,
+            Status = EvaluationStatus.Draft,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = createdBy
+        };
+    }
+
     public void Calculate(
         IEnumerable<EmployeeGoal> goals,
         IEnumerable<EmployeeCompetencyScore> competencies)
@@ -35,6 +49,7 @@ public class PerformanceEvaluation : Aggregate<Guid>
         FinalScore = KpiScore + CompetencyScore;
 
         Rating = CalculateRating(FinalScore);
+        ModifiedAt = DateTime.UtcNow;
     }
 
     private RatingLevel CalculateRating(decimal score)
@@ -49,15 +64,37 @@ public class PerformanceEvaluation : Aggregate<Guid>
         };
     }
 
-    public void Submit(string employeeComment)
+    public void Submit(string employeeComment, string modifiedBy)
     {
         EmployeeComment = employeeComment;
         Status = EvaluationStatus.Submitted;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
     }
 
-    public void Approve(string managerComment)
+    public void Review(string managerComment, string modifiedBy)
+    {
+        ManagerComment = managerComment;
+        Status = EvaluationStatus.Submitted;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+
+    public void Approve(string managerComment, string modifiedBy)
     {
         ManagerComment = managerComment;
         Status = EvaluationStatus.Approved;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+
+    public void Cancel(string modifiedBy)
+    {
+        if (Status == EvaluationStatus.Approved)
+            throw new InvalidOperationException("Approved evaluations cannot be cancelled");
+
+        Status = EvaluationStatus.Rejected;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
     }
 }

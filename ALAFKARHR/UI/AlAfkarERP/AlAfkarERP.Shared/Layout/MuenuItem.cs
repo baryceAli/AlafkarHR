@@ -552,7 +552,6 @@ public class MenuItem
                     Icon = "bi-shop",
                     Url = "/StoreFront/Stores",
                     PermissionPolicy = PermissionList.StoreFrontStorePermissions.View,
-                    BusinessLineKey = SharedWithUI.Organization.BusinessLineKeys.StoreFront,
                     KeywordsEn = "store front shops grocery flowers car wash pos",
                     KeywordsAr = "متاجر واجهة متجر بقالة زهور غسيل سيارات نقطة بيع"
                 },
@@ -623,6 +622,14 @@ public class MenuItem
                         },
                         new MenuItem
                         {
+                            TextEn = "HR Command Center",
+                            TextAr = "مركز قيادة الموارد البشرية",
+                            Icon = "bi-grid-1x2",
+                            Url = "/HR/CommandCenter",
+                            PermissionPolicy = PermissionList.EmployeeLifecyclePermissions.Select
+                        },
+                        new MenuItem
+                        {
                             TextEn = "Employees",
                             TextAr = "الموظفين",
                             Icon = "bi-person-badge",
@@ -660,6 +667,70 @@ public class MenuItem
                             Icon = "bi-journal-bookmark",
                             Url = "/Employee/Specialization/List",
                             PermissionPolicy = PermissionList.SpecializationPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Lifecycle",
+                            TextAr = "دورة حياة الموظف",
+                            Icon = "bi-signpost-split",
+                            Url = "/HR/EmployeeLifecycle",
+                            PermissionPolicy = PermissionList.EmployeeLifecyclePermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Documents",
+                            TextAr = "مستندات الموظفين",
+                            Icon = "bi-folder2-open",
+                            Url = "/HR/EmployeeDocuments",
+                            PermissionPolicy = PermissionList.EmployeeDocumentPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Emergency Contacts",
+                            TextAr = "جهات اتصال الطوارئ",
+                            Icon = "bi-telephone-plus",
+                            Url = "/HR/EmployeeEmergencyContacts",
+                            PermissionPolicy = PermissionList.EmployeeLifecyclePermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Skills & Certifications",
+                            TextAr = "المهارات والشهادات",
+                            Icon = "bi-stars",
+                            Url = "/HR/EmployeeSkills",
+                            PermissionPolicy = PermissionList.EmployeeSkillPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Recruitment",
+                            TextAr = "التوظيف",
+                            Icon = "bi-person-plus",
+                            Url = "/HR/Recruitment",
+                            PermissionPolicy = PermissionList.RecruitmentPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Performance",
+                            TextAr = "الأداء",
+                            Icon = "bi-graph-up-arrow",
+                            Url = "/HR/Performance",
+                            PermissionPolicy = PermissionList.PerformancePermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Training",
+                            TextAr = "التدريب",
+                            Icon = "bi-award",
+                            Url = "/HR/Training",
+                            PermissionPolicy = PermissionList.TrainingPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "HR Reports",
+                            TextAr = "تقارير الموارد البشرية",
+                            Icon = "bi-bar-chart-line",
+                            Url = "/HR/Reports",
+                            PermissionPolicy = PermissionList.EmployeePermissions.View
                         }
                     }
                 },
@@ -713,6 +784,22 @@ public class MenuItem
                             Icon = "bi-calendar2-week",
                             Url = "/Attendance/ShiftAssignments",
                             PermissionPolicy = PermissionList.AttendancePermissions.Edit
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Roster & Shift Schedules",
+                            TextAr = "الجداول وجدولة الورديات",
+                            Icon = "bi-calendar3",
+                            Url = "/HR/AttendanceRoster",
+                            PermissionPolicy = PermissionList.AttendanceRosterPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Attendance Work Entries",
+                            TextAr = "مدخلات عمل الحضور",
+                            Icon = "bi-journal-check",
+                            Url = "/HR/WorkEntries",
+                            PermissionPolicy = PermissionList.AttendanceWorkEntryPermissions.View
                         },
                         new MenuItem
                         {
@@ -875,6 +962,30 @@ public class MenuItem
                         },
                         new MenuItem
                         {
+                            TextEn = "Leave Policies",
+                            TextAr = "سياسات الإجازات",
+                            Icon = "bi-ui-checks-grid",
+                            Url = "/HR/LeavePolicies",
+                            PermissionPolicy = PermissionList.LeavePolicyPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Leave Applications",
+                            TextAr = "طلبات الإجازات",
+                            Icon = "bi-calendar-plus",
+                            Url = "/HR/LeaveApplications",
+                            PermissionPolicy = PermissionList.LeaveApplicationPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Leave Ledger",
+                            TextAr = "سجل الإجازات",
+                            Icon = "bi-journal-text",
+                            Url = "/HR/LeaveLedger",
+                            PermissionPolicy = PermissionList.LeaveLedgerPermissions.View
+                        },
+                        new MenuItem
+                        {
                             TextEn = "Leave Reports",
                             TextAr = "تقارير الإجازات",
                             Icon = "bi-file-earmark-bar-graph",
@@ -925,6 +1036,38 @@ public class MenuItem
                             Icon = "bi-sliders",
                             Url = "/Payroll/Components",
                             PermissionPolicy = PermissionList.PayrollContractPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Salary Structures",
+                            TextAr = "هياكل الرواتب",
+                            Icon = "bi-diagram-3",
+                            Url = "/HR/PayrollStructures",
+                            PermissionPolicy = PermissionList.PayrollStructurePermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Payslips",
+                            TextAr = "مسيرات الموظفين",
+                            Icon = "bi-receipt",
+                            Url = "/HR/Payslips",
+                            PermissionPolicy = PermissionList.PayrollPayslipPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Payroll Work Entries",
+                            TextAr = "مدخلات عمل الرواتب",
+                            Icon = "bi-journal-check",
+                            Url = "/HR/WorkEntries",
+                            PermissionPolicy = PermissionList.PayrollWorkEntryPermissions.View
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Saudi Payroll",
+                            TextAr = "رواتب السعودية",
+                            Icon = "bi-bank",
+                            Url = "/HR/SaudiPayroll",
+                            PermissionPolicy = PermissionList.PayrollPayslipPermissions.Generate
                         },
                         new MenuItem
                         {

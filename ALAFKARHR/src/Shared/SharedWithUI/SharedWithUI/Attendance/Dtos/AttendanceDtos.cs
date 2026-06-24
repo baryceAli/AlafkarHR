@@ -399,3 +399,268 @@ public class AttendanceReportDto
     public List<DayOfWeek> WeekendDays { get; set; } = [DayOfWeek.Friday, DayOfWeek.Saturday];
     public List<AttendanceReportRowDto> Rows { get; set; } = [];
 }
+
+public enum AttendanceRosterStatus
+{
+    Draft,
+    Published,
+    Locked,
+    Cancelled
+}
+
+public enum AttendanceImportBatchStatus
+{
+    Draft,
+    Reviewed,
+    Posted,
+    Cancelled
+}
+
+public enum AttendanceImportRowStatus
+{
+    Pending,
+    Accepted,
+    Rejected,
+    Posted
+}
+
+public enum AttendanceWorkEntryStatus
+{
+    Draft,
+    Approved,
+    Locked,
+    Cancelled
+}
+
+public enum AttendanceWorkEntryType
+{
+    Regular,
+    Overtime,
+    PaidLeave,
+    UnpaidLeave,
+    Holiday,
+    Absence,
+    ManualCorrection
+}
+
+public class ShiftScheduleDto
+{
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public AttendanceRosterStatus Status { get; set; }
+    public string? Notes { get; set; }
+    public int AssignmentCount { get; set; }
+    public DateTime? PublishedAtUtc { get; set; }
+    public DateTime? LockedAtUtc { get; set; }
+}
+
+public class UpsertShiftScheduleDto
+{
+    public Guid? Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public DateTime StartDate { get; set; } = DateTime.Today;
+    public DateTime EndDate { get; set; } = DateTime.Today;
+    public string? Notes { get; set; }
+}
+
+public class ShiftScheduleAssignmentDto
+{
+    public Guid Id { get; set; }
+    public Guid ScheduleId { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid EmployeeId { get; set; }
+    public Guid ShiftId { get; set; }
+    public DateTime WorkDate { get; set; }
+    public string? EmployeeName { get; set; }
+    public string? ShiftName { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class UpsertShiftScheduleAssignmentDto
+{
+    public Guid? Id { get; set; }
+    public Guid ScheduleId { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid EmployeeId { get; set; }
+    public Guid ShiftId { get; set; }
+    public DateTime WorkDate { get; set; } = DateTime.Today;
+    public string? Notes { get; set; }
+}
+
+public class BulkShiftScheduleAssignmentDto
+{
+    public Guid ScheduleId { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid ShiftId { get; set; }
+    public List<Guid> EmployeeIds { get; set; } = [];
+    public DateTime StartDate { get; set; } = DateTime.Today;
+    public DateTime EndDate { get; set; } = DateTime.Today;
+    public string? Notes { get; set; }
+}
+
+public class ShiftSwapRequestDto
+{
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid? ScheduleAssignmentId { get; set; }
+    public Guid RequestingEmployeeId { get; set; }
+    public Guid TargetEmployeeId { get; set; }
+    public DateTime WorkDate { get; set; }
+    public Guid? RequestedShiftId { get; set; }
+    public AttendanceExceptionStatus Status { get; set; }
+    public string? Reason { get; set; }
+    public string? ManagerNote { get; set; }
+    public DateTime? ReviewedAtUtc { get; set; }
+    public string? RequestingEmployeeName { get; set; }
+    public string? TargetEmployeeName { get; set; }
+    public string? RequestedShiftName { get; set; }
+}
+
+public class CreateShiftSwapRequestDto
+{
+    public Guid CompanyId { get; set; }
+    public Guid? ScheduleAssignmentId { get; set; }
+    public Guid RequestingEmployeeId { get; set; }
+    public Guid TargetEmployeeId { get; set; }
+    public DateTime WorkDate { get; set; } = DateTime.Today;
+    public Guid? RequestedShiftId { get; set; }
+    public string? Reason { get; set; }
+}
+
+public class ReviewShiftSwapRequestDto
+{
+    public Guid RequestId { get; set; }
+    public bool IsApproved { get; set; }
+    public string? ManagerNote { get; set; }
+}
+
+public class AttendanceCorrectionDto
+{
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid EmployeeId { get; set; }
+    public Guid? SessionId { get; set; }
+    public DateTime WorkDate { get; set; }
+    public DateTime? CorrectedCheckInUtc { get; set; }
+    public DateTime? CorrectedCheckOutUtc { get; set; }
+    public AttendanceExceptionStatus Status { get; set; }
+    public string? Reason { get; set; }
+    public string? ManagerNote { get; set; }
+    public DateTime? ReviewedAtUtc { get; set; }
+    public DateTime? AppliedAtUtc { get; set; }
+    public string? EmployeeName { get; set; }
+}
+
+public class CreateAttendanceCorrectionDto
+{
+    public Guid CompanyId { get; set; }
+    public Guid EmployeeId { get; set; }
+    public Guid? SessionId { get; set; }
+    public DateTime WorkDate { get; set; } = DateTime.Today;
+    public DateTime? CorrectedCheckInUtc { get; set; }
+    public DateTime? CorrectedCheckOutUtc { get; set; }
+    public string? Reason { get; set; }
+}
+
+public class ReviewAttendanceCorrectionDto
+{
+    public Guid CorrectionId { get; set; }
+    public bool IsApproved { get; set; }
+    public string? ManagerNote { get; set; }
+}
+
+public class BiometricImportBatchDto
+{
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public string SourceName { get; set; } = string.Empty;
+    public DateTime ImportedAtUtc { get; set; }
+    public AttendanceImportBatchStatus Status { get; set; }
+    public int TotalRows { get; set; }
+    public int AcceptedRows { get; set; }
+    public int RejectedRows { get; set; }
+    public string? Notes { get; set; }
+    public List<BiometricImportRowDto> Rows { get; set; } = [];
+}
+
+public class CreateBiometricImportBatchDto
+{
+    public Guid CompanyId { get; set; }
+    public string SourceName { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+}
+
+public class BiometricImportRowDto
+{
+    public Guid Id { get; set; }
+    public Guid BatchId { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid? EmployeeId { get; set; }
+    public string? DeviceEmployeeCode { get; set; }
+    public DateTime PunchTimeUtc { get; set; }
+    public bool IsCheckOut { get; set; }
+    public AttendanceImportRowStatus Status { get; set; }
+    public string? ErrorMessage { get; set; }
+    public string? EmployeeName { get; set; }
+}
+
+public class UpsertBiometricImportRowDto
+{
+    public Guid? Id { get; set; }
+    public Guid BatchId { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid? EmployeeId { get; set; }
+    public string? DeviceEmployeeCode { get; set; }
+    public DateTime PunchTimeUtc { get; set; } = DateTime.UtcNow;
+    public bool IsCheckOut { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
+public class ReviewBiometricImportRowDto
+{
+    public Guid RowId { get; set; }
+    public bool IsAccepted { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
+public class PayrollWorkEntryDto
+{
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid EmployeeId { get; set; }
+    public DateTime WorkDate { get; set; }
+    public AttendanceWorkEntryType EntryType { get; set; }
+    public decimal Hours { get; set; }
+    public AttendanceWorkEntryStatus Status { get; set; }
+    public Guid? SourceDocumentId { get; set; }
+    public string? SourceModule { get; set; }
+    public string? Notes { get; set; }
+    public string? EmployeeName { get; set; }
+    public DateTime? ApprovedAtUtc { get; set; }
+    public DateTime? LockedAtUtc { get; set; }
+}
+
+public class GenerateAttendanceWorkEntriesDto
+{
+    public Guid CompanyId { get; set; }
+    public Guid? EmployeeId { get; set; }
+    public DateTime FromDate { get; set; } = DateTime.Today;
+    public DateTime ToDate { get; set; } = DateTime.Today;
+}
+
+public class UpsertAttendanceWorkEntryDto
+{
+    public Guid? Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid EmployeeId { get; set; }
+    public DateTime WorkDate { get; set; } = DateTime.Today;
+    public AttendanceWorkEntryType EntryType { get; set; } = AttendanceWorkEntryType.ManualCorrection;
+    public decimal Hours { get; set; }
+    public Guid? SourceDocumentId { get; set; }
+    public string? SourceModule { get; set; }
+    public string? Notes { get; set; }
+}

@@ -128,6 +128,14 @@ public class StoreFrontStore : Aggregate<Guid>
         ModifiedBy = modifiedBy;
     }
 
+    public void Remove(string deletedBy)
+    {
+        IsDeleted = true;
+        IsActive = false;
+        DeletedAt = DateTime.UtcNow;
+        DeletedBy = deletedBy;
+    }
+
     public static string NormalizeCode(string code) => code.Trim().ToLowerInvariant();
 
     private static void Validate(StoreFrontDto dto)

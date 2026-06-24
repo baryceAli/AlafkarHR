@@ -1,0 +1,271 @@
+@layout AdminLayout
+@page "/HR/EmployeeEmergencyContacts"
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Utilities
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.HRCore.Dtos
+@inject IEmployeeService EmployeeService
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Emergency Contacts", "جهات اتصال الطوارئ")"
+                Subtitle="@Text("Maintain employee emergency contacts and primary-contact priority.", "إدارة جهات اتصال الطوارئ للموظفين وتحديد جهة الاتصال الرئيسية.")"
+                Overline="@Text("HR Core", "أساس الموارد البشرية")"
+                Icon="bi-telephone-plus" />
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    <AppCard CssClass="mb-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-lg-7">
+                <label class="form-label">@Text("Employee", "الموظف")</label>
+                <select class="form-select" @onchange="OnEmployeeChanged" value="@selectedEmployeeIdText">
+                    <option value="">@Text("Select employee", "اختر الموظف")</option>
+                    @foreach (var employee in employees)
+                    {
+                        <option value="@employee.Id">@EmployeeDisplay(employee)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-lg-2">
+                <button class="btn btn-outline-primary w-100" type="button" @onclick="LoadContactsAsync">
+                    <i class="bi bi-arrow-repeat"></i>
+                    @Text("Load", "تحميل")
+                </button>
+            </div>
+            <div class="col-6 col-lg-3">
+                <button class="btn btn-primary w-100" type="button" disabled="@(!SelectedEmployeeId.HasValue)" @onclick="NewContact">
+                    <i class="bi bi-plus-lg"></i>
+                    @Text("New Contact", "جهة جديدة")
+                </button>
+            </div>
+        </div>
+    </AppCard>
+
+    @if (isEditing)
+    {
+        <AppCard Title="@FormTitle" CssClass="mb-3">
+            <EditForm Model="editingContact" OnValidSubmit="SaveContactAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">@Text("Name", "الاسم")</label>
+                        <InputText class="form-control" @bind-Value="editingContact.Name" />
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">@Text("Relationship", "صلة القرابة")</label>
+                        <InputText class="form-control" @bind-Value="editingContact.Relationship" />
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">@Text("Phone", "الهاتف")</label>
+                        <InputText class="form-control" @bind-Value="editingContact.Phone" />
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">@Text("Email", "البريد الإلكتروني")</label>
+                        <InputText class="form-control" @bind-Value="editingContact.Email" />
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-end">
+                        <label class="form-check mb-2">
+                            <InputCheckbox class="form-check-input" @bind-Value="editingContact.IsPrimary" />
+                            <span class="form-check-label">@Text("Primary emergency contact", "جهة الاتصال الرئيسية للطوارئ")</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                    <button class="btn btn-outline-secondary" type="button" @onclick="CancelEdit">@Text("Cancel", "إلغاء")</button>
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @Text("Save", "حفظ")</button>
+                </div>
+            </EditForm>
+        </AppCard>
+    }
+
+    <AppCard Title="@Text("Contacts", "جهات الاتصال")" BodyClass="p-0">
+        @if (isLoading)
+        {
+            <div class="p-4 text-center text-muted">@Text("Loading emergency contacts...", "جاري تحميل جهات اتصال الطوارئ...")</div>
+        }
+        else if (!SelectedEmployeeId.HasValue)
+        {
+            <EmptyState Icon="bi-person-check" Title="@Text("Select an employee", "اختر موظفا")" Message="@Text("Emergency contacts will appear here.", "ستظهر جهات اتصال الطوارئ هنا.")" />
+        }
+        else if (!contacts.Any())
+        {
+            <EmptyState Icon="bi-telephone-plus" Title="@Text("No emergency contacts", "لا توجد جهات اتصال للطوارئ")" Message="@Text("Add an emergency contact for this employee.", "أضف جهة اتصال طوارئ لهذا الموظف.")" />
+        }
+        else
+        {
+            <div class="erp-table-wrap">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>@Text("Contact", "جهة الاتصال")</th>
+                            <th>@Text("Relationship", "صلة القرابة")</th>
+                            <th>@Text("Phone", "الهاتف")</th>
+                            <th>@Text("Email", "البريد الإلكتروني")</th>
+                            <th>@Text("Primary", "رئيسية")</th>
+                            <th class="text-end">@Text("Actions", "الإجراءات")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var contact in contacts)
+                        {
+                            <tr>
+                                <td><div class="fw-semibold">@contact.Name</div></td>
+                                <td>@contact.Relationship</td>
+                                <td>@contact.Phone</td>
+                                <td>@(string.IsNullOrWhiteSpace(contact.Email) ? "-" : contact.Email)</td>
+                                <td>
+                                    <span class="badge rounded-pill @(contact.IsPrimary ? "text-bg-success" : "text-bg-light")">
+                                        @(contact.IsPrimary ? Text("Primary", "رئيسية") : Text("Backup", "احتياطية"))
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" type="button" @onclick="() => EditContact(contact)"><i class="bi bi-pencil"></i></button>
+                                        <button class="btn btn-outline-danger" type="button" @onclick="() => DeleteContactAsync(contact.Id)"><i class="bi bi-trash"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </AppCard>
+</main>
+
+@code {
+    private List<EmployeeDto> employees = [];
+    private List<EmployeeEmergencyContactDto> contacts = [];
+    private EmployeeEmergencyContactDto editingContact = NewContactDto();
+    private string selectedEmployeeIdText = string.Empty;
+    private string? errorMessage;
+    private bool isLoading;
+    private bool isEditing;
+
+    private Guid? SelectedEmployeeId => Guid.TryParse(selectedEmployeeIdText, out var id) ? id : null;
+    private string FormTitle => editingContact.Id == Guid.Empty ? Text("New Emergency Contact", "جهة اتصال طوارئ جديدة") : Text("Edit Emergency Contact", "تعديل جهة اتصال الطوارئ");
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadEmployeesAsync();
+    }
+
+    private async Task LoadEmployeesAsync()
+    {
+        if (ApiConfig.CompanyId == Guid.Empty) return;
+
+        var result = await EmployeeService.GetByCompanyIdAsync(ApiConfig.CompanyId, 0, 1000);
+        if (result.IsSuccess)
+        {
+            employees = result.Data?.Data.ToList() ?? [];
+        }
+        else
+        {
+            errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language);
+        }
+    }
+
+    private async Task OnEmployeeChanged(ChangeEventArgs args)
+    {
+        selectedEmployeeIdText = args.Value?.ToString() ?? string.Empty;
+        CancelEdit();
+        await LoadContactsAsync();
+    }
+
+    private async Task LoadContactsAsync()
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+
+        isLoading = true;
+        var result = await EmployeeService.GetEmergencyContactsAsync(SelectedEmployeeId.Value);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        contacts = result.IsSuccess ? result.Data ?? [] : [];
+        isLoading = false;
+    }
+
+    private void NewContact()
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+
+        editingContact = NewContactDto();
+        isEditing = true;
+    }
+
+    private void EditContact(EmployeeEmergencyContactDto contact)
+    {
+        editingContact = new()
+        {
+            Id = contact.Id,
+            EmployeeId = contact.EmployeeId,
+            CompanyId = contact.CompanyId,
+            Name = contact.Name,
+            Relationship = contact.Relationship,
+            Phone = contact.Phone,
+            Email = contact.Email,
+            IsPrimary = contact.IsPrimary
+        };
+        isEditing = true;
+    }
+
+    private async Task SaveContactAsync()
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+
+        editingContact.EmployeeId = SelectedEmployeeId.Value;
+        editingContact.CompanyId = ApiConfig.CompanyId;
+
+        var result = editingContact.Id == Guid.Empty
+            ? await EmployeeService.CreateEmergencyContactAsync(SelectedEmployeeId.Value, editingContact)
+            : await EmployeeService.UpdateEmergencyContactAsync(SelectedEmployeeId.Value, editingContact);
+
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess)
+        {
+            CancelEdit();
+            await LoadContactsAsync();
+        }
+    }
+
+    private async Task DeleteContactAsync(Guid contactId)
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+
+        var result = await EmployeeService.DeleteEmergencyContactAsync(SelectedEmployeeId.Value, contactId);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess)
+        {
+            await LoadContactsAsync();
+        }
+    }
+
+    private void CancelEdit()
+    {
+        editingContact = NewContactDto();
+        isEditing = false;
+    }
+
+    private static EmployeeEmergencyContactDto NewContactDto() => new();
+
+    private string EmployeeDisplay(EmployeeDto employee)
+    {
+        var name = SharedDataService.Language == "Ar" ? employee.FullName : employee.FullNameEng;
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = employee.FullName;
+        }
+
+        return string.IsNullOrWhiteSpace(employee.EmployeeNo) ? name : $"{name} ({employee.EmployeeNo})";
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

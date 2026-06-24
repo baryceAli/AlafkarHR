@@ -1,0 +1,312 @@
+﻿@layout AdminLayout
+@page "/HR/EmployeeLifecycle"
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Utilities
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.HRCore.Dtos
+@inject IEmployeeService EmployeeService
+@inject IBranchService BranchService
+@inject IPositionService PositionService
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Employee Lifecycle", "دورة حياة الموظف")" Subtitle="@Text("Create, approve, complete, and cancel employee lifecycle events.", "إنشاء واعتماد وإكمال وإلغاء أحداث دورة حياة الموظف.")" Overline="@Text("HR Core", "أساس الموارد البشرية")" Icon="bi-signpost-split" />
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    <AppCard CssClass="mb-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-lg-6">
+                <label class="form-label">@Text("Employee", "الموظف")</label>
+                <select class="form-select" @onchange="OnEmployeeChanged" value="@selectedEmployeeIdText">
+                    <option value="">@Text("Select employee", "اختر الموظف")</option>
+                    @foreach (var employee in employees)
+                    {
+                        <option value="@employee.Id">@EmployeeDisplay(employee)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-lg-2">
+                <button class="btn btn-outline-primary w-100" type="button" @onclick="LoadLifecycleAsync"><i class="bi bi-arrow-repeat"></i> @Text("Load", "تحميل")</button>
+            </div>
+            <div class="col-6 col-lg-2">
+                <button class="btn btn-primary w-100" type="button" disabled="@(!SelectedEmployeeId.HasValue)" @onclick="NewEvent"><i class="bi bi-plus-lg"></i> @Text("New", "جديد")</button>
+            </div>
+            <div class="col-12 col-lg-2">
+                <a class="btn btn-outline-secondary w-100" href="/Employee/Employee/List"><i class="bi bi-people"></i> @Text("Employees", "الموظفون")</a>
+            </div>
+        </div>
+    </AppCard>
+
+    @if (isEditing)
+    {
+        <AppCard Title="@FormTitle" CssClass="mb-3">
+            <EditForm Model="editingEvent" OnValidSubmit="SaveEventAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Event Type", "نوع الحدث")</label>
+                        <InputSelect class="form-select" @bind-Value="editingEvent.EventType">
+                            @foreach (var type in Enum.GetValues<HrLifecycleEventType>())
+                            {
+                                <option value="@type">@LifecycleTypeText(type)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Effective Date", "تاريخ السريان")</label>
+                        <InputDate class="form-control" @bind-Value="editingEvent.EffectiveDate" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Target Branch", "الفرع المستهدف")</label>
+                        <select class="form-select" @bind="targetBranchIdText">
+                            <option value="">@Text("No branch change", "بدون تغيير فرع")</option>
+                            @foreach (var branch in branches)
+                            {
+                                <option value="@branch.Id">@SharedDataService.SelectViewLang(branch.NameEng, branch.Name)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Target Position", "المسمى المستهدف")</label>
+                        <select class="form-select" @bind="targetPositionIdText">
+                            <option value="">@Text("No position change", "بدون تغيير مسمى")</option>
+                            @foreach (var position in positions)
+                            {
+                                <option value="@position.Id">@SharedDataService.SelectViewLang(position.TitleEng, position.Title)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Target Manager", "المدير المستهدف")</label>
+                        <select class="form-select" @bind="targetManagerIdText">
+                            <option value="">@Text("No manager change", "بدون تغيير مدير")</option>
+                            @foreach (var employee in employees.Where(e => e.Id != SelectedEmployeeId))
+                            {
+                                <option value="@employee.Id">@EmployeeDisplay(employee)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Target Grade", "الدرجة المستهدفة")</label>
+                        <InputText class="form-control" @bind-Value="editingEvent.ToGrade" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Work Location", "موقع العمل")</label>
+                        <InputText class="form-control" @bind-Value="editingEvent.ToWorkLocation" />
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Reason", "السبب")</label>
+                        <InputText class="form-control" @bind-Value="editingEvent.Reason" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                        <InputText class="form-control" @bind-Value="editingEvent.Notes" />
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                    <button class="btn btn-outline-secondary" type="button" @onclick="CancelEdit">@Text("Cancel", "إلغاء")</button>
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @Text("Save", "حفظ")</button>
+                </div>
+            </EditForm>
+        </AppCard>
+    }
+
+    <AppCard Title="@Text("Lifecycle Timeline", "الخط الزمني لدورة الحياة")" BodyClass="p-0">
+        @if (isLoading)
+        {
+            <div class="p-4 text-center text-muted">@Text("Loading lifecycle events...", "جاري تحميل أحداث دورة الحياة...")</div>
+        }
+        else if (!SelectedEmployeeId.HasValue)
+        {
+            <EmptyState Icon="bi-person-check" Title="@Text("Select an employee", "اختر موظفا")" Message="@Text("Lifecycle events will appear here.", "ستظهر أحداث دورة الحياة هنا.")" />
+        }
+        else if (!events.Any())
+        {
+            <EmptyState Icon="bi-signpost-split" Title="@Text("No lifecycle events", "لا توجد أحداث")" Message="@Text("Create the first lifecycle event for this employee.", "أنشئ أول حدث لدورة حياة هذا الموظف.")" />
+        }
+        else
+        {
+            <div class="erp-table-wrap">
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>@Text("Event", "الحدث")</th><th>@Text("Effective", "السريان")</th><th>@Text("Status", "الحالة")</th><th>@Text("Target", "المستهدف")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                    <tbody>
+                        @foreach (var item in events.OrderByDescending(x => x.EffectiveDate))
+                        {
+                            <tr>
+                                <td><div class="fw-semibold">@LifecycleTypeText(item.EventType)</div><div class="text-muted small">@item.Reason</div></td>
+                                <td>@FormatDate(item.EffectiveDate)</td>
+                                <td><span class="badge rounded-pill @StatusClass(item.Status)">@LifecycleStatusText(item.Status)</span></td>
+                                <td>@TargetSummary(item)</td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm flex-wrap">
+                                        <button class="btn btn-outline-secondary" type="button" @onclick="() => EditEvent(item)"><i class="bi bi-pencil"></i></button>
+                                        <button class="btn btn-outline-primary" type="button" @onclick="() => SubmitAsync(item.Id)">@Text("Submit", "إرسال")</button>
+                                        <button class="btn btn-outline-success" type="button" @onclick="() => ApproveAsync(item.Id)">@Text("Approve", "اعتماد")</button>
+                                        <button class="btn btn-outline-success" type="button" @onclick="() => CompleteAsync(item.Id)">@Text("Complete", "إكمال")</button>
+                                        <button class="btn btn-outline-warning" type="button" @onclick="() => CancelLifecycleAsync(item.Id)">@Text("Cancel", "إلغاء")</button>
+                                        <button class="btn btn-outline-danger" type="button" @onclick="() => DeleteEventAsync(item.Id)"><i class="bi bi-trash"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </AppCard>
+</main>
+
+@code {
+    private List<EmployeeDto> employees = [];
+    private List<BranchDto> branches = [];
+    private List<PositionDto> positions = [];
+    private List<HrLifecycleEventDto> events = [];
+    private HrLifecycleEventDto editingEvent = NewEventDto();
+    private string selectedEmployeeIdText = string.Empty;
+    private string targetBranchIdText = string.Empty;
+    private string targetPositionIdText = string.Empty;
+    private string targetManagerIdText = string.Empty;
+    private string? errorMessage;
+    private bool isLoading;
+    private bool isEditing;
+
+    private Guid? SelectedEmployeeId => Guid.TryParse(selectedEmployeeIdText, out var id) ? id : null;
+    private string FormTitle => editingEvent.Id == Guid.Empty ? Text("New Lifecycle Event", "حدث دورة حياة جديد") : Text("Edit Lifecycle Event", "تعديل حدث دورة الحياة");
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadLookupsAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        if (ApiConfig.CompanyId == Guid.Empty) return;
+        var employeesResult = await EmployeeService.GetByCompanyIdAsync(ApiConfig.CompanyId, 0, 1000);
+        if (employeesResult.IsSuccess) employees = employeesResult.Data?.Data.ToList() ?? [];
+        var branchesResult = await BranchService.GetByCompanyIdAsync(ApiConfig.CompanyId, 0, 1000);
+        if (branchesResult.IsSuccess) branches = branchesResult.Data?.Data.ToList() ?? [];
+        var positionsResult = await PositionService.GetAsync(ApiConfig.CompanyId, 0, 1000);
+        if (positionsResult.IsSuccess) positions = positionsResult.Data?.Data.ToList() ?? [];
+    }
+
+    private async Task OnEmployeeChanged(ChangeEventArgs args)
+    {
+        selectedEmployeeIdText = args.Value?.ToString() ?? string.Empty;
+        CancelEdit();
+        await LoadLifecycleAsync();
+    }
+
+    private async Task LoadLifecycleAsync()
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+        isLoading = true;
+        var result = await EmployeeService.GetLifecycleEventsAsync(SelectedEmployeeId.Value);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        events = result.IsSuccess ? result.Data ?? [] : [];
+        isLoading = false;
+    }
+
+    private void NewEvent()
+    {
+        editingEvent = NewEventDto();
+        targetBranchIdText = string.Empty;
+        targetPositionIdText = string.Empty;
+        targetManagerIdText = string.Empty;
+        isEditing = true;
+    }
+
+    private void EditEvent(HrLifecycleEventDto item)
+    {
+        editingEvent = new()
+        {
+            Id = item.Id,
+            EmployeeId = item.EmployeeId,
+            CompanyId = item.CompanyId,
+            EventType = item.EventType,
+            Status = item.Status,
+            EffectiveDate = item.EffectiveDate,
+            ToBranchId = item.ToBranchId,
+            ToDepartmentId = item.ToDepartmentId,
+            ToPositionId = item.ToPositionId,
+            ToManagerEmployeeId = item.ToManagerEmployeeId,
+            ToGrade = item.ToGrade,
+            ToWorkLocation = item.ToWorkLocation,
+            Reason = item.Reason,
+            Notes = item.Notes
+        };
+        targetBranchIdText = item.ToBranchId?.ToString() ?? string.Empty;
+        targetPositionIdText = item.ToPositionId?.ToString() ?? string.Empty;
+        targetManagerIdText = item.ToManagerEmployeeId?.ToString() ?? string.Empty;
+        isEditing = true;
+    }
+
+    private async Task SaveEventAsync()
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+        editingEvent.EmployeeId = SelectedEmployeeId.Value;
+        editingEvent.CompanyId = ApiConfig.CompanyId;
+        editingEvent.ToBranchId = ParseGuid(targetBranchIdText);
+        editingEvent.ToPositionId = ParseGuid(targetPositionIdText);
+        editingEvent.ToManagerEmployeeId = ParseGuid(targetManagerIdText);
+
+        var result = editingEvent.Id == Guid.Empty
+            ? await EmployeeService.CreateLifecycleEventAsync(SelectedEmployeeId.Value, editingEvent)
+            : await EmployeeService.UpdateLifecycleEventAsync(SelectedEmployeeId.Value, editingEvent);
+
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess)
+        {
+            CancelEdit();
+            await LoadLifecycleAsync();
+        }
+    }
+
+    private async Task TransitionAsync(Guid eventId, string transition)
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+        var result = await EmployeeService.TransitionLifecycleEventAsync(SelectedEmployeeId.Value, eventId, transition);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) await LoadLifecycleAsync();
+    }
+
+    private Task SubmitAsync(Guid eventId) => TransitionAsync(eventId, "submit");
+    private Task ApproveAsync(Guid eventId) => TransitionAsync(eventId, "approve");
+    private Task CompleteAsync(Guid eventId) => TransitionAsync(eventId, "complete");
+    private Task CancelLifecycleAsync(Guid eventId) => TransitionAsync(eventId, "cancel");
+
+    private async Task DeleteEventAsync(Guid eventId)
+    {
+        if (!SelectedEmployeeId.HasValue) return;
+        var result = await EmployeeService.DeleteLifecycleEventAsync(SelectedEmployeeId.Value, eventId);
+        errorMessage = result.IsSuccess ? null : result.Error?.GetDisplayMessage(SharedDataService.Language);
+        if (result.IsSuccess) await LoadLifecycleAsync();
+    }
+
+    private void CancelEdit()
+    {
+        editingEvent = NewEventDto();
+        isEditing = false;
+    }
+
+    private static HrLifecycleEventDto NewEventDto() => new() { EffectiveDate = DateTime.Today, EventType = HrLifecycleEventType.Onboarding };
+    private static Guid? ParseGuid(string value) => Guid.TryParse(value, out var id) ? id : null;
+    private string EmployeeDisplay(EmployeeDto employee) => $"{(SharedDataService.Language == "Ar" ? employee.FullName : employee.FullNameEng)} ({employee.EmployeeNo})";
+    private string TargetSummary(HrLifecycleEventDto item) => string.Join(" / ", new[] { ShortId(item.ToBranchId), ShortId(item.ToPositionId), item.ToGrade, item.ToWorkLocation }.Where(x => !string.IsNullOrWhiteSpace(x) && x != "-"));
+    private string LifecycleTypeText(HrLifecycleEventType type) => type.ToString();
+    private string LifecycleStatusText(HrLifecycleEventStatus status) => status.ToString();
+    private string StatusClass(HrLifecycleEventStatus status) => status switch { HrLifecycleEventStatus.Completed => "text-bg-success", HrLifecycleEventStatus.Approved => "text-bg-primary", HrLifecycleEventStatus.Submitted => "text-bg-warning", HrLifecycleEventStatus.Cancelled => "text-bg-secondary", _ => "text-bg-light" };
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string FormatDate(DateTime? date) => date.HasValue ? date.Value.ToString("yyyy/MM/dd") : "-";
+    private string ShortId(Guid? id) => id.HasValue && id.Value != Guid.Empty ? id.Value.ToString()[..8] : "-";
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

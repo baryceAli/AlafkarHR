@@ -1,0 +1,213 @@
+@using SharedWithUI.Permissions
+
+<section class="erp-page hr-planned-page" dir="@Direction">
+    <PageHeader
+        Title="@Title"
+        Subtitle="@Subtitle"
+        Overline="@Overline"
+        Icon="@Icon">
+        <Actions>
+            @if (!string.IsNullOrWhiteSpace(PrimaryLinkUrl))
+            {
+                <a class="btn btn-outline-secondary" href="@PrimaryLinkUrl">
+                    <i class="bi @PrimaryLinkIcon"></i>
+                    @PrimaryLinkText
+                </a>
+            }
+            <button type="button" class="btn btn-primary" disabled>
+                <i class="bi bi-plus-circle"></i>
+                @PrimaryActionText
+            </button>
+        </Actions>
+    </PageHeader>
+
+    <div class="hr-planned-stats">
+        <StatsCard Title="@StatusLabel" Value="@ReleaseStatus" Subtitle="@StatusSubtitle" Icon="bi-flag" Tone="primary" />
+        <StatsCard Title="@PermissionLabel" Value="@PermissionShortName" Subtitle="@PermissionPolicy" Icon="bi-shield-check" Tone="success" />
+        <StatsCard Title="@BackendLabel" Value="@BackendStatus" Subtitle="@BackendSubtitle" Icon="bi-hdd-network" Tone="info" />
+    </div>
+
+    <div class="hr-planned-grid">
+        <AppCard Title="@CurrentCoverageTitle" Subtitle="@CurrentCoverageSubtitle">
+            <div class="hr-feature-list">
+                @foreach (var item in CurrentCoverage)
+                {
+                    <div class="hr-feature-row">
+                        <span class="hr-feature-icon"><i class="bi @item.Icon"></i></span>
+                        <div>
+                            <strong>@item.Title</strong>
+                            <p>@item.Description</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </AppCard>
+
+        <AppCard Title="@PlannedWorkflowTitle" Subtitle="@PlannedWorkflowSubtitle">
+            <div class="hr-feature-list">
+                @foreach (var item in PlannedWorkflow)
+                {
+                    <div class="hr-feature-row">
+                        <span class="hr-feature-icon"><i class="bi @item.Icon"></i></span>
+                        <div>
+                            <strong>@item.Title</strong>
+                            <p>@item.Description</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </AppCard>
+    </div>
+
+    <div class="hr-planned-grid">
+        <AppCard Title="@IntegrationTitle" Subtitle="@IntegrationSubtitle">
+            <div class="hr-chip-list">
+                @foreach (var item in IntegrationPoints)
+                {
+                    <span class="hr-feature-chip">
+                        <i class="bi @item.Icon"></i>
+                        @item.Title
+                    </span>
+                }
+            </div>
+        </AppCard>
+
+        <AppCard Title="@NextBackendWorkTitle" Subtitle="@NextBackendWorkSubtitle">
+            <div class="hr-feature-list">
+                @foreach (var item in NextBackendWork)
+                {
+                    <div class="hr-feature-row">
+                        <span class="hr-feature-icon"><i class="bi @item.Icon"></i></span>
+                        <div>
+                            <strong>@item.Title</strong>
+                            <p>@item.Description</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </AppCard>
+    </div>
+
+    <EmptyState
+        Icon="bi-cone-striped"
+        Title="@EmptyTitle"
+        Message="@EmptyMessage">
+        <Actions>
+            @foreach (var link in RelatedLinks)
+            {
+                <a class="btn btn-outline-secondary btn-sm" href="@link.Url">
+                    <i class="bi @link.Icon"></i>
+                    @link.Title
+                </a>
+            }
+        </Actions>
+    </EmptyState>
+</section>
+
+@code {
+    [Parameter] public string Direction { get; set; } = "ltr";
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Subtitle { get; set; } = "";
+    [Parameter] public string Overline { get; set; } = "";
+    [Parameter] public string Icon { get; set; } = "bi-grid";
+    [Parameter] public string ReleaseStatus { get; set; } = "";
+    [Parameter] public string StatusSubtitle { get; set; } = "";
+    [Parameter] public string PermissionPolicy { get; set; } = PermissionList.EmployeePermissions.View;
+    [Parameter] public string BackendStatus { get; set; } = "";
+    [Parameter] public string BackendSubtitle { get; set; } = "";
+    [Parameter] public string PrimaryLinkText { get; set; } = "";
+    [Parameter] public string PrimaryLinkUrl { get; set; } = "";
+    [Parameter] public string PrimaryLinkIcon { get; set; } = "bi-arrow-left";
+    [Parameter] public string PrimaryActionText { get; set; } = "";
+    [Parameter] public IReadOnlyList<FeaturePoint> CurrentCoverage { get; set; } = [];
+    [Parameter] public IReadOnlyList<FeaturePoint> PlannedWorkflow { get; set; } = [];
+    [Parameter] public IReadOnlyList<FeaturePoint> IntegrationPoints { get; set; } = [];
+    [Parameter] public IReadOnlyList<FeaturePoint> NextBackendWork { get; set; } = [];
+    [Parameter] public IReadOnlyList<FeatureLink> RelatedLinks { get; set; } = [];
+    [Parameter] public string StatusLabel { get; set; } = "";
+    [Parameter] public string PermissionLabel { get; set; } = "";
+    [Parameter] public string BackendLabel { get; set; } = "";
+    [Parameter] public string CurrentCoverageTitle { get; set; } = "";
+    [Parameter] public string CurrentCoverageSubtitle { get; set; } = "";
+    [Parameter] public string PlannedWorkflowTitle { get; set; } = "";
+    [Parameter] public string PlannedWorkflowSubtitle { get; set; } = "";
+    [Parameter] public string IntegrationTitle { get; set; } = "";
+    [Parameter] public string IntegrationSubtitle { get; set; } = "";
+    [Parameter] public string NextBackendWorkTitle { get; set; } = "";
+    [Parameter] public string NextBackendWorkSubtitle { get; set; } = "";
+    [Parameter] public string EmptyTitle { get; set; } = "";
+    [Parameter] public string EmptyMessage { get; set; } = "";
+
+    private string PermissionShortName => PermissionPolicy.Split('.').LastOrDefault() ?? PermissionPolicy;
+
+    public sealed record FeaturePoint(string Title, string Description, string Icon);
+    public sealed record FeatureLink(string Title, string Url, string Icon);
+}
+
+<style>
+    .hr-planned-page {
+        max-width: 1440px;
+    }
+
+    .hr-planned-stats,
+    .hr-planned-grid {
+        display: grid;
+        gap: var(--erp-space-4);
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        margin-bottom: var(--erp-space-4);
+    }
+
+    .hr-feature-list {
+        display: grid;
+        gap: var(--erp-space-3);
+    }
+
+    .hr-feature-row {
+        align-items: flex-start;
+        border-bottom: 1px solid var(--erp-border);
+        display: flex;
+        gap: var(--erp-space-3);
+        padding-bottom: var(--erp-space-3);
+    }
+
+    .hr-feature-row:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .hr-feature-icon {
+        align-items: center;
+        background: var(--erp-primary-soft);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        color: var(--erp-primary);
+        display: inline-flex;
+        flex: 0 0 auto;
+        height: 36px;
+        justify-content: center;
+        width: 36px;
+    }
+
+    .hr-feature-row p {
+        color: var(--erp-text-muted);
+        margin: var(--erp-space-1) 0 0;
+    }
+
+    .hr-chip-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--erp-space-2);
+    }
+
+    .hr-feature-chip {
+        align-items: center;
+        background: var(--erp-surface);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-full);
+        color: var(--erp-text);
+        display: inline-flex;
+        gap: var(--erp-space-2);
+        min-height: 32px;
+        padding: var(--erp-space-1) var(--erp-space-3);
+    }
+</style>

@@ -1,0 +1,355 @@
+﻿@layout AdminLayout
+@page "/HR/Performance"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.Performance.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Performance.Dtos
+@using SharedWithUI.Permissions
+@using System.Security.Claims
+
+@inject IPerformanceService PerformanceService
+@inject IEmployeeService EmployeeService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+
+<div dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Performance Management", "إدارة الأداء")"
+                Subtitle="@Text("Manage appraisal cycles, goals, competencies, scoring, review, and approval.", "إدارة دورات التقييم والأهداف والكفاءات والدرجات والمراجعة والاعتماد.")"
+                Icon="bi-graph-up-arrow" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permission to view performance management.", "ليست لديك صلاحية عرض إدارة الأداء.")</div>
+    }
+    else if (isLoading)
+    {
+        <div class="text-muted">@Text("Loading performance workspace...", "جاري تحميل مساحة الأداء...")</div>
+    }
+    else
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Cycles", "الدورات")" Value="@cycles.Count.ToString("N0")" Icon="bi-calendar2-range" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Goals", "الأهداف")" Value="@goals.Count.ToString("N0")" Icon="bi-bullseye" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Competencies", "الكفاءات")" Value="@competencies.Count.ToString("N0")" Icon="bi-stars" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Evaluations", "التقييمات")" Value="@evaluations.Count.ToString("N0")" Icon="bi-clipboard2-check" /></div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-xl-4">
+                <AppCard Title="@Text("Appraisal Cycle", "دورة التقييم")" CssClass="h-100">
+                    <EditForm Model="cycleModel" OnValidSubmit="SaveCycle">
+                        <DataAnnotationsValidator />
+                        <div class="row g-2">
+                            <div class="col-12"><label class="form-label">@Text("Cycle name", "اسم الدورة")</label><InputText class="form-control" @bind-Value="cycleModel.Name" /></div>
+                            <div class="col-6"><label class="form-label">@Text("Start", "البداية")</label><InputDate class="form-control" @bind-Value="cycleModel.StartDate" /></div>
+                            <div class="col-6"><label class="form-label">@Text("End", "النهاية")</label><InputDate class="form-control" @bind-Value="cycleModel.EndDate" /></div>
+                            <div class="col-12 d-flex gap-2 flex-wrap">
+                                <button class="btn btn-primary" type="submit" disabled="@(!CanCreateOrEdit || isSaving)"><i class="bi bi-check2"></i> @Text("Save", "حفظ")</button>
+                                <button class="btn btn-outline-secondary" type="button" @onclick="ResetCycle">@Text("Reset", "إعادة ضبط")</button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+            <div class="col-xl-8">
+                <AppCard Title="@Text("Cycle Lifecycle", "حالة الدورات")" CssClass="h-100">
+                    @if (cycles.Count == 0)
+                    {
+                        <EmptyState Title="@Text("No appraisal cycles", "لا توجد دورات تقييم")" Message="@Text("Create a cycle to start assigning goals and scoring employees.", "أنشئ دورة لبدء تعيين الأهداف وتقييم الموظفين.")" Icon="bi-calendar2-range" />
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead><tr><th>@Text("Cycle", "الدورة")</th><th>@Text("Dates", "التواريخ")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead>
+                                <tbody>
+                                    @foreach (var item in cycles)
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold">@item.Name</td>
+                                            <td>@item.StartDate.ToShortDateString() - @item.EndDate.ToShortDateString()</td>
+                                            <td><span class="badge @StatusClass(item.Status)">@StatusText(item.StatusLabel)</span></td>
+                                            <td class="text-end">
+                                                <button class="btn btn-outline-warning btn-sm" @onclick="() => EditCycle(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm" @onclick="() => StartCycle(item.Id)" disabled="@(!CanEdit || item.IsActive || item.IsClosed || item.IsCancelled)"><i class="bi bi-play"></i></button>
+                                                <button class="btn btn-outline-success btn-sm" @onclick="() => CloseCycle(item.Id)" disabled="@(!CanApprove || item.IsClosed || item.IsCancelled)"><i class="bi bi-check2-circle"></i></button>
+                                                <button class="btn btn-outline-danger btn-sm" @onclick="() => CancelCycle(item.Id)" disabled="@(!CanApprove || item.IsClosed || item.IsCancelled)"><i class="bi bi-x-circle"></i></button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </AppCard>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-xl-6">
+                <AppCard Title="@Text("Goal Catalog", "كتالوج الأهداف")">
+                    <EditForm Model="goalModel" OnValidSubmit="SaveGoal">
+                        <DataAnnotationsValidator />
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-5"><InputText class="form-control" placeholder="@Text("Goal name", "اسم الهدف")" @bind-Value="goalModel.Name" /></div>
+                            <div class="col-md-3"><InputText class="form-control" placeholder="@Text("Code", "الرمز")" @bind-Value="goalModel.Code" /></div>
+                            <div class="col-md-2"><InputNumber class="form-control" @bind-Value="goalModel.Weight" /></div>
+                            <div class="col-md-2 d-grid"><button class="btn btn-primary" disabled="@(!CanCreateOrEdit)"><i class="bi bi-check2"></i></button></div>
+                        </div>
+                    </EditForm>
+                    @if (goals.Count == 0)
+                    {
+                        <EmptyState Title="@Text("No goals", "لا توجد أهداف")" Message="@Text("Create goal definitions for KPI scoring.", "أنشئ تعريفات الأهداف لتقييم المؤشرات.")" Icon="bi-bullseye" />
+                    }
+                    else
+                    {
+                        <div class="table-responsive"><table class="table table-sm align-middle"><tbody>
+                        @foreach (var item in goals)
+                        {
+                            <tr><td><div class="fw-semibold">@item.Name</div><div class="text-muted small">@item.Code - @item.Weight.ToString("N2")%</div></td><td class="text-end"><button class="btn btn-outline-warning btn-sm" @onclick="() => EditGoal(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteGoal(item)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td></tr>
+                        }
+                        </tbody></table></div>
+                    }
+                </AppCard>
+            </div>
+            <div class="col-xl-6">
+                <AppCard Title="@Text("Competency Catalog", "كتالوج الكفاءات")">
+                    <EditForm Model="competencyModel" OnValidSubmit="SaveCompetency">
+                        <DataAnnotationsValidator />
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-8"><InputText class="form-control" placeholder="@Text("Competency name", "اسم الكفاءة")" @bind-Value="competencyModel.Name" /></div>
+                            <div class="col-md-2"><InputNumber class="form-control" @bind-Value="competencyModel.Weight" /></div>
+                            <div class="col-md-2 d-grid"><button class="btn btn-primary" disabled="@(!CanCreateOrEdit)"><i class="bi bi-check2"></i></button></div>
+                        </div>
+                    </EditForm>
+                    @if (competencies.Count == 0)
+                    {
+                        <EmptyState Title="@Text("No competencies", "لا توجد كفاءات")" Message="@Text("Create competency definitions for behavior scoring.", "أنشئ تعريفات الكفاءات لتقييم السلوكيات.")" Icon="bi-stars" />
+                    }
+                    else
+                    {
+                        <div class="table-responsive"><table class="table table-sm align-middle"><tbody>
+                        @foreach (var item in competencies)
+                        {
+                            <tr><td><div class="fw-semibold">@item.Name</div><div class="text-muted small">@item.Weight.ToString("N2")%</div></td><td class="text-end"><button class="btn btn-outline-warning btn-sm" @onclick="() => EditCompetency(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteCompetency(item)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td></tr>
+                        }
+                        </tbody></table></div>
+                    }
+                </AppCard>
+            </div>
+        </div>
+
+        <AppCard Title="@Text("Employee Appraisal Workspace", "مساحة تقييم الموظف")" CssClass="mt-3">
+            <div class="row g-2 align-items-end mb-3">
+                <div class="col-md-5"><label class="form-label">@Text("Employee", "الموظف")</label><select class="form-select" @bind="selectedEmployeeId"><option value="@Guid.Empty">@Text("Select employee", "اختر الموظف")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div>
+                <div class="col-md-5"><label class="form-label">@Text("Cycle", "الدورة")</label><select class="form-select" @bind="selectedCycleId"><option value="@Guid.Empty">@Text("Select cycle", "اختر الدورة")</option>@foreach (var cycle in cycles){<option value="@cycle.Id">@cycle.Name</option>}</select></div>
+                <div class="col-md-2 d-grid"><button class="btn btn-outline-primary" @onclick="LoadEmployeeWorkspace"><i class="bi bi-search"></i> @Text("Load", "تحميل")</button></div>
+            </div>
+
+            @if (selectedEmployeeId == Guid.Empty || selectedCycleId == Guid.Empty)
+            {
+                <EmptyState Title="@Text("Select employee and cycle", "اختر الموظف والدورة")" Message="@Text("Scores and evaluation actions will appear here.", "ستظهر الدرجات وإجراءات التقييم هنا.")" Icon="bi-person-check" />
+            }
+            else
+            {
+                <div class="row g-3">
+                    <div class="col-xl-6">
+                        <h6>@Text("Assigned Goals", "الأهداف المعينة")</h6>
+                        <div class="row g-2 mb-2"><div class="col-5"><select class="form-select" @bind="employeeGoalModel.GoalDefinitionId"><option value="@Guid.Empty">@Text("Goal", "الهدف")</option>@foreach (var goal in goals){<option value="@goal.Id">@goal.Name</option>}</select></div><div class="col-2"><InputNumber class="form-control" @bind-Value="employeeGoalModel.TargetValue" /></div><div class="col-2"><InputNumber class="form-control" @bind-Value="employeeGoalModel.Weight" /></div><div class="col-3 d-grid"><button class="btn btn-outline-primary" @onclick="SaveEmployeeGoal" disabled="@(!CanEdit)">@Text("Assign", "تعيين")</button></div></div>
+                        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Goal", "الهدف")</th><th>@Text("Target", "المستهدف")</th><th>@Text("Achieved", "المحقق")</th><th>@Text("Score", "الدرجة")</th><th></th></tr></thead><tbody>@foreach (var item in employeeGoals){<tr><td>@item.Goal</td><td>@item.TargetValue.ToString("N2")</td><td><InputNumber class="form-control form-control-sm" @bind-Value="item.ActualValue" /></td><td>@item.Score.ToString("N2")</td><td><button class="btn btn-outline-success btn-sm" @onclick="() => SaveAchievement(item)" disabled="@(!CanEdit)"><i class="bi bi-check2"></i></button></td></tr>}</tbody></table></div>
+                    </div>
+                    <div class="col-xl-6">
+                        <h6>@Text("Competency Scores", "درجات الكفاءات")</h6>
+                        <div class="row g-2 mb-2"><div class="col-5"><select class="form-select" @bind="competencyScoreModel.CompetencyId"><option value="@Guid.Empty">@Text("Competency", "الكفاءة")</option>@foreach (var competency in competencies){<option value="@competency.Id">@competency.Name</option>}</select></div><div class="col-2"><InputNumber class="form-control" @bind-Value="competencyScoreModel.Score" /></div><div class="col-2"><InputNumber class="form-control" @bind-Value="competencyScoreModel.Weight" /></div><div class="col-3 d-grid"><button class="btn btn-outline-primary" @onclick="SaveCompetencyScore" disabled="@(!CanEdit)">@Text("Score", "تسجيل")</button></div></div>
+                        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Competency", "الكفاءة")</th><th>@Text("Score", "الدرجة")</th><th>@Text("Weight", "الوزن")</th><th>@Text("Weighted", "الموزونة")</th></tr></thead><tbody>@foreach (var item in competencyScores){<tr><td>@item.CompetencyName</td><td>@item.Score.ToString("N2")</td><td>@item.Weight.ToString("N2")</td><td>@item.WeightedScore.ToString("N2")</td></tr>}</tbody></table></div>
+                    </div>
+                </div>
+
+                <div class="border-top pt-3 mt-3">
+                    <div class="d-flex flex-wrap gap-2 mb-3"><button class="btn btn-primary" @onclick="CreateEvaluation" disabled="@(!CanCreate)"><i class="bi bi-plus-lg"></i> @Text("Create Evaluation", "إنشاء تقييم")</button><button class="btn btn-outline-primary" @onclick="RefreshEvaluations"><i class="bi bi-arrow-clockwise"></i> @Text("Refresh", "تحديث")</button></div>
+                    <div class="row g-2 mb-3"><div class="col-md-6"><InputTextArea class="form-control" rows="2" placeholder="@Text("Employee feedback", "ملاحظات الموظف")" @bind-Value="employeeFeedback" /></div><div class="col-md-6"><InputTextArea class="form-control" rows="2" placeholder="@Text("Manager feedback", "ملاحظات المدير")" @bind-Value="managerFeedback" /></div></div>
+                    <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Cycle", "الدورة")</th><th>@Text("KPI", "المؤشرات")</th><th>@Text("Competency", "الكفاءة")</th><th>@Text("Final", "النهائية")</th><th>@Text("Rating", "التصنيف")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>@foreach (var item in evaluations){<tr><td>@EmployeeName(item.EmployeeId)</td><td>@item.CycleName</td><td>@item.KpiScore.ToString("N2")</td><td>@item.CompetencyScore.ToString("N2")</td><td>@((item.FinalScore ?? 0m).ToString("N2"))</td><td>@item.Rating</td><td><span class="badge @StatusClass(item.Status)">@StatusText(item.StatusLabel)</span></td><td class="text-end"><button class="btn btn-outline-secondary btn-sm" @onclick="() => Recalculate(item.Id)" disabled="@(!CanReview)"><i class="bi bi-calculator"></i></button> <button class="btn btn-outline-primary btn-sm" @onclick="() => Submit(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-send"></i></button> <button class="btn btn-outline-info btn-sm" @onclick="() => Review(item.Id)" disabled="@(!CanReview)"><i class="bi bi-chat-square-text"></i></button> <button class="btn btn-outline-success btn-sm" @onclick="() => Approve(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-patch-check"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => Cancel(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-x-circle"></i></button></td></tr>}</tbody></table></div>
+                </div>
+            }
+        </AppCard>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private Guid selectedEmployeeId;
+    private Guid selectedCycleId;
+    private bool isLoading = true;
+    private bool isSaving;
+    private ClaimsPrincipal? user;
+    private List<AppraisalCycleDto> cycles = [];
+    private List<GoalDefinitionDto> goals = [];
+    private List<CompetencyDto> competencies = [];
+    private List<EmployeeDto> employees = [];
+    private List<EmployeeGoalReviewDto> employeeGoals = [];
+    private List<EmployeeCompetencyScoreDto> competencyScores = [];
+    private List<EmployeeAppraisalDto> evaluations = [];
+    private UpsertAppraisalCycleDto cycleModel = new();
+    private UpsertGoalDefinitionDto goalModel = new();
+    private UpsertCompetencyDto competencyModel = new();
+    private UpsertEmployeeGoalDto employeeGoalModel = new();
+    private UpsertEmployeeCompetencyScoreDto competencyScoreModel = new();
+    private string? employeeFeedback;
+    private string? managerFeedback;
+
+    private bool CanView => Has(PermissionList.PerformancePermissions.View);
+    private bool CanCreate => Has(PermissionList.PerformancePermissions.Create);
+    private bool CanEdit => Has(PermissionList.PerformancePermissions.Edit);
+    private bool CanReview => Has(PermissionList.PerformancePermissions.Review);
+    private bool CanApprove => Has(PermissionList.PerformancePermissions.Approve);
+    private bool CanCreateOrEdit => CanCreate || CanEdit;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        user = auth.User;
+        CompanyContext.TryGetCompanyId(auth.User, out companyId);
+        ResetCycle();
+        ResetGoal();
+        ResetCompetency();
+        ResetEmployeeModels();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        if (companyId == Guid.Empty || !CanView) { isLoading = false; return; }
+        isLoading = true;
+        cycles = (await PerformanceService.GetCyclesAsync(companyId)).Data ?? [];
+        goals = (await PerformanceService.GetGoalDefinitionsAsync(companyId)).Data ?? [];
+        competencies = (await PerformanceService.GetCompetenciesAsync(companyId)).Data ?? [];
+        employees = (await EmployeeService.GetByCompanyIdAsync(companyId, 0, 500)).Data?.Data?.ToList() ?? [];
+        await RefreshEvaluations();
+        isLoading = false;
+    }
+
+    private async Task SaveCycle()
+    {
+        isSaving = true;
+        cycleModel.CompanyId = companyId;
+        var result = cycleModel.Id == Guid.Empty ? await PerformanceService.CreateCycleAsync(cycleModel) : await PerformanceService.UpdateCycleAsync(cycleModel);
+        Show(result);
+        ResetCycle();
+        cycles = (await PerformanceService.GetCyclesAsync(companyId)).Data ?? [];
+        isSaving = false;
+    }
+
+    private async Task SaveGoal()
+    {
+        goalModel.CompanyId = companyId;
+        var result = goalModel.Id == Guid.Empty ? await PerformanceService.CreateGoalDefinitionAsync(goalModel) : await PerformanceService.UpdateGoalDefinitionAsync(goalModel);
+        Show(result);
+        ResetGoal();
+        goals = (await PerformanceService.GetGoalDefinitionsAsync(companyId)).Data ?? [];
+    }
+
+    private async Task SaveCompetency()
+    {
+        competencyModel.CompanyId = companyId;
+        var result = competencyModel.Id == Guid.Empty ? await PerformanceService.CreateCompetencyAsync(competencyModel) : await PerformanceService.UpdateCompetencyAsync(competencyModel);
+        Show(result);
+        ResetCompetency();
+        competencies = (await PerformanceService.GetCompetenciesAsync(companyId)).Data ?? [];
+    }
+
+    private async Task SaveEmployeeGoal()
+    {
+        employeeGoalModel.EmployeeId = selectedEmployeeId;
+        employeeGoalModel.CycleId = selectedCycleId;
+        Show(await PerformanceService.UpsertEmployeeGoalAsync(employeeGoalModel));
+        await LoadEmployeeWorkspace();
+    }
+
+    private async Task SaveAchievement(EmployeeGoalReviewDto item)
+    {
+        Show(await PerformanceService.UpdateEmployeeGoalAchievementAsync(new UpdateEmployeeGoalAchievementDto { EmployeeGoalId = item.Id, AchievedValue = item.ActualValue ?? 0m }));
+        await LoadEmployeeWorkspace();
+    }
+
+    private async Task SaveCompetencyScore()
+    {
+        competencyScoreModel.EmployeeId = selectedEmployeeId;
+        competencyScoreModel.CycleId = selectedCycleId;
+        Show(await PerformanceService.UpsertEmployeeCompetencyScoreAsync(competencyScoreModel));
+        await LoadEmployeeWorkspace();
+    }
+
+    private async Task LoadEmployeeWorkspace()
+    {
+        ResetEmployeeModels();
+        if (selectedEmployeeId == Guid.Empty || selectedCycleId == Guid.Empty) return;
+        employeeGoals = (await PerformanceService.GetEmployeeGoalsAsync(selectedEmployeeId, selectedCycleId)).Data ?? [];
+        competencyScores = (await PerformanceService.GetEmployeeCompetencyScoresAsync(selectedEmployeeId, selectedCycleId)).Data ?? [];
+        await RefreshEvaluations();
+    }
+
+    private async Task RefreshEvaluations()
+    {
+        if (companyId == Guid.Empty) return;
+        evaluations = (await PerformanceService.GetEvaluationsAsync(companyId, selectedCycleId, selectedEmployeeId)).Data ?? [];
+    }
+
+    private async Task CreateEvaluation()
+    {
+        Show(await PerformanceService.CreateEvaluationAsync(new CreateEmployeeAppraisalDto { CompanyId = companyId, EmployeeId = selectedEmployeeId, CycleId = selectedCycleId }));
+        await RefreshEvaluations();
+    }
+
+    private async Task StartCycle(Guid id) { Show(await PerformanceService.StartCycleAsync(id)); await LoadData(); }
+    private async Task CloseCycle(Guid id) { Show(await PerformanceService.CloseCycleAsync(id)); await LoadData(); }
+    private async Task CancelCycle(Guid id) { Show(await PerformanceService.CancelCycleAsync(id)); await LoadData(); }
+    private async Task DeleteGoal(GoalDefinitionDto item) { Show(await PerformanceService.DeleteGoalDefinitionAsync(item.Id)); goals = (await PerformanceService.GetGoalDefinitionsAsync(companyId)).Data ?? []; }
+    private async Task DeleteCompetency(CompetencyDto item) { Show(await PerformanceService.DeleteCompetencyAsync(item.Id)); competencies = (await PerformanceService.GetCompetenciesAsync(companyId)).Data ?? []; }
+    private async Task Recalculate(Guid id) { Show(await PerformanceService.RecalculateEvaluationAsync(id)); await RefreshEvaluations(); }
+    private async Task Submit(Guid id) { Show(await PerformanceService.SubmitEvaluationAsync(id, employeeFeedback)); await RefreshEvaluations(); }
+    private async Task Review(Guid id) { Show(await PerformanceService.ReviewEvaluationAsync(id, managerFeedback)); await RefreshEvaluations(); }
+    private async Task Approve(Guid id) { Show(await PerformanceService.ApproveEvaluationAsync(id, managerFeedback)); await RefreshEvaluations(); }
+    private async Task Cancel(Guid id) { Show(await PerformanceService.CancelEvaluationAsync(id)); await RefreshEvaluations(); }
+
+    private void EditCycle(AppraisalCycleDto item) => cycleModel = new() { Id = item.Id, CompanyId = item.CompanyId, Name = item.Name, StartDate = item.StartDate, EndDate = item.EndDate };
+    private void EditGoal(GoalDefinitionDto item) => goalModel = new() { Id = item.Id, CompanyId = item.CompanyId, Name = item.Name, Code = item.Code, Weight = item.Weight };
+    private void EditCompetency(CompetencyDto item) => competencyModel = new() { Id = item.Id, CompanyId = item.CompanyId, Name = item.Name, Weight = item.Weight };
+    private void ResetCycle() => cycleModel = new() { CompanyId = companyId, StartDate = DateTime.Today, EndDate = DateTime.Today.AddMonths(3) };
+    private void ResetGoal() => goalModel = new() { CompanyId = companyId };
+    private void ResetCompetency() => competencyModel = new() { CompanyId = companyId };
+    private void ResetEmployeeModels()
+    {
+        employeeGoalModel = new() { EmployeeId = selectedEmployeeId, CycleId = selectedCycleId, TargetValue = 100, Weight = 50 };
+        competencyScoreModel = new() { EmployeeId = selectedEmployeeId, CycleId = selectedCycleId, Score = 5, Weight = 50 };
+    }
+
+    private void Show(ApiResult<PerformanceActionResultDto> result)
+    {
+        if (result.IsSuccess) ToastService.ShowSuccess(result.Data?.Message ?? Text("Saved", "تم الحفظ"));
+        else ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Action failed", "فشل الإجراء"));
+    }
+
+    private bool Has(string permission) => user?.HasClaim("Permission", permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string EmployeeName(EmployeeDto employee) => Text(employee.FullNameEng, employee.FullName);
+    private string EmployeeName(Guid id) => employees.FirstOrDefault(x => x.Id == id) is { } employee ? EmployeeName(employee) : id.ToString("N")[..8];
+    private string StatusText(string? status) => string.IsNullOrWhiteSpace(status) ? Text("Draft", "مسودة") : status;
+    private string StatusClass(PerformanceWorkflowStatus status) => status switch
+    {
+        PerformanceWorkflowStatus.Approved or PerformanceWorkflowStatus.Closed => "text-bg-success",
+        PerformanceWorkflowStatus.InProgress => "text-bg-primary",
+        PerformanceWorkflowStatus.PendingApproval => "text-bg-warning",
+        PerformanceWorkflowStatus.Cancelled => "text-bg-danger",
+        _ => "text-bg-secondary"
+    };
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

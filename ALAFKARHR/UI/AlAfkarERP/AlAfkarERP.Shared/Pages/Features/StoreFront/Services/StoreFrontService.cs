@@ -29,6 +29,12 @@ public class StoreFrontService : BaseApiService, IStoreFrontService
         return await SendAsync<StoreFrontTypeDto>(request, "type");
     }
 
+    public async Task<ApiResult<bool>> DeleteTypeAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"{_path}/types/{id}");
+        return await SendAsync<bool>(request, "isSuccess");
+    }
+
     public async Task<ApiResult<List<StoreFrontDto>>> GetStoresAsync(Guid companyId)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/stores/company/{companyId}");
@@ -56,6 +62,12 @@ public class StoreFrontService : BaseApiService, IStoreFrontService
         {
             Content = JsonContent.Create(new { IsActive = isActive })
         };
+        return await SendAsync<bool>(request, "isSuccess");
+    }
+
+    public async Task<ApiResult<bool>> DeleteStoreAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"{_path}/stores/{id}");
         return await SendAsync<bool>(request, "isSuccess");
     }
 

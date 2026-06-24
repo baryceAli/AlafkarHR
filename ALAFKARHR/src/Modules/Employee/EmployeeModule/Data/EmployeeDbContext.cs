@@ -19,6 +19,11 @@ public class EmployeeDbContext:DbContext
     public DbSet<Specialization> Specializations => Set<Specialization>();
     public DbSet<EmployeeTeam> EmployeeTeams => Set<EmployeeTeam>();
     public DbSet<EmployeeTeamMember> EmployeeTeamMembers => Set<EmployeeTeamMember>();
+    public DbSet<HrLifecycleEvent> HrLifecycleEvents => Set<HrLifecycleEvent>();
+    public DbSet<EmployeeEmergencyContact> EmployeeEmergencyContacts => Set<EmployeeEmergencyContact>();
+    public DbSet<EmployeeDocumentLink> EmployeeDocumentLinks => Set<EmployeeDocumentLink>();
+    public DbSet<EmployeeSkill> EmployeeSkills => Set<EmployeeSkill>();
+    public DbSet<EmployeeCertification> EmployeeCertifications => Set<EmployeeCertification>();
     protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.HasDefaultSchema("Employee");

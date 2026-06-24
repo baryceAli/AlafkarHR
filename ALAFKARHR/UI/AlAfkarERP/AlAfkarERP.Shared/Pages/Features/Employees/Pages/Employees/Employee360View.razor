@@ -13,6 +13,7 @@
 @using SharedWithUI.Attendance.Dtos
 @using SharedWithUI.Attendance.Enums
 @using SharedWithUI.Employees.Dtos
+@using SharedWithUI.HRCore.Dtos
 @using SharedWithUI.Leave.Dtos
 @using SharedWithUI.Payroll.Dtos
 @using SharedWithUI.Permissions
@@ -127,6 +128,7 @@
                 @TabButton("attendance", Text("Attendance", "الحضور"), "bi-clock-history")
                 @TabButton("leave", Text("Leave", "الإجازات"), "bi-calendar-heart")
                 @TabButton("payroll", Text("Payroll", "الرواتب"), "bi-wallet2")
+                @TabButton("hrcore", Text("HR Core", "أساس الموارد البشرية"), "bi-folder2-open")
                 @TabButton("future", Text("More", "المزيد"), "bi-stars")
             </div>
         </AppCard>
@@ -168,6 +170,10 @@
         {
             @PayrollCard()
         }
+        else if (activeTab == "hrcore")
+        {
+            @HrCoreCard()
+        }
         else
         {
             @FuturePlaceholders()
@@ -187,6 +193,11 @@
     private List<EmployeeLeaveBalanceDto> leaveBalances = [];
     private List<ShiftAssignmentDto> shiftAssignments = [];
     private List<EmployeeContractDto> employeeContracts = [];
+    private List<HrLifecycleEventDto> lifecycleEvents = [];
+    private List<EmployeeDocumentLinkDto> hrDocuments = [];
+    private List<EmployeeSkillDto> employeeSkills = [];
+    private List<EmployeeCertificationDto> employeeCertifications = [];
+    private List<EmployeeEmergencyContactDto> emergencyContacts = [];
     private ContractDto? assignedContract;
     private SalaryRunDto? currentSalaryRun;
 
@@ -296,7 +307,8 @@
             await Task.WhenAll(
                 LoadAttendanceAsync(),
                 LoadLeaveAsync(),
-                LoadPayrollAsync());
+                LoadPayrollAsync(),
+                LoadHrCoreAsync());
         }
     }
 
@@ -433,6 +445,34 @@
             isLoadingPayroll = false;
         }
     }
+    private async Task LoadHrCoreAsync()
+    {
+        try
+        {
+            var lifecycleTask = EmployeeService.GetLifecycleEventsAsync(Id);
+            var contactsTask = EmployeeService.GetEmergencyContactsAsync(Id);
+            var documentsTask = EmployeeService.GetDocumentLinksAsync(Id);
+            var skillsTask = EmployeeService.GetSkillsAsync(Id);
+            var certificationsTask = EmployeeService.GetCertificationsAsync(Id);
+
+            await Task.WhenAll(lifecycleTask, contactsTask, documentsTask, skillsTask, certificationsTask);
+
+            lifecycleEvents = lifecycleTask.Result.IsSuccess ? lifecycleTask.Result.Data ?? [] : [];
+            emergencyContacts = contactsTask.Result.IsSuccess ? contactsTask.Result.Data ?? [] : [];
+            hrDocuments = documentsTask.Result.IsSuccess ? documentsTask.Result.Data ?? [] : [];
+            employeeSkills = skillsTask.Result.IsSuccess ? skillsTask.Result.Data ?? [] : [];
+            employeeCertifications = certificationsTask.Result.IsSuccess ? certificationsTask.Result.Data ?? [] : [];
+        }
+        catch
+        {
+            lifecycleEvents = [];
+            emergencyContacts = [];
+            hrDocuments = [];
+            employeeSkills = [];
+            employeeCertifications = [];
+        }
+    }
+
 
     private RenderFragment TabButton(string tabId, string label, string icon) => @<button type="button"
         class="employee-360-tab @(activeTab == tabId ? "active" : "")"
@@ -476,6 +516,10 @@
             @DetailItem(Text("Administration", "الإدارة"), EmptyValue(employee?.AdministrationName), "bi-diagram-2")
             @DetailItem(Text("Department", "القسم"), EmptyValue(employee?.DepartmentName), "bi-diagram-3")
             @DetailItem(Text("Position", "المسمى الوظيفي"), EmptyValue(employee?.PositionName), "bi-briefcase")
+            @DetailItem(Text("Manager", "المدير"), EmptyValue(employee?.ManagerName ?? employee?.ManagerNameEng), "bi-person-check")
+            @DetailItem(Text("Grade", "الدرجة"), EmptyValue(employee?.Grade), "bi-layers")
+            @DetailItem(Text("Work Location", "موقع العمل"), EmptyValue(employee?.WorkLocation), "bi-geo-alt")
+            @DetailItem(Text("Linked User", "المستخدم المرتبط"), ShortId(employee?.LinkedUserId), "bi-person-badge")
             @DetailItem(Text("Employment Type", "نوع التوظيف"), EnumText(employee?.EmploymentType), "bi-person-workspace")
             @DetailItem(Text("Employee No", "الرقم الوظيفي"), EmptyValue(employee?.EmployeeNo), "bi-hash")
             @DetailItem(Text("Code", "الكود"), EmptyValue(employee?.Code), "bi-upc-scan")
@@ -664,6 +708,40 @@
             </div>
         }
     </AppCard>;
+    private RenderFragment HrCoreCard() => @<div class="row g-4">
+        <div class="col-xl-6">
+            <AppCard Title="@Text("Lifecycle", "دورة الحياة")">
+                @RequestList(lifecycleEvents.OrderByDescending(x => x.EffectiveDate).Take(6).Select(x => new RequestRow(x.EventType.ToString(), x.Status.ToString(), $"{FormatDate(x.EffectiveDate)} - {EmptyValue(x.Reason)}")).ToList(), "bi-signpost-split")
+            </AppCard>
+        </div>
+        <div class="col-xl-6">
+            <AppCard Title="@Text("Documents", "المستندات")">
+                @RequestList(hrDocuments.OrderBy(x => x.ExpiryDate ?? DateTime.MaxValue).Take(6).Select(x => new RequestRow(x.Title, x.RequiresRenewal ? Text("Renewal", "تجديد") : x.DocumentType, FormatDate(x.ExpiryDate))).ToList(), "bi-folder2-open")
+            </AppCard>
+        </div>
+        <div class="col-xl-6">
+            <AppCard Title="@Text("Skills", "المهارات")">
+                @RequestList(employeeSkills.OrderByDescending(x => x.ProficiencyLevel).Take(6).Select(x => new RequestRow(x.SkillName, x.ProficiencyLevel.ToString(), x.Category ?? "-")).ToList(), "bi-stars")
+            </AppCard>
+        </div>
+        <div class="col-xl-6">
+            <AppCard Title="@Text("Certifications", "الشهادات")">
+                @RequestList(employeeCertifications.OrderBy(x => x.ExpiresAt ?? DateTime.MaxValue).Take(6).Select(x => new RequestRow(x.Name, x.IsExpired ? Text("Expired", "منتهية") : Text("Active", "نشطة"), $"{x.Issuer} - {FormatDate(x.ExpiresAt)}")).ToList(), "bi-patch-check")
+            </AppCard>
+        </div>
+        <div class="col-12">
+            <div class="d-flex justify-content-end mb-3">
+                <a class="btn btn-outline-primary btn-sm" href="/HR/EmployeeEmergencyContacts">
+                    <i class="bi bi-pencil-square"></i>
+                    @Text("Manage Contacts", "إدارة جهات الاتصال")
+                </a>
+            </div>
+            <AppCard Title="@Text("Emergency Contacts", "جهات اتصال الطوارئ")">
+                @RequestList(emergencyContacts.Select(x => new RequestRow(x.Name, x.IsPrimary ? Text("Primary", "رئيسية") : x.Relationship, $"{x.Phone} {x.Email}")).ToList(), "bi-telephone-plus")
+            </AppCard>
+        </div>
+    </div>;
+
 
     private RenderFragment FuturePlaceholders() => @<div class="employee-360-placeholder-grid">
         @PlaceholderCard("bi-graph-up-arrow", Text("Performance", "الأداء"), Text("Performance reviews, goals, competency scores, and development notes will appear here when connected.", "ستظهر هنا تقييمات الأداء والأهداف ودرجات الكفاءات وملاحظات التطوير عند الربط."))

@@ -1,0 +1,241 @@
+﻿@layout AdminLayout
+@page "/HR/Training"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.Training.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.HRCore.Dtos
+@using SharedWithUI.Permissions
+@using SharedWithUI.Training.Dtos
+@using System.Security.Claims
+
+@inject ITrainingService TrainingService
+@inject IEmployeeService EmployeeService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+
+<div dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Training", "التدريب")"
+                Subtitle="@Text("Manage programs, scheduled events, attendees, results, feedback, and employee certificate linkage.", "إدارة البرامج والفعاليات والحضور والنتائج والملاحظات وربط شهادات الموظفين.")"
+                Icon="bi-award" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permission to view training.", "ليست لديك صلاحية عرض التدريب.")</div>
+    }
+    else if (isLoading)
+    {
+        <div class="text-muted">@Text("Loading training workspace...", "جاري تحميل مساحة التدريب...")</div>
+    }
+    else
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-md-4"><StatsCard Title="@Text("Programs", "البرامج")" Value="@programs.Count.ToString("N0")" Icon="bi-journal-bookmark" /></div>
+            <div class="col-12 col-md-4"><StatsCard Title="@Text("Events", "الفعاليات")" Value="@events.Count.ToString("N0")" Icon="bi-calendar-event" /></div>
+            <div class="col-12 col-md-4"><StatsCard Title="@Text("Attendees", "الحضور")" Value="@attendees.Count.ToString("N0")" Icon="bi-people" /></div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-xl-4">
+                <AppCard Title="@Text("Program Catalog", "دليل البرامج")" CssClass="h-100">
+                    <EditForm Model="programModel" OnValidSubmit="SaveProgram">
+                        <DataAnnotationsValidator />
+                        <div class="row g-2">
+                            <div class="col-12"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="programModel.Name" /></div>
+                            <div class="col-md-6"><label class="form-label">@Text("Category", "التصنيف")</label><InputText class="form-control" @bind-Value="programModel.Category" /></div>
+                            <div class="col-md-6"><label class="form-label">@Text("Provider", "المزود")</label><InputText class="form-control" @bind-Value="programModel.Provider" /></div>
+                            <div class="col-12"><label class="form-label">@Text("Objective", "الهدف")</label><InputTextArea class="form-control" rows="2" @bind-Value="programModel.Objective" /></div>
+                            <div class="col-12"><label class="form-label">@Text("Description", "الوصف")</label><InputTextArea class="form-control" rows="2" @bind-Value="programModel.Description" /></div>
+                            <div class="col-12 d-flex gap-2"><button class="btn btn-primary" type="submit" disabled="@(!CanCreateOrEdit || isSaving)"><i class="bi bi-check2"></i> @Text("Save", "حفظ")</button><button class="btn btn-outline-secondary" type="button" @onclick="ResetProgram">@Text("Reset", "إعادة ضبط")</button></div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+            <div class="col-xl-8">
+                <AppCard Title="@Text("Programs", "البرامج")" CssClass="h-100">
+                    @if (programs.Count == 0)
+                    {
+                        <EmptyState Title="@Text("No training programs", "لا توجد برامج تدريب")" Message="@Text("Create the first program to schedule events.", "أنشئ أول برنامج لجدولة الفعاليات.")" Icon="bi-journal-bookmark" />
+                    }
+                    else
+                    {
+                        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Program", "البرنامج")</th><th>@Text("Provider", "المزود")</th><th>@Text("Category", "التصنيف")</th><th></th></tr></thead><tbody>@foreach (var item in programs){<tr><td><div class="fw-semibold">@item.Name</div><div class="text-muted small">@item.Objective</div></td><td>@item.Provider</td><td>@item.Category</td><td class="text-end"><button class="btn btn-outline-warning btn-sm" @onclick="() => EditProgram(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteProgram(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>
+                    }
+                </AppCard>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-xl-4">
+                <AppCard Title="@Text("Training Event", "فعالية التدريب")" CssClass="h-100">
+                    <EditForm Model="eventModel" OnValidSubmit="SaveEvent">
+                        <DataAnnotationsValidator />
+                        <div class="row g-2">
+                            <div class="col-12"><label class="form-label">@Text("Program", "البرنامج")</label><select class="form-select" @bind="eventModel.ProgramId"><option value="@Guid.Empty">@Text("Select program", "اختر البرنامج")</option>@foreach (var program in programs){<option value="@program.Id">@program.Name</option>}</select></div>
+                            <div class="col-12"><label class="form-label">@Text("Title", "العنوان")</label><InputText class="form-control" @bind-Value="eventModel.Title" /></div>
+                            <div class="col-md-4"><label class="form-label">@Text("Start", "البداية")</label><InputDate class="form-control" @bind-Value="eventModel.StartAt" /></div>
+                            <div class="col-md-4"><label class="form-label">@Text("End", "النهاية")</label><InputDate class="form-control" @bind-Value="eventModel.EndAt" /></div>
+                            <div class="col-md-4"><label class="form-label">@Text("Capacity", "السعة")</label><InputNumber class="form-control" @bind-Value="eventModel.Capacity" /></div>
+                            <div class="col-12 d-flex gap-2"><button class="btn btn-primary" type="submit" disabled="@(!CanCreateOrEdit || isSaving)"><i class="bi bi-calendar-plus"></i> @Text("Save Event", "حفظ الفعالية")</button><button class="btn btn-outline-secondary" type="button" @onclick="ResetEvent">@Text("Reset", "إعادة ضبط")</button></div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+            <div class="col-xl-8">
+                <AppCard Title="@Text("Event Schedule", "جدول الفعاليات")" CssClass="h-100">
+                    @if (events.Count == 0)
+                    {
+                        <EmptyState Title="@Text("No training events", "لا توجد فعاليات تدريب")" Message="@Text("Schedule an event from an active program.", "جدول فعالية من أحد البرامج.")" Icon="bi-calendar-event" />
+                    }
+                    else
+                    {
+                        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Event", "الفعالية")</th><th>@Text("Dates", "التواريخ")</th><th>@Text("Status", "الحالة")</th><th>@Text("Attendees", "الحضور")</th><th></th></tr></thead><tbody>@foreach (var item in events){<tr class="@(selectedEventId == item.Id ? "table-active" : string.Empty)"><td><div class="fw-semibold">@item.Title</div><div class="text-muted small">@ProgramName(item.ProgramId)</div></td><td>@item.StartAt.ToShortDateString() - @item.EndAt.ToShortDateString()</td><td><span class="badge @StatusClass(item.Status)">@EventStatusText(item.Status)</span></td><td>@item.AttendeeCount / @item.Capacity</td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => SelectEvent(item)"><i class="bi bi-eye"></i></button> <button class="btn btn-outline-warning btn-sm" @onclick="() => EditEvent(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenEvent(item.Id)" disabled="@(!CanComplete)">@Text("Open", "فتح")</button> <button class="btn btn-outline-info btn-sm" @onclick="() => StartEvent(item.Id)" disabled="@(!CanComplete)">@Text("Start", "بدء")</button> <button class="btn btn-outline-success btn-sm" @onclick="() => CompleteEvent(item.Id)" disabled="@(!CanComplete)">@Text("Complete", "إكمال")</button> <button class="btn btn-outline-danger btn-sm" @onclick="() => CancelEvent(item.Id)" disabled="@(!CanComplete)"><i class="bi bi-x-circle"></i></button></td></tr>}</tbody></table></div>
+                    }
+                </AppCard>
+            </div>
+        </div>
+
+        <AppCard Title="@Text("Attendee Workspace", "مساحة الحضور")" CssClass="mt-3">
+            @if (SelectedEvent is null)
+            {
+                <EmptyState Title="@Text("Select an event", "اختر فعالية")" Message="@Text("Attendees, results, feedback, and certificates appear here.", "سيظهر الحضور والنتائج والملاحظات والشهادات هنا.")" Icon="bi-people" />
+            }
+            else
+            {
+                <div class="d-flex justify-content-between flex-wrap gap-2 mb-3"><div><h6 class="mb-1">@SelectedEvent.Title</h6><div class="text-muted small">@ProgramName(SelectedEvent.ProgramId) · @SelectedEvent.StartAt.ToShortDateString()</div></div><span class="badge @StatusClass(SelectedEvent.Status)">@EventStatusText(SelectedEvent.Status)</span></div>
+                <div class="row g-2 align-items-end mb-3"><div class="col-md-8"><label class="form-label">@Text("Employee", "الموظف")</label><select class="form-select" @bind="attendeeModel.EmployeeId"><option value="@Guid.Empty">@Text("Select employee", "اختر الموظف")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div><div class="col-md-4 d-flex gap-2"><button class="btn btn-primary flex-fill" @onclick="SaveAttendee" disabled="@(!CanCreateOrEdit || attendeeModel.EmployeeId == Guid.Empty)"><i class="bi bi-person-plus"></i> @Text("Assign", "تعيين")</button><button class="btn btn-outline-secondary" @onclick="ResetAttendee">@Text("Reset", "إعادة ضبط")</button></div></div>
+
+                @if (attendees.Count == 0)
+                {
+                    <EmptyState Title="@Text("No attendees", "لا يوجد حضور")" Message="@Text("Assign employees to this training event.", "عيّن الموظفين لهذه الفعالية التدريبية.")" Icon="bi-person-plus" />
+                }
+                else
+                {
+                    <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Status", "الحالة")</th><th>@Text("Score", "الدرجة")</th><th>@Text("Certificate", "الشهادة")</th><th></th></tr></thead><tbody>@foreach (var item in attendees){<tr class="@(selectedAttendeeId == item.Id ? "table-active" : string.Empty)"><td><div class="fw-semibold">@EmployeeName(item.EmployeeId)</div><div class="text-muted small">@item.Feedback</div></td><td><span class="badge @AttendeeStatusClass(item.Status)">@AttendeeStatusText(item.Status)</span></td><td>@(item.Score?.ToString("N2") ?? "-")</td><td>@(item.CertificationId.HasValue ? item.CertificateName ?? item.CertificationId.Value.ToString("N")[..8] : Text("Not linked", "غير مرتبطة"))</td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => SelectAttendee(item)"><i class="bi bi-eye"></i></button> <button class="btn btn-outline-success btn-sm" @onclick="() => MarkAttendance(item.Id, true)" disabled="@(!CanEdit)">@Text("Attend", "حضور")</button> <button class="btn btn-outline-warning btn-sm" @onclick="() => EditAttendee(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteAttendee(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>
+                }
+
+                @if (SelectedAttendee is not null)
+                {
+                    <div class="row g-3 mt-2">
+                        <div class="col-xl-6">
+                            <h6>@Text("Result and Feedback", "النتيجة والملاحظات")</h6>
+                            <div class="row g-2"><div class="col-md-4 form-check mt-4"><InputCheckbox class="form-check-input" @bind-Value="resultModel.Attended" /><label class="form-check-label">@Text("Attended", "حضر")</label></div><div class="col-md-4 form-check mt-4"><InputCheckbox class="form-check-input" @bind-Value="resultModel.Passed" /><label class="form-check-label">@Text("Passed", "اجتاز")</label></div><div class="col-md-4"><label class="form-label">@Text("Score", "الدرجة")</label><InputNumber class="form-control" @bind-Value="resultModel.Score" /></div><div class="col-12"><label class="form-label">@Text("Feedback", "الملاحظات")</label><InputTextArea class="form-control" rows="2" @bind-Value="resultModel.Feedback" /></div><div class="col-12"><button class="btn btn-outline-primary" @onclick="SaveResult" disabled="@(!CanEdit)"><i class="bi bi-check2"></i> @Text("Save Result", "حفظ النتيجة")</button></div></div>
+                        </div>
+                        <div class="col-xl-6">
+                            <h6>@Text("Certificate Link", "ربط الشهادة")</h6>
+                            <div class="row g-2"><div class="col-md-6"><label class="form-label">@Text("Certificate", "الشهادة")</label><InputText class="form-control" @bind-Value="certificateModel.CertificateName" /></div><div class="col-md-6"><label class="form-label">@Text("Issuer", "الجهة")</label><InputText class="form-control" @bind-Value="certificateModel.CertificateIssuer" /></div><div class="col-md-6"><label class="form-label">@Text("Issued", "الإصدار")</label><InputDate class="form-control" @bind-Value="certificateModel.CertificateIssuedAt" /></div><div class="col-md-6"><label class="form-label">@Text("Expires", "الانتهاء")</label><InputDate class="form-control" @bind-Value="certificateModel.CertificateExpiresAt" /></div><div class="col-12 d-flex gap-2"><button class="btn btn-outline-success" @onclick="CreateAndLinkCertification" disabled="@(!CanEdit)"><i class="bi bi-award"></i> @Text("Create and Link", "إنشاء وربط")</button><button class="btn btn-outline-primary" @onclick="LinkCertificateOnly" disabled="@(!CanEdit)"><i class="bi bi-link-45deg"></i> @Text("Save Link", "حفظ الربط")</button></div></div>
+                        </div>
+                    </div>
+                }
+            }
+        </AppCard>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private bool isLoading = true;
+    private bool isSaving;
+    private ClaimsPrincipal? user;
+    private List<TrainingProgramDto> programs = [];
+    private List<TrainingEventDto> events = [];
+    private List<TrainingAttendeeDto> attendees = [];
+    private List<EmployeeDto> employees = [];
+    private UpsertTrainingProgramDto programModel = new();
+    private UpsertTrainingEventDto eventModel = new();
+    private UpsertTrainingAttendeeDto attendeeModel = new();
+    private TrainingAttendeeResultDto resultModel = new();
+    private TrainingCertificateLinkDto certificateModel = new();
+    private Guid selectedEventId;
+    private Guid selectedAttendeeId;
+
+    private TrainingEventDto? SelectedEvent => events.FirstOrDefault(x => x.Id == selectedEventId);
+    private TrainingAttendeeDto? SelectedAttendee => attendees.FirstOrDefault(x => x.Id == selectedAttendeeId);
+    private bool CanView => Has(PermissionList.TrainingPermissions.View);
+    private bool CanCreate => Has(PermissionList.TrainingPermissions.Create);
+    private bool CanEdit => Has(PermissionList.TrainingPermissions.Edit);
+    private bool CanComplete => Has(PermissionList.TrainingPermissions.Complete);
+    private bool CanCreateOrEdit => CanCreate || CanEdit;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        user = auth.User;
+        CompanyContext.TryGetCompanyId(auth.User, out companyId);
+        ResetModels();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        if (companyId == Guid.Empty || !CanView) { isLoading = false; return; }
+        isLoading = true;
+        programs = (await TrainingService.GetProgramsAsync(companyId)).Data ?? [];
+        events = (await TrainingService.GetEventsAsync(companyId)).Data ?? [];
+        employees = (await EmployeeService.GetByCompanyIdAsync(companyId, 0, 500)).Data?.Data?.ToList() ?? [];
+        if (selectedEventId != Guid.Empty) await LoadAttendees();
+        isLoading = false;
+    }
+
+    private async Task LoadAttendees()
+    {
+        attendees = selectedEventId == Guid.Empty ? [] : (await TrainingService.GetAttendeesAsync(selectedEventId)).Data ?? [];
+        if (selectedAttendeeId != Guid.Empty && attendees.All(x => x.Id != selectedAttendeeId)) selectedAttendeeId = Guid.Empty;
+    }
+
+    private async Task SaveProgram(){ isSaving = true; programModel.CompanyId = companyId; Show(programModel.Id == Guid.Empty ? await TrainingService.CreateProgramAsync(programModel) : await TrainingService.UpdateProgramAsync(programModel)); ResetProgram(); await LoadData(); isSaving = false; }
+    private async Task DeleteProgram(Guid id){ Show(await TrainingService.DeleteProgramAsync(id)); await LoadData(); }
+    private async Task SaveEvent(){ isSaving = true; eventModel.CompanyId = companyId; Show(eventModel.Id == Guid.Empty ? await TrainingService.CreateEventAsync(eventModel) : await TrainingService.UpdateEventAsync(eventModel)); ResetEvent(); await LoadData(); isSaving = false; }
+    private async Task OpenEvent(Guid id){ Show(await TrainingService.OpenEventAsync(id)); await LoadData(); }
+    private async Task StartEvent(Guid id){ Show(await TrainingService.StartEventAsync(id)); await LoadData(); }
+    private async Task CompleteEvent(Guid id){ Show(await TrainingService.CompleteEventAsync(id)); await LoadData(); }
+    private async Task CancelEvent(Guid id){ Show(await TrainingService.CancelEventAsync(id)); await LoadData(); }
+    private async Task SaveAttendee(){ attendeeModel.TrainingEventId = selectedEventId; Show(attendeeModel.Id == Guid.Empty ? await TrainingService.CreateAttendeeAsync(attendeeModel) : await TrainingService.UpdateAttendeeAsync(attendeeModel)); ResetAttendee(); await LoadData(); }
+    private async Task DeleteAttendee(Guid id){ Show(await TrainingService.DeleteAttendeeAsync(id)); await LoadAttendees(); }
+    private async Task MarkAttendance(Guid id, bool attended){ Show(await TrainingService.MarkAttendanceAsync(id, attended)); await LoadAttendees(); }
+    private async Task SaveResult(){ if (selectedAttendeeId == Guid.Empty) return; Show(await TrainingService.RecordResultAsync(selectedAttendeeId, resultModel)); await LoadAttendees(); }
+
+    private async Task CreateAndLinkCertification()
+    {
+        var attendee = SelectedAttendee;
+        if (attendee is null) return;
+        var certification = new EmployeeCertificationDto { EmployeeId = attendee.EmployeeId, CompanyId = companyId, Name = certificateModel.CertificateName ?? SelectedEvent?.Title ?? Text("Training Certificate", "شهادة تدريب"), Issuer = certificateModel.CertificateIssuer, IssuedAt = certificateModel.CertificateIssuedAt, ExpiresAt = certificateModel.CertificateExpiresAt };
+        var created = await EmployeeService.CreateCertificationAsync(attendee.EmployeeId, certification);
+        if (!created.IsSuccess || created.Data is null) { ToastService.ShowError(created.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not create employee certification.", "تعذر إنشاء شهادة الموظف.")); return; }
+        certificateModel.CertificationId = created.Data.Id;
+        certificateModel.CertificateName = created.Data.Name;
+        certificateModel.CertificateIssuer = created.Data.Issuer;
+        certificateModel.CertificateIssuedAt = created.Data.IssuedAt;
+        certificateModel.CertificateExpiresAt = created.Data.ExpiresAt;
+        await LinkCertificateOnly();
+    }
+
+    private async Task LinkCertificateOnly(){ if (selectedAttendeeId == Guid.Empty) return; Show(await TrainingService.LinkCertificateAsync(selectedAttendeeId, certificateModel)); await LoadAttendees(); }
+    private async Task SelectEvent(TrainingEventDto item){ selectedEventId = item.Id; selectedAttendeeId = Guid.Empty; ResetAttendee(); await LoadAttendees(); }
+    private void SelectAttendee(TrainingAttendeeDto item){ selectedAttendeeId = item.Id; attendeeModel = new() { Id = item.Id, TrainingEventId = item.TrainingEventId, EmployeeId = item.EmployeeId }; resultModel = new() { Attended = item.Attended, Passed = item.Passed, Score = item.Score, Feedback = item.Feedback }; certificateModel = new() { CertificationId = item.CertificationId, CertificateName = item.CertificateName, CertificateIssuer = item.CertificateIssuer, CertificateIssuedAt = item.CertificateIssuedAt, CertificateExpiresAt = item.CertificateExpiresAt }; }
+    private void EditProgram(TrainingProgramDto item) => programModel = new() { Id = item.Id, CompanyId = item.CompanyId, Name = item.Name, Category = item.Category, Provider = item.Provider, Objective = item.Objective, Description = item.Description };
+    private void EditEvent(TrainingEventDto item) => eventModel = new() { Id = item.Id, CompanyId = item.CompanyId, ProgramId = item.ProgramId, Title = item.Title, StartAt = item.StartAt, EndAt = item.EndAt, Capacity = item.Capacity };
+    private void EditAttendee(TrainingAttendeeDto item) => SelectAttendee(item);
+    private void ResetModels(){ ResetProgram(); ResetEvent(); ResetAttendee(); }
+    private void ResetProgram() => programModel = new() { CompanyId = companyId };
+    private void ResetEvent() => eventModel = new() { CompanyId = companyId, ProgramId = programs.FirstOrDefault()?.Id ?? Guid.Empty, StartAt = DateTime.Today, EndAt = DateTime.Today, Capacity = 20 };
+    private void ResetAttendee(){ attendeeModel = new() { TrainingEventId = selectedEventId }; resultModel = new(); certificateModel = new() { CertificateIssuedAt = DateTime.Today }; }
+    private void Show(ApiResult<TrainingActionResultDto> result){ if (result.IsSuccess) ToastService.ShowSuccess(result.Data?.Message ?? Text("Saved", "تم الحفظ")); else ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Action failed", "فشل الإجراء")); }
+    private bool Has(string permission) => user?.HasClaim("Permission", permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string EmployeeName(EmployeeDto item) => Text(item.FullNameEng, item.FullName);
+    private string EmployeeName(Guid id) => employees.FirstOrDefault(x => x.Id == id) is { } employee ? EmployeeName(employee) : id.ToString("N")[..8];
+    private string ProgramName(Guid id) => programs.FirstOrDefault(x => x.Id == id)?.Name ?? id.ToString("N")[..8];
+    private string EventStatusText(TrainingEventStatus status) => status.ToString();
+    private string AttendeeStatusText(TrainingAttendeeResultStatus status) => status.ToString();
+    private string StatusClass(TrainingEventStatus status) => status switch { TrainingEventStatus.Open => "text-bg-primary", TrainingEventStatus.InProgress => "text-bg-info", TrainingEventStatus.Completed => "text-bg-success", TrainingEventStatus.Cancelled => "text-bg-danger", _ => "text-bg-secondary" };
+    private string AttendeeStatusClass(TrainingAttendeeResultStatus status) => status switch { TrainingAttendeeResultStatus.Attended => "text-bg-info", TrainingAttendeeResultStatus.Passed => "text-bg-success", TrainingAttendeeResultStatus.Failed => "text-bg-danger", TrainingAttendeeResultStatus.Cancelled => "text-bg-secondary", _ => "text-bg-light text-dark" };
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

@@ -1,0 +1,315 @@
+﻿@layout AdminLayout
+@page "/HR/CommandCenter"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services
+@using AlAfkarERP.Shared.Pages.Features.Payroll.Services
+@using AlAfkarERP.Shared.Pages.Features.Performance.Services
+@using AlAfkarERP.Shared.Pages.Features.Recruitment.Services
+@using AlAfkarERP.Shared.Pages.Features.Training.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Attendance.Enums
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.HRCore.Dtos
+@using SharedWithUI.Leave.Dtos
+@using SharedWithUI.Payroll.Dtos
+@using SharedWithUI.Payroll.Enums
+@using SharedWithUI.Performance.Dtos
+@using SharedWithUI.Permissions
+@using SharedWithUI.Recruitment.Dtos
+@using SharedWithUI.Training.Dtos
+@using System.Security.Claims
+
+@inject IEmployeeService EmployeeService
+@inject IAttendanceService AttendanceService
+@inject ILeaveService LeaveService
+@inject IPayrollService PayrollService
+@inject IRecruitmentService RecruitmentService
+@inject IPerformanceService PerformanceService
+@inject ITrainingService TrainingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
+
+<div dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("HR Command Center", "مركز قيادة الموارد البشرية")"
+                Subtitle="@Text("Live HR workload and cross-module action queues composed from the current HR services.", "أحمال عمل الموارد البشرية وقوائم الإجراءات العابرة للوحدات من الخدمات الحالية.")"
+                Icon="bi-grid-1x2" />
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permission to view the HR command center.", "ليست لديك صلاحية عرض مركز قيادة الموارد البشرية.")</div>
+    }
+    else if (isLoading)
+    {
+        <div class="text-muted">@Text("Loading HR command center...", "جاري تحميل مركز قيادة الموارد البشرية...")</div>
+    }
+    else
+    {
+        @if (loadWarnings.Count > 0)
+        {
+            <div class="alert alert-warning d-flex gap-2 align-items-start">
+                <i class="bi bi-exclamation-triangle"></i>
+                <div>
+                    <div class="fw-semibold">@Text("Some modules could not be loaded", "تعذر تحميل بعض الوحدات")</div>
+                    <div class="small">@string.Join(" · ", loadWarnings.Select(x => $"{x}: {Text("Preview unavailable", "المعاينة غير متاحة")}"))</div>
+                </div>
+            </div>
+        }
+
+        @if (employeeCount > employeeHrScannedCount)
+        {
+            <div class="alert alert-info d-flex gap-2 align-items-start">
+                <i class="bi bi-info-circle"></i>
+                <div>
+                    <div class="fw-semibold">@Text("Employee HR queue sample", "عينة قائمة موارد الموظفين")</div>
+                    <div class="small">@Text($"Lifecycle and document queues are scanned for {employeeHrScannedCount:N0} of {employeeCount:N0} loaded employees until backend reporting read models are added.", $"يتم فحص قوائم دورة الحياة والمستندات لعدد {employeeHrScannedCount:N0} من أصل {employeeCount:N0} موظفا محملا إلى أن تتم إضافة نماذج قراءة التقارير الخلفية.")</div>
+                </div>
+            </div>
+        }
+
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Headcount", "عدد الموظفين")" Value="@employeeCount.ToString("N0")" Subtitle="@Text("Loaded employees", "الموظفون المحملون")" Icon="bi-people" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Pending Leave", "إجازات معلقة")" Value="@pendingLeave.Count.ToString("N0")" Subtitle="@Text("Submitted applications", "طلبات مرسلة")" Icon="bi-calendar-heart" Tone="warning" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Attendance Queue", "قائمة الحضور")" Value="@attendanceQueueCount.ToString("N0")" Subtitle="@Text("Corrections and draft entries", "تصحيحات وقيود مسودة")" Icon="bi-calendar-check" Tone="info" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Payroll Review", "مراجعة الرواتب")" Value="@payrollReviewCount.ToString("N0")" Subtitle="@Text("Entries and payslips", "قيود ومسيرات")" Icon="bi-cash-stack" Tone="success" /></div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Lifecycle", "دورة الحياة")" Value="@openLifecycle.Count.ToString("N0")" Subtitle="@Text("Open employee events", "أحداث موظفين مفتوحة")" Icon="bi-signpost-split" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Renewal Docs", "مستندات تحتاج تجديد")" Value="@expiringDocuments.Count.ToString("N0")" Subtitle="@Text("Requires renewal", "تحتاج تجديد")" Icon="bi-file-earmark-text" Tone="warning" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Recruitment", "التوظيف")" Value="@openRequisitions.Count.ToString("N0")" Subtitle="@Text("Open requisitions", "طلبات مفتوحة")" Icon="bi-person-plus" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Talent", "المواهب")" Value="@talentQueueCount.ToString("N0")" Subtitle="@Text("Training and appraisals", "تدريب وتقييمات")" Icon="bi-mortarboard" Tone="info" /></div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-xl-4">
+                <AppCard Title="@Text("Employee Actions", "إجراءات الموظفين")" CssClass="h-100" Actions="@OpenEmployeesActions">
+                    @if (openLifecycle.Count == 0 && expiringDocuments.Count == 0)
+                    {
+                        <EmptyState Title="@Text("No employee action items", "لا توجد إجراءات موظفين")" Message="@Text("Lifecycle events and expiring HR documents will appear here.", "ستظهر هنا أحداث دورة الحياة والمستندات القريبة من الانتهاء.")" Icon="bi-check2-circle" />
+                    }
+                    else
+                    {
+                        @foreach (var item in openLifecycle.Take(5))
+                        {
+                            <div class="border-bottom py-2"><div class="fw-semibold">@EmployeeName(item.EmployeeId)</div><div class="text-muted small">@item.EventType · @item.Status · @item.EffectiveDate.ToShortDateString()</div></div>
+                        }
+                        @foreach (var item in expiringDocuments.Take(5))
+                        {
+                            <div class="border-bottom py-2"><div class="fw-semibold">@item.Title</div><div class="text-muted small">@EmployeeName(item.EmployeeId) · @item.ExpiryDate?.ToShortDateString()</div></div>
+                        }
+                        <div class="d-flex flex-wrap gap-2 mt-3">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="OpenLifecycle"><i class="bi bi-signpost-split"></i> @Text("Lifecycle", "دورة الحياة")</button>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="OpenDocuments"><i class="bi bi-file-earmark-text"></i> @Text("Documents", "المستندات")</button>
+                        </div>
+                    }
+                </AppCard>
+            </div>
+            <div class="col-xl-4">
+                <AppCard Title="@Text("Attendance and Leave", "الحضور والإجازات")" CssClass="h-100" Actions="@OpenAttendanceActions">
+                    @if (pendingLeave.Count == 0 && pendingCorrections.Count == 0 && draftWorkEntries.Count == 0)
+                    {
+                        <EmptyState Title="@Text("No attendance or leave workload", "لا توجد أعمال حضور أو إجازات")" Message="@Text("Pending leave, corrections, and draft work entries will appear here.", "ستظهر هنا الإجازات المعلقة والتصحيحات وقيود العمل المسودة.")" Icon="bi-calendar2-check" />
+                    }
+                    else
+                    {
+                        @foreach (var item in pendingLeave.Take(5))
+                        {
+                            <div class="border-bottom py-2"><div class="fw-semibold">@EmployeeName(item.EmployeeId)</div><div class="text-muted small">@item.StartDate.ToShortDateString() - @item.EndDate.ToShortDateString() · @item.Status</div></div>
+                        }
+                        @foreach (var item in pendingCorrections.Take(3))
+                        {
+                            <div class="border-bottom py-2"><div class="fw-semibold">@EmployeeName(item.EmployeeId)</div><div class="text-muted small">@Text("Correction", "تصحيح") · @item.WorkDate.ToShortDateString() · @item.Status</div></div>
+                        }
+                        <div class="d-flex flex-wrap gap-2 mt-3">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="OpenLeaveApplications"><i class="bi bi-calendar-heart"></i> @Text("Leave", "الإجازات")</button>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="OpenAttendanceRoster"><i class="bi bi-calendar-check"></i> @Text("Corrections", "التصحيحات")</button>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="OpenWorkEntries"><i class="bi bi-clock-history"></i> @Text("Work entries", "قيود العمل")</button>
+                        </div>
+                    }
+                </AppCard>
+            </div>
+            <div class="col-xl-4">
+                <AppCard Title="@Text("Payroll and Talent", "الرواتب والمواهب")" CssClass="h-100" Actions="@OpenPayrollActions">
+                    @if (payrollEntries.Count == 0 && openRequisitions.Count == 0 && activeTraining.Count == 0 && appraisalQueue.Count == 0)
+                    {
+                        <EmptyState Title="@Text("No payroll or talent workload", "لا توجد أعمال رواتب أو مواهب")" Message="@Text("Payroll review, recruitment, training, and appraisal items will appear here.", "ستظهر هنا مراجعات الرواتب والتوظيف والتدريب والتقييم.")" Icon="bi-stars" />
+                    }
+                    else
+                    {
+                        @foreach (var item in payrollEntries.Where(x => x.Status != PayrollEntryStatus.Closed && x.Status != PayrollEntryStatus.Cancelled).Take(3))
+                        {
+                            <div class="border-bottom py-2"><div class="fw-semibold">@item.PeriodName</div><div class="text-muted small">@item.Status · @item.NetAmount.ToString("N2")</div></div>
+                        }
+                        @foreach (var item in openRequisitions.Take(3))
+                        {
+                            <div class="border-bottom py-2"><div class="fw-semibold">@item.Title</div><div class="text-muted small">@item.Openings @Text("openings", "شواغر") · @item.Status</div></div>
+                        }
+                        @foreach (var item in activeTraining.Take(3))
+                        {
+                            <div class="border-bottom py-2"><div class="fw-semibold">@item.Title</div><div class="text-muted small">@item.StartAt.ToShortDateString() · @item.Status</div></div>
+                        }
+                        <div class="d-flex flex-wrap gap-2 mt-3">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="OpenPayslips"><i class="bi bi-cash-stack"></i> @Text("Payroll", "الرواتب")</button>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="OpenRecruitment"><i class="bi bi-person-plus"></i> @Text("Recruitment", "التوظيف")</button>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="OpenTraining"><i class="bi bi-award"></i> @Text("Training", "التدريب")</button>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="OpenPerformance"><i class="bi bi-graph-up-arrow"></i> @Text("Performance", "الأداء")</button>
+                        </div>
+                    }
+                </AppCard>
+            </div>
+        </div>
+
+        <AppCard Title="@Text("Command Shortcuts", "اختصارات القيادة")" CssClass="mt-3">
+            <div class="row g-2">
+                @foreach (var link in commandLinks)
+                {
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <button type="button" class="btn btn-outline-primary w-100 text-start" @onclick="() => Go(link.Url)"><i class="bi @link.Icon"></i> @Text(link.En, link.Ar)</button>
+                    </div>
+                }
+            </div>
+        </AppCard>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private const int EmployeeHrScanLimit = 100;
+    private bool isLoading = true;
+    private ClaimsPrincipal? user;
+    private int employeeCount;
+    private int employeeHrScannedCount;
+    private readonly List<string> loadWarnings = [];
+    private List<EmployeeDto> employees = [];
+    private List<HrLifecycleEventDto> openLifecycle = [];
+    private List<EmployeeDocumentLinkDto> expiringDocuments = [];
+    private List<LeaveApplicationDto> pendingLeave = [];
+    private List<AttendanceCorrectionDto> pendingCorrections = [];
+    private List<PayrollWorkEntryDto> draftWorkEntries = [];
+    private List<PayrollEntryDto> payrollEntries = [];
+    private List<PayslipDto> payslips = [];
+    private List<JobRequisitionDto> openRequisitions = [];
+    private List<TrainingEventDto> activeTraining = [];
+    private List<EmployeeAppraisalDto> appraisalQueue = [];
+
+    private bool CanView => Has(PermissionList.EmployeeLifecyclePermissions.Select);
+    private int attendanceQueueCount => pendingCorrections.Count + draftWorkEntries.Count;
+    private int payrollReviewCount => payrollEntries.Count(x => x.Status is PayrollEntryStatus.Draft or PayrollEntryStatus.Generated or PayrollEntryStatus.Approved) + payslips.Count(x => x.Status is PayslipStatus.Draft or PayslipStatus.Calculated or PayslipStatus.Approved);
+    private int talentQueueCount => activeTraining.Count + appraisalQueue.Count(x => x.Status is PerformanceWorkflowStatus.Draft or PerformanceWorkflowStatus.InProgress or PerformanceWorkflowStatus.PendingApproval);
+
+    private RenderFragment OpenEmployeesActions => @<button class="btn btn-sm btn-outline-primary" @onclick="OpenLifecycle">@Text("Open", "فتح")</button>;
+    private RenderFragment OpenAttendanceActions => @<button class="btn btn-sm btn-outline-primary" @onclick="OpenLeaveApplications">@Text("Open", "فتح")</button>;
+    private RenderFragment OpenPayrollActions => @<button class="btn btn-sm btn-outline-primary" @onclick="OpenPayslips">@Text("Open", "فتح")</button>;
+
+    private readonly List<CommandLink> commandLinks =
+    [
+        new("Lifecycle", "دورة الحياة", "/HR/EmployeeLifecycle", "bi-signpost-split"),
+        new("Employee 360", "عرض الموظف 360", "/HR/Reports", "bi-person-vcard"),
+        new("Documents", "المستندات", "/HR/EmployeeDocuments", "bi-file-earmark-text"),
+        new("Leave", "الإجازات", "/HR/LeaveApplications", "bi-calendar-heart"),
+        new("Attendance", "الحضور", "/HR/AttendanceRoster", "bi-calendar-check"),
+        new("Work Entries", "قيود العمل", "/HR/WorkEntries", "bi-clock-history"),
+        new("Payslips", "مسيرات الرواتب", "/HR/Payslips", "bi-cash-stack"),
+        new("Recruitment", "التوظيف", "/HR/Recruitment", "bi-person-plus"),
+        new("Training", "التدريب", "/HR/Training", "bi-award"),
+        new("Performance", "الأداء", "/HR/Performance", "bi-graph-up-arrow"),
+        new("Reports", "التقارير", "/HR/Reports", "bi-bar-chart-line")
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        user = auth.User;
+        CompanyContext.TryGetCompanyId(auth.User, out companyId);
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        if (companyId == Guid.Empty || !CanView) { isLoading = false; return; }
+        isLoading = true;
+        loadWarnings.Clear();
+        openLifecycle.Clear();
+        expiringDocuments.Clear();
+        employeeHrScannedCount = 0;
+        await LoadEmployees();
+        await LoadEmployeeQueues();
+        await SafeLoad(Text("Leave", "الإجازات"), async () => pendingLeave = (await LeaveService.GetLeaveApplicationsAsync(companyId, status: LeaveApplicationStatus.Submitted)).Data ?? []);
+        await SafeLoad(Text("Attendance", "الحضور"), async () =>
+        {
+            pendingCorrections = (await AttendanceService.GetAttendanceCorrectionsAsync(companyId, AttendanceExceptionStatus.Pending)).Data ?? [];
+            draftWorkEntries = (await AttendanceService.GetAttendanceWorkEntriesAsync(companyId, status: AttendanceWorkEntryStatus.Draft)).Data ?? [];
+        });
+        await SafeLoad(Text("Payroll", "الرواتب"), async () =>
+        {
+            payrollEntries = (await PayrollService.GetPayrollEntriesAsync(companyId)).Data ?? [];
+            payslips = (await PayrollService.GetPayslipsAsync(companyId)).Data ?? [];
+        });
+        await SafeLoad(Text("Recruitment", "التوظيف"), async () => openRequisitions = (await RecruitmentService.GetJobRequisitionsAsync(companyId, RecruitmentRequestStatus.Open)).Data ?? []);
+        await SafeLoad(Text("Talent", "المواهب"), async () =>
+        {
+            activeTraining = (await TrainingService.GetEventsAsync(companyId, status: TrainingEventStatus.Open)).Data ?? [];
+            activeTraining.AddRange((await TrainingService.GetEventsAsync(companyId, status: TrainingEventStatus.InProgress)).Data ?? []);
+            appraisalQueue = (await PerformanceService.GetEvaluationsAsync(companyId)).Data ?? [];
+        });
+        isLoading = false;
+    }
+
+    private async Task LoadEmployees()
+    {
+        await SafeLoad(Text("Employees", "الموظفون"), async () =>
+        {
+            var result = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 100);
+            employeeCount = (int)(result.Data?.Count ?? 0);
+            employees = result.Data?.Data?.ToList() ?? [];
+        });
+    }
+
+    private async Task LoadEmployeeQueues()
+    {
+        var scannedEmployees = employees.Take(EmployeeHrScanLimit).ToList();
+        employeeHrScannedCount = scannedEmployees.Count;
+        foreach (var employee in scannedEmployees)
+        {
+            await SafeLoad(Text("Employee HR", "موارد الموظف"), async () =>
+            {
+                var lifecycle = (await EmployeeService.GetLifecycleEventsAsync(employee.Id)).Data ?? [];
+                openLifecycle.AddRange(lifecycle.Where(x => x.Status is HrLifecycleEventStatus.Draft or HrLifecycleEventStatus.Submitted or HrLifecycleEventStatus.Approved));
+                var docs = (await EmployeeService.GetDocumentLinksAsync(employee.Id)).Data ?? [];
+                expiringDocuments.AddRange(docs.Where(x => x.RequiresRenewal));
+            }, suppressDuplicate: true);
+        }
+    }
+
+    private async Task SafeLoad(string label, Func<Task> action, bool suppressDuplicate = false)
+    {
+        try { await action(); }
+        catch { if (!suppressDuplicate || !loadWarnings.Contains(label)) loadWarnings.Add(label); }
+    }
+
+    private bool Has(string permission) => user?.HasClaim("Permission", permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string EmployeeName(Guid id) => employees.FirstOrDefault(x => x.Id == id) is { } employee ? Text(employee.FullNameEng, employee.FullName) : id.ToString("N")[..8];
+    private void OpenLifecycle() => Go("/HR/EmployeeLifecycle");
+    private void OpenDocuments() => Go("/HR/EmployeeDocuments");
+    private void OpenLeaveApplications() => Go("/HR/LeaveApplications");
+    private void OpenAttendanceRoster() => Go("/HR/AttendanceRoster");
+    private void OpenWorkEntries() => Go("/HR/WorkEntries");
+    private void OpenPayslips() => Go("/HR/Payslips");
+    private void OpenRecruitment() => Go("/HR/Recruitment");
+    private void OpenTraining() => Go("/HR/Training");
+    private void OpenPerformance() => Go("/HR/Performance");
+    private void Go(string url) => NavigationManager.NavigateTo(url);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+
+    private sealed record CommandLink(string En, string Ar, string Url, string Icon);
+}

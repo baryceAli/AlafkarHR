@@ -19,10 +19,12 @@ using Organization;
 using Orders;
 using Payroll;
 using Payments;
+using PerformanceManagement;
 using Pricing;
 using Procurement;
 using ProjectManagement;
 using RealEstate;
+using Recruitment;
 using Sales;
 using SalesOrder;
 using StoreFront;
@@ -30,6 +32,7 @@ using Shared.Exceptions.Handler;
 using Shared.Extentions;
 using SuppliersModule;
 using TaskManagement;
+using Training;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,6 +74,9 @@ var realEstateAssembly = typeof(RealEstateModule).Assembly;
 var salesAssembly = typeof(SalesModule).Assembly;
 var storeFrontAssembly = typeof(StoreFrontModule).Assembly;
 var payrollAssembly = typeof(PayrollModule).Assembly;
+var performanceManagementAssembly = typeof(PerformanceManagementModule).Assembly;
+var recruitmentAssembly = typeof(RecruitmentModule).Assembly;
+var trainingAssembly = typeof(TrainingModule).Assembly;
 var taskManagementAssembly = typeof(TaskManagementModule).Assembly;
 var maintenanceAssembly = typeof(MaintenanceModule).Assembly;
 var mediaCenterAssembly = typeof(MediaCenterModule).Assembly;
@@ -102,6 +108,9 @@ builder.Services.AddCarterWithAssemblies(
                         salesAssembly,
                         storeFrontAssembly,
                         payrollAssembly,
+                        performanceManagementAssembly,
+                        recruitmentAssembly,
+                        trainingAssembly,
                         taskManagementAssembly,
                         maintenanceAssembly,
                         mediaCenterAssembly,
@@ -137,6 +146,9 @@ builder.Services.AddMediatRWithAssemblies(
                         salesAssembly,
                         storeFrontAssembly,
                         payrollAssembly,
+                        performanceManagementAssembly,
+                        recruitmentAssembly,
+                        trainingAssembly,
                         taskManagementAssembly,
                         maintenanceAssembly,
                         mediaCenterAssembly,
@@ -176,6 +188,9 @@ builder.Services
         .AddProjectManagementModule(builder.Configuration)
         .AddRealEstateModule(builder.Configuration)
         .AddPayrollModule(builder.Configuration)
+        .AddPerformanceManagementModule(builder.Configuration)
+        .AddRecruitmentModule(builder.Configuration)
+        .AddTrainingModule(builder.Configuration)
         .AddTaskManagementModule(builder.Configuration)
         .AddMaintenanceModule(builder.Configuration)
         .AddMediaCenterModule(builder.Configuration)
@@ -230,6 +245,9 @@ app
     .UseProjectManagementModule(app.Environment)
     .UseRealEstateModule(app.Environment)
     .UsePayrollModule(app.Environment)
+    .UsePerformanceManagementModule(app.Environment)
+    .UseRecruitmentModule(app.Environment)
+    .UseTrainingModule(app.Environment)
     .UseTaskManagementModule(app.Environment)
     .UseMaintenanceModule(app.Environment)
     .UseMediaCenterModule(app.Environment)

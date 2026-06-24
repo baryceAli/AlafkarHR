@@ -99,8 +99,12 @@ public class EmployeeDto
     public string PositionName { get; set; }
     //public Position Position { get; private set; }
 
-    //public Guid? ManagerId { get; set; }
-    //public string? ManagerName { get; set; }
+    public Guid? ManagerEmployeeId { get; set; }
+    public string? ManagerName { get; set; }
+    public string? ManagerNameEng { get; set; }
+    public string? Grade { get; set; }
+    public string? WorkLocation { get; set; }
+    public Guid? LinkedUserId { get; set; }
     //public Employee? Manager { get; private set; }
 
     // 🔐 System
