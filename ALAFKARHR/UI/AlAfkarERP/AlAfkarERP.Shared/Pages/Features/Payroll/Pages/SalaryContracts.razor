@@ -24,16 +24,23 @@
     return;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3" dir="@SharedDataService.PageDirection">
-    <h5 class="text-black mb-0">@SharedDataService.SelectViewLang("Salary Contracts", "عقود الرواتب")</h5>
-    <button class="btn btn-primary" @onclick="CreateNew" disabled="@(!CanCreate)">
-        <i class="bi bi-plus-lg"></i> @SharedDataService.SelectViewLang("New Contract", "عقد جديد")
-    </button>
-</div>
+<section class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Salary Contracts", "عقود الرواتب")"
+                Subtitle="@SharedDataService.SelectViewLang("Create and maintain reusable salary contract templates and their payroll components.", "إنشاء وإدارة قوالب عقود الرواتب ومكوناتها.")"
+                Overline="@SharedDataService.SelectViewLang("Payroll", "الرواتب")"
+                Icon="bi-file-earmark-text">
+        <Actions>
+            <button class="btn btn-primary" @onclick="CreateNew" disabled="@(!CanCreate)">
+                <i class="bi bi-plus-lg"></i> @SharedDataService.SelectViewLang("New Contract", "عقد جديد")
+            </button>
+        </Actions>
+    </PageHeader>
 
 @if (editingContract is not null)
 {
-    <div class="border rounded p-3 mb-3 bg-light">
+    <AppCard Title="@SharedDataService.SelectViewLang("Contract Details", "تفاصيل العقد")"
+             Subtitle="@SharedDataService.SelectViewLang("Edit salary contract identity, percentages, and component values.", "تعديل بيانات عقد الراتب والنسب وقيم المكونات.")"
+             CssClass="mb-3">
         <EditForm Model="editingContract" OnValidSubmit="SaveContract">
             <DataAnnotationsValidator />
             <ValidationSummary />
@@ -67,12 +74,12 @@
                 </button>
             </div>
 
-                    <div class="d-flex justify-content-end mb-2">
-            <TableExportActions />
-        </div>
+            <div class="erp-table-toolbar">
+                <TableExportActions />
+            </div>
 
-
-            <table class="table table-sm align-middle">
+            <div class="erp-table-wrap mb-3">
+            <table class="table erp-table align-middle mb-0">
                 <thead>
                     <tr>
                         <th>@SharedDataService.SelectViewLang("Component", "المكون")</th>
@@ -110,31 +117,20 @@
                     }
                 </tbody>
             </table>
+            </div>
 
             <div class="row g-2 mb-3">
                 <div class="col-md-3">
-                    <div class="border rounded p-2 bg-white">
-                        <div class="text-muted small">@SharedDataService.SelectViewLang("Basic", "الأساسي")</div>
-                        <div class="fw-semibold">@ContractBasicTotal.ToString("N2")</div>
-                    </div>
+                    <StatsCard Title="@SharedDataService.SelectViewLang("Basic", "الأساسي")" Value="@ContractBasicTotal.ToString("N2")" Icon="bi-cash" Tone="primary" />
                 </div>
                 <div class="col-md-3">
-                    <div class="border rounded p-2 bg-white">
-                        <div class="text-muted small">@SharedDataService.SelectViewLang("Allowances", "البدلات")</div>
-                        <div class="fw-semibold text-success">@ContractAllowanceTotal.ToString("N2")</div>
-                    </div>
+                    <StatsCard Title="@SharedDataService.SelectViewLang("Allowances", "البدلات")" Value="@ContractAllowanceTotal.ToString("N2")" Icon="bi-plus-circle" Tone="success" />
                 </div>
                 <div class="col-md-3">
-                    <div class="border rounded p-2 bg-white">
-                        <div class="text-muted small">@SharedDataService.SelectViewLang("Deductions", "الاستقطاعات")</div>
-                        <div class="fw-semibold text-danger">@ContractDeductionTotal.ToString("N2")</div>
-                    </div>
+                    <StatsCard Title="@SharedDataService.SelectViewLang("Deductions", "الاستقطاعات")" Value="@ContractDeductionTotal.ToString("N2")" Icon="bi-dash-circle" Tone="danger" />
                 </div>
                 <div class="col-md-3">
-                    <div class="border rounded p-2 bg-white">
-                        <div class="text-muted small">@SharedDataService.SelectViewLang("Total Salary", "إجمالي الراتب")</div>
-                        <div class="fw-bold">@ContractTotalSalary.ToString("N2")</div>
-                    </div>
+                    <StatsCard Title="@SharedDataService.SelectViewLang("Total Salary", "إجمالي الراتب")" Value="@ContractTotalSalary.ToString("N2")" Icon="bi-wallet2" Tone="info" />
                 </div>
             </div>
 
@@ -147,10 +143,11 @@
                 </button>
             </div>
         </EditForm>
-    </div>
+    </AppCard>
 }
 
-<div class="border rounded p-3">
+<AppCard Title="@SharedDataService.SelectViewLang("Contracts", "العقود")"
+         Subtitle="@SharedDataService.SelectViewLang("Search and maintain salary contract templates.", "البحث وإدارة قوالب عقود الرواتب.")">
     <div class="row g-2 align-items-center mb-3">
         <div class="col-md-4">
             <input class="form-control" placeholder="@SharedDataService.SelectViewLang("Search", "بحث")" @bind="searchText" @bind:event="oninput" />
@@ -162,12 +159,12 @@
         </div>
     </div>
 
-            <div class="d-flex justify-content-end mb-2">
+            <div class="erp-table-toolbar">
             <TableExportActions />
         </div>
 
-
-    <table class="table table-sm align-middle">
+    <div class="erp-table-wrap">
+    <table class="table erp-table align-middle mb-0">
         <thead>
             <tr>
                 <th>@SharedDataService.SelectViewLang("Contract", "العقد")</th>
@@ -213,7 +210,9 @@
             }
         </tbody>
     </table>
-</div>
+    </div>
+</AppCard>
+</section>
 
 @code {
     private AuthenticationState? AuthState;

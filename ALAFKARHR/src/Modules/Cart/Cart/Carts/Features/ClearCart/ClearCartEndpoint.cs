@@ -13,6 +13,6 @@ public class ClearCartEndpoint : ICarterModule
         })
         .WithName("ClearCart")
         .Produces<ClearCartResponse>(StatusCodes.Status200OK)
-        .RequireAuthorization(PermissionList.CartPermissions.Edit);
+        .RequireAuthorization();
     }
 }

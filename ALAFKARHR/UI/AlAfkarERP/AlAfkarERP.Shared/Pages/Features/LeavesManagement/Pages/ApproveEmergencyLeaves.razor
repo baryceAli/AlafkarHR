@@ -17,24 +17,25 @@
 @inject SharedDataService SharedDataService
 
 <section class="erp-page" dir="@SharedDataService.PageDirection">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
-        <div>
-            <p class="text-muted mb-1">@Text("Leave Management", "Leave Management")</p>
-            <h3 class="mb-1">@Text("Approve Emergency Leave", "Approve Emergency Leave")</h3>
-            <p class="text-muted mb-0">@Text("Review emergency leave requests in your approval scope.", "Review emergency leave requests in your approval scope.")</p>
-        </div>
-        <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">
-            <i class="bi bi-arrow-clockwise me-1"></i>@Text("Refresh", "Refresh")
-        </button>
-    </div>
+    <PageHeader Title="@Text("Approve Emergency Leave", "Approve Emergency Leave")"
+                Subtitle="@Text("Review emergency leave requests in your approval scope.", "Review emergency leave requests in your approval scope.")"
+                Overline="@Text("Leave Management", "Leave Management")"
+                Icon="bi-patch-check">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="LoadAsync" disabled="@isBusy">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "Refresh")
+            </button>
+        </Actions>
+    </PageHeader>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <div class="alert @messageClass">@message</div>
     }
 
-    <div class="card">
-        <div class="card-body">
+    <AppCard Title="@Text("Approval Queue", "Approval Queue")"
+             Subtitle="@Text("Filter requests, add a review note, and approve or reject pending items.", "Filter requests, add a review note, and approve or reject pending items.")">
             <div class="row g-3 align-items-end mb-3">
                 <div class="col-md-3">
                     <label class="form-label">@Text("Status", "Status")</label>
@@ -63,24 +64,26 @@
 
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <span class="text-muted small">@Text("Total", "Total"): @totalCount</span>
-                <span class="badge text-bg-warning">@Text("Pending in this page", "Pending in this page"): @requests.Count(x => x.Status == AttendanceExceptionStatus.Pending)</span>
+                <StatusChip Text="@PendingPageText" Tone="warning" />
             </div>
 
             @if (isBusy)
             {
-                <div class="text-muted py-4">@Text("Loading emergency leave requests...", "Loading emergency leave requests...")</div>
+                <div class="erp-loading py-4">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <div class="mt-2">@Text("Loading emergency leave requests...", "Loading emergency leave requests...")</div>
+                </div>
             }
             else if (requests.Count == 0)
             {
-                <div class="text-center text-muted py-5">
-                    <i class="bi bi-check2-circle fs-3 d-block mb-2"></i>
-                    @Text("No emergency leave requests are available for the selected filters.", "No emergency leave requests are available for the selected filters.")
-                </div>
+                <EmptyState Title="@Text("No emergency leave requests", "No emergency leave requests")"
+                            Message="@Text("No emergency leave requests are available for the selected filters.", "No emergency leave requests are available for the selected filters.")"
+                            Icon="bi-check2-circle" />
             }
             else
             {
-                <div class="table-responsive">
-                    <table class="table align-middle">
+                <div class="erp-table-wrap">
+                    <table class="table erp-table align-middle mb-0">
                         <thead>
                             <tr>
                                 <th>@Text("Employee", "Employee")</th>
@@ -99,7 +102,7 @@
                                     <td>@EmployeeName(request.EmployeeId)</td>
                                     <td>@FormatDate(request.StartDate) - @FormatDate(request.EndDate)</td>
                                     <td>@request.Reason</td>
-                                    <td><span class="badge rounded-pill @StatusBadgeClass(request.Status)">@Text(request.Status.ToString(), request.Status.ToString())</span></td>
+                                    <td><StatusChip Text="@Text(request.Status.ToString(), request.Status.ToString())" Tone="@StatusTone(request.Status)" /></td>
                                     <td>
                                         @if (!string.IsNullOrWhiteSpace(request.AttachmentPath))
                                         {
@@ -146,8 +149,7 @@
                     </div>
                 </div>
             }
-        </div>
-    </div>
+    </AppCard>
 </section>
 
 @code {
@@ -164,6 +166,7 @@
     private int pageIndex;
     private long totalCount;
     private int TotalPages => Math.Max(1, (int)Math.Ceiling(totalCount / (double)PageSize));
+    private string PendingPageText => $"{Text("Pending in this page", "Pending in this page")}: {requests.Count(x => x.Status == AttendanceExceptionStatus.Pending)}";
 
     protected override void OnInitialized()
     {
@@ -265,11 +268,11 @@
     private string EmployeeName(EmployeeDto employee)
         => SharedDataService.SelectViewLang(employee.FullNameEng, employee.FullName);
 
-    private static string StatusBadgeClass(AttendanceExceptionStatus status) => status switch
+    private static string StatusTone(AttendanceExceptionStatus status) => status switch
     {
-        AttendanceExceptionStatus.Approved => "text-bg-success",
-        AttendanceExceptionStatus.Rejected => "text-bg-danger",
-        _ => "text-bg-warning"
+        AttendanceExceptionStatus.Approved => "success",
+        AttendanceExceptionStatus.Rejected => "danger",
+        _ => "warning"
     };
 
     private static string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;

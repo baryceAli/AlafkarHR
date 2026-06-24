@@ -15,24 +15,26 @@
 @inject SharedDataService SharedDataService
 
 <section class="erp-page" dir="@SharedDataService.PageDirection">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
-        <div>
-            <p class="text-muted mb-1">@Text("Leave Management", "Leave Management")</p>
-            <h3 class="mb-1">@Text("My Emergency Leaves", "My Emergency Leaves")</h3>
-            <p class="text-muted mb-0">@Text("Submit emergency leave requests and follow their approval status.", "Submit emergency leave requests and follow their approval status.")</p>
-        </div>
-        <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">
-            <i class="bi bi-arrow-clockwise me-1"></i>@Text("Refresh", "Refresh")
-        </button>
-    </div>
+    <PageHeader Title="@Text("My Emergency Leaves", "My Emergency Leaves")"
+                Subtitle="@Text("Submit emergency leave requests and follow their approval status.", "Submit emergency leave requests and follow their approval status.")"
+                Overline="@Text("Leave Management", "Leave Management")"
+                Icon="bi-calendar-heart">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="LoadAsync" disabled="@isBusy">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "Refresh")
+            </button>
+        </Actions>
+    </PageHeader>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <div class="alert @messageClass">@message</div>
     }
 
-    <div class="card mb-3">
-        <div class="card-body">
+    <AppCard Title="@Text("Submit Emergency Leave", "Submit Emergency Leave")"
+             Subtitle="@Text("Capture the dates, reason, and optional supporting attachment.", "Capture the dates, reason, and optional supporting attachment.")"
+             CssClass="mb-3">
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label">@Text("Start", "Start")</label>
@@ -63,11 +65,10 @@
                     <textarea class="form-control" rows="2" @bind="createModel.Reason"></textarea>
                 </div>
             </div>
-        </div>
-    </div>
+    </AppCard>
 
-    <div class="card">
-        <div class="card-body">
+    <AppCard Title="@Text("Requests", "Requests")"
+             Subtitle="@Text("Filter and review your submitted emergency leave requests.", "Filter and review your submitted emergency leave requests.")">
             <div class="row g-3 align-items-end mb-3">
                 <div class="col-md-4">
                     <label class="form-label">@Text("Status", "Status")</label>
@@ -85,19 +86,21 @@
 
             @if (isBusy)
             {
-                <div class="text-muted py-4">@Text("Loading emergency leave requests...", "Loading emergency leave requests...")</div>
+                <div class="erp-loading py-4">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <div class="mt-2">@Text("Loading emergency leave requests...", "Loading emergency leave requests...")</div>
+                </div>
             }
             else if (requests.Count == 0)
             {
-                <div class="text-center text-muted py-5">
-                    <i class="bi bi-calendar-heart fs-3 d-block mb-2"></i>
-                    @Text("No emergency leave requests found.", "No emergency leave requests found.")
-                </div>
+                <EmptyState Title="@Text("No emergency leave requests", "No emergency leave requests")"
+                            Message="@Text("Submitted emergency leave requests will appear here.", "Submitted emergency leave requests will appear here.")"
+                            Icon="bi-calendar-heart" />
             }
             else
             {
-                <div class="table-responsive">
-                    <table class="table align-middle">
+                <div class="erp-table-wrap">
+                    <table class="table erp-table align-middle mb-0">
                         <thead>
                             <tr>
                                 <th>@Text("Dates", "Dates")</th>
@@ -113,7 +116,7 @@
                                 <tr>
                                     <td>@FormatDate(request.StartDate) - @FormatDate(request.EndDate)</td>
                                     <td>@request.Reason</td>
-                                    <td><span class="badge rounded-pill @StatusBadgeClass(request.Status)">@Text(request.Status.ToString(), request.Status.ToString())</span></td>
+                                    <td><StatusChip Text="@Text(request.Status.ToString(), request.Status.ToString())" Tone="@StatusTone(request.Status)" /></td>
                                     <td>
                                         @if (!string.IsNullOrWhiteSpace(request.AttachmentPath))
                                         {
@@ -143,8 +146,7 @@
                     </div>
                 </div>
             }
-        </div>
-    </div>
+    </AppCard>
 </section>
 
 @code {
@@ -278,11 +280,11 @@
         return Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
     }
 
-    private static string StatusBadgeClass(AttendanceExceptionStatus status) => status switch
+    private static string StatusTone(AttendanceExceptionStatus status) => status switch
     {
-        AttendanceExceptionStatus.Approved => "text-bg-success",
-        AttendanceExceptionStatus.Rejected => "text-bg-danger",
-        _ => "text-bg-warning"
+        AttendanceExceptionStatus.Approved => "success",
+        AttendanceExceptionStatus.Rejected => "danger",
+        _ => "warning"
     };
 
     private static string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;

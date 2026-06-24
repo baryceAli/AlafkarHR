@@ -13,22 +13,25 @@
 @inject SharedDataService SharedDataService
 
 <section class="erp-page" dir="@SharedDataService.PageDirection">
-    <div class="d-flex justify-content-between align-items-start mb-3">
-        <div>
-            <p class="text-muted mb-1">@Text("Attendance", "الحضور والانصراف")</p>
-            <h3 class="mb-1">@Text("Permission Requests", "طلبات الاذن")</h3>
-            <p class="text-muted mb-0">@Text("Permission is requested for a time window inside one working day.", "يتم طلب الاذن لفترة زمنية داخل يوم عمل واحد.")</p>
-        </div>
-        <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">@Text("Refresh", "تحديث")</button>
-    </div>
+    <PageHeader Title="@Text("Permission Requests", "طلبات الإذن")"
+                Subtitle="@Text("Permission is requested for a time window inside one working day.", "يتم طلب الإذن لفترة زمنية داخل يوم عمل واحد.")"
+                Overline="@Text("Attendance", "الحضور والانصراف")"
+                Icon="bi-clock-history">
+        <Actions>
+            <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+        </Actions>
+    </PageHeader>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <div class="alert @messageClass">@message</div>
     }
 
-    <div class="card mb-3">
-        <div class="card-body">
+    <div class="erp-card mb-3">
+        <div class="erp-card-body">
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">@Text("Working date", "تاريخ يوم العمل")</label>
@@ -57,9 +60,9 @@
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-body table-responsive">
-            <table class="table align-middle">
+    <div class="erp-card">
+        <div class="erp-table-wrap">
+            <table class="table erp-table align-middle mb-0">
                 <thead>
                     <tr>
                         <th>@Text("Employee", "الموظف")</th>

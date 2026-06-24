@@ -2,6 +2,7 @@ using Orders.Contracts.Orders.Features.SubmitOrderIntake;
 using Payments.Contracts.Payments.Features.ConfirmCheckoutPayment;
 using Pricing.Contracts.Pricings.Features.ResolvePrice;
 using Sales.Contracts.Sales.Features.CreatePosDirectSale;
+using Cart.Carts.Features;
 
 namespace Cart.Carts.Features.CheckoutCart;
 
@@ -17,13 +18,20 @@ public record CheckoutCartResult(
     Guid? AccountingDocumentId,
     Guid? ZatcaEInvoiceId);
 
-public class CheckoutCartHandler(CartDbContext dbContext, ISender sender)
+public class CheckoutCartHandler(CartDbContext dbContext, ISender sender, IHttpContextAccessor httpContextAccessor)
     : ICommandHandler<CheckoutCartCommand, CheckoutCartResult>
 {
     public async Task<CheckoutCartResult> Handle(CheckoutCartCommand request, CancellationToken cancellationToken)
     {
         var cart = await dbContext.Carts.Include("_lines").FirstOrDefaultAsync(x => x.Id == request.CartId, cancellationToken)
             ?? throw new NotFoundException($"Cart not found: {request.CartId}");
+        await CartAuthorization.EnsureCartPermissionAsync(
+            httpContextAccessor.HttpContext?.User,
+            sender,
+            cart.Channel,
+            PermissionList.CartPermissions.Checkout,
+            PermissionList.StoreFrontPosPermissions.Checkout,
+            cancellationToken);
         if (!cart.Lines.Any())
             throw new Exception("Cart is empty.");
 

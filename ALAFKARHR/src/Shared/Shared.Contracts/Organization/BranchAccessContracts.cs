@@ -18,6 +18,48 @@ public record GetUserBranchAssignmentsQuery(Guid UserId, Guid CompanyId) : IQuer
 
 public record GetUserBranchAssignmentsResult(List<Guid> BranchIds, Guid? DefaultBranchId);
 
+public record GetCompanyUserBranchAssignmentsQuery(Guid CompanyId) : IQuery<GetCompanyUserBranchAssignmentsResult>;
+
+public record GetCompanyUserBranchAssignmentsResult(List<UserBranchAssignmentInfo> Assignments);
+
+public record UserBranchAssignmentInfo(Guid UserId, Guid CompanyId, Guid BranchId, bool IsDefault);
+
+public record GetCompanyBranchRoleAssignmentsForDashboardQuery(Guid CompanyId) : IQuery<GetCompanyBranchRoleAssignmentsForDashboardResult>;
+
+public record GetCompanyBranchRoleAssignmentsForDashboardResult(List<BranchRoleAssignmentInfo> Assignments);
+
+public record BranchRoleAssignmentInfo(Guid Id, Guid UserId, Guid CompanyId, Guid BranchId, string TemplateKey, DateTime? CreatedAt);
+
+public record EnsureStoreFrontBranchCommand(
+    Guid CompanyId,
+    Guid? BranchId,
+    string Name,
+    string NameEng,
+    string Code,
+    string? Phone,
+    string? Email,
+    string UserId) : ICommand<EnsureStoreFrontBranchResult>;
+
+public record EnsureStoreFrontBranchResult(Guid BranchId);
+
+public record GetBranchScopeInfoQuery(Guid CompanyId, Guid BranchId) : IQuery<GetBranchScopeInfoResult>;
+
+public record GetBranchScopeInfoResult(Guid BranchId, Guid CompanyId, int Specialization);
+
+public record EnsureCurrentUserBranchPermissionQuery(Guid CompanyId, Guid BranchId, string Permission) : IQuery<EnsureCurrentUserBranchPermissionResult>;
+
+public record EnsureCurrentUserBranchPermissionResult(bool HasPermission);
+
+public record GetCurrentUserBranchRolePermissionsQuery(Guid CompanyId, Guid? UserId = null) : IQuery<GetCurrentUserBranchRolePermissionsResult>;
+
+public record GetCurrentUserBranchRolePermissionsResult(List<string> Permissions);
+
+public record GetCurrentUserBranchRoleAccessForAuthorizationQuery(Guid CompanyId) : IQuery<GetCurrentUserBranchRoleAccessForAuthorizationResult>;
+
+public record GetCurrentUserBranchRoleAccessForAuthorizationResult(List<BranchRolePermissionAccess> Assignments);
+
+public record BranchRolePermissionAccess(Guid BranchId, List<string> Permissions);
+
 public record BranchAccountingInfo(
     Guid BranchId,
     Guid CompanyId,

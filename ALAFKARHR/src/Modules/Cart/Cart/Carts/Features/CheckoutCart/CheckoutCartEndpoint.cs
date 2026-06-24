@@ -15,6 +15,6 @@ public class CheckoutCartEndpoint : ICarterModule
         })
         .WithName("CheckoutCart")
         .Produces<CheckoutCartResponse>(StatusCodes.Status200OK)
-        .RequireAuthorization(PermissionList.CartPermissions.Checkout);
+        .RequireAuthorization();
     }
 }

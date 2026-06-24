@@ -15,6 +15,7 @@ public class Branch : Entity<Guid>
     public string Phone { get; private set; }
     public string Email { get; private set; }
     public bool IsMainBranch { get; private set; }
+    public BranchSpecialization Specialization { get; private set; } = BranchSpecialization.General;
     public Guid CompanyId { get; private set; } // 🔴 VERY IMPORTANT
     public Company Company { get; private set; }
 
@@ -51,6 +52,7 @@ public class Branch : Entity<Guid>
         string phone,
         string email,
         bool isMainBranch,
+        BranchSpecialization specialization,
         Guid companyId,
         string createdBy)
     {
@@ -66,10 +68,52 @@ public class Branch : Entity<Guid>
             Phone = phone,
             Email = email,
             IsMainBranch = isMainBranch,
+            Specialization = specialization,
             CompanyId = companyId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
+    }
+
+    public static Branch Create(Guid id,
+        string name,
+        string nameEng,
+        string location,
+        double longitude,
+        double latitude,
+        string code,
+        string phone,
+        string email,
+        bool isMainBranch,
+        Guid companyId,
+        string createdBy)
+        => Create(id, name, nameEng, location, longitude, latitude, code, phone, email, isMainBranch, BranchSpecialization.General, companyId, createdBy);
+
+    public void Update(
+        string name,
+        string nameEng,
+        string location,
+        double longitude,
+        double latitude,
+        string code,
+        string phone,
+        string email,
+        bool isMainBranch,
+        BranchSpecialization specialization,
+        string modifiedBy)
+    {
+        Name = name;
+        NameEng = nameEng;
+        Location = location;
+        Longitude = longitude;
+        Latitude = latitude;
+        Code= code;
+        Phone = phone;
+        Email= email;
+        IsMainBranch= isMainBranch;
+        Specialization = specialization;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
     }
 
     public void Update(
@@ -83,19 +127,8 @@ public class Branch : Entity<Guid>
         string email,
         bool isMainBranch,
         string modifiedBy)
-    {
-        Name = name;
-        NameEng = nameEng;
-        Location = location;
-        Longitude = longitude;
-        Latitude = latitude;
-        Code= code;
-        Phone = phone;
-        Email= email;
-        IsMainBranch= isMainBranch;
-        ModifiedAt = DateTime.UtcNow;
-        ModifiedBy = modifiedBy;
-    }
+        => Update(name, nameEng, location, longitude, latitude, code, phone, email, isMainBranch, Specialization, modifiedBy);
+
     public void Remove(string deletedBy)
     {
         DeletedAt = DateTime.UtcNow;

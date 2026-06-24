@@ -10,13 +10,12 @@
 @inject IAttendanceService AttendanceService
 @inject SharedDataService SharedDataService
 
-<section class="requests-page" dir="@SharedDataService.PageDirection">
-    <div class="requests-header">
-        <div>
-            <p class="eyebrow">@Text("Attendance", "الحضور والانصراف")</p>
-            <h1>@Text("Late check-in requests", "طلبات تسجيل الحضور المتأخر")</h1>
-        </div>
-        <div class="header-actions">
+<section class="erp-page attendance-requests-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Late check-in requests", "طلبات الحضور المتأخر")"
+                Subtitle="@Text("Review employee late check-in exceptions and register approved check-in times.", "مراجعة استثناءات الحضور المتأخر وتسجيل وقت الحضور المعتمد.")"
+                Overline="@Text("Attendance", "الحضور والانصراف")"
+                Icon="bi-exclamation-triangle">
+        <Actions>
             <select class="form-select" @bind="statusFilter">
                 <option value="">@Text("All statuses", "كل الحالات")</option>
                 <option value="@AttendanceExceptionStatus.Pending">@Text("Pending", "معلق")</option>
@@ -27,15 +26,15 @@
                 <i class="bi bi-arrow-clockwise"></i>
                 @Text("Refresh", "تحديث")
             </button>
-        </div>
-    </div>
+        </Actions>
+    </PageHeader>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <div class="alert @messageClass">@message</div>
     }
 
-    <section class="requests-panel">
+    <section class="attendance-request-panel">
         @if (isLoading)
         {
             <div class="empty-state">@Text("Loading requests...", "جاري تحميل الطلبات...")</div>
@@ -59,7 +58,7 @@
                                     <span>@Text("Shift", "الوردية") @request.ShiftStart.ToLocalTime().ToString("g") - @request.ShiftEnd.ToLocalTime().ToString("g")</span>
                                 </div>
                             </div>
-                            <span class="badge @StatusClass(request.Status)">@StatusText(request.Status)</span>
+                            <StatusChip Text="@StatusText(request.Status)" Tone="@StatusTone(request.Status)" />
                         </div>
 
                         <p class="reason">@request.Reason</p>
@@ -196,12 +195,12 @@
         _ => status.ToString()
     };
 
-    private static string StatusClass(AttendanceExceptionStatus status) => status switch
+    private static string StatusTone(AttendanceExceptionStatus status) => status switch
     {
-        AttendanceExceptionStatus.Pending => "text-bg-warning",
-        AttendanceExceptionStatus.Approved => "text-bg-success",
-        AttendanceExceptionStatus.Rejected => "text-bg-danger",
-        _ => "text-bg-light"
+        AttendanceExceptionStatus.Pending => "warning",
+        AttendanceExceptionStatus.Approved => "success",
+        AttendanceExceptionStatus.Rejected => "danger",
+        _ => "muted"
     };
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
@@ -266,7 +265,7 @@
         min-width: 320px;
     }
 
-    .requests-panel,
+    .attendance-request-panel,
     .request-card {
         background: var(--erp-surface);
         border: 1px solid var(--erp-border);
@@ -274,7 +273,7 @@
         box-shadow: var(--erp-shadow-sm);
     }
 
-    .requests-panel {
+    .attendance-request-panel {
         padding: 1rem;
     }
 

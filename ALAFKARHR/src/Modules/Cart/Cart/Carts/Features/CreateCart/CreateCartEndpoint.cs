@@ -14,6 +14,6 @@ public class CreateCartEndpoint : ICarterModule
         })
         .WithName("CreateCart")
         .Produces<CreateCartResponse>(StatusCodes.Status201Created)
-        .RequireAuthorization(PermissionList.CartPermissions.Create);
+        .RequireAuthorization();
     }
 }

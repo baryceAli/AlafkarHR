@@ -22,22 +22,25 @@
 @inject SharedDataService SharedDataService
 
 <section class="erp-page" dir="@SharedDataService.PageDirection">
-    <div class="d-flex justify-content-between align-items-start mb-3">
-        <div>
-            <p class="text-muted mb-1">@Text("Attendance Reports", "تقارير الحضور")</p>
-            <h3 class="mb-1">@ReportTitle</h3>
-            <p class="text-muted mb-0">@Text("Filter attendance data by date range, employee, department, administration, status, and report category.", "تصفية بيانات الحضور حسب التاريخ والموظف والقسم والادارة والحالة ونوع التقرير.")</p>
-        </div>
-        <button class="btn btn-primary" @onclick="LoadReportAsync" disabled="@isBusy">@Text("Run Report", "تشغيل التقرير")</button>
-    </div>
+    <PageHeader Title="@ReportTitle"
+                Subtitle="@Text("Filter attendance data by date range, employee, department, administration, status, and report category.", "تصفية بيانات الحضور حسب التاريخ والموظف والقسم والإدارة والحالة ونوع التقرير.")"
+                Overline="@Text("Attendance Reports", "تقارير الحضور")"
+                Icon="bi-clipboard-data">
+        <Actions>
+            <button class="btn btn-primary" @onclick="LoadReportAsync" disabled="@isBusy">
+                <i class="bi bi-play-circle"></i>
+                @Text("Run Report", "تشغيل التقرير")
+            </button>
+        </Actions>
+    </PageHeader>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <div class="alert @messageClass">@message</div>
     }
 
-    <div class="card mb-3">
-        <div class="card-body">
+    <div class="erp-card mb-3">
+        <div class="erp-card-body">
             <div class="row g-3">
                 <div class="col-md-2">
                     <label class="form-label">@Text("From", "من")</label>
@@ -108,8 +111,8 @@
         </div>
     </div>
 
-    <div class="card mb-3">
-        <div class="card-body">
+    <div class="erp-card mb-3">
+        <div class="erp-card-body">
             <div class="row g-3">
                 <div class="col-md-3">
                     <strong>@Text("Rows", "الصفوف")</strong>
@@ -131,9 +134,9 @@
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-body table-responsive">
-            <table class="table align-middle">
+    <div class="erp-card">
+        <div class="erp-table-wrap">
+            <table class="table erp-table align-middle mb-0">
                 <thead>
                     <tr>
                         <th>@Text("Date", "التاريخ")</th>
@@ -159,7 +162,7 @@
                                 @StatusText(row)
                                 @if (row.RequiresNormalization && row.NormalizationStatus.HasValue)
                                 {
-                                    <span class="badge text-bg-warning ms-1">@NormalizationStatusText(row.NormalizationStatus.Value)</span>
+                                    <StatusChip Text="@NormalizationStatusText(row.NormalizationStatus.Value)" Tone="warning" />
                                 }
                             </td>
                             <td>@FormatRange(row.ShiftStartUtc, row.ShiftEndUtc)</td>

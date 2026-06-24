@@ -19,7 +19,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 
-<div dir="@SharedDataService.PageDirection">
+<div class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("Recruitment", "التوظيف")"
                 Subtitle="@Text("Manage staffing plans, requisitions, candidates, interviews, offers, and hire readiness.", "إدارة خطط التوظيف وطلبات الوظائف والمرشحين والمقابلات والعروض وجاهزية التعيين.")"
                 Icon="bi-person-plus" />
@@ -30,15 +30,18 @@
     }
     else if (isLoading)
     {
-        <div class="text-muted">@Text("Loading recruitment workspace...", "جاري تحميل مساحة التوظيف...")</div>
+        <div class="erp-loading py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2">@Text("Loading recruitment workspace...", "جاري تحميل مساحة التوظيف...")</div>
+        </div>
     }
     else
     {
         <div class="row g-3 mb-3">
-            <div class="col-12 col-md-3"><StatsCard Title="@Text("Plans", "الخطط")" Value="@staffingPlans.Count.ToString("N0")" Icon="bi-calendar2-check" /></div>
-            <div class="col-12 col-md-3"><StatsCard Title="@Text("Requisitions", "طلبات الوظائف")" Value="@jobRequisitions.Count.ToString("N0")" Icon="bi-megaphone" /></div>
-            <div class="col-12 col-md-3"><StatsCard Title="@Text("Applicants", "المتقدمون")" Value="@applicants.Count.ToString("N0")" Icon="bi-people" /></div>
-            <div class="col-12 col-md-3"><StatsCard Title="@Text("Offers", "العروض")" Value="@jobOffers.Count.ToString("N0")" Icon="bi-file-earmark-check" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Plans", "الخطط")" Value="@staffingPlans.Count.ToString("N0")" Icon="bi-calendar2-check" Tone="primary" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Requisitions", "طلبات الوظائف")" Value="@jobRequisitions.Count.ToString("N0")" Icon="bi-megaphone" Tone="info" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Applicants", "المتقدمون")" Value="@applicants.Count.ToString("N0")" Icon="bi-people" Tone="success" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Offers", "العروض")" Value="@jobOffers.Count.ToString("N0")" Icon="bi-file-earmark-check" Tone="warning" /></div>
         </div>
 
         <div class="row g-3">
@@ -64,7 +67,7 @@
                     }
                     else
                     {
-                        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Year", "السنة")</th><th>@Text("Position", "المسمى")</th><th>@Text("Headcount", "العدد")</th><th></th></tr></thead><tbody>@foreach (var item in staffingPlans){<tr><td>@item.Year</td><td>@PositionName(item.PositionId)</td><td>@item.PlannedHeadcount</td><td class="text-end"><button class="btn btn-outline-warning btn-sm" @onclick="() => EditStaffingPlan(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteStaffingPlan(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>
+                        <div class="erp-table-wrap"><table class="table erp-table align-middle mb-0"><thead><tr><th>@Text("Year", "السنة")</th><th>@Text("Position", "المسمى")</th><th>@Text("Headcount", "العدد")</th><th></th></tr></thead><tbody>@foreach (var item in staffingPlans){<tr><td>@item.Year</td><td>@PositionName(item.PositionId)</td><td>@item.PlannedHeadcount</td><td class="text-end"><button class="btn btn-outline-warning btn-sm erp-row-action" @onclick="() => EditStaffingPlan(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm erp-row-action" @onclick="() => DeleteStaffingPlan(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>
                     }
                 </AppCard>
             </div>
@@ -87,7 +90,7 @@
             </div>
             <div class="col-xl-8">
                 <AppCard Title="@Text("Requisition Pipeline", "مسار طلبات الوظائف")" CssClass="h-100">
-                    <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Title", "العنوان")</th><th>@Text("Openings", "الشواغر")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>@foreach (var item in jobRequisitions){<tr><td><div class="fw-semibold">@item.Title</div><div class="text-muted small">@PositionName(item.PositionId)</div></td><td>@item.Openings</td><td><span class="badge @StatusClass(item.Status)">@StatusText(item.Status)</span></td><td class="text-end"><button class="btn btn-outline-warning btn-sm" @onclick="() => EditRequisition(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenRequisition(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-megaphone"></i></button> <button class="btn btn-outline-success btn-sm" @onclick="() => CloseRequisition(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-check2-circle"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => CancelRequisition(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-x-circle"></i></button></td></tr>}</tbody></table></div>
+                    <div class="erp-table-wrap"><table class="table erp-table align-middle mb-0"><thead><tr><th>@Text("Title", "العنوان")</th><th>@Text("Openings", "الشواغر")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>@foreach (var item in jobRequisitions){<tr><td><div class="fw-semibold">@item.Title</div><div class="text-muted small">@PositionName(item.PositionId)</div></td><td>@item.Openings</td><td><StatusChip Text="@StatusText(item.Status)" Tone="@StatusTone(item.Status)" /></td><td class="text-end"><button class="btn btn-outline-warning btn-sm erp-row-action" @onclick="() => EditRequisition(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-primary btn-sm erp-row-action" @onclick="() => OpenRequisition(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-megaphone"></i></button> <button class="btn btn-outline-success btn-sm erp-row-action" @onclick="() => CloseRequisition(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-check2-circle"></i></button> <button class="btn btn-outline-danger btn-sm erp-row-action" @onclick="() => CancelRequisition(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-x-circle"></i></button></td></tr>}</tbody></table></div>
                 </AppCard>
             </div>
         </div>
@@ -100,7 +103,7 @@
                 <div class="col-md-3"><label class="form-label">@Text("Requisition", "طلب الوظيفة")</label><select class="form-select" @bind="applicantModel.JobRequisitionId"><option value="">@Text("No requisition", "بدون طلب")</option>@foreach (var req in jobRequisitions){<option value="@req.Id">@req.Title</option>}</select></div>
                 <div class="col-12 d-flex gap-2"><button class="btn btn-primary" @onclick="SaveApplicant" disabled="@(!CanCreateOrEdit)"><i class="bi bi-person-plus"></i> @Text("Save Applicant", "حفظ المتقدم")</button><button class="btn btn-outline-secondary" @onclick="ResetApplicant">@Text("Reset", "إعادة ضبط")</button></div>
             </div>
-            <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Applicant", "المتقدم")</th><th>@Text("Requisition", "طلب الوظيفة")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>@foreach (var item in applicants){<tr class="@(selectedApplicantId == item.Id ? "table-active" : string.Empty)"><td><div class="fw-semibold">@item.FullName</div><div class="text-muted small">@item.Email · @item.Phone</div></td><td>@(item.JobRequisitionTitle ?? Text("Unassigned", "غير معين"))</td><td><span class="badge @StatusClass(item.Status)">@StatusText(item.Status)</span></td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => SelectApplicant(item)"><i class="bi bi-eye"></i></button> <button class="btn btn-outline-warning btn-sm" @onclick="() => EditApplicant(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-secondary btn-sm" @onclick="() => MoveApplicant(item.Id, RecruitmentRequestStatus.Interviewing)" disabled="@(!CanEdit)">@Text("Interview", "مقابلة")</button> <button class="btn btn-outline-info btn-sm" @onclick="() => MoveApplicant(item.Id, RecruitmentRequestStatus.Offered)" disabled="@(!CanEdit)">@Text("Offer", "عرض")</button> <button class="btn btn-outline-danger btn-sm" @onclick="() => MoveApplicant(item.Id, RecruitmentRequestStatus.Cancelled)" disabled="@(!CanEdit)"><i class="bi bi-x-circle"></i></button></td></tr>}</tbody></table></div>
+            <div class="erp-table-wrap"><table class="table erp-table align-middle mb-0"><thead><tr><th>@Text("Applicant", "المتقدم")</th><th>@Text("Requisition", "طلب الوظيفة")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>@foreach (var item in applicants){<tr class="@(selectedApplicantId == item.Id ? "table-active" : string.Empty)"><td><div class="fw-semibold">@item.FullName</div><div class="text-muted small">@item.Email · @item.Phone</div></td><td>@(item.JobRequisitionTitle ?? Text("Unassigned", "غير معين"))</td><td><StatusChip Text="@StatusText(item.Status)" Tone="@StatusTone(item.Status)" /></td><td class="text-end"><button class="btn btn-outline-primary btn-sm erp-row-action" @onclick="() => SelectApplicant(item)"><i class="bi bi-eye"></i></button> <button class="btn btn-outline-warning btn-sm erp-row-action" @onclick="() => EditApplicant(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-secondary btn-sm" @onclick="() => MoveApplicant(item.Id, RecruitmentRequestStatus.Interviewing)" disabled="@(!CanEdit)">@Text("Interview", "مقابلة")</button> <button class="btn btn-outline-info btn-sm" @onclick="() => MoveApplicant(item.Id, RecruitmentRequestStatus.Offered)" disabled="@(!CanEdit)">@Text("Offer", "عرض")</button> <button class="btn btn-outline-danger btn-sm erp-row-action" @onclick="() => MoveApplicant(item.Id, RecruitmentRequestStatus.Cancelled)" disabled="@(!CanEdit)"><i class="bi bi-x-circle"></i></button></td></tr>}</tbody></table></div>
         </AppCard>
 
         <AppCard Title="@Text("Applicant Detail", "تفاصيل المتقدم")" CssClass="mt-3">
@@ -110,17 +113,17 @@
             }
             else
             {
-                <div class="d-flex justify-content-between flex-wrap gap-2 mb-3"><div><h6 class="mb-1">@SelectedApplicant.FullName</h6><div class="text-muted small">@SelectedApplicant.Email · @SelectedApplicant.Phone</div></div><span class="badge @StatusClass(SelectedApplicant.Status)">@StatusText(SelectedApplicant.Status)</span></div>
+                <div class="d-flex justify-content-between flex-wrap gap-2 mb-3"><div><h6 class="mb-1">@SelectedApplicant.FullName</h6><div class="text-muted small">@SelectedApplicant.Email · @SelectedApplicant.Phone</div></div><StatusChip Text="@StatusText(SelectedApplicant.Status)" Tone="@StatusTone(SelectedApplicant.Status)" /></div>
                 <div class="row g-3">
                     <div class="col-xl-6">
                         <h6>@Text("Interview Feedback", "ملاحظات المقابلة")</h6>
                         <div class="row g-2 mb-2"><div class="col-md-5"><select class="form-select" @bind="interviewModel.InterviewerEmployeeId"><option value="@Guid.Empty">@Text("Interviewer", "المقابل")</option>@foreach (var emp in employees){<option value="@emp.Id">@EmployeeName(emp)</option>}</select></div><div class="col-md-3"><InputDate class="form-control" @bind-Value="interviewModel.InterviewAt" /></div><div class="col-md-2"><InputNumber class="form-control" @bind-Value="interviewModel.Rating" /></div><div class="col-md-2 d-grid"><button class="btn btn-outline-primary" @onclick="SaveInterview" disabled="@(!CanCreateOrEdit)"><i class="bi bi-check2"></i></button></div><div class="col-12"><InputTextArea class="form-control" rows="2" placeholder="@Text("Feedback", "الملاحظات")" @bind-Value="interviewModel.Feedback" /></div></div>
-                        <div class="table-responsive"><table class="table table-sm"><tbody>@foreach (var item in interviews){<tr><td><div class="fw-semibold">@EmployeeName(item.InterviewerEmployeeId)</div><div class="text-muted small">@item.InterviewAt.ToShortDateString() · @Text("Rating", "التقييم") @item.Rating</div><div>@item.Feedback</div></td><td class="text-end"><button class="btn btn-outline-warning btn-sm" @onclick="() => EditInterview(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteInterview(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>
+                        <div class="erp-table-wrap"><table class="table erp-table align-middle mb-0"><tbody>@foreach (var item in interviews){<tr><td><div class="fw-semibold">@EmployeeName(item.InterviewerEmployeeId)</div><div class="text-muted small">@item.InterviewAt.ToShortDateString() · @Text("Rating", "التقييم") @item.Rating</div><div>@item.Feedback</div></td><td class="text-end"><button class="btn btn-outline-warning btn-sm erp-row-action" @onclick="() => EditInterview(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm erp-row-action" @onclick="() => DeleteInterview(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>
                     </div>
                     <div class="col-xl-6">
                         <h6>@Text("Offers", "العروض")</h6>
                         <div class="row g-2 mb-2"><div class="col-md-4"><InputDate class="form-control" @bind-Value="offerModel.OfferDate" /></div><div class="col-md-4"><InputNumber class="form-control" @bind-Value="offerModel.ProposedSalary" /></div><div class="col-md-4 d-grid"><button class="btn btn-outline-primary" @onclick="SaveOffer" disabled="@(!CanCreateOrEdit)">@Text("Save Offer", "حفظ العرض")</button></div></div>
-                        <div class="table-responsive"><table class="table table-sm align-middle"><tbody>@foreach (var item in jobOffers.Where(x => x.ApplicantId == selectedApplicantId)){<tr><td><div class="fw-semibold">@item.ProposedSalary?.ToString("N2")</div><div class="text-muted small">@item.OfferDate.ToShortDateString() · @item.StatusLabel</div></td><td class="text-end"><button class="btn btn-outline-warning btn-sm" @onclick="() => EditOffer(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-success btn-sm" @onclick="() => AcceptOffer(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-check2"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => RejectOffer(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-x"></i></button></td></tr>}</tbody></table></div>
+                        <div class="erp-table-wrap"><table class="table erp-table align-middle mb-0"><tbody>@foreach (var item in jobOffers.Where(x => x.ApplicantId == selectedApplicantId)){<tr><td><div class="fw-semibold">@item.ProposedSalary?.ToString("N2")</div><div class="text-muted small">@item.OfferDate.ToShortDateString() · @item.StatusLabel</div></td><td class="text-end"><button class="btn btn-outline-warning btn-sm erp-row-action" @onclick="() => EditOffer(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-success btn-sm erp-row-action" @onclick="() => AcceptOffer(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-check2"></i></button> <button class="btn btn-outline-danger btn-sm erp-row-action" @onclick="() => RejectOffer(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-x"></i></button></td></tr>}</tbody></table></div>
                         <div class="row g-2 mt-2"><div class="col-md-8"><select class="form-select" @bind="createdEmployeeId"><option value="@Guid.Empty">@Text("Created employee", "الموظف المنشأ")</option>@foreach (var emp in employees){<option value="@emp.Id">@EmployeeName(emp)</option>}</select></div><div class="col-md-4 d-grid"><button class="btn btn-outline-success" @onclick="MarkSelectedOfferEmployeeCreated" disabled="@(!CanHire || selectedOfferId == Guid.Empty || createdEmployeeId == Guid.Empty)">@Text("Mark Hired", "تأكيد التعيين")</button></div></div>
                     </div>
                 </div>
@@ -219,7 +222,7 @@
     private string PositionName(PositionDto item) => Text(item.TitleEng, item.Title);
     private string PositionName(Guid? id) => id.HasValue && positions.FirstOrDefault(x => x.Id == id.Value) is { } position ? PositionName(position) : Text("Any position", "أي مسمى");
     private string StatusText(RecruitmentRequestStatus status) => status.ToString();
-    private string StatusClass(RecruitmentRequestStatus status) => status switch { RecruitmentRequestStatus.Open => "text-bg-primary", RecruitmentRequestStatus.Interviewing => "text-bg-info", RecruitmentRequestStatus.Offered => "text-bg-warning", RecruitmentRequestStatus.Hired => "text-bg-success", RecruitmentRequestStatus.Cancelled => "text-bg-danger", _ => "text-bg-secondary" };
+    private string StatusTone(RecruitmentRequestStatus status) => status switch { RecruitmentRequestStatus.Open => "primary", RecruitmentRequestStatus.Interviewing => "info", RecruitmentRequestStatus.Offered => "warning", RecruitmentRequestStatus.Hired => "success", RecruitmentRequestStatus.Cancelled => "danger", _ => "muted" };
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
 }

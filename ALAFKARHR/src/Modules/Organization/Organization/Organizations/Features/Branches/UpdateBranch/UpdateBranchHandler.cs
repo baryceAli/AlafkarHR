@@ -29,6 +29,7 @@ public class UpdateBranchHandler(OrganizationDbContext dbContext, IHttpContextAc
             request.Branch.Phone,
             request.Branch.Email,
             branch.IsMainBranch,
+            request.Branch.Specialization,
             userId);
 
         await dbContext.SaveChangesAsync(cancellationToken);

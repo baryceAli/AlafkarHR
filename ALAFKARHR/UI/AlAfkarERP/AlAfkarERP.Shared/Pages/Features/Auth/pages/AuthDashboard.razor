@@ -1,32 +1,439 @@
 @layout AdminLayout
 @page "/Auth/Dashboard"
-@using AlAfkarERP.Shared.Pages.Features.Auth.Layout
 @implements IDisposable
 
-@inject SharedDataService SharedDataService
+@using AlAfkarERP.Shared.Pages.Features.Auth.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Auth.Dtos
+@using SharedWithUI.Permissions
 
-<section class="erp-page" dir="@SharedDataService.PageDirection">
-    <PageHeader Title="@Text("Auth Dashboard", "???? ???? ????????")"
-                Subtitle="@Text("Manage authentication, roles, and user access from the security workspace.", "????? ????? ?????? ???????? ????? ?????????? ?? ????? ??? ??????.")"
-                Overline="@Text("Security", "??????")"
-                Icon="bi-shield-lock" />
+@inject IAuthDashboardService AuthDashboardService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+@if (authState is not null && !CanAccessPage)
+{
+    <div class="alert alert-warning">
+        @Text("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")
+    </div>
+    return;
+}
+
+<section class="auth-dashboard erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Auth Dashboard", "لوحة الأمان")"
+                Subtitle="@Text("Monitor users, roles, branch access, and scoped security assignments.", "متابعة المستخدمين والصلاحيات والوصول للفروع وتعيينات الأمان حسب النطاق.")"
+                Overline="@Text("Security", "الأمان")"
+                Icon="bi-shield-lock">
+        <Actions>
+            @if (dashboard is not null)
+            {
+                <StatusChip Text="@ScopeText" Tone="info" />
+            }
+            <button class="btn btn-primary" @onclick="LoadDashboardAsync" disabled="@isLoading">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <div class="erp-loading">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2">@Text("Loading auth dashboard...", "جاري تحميل لوحة الأمان...")</div>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <AppCard>
+            <EmptyState Title="@Text("Dashboard unavailable", "لوحة الأمان غير متاحة")"
+                        Message="@errorMessage"
+                        Icon="bi-shield-exclamation" />
+        </AppCard>
+    }
+    else if (dashboard is null)
+    {
+        <AppCard>
+            <EmptyState Title="@Text("No dashboard data", "لا توجد بيانات")"
+                        Message="@Text("No auth dashboard data was returned for the current company.", "لم يتم إرجاع بيانات أمان للشركة الحالية.")"
+                        Icon="bi-inboxes" />
+        </AppCard>
+    }
+    else
+    {
+        <div class="auth-dashboard-stats">
+            <StatsCard Title="@Text("Visible Users", "المستخدمون الظاهرون")"
+                       Value="@dashboard.VisibleUserCount.ToString()"
+                       Subtitle="@Text("Filtered by your branch scope", "حسب نطاق الفروع المتاح لك")"
+                       Icon="bi-people"
+                       Tone="primary" />
+            <StatsCard Title="@Text("Company Roles", "صلاحيات الشركة")"
+                       Value="@dashboard.TotalRoleCount.ToString()"
+                       Subtitle="@Text("Company-level role catalog", "قائمة صلاحيات على مستوى الشركة")"
+                       Icon="bi-shield-check"
+                       Tone="info" />
+            <StatsCard Title="@Text("Role Links", "تعيينات الصلاحيات")"
+                       Value="@dashboard.AssignedRoleLinkCount.ToString()"
+                       Subtitle="@Text("Visible user-role assignments", "تعيينات المستخدمين الظاهرة")"
+                       Icon="bi-person-check"
+                       Tone="success" />
+            <StatsCard Title="@Text("Needs Roles", "بحاجة لصلاحيات")"
+                       Value="@dashboard.UsersWithoutRolesCount.ToString()"
+                       Subtitle="@Text("Visible users without business roles", "مستخدمون ظاهرون بدون صلاحيات عمل")"
+                       Icon="bi-person-exclamation"
+                       Tone="warning" />
+        </div>
+
+        <div class="row g-3 align-items-stretch">
+            <div class="col-xl-7">
+                <AppCard Title="@Text("Branch Access", "الوصول حسب الفروع")"
+                         Subtitle="@Text("User visibility and StoreFront scoped roles by branch.", "ظهور المستخدمين وصلاحيات المتاجر حسب كل فرع.")"
+                         CssClass="h-100">
+                    @if (!dashboard.Branches.Any())
+                    {
+                        <EmptyState Title="@Text("No visible branches", "لا توجد فروع ظاهرة")"
+                                    Message="@Text("Your account has no branch visibility for this company.", "لا يملك حسابك نطاق فروع ظاهر لهذه الشركة.")"
+                                    Icon="bi-diagram-3" />
+                    }
+                    else
+                    {
+                        <div class="erp-table-wrap">
+                            <table class="table erp-table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>@Text("Branch", "الفرع")</th>
+                                        <th>@Text("Code", "الكود")</th>
+                                        <th class="text-end">@Text("Users", "المستخدمون")</th>
+                                        <th class="text-end">@Text("Store Roles", "صلاحيات المتاجر")</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var branch in dashboard.Branches)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="fw-semibold">@BranchName(branch)</div>
+                                                @if (branch.IsMainBranch)
+                                                {
+                                                    <StatusChip Text="@Text("Main", "رئيسي")" Tone="primary" />
+                                                }
+                                            </td>
+                                            <td><span class="auth-dashboard-code">@branch.Code</span></td>
+                                            <td class="text-end fw-semibold">@branch.UserCount</td>
+                                            <td class="text-end fw-semibold">@branch.StoreBranchRoleCount</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </AppCard>
+            </div>
+
+            <div class="col-xl-5">
+                <AppCard Title="@Text("Role Usage", "استخدام الصلاحيات")"
+                         Subtitle="@Text("Company roles with visible user assignment counts.", "صلاحيات الشركة وعدد المستخدمين الظاهرين لكل صلاحية.")"
+                         CssClass="h-100">
+                    @if (!dashboard.Roles.Any())
+                    {
+                        <EmptyState Title="@Text("No roles found", "لا توجد صلاحيات")"
+                                    Message="@Text("No company roles are configured yet.", "لم يتم إعداد صلاحيات للشركة بعد.")"
+                                    Icon="bi-shield" />
+                    }
+                    else
+                    {
+                        <div class="auth-dashboard-role-list">
+                            @foreach (var role in dashboard.Roles.Take(10))
+                            {
+                                <div class="auth-dashboard-role-row">
+                                    <div>
+                                        <div class="fw-semibold">@RoleName(role)</div>
+                                        @if (role.IsSystemAdminRole)
+                                        {
+                                            <StatusChip Text="@Text("Protected", "محمي")" Tone="muted" />
+                                        }
+                                    </div>
+                                    <strong>@role.UserCount</strong>
+                                </div>
+                            }
+                        </div>
+                    }
+                </AppCard>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-xl-4">
+                <AppCard Title="@Text("Users Without Roles", "مستخدمون بدون صلاحيات")"
+                         Subtitle="@Text("Visible non-admin users that need role review.", "مستخدمون ظاهرون غير إداريين يحتاجون مراجعة صلاحيات.")"
+                         CssClass="h-100">
+                    @if (!dashboard.UsersWithoutRoles.Any())
+                    {
+                        <EmptyState Title="@Text("No attention needed", "لا توجد مراجعة مطلوبة")"
+                                    Message="@Text("All visible users have at least one business role.", "كل المستخدمين الظاهرين لديهم صلاحية عمل واحدة على الأقل.")"
+                                    Icon="bi-check2-circle" />
+                    }
+                    else
+                    {
+                        <div class="auth-dashboard-list">
+                            @foreach (var user in dashboard.UsersWithoutRoles)
+                            {
+                                <div class="auth-dashboard-list-item">
+                                    <i class="bi bi-person-exclamation"></i>
+                                    <span>@UserName(user)</span>
+                                    <small>@Text("Branches", "الفروع"): @user.AssignedBranchCount</small>
+                                </div>
+                            }
+                        </div>
+                    }
+                </AppCard>
+            </div>
+
+            <div class="col-xl-4">
+                <AppCard Title="@Text("Protected Users", "مستخدمون محميون")"
+                         Subtitle="@Text("System admin accounts are summarized separately.", "حسابات مدير النظام معروضة بشكل منفصل.")"
+                         CssClass="h-100">
+                    @if (!dashboard.ProtectedUsers.Any())
+                    {
+                        <EmptyState Title="@Text("No protected users visible", "لا يوجد مستخدمون محميون ظاهرون")"
+                                    Message="@Text("No protected admin accounts are visible in your current scope.", "لا توجد حسابات مدير محمية ظاهرة ضمن نطاقك الحالي.")"
+                                    Icon="bi-person-lock" />
+                    }
+                    else
+                    {
+                        <div class="auth-dashboard-list">
+                            @foreach (var user in dashboard.ProtectedUsers)
+                            {
+                                <div class="auth-dashboard-list-item">
+                                    <i class="bi bi-person-lock"></i>
+                                    <span>@UserName(user)</span>
+                                    <small>@Text("Roles", "الصلاحيات"): @user.AssignedRoleCount</small>
+                                </div>
+                            }
+                        </div>
+                    }
+                </AppCard>
+            </div>
+
+            <div class="col-xl-4">
+                <AppCard Title="@Text("Store Branch Roles", "صلاحيات فروع المتاجر")"
+                         Subtitle="@Text("Recent visible StoreFront scoped role assignments.", "أحدث تعيينات صلاحيات المتاجر الظاهرة.")"
+                         CssClass="h-100">
+                    @if (!dashboard.StoreBranchRoles.Any())
+                    {
+                        <EmptyState Title="@Text("No store roles visible", "لا توجد صلاحيات متجر ظاهرة")"
+                                    Message="@Text("No StoreFront branch-role assignments are visible in your current scope.", "لا توجد تعيينات صلاحيات متجر ظاهرة ضمن نطاقك الحالي.")"
+                                    Icon="bi-shop-window" />
+                    }
+                    else
+                    {
+                        <div class="auth-dashboard-list">
+                            @foreach (var assignment in dashboard.StoreBranchRoles)
+                            {
+                                <div class="auth-dashboard-list-item">
+                                    <i class="bi bi-shop-window"></i>
+                                    <span>@assignment.UserName</span>
+                                    <small>@StoreBranchRoleText(assignment)</small>
+                                </div>
+                            }
+                        </div>
+                    }
+                </AppCard>
+            </div>
+        </div>
+    }
 </section>
 
 @code {
+    private AuthenticationState? authState;
+    private AuthDashboardDto? dashboard;
+    private Guid companyId;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    private bool CanAccessPage => CompanyContext.HasPermission(authState?.User, PermissionList.UsersPermissions.Select);
+
+    private string ScopeText => dashboard?.CanViewAllBranches == true
+        ? Text("Company-wide scope", "نطاق كامل للشركة")
+        : Text($"Branch scope: {dashboard?.VisibleBranchCount ?? 0}", $"نطاق الفروع: {dashboard?.VisibleBranchCount ?? 0}");
+
     protected override void OnInitialized()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
     }
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+
+        if (!CanAccessPage)
+        {
+            isLoading = false;
+            return;
+        }
+
+        await LoadDashboardAsync();
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        if (companyId == Guid.Empty)
+        {
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var result = await AuthDashboardService.GetDashboardAsync(companyId);
+            if (result.IsSuccess)
+            {
+                dashboard = result.Data;
+            }
+            else
+            {
+                dashboard = null;
+                errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language)
+                    ?? Text("Unable to load auth dashboard.", "تعذر تحميل لوحة الأمان.");
+                ToastService.ShowError(errorMessage);
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string BranchName(AuthDashboardBranchDto branch)
+        => SharedDataService.Language == "Ar"
+            ? FirstNotEmpty(branch.Name, branch.NameEng)
+            : FirstNotEmpty(branch.NameEng, branch.Name);
+
+    private string BranchName(AuthDashboardStoreBranchRoleDto assignment)
+        => SharedDataService.Language == "Ar"
+            ? FirstNotEmpty(assignment.BranchName, assignment.BranchNameEng)
+            : FirstNotEmpty(assignment.BranchNameEng, assignment.BranchName);
+
+    private static string RoleName(AuthDashboardRoleDto role)
+        => FirstNotEmpty(role.DisplayName, role.RoleName);
+
+    private string UserName(AuthDashboardUserDto user)
+        => FirstNotEmpty(user.UserName, Text("User", "مستخدم"));
+
+    private string StoreBranchRoleText(AuthDashboardStoreBranchRoleDto assignment)
+        => $"{BranchName(assignment)} · {assignment.TemplateKey}";
+
+    private static string FirstNotEmpty(string? primary, string? fallback)
+        => !string.IsNullOrWhiteSpace(primary)
+            ? primary
+            : !string.IsNullOrWhiteSpace(fallback) ? fallback : "-";
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 
     private async Task HandleChangeAsync()
     {
         await InvokeAsync(StateHasChanged);
     }
 
-    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
-
     public void Dispose()
     {
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
 }
+
+<style>
+    .auth-dashboard {
+        min-width: 0;
+    }
+
+    .auth-dashboard-stats {
+        display: grid;
+        gap: var(--erp-space-3);
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-bottom: var(--erp-space-4);
+    }
+
+    .auth-dashboard-code {
+        color: var(--erp-text-muted);
+        font-family: var(--erp-font-mono);
+        font-size: var(--erp-font-size-sm);
+    }
+
+    .auth-dashboard-role-list,
+    .auth-dashboard-list {
+        display: grid;
+        gap: var(--erp-space-2);
+    }
+
+    .auth-dashboard-role-row,
+    .auth-dashboard-list-item {
+        align-items: center;
+        background: var(--erp-surface-muted);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        display: flex;
+        gap: var(--erp-space-3);
+        justify-content: space-between;
+        min-width: 0;
+        padding: var(--erp-space-3);
+    }
+
+    .auth-dashboard-role-row > div,
+    .auth-dashboard-list-item span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .auth-dashboard-list-item i {
+        color: var(--erp-primary);
+        flex: 0 0 auto;
+    }
+
+    .auth-dashboard-list-item span {
+        flex: 1 1 auto;
+        font-weight: 700;
+    }
+
+    .auth-dashboard-list-item small {
+        color: var(--erp-text-muted);
+        flex: 0 0 auto;
+        text-align: end;
+    }
+
+    @@media (max-width: 1199.98px) {
+        .auth-dashboard-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .auth-dashboard-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .auth-dashboard-list-item {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .auth-dashboard-list-item small {
+            text-align: start;
+        }
+    }
+</style>

@@ -22,6 +22,7 @@ public class OrganizationDbContext:DbContext
     public DbSet<LicenseCategoryBusinessLine> LicenseCategoryBusinessLines => Set<LicenseCategoryBusinessLine>();
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<UserBranchAssignment> UserBranchAssignments => Set<UserBranchAssignment>();
+    public DbSet<UserBranchRoleAssignment> UserBranchRoleAssignments => Set<UserBranchRoleAssignment>();
     public DbSet<Administration> Administrations => Set<Administration>();
     public DbSet<Department> Departments => Set<Department>();
     protected override void OnModelCreating(ModelBuilder builder)
@@ -37,6 +38,7 @@ public class OrganizationDbContext:DbContext
         builder.Entity<LicenseCategory>().HasQueryFilter(x => !x.IsDeleted);
         builder.Entity<Branch>().HasQueryFilter(x => !x.IsDeleted);
         builder.Entity<UserBranchAssignment>().HasQueryFilter(x => !x.IsDeleted);
+        builder.Entity<UserBranchRoleAssignment>().HasQueryFilter(x => !x.IsDeleted);
         builder.Entity<Administration>().HasQueryFilter(x => !x.IsDeleted);
         builder.Entity<Department>().HasQueryFilter(x => !x.IsDeleted);
 

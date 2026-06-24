@@ -26,13 +26,24 @@
     return;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3" dir="@SharedDataService.PageDirection">
-    <h5 class="text-black mb-0">@Text("Assign Contract To Employee", "تعيين عقد لموظف")</h5>
-</div>
+<section class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Assign Contract To Employee", "تعيين عقد لموظف")"
+                Subtitle="@Text("Assign active salary contracts to employees and review current assignments.", "تعيين عقود الرواتب النشطة للموظفين ومراجعة التعيينات الحالية.")"
+                Overline="@Text("Payroll", "الرواتب")"
+                Icon="bi-person-check">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="LoadAssignments" disabled="@isBusy">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+        </Actions>
+    </PageHeader>
 
 <div class="row g-3">
     <div class="col-lg-5">
-        <div class="border rounded p-3 bg-light">
+        <AppCard Title="@Text("Assignment", "التعيين")"
+                 Subtitle="@Text("Select an employee, contract, and effective date.", "اختر الموظف والعقد وتاريخ السريان.")"
+                 CssClass="h-100">
             <EditForm Model="assignment" OnValidSubmit="SaveAssignment">
                 <DataAnnotationsValidator />
                 <ValidationSummary />
@@ -68,24 +79,19 @@
                     <i class="bi bi-check2"></i> @Text("Assign Contract", "تعيين العقد")
                 </button>
             </EditForm>
-        </div>
+        </AppCard>
     </div>
 
     <div class="col-lg-7">
-        <div class="border rounded p-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="mb-0">@Text("Assigned Contracts", "العقود المعينة")</h6>
-                <button class="btn btn-outline-secondary btn-sm" @onclick="LoadAssignments" disabled="@isBusy">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
+        <AppCard Title="@Text("Assigned Contracts", "العقود المعينة")"
+                 Subtitle="@Text("Current contract assignments for active employees.", "تعيينات العقود الحالية للموظفين النشطين.")"
+                 CssClass="h-100">
+            <div class="erp-table-toolbar">
+                <TableExportActions />
             </div>
 
-                    <div class="d-flex justify-content-end mb-2">
-            <TableExportActions />
-        </div>
-
-
-            <table class="table table-sm align-middle">
+            <div class="erp-table-wrap">
+            <table class="table erp-table align-middle mb-0">
                 <thead>
                     <tr>
                         <th>@Text("Employee", "الموظف")</th>
@@ -102,17 +108,18 @@
                             <td>@ContractName(item.ContractId)</td>
                             <td>@item.EffectiveFrom.ToString("yyyy-MM-dd")</td>
                             <td>
-                                <span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">
-                                    @(item.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))
-                                </span>
+                                <StatusChip Text="@(item.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))"
+                                            Tone="@(item.IsActive ? "success" : "muted")" />
                             </td>
                         </tr>
                     }
                 </tbody>
             </table>
-        </div>
+            </div>
+        </AppCard>
     </div>
 </div>
+</section>
 
 @code {
     private AuthenticationState? AuthState;

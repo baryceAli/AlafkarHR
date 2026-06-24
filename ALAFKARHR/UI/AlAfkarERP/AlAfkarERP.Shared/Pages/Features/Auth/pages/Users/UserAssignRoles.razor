@@ -234,6 +234,13 @@
                                             <i class="bi bi-diagram-3"></i>
                                         </button>
 
+                                        <button class="btn btn-outline-info btn-sm erp-row-action"
+                                                @onclick="() => OpenStoreBranchRoles(row)"
+                                                disabled="@(!CanAssignBranches || isBusy)"
+                                                title="@Text("Store branch roles", "Store branch roles")">
+                                            <i class="bi bi-shop-window"></i>
+                                        </button>
+
                                         <button class="btn btn-outline-danger btn-sm erp-row-action"
                                                 @onclick="() => OpenUnassignRoles(row)"
                                                 disabled="@(!CanUnassign || isBusy || !DisplayRoles(row).Any())"
@@ -424,6 +431,92 @@
     <div class="modal-backdrop fade show"></div>
 }
 
+@if (storeBranchRoleRow is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Text("Store branch roles", "Store branch roles")</h5>
+                    <button type="button" class="btn-close" aria-label="@Text("Close", "Close")" @onclick="CloseStoreBranchRoles"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">@Text($"Assign StoreFront operational roles for {storeBranchRoleRow.DisplayName}.", $"Assign StoreFront operational roles for {storeBranchRoleRow.DisplayName}.")</p>
+
+                    <div class="row g-2 align-items-end mb-3">
+                        <div class="col-md-5">
+                            <label class="form-label">@Text("Store branch", "Store branch")</label>
+                            <select class="form-select" @bind="selectedStoreRoleBranchIdText">
+                                <option value="">@Text("Select StoreFront branch", "Select StoreFront branch")</option>
+                                @foreach (var branch in StoreFrontBranches)
+                                {
+                                    <option value="@branch.Id">@LocalizedBranchName(branch)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">@Text("Role profile", "Role profile")</label>
+                            <select class="form-select" @bind="selectedStoreRoleTemplateKey">
+                                <option value="">@Text("Select role", "Select role")</option>
+                                @foreach (var profile in storeBranchRoleProfiles)
+                                {
+                                    <option value="@profile.TemplateKey">@Text(profile.Name, profile.NameAr)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary w-100"
+                                    @onclick="AssignStoreBranchRoleAsync"
+                                    disabled="@(isBusy || string.IsNullOrWhiteSpace(selectedStoreRoleBranchIdText) || string.IsNullOrWhiteSpace(selectedStoreRoleTemplateKey))">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (!storeBranchRoleAssignments.Any())
+                    {
+                        <EmptyState Title="@Text("No StoreFront roles", "No StoreFront roles")"
+                                    Message="@Text("Assign this user to a store branch role.", "Assign this user to a store branch role.")"
+                                    Icon="bi-shop-window" />
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>@Text("Store branch", "Store branch")</th>
+                                        <th>@Text("Role", "Role")</th>
+                                        <th class="text-end">@Text("Actions", "Actions")</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var assignment in storeBranchRoleAssignments)
+                                    {
+                                        <tr>
+                                            <td>@LocalizedBranchNameById(assignment.BranchId)</td>
+                                            <td>@Text(assignment.RoleName, assignment.RoleNameAr)</td>
+                                            <td class="text-end">
+                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveStoreBranchRoleAsync(assignment.Id)" disabled="@isBusy">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseStoreBranchRoles" disabled="@isBusy">@Text("Close", "Close")</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
 @code {
     private AuthenticationState? AuthState;
     private Guid companyId;
@@ -458,13 +551,18 @@
     private UserRolesRow? resetPasswordRow;
     private UserRolesRow? unassignRow;
     private UserRolesRow? branchAssignmentRow;
+    private UserRolesRow? storeBranchRoleRow;
     private RoleDto? rolePickerValue;
     private AssignRolesFormModel assignRolesForm = new();
     private PasswordResetModel passwordReset = new();
     private List<RoleDto> selectedRoles = [];
     private List<BranchDto> branches = [];
+    private List<BranchRoleProfileDto> storeBranchRoleProfiles = [];
+    private List<BranchRoleAssignmentDto> storeBranchRoleAssignments = [];
     private HashSet<Guid> selectedBranchIds = [];
     private string defaultBranchIdText = string.Empty;
+    private string selectedStoreRoleBranchIdText = string.Empty;
+    private string selectedStoreRoleTemplateKey = string.Empty;
     private HashSet<string> selectedUnassignRoleNames = new(StringComparer.OrdinalIgnoreCase);
     private int rolePickerKey;
 
@@ -473,6 +571,9 @@
     private bool CanUnassign => HasPermission(PermissionList.UsersPermissions.Delete);
     private bool CanResetPassword => HasPermission(PermissionList.UsersPermissions.Edit);
     private bool CanAssignBranches => HasPermission(PermissionList.BranchPermissions.AssignUsers);
+    private IEnumerable<BranchDto> StoreFrontBranches => branches
+        .Where(branch => branch.Specialization == BranchSpecialization.StoreFront)
+        .OrderBy(LocalizedBranchName);
 
     private List<UserRolesRow> AvailableUsersForCreate =>
         userRoleRows
@@ -817,6 +918,134 @@
         }
     }
 
+    private async Task OpenStoreBranchRoles(UserRolesRow row)
+    {
+        storeBranchRoleRow = row;
+        selectedStoreRoleBranchIdText = string.Empty;
+        selectedStoreRoleTemplateKey = string.Empty;
+        isBusy = true;
+
+        try
+        {
+            await EnsureBranchesLoadedAsync();
+            if (storeBranchRoleProfiles.Count == 0)
+            {
+                var profilesResult = await BranchService.GetBranchRoleProfilesAsync();
+                if (profilesResult.IsSuccess)
+                    storeBranchRoleProfiles = profilesResult.Data ?? [];
+                else
+                    ShowToast(profilesResult.Error?.Detail ?? Text("Unable to load StoreFront role profiles.", "Unable to load StoreFront role profiles."), "error");
+            }
+
+            await LoadStoreBranchRolesForUserAsync(row.User.Id);
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void CloseStoreBranchRoles()
+    {
+        storeBranchRoleRow = null;
+        selectedStoreRoleBranchIdText = string.Empty;
+        selectedStoreRoleTemplateKey = string.Empty;
+        storeBranchRoleAssignments = [];
+    }
+
+    private async Task AssignStoreBranchRoleAsync()
+    {
+        if (storeBranchRoleRow is null
+            || !Guid.TryParse(selectedStoreRoleBranchIdText, out var branchId)
+            || string.IsNullOrWhiteSpace(selectedStoreRoleTemplateKey))
+        {
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            var result = await BranchService.AssignUserBranchRoleAsync(new AssignBranchRoleDto
+            {
+                UserId = storeBranchRoleRow.User.Id,
+                CompanyId = companyId,
+                BranchId = branchId,
+                TemplateKey = selectedStoreRoleTemplateKey
+            });
+
+            if (result.IsSuccess)
+            {
+                ShowToast(Text("Store branch role assigned.", "Store branch role assigned."), "success");
+                selectedStoreRoleTemplateKey = string.Empty;
+                await LoadStoreBranchRolesForUserAsync(storeBranchRoleRow.User.Id);
+            }
+            else
+            {
+                ShowToast(result.Error?.Detail ?? Text("Unable to assign StoreFront role.", "Unable to assign StoreFront role."), "error");
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task RemoveStoreBranchRoleAsync(Guid assignmentId)
+    {
+        if (storeBranchRoleRow is null)
+            return;
+
+        isBusy = true;
+        try
+        {
+            var result = await BranchService.RemoveUserBranchRoleAsync(assignmentId);
+            if (result.IsSuccess)
+            {
+                ShowToast(Text("Store branch role removed.", "Store branch role removed."), "success");
+                await LoadStoreBranchRolesForUserAsync(storeBranchRoleRow.User.Id);
+            }
+            else
+            {
+                ShowToast(result.Error?.Detail ?? Text("Unable to remove StoreFront role.", "Unable to remove StoreFront role."), "error");
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task LoadStoreBranchRolesForUserAsync(Guid userId)
+    {
+        var result = await BranchService.GetUserBranchRoleAssignmentsAsync(userId, companyId);
+        if (result.IsSuccess)
+        {
+            var storeBranchIds = StoreFrontBranches.Select(branch => branch.Id).ToHashSet();
+            storeBranchRoleAssignments = (result.Data ?? [])
+                .Where(assignment => storeBranchIds.Contains(assignment.BranchId))
+                .OrderBy(assignment => LocalizedBranchNameById(assignment.BranchId))
+                .ThenBy(assignment => assignment.RoleName)
+                .ToList();
+        }
+        else
+        {
+            ShowToast(result.Error?.Detail ?? Text("Unable to load StoreFront role assignments.", "Unable to load StoreFront role assignments."), "error");
+            storeBranchRoleAssignments = [];
+        }
+    }
+
+    private async Task EnsureBranchesLoadedAsync()
+    {
+        if (branches.Count > 0)
+            return;
+
+        var branchResult = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        if (branchResult.IsSuccess)
+            branches = branchResult.Data?.Data?.ToList() ?? [];
+        else
+            ShowToast(branchResult.Error?.Detail ?? Text("Unable to load branches.", "Unable to load branches."), "error");
+    }
+
     private void CloseBranchAssignments()
     {
         branchAssignmentRow = null;
@@ -1055,6 +1284,11 @@
 
     private string LocalizedBranchName(BranchDto branch)
         => SharedDataService.SelectViewLang(branch.NameEng, branch.Name);
+
+    private string LocalizedBranchNameById(Guid branchId)
+        => branches.FirstOrDefault(branch => branch.Id == branchId) is { } branch
+            ? LocalizedBranchName(branch)
+            : branchId.ToString();
 
     private bool HasPermission(string permission)
         => AuthState?.User.Claims.Any(c => c.Value == permission) == true;

@@ -27,13 +27,24 @@
     return;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3" dir="@SharedDataService.PageDirection">
-    <h5 class="text-black mb-0">@Text("Generate Salaries", "Generate Salaries")</h5>
-</div>
+<section class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Generate Salaries", "Generate Salaries")"
+                Subtitle="@Text("Preview salary eligibility, generate salary runs, commit approved periods, and review employees without contracts.", "Preview salary eligibility, generate salary runs, commit approved periods, and review employees without contracts.")"
+                Overline="@Text("Payroll", "Payroll")"
+                Icon="bi-cash-stack">
+        <Actions>
+            <button type="button" class="btn btn-outline-secondary" @onclick="LoadLookups" disabled="@isBusy">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "Refresh")
+            </button>
+        </Actions>
+    </PageHeader>
 
 <div class="row g-3">
     <div class="col-lg-4">
-        <div class="border rounded p-3 bg-light">
+        <AppCard Title="@Text("Salary Period", "Salary Period")"
+                 Subtitle="@Text("Choose the period and run the available payroll action.", "Choose the period and run the available payroll action.")"
+                 CssClass="h-100">
             <div class="row g-3">
                 <div class="col-6">
                     <label class="form-label">@Text("Month", "Month")</label>
@@ -68,55 +79,29 @@
                     }
                 </div>
             </div>
-        </div>
+        </AppCard>
     </div>
 
     <div class="col-lg-8">
-        <div class="border rounded p-3 h-100">
-            <div class="row g-2">
-                <div class="col-md-3">
-                    <div class="border rounded p-2 bg-white">
-                        <div class="text-muted small">@Text("Employees with contracts", "Employees with contracts")</div>
-                        <div class="fw-semibold">@DisplayRows.Count</div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="border rounded p-2 bg-white">
-                        <div class="text-muted small">@Text("No contract", "No contract")</div>
-                        <div class="fw-semibold text-danger">@noContractRows.Count</div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="border rounded p-2 bg-white">
-                        <div class="text-muted small">@Text("Total salary", "Total salary")</div>
-                        <div class="fw-semibold">@DisplayRows.Sum(x => x.TotalSalary).ToString("N2")</div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="border rounded p-2 bg-white">
-                        <div class="text-muted small">@Text("Net salary", "Net salary")</div>
-                        <div class="fw-bold">@DisplayRows.Sum(x => x.NetSalary).ToString("N2")</div>
-                    </div>
-                </div>
-            </div>
+        <div class="payroll-summary-grid h-100">
+            <StatsCard Title="@Text("With Contracts", "With Contracts")" Value="@DisplayRows.Count.ToString("N0")" Icon="bi-file-earmark-check" Tone="success" CssClass="payroll-summary-card payroll-summary-card-compact h-100" />
+            <StatsCard Title="@Text("No Contract", "No Contract")" Value="@noContractRows.Count.ToString("N0")" Icon="bi-exclamation-triangle" Tone="danger" CssClass="payroll-summary-card payroll-summary-card-compact h-100" />
+            <StatsCard Title="@Text("Total Salary", "Total Salary")" Value="@DisplayRows.Sum(x => x.TotalSalary).ToString("N2")" Icon="bi-calculator" Tone="primary" CssClass="payroll-summary-card payroll-summary-card-money h-100" />
+            <StatsCard Title="@Text("Net Salary", "Net Salary")" Value="@DisplayRows.Sum(x => x.NetSalary).ToString("N2")" Icon="bi-wallet2" Tone="info" CssClass="payroll-summary-card payroll-summary-card-money h-100" />
         </div>
     </div>
 </div>
 
-<div class="border rounded p-3 mt-3">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <h6 class="mb-0">@(HasPeriodSalaryRuns ? Text("Generated Salaries", "Generated Salaries") : Text("Salary Preview", "Salary Preview"))</h6>
-        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadLookups" disabled="@isBusy">
-            <i class="bi bi-arrow-clockwise"></i>
-        </button>
-    </div>
-
-            <div class="d-flex justify-content-end mb-2">
+<AppCard Title="@(HasPeriodSalaryRuns ? Text("Generated Salaries", "Generated Salaries") : Text("Salary Preview", "Salary Preview"))"
+         Subtitle="@Text("Review calculated payroll rows before committing the salary period.", "Review calculated payroll rows before committing the salary period.")"
+         CssClass="mt-3">
+    <div class="erp-table-toolbar">
             <TableExportActions />
         </div>
 
 
-    <table class="table table-sm align-middle">
+    <div class="erp-table-wrap">
+    <table class="table erp-table align-middle mb-0">
         <thead>
             <tr>
                 <th>@Text("Employee", "Employee")</th>
@@ -148,23 +133,25 @@
                     <td class="text-end text-danger">@row.InsuranceAmount.ToString("N2")</td>
                     <td class="text-end text-danger">@row.TaxAmount.ToString("N2")</td>
                     <td class="text-end fw-semibold">@row.NetSalary.ToString("N2")</td>
-                    <td><span class="badge @row.StatusBadge">@row.StatusText</span></td>
+                    <td><StatusChip Text="@row.StatusText" Tone="@row.StatusTone" /></td>
                 </tr>
             }
         </tbody>
     </table>
-</div>
+    </div>
+</AppCard>
 
 @if (!HasPeriodSalaryRuns && noContractRows.Count > 0)
 {
-    <div class="border rounded p-3 mt-3">
-        <h6>@Text("Employees Without Salary Contract", "Employees Without Salary Contract")</h6>
-        <div class="text-muted small mb-2">@Text("No salary will be generated for these employees.", "No salary will be generated for these employees.")</div>
-                <div class="d-flex justify-content-end mb-2">
+    <AppCard Title="@Text("Employees Without Salary Contract", "Employees Without Salary Contract")"
+             Subtitle="@Text("No salary will be generated for these employees.", "No salary will be generated for these employees.")"
+             CssClass="mt-3">
+        <div class="erp-table-toolbar">
             <TableExportActions />
         </div>
 
-        <table class="table table-sm align-middle mb-0">
+        <div class="erp-table-wrap">
+        <table class="table erp-table align-middle mb-0">
             <thead>
                 <tr>
                     <th>@Text("Employee", "Employee")</th>
@@ -181,13 +168,15 @@
                             <div class="text-muted small">@employee.EmployeeNo</div>
                         </td>
                         <td>@employee.PositionName</td>
-                        <td><span class="badge text-bg-warning">@Text("No salary generated", "No salary generated")</span></td>
+                        <td><StatusChip Text="@(Text("No salary generated", "No salary generated"))" Tone="warning" /></td>
                     </tr>
                 }
             </tbody>
         </table>
-    </div>
+        </div>
+    </AppCard>
 }
+</section>
 
 @code {
     private AuthenticationState? AuthState;
@@ -285,7 +274,7 @@
             foreach (var row in payableRows)
             {
                 row.StatusText = Text("Generating", "Generating");
-                row.StatusBadge = "text-bg-info";
+                row.StatusTone = "info";
 
                 var createResult = await PayrollService.CreateSalaryRunAsync(new CreateSalaryRunDto
                 {
@@ -299,7 +288,7 @@
                 if (!createResult.IsSuccess || createResult.Data is null)
                 {
                     row.StatusText = createResult.Error?.Detail ?? Text("Not generated", "Not generated");
-                    row.StatusBadge = "text-bg-danger";
+                    row.StatusTone = "danger";
                     continue;
                 }
 
@@ -309,12 +298,12 @@
                     ApplyCalculatedAmounts(row, calculateResult.Data);
                     row.GeneratedRun = calculateResult.Data;
                     row.StatusText = Text("Generated", "Generated");
-                    row.StatusBadge = "text-bg-success";
+                    row.StatusTone = "success";
                 }
                 else
                 {
                     row.StatusText = calculateResult.Error?.Detail ?? Text("Not generated", "Not generated");
-                    row.StatusBadge = "text-bg-danger";
+                    row.StatusTone = "danger";
                 }
             }
 
@@ -434,7 +423,7 @@
             ResetPreviewAmounts(row);
             row.GeneratedRun = null;
             row.StatusText = Text("Ready", "Ready");
-            row.StatusBadge = "text-bg-light";
+            row.StatusTone = "muted";
         }
 
         foreach (var salaryRun in periodSalaryRuns)
@@ -448,7 +437,7 @@
             ApplyCalculatedAmounts(row, salaryRun);
             row.GeneratedRun = salaryRun;
             row.StatusText = SalaryRunStatusText(salaryRun.Status);
-            row.StatusBadge = SalaryRunStatusBadge(salaryRun.Status);
+            row.StatusTone = SalaryRunStatusTone(salaryRun.Status);
         }
     }
 
@@ -478,7 +467,7 @@
             PreviewTaxAmount = taxAmount,
             PreviewNetSalary = totalSalary - deductions - insuranceAmount - taxAmount,
             StatusText = Text("Ready", "Ready"),
-            StatusBadge = "text-bg-light"
+            StatusTone = "muted"
         };
     }
 
@@ -526,12 +515,12 @@
             _ => status
         };
 
-    private static string SalaryRunStatusBadge(string status)
+    private static string SalaryRunStatusTone(string status)
         => status switch
         {
-            "Approved" => "text-bg-primary",
-            "Calculated" => "text-bg-success",
-            _ => "text-bg-light"
+            "Approved" => "primary",
+            "Calculated" => "success",
+            _ => "muted"
         };
 
     private bool HasPermission(string permission)
@@ -567,7 +556,7 @@
         public decimal PreviewNetSalary { get; set; }
         public bool IsUndoing { get; set; }
         public string StatusText { get; set; } = string.Empty;
-        public string StatusBadge { get; set; } = "text-bg-light";
+        public string StatusTone { get; set; } = "muted";
         public SalaryRunDto? GeneratedRun { get; set; }
     }
 }

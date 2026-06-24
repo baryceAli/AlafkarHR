@@ -2,6 +2,12 @@
 
 namespace SharedWithUI.Organization.Dtos;
 
+public enum BranchSpecialization
+{
+    General = 0,
+    StoreFront = 1
+}
+
 public class BranchDto
 {
     public Guid Id { get; set; }
@@ -38,6 +44,7 @@ public class BranchDto
     [Required(ErrorMessage = "Email is required")]
     public string Email { get; set; }
     public bool IsMainBranch { get; set; }
+    public BranchSpecialization Specialization { get; set; } = BranchSpecialization.General;
     public Guid CompanyId { get; set; } // 🔴 VERY IMPORTANT
     //public Company Company { get; set; }
 
@@ -69,4 +76,39 @@ public class AssignUserBranchesDto
 public class AssignUserBranchesResultDto
 {
     public int AssignedCount { get; set; }
+}
+
+public class BranchRoleProfileDto
+{
+    public string TemplateKey { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string NameAr { get; set; } = string.Empty;
+    public List<string> Permissions { get; set; } = [];
+}
+
+public class BranchRoleAssignmentDto
+{
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid BranchId { get; set; }
+    public string TemplateKey { get; set; } = string.Empty;
+    public string RoleName { get; set; } = string.Empty;
+    public string RoleNameAr { get; set; } = string.Empty;
+    public List<string> Permissions { get; set; } = [];
+}
+
+public class AssignBranchRoleDto
+{
+    public Guid UserId { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid BranchId { get; set; }
+    public string TemplateKey { get; set; } = string.Empty;
+}
+
+public class CurrentUserBranchRoleAccessDto
+{
+    public Guid CompanyId { get; set; }
+    public List<BranchRoleAssignmentDto> Assignments { get; set; } = [];
+    public List<string> EffectivePermissions { get; set; } = [];
 }

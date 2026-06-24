@@ -14,14 +14,17 @@
 @inject SharedDataService SharedDataService
 
 <section class="erp-page" dir="@SharedDataService.PageDirection">
-    <div class="d-flex justify-content-between align-items-start mb-3">
-        <div>
-            <p class="text-muted mb-1">@Text("Attendance", "الحضور والانصراف")</p>
-            <h3 class="mb-1">@Text("Company Holidays", "عطلات الشركة")</h3>
-            <p class="text-muted mb-0">@Text("Company holidays and weekends apply automatically to all employees in the company.", "تطبق عطلات الشركة وأيام نهاية الأسبوع تلقائيا على جميع موظفي الشركة.")</p>
-        </div>
-        <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">@Text("Refresh", "تحديث")</button>
-    </div>
+    <PageHeader Title="@Text("Company Holidays", "عطلات الشركة")"
+                Subtitle="@Text("Company holidays and weekends apply automatically to all employees in the company.", "تطبق عطلات الشركة وأيام نهاية الأسبوع تلقائيا على جميع موظفي الشركة.")"
+                Overline="@Text("Attendance", "الحضور والانصراف")"
+                Icon="bi-calendar-event">
+        <Actions>
+            <button class="btn btn-outline-primary" @onclick="LoadAsync" disabled="@isBusy">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+        </Actions>
+    </PageHeader>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
@@ -30,11 +33,11 @@
 
     <div class="row g-3 mb-3">
         <div class="col-xl-8">
-            <div class="card h-100">
-                <div class="card-header bg-white">
+            <div class="erp-card h-100">
+                <div class="erp-card-header bg-white">
                     <strong>@Text("Holiday Details", "تفاصيل العطلة")</strong>
                 </div>
-                <div class="card-body">
+                <div class="erp-card-body">
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label">@Text("Holiday Name", "اسم العطلة")</label>
@@ -82,11 +85,11 @@
         </div>
 
         <div class="col-xl-4">
-            <div class="card h-100">
-                <div class="card-header bg-white">
+            <div class="erp-card h-100">
+                <div class="erp-card-header bg-white">
                     <strong>@Text("Weekend Configuration", "إعداد نهاية الأسبوع")</strong>
                 </div>
-                <div class="card-body">
+                <div class="erp-card-body">
                     <p class="text-muted small">@Text("Select one or more company weekend days. Attendance calculations ignore these days.", "اختر يوما واحدا أو أكثر لنهاية الأسبوع على مستوى الشركة. تتجاهل حسابات الحضور هذه الأيام.")</p>
                     <div class="row g-2">
                         @foreach (var day in weekDays)
@@ -105,9 +108,9 @@
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-body table-responsive">
-            <table class="table align-middle">
+    <div class="erp-card">
+        <div class="erp-table-wrap">
+            <table class="table erp-table align-middle mb-0">
                 <thead>
                     <tr>
                         <th>@Text("Name", "الاسم")</th>
@@ -136,9 +139,7 @@
                                 <td>@holiday.StartDate.ToShortDateString() - @holiday.EndDate.ToShortDateString()</td>
                                 <td>@(holiday.IsRecurringYearly ? Text("Yearly", "سنوي") : Text("Once", "مرة واحدة"))</td>
                                 <td>
-                                    <span class="badge @(holiday.IsActive ? "bg-success" : "bg-secondary")">
-                                        @(holiday.IsActive ? Text("Active", "نشطة") : Text("Inactive", "غير نشطة"))
-                                    </span>
+                                    <StatusChip Text="@HolidayStatusText(holiday)" Tone="@HolidayStatusTone(holiday)" />
                                 </td>
                                 <td>@holiday.Description</td>
                                 <td class="text-end">
@@ -340,6 +341,12 @@
     {
         await InvokeAsync(StateHasChanged);
     }
+
+    private string HolidayStatusText(AttendanceHolidayDto holiday)
+        => holiday.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط");
+
+    private static string HolidayStatusTone(AttendanceHolidayDto holiday)
+        => holiday.IsActive ? "success" : "muted";
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private void SetMessage(string text, string cssClass) { message = text; messageClass = cssClass; }

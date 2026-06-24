@@ -14,6 +14,6 @@ public class AddCartLineEndpoint : ICarterModule
         })
         .WithName("AddCartLine")
         .Produces<AddCartLineResponse>(StatusCodes.Status200OK)
-        .RequireAuthorization(PermissionList.CartPermissions.Edit);
+        .RequireAuthorization();
     }
 }

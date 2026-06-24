@@ -18,25 +18,26 @@
 @inject IEmployeeService EmployeeService
 @inject SharedDataService SharedDataService
 
-<section class="shift-page" dir="@SharedDataService.PageDirection">
-    <div class="shift-header">
-        <div>
-            <p class="eyebrow">@Text("Attendance", "الحضور والانصراف")</p>
-            <h1>@Text("Shift assignments", "تعيين الورديات")</h1>
-        </div>
-        <button class="btn btn-outline-primary" @onclick="LoadData">
-            <i class="bi bi-arrow-clockwise"></i>
-            @Text("Refresh", "تحديث")
-        </button>
-    </div>
+<section class="erp-page attendance-shift-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Shift assignments", "تعيين الورديات")"
+                Subtitle="@Text("Assign shifts by company, administration, department, or employee priority.", "تعيين الورديات حسب أولوية الشركة أو الإدارة أو القسم أو الموظف.")"
+                Overline="@Text("Attendance", "الحضور والانصراف")"
+                Icon="bi-diagram-3">
+        <Actions>
+            <button class="btn btn-outline-primary" @onclick="LoadData">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+        </Actions>
+    </PageHeader>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
         <div class="alert @messageClass">@message</div>
     }
 
-    <section class="shift-panel">
-        <div class="panel-title">
+    <section class="attendance-workspace-card">
+        <div class="attendance-section-title">
             <h2>@Text("Apply shift", "تطبيق الوردية")</h2>
             <span>@Text("Priority is employee, department, administration, then company.", "الأولوية للموظف ثم القسم ثم الإدارة ثم الشركة.")</span>
         </div>
@@ -125,8 +126,8 @@
         </div>
     </section>
 
-    <section class="shift-panel mt-3">
-        <div class="panel-title">
+    <section class="attendance-workspace-card mt-3">
+        <div class="attendance-section-title">
             <h2>@Text("Configured assignments", "التعيينات الحالية")</h2>
             <select class="form-select form-select-sm scope-filter" @bind="scopeFilter">
                 <option value="">@Text("All scopes", "كل النطاقات")</option>
@@ -136,12 +137,12 @@
                 <option value="@ShiftAssignmentScope.Employee">@Text("Employee", "الموظف")</option>
             </select>
         </div>
-        <div class="table-responsive">
+        <div class="erp-table-wrap">
                     <div class="d-flex justify-content-end mb-2">
             <TableExportActions />
         </div>
 
-            <table class="table align-middle">
+            <table class="table erp-table align-middle mb-0">
                 <thead>
                     <tr>
                         <th>@Text("Scope", "النطاق")</th>
@@ -159,7 +160,7 @@
                             <td>@TargetLabel(assignment)</td>
                             <td>@ShiftName(assignment.ShiftId)</td>
                             <td>@assignment.EffectiveFrom.ToLocalTime().ToString("g") - @FormatNullable(assignment.EffectiveTo)</td>
-                            <td><span class="badge @(assignment.IsActive ? "text-bg-success" : "text-bg-secondary")">@(assignment.IsActive ? Text("Active", "نشط") : Text("Closed", "مغلق"))</span></td>
+                            <td><StatusChip Text="@AssignmentStatusText(assignment)" Tone="@AssignmentStatusTone(assignment)" /></td>
                         </tr>
                     }
                 </tbody>
@@ -379,6 +380,12 @@
     private string DepartmentSearchText(DepartmentDto department) => $"{DepartmentName(department)} | {department.Code}";
     private string AdministrationSearchText(AdministrationDto administration) => $"{AdminName(administration)} | {administration.Code}";
     private string FormatNullable(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : Text("Open", "مفتوح");
+    private string AssignmentStatusText(ShiftAssignmentDto assignment)
+        => assignment.IsActive ? Text("Active", "نشط") : Text("Closed", "مغلق");
+
+    private static string AssignmentStatusTone(ShiftAssignmentDto assignment)
+        => assignment.IsActive ? "success" : "muted";
+
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     
     protected override void OnInitialized()
@@ -403,7 +410,7 @@
     }
 
     .shift-header,
-    .panel-title,
+    .attendance-section-title,
     .action-row {
         display: flex;
         align-items: center;
@@ -429,7 +436,7 @@
         letter-spacing: .06em;
     }
 
-    .shift-panel {
+    .attendance-workspace-card {
         background: var(--erp-surface);
         border: 1px solid var(--erp-border);
         border-radius: var(--erp-radius-lg);
@@ -437,17 +444,17 @@
         box-shadow: var(--erp-shadow-sm);
     }
 
-    .panel-title {
+    .attendance-section-title {
         margin-bottom: .75rem;
     }
 
-    .panel-title h2 {
+    .attendance-section-title h2 {
         margin: 0;
         font-size: 1rem;
         font-weight: 700;
     }
 
-    .panel-title span {
+    .attendance-section-title span {
         color: var(--erp-text-muted);
         font-size: .9rem;
     }
@@ -481,7 +488,7 @@
 
     @@media (max-width: 760px) {
         .shift-header,
-        .panel-title {
+        .attendance-section-title {
             align-items: stretch;
             flex-direction: column;
         }

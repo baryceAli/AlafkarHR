@@ -32,6 +32,7 @@ public class CreateBranchHandler(OrganizationDbContext dbContext, IHttpContextAc
             request.Branch.Phone,
             request.Branch.Email,
             false,
+            request.Branch.Specialization,
             request.Branch.CompanyId,
             userId
             );

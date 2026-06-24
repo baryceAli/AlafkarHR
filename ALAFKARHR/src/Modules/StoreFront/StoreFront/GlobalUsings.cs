@@ -13,6 +13,7 @@ global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Hosting;
 global using Shared.Contracts.CQRS;
 global using Shared.Contracts.Organization;
+global using Shared.Contracts.StoreFront;
 global using Shared.Data;
 global using Shared.DDD;
 global using Shared.Exceptions;

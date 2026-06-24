@@ -13,6 +13,6 @@ public class GetCartByIdEndpoint : ICarterModule
         })
         .WithName("GetCartById")
         .Produces<GetCartByIdResponse>(StatusCodes.Status200OK)
-        .RequireAuthorization(PermissionList.CartPermissions.View);
+        .RequireAuthorization();
     }
 }
