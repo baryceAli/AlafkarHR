@@ -139,6 +139,7 @@
                     <i class="@SortIcon(nameof(AdministrationDto.ManagerId))"></i>
                 </th>
                 <th>@Text("Parent", "الإدارة الأعلى")</th>
+                <th>@Text("Management Level", "الإدارة العليا")</th>
                 <th>@Text("Status", "الحالة")</th>
                 <th class="text-end">@Text("Actions", "العمليات")</th>
             </tr>
@@ -148,7 +149,7 @@
             {
                 var admin = administrations.FirstOrDefault(a => a.Id == editingAdministrationId);
                 <tr class="org-edit-row">
-                    <td colspan="7">
+                    <td colspan="8">
                         <EditForm Model="admin" OnValidSubmit="async () => await SaveAdministration(admin)">
                             <DataAnnotationsValidator />
                             <ValidationSummary />
@@ -208,6 +209,14 @@
                                         <span>@Text("Active administration", "إدارة نشطة")</span>
                                     </div>
                                 </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label d-block">@Text("Higher management?", "الإدارة العليا؟")</label>
+                                    <div class="org-check">
+                                        <InputCheckbox class="form-check-input" @bind-Value="admin.IsHigherManagement" />
+                                        <span>@Text("Higher management administration", "إدارة عليا")</span>
+                                    </div>
+                                </div>
                                     
                                 <div class="col-12 d-flex justify-content-end gap-2">
                                     <button type="button" class="btn btn-outline-secondary" @onclick="CancelEdit">@Text("Cancel", "إلغاء")</button>
@@ -232,6 +241,16 @@
                         <td>@EmptyValue(BranchScopeLabel(admin))</td>
                         <td>@EmptyValue(SharedDataService.SelectViewLang(employees.FirstOrDefault(u => u.Id == admin.ManagerId)?.FullName ?? "",employees.FirstOrDefault(u => u.Id == admin.ManagerId)?.FullName ?? ""))</td>
                         <td>@EmptyValue(ParentAdministrationLabel(admin))</td>
+                        <td>
+                            @if (admin.IsHigherManagement)
+                            {
+                                <span class="badge rounded-pill text-bg-primary">@Text("Higher Management", "الإدارة العليا")</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">@Text("Standard", "عادية")</span>
+                            }
+                        </td>
                         <td>
                             <span class="badge rounded-pill @(admin.IsActive ? "text-bg-success" : "text-bg-secondary")">
                                 @(admin.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))
@@ -760,7 +779,8 @@
             (b.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
             (b.NameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
             (BranchScopeLabel(b)?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (ParentAdministrationLabel(b)?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+            (ParentAdministrationLabel(b)?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (b.IsHigherManagement && Text("Higher Management", "الإدارة العليا").Contains(searchText, StringComparison.OrdinalIgnoreCase))
         // (b.Email?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
         )
 

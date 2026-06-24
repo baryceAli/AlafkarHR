@@ -39,6 +39,7 @@ public class CreateAdministrationHandler(OrganizationDbContext dbContext, IHttpC
             branchId,
             request.Administration.ParentAdministrationId,
             request.Administration.ManagerId,
+            request.Administration.IsHigherManagement,
             request.Administration.IsActive,
             request.Administration.CompanyId,
             userId);

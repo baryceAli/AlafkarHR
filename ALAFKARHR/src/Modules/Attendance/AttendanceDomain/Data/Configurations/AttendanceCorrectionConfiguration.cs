@@ -10,6 +10,7 @@ public class AttendanceCorrectionConfiguration : IEntityTypeConfiguration<Attend
         builder.ToTable("AttendanceCorrections");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Status).HasConversion<int>().IsRequired();
+        builder.Property(x => x.CurrentSessionStatus).HasConversion<int>();
         builder.Property(x => x.Reason).HasMaxLength(1000);
         builder.Property(x => x.ManagerNote).HasMaxLength(1000);
         builder.Property(x => x.ReviewedBy).HasMaxLength(450);

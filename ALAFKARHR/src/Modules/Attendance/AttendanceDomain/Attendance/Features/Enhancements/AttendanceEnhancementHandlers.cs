@@ -198,7 +198,7 @@ public class UpsertShiftScheduleAssignmentHandler(AttendanceDbContext dbContext)
 {
     public async Task<UpsertShiftScheduleAssignmentResult> Handle(UpsertShiftScheduleAssignmentCommand request, CancellationToken cancellationToken)
     {
-        await EnsureScheduleCanEditAsync(request.Assignment.ScheduleId, cancellationToken);
+        await EnsureScheduleCanEditAsync(dbContext, request.Assignment.ScheduleId, cancellationToken);
         ShiftScheduleAssignment assignment;
         if (request.Assignment.Id.HasValue && request.Assignment.Id.Value != Guid.Empty)
         {
@@ -216,7 +216,7 @@ public class UpsertShiftScheduleAssignmentHandler(AttendanceDbContext dbContext)
         return new UpsertShiftScheduleAssignmentResult(assignment.Adapt<ShiftScheduleAssignmentDto>());
     }
 
-    private async Task EnsureScheduleCanEditAsync(Guid scheduleId, CancellationToken cancellationToken)
+    internal static async Task EnsureScheduleCanEditAsync(AttendanceDbContext dbContext, Guid scheduleId, CancellationToken cancellationToken)
     {
         var schedule = await dbContext.ShiftSchedules.AsNoTracking().FirstOrDefaultAsync(x => x.Id == scheduleId && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException("ShiftSchedule", scheduleId);
@@ -232,6 +232,8 @@ public class BulkShiftScheduleAssignmentHandler(AttendanceDbContext dbContext)
 {
     public async Task<BulkShiftScheduleAssignmentResult> Handle(BulkShiftScheduleAssignmentCommand request, CancellationToken cancellationToken)
     {
+        await UpsertShiftScheduleAssignmentHandler.EnsureScheduleCanEditAsync(dbContext, request.Assignment.ScheduleId, cancellationToken);
+
         if (request.Assignment.EmployeeIds.Count == 0)
         {
             throw new BadRequestException("At least one employee is required for bulk roster assignment.");
@@ -349,7 +351,8 @@ public class AttendanceCorrectionHandlers(AttendanceDbContext dbContext) :
 
     public async Task<CreateAttendanceCorrectionResult> Handle(CreateAttendanceCorrectionCommand request, CancellationToken cancellationToken)
     {
-        var entity = AttendanceCorrection.Create(Guid.NewGuid(), request.Correction);
+        var currentSession = await ResolveCurrentSessionAsync(request.Correction, cancellationToken);
+        var entity = AttendanceCorrection.Create(Guid.NewGuid(), request.Correction, currentSession);
         await dbContext.AttendanceCorrections.AddAsync(entity, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new CreateAttendanceCorrectionResult(entity.Adapt<AttendanceCorrectionDto>());
@@ -360,6 +363,11 @@ public class AttendanceCorrectionHandlers(AttendanceDbContext dbContext) :
         var entity = await dbContext.AttendanceCorrections.FirstOrDefaultAsync(x => x.Id == request.Review.CorrectionId && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException("AttendanceCorrection", request.Review.CorrectionId);
         entity.Review(request.Review.IsApproved, request.Review.ManagerNote, request.UserId);
+        if (request.Review.IsApproved)
+        {
+            await ApplyCorrectionAsync(entity, request.UserId, cancellationToken);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
         return new ReviewAttendanceCorrectionResult(entity.Adapt<AttendanceCorrectionDto>());
     }
@@ -369,23 +377,57 @@ public class AttendanceCorrectionHandlers(AttendanceDbContext dbContext) :
         var correction = await dbContext.AttendanceCorrections.FirstOrDefaultAsync(x => x.Id == request.CorrectionId && !x.IsDeleted, cancellationToken)
             ?? throw new NotFoundException("AttendanceCorrection", request.CorrectionId);
 
-        correction.MarkApplied(request.UserId);
-        if (correction.SessionId.HasValue)
-        {
-            var session = await dbContext.AttendanceSessions.FirstOrDefaultAsync(x => x.Id == correction.SessionId.Value, cancellationToken);
-            session?.Normalize(correction.CorrectedCheckInUtc, correction.CorrectedCheckOutUtc, false, correction.ManagerNote ?? correction.Reason, request.UserId ?? "system");
-        }
-
-        await EnsureWorkEntryAsync(correction.CompanyId, correction.EmployeeId, correction.WorkDate, AttendanceWorkEntryType.ManualCorrection, WorkHours(correction.CorrectedCheckInUtc, correction.CorrectedCheckOutUtc), "AttendanceCorrection", correction.Id, correction.Reason, request.UserId, cancellationToken);
+        await ApplyCorrectionAsync(correction, request.UserId, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new ReviewAttendanceCorrectionResult(correction.Adapt<AttendanceCorrectionDto>());
     }
 
+    private async Task ApplyCorrectionAsync(AttendanceCorrection correction, string? userId, CancellationToken cancellationToken)
+    {
+        correction.MarkApplied(userId);
+        if (correction.SessionId.HasValue)
+        {
+            var session = await dbContext.AttendanceSessions.FirstOrDefaultAsync(x => x.Id == correction.SessionId.Value, cancellationToken);
+            session?.Normalize(correction.CorrectedCheckInUtc, correction.CorrectedCheckOutUtc, false, correction.ManagerNote ?? correction.Reason, userId ?? "system");
+        }
+
+        await EnsureWorkEntryAsync(correction.CompanyId, correction.EmployeeId, correction.WorkDate, AttendanceWorkEntryType.ManualCorrection, WorkHours(correction.CorrectedCheckInUtc, correction.CorrectedCheckOutUtc), "AttendanceCorrection", correction.Id, correction.Reason, userId, cancellationToken);
+    }
+
+    private async Task<AttendanceSession?> ResolveCurrentSessionAsync(CreateAttendanceCorrectionDto correction, CancellationToken cancellationToken)
+    {
+        if (correction.SessionId.HasValue)
+        {
+            return await dbContext.AttendanceSessions.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == correction.SessionId.Value && x.CompanyId == correction.CompanyId && x.EmployeeId == correction.EmployeeId, cancellationToken);
+        }
+
+        var workDate = UtcDateTime.Normalize(correction.WorkDate).Date;
+        return await dbContext.AttendanceSessions.AsNoTracking()
+            .Where(x => x.CompanyId == correction.CompanyId
+                && x.EmployeeId == correction.EmployeeId
+                && x.ShiftStart.Date == workDate)
+            .OrderByDescending(x => x.ActualStartTime ?? x.ShiftStart)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     private async Task EnsureWorkEntryAsync(Guid companyId, Guid employeeId, DateTime workDate, AttendanceWorkEntryType type, decimal hours, string sourceModule, Guid sourceDocumentId, string? notes, string? userId, CancellationToken cancellationToken)
     {
-        var exists = await dbContext.AttendanceWorkEntries.AnyAsync(x => x.SourceModule == sourceModule && x.SourceDocumentId == sourceDocumentId && !x.IsDeleted, cancellationToken);
-        if (exists)
+        var existing = await dbContext.AttendanceWorkEntries.FirstOrDefaultAsync(x => x.SourceModule == sourceModule && x.SourceDocumentId == sourceDocumentId && !x.IsDeleted, cancellationToken);
+        if (existing is not null)
         {
+            existing.Update(new UpsertAttendanceWorkEntryDto
+            {
+                Id = existing.Id,
+                CompanyId = companyId,
+                EmployeeId = employeeId,
+                WorkDate = workDate,
+                EntryType = type,
+                Hours = hours,
+                SourceModule = sourceModule,
+                SourceDocumentId = sourceDocumentId,
+                Notes = notes
+            }, userId);
             return;
         }
 

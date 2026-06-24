@@ -24,6 +24,7 @@ public class UpdateAdministrationHandler(OrganizationDbContext dbContext, IHttpC
         administration.Update(
             request.Administration.Name,
             request.Administration.NameEng,
+            request.Administration.IsHigherManagement,
             request.Administration.IsActive,
             request.Administration.ParentAdministrationId,
             request.Administration.ManagerId,

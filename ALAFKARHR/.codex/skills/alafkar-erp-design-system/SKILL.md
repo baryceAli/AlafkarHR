@@ -27,6 +27,7 @@ Use this skill for UI-only design-system work in the Alafkar ERP Blazor app.
 - Prefer existing components: `PageHeader`, `AppCard`, `FilterBar`, `StatsCard`, `EmptyState`, `TableExportActions`, `StatusChip`, `CompanySwitcher`, loaders, modals, autocomplete, and paged tables.
 - Build migrated pages with shared ERP surfaces and utilities: `erp-page`, `PageHeader`, `FilterBar`, `AppCard`, `EmptyState`, `erp-loading`, `erp-table-toolbar`, `erp-table-wrap`, and `erp-table`. Do not introduce or continue page-local structural wrappers such as `sessions-header`, `filter-panel`, `sessions-panel`, `requests-panel`, `shift-panel`, raw `card-body table-responsive`, or `panel-title` when the shared pattern fits.
 - Use Bootstrap Icons for icons and the app's existing Bootstrap patterns.
+- Give expanded/open navigation containers a clear tokenized boundary with background, border, or shadow so their scope is visually distinct. Use existing `theme.css` variables such as surfaces, borders, radii, and shadows; do not hardcode one-off navigation colors.
 - Keep dynamic inline styles only for true data-driven values, preferably as CSS custom properties such as progress width variables.
 - When editing localized UI that uses `SharedDataService`, preserve or add the `OnChange1` subscribe/dispose pattern from the development guide.
 

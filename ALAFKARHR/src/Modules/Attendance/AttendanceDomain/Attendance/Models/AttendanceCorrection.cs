@@ -8,6 +8,9 @@ public class AttendanceCorrection : Entity<Guid>
     public Guid EmployeeId { get; private set; }
     public Guid? SessionId { get; private set; }
     public DateTime WorkDate { get; private set; }
+    public DateTime? CurrentCheckInUtc { get; private set; }
+    public DateTime? CurrentCheckOutUtc { get; private set; }
+    public AttendanceSessionStatus? CurrentSessionStatus { get; private set; }
     public DateTime? CorrectedCheckInUtc { get; private set; }
     public DateTime? CorrectedCheckOutUtc { get; private set; }
     public AttendanceExceptionStatus Status { get; private set; }
@@ -19,7 +22,7 @@ public class AttendanceCorrection : Entity<Guid>
 
     private AttendanceCorrection() { }
 
-    public static AttendanceCorrection Create(Guid id, CreateAttendanceCorrectionDto dto)
+    public static AttendanceCorrection Create(Guid id, CreateAttendanceCorrectionDto dto, AttendanceSession? currentSession)
     {
         if (dto.CompanyId == Guid.Empty || dto.EmployeeId == Guid.Empty)
         {
@@ -37,8 +40,11 @@ public class AttendanceCorrection : Entity<Guid>
             Id = id,
             CompanyId = dto.CompanyId,
             EmployeeId = dto.EmployeeId,
-            SessionId = dto.SessionId,
+            SessionId = currentSession?.Id ?? dto.SessionId,
             WorkDate = UtcDateTime.Normalize(dto.WorkDate).Date,
+            CurrentCheckInUtc = UtcDateTime.Normalize(currentSession?.ActualStartTime),
+            CurrentCheckOutUtc = UtcDateTime.Normalize(currentSession?.ActualEndTime),
+            CurrentSessionStatus = currentSession?.Status,
             CorrectedCheckInUtc = UtcDateTime.Normalize(dto.CorrectedCheckInUtc),
             CorrectedCheckOutUtc = UtcDateTime.Normalize(dto.CorrectedCheckOutUtc),
             Reason = dto.Reason,
@@ -67,6 +73,11 @@ public class AttendanceCorrection : Entity<Guid>
         if (Status != AttendanceExceptionStatus.Approved)
         {
             throw new BadRequestException("Only approved corrections can be applied.");
+        }
+
+        if (AppliedAtUtc.HasValue)
+        {
+            throw new BadRequestException("Correction has already been applied.");
         }
 
         AppliedAtUtc = DateTime.UtcNow;

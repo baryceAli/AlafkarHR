@@ -32,6 +32,65 @@ public static partial class NavigationMenuResolver
     public const string NavigationGroupReports = "reports";
     public const string NavigationGroupAdministration = "administration";
 
+    public const string HrFunctionalGroupEmployees = "hr-employees";
+    public const string HrFunctionalGroupAttendance = "hr-attendance";
+    public const string HrFunctionalGroupLeaves = "hr-leaves";
+    public const string HrFunctionalGroupPayroll = "hr-payroll";
+    public const string HrFunctionalGroupRecruitment = "hr-recruitment";
+    public const string HrFunctionalGroupPerformance = "hr-performance";
+    public const string HrFunctionalGroupTraining = "hr-training";
+
+    public const string PosFunctionalGroupCheckout = "pos-checkout";
+
+    public const string SalesFunctionalGroupPos = PosFunctionalGroupCheckout;
+    public const string SalesFunctionalGroupSales = "sales-sales";
+    public const string SalesFunctionalGroupCustomers = "sales-customers";
+    public const string SalesFunctionalGroupReports = "sales-reports";
+
+    public const string PurchasingFunctionalGroupSuppliers = "purchasing-suppliers";
+    public const string PurchasingFunctionalGroupProcurement = "purchasing-procurement";
+
+    public const string WarehouseFunctionalGroupProducts = "warehouse-products";
+    public const string WarehouseFunctionalGroupInventory = "warehouse-inventory";
+    public const string WarehouseFunctionalGroupStockOperations = "warehouse-stock-operations";
+
+    public const string AccountingFunctionalGroupSetup = "accounting-setup";
+    public const string AccountingFunctionalGroupChartOfAccounts = "accounting-chart-of-accounts";
+    public const string AccountingFunctionalGroupBankingCash = "accounting-banking-cash";
+    public const string AccountingFunctionalGroupJournalsDocuments = "accounting-journals-documents";
+    public const string AccountingFunctionalGroupInvoices = "accounting-invoices";
+    public const string AccountingFunctionalGroupReceiptsPayments = "accounting-receipts-payments";
+    public const string AccountingFunctionalGroupAdjustments = "accounting-adjustments";
+    public const string AccountingFunctionalGroupTaxZatca = "accounting-tax-zatca";
+    public const string AccountingFunctionalGroupReports = "accounting-reports";
+
+    public const string CateringFunctionalGroupContracts = "catering-contracts";
+    public const string CateringFunctionalGroupMeals = "catering-meals";
+    public const string CateringFunctionalGroupLocations = "catering-locations";
+    public const string CateringFunctionalGroupSchedules = "catering-schedules";
+    public const string CateringFunctionalGroupDeliveries = "catering-deliveries";
+    public const string CateringFunctionalGroupAssignments = "catering-assignments";
+    public const string CateringFunctionalGroupReports = "catering-reports";
+
+    public const string RealEstateFunctionalGroupProperties = "real-estate-properties";
+    public const string RealEstateFunctionalGroupLeasing = "real-estate-leasing";
+    public const string RealEstateFunctionalGroupCollections = "real-estate-collections";
+    public const string RealEstateFunctionalGroupUtilitiesExpenses = "real-estate-utilities-expenses";
+    public const string RealEstateFunctionalGroupReports = "real-estate-reports";
+
+    public const string AdminFunctionalGroupOrganization = "admin-organization";
+    public const string AdminFunctionalGroupContracts = "admin-contracts";
+    public const string AdminFunctionalGroupDocuments = "admin-documents";
+    public const string AdminFunctionalGroupProjects = "admin-projects";
+    public const string AdminFunctionalGroupTasks = "admin-tasks";
+    public const string AdminFunctionalGroupFleet = "admin-fleet";
+    public const string AdminFunctionalGroupMaintenance = "admin-maintenance";
+    public const string AdminFunctionalGroupGeneralSettings = "admin-general-settings";
+
+    public const string SecurityFunctionalGroupSecurity = "security-security";
+    public const string SecurityFunctionalGroupRoles = "security-roles";
+    public const string SecurityFunctionalGroupUserAccess = "security-user-access";
+
     public const string HubHr = WorkspaceHr;
     public const string HubSales = WorkspaceSales;
     public const string HubPurchasing = WorkspacePurchasing;
@@ -302,6 +361,26 @@ public static partial class NavigationMenuResolver
         return WorkspaceMore;
     }
 
+    public static string? GetFunctionalGroupKey(MenuItem item)
+    {
+        if (!string.IsNullOrWhiteSpace(item.NavigationFunctionalGroupKey))
+        {
+            return item.NavigationFunctionalGroupKey;
+        }
+
+        return TryFindInheritedFunctionalGroupKey(MenuItem.Menu, item, null, out var inheritedFunctionalGroupKey)
+            ? inheritedFunctionalGroupKey
+            : null;
+    }
+
+    public static string? ResolveActiveFunctionalGroupKey(string currentUri, string baseUri, string workspaceKey)
+    {
+        var activePath = GetActivePath(currentUri, baseUri, workspaceKey);
+        return activePath
+            .Select(GetFunctionalGroupKey)
+            .LastOrDefault(key => !string.IsNullOrWhiteSpace(key));
+    }
+
     public static string ResolveActiveWorkspace(string currentUri, string baseUri)
         => ResolveActiveWorkspace(currentUri, baseUri, null);
 
@@ -475,6 +554,34 @@ public static partial class NavigationMenuResolver
             .Where(row => workspaceKey == WorkspaceMore || RowBelongsToWorkspace(row.Item, workspaceKey, user, licensedBusinessLineKeys))
             .ToList();
 
+    public static IReadOnlyList<NavigationFunctionalGroup> GetAuthorizedWorkspaceFunctionalGroups(
+        ClaimsPrincipal? user,
+        string workspaceKey,
+        IReadOnlySet<string>? licensedBusinessLineKeys)
+    {
+        var functionalGroups = GetFunctionalGroups(workspaceKey);
+        if (functionalGroups.Count == 0)
+        {
+            return [];
+        }
+
+        var authorizedFunctionalKeys = GetAuthorizedRows(user, null, licensedBusinessLineKeys)
+            .Where(row => !string.IsNullOrWhiteSpace(row.Item.Url)
+                          && HasOwnPermission(row.Item, user, licensedBusinessLineKeys)
+                          && RowBelongsToWorkspace(row.Item, workspaceKey, user, licensedBusinessLineKeys))
+            .Select(row => GetFunctionalGroupKey(row.Item))
+            .Where(key => !string.IsNullOrWhiteSpace(key))
+            .Cast<string>()
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return functionalGroups
+            .Where(group => authorizedFunctionalKeys.Contains(group.Key))
+            .ToList();
+    }
+
+    public static bool HasFunctionalGroups(string workspaceKey)
+        => GetFunctionalGroups(workspaceKey).Count > 0;
+
     public static IReadOnlyList<NavigationMenuRow> GetAuthorizedWorkspacePanelRows(ClaimsPrincipal? user, string workspaceKey)
         => GetAuthorizedWorkspacePanelRows(user, workspaceKey, null);
 
@@ -486,7 +593,10 @@ public static partial class NavigationMenuResolver
         }
 
         var journeyRows = new List<NavigationMenuRow>();
-        foreach (var section in BuildJourneyPanelSections(user, workspaceKey, licensedBusinessLineKeys))
+        var panelSections = HasFunctionalGroups(workspaceKey)
+            ? BuildFunctionalJourneyPanelSections(user, workspaceKey, licensedBusinessLineKeys)
+            : BuildJourneyPanelSections(user, workspaceKey, licensedBusinessLineKeys);
+        foreach (var section in panelSections)
         {
             AddPanelRows(section, [], 0, journeyRows);
         }
@@ -799,6 +909,7 @@ public static partial class NavigationMenuResolver
             BadgeTitleAr = item.BadgeTitleAr,
             WorkspaceKey = item.WorkspaceKey,
             BusinessLineKey = item.BusinessLineKey,
+            NavigationFunctionalGroupKey = item.NavigationFunctionalGroupKey,
             NavigationGroupKey = item.NavigationGroupKey,
             NavigationOrder = item.NavigationOrder,
             ProcessKey = item.ProcessKey,
@@ -844,11 +955,19 @@ public static partial class NavigationMenuResolver
         ClaimsPrincipal? user,
         string workspaceKey,
         IReadOnlySet<string>? licensedBusinessLineKeys)
+        => BuildJourneyPanelSections(user, workspaceKey, licensedBusinessLineKeys, null);
+
+    private static IReadOnlyList<MenuItem> BuildJourneyPanelSections(
+        ClaimsPrincipal? user,
+        string workspaceKey,
+        IReadOnlySet<string>? licensedBusinessLineKeys,
+        string? functionalGroupKey)
     {
         var items = GetAuthorizedRows(user, null, licensedBusinessLineKeys)
             .Where(row => !string.IsNullOrWhiteSpace(row.Item.Url)
                           && HasOwnPermission(row.Item, user, licensedBusinessLineKeys)
-                          && RowBelongsToWorkspace(row.Item, workspaceKey, user, licensedBusinessLineKeys))
+                          && RowBelongsToWorkspace(row.Item, workspaceKey, user, licensedBusinessLineKeys)
+                          && FunctionalGroupMatches(row.Item, functionalGroupKey))
             .Select(row => row.Item)
             .GroupBy(GetStorageKey, StringComparer.OrdinalIgnoreCase)
             .Select(group => group
@@ -879,6 +998,22 @@ public static partial class NavigationMenuResolver
             .ToList();
     }
 
+    private static IReadOnlyList<MenuItem> BuildFunctionalJourneyPanelSections(
+        ClaimsPrincipal? user,
+        string workspaceKey,
+        IReadOnlySet<string>? licensedBusinessLineKeys)
+    {
+        return GetAuthorizedWorkspaceFunctionalGroups(user, workspaceKey, licensedBusinessLineKeys)
+            .Select(group =>
+            {
+                var children = BuildJourneyPanelSections(user, workspaceKey, licensedBusinessLineKeys, group.Key).ToList();
+                return children.Count == 0 ? null : CreateFunctionalSection(group, workspaceKey, children);
+            })
+            .Where(section => section is not null)
+            .Cast<MenuItem>()
+            .ToList();
+    }
+
     private static MenuItem CreateJourneySection(NavigationJourneyGroup group, string workspaceKey, List<MenuItem> children)
         => new()
         {
@@ -892,6 +1027,24 @@ public static partial class NavigationMenuResolver
             IsFavoriteCandidate = false,
             Children = children
         };
+
+    private static MenuItem CreateFunctionalSection(NavigationFunctionalGroup group, string workspaceKey, List<MenuItem> children)
+        => new()
+        {
+            TextEn = group.TextEn,
+            TextAr = group.TextAr,
+            Icon = group.Icon,
+            PermissionPolicy = string.Empty,
+            WorkspaceKey = workspaceKey,
+            NavigationFunctionalGroupKey = group.Key,
+            NavigationOrder = group.Order,
+            IsFavoriteCandidate = false,
+            Children = children
+        };
+
+    private static bool FunctionalGroupMatches(MenuItem item, string? functionalGroupKey)
+        => string.IsNullOrWhiteSpace(functionalGroupKey)
+           || string.Equals(GetFunctionalGroupKey(item), functionalGroupKey, StringComparison.OrdinalIgnoreCase);
 
     private static IReadOnlyList<MenuItem> GetWorkspacePanelSections(IReadOnlyList<MenuItem> roots, string workspaceKey)
         => workspaceKey switch
@@ -998,6 +1151,7 @@ public static partial class NavigationMenuResolver
             BadgeTitleAr = item.BadgeTitleAr,
             WorkspaceKey = item.WorkspaceKey,
             BusinessLineKey = item.BusinessLineKey,
+            NavigationFunctionalGroupKey = item.NavigationFunctionalGroupKey,
             NavigationGroupKey = item.NavigationGroupKey,
             NavigationOrder = item.NavigationOrder,
             ProcessKey = item.ProcessKey,
@@ -1160,6 +1314,30 @@ public static partial class NavigationMenuResolver
         }
 
         workspaceKey = string.Empty;
+        return false;
+    }
+
+    private static bool TryFindInheritedFunctionalGroupKey(IEnumerable<MenuItem> items, MenuItem target, string? inheritedFunctionalGroupKey, out string functionalGroupKey)
+    {
+        foreach (var item in items)
+        {
+            var currentFunctionalGroupKey = !string.IsNullOrWhiteSpace(item.NavigationFunctionalGroupKey)
+                ? item.NavigationFunctionalGroupKey
+                : inheritedFunctionalGroupKey;
+
+            if (IsSameMenuIdentity(item, target) && !string.IsNullOrWhiteSpace(currentFunctionalGroupKey))
+            {
+                functionalGroupKey = currentFunctionalGroupKey;
+                return true;
+            }
+
+            if (TryFindInheritedFunctionalGroupKey(item.Children, target, currentFunctionalGroupKey, out functionalGroupKey))
+            {
+                return true;
+            }
+        }
+
+        functionalGroupKey = string.Empty;
         return false;
     }
 
@@ -1363,14 +1541,87 @@ public static partial class NavigationMenuResolver
     private static readonly IReadOnlyList<NavigationJourneyGroup> NavigationJourneyGroups =
     [
         new(NavigationGroupStart, "Start / Overview", "\u0627\u0644\u0628\u062f\u0621 / \u0646\u0638\u0631\u0629 \u0639\u0627\u0645\u0629", "bi-speedometer2", 0),
-        new(NavigationGroupSetup, "Setup", "\u0627\u0644\u0625\u0639\u062f\u0627\u062f", "bi-sliders2", 1),
-        new(NavigationGroupMasterData, "Master Data", "\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629", "bi-collection", 2),
-        new(NavigationGroupDailyWork, "Daily Work", "\u0627\u0644\u0639\u0645\u0644 \u0627\u0644\u064a\u0648\u0645\u064a", "bi-arrow-left-right", 3),
-        new(NavigationGroupApprovals, "Approvals", "\u0627\u0644\u0627\u0639\u062a\u0645\u0627\u062f\u0627\u062a", "bi-patch-check", 4),
+        new(NavigationGroupApprovals, "Approvals", "\u0627\u0644\u0627\u0639\u062a\u0645\u0627\u062f\u0627\u062a", "bi-patch-check", 1),
+        new(NavigationGroupDailyWork, "Daily Work", "\u0627\u0644\u0639\u0645\u0644 \u0627\u0644\u064a\u0648\u0645\u064a", "bi-arrow-left-right", 2),
+        new(NavigationGroupMasterData, "Master Data", "\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629", "bi-collection", 3),
+        new(NavigationGroupSetup, "Setup", "\u0627\u0644\u0625\u0639\u062f\u0627\u062f", "bi-sliders2", 4),
         new(NavigationGroupAdjustments, "Adjustments / Exceptions", "\u0627\u0644\u062a\u0633\u0648\u064a\u0627\u062a / \u0627\u0644\u0627\u0633\u062a\u062b\u0646\u0627\u0621\u0627\u062a", "bi-sliders", 5),
         new(NavigationGroupReports, "Reports", "\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631", "bi-bar-chart-line", 6),
         new(NavigationGroupAdministration, "Administration", "\u0627\u0644\u0625\u062f\u0627\u0631\u0629", "bi-shield-lock", 7)
     ];
+
+    private static readonly IReadOnlyList<NavigationFunctionalGroup> HrFunctionalGroups =
+    [
+        new(HrFunctionalGroupEmployees, "Employees", "\u0627\u0644\u0645\u0648\u0638\u0641\u0648\u0646", "bi-people", WorkspaceHr, 0),
+        new(HrFunctionalGroupAttendance, "Attendance", "\u0627\u0644\u062d\u0636\u0648\u0631 \u0648\u0627\u0644\u0627\u0646\u0635\u0631\u0627\u0641", "bi-calendar-check", WorkspaceHr, 1),
+        new(HrFunctionalGroupLeaves, "Leaves", "\u0627\u0644\u0625\u062c\u0627\u0632\u0627\u062a", "bi-calendar-heart", WorkspaceHr, 2),
+        new(HrFunctionalGroupPayroll, "Payroll", "\u0627\u0644\u0631\u0648\u0627\u062a\u0628", "bi-cash-stack", WorkspaceHr, 3),
+        new(HrFunctionalGroupRecruitment, "Recruitment", "\u0627\u0644\u062a\u0648\u0638\u064a\u0641", "bi-person-plus", WorkspaceHr, 4),
+        new(HrFunctionalGroupPerformance, "Performance", "\u0627\u0644\u0623\u062f\u0627\u0621", "bi-graph-up-arrow", WorkspaceHr, 5),
+        new(HrFunctionalGroupTraining, "Training", "\u0627\u0644\u062a\u062f\u0631\u064a\u0628", "bi-award", WorkspaceHr, 6)
+    ];
+
+    private static readonly IReadOnlyList<NavigationFunctionalGroup> WorkspaceFunctionalGroups =
+    [
+        ..HrFunctionalGroups,
+
+        new(PosFunctionalGroupCheckout, "Checkout", "\u0627\u0644\u0628\u064a\u0639 \u0648\u0627\u0644\u0643\u0627\u0634\u064a\u0631", "bi-receipt", WorkspacePos, 0),
+
+        new(SalesFunctionalGroupPos, "POS", "\u0646\u0642\u0637\u0629 \u0628\u064a\u0639", "bi-receipt", WorkspaceSales, 0),
+        new(SalesFunctionalGroupSales, "Sales", "\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a", "bi-graph-up-arrow", WorkspaceSales, 1),
+        new(SalesFunctionalGroupCustomers, "Customers", "\u0627\u0644\u0639\u0645\u0644\u0627\u0621", "bi-person-vcard", WorkspaceSales, 2),
+        new(SalesFunctionalGroupReports, "Reports", "\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631", "bi-bar-chart-line", WorkspaceSales, 3),
+
+        new(PurchasingFunctionalGroupSuppliers, "Suppliers", "\u0627\u0644\u0645\u0648\u0631\u062f\u0648\u0646", "bi-truck", WorkspacePurchasing, 0),
+        new(PurchasingFunctionalGroupProcurement, "Procurement", "\u0627\u0644\u0645\u0634\u062a\u0631\u064a\u0627\u062a", "bi-cart-check", WorkspacePurchasing, 1),
+
+        new(WarehouseFunctionalGroupProducts, "Products", "\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a", "bi-tags", WorkspaceWarehouse, 0),
+        new(WarehouseFunctionalGroupInventory, "Inventory", "\u0627\u0644\u0645\u062e\u0632\u0648\u0646", "bi-boxes", WorkspaceWarehouse, 1),
+        new(WarehouseFunctionalGroupStockOperations, "Stock Operations", "\u0639\u0645\u0644\u064a\u0627\u062a \u0627\u0644\u0645\u062e\u0632\u0648\u0646", "bi-arrow-left-right", WorkspaceWarehouse, 2),
+
+        new(AccountingFunctionalGroupSetup, "Setup", "\u0627\u0644\u0625\u0639\u062f\u0627\u062f", "bi-sliders2", WorkspaceAccountingFinance, 0),
+        new(AccountingFunctionalGroupChartOfAccounts, "Chart of Accounts", "\u062f\u0644\u064a\u0644 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a", "bi-diagram-3", WorkspaceAccountingFinance, 1),
+        new(AccountingFunctionalGroupBankingCash, "Banking & Cash", "\u0627\u0644\u0628\u0646\u0648\u0643 \u0648\u0627\u0644\u0646\u0642\u062f", "bi-bank", WorkspaceAccountingFinance, 2),
+        new(AccountingFunctionalGroupJournalsDocuments, "Journals & Documents", "\u0627\u0644\u0642\u064a\u0648\u062f \u0648\u0627\u0644\u0645\u0633\u062a\u0646\u062f\u0627\u062a", "bi-journal-text", WorkspaceAccountingFinance, 3),
+        new(AccountingFunctionalGroupInvoices, "Invoices", "\u0627\u0644\u0641\u0648\u0627\u062a\u064a\u0631", "bi-receipt", WorkspaceAccountingFinance, 4),
+        new(AccountingFunctionalGroupReceiptsPayments, "Receipts & Payments", "\u0627\u0644\u0645\u0642\u0628\u0648\u0636\u0627\u062a \u0648\u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0627\u062a", "bi-cash-stack", WorkspaceAccountingFinance, 5),
+        new(AccountingFunctionalGroupAdjustments, "Adjustments", "\u0627\u0644\u062a\u0633\u0648\u064a\u0627\u062a", "bi-sliders", WorkspaceAccountingFinance, 6),
+        new(AccountingFunctionalGroupTaxZatca, "Tax / ZATCA", "\u0627\u0644\u0636\u0631\u064a\u0628\u0629 / \u0632\u0627\u062a\u0643\u0627", "bi-file-earmark-check", WorkspaceAccountingFinance, 7),
+        new(AccountingFunctionalGroupReports, "Reports", "\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631", "bi-bar-chart-line", WorkspaceAccountingFinance, 8),
+
+        new(CateringFunctionalGroupContracts, "Contracts", "\u0627\u0644\u0639\u0642\u0648\u062f", "bi-file-earmark-check", WorkspaceCatering, 0),
+        new(CateringFunctionalGroupMeals, "Meals", "\u0627\u0644\u0648\u062c\u0628\u0627\u062a", "bi-box-seam", WorkspaceCatering, 1),
+        new(CateringFunctionalGroupLocations, "Locations", "\u0627\u0644\u0645\u0648\u0627\u0642\u0639", "bi-geo-alt", WorkspaceCatering, 2),
+        new(CateringFunctionalGroupSchedules, "Schedules", "\u0627\u0644\u062c\u062f\u0627\u0648\u0644", "bi-calendar-week", WorkspaceCatering, 3),
+        new(CateringFunctionalGroupDeliveries, "Deliveries", "\u0627\u0644\u062a\u0633\u0644\u064a\u0645\u0627\u062a", "bi-truck", WorkspaceCatering, 4),
+        new(CateringFunctionalGroupAssignments, "Assignments", "\u0627\u0644\u062a\u0643\u0644\u064a\u0641\u0627\u062a", "bi-people", WorkspaceCatering, 5),
+        new(CateringFunctionalGroupReports, "Reports", "\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631", "bi-bar-chart-line", WorkspaceCatering, 6),
+
+        new(RealEstateFunctionalGroupProperties, "Properties", "\u0627\u0644\u0639\u0642\u0627\u0631\u0627\u062a", "bi-buildings", WorkspaceRealEstate, 0),
+        new(RealEstateFunctionalGroupLeasing, "Leasing", "\u0627\u0644\u062a\u0623\u062c\u064a\u0631", "bi-file-earmark-check", WorkspaceRealEstate, 1),
+        new(RealEstateFunctionalGroupCollections, "Collections", "\u0627\u0644\u062a\u062d\u0635\u064a\u0644", "bi-cash-coin", WorkspaceRealEstate, 2),
+        new(RealEstateFunctionalGroupUtilitiesExpenses, "Utilities & Expenses", "\u0627\u0644\u062e\u062f\u0645\u0627\u062a \u0648\u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062a", "bi-receipt", WorkspaceRealEstate, 3),
+        new(RealEstateFunctionalGroupReports, "Reports", "\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631", "bi-bar-chart-line", WorkspaceRealEstate, 4),
+
+        new(AdminFunctionalGroupOrganization, "Organization", "\u0627\u0644\u0647\u064a\u0643\u0644", "bi-diagram-3", WorkspaceAdmin, 0),
+        new(AdminFunctionalGroupContracts, "Contracts", "\u0627\u0644\u0639\u0642\u0648\u062f", "bi-file-earmark-check", WorkspaceAdmin, 1),
+        new(AdminFunctionalGroupDocuments, "Documents", "\u0627\u0644\u0645\u0633\u062a\u0646\u062f\u0627\u062a", "bi-files", WorkspaceAdmin, 2),
+        new(AdminFunctionalGroupProjects, "Projects", "\u0627\u0644\u0645\u0634\u0627\u0631\u064a\u0639", "bi-diagram-3", WorkspaceAdmin, 3),
+        new(AdminFunctionalGroupTasks, "Tasks", "\u0627\u0644\u0645\u0647\u0627\u0645", "bi-kanban", WorkspaceAdmin, 4),
+        new(AdminFunctionalGroupFleet, "Fleet", "\u0627\u0644\u0623\u0633\u0637\u0648\u0644", "bi-truck-front", WorkspaceAdmin, 5),
+        new(AdminFunctionalGroupMaintenance, "Maintenance", "\u0627\u0644\u0635\u064a\u0627\u0646\u0629", "bi-tools", WorkspaceAdmin, 6),
+        new(AdminFunctionalGroupGeneralSettings, "General Settings", "\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0627\u0644\u0639\u0627\u0645\u0629", "bi-gear-wide-connected", WorkspaceAdmin, 7),
+
+        new(SecurityFunctionalGroupSecurity, "Security", "\u0627\u0644\u0623\u0645\u0627\u0646", "bi-shield-lock", WorkspaceSecurity, 0),
+        new(SecurityFunctionalGroupRoles, "Roles", "\u0627\u0644\u0623\u062f\u0648\u0627\u0631", "bi-shield-check", WorkspaceSecurity, 1),
+        new(SecurityFunctionalGroupUserAccess, "User Access", "\u0648\u0635\u0648\u0644 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u064a\u0646", "bi-person-gear", WorkspaceSecurity, 2)
+    ];
+
+    private static IReadOnlyList<NavigationFunctionalGroup> GetFunctionalGroups(string workspaceKey)
+        => WorkspaceFunctionalGroups
+            .Where(group => string.Equals(group.WorkspaceKey, workspaceKey, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(group => group.Order)
+            .ToList();
 
     private static readonly IReadOnlyDictionary<string, int> JourneyPathPriorities = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
     {
@@ -1430,4 +1681,5 @@ public sealed record NavigationWorkspace(string Key, string TextEn, string TextA
 public sealed record NavigationHubWorkspace(string Key, string TextEn, string TextAr, string Icon);
 public sealed record NavigationHubSection(string Key, string TextEn, string TextAr, string Icon, string WorkspaceKey, IReadOnlyList<NavigationMenuRow> Rows);
 public sealed record NavigationMenuRow(MenuItem Item, int Depth, IReadOnlyList<MenuItem> Path);
+public sealed record NavigationFunctionalGroup(string Key, string TextEn, string TextAr, string Icon, string WorkspaceKey, int Order);
 public sealed record NavigationJourneyGroup(string Key, string TextEn, string TextAr, string Icon, int Order);

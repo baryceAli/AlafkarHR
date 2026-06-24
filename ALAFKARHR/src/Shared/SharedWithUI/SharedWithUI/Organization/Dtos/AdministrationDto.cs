@@ -24,6 +24,7 @@ public class AdministrationDto
 
     public string Code { get; set; }
     public Guid? ManagerId { get; set; } // future employee reference
+    public bool IsHigherManagement { get; set; }
     public bool IsActive { get; set; }
 
     public Guid CompanyId { get; set; }

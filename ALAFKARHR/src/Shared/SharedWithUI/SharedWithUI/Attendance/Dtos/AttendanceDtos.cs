@@ -398,6 +398,126 @@ public enum AttendanceWorkEntryType
     ManualCorrection
 }
 
+public enum AttendanceRosterControlStatus
+{
+    Planned,
+    Active,
+    OnBreak,
+    Completed,
+    OnApprovedLeave,
+    Absent
+}
+
+public enum AttendanceRosterSubstituteCandidateSource
+{
+    Department,
+    Administration
+}
+
+public class AttendanceRosterControlFilterDto
+{
+    public Guid CompanyId { get; set; }
+    public DateTime FromDate { get; set; } = DateTime.Today;
+    public DateTime ToDate { get; set; } = DateTime.Today;
+    public Guid? DepartmentId { get; set; }
+    public Guid? ShiftId { get; set; }
+    public AttendanceRosterControlStatus? Status { get; set; }
+}
+
+public class AttendanceRosterControlDto
+{
+    public AttendanceRosterControlSummaryDto Summary { get; set; } = new();
+    public List<AttendanceRosterControlRowDto> Rows { get; set; } = [];
+}
+
+public class AttendanceRosterControlSummaryDto
+{
+    public int Planned { get; set; }
+    public int Present { get; set; }
+    public int Active { get; set; }
+    public int OnBreak { get; set; }
+    public int Completed { get; set; }
+    public int Absent { get; set; }
+    public int OnApprovedLeave { get; set; }
+    public int UncoveredDepartments { get; set; }
+}
+
+public class AttendanceRosterControlRowDto
+{
+    public DateTime WorkDate { get; set; }
+    public Guid EmployeeId { get; set; }
+    public string? EmployeeNo { get; set; }
+    public string? EmployeeCode { get; set; }
+    public string? EmployeeName { get; set; }
+    public string? EmployeeNameEng { get; set; }
+    public Guid BranchId { get; set; }
+    public string? BranchName { get; set; }
+    public Guid AdministrationId { get; set; }
+    public string? AdministrationName { get; set; }
+    public Guid? DepartmentId { get; set; }
+    public string? DepartmentName { get; set; }
+    public Guid? PositionId { get; set; }
+    public string? PositionName { get; set; }
+    public string? PositionNameEng { get; set; }
+    public Guid ShiftId { get; set; }
+    public string? ShiftName { get; set; }
+    public DateTime PlannedShiftStartUtc { get; set; }
+    public DateTime PlannedShiftEndUtc { get; set; }
+    public AttendanceRosterControlStatus Status { get; set; }
+    public Guid? AttendanceSessionId { get; set; }
+    public DateTime? ActualStartUtc { get; set; }
+    public DateTime? ActualEndUtc { get; set; }
+    public AttendanceSessionStatus? SessionStatus { get; set; }
+    public string? LeaveTypeName { get; set; }
+    public string? LeaveTypeNameEng { get; set; }
+    public string? AbsenceReason { get; set; }
+    public List<AttendanceRosterSubstituteCandidateDto> SubstituteCandidates { get; set; } = [];
+}
+
+public class AttendanceRosterSubstituteCandidateDto
+{
+    public Guid EmployeeId { get; set; }
+    public string? EmployeeNo { get; set; }
+    public string? EmployeeCode { get; set; }
+    public string? EmployeeName { get; set; }
+    public string? EmployeeNameEng { get; set; }
+    public Guid? DepartmentId { get; set; }
+    public string? DepartmentName { get; set; }
+    public Guid? PositionId { get; set; }
+    public string? PositionName { get; set; }
+    public string? PositionNameEng { get; set; }
+    public AttendanceRosterSubstituteCandidateSource Source { get; set; } = AttendanceRosterSubstituteCandidateSource.Department;
+}
+
+public class AttendanceRosterSubstituteConfigurationDto
+{
+    public Guid? Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid EmployeeId { get; set; }
+    public string? EmployeeNo { get; set; }
+    public string? EmployeeCode { get; set; }
+    public string? EmployeeName { get; set; }
+    public string? EmployeeNameEng { get; set; }
+    public Guid AdministrationId { get; set; }
+    public Guid? DepartmentId { get; set; }
+    public Guid? PositionId { get; set; }
+    public string? PositionName { get; set; }
+    public string? PositionNameEng { get; set; }
+    public bool IsRosterVisible { get; set; } = true;
+    public bool IsSubstituteEligible { get; set; } = true;
+    public string? Notes { get; set; }
+}
+
+public class UpsertAttendanceRosterSubstituteConfigurationDto
+{
+    public Guid? Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid EmployeeId { get; set; }
+    public bool IsRosterVisible { get; set; } = true;
+    public bool IsSubstituteEligible { get; set; } = true;
+    public string? Notes { get; set; }
+}
+
 public class ShiftScheduleDto
 {
     public Guid Id { get; set; }
@@ -500,6 +620,9 @@ public class AttendanceCorrectionDto
     public Guid EmployeeId { get; set; }
     public Guid? SessionId { get; set; }
     public DateTime WorkDate { get; set; }
+    public DateTime? CurrentCheckInUtc { get; set; }
+    public DateTime? CurrentCheckOutUtc { get; set; }
+    public AttendanceSessionStatus? CurrentSessionStatus { get; set; }
     public DateTime? CorrectedCheckInUtc { get; set; }
     public DateTime? CorrectedCheckOutUtc { get; set; }
     public AttendanceExceptionStatus Status { get; set; }

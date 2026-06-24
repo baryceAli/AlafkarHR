@@ -2,10 +2,12 @@ using EmployeeModule.Contracts.Employees.Features.GetEmployeeAttendanceProfile;
 using LeaveManagement.Leave.Features.EmergencyLeaves;
 using LeaveManagement.Leave.Features.LeaveCore;
 using LeaveManagement.Leave.Features.LeaveBalances;
+using LeaveManagement.Leave.Features.RosterControl;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Exceptions;
 using Shared.Pagination;
+using SharedWithUI.Attendance.Dtos;
 using SharedWithUI.Permissions;
 using System.Security.Claims;
 
@@ -226,6 +228,13 @@ public class LeaveEndpoints : ICarterModule
             .WithName("CreateLeaveEncashment")
             .Produces<CreateLeaveEncashmentResult>(StatusCodes.Status200OK)
             .RequireAuthorization(PermissionList.LeaveLedgerPermissions.Encash);
+
+        group.MapGet("/attendance-roster-control", GetAttendanceRosterControl)
+            .WithName("GetAttendanceRosterControl")
+            .Produces<GetAttendanceRosterControlResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Get attendance roster control board")
+            .RequireAuthorization(PermissionList.AttendanceRosterPermissions.View);
     }
 
     private static async Task<Ok<GetEmergencyLeaveRequestsResult>> GetEmergencyLeaves(
@@ -460,6 +469,24 @@ public class LeaveEndpoints : ICarterModule
         ClaimsPrincipal user,
         ISender sender)
         => TypedResults.Ok(await sender.Send(new CreateLeaveEncashmentCommand(request.Encashment, UserId(user))));
+
+    private static async Task<Ok<GetAttendanceRosterControlResult>> GetAttendanceRosterControl(
+        [FromQuery] Guid companyId,
+        [FromQuery] DateTime fromDate,
+        [FromQuery] DateTime toDate,
+        [FromQuery] Guid? departmentId,
+        [FromQuery] Guid? shiftId,
+        [FromQuery] AttendanceRosterControlStatus? status,
+        ISender sender)
+        => TypedResults.Ok(await sender.Send(new GetAttendanceRosterControlQuery(new AttendanceRosterControlFilterDto
+        {
+            CompanyId = companyId,
+            FromDate = fromDate,
+            ToDate = toDate,
+            DepartmentId = departmentId,
+            ShiftId = shiftId,
+            Status = status
+        })));
 
     private static Guid? ResolveEmployeeIdClaim(ClaimsPrincipal user)
     {
