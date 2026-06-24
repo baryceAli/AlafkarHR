@@ -82,9 +82,7 @@ public class CreateEmergencyLeaveRequestHandler(LeaveDbContext leaveDbContext, A
 
         for (var date = fromDate; date <= toDate; date = date.AddDays(1))
         {
-            var schedule = configurationDto.DaySchedules.First(x => x.DayOfWeek == date.DayOfWeek);
-            if (schedule.IsWorkingDay
-                && !configurationDto.WeekendDays.Contains(date.DayOfWeek)
+            if (!configurationDto.WeekendDays.Contains(date.DayOfWeek)
                 && !holidays.Any(x => HolidayMatchesDate(x, date)))
             {
                 return;

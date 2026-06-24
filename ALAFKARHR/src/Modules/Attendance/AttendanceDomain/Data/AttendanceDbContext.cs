@@ -18,7 +18,6 @@ public class AttendanceDbContext(DbContextOptions<AttendanceDbContext> options) 
     public DbSet<LateCheckInRequest> LateCheckInRequests => Set<LateCheckInRequest>();
     public DbSet<AttendanceConfiguration> AttendanceConfigurations => Set<AttendanceConfiguration>();
     public DbSet<AttendanceHoliday> AttendanceHolidays => Set<AttendanceHoliday>();
-    public DbSet<AttendanceBreakPolicy> AttendanceBreakPolicies => Set<AttendanceBreakPolicy>();
     public DbSet<MidDayPermissionRequest> MidDayPermissionRequests => Set<MidDayPermissionRequest>();
     public DbSet<LegacyAttendanceEmergencyLeaveRequest> LegacyEmergencyLeaveRequests => Set<LegacyAttendanceEmergencyLeaveRequest>();
     public DbSet<LegacyAttendanceEmployeeLeaveBalance> LegacyEmployeeLeaveBalances => Set<LegacyAttendanceEmployeeLeaveBalance>();

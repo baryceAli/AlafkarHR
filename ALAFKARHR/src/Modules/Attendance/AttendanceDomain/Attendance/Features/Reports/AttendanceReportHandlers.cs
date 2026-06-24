@@ -9,7 +9,7 @@ namespace AttendanceDomain.Attendance.Features.Reports;
 public record GetAttendanceReportQuery(AttendanceReportFilterDto Filter) : IQuery<GetAttendanceReportResult>;
 public record GetAttendanceReportResult(AttendanceReportDto Report);
 
-public class GetAttendanceReportHandler(AttendanceDbContext dbContext)
+public class GetAttendanceReportHandler(AttendanceDbContext dbContext, ISender sender)
     : IQueryHandler<GetAttendanceReportQuery, GetAttendanceReportResult>
 {
     public async Task<GetAttendanceReportResult> Handle(GetAttendanceReportQuery request, CancellationToken cancellationToken)
@@ -91,21 +91,21 @@ public class GetAttendanceReportHandler(AttendanceDbContext dbContext)
                     fromDate,
                     toDate,
                     cancellationToken);
+                var employee = await sender.Send(new GetEmployeeAttendanceProfileQuery(request.Filter.EmployeeId.Value), cancellationToken);
 
                 for (var date = fromDate; date <= toDate; date = date.AddDays(1))
                 {
-                    var schedule = configurationDto.DaySchedules.First(x => x.DayOfWeek == date.DayOfWeek);
-                    if (schedule.IsWorkingDay
-                        && !configurationDto.WeekendDays.Contains(date.DayOfWeek)
+                    if (!configurationDto.WeekendDays.Contains(date.DayOfWeek)
                         && !holidayDates.Contains(date)
-                        && !presentDates.Contains(date))
+                        && !presentDates.Contains(date)
+                        && await HasAssignedShiftAsync(employee, date, cancellationToken))
                     {
                         rows.Add(new AttendanceReportRowDto
                         {
                             Date = date,
                             EmployeeId = request.Filter.EmployeeId,
                             Category = "Absence",
-                            Reason = "No attendance session found for configured working day."
+                            Reason = "No attendance session found for assigned shift."
                         });
                     }
                 }
@@ -214,6 +214,25 @@ public class GetAttendanceReportHandler(AttendanceDbContext dbContext)
         return holidays
             .SelectMany(x => BuildHolidayDates(x, fromDate, toDate))
             .ToHashSet();
+    }
+
+    private async Task<bool> HasAssignedShiftAsync(
+        GetEmployeeAttendanceProfileResult employee,
+        DateTime workDateUtc,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.EmployeeShifts
+            .AsNoTracking()
+            .AnyAsync(x => x.IsActive
+                && !x.IsDeleted
+                && x.EffectiveFrom <= workDateUtc
+                && (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= workDateUtc)
+                && (
+                    (x.Scope == ShiftAssignmentScope.Employee && x.EmployeeId == employee.EmployeeId)
+                    || (x.Scope == ShiftAssignmentScope.Department && employee.DepartmentId.HasValue && x.DepartmentId == employee.DepartmentId.Value)
+                    || (x.Scope == ShiftAssignmentScope.Administration && x.AdministrationId == employee.AdministrationId)
+                    || (x.Scope == ShiftAssignmentScope.Company && x.CompanyId == employee.CompanyId)),
+                cancellationToken);
     }
 
     private static IEnumerable<AttendanceReportRowDto> BuildHolidayRows(

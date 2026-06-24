@@ -27,13 +27,11 @@ public interface IAttendanceService
     Task<ApiResult<bool>> CreateCheckInAsync(AttendanceCheckInDto checkIn);
     Task<ApiResult<LateCheckInRequestDto>> CreateLateCheckInRequestAsync(CreateLateCheckInRequestDto request);
     Task<ApiResult<LateCheckInReviewResultDto>> ReviewLateCheckInRequestAsync(ReviewLateCheckInRequestDto review);
-    Task<ApiResult<AttendanceConfigurationDto>> GetConfigurationAsync(Guid companyId);
-    Task<ApiResult<AttendanceConfigurationDto>> UpsertConfigurationAsync(UpsertAttendanceConfigurationDto configuration);
+    Task<ApiResult<AttendanceCalendarSettingsDto>> GetCalendarSettingsAsync(Guid companyId);
+    Task<ApiResult<AttendanceCalendarSettingsDto>> UpsertCalendarSettingsAsync(UpsertAttendanceCalendarSettingsDto settings);
     Task<ApiResult<List<AttendanceHolidayDto>>> GetHolidaysAsync(Guid companyId, DateTime? fromDate = null, DateTime? toDate = null);
     Task<ApiResult<AttendanceHolidayDto>> UpsertHolidayAsync(UpsertAttendanceHolidayDto holiday);
     Task<ApiResult<bool>> DeleteHolidayAsync(Guid holidayId);
-    Task<ApiResult<List<AttendanceBreakPolicyDto>>> GetBreakPoliciesAsync(Guid companyId);
-    Task<ApiResult<AttendanceBreakPolicyDto>> UpsertBreakPolicyAsync(UpsertAttendanceBreakPolicyDto policy);
     Task<ApiResult<PaginatedResult<MidDayPermissionRequestDto>>> GetMidDayPermissionsAsync(Guid companyId, int pageIndex, int pageSize, AttendanceExceptionStatus? status = null, Guid? employeeId = null);
     Task<ApiResult<MidDayPermissionRequestDto>> CreateMidDayPermissionAsync(CreateMidDayPermissionRequestDto request);
     Task<ApiResult<MidDayPermissionRequestDto>> ReviewMidDayPermissionAsync(ReviewMidDayPermissionRequestDto review);

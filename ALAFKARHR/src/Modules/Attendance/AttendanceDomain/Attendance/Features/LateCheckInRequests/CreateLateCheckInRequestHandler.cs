@@ -77,15 +77,11 @@ public class CreateLateCheckInRequestHandler(AttendanceDbContext dbContext, ISen
             ? UtcDateTime.Normalize(request.RequestedCheckInTimeUtc)
             : UtcDateTime.Normalize(request.ShiftStart);
         var assignedShiftId = await ResolveAssignedShiftIdAsync(employee, workDateUtc, cancellationToken);
-        var effectiveShiftId = assignedShiftId ?? request.ShiftId;
+        var effectiveShiftId = assignedShiftId;
 
         if (!effectiveShiftId.HasValue)
         {
-            return new ShiftWindow(
-                null,
-                UtcDateTime.Normalize(request.ShiftStart),
-                UtcDateTime.Normalize(request.ShiftEnd),
-                null);
+            throw new BadRequestException("Late check-in requests require an effective assigned shift for the selected date.");
         }
 
         var shift = await dbContext.Shifts

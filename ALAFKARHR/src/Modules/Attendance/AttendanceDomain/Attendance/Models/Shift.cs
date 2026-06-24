@@ -15,6 +15,10 @@ public class Shift : Aggregate<Guid>
     public int LateAfterMinutes { get; private set; }
     public int ProhibitCheckInAfterMinutes { get; private set; }
     public int BreakMinutes { get; private set; }
+    public AttendanceBreakMode BreakMode { get; private set; }
+    public TimeSpan? BreakStartTime { get; private set; }
+    public TimeSpan? BreakEndTime { get; private set; }
+    public bool IsBreakPaid { get; private set; } = true;
 
     public bool IsFlexible { get; private set; }
 
@@ -31,6 +35,10 @@ public class Shift : Aggregate<Guid>
         int lateAfterMinutes,
         int prohibitCheckInAfterMinutes,
         int breakMinutes,
+        AttendanceBreakMode breakMode,
+        TimeSpan? breakStartTime,
+        TimeSpan? breakEndTime,
+        bool isBreakPaid,
         Guid companyId)
     {
         return new Shift
@@ -43,6 +51,10 @@ public class Shift : Aggregate<Guid>
             LateAfterMinutes = lateAfterMinutes,
             ProhibitCheckInAfterMinutes = prohibitCheckInAfterMinutes,
             BreakMinutes = breakMinutes,
+            BreakMode = breakMode,
+            BreakStartTime = breakStartTime,
+            BreakEndTime = breakEndTime,
+            IsBreakPaid = isBreakPaid,
             CompanyId = companyId
         };
     }
@@ -55,6 +67,10 @@ public class Shift : Aggregate<Guid>
         int lateAfterMinutes,
         int prohibitCheckInAfterMinutes,
         int breakMinutes,
+        AttendanceBreakMode breakMode,
+        TimeSpan? breakStartTime,
+        TimeSpan? breakEndTime,
+        bool isBreakPaid,
         string? modifiedBy)
     {
         Name = name;
@@ -64,6 +80,10 @@ public class Shift : Aggregate<Guid>
         LateAfterMinutes = lateAfterMinutes;
         ProhibitCheckInAfterMinutes = prohibitCheckInAfterMinutes;
         BreakMinutes = breakMinutes;
+        BreakMode = breakMode;
+        BreakStartTime = breakStartTime;
+        BreakEndTime = breakEndTime;
+        IsBreakPaid = isBreakPaid;
         ModifiedBy = modifiedBy;
         ModifiedAt = DateTime.UtcNow;
     }
