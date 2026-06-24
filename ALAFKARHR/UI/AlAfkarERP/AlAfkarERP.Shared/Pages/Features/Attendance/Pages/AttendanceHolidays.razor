@@ -14,7 +14,7 @@
 @inject SharedDataService SharedDataService
 
 <section class="erp-page" dir="@SharedDataService.PageDirection">
-    <PageHeader Title="@Text("Company Holidays", "عطلات الشركة")"
+    <PageHeader Title="@Text("Calendar & Holidays", "التقويم والعطلات")"
                 Subtitle="@Text("Company holidays and weekends apply automatically to all employees in the company.", "تطبق عطلات الشركة وأيام نهاية الأسبوع تلقائيا على جميع موظفي الشركة.")"
                 Overline="@Text("Attendance", "الحضور والانصراف")"
                 Icon="bi-calendar-event">
@@ -90,13 +90,22 @@
                     <strong>@Text("Weekend Configuration", "إعداد نهاية الأسبوع")</strong>
                 </div>
                 <div class="erp-card-body">
-                    <p class="text-muted small">@Text("Select one or more company weekend days. Attendance calculations ignore these days.", "اختر يوما واحدا أو أكثر لنهاية الأسبوع على مستوى الشركة. تتجاهل حسابات الحضور هذه الأيام.")</p>
+                    <p class="text-muted small">@Text("Select the first day of the week and one or more company weekend days. Attendance reports use these calendar settings.", "اختر أول يوم في الأسبوع ويوما واحدا أو أكثر لنهاية الأسبوع على مستوى الشركة. تستخدم تقارير الحضور هذه الإعدادات.")</p>
+                    <div class="mb-3">
+                        <label class="form-label">@Text("First day of week", "أول يوم في الأسبوع")</label>
+                        <select class="form-select" @bind="settings.FirstDayOfWeek">
+                            @foreach (var day in weekDays)
+                            {
+                                <option value="@day">@DayText(day)</option>
+                            }
+                        </select>
+                    </div>
                     <div class="row g-2">
                         @foreach (var day in weekDays)
                         {
                             <div class="col-6">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" checked="@configuration.WeekendDays.Contains(day)" @onchange="args => ToggleWeekend(day, args)" />
+                                    <input class="form-check-input" type="checkbox" checked="@settings.WeekendDays.Contains(day)" @onchange="args => ToggleWeekend(day, args)" />
                                     <label class="form-check-label">@DayText(day)</label>
                                 </div>
                             </div>
@@ -157,7 +166,7 @@
 
 @code {
     private UpsertAttendanceHolidayDto model = NewHoliday();
-    private AttendanceConfigurationDto configuration = new();
+    private AttendanceCalendarSettingsDto settings = new();
     private List<AttendanceHolidayDto> holidays = [];
     private Guid companyId;
     private bool isBusy;
@@ -197,11 +206,11 @@
             SetMessage(holidayResult.Error?.Detail ?? Text("Unable to load holidays.", "تعذر تحميل العطلات."), "alert-danger");
         }
 
-        var configurationResult = await AttendanceService.GetConfigurationAsync(companyId);
-        configuration = configurationResult.IsSuccess
-            ? configurationResult.Data ?? new AttendanceConfigurationDto { CompanyId = companyId }
-            : new AttendanceConfigurationDto { CompanyId = companyId };
-        configuration.CompanyId = companyId;
+        var settingsResult = await AttendanceService.GetCalendarSettingsAsync(companyId);
+        settings = settingsResult.IsSuccess
+            ? settingsResult.Data ?? new AttendanceCalendarSettingsDto { CompanyId = companyId }
+            : new AttendanceCalendarSettingsDto { CompanyId = companyId };
+        settings.CompanyId = companyId;
         isBusy = false;
     }
 
@@ -223,30 +232,22 @@
 
     private async Task SaveWeekendAsync()
     {
-        if (configuration.WeekendDays.Count == 0)
+        if (settings.WeekendDays.Count == 0)
         {
             SetMessage(Text("Select at least one weekend day.", "اختر يوما واحدا على الأقل لنهاية الأسبوع."), "alert-danger");
             return;
         }
 
-        foreach (var day in configuration.DaySchedules.Where(x => configuration.WeekendDays.Contains(x.DayOfWeek)))
-        {
-            day.IsWorkingDay = false;
-            day.StartTime = null;
-            day.EndTime = null;
-        }
-
-        var result = await AttendanceService.UpsertConfigurationAsync(new UpsertAttendanceConfigurationDto
+        var result = await AttendanceService.UpsertCalendarSettingsAsync(new UpsertAttendanceCalendarSettingsDto
         {
             CompanyId = companyId,
-            FirstDayOfWeek = configuration.FirstDayOfWeek,
-            DaySchedules = configuration.DaySchedules,
-            WeekendDays = configuration.WeekendDays
+            FirstDayOfWeek = settings.FirstDayOfWeek,
+            WeekendDays = settings.WeekendDays
         });
 
         if (result.IsSuccess)
         {
-            configuration = result.Data ?? configuration;
+            settings = result.Data ?? settings;
             SetMessage(Text("Weekend configuration saved.", "تم حفظ إعداد نهاية الأسبوع."), "alert-success");
         }
         else
@@ -258,13 +259,13 @@
     private void ToggleWeekend(DayOfWeek day, ChangeEventArgs args)
     {
         var isChecked = args.Value is bool value && value;
-        if (isChecked && !configuration.WeekendDays.Contains(day))
+        if (isChecked && !settings.WeekendDays.Contains(day))
         {
-            configuration.WeekendDays.Add(day);
+            settings.WeekendDays.Add(day);
         }
         else if (!isChecked)
         {
-            configuration.WeekendDays.Remove(day);
+            settings.WeekendDays.Remove(day);
         }
     }
 

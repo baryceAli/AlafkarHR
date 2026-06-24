@@ -34,6 +34,19 @@ public class UpdateShiftCommandValidator : AbstractValidator<UpdateShiftCommand>
 
         RuleFor(x => x.Shift.BreakMinutes)
             .GreaterThanOrEqualTo(0);
+
+        RuleFor(x => x.Shift.BreakEndTime)
+            .GreaterThan(x => x.Shift.BreakStartTime)
+            .When(x => x.Shift.BreakMode == AttendanceBreakMode.Strict
+                && x.Shift.BreakStartTime.HasValue
+                && x.Shift.BreakEndTime.HasValue)
+            .WithMessage("Strict break end time must be after start time.");
+
+        RuleFor(x => x.Shift)
+            .Must(x => x.BreakMode != AttendanceBreakMode.Strict
+                || x.BreakMinutes == 0
+                || (x.BreakStartTime.HasValue && x.BreakEndTime.HasValue))
+            .WithMessage("Strict break mode requires break start and end times.");
     }
 }
 
@@ -74,6 +87,10 @@ public class UpdateShiftHandler(AttendanceDbContext dbContext, IHttpContextAcces
             request.Shift.LateAfterMinutes,
             request.Shift.ProhibitCheckInAfterMinutes,
             request.Shift.BreakMinutes,
+            request.Shift.BreakMode,
+            request.Shift.BreakStartTime,
+            request.Shift.BreakEndTime,
+            request.Shift.IsBreakPaid,
             userId);
 
         await dbContext.SaveChangesAsync(cancellationToken);

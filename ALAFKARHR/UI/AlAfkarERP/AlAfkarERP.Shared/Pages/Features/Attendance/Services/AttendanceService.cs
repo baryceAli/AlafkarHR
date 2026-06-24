@@ -235,19 +235,19 @@ public class AttendanceService : BaseApiService, IAttendanceService
         }, null);
     }
 
-    public async Task<ApiResult<AttendanceConfigurationDto>> GetConfigurationAsync(Guid companyId)
+    public async Task<ApiResult<AttendanceCalendarSettingsDto>> GetCalendarSettingsAsync(Guid companyId)
     {
-        return await SendAsync<AttendanceConfigurationDto>(
-            new HttpRequestMessage(HttpMethod.Get, $"{path}/configuration?companyId={companyId}"),
-            "configuration");
+        return await SendAsync<AttendanceCalendarSettingsDto>(
+            new HttpRequestMessage(HttpMethod.Get, $"{path}/calendar-settings?companyId={companyId}"),
+            "settings");
     }
 
-    public async Task<ApiResult<AttendanceConfigurationDto>> UpsertConfigurationAsync(UpsertAttendanceConfigurationDto configuration)
+    public async Task<ApiResult<AttendanceCalendarSettingsDto>> UpsertCalendarSettingsAsync(UpsertAttendanceCalendarSettingsDto settings)
     {
-        return await SendAsync<AttendanceConfigurationDto>(new HttpRequestMessage(HttpMethod.Put, $"{path}/configuration")
+        return await SendAsync<AttendanceCalendarSettingsDto>(new HttpRequestMessage(HttpMethod.Put, $"{path}/calendar-settings")
         {
-            Content = JsonContent.Create(new { Configuration = configuration })
-        }, "configuration");
+            Content = JsonContent.Create(new { Settings = settings })
+        }, "settings");
     }
 
     public async Task<ApiResult<List<AttendanceHolidayDto>>> GetHolidaysAsync(Guid companyId, DateTime? fromDate = null, DateTime? toDate = null)
@@ -270,21 +270,6 @@ public class AttendanceService : BaseApiService, IAttendanceService
     public async Task<ApiResult<bool>> DeleteHolidayAsync(Guid holidayId)
     {
         return await SendAsync<bool>(new HttpRequestMessage(HttpMethod.Delete, $"{path}/holidays/{holidayId}"), "isSuccess");
-    }
-
-    public async Task<ApiResult<List<AttendanceBreakPolicyDto>>> GetBreakPoliciesAsync(Guid companyId)
-    {
-        return await SendAsync<List<AttendanceBreakPolicyDto>>(
-            new HttpRequestMessage(HttpMethod.Get, $"{path}/break-policies?companyId={companyId}"),
-            "policyList");
-    }
-
-    public async Task<ApiResult<AttendanceBreakPolicyDto>> UpsertBreakPolicyAsync(UpsertAttendanceBreakPolicyDto policy)
-    {
-        return await SendAsync<AttendanceBreakPolicyDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/break-policies")
-        {
-            Content = JsonContent.Create(new { Policy = policy })
-        }, "policy");
     }
 
     public async Task<ApiResult<PaginatedResult<MidDayPermissionRequestDto>>> GetMidDayPermissionsAsync(

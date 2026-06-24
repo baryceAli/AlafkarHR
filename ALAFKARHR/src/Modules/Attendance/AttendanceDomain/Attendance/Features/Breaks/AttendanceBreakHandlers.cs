@@ -1,5 +1,4 @@
 using AttendanceDomain.Attendance.Models;
-using EmployeeModule.Contracts.Employees.Features.GetEmployeeAttendanceProfile;
 
 namespace AttendanceDomain.Attendance.Features.Breaks;
 
@@ -7,7 +6,7 @@ public record StartAttendanceBreakCommand(Guid SessionId) : ICommand<AttendanceB
 public record EndAttendanceBreakCommand(Guid SessionId) : ICommand<AttendanceBreakResult>;
 public record AttendanceBreakResult(AttendanceSessionDto Session);
 
-public class StartAttendanceBreakHandler(AttendanceDbContext dbContext, ISender sender)
+public class StartAttendanceBreakHandler(AttendanceDbContext dbContext)
     : ICommandHandler<StartAttendanceBreakCommand, AttendanceBreakResult>
 {
     public async Task<AttendanceBreakResult> Handle(StartAttendanceBreakCommand request, CancellationToken cancellationToken)
@@ -15,7 +14,7 @@ public class StartAttendanceBreakHandler(AttendanceDbContext dbContext, ISender 
         var session = await dbContext.AttendanceSessions.FirstOrDefaultAsync(x => x.Id == request.SessionId, cancellationToken)
             ?? throw new NotFoundException("AttendanceSession", request.SessionId);
 
-        await ValidateBreakPolicyAsync(session, cancellationToken);
+        await ValidateShiftBreakRulesAsync(session, cancellationToken);
 
         session.StartBreak();
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -23,54 +22,37 @@ public class StartAttendanceBreakHandler(AttendanceDbContext dbContext, ISender 
         return new AttendanceBreakResult(session.Adapt<AttendanceSessionDto>());
     }
 
-    private async Task ValidateBreakPolicyAsync(AttendanceSession session, CancellationToken cancellationToken)
+    private async Task ValidateShiftBreakRulesAsync(AttendanceSession session, CancellationToken cancellationToken)
     {
-        var employee = await sender.Send(new GetEmployeeAttendanceProfileQuery(session.EmployeeId), cancellationToken);
-        var policies = await dbContext.AttendanceBreakPolicies
+        if (!session.ShiftId.HasValue)
+        {
+            throw new BadRequestException("Break cannot be started because this attendance session is not linked to a shift.");
+        }
+
+        var shift = await dbContext.Shifts
             .AsNoTracking()
-            .Where(x => x.CompanyId == session.CompanyId && !x.IsDeleted
-                && (
-                    (x.Scope == ShiftAssignmentScope.Employee && x.EmployeeId == session.EmployeeId)
-                    || (x.Scope == ShiftAssignmentScope.Department && employee.DepartmentId.HasValue && x.DepartmentId == employee.DepartmentId.Value)
-                    || (x.Scope == ShiftAssignmentScope.Administration && x.AdministrationId == employee.AdministrationId)
-                    || (x.Scope == ShiftAssignmentScope.Company && x.CompanyId == session.CompanyId)))
-            .ToListAsync(cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == session.ShiftId.Value && !x.IsDeleted, cancellationToken)
+            ?? throw new NotFoundException("Shift", session.ShiftId.Value);
 
-        var policy = policies
-            .OrderByDescending(x => x.Scope switch
-            {
-                ShiftAssignmentScope.Employee => 4,
-                ShiftAssignmentScope.Department => 3,
-                ShiftAssignmentScope.Administration => 2,
-                ShiftAssignmentScope.Company => 1,
-                _ => 0
-            })
-            .FirstOrDefault();
+        if (shift.BreakMinutes <= 0)
+        {
+            throw new BadRequestException("Break is disabled for the assigned shift.");
+        }
 
-        if (policy is null)
+        if (shift.BreakMode != AttendanceBreakMode.Strict)
         {
             return;
         }
 
-        if (!policy.IsEnabled)
+        if (!shift.BreakStartTime.HasValue || !shift.BreakEndTime.HasValue)
         {
-            throw new BadRequestException("Break is disabled by the configured attendance break policy.");
-        }
-
-        if (policy.BreakMode != AttendanceBreakMode.Strict)
-        {
-            return;
-        }
-
-        if (!policy.BreakStartTime.HasValue || !policy.BreakEndTime.HasValue)
-        {
-            throw new BadRequestException("Strict break mode requires configured break start and end times.");
+            throw new BadRequestException("Strict break mode requires shift break start and end times.");
         }
 
         var now = DateTime.UtcNow.TimeOfDay;
-        if (now < policy.BreakStartTime.Value || now > policy.BreakEndTime.Value)
+        if (now < shift.BreakStartTime.Value || now > shift.BreakEndTime.Value)
         {
-            throw new BadRequestException("Break can only be started during the configured strict break time.");
+            throw new BadRequestException("Break can only be started during the assigned shift break time.");
         }
     }
 }

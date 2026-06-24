@@ -21,6 +21,10 @@ public class AttendanceDataSeeder : IDataSeeder<AttendanceDbContext>
             15,
             120,
             60,
+            AttendanceBreakMode.Flexible,
+            null,
+            null,
+            true,
             Guid.Parse("11111111-1111-1111-1111-111111111111")));
 
         await context.SaveChangesAsync();

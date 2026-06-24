@@ -151,6 +151,10 @@ public class CreateShiftDto
     public int LateAfterMinutes { get; set; } = 15;
     public int ProhibitCheckInAfterMinutes { get; set; } = 120;
     public int BreakMinutes { get; set; }
+    public AttendanceBreakMode BreakMode { get; set; } = AttendanceBreakMode.Flexible;
+    public TimeSpan? BreakStartTime { get; set; }
+    public TimeSpan? BreakEndTime { get; set; }
+    public bool IsBreakPaid { get; set; } = true;
     public Guid CompanyId { get; set; }
 }
 
@@ -181,6 +185,10 @@ public class ShiftDto
     public int LateAfterMinutes { get; set; }
     public int ProhibitCheckInAfterMinutes { get; set; }
     public int BreakMinutes { get; set; }
+    public AttendanceBreakMode BreakMode { get; set; }
+    public TimeSpan? BreakStartTime { get; set; }
+    public TimeSpan? BreakEndTime { get; set; }
+    public bool IsBreakPaid { get; set; }
     public bool IsFlexible { get; set; }
     public Guid CompanyId { get; set; }
 }
@@ -223,40 +231,19 @@ public class ShiftAssignmentDto
     public bool IsActive { get; set; }
 }
 
-public class AttendanceConfigurationDto
+public class AttendanceCalendarSettingsDto
 {
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }
     public DayOfWeek FirstDayOfWeek { get; set; } = DayOfWeek.Saturday;
-    public List<AttendanceDayScheduleDto> DaySchedules { get; set; } = AttendanceDayScheduleDto.DefaultWeek();
     public List<DayOfWeek> WeekendDays { get; set; } = [DayOfWeek.Friday, DayOfWeek.Saturday];
 }
 
-public class UpsertAttendanceConfigurationDto
+public class UpsertAttendanceCalendarSettingsDto
 {
     public Guid CompanyId { get; set; }
     public DayOfWeek FirstDayOfWeek { get; set; } = DayOfWeek.Saturday;
-    public List<AttendanceDayScheduleDto> DaySchedules { get; set; } = AttendanceDayScheduleDto.DefaultWeek();
     public List<DayOfWeek> WeekendDays { get; set; } = [DayOfWeek.Friday, DayOfWeek.Saturday];
-}
-
-public class AttendanceDayScheduleDto
-{
-    public DayOfWeek DayOfWeek { get; set; }
-    public bool IsWorkingDay { get; set; }
-    public TimeSpan? StartTime { get; set; }
-    public TimeSpan? EndTime { get; set; }
-
-    public static List<AttendanceDayScheduleDto> DefaultWeek()
-        => Enum.GetValues<DayOfWeek>()
-            .Select(day => new AttendanceDayScheduleDto
-            {
-                DayOfWeek = day,
-                IsWorkingDay = day is not DayOfWeek.Friday and not DayOfWeek.Saturday,
-                StartTime = day is DayOfWeek.Friday or DayOfWeek.Saturday ? null : new TimeSpan(8, 0, 0),
-                EndTime = day is DayOfWeek.Friday or DayOfWeek.Saturday ? null : new TimeSpan(17, 0, 0)
-            })
-            .ToList();
 }
 
 public class AttendanceHolidayDto
@@ -283,38 +270,6 @@ public class UpsertAttendanceHolidayDto
     public bool IsActive { get; set; } = true;
     public string? Name { get; set; }
     public string? Description { get; set; }
-}
-
-public class AttendanceBreakPolicyDto
-{
-    public Guid Id { get; set; }
-    public ShiftAssignmentScope Scope { get; set; }
-    public Guid CompanyId { get; set; }
-    public Guid? AdministrationId { get; set; }
-    public Guid? DepartmentId { get; set; }
-    public Guid? EmployeeId { get; set; }
-    public bool IsEnabled { get; set; }
-    public AttendanceBreakMode BreakMode { get; set; }
-    public TimeSpan? BreakStartTime { get; set; }
-    public TimeSpan? BreakEndTime { get; set; }
-    public int AllowedDurationMinutes { get; set; }
-    public bool IsPaid { get; set; }
-}
-
-public class UpsertAttendanceBreakPolicyDto
-{
-    public Guid? Id { get; set; }
-    public ShiftAssignmentScope Scope { get; set; }
-    public Guid CompanyId { get; set; }
-    public Guid? AdministrationId { get; set; }
-    public Guid? DepartmentId { get; set; }
-    public Guid? EmployeeId { get; set; }
-    public bool IsEnabled { get; set; } = true;
-    public AttendanceBreakMode BreakMode { get; set; } = AttendanceBreakMode.Flexible;
-    public TimeSpan? BreakStartTime { get; set; }
-    public TimeSpan? BreakEndTime { get; set; }
-    public int AllowedDurationMinutes { get; set; }
-    public bool IsPaid { get; set; } = true;
 }
 
 public class MidDayPermissionRequestDto

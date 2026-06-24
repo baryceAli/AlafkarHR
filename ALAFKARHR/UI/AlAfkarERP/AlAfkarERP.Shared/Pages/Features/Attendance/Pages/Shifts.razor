@@ -7,6 +7,7 @@
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Attendance.Dtos
+@using SharedWithUI.Attendance.Enums
 
 @inject IAttendanceService AttendanceService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -78,6 +79,28 @@
                 @Text("Break minutes", "دقائق الاستراحة")
                 <input class="form-control" type="number" min="0" @bind="model.BreakMinutes" />
             </label>
+            <label>
+                @Text("Break mode", "ÙˆØ¶Ø¹ Ø§Ù„Ø§Ø³ØªØ±Ø§Ø­Ø©")
+                <select class="form-select" @bind="model.BreakMode">
+                    <option value="@AttendanceBreakMode.Flexible">@Text("Flexible", "Ù…Ø±Ù†")</option>
+                    <option value="@AttendanceBreakMode.Strict">@Text("Strict", "Ù…Ø­Ø¯Ø¯")</option>
+                </select>
+            </label>
+            <label>
+                @Text("Break start (local)", "Ø¨Ø¯Ø§ÙŠØ© Ø§Ù„Ø§Ø³ØªØ±Ø§Ø­Ø© (Ø§Ù„Ù…Ø­Ù„ÙŠ)")
+                <input class="form-control" type="time" @bind="breakStartTime" disabled="@(model.BreakMode != AttendanceBreakMode.Strict || model.BreakMinutes <= 0)" />
+            </label>
+            <label>
+                @Text("Break end (local)", "Ù†Ù‡Ø§ÙŠØ© Ø§Ù„Ø§Ø³ØªØ±Ø§Ø­Ø© (Ø§Ù„Ù…Ø­Ù„ÙŠ)")
+                <input class="form-control" type="time" @bind="breakEndTime" disabled="@(model.BreakMode != AttendanceBreakMode.Strict || model.BreakMinutes <= 0)" />
+            </label>
+            <label>
+                @Text("Paid break", "Ø§Ø³ØªØ±Ø§Ø­Ø© Ù…Ø¯ÙÙˆØ¹Ø©")
+                <select class="form-select" @bind="model.IsBreakPaid" disabled="@(model.BreakMinutes <= 0)">
+                    <option value="true">@Text("Yes", "Ù†Ø¹Ù…")</option>
+                    <option value="false">@Text("No", "Ù„Ø§")</option>
+                </select>
+            </label>
         </div>
 
         <div class="action-row">
@@ -110,6 +133,7 @@
                         <th>@Text("Late after", "التأخير بعد")</th>
                         <th>@Text("Prohibit after", "المنع بعد")</th>
                         <th>@Text("Break", "الاستراحة")</th>
+                        <th>@Text("Break mode", "وضع الاستراحة")</th>
                         <th class="text-center">@Text("Actions", "الاجراءات")</th>
                     </tr>
                 </thead>
@@ -117,7 +141,7 @@
                     @if (!shifts.Any())
                     {
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
+                            <td colspan="8" class="text-center text-muted py-4">
                                 @Text("No shifts found.", "لا توجد ورديات.")
                             </td>
                         </tr>
@@ -131,6 +155,7 @@
                             <td>@shift.LateAfterMinutes @Text("min", "دقيقة")</td>
                             <td>@shift.ProhibitCheckInAfterMinutes @Text("min", "دقيقة")</td>
                             <td>@shift.BreakMinutes @Text("min", "دقيقة")</td>
+                            <td>@BreakSummary(shift)</td>
                             <td class="text-end">
                                 <div class="d-flex justify-content-end gap-2">
                                     <button type="button"
@@ -163,6 +188,8 @@
     private Guid companyId;
     private TimeOnly startTime = new(8, 0);
     private TimeOnly endTime = new(17, 0);
+    private TimeOnly breakStartTime = new(12, 0);
+    private TimeOnly breakEndTime = new(13, 0);
     private bool isBusy;
     private bool isEditing;
     private bool isFormVisible;
@@ -215,6 +242,12 @@
         model.CompanyId = companyId;
         model.StartTime = ToUtcTimeSpan(startTime);
         model.EndTime = ToUtcTimeSpan(endTime);
+        model.BreakStartTime = model.BreakMode == AttendanceBreakMode.Strict && model.BreakMinutes > 0
+            ? ToUtcTimeSpan(breakStartTime)
+            : null;
+        model.BreakEndTime = model.BreakMode == AttendanceBreakMode.Strict && model.BreakMinutes > 0
+            ? ToUtcTimeSpan(breakEndTime)
+            : null;
 
         isBusy = true;
         var result = isEditing
@@ -252,11 +285,17 @@
             LateAfterMinutes = shift.LateAfterMinutes,
             ProhibitCheckInAfterMinutes = shift.ProhibitCheckInAfterMinutes,
             BreakMinutes = shift.BreakMinutes,
+            BreakMode = shift.BreakMode,
+            BreakStartTime = shift.BreakStartTime,
+            BreakEndTime = shift.BreakEndTime,
+            IsBreakPaid = shift.IsBreakPaid,
             IsFlexible = shift.IsFlexible
         };
 
         startTime = ToLocalTimeOnly(shift.StartTime);
         endTime = ToLocalTimeOnly(shift.EndTime);
+        breakStartTime = ToLocalTimeOnly(shift.BreakStartTime ?? new TimeSpan(12, 0, 0));
+        breakEndTime = ToLocalTimeOnly(shift.BreakEndTime ?? new TimeSpan(13, 0, 0));
         isEditing = true;
         isFormVisible = true;
         message = null;
@@ -331,6 +370,14 @@
             return false;
         }
 
+        if (model.BreakMinutes > 0
+            && model.BreakMode == AttendanceBreakMode.Strict
+            && breakEndTime <= breakStartTime)
+        {
+            SetMessage(Text("Strict break end time must be after start time.", "وقت نهاية الاستراحة المحددة يجب أن يكون بعد البداية."), "alert-warning");
+            return false;
+        }
+
         return true;
     }
 
@@ -341,10 +388,14 @@
             CompanyId = companyId,
             GracePeriodMinutes = 15,
             LateAfterMinutes = 15,
-            ProhibitCheckInAfterMinutes = 120
+            ProhibitCheckInAfterMinutes = 120,
+            BreakMode = AttendanceBreakMode.Flexible,
+            IsBreakPaid = true
         };
         startTime = new TimeOnly(8, 0);
         endTime = new TimeOnly(17, 0);
+        breakStartTime = new TimeOnly(12, 0);
+        breakEndTime = new TimeOnly(13, 0);
         isEditing = false;
     }
 
@@ -357,6 +408,10 @@
         LateAfterMinutes = shift.LateAfterMinutes,
         ProhibitCheckInAfterMinutes = shift.ProhibitCheckInAfterMinutes,
         BreakMinutes = shift.BreakMinutes,
+        BreakMode = shift.BreakMode,
+        BreakStartTime = shift.BreakStartTime,
+        BreakEndTime = shift.BreakEndTime,
+        IsBreakPaid = shift.IsBreakPaid,
         CompanyId = shift.CompanyId
     };
 
@@ -383,6 +438,22 @@
 
     private static string FormatLocalShiftTime(TimeSpan utcTime)
         => ToLocalTimeOnly(utcTime).ToString("HH:mm");
+
+    private string BreakSummary(ShiftDto shift)
+    {
+        if (shift.BreakMinutes <= 0)
+        {
+            return Text("Disabled", "معطلة");
+        }
+
+        var paidText = shift.IsBreakPaid ? Text("paid", "مدفوعة") : Text("unpaid", "غير مدفوعة");
+        if (shift.BreakMode == AttendanceBreakMode.Strict && shift.BreakStartTime.HasValue && shift.BreakEndTime.HasValue)
+        {
+            return $"{Text("Strict", "محدد")} {FormatLocalShiftTime(shift.BreakStartTime.Value)} - {FormatLocalShiftTime(shift.BreakEndTime.Value)} ({paidText})";
+        }
+
+        return $"{Text("Flexible", "مرن")} ({paidText})";
+    }
 
     private void SetMessage(string text, string cssClass)
     {

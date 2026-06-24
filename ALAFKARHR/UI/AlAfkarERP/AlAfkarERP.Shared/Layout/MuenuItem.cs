@@ -814,16 +814,8 @@ public class MenuItem
                         },
                         new MenuItem
                         {
-                            TextEn = "Configuration",
-                            TextAr = "اعدادات الحضور",
-                            Icon = "bi-gear",
-                            Url = "/Attendance/Configuration",
-                            PermissionPolicy = PermissionList.AttendancePermissions.ViewConfiguration
-                        },
-                        new MenuItem
-                        {
-                            TextEn = "Holidays",
-                            TextAr = "العطلات",
+                            TextEn = "Calendar & Holidays",
+                            TextAr = "التقويم والعطلات",
                             Icon = "bi-calendar-event",
                             Url = "/Attendance/Holidays",
                             PermissionPolicy = PermissionList.AttendancePermissions.ManageHolidays

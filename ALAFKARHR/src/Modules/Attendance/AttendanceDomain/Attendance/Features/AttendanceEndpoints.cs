@@ -1,5 +1,4 @@
 using AttendanceDomain.Attendance.Features.Breaks;
-using AttendanceDomain.Attendance.Features.BreakPolicies;
 using AttendanceDomain.Attendance.Features.CheckIns;
 using AttendanceDomain.Attendance.Features.EndSession;
 using AttendanceDomain.Attendance.Features.Enhancements;
@@ -37,9 +36,8 @@ public record ReviewLateCheckInRequestRequest(ReviewLateCheckInRequestDto Review
 public record AssignShiftRequest(AssignShiftDto Assignment);
 public record CreateShiftRequest(CreateShiftDto Shift);
 public record UpdateShiftRequest(ShiftDto Shift);
-public record UpsertAttendanceConfigurationRequest(UpsertAttendanceConfigurationDto Configuration);
+public record UpsertAttendanceCalendarSettingsRequest(UpsertAttendanceCalendarSettingsDto Settings);
 public record UpsertAttendanceHolidayRequest(UpsertAttendanceHolidayDto Holiday);
-public record UpsertAttendanceBreakPolicyRequest(UpsertAttendanceBreakPolicyDto Policy);
 public record CreateMidDayPermissionRequestRequest(CreateMidDayPermissionRequestDto Request);
 public record ReviewMidDayPermissionRequestRequest(ReviewMidDayPermissionRequestDto Review);
 public record GetAttendanceReportRequest(AttendanceReportFilterDto Filter);
@@ -216,17 +214,17 @@ public class AttendanceEndpoints : ICarterModule
             .WithSummary("Assign a shift to company, administration, department, or employee")
             .RequireAuthorization(PermissionList.AttendancePermissions.Edit);
 
-        group.MapGet("/configuration", GetConfiguration)
-            .WithName("GetAttendanceConfiguration")
-            .Produces<GetAttendanceConfigurationResult>(StatusCodes.Status200OK)
-            .WithSummary("Get attendance configuration")
+        group.MapGet("/calendar-settings", GetCalendarSettings)
+            .WithName("GetAttendanceCalendarSettings")
+            .Produces<GetAttendanceCalendarSettingsResult>(StatusCodes.Status200OK)
+            .WithSummary("Get attendance calendar settings")
             .RequireAuthorization(PermissionList.AttendancePermissions.ViewConfiguration);
 
-        group.MapPut("/configuration", UpsertConfiguration)
-            .WithName("UpsertAttendanceConfiguration")
-            .Produces<UpsertAttendanceConfigurationResult>(StatusCodes.Status200OK)
+        group.MapPut("/calendar-settings", UpsertCalendarSettings)
+            .WithName("UpsertAttendanceCalendarSettings")
+            .Produces<UpsertAttendanceCalendarSettingsResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .WithSummary("Create or update attendance configuration")
+            .WithSummary("Create or update attendance calendar settings")
             .RequireAuthorization(PermissionList.AttendancePermissions.ManageConfiguration);
 
         group.MapGet("/holidays", GetHolidays)
@@ -248,19 +246,6 @@ public class AttendanceEndpoints : ICarterModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithSummary("Delete a predefined attendance holiday")
             .RequireAuthorization(PermissionList.AttendancePermissions.ManageHolidays);
-
-        group.MapGet("/break-policies", GetBreakPolicies)
-            .WithName("GetAttendanceBreakPolicies")
-            .Produces<GetAttendanceBreakPoliciesResult>(StatusCodes.Status200OK)
-            .WithSummary("Get break policies")
-            .RequireAuthorization(PermissionList.AttendancePermissions.ViewConfiguration);
-
-        group.MapPost("/break-policies", UpsertBreakPolicy)
-            .WithName("UpsertAttendanceBreakPolicy")
-            .Produces<UpsertAttendanceBreakPolicyResult>(StatusCodes.Status200OK)
-            .ProducesProblem(StatusCodes.Status400BadRequest)
-            .WithSummary("Create or update a break policy")
-            .RequireAuthorization(PermissionList.AttendancePermissions.ManageConfiguration);
 
         group.MapGet("/mid-day-permissions", GetMidDayPermissions)
             .WithName("GetMidDayPermissionRequests")
@@ -574,20 +559,20 @@ public class AttendanceEndpoints : ICarterModule
         return TypedResults.Ok(result);
     }
 
-    private static async Task<Ok<GetAttendanceConfigurationResult>> GetConfiguration(
+    private static async Task<Ok<GetAttendanceCalendarSettingsResult>> GetCalendarSettings(
         [FromQuery] Guid companyId,
         ISender sender)
     {
-        var result = await sender.Send(new GetAttendanceConfigurationQuery(companyId));
+        var result = await sender.Send(new GetAttendanceCalendarSettingsQuery(companyId));
         return TypedResults.Ok(result);
     }
 
-    private static async Task<Ok<UpsertAttendanceConfigurationResult>> UpsertConfiguration(
-        [FromBody] UpsertAttendanceConfigurationRequest request,
+    private static async Task<Ok<UpsertAttendanceCalendarSettingsResult>> UpsertCalendarSettings(
+        [FromBody] UpsertAttendanceCalendarSettingsRequest request,
         ClaimsPrincipal user,
         ISender sender)
     {
-        var result = await sender.Send(new UpsertAttendanceConfigurationCommand(request.Configuration, user.FindFirstValue(ClaimTypes.NameIdentifier)));
+        var result = await sender.Send(new UpsertAttendanceCalendarSettingsCommand(request.Settings, user.FindFirstValue(ClaimTypes.NameIdentifier)));
         return TypedResults.Ok(result);
     }
 
@@ -616,23 +601,6 @@ public class AttendanceEndpoints : ICarterModule
         ISender sender)
     {
         var result = await sender.Send(new DeleteAttendanceHolidayCommand(holidayId, user.FindFirstValue(ClaimTypes.NameIdentifier)));
-        return TypedResults.Ok(result);
-    }
-
-    private static async Task<Ok<GetAttendanceBreakPoliciesResult>> GetBreakPolicies(
-        [FromQuery] Guid companyId,
-        ISender sender)
-    {
-        var result = await sender.Send(new GetAttendanceBreakPoliciesQuery(companyId));
-        return TypedResults.Ok(result);
-    }
-
-    private static async Task<Ok<UpsertAttendanceBreakPolicyResult>> UpsertBreakPolicy(
-        [FromBody] UpsertAttendanceBreakPolicyRequest request,
-        ClaimsPrincipal user,
-        ISender sender)
-    {
-        var result = await sender.Send(new UpsertAttendanceBreakPolicyCommand(request.Policy, user.FindFirstValue(ClaimTypes.NameIdentifier)));
         return TypedResults.Ok(result);
     }
 

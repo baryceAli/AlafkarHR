@@ -21,6 +21,8 @@ public class ShiftConfiguration : IEntityTypeConfiguration<Shift>
         builder.Property(x => x.LateAfterMinutes).HasDefaultValue(15);
         builder.Property(x => x.ProhibitCheckInAfterMinutes).HasDefaultValue(120);
         builder.Property(x => x.BreakMinutes).HasDefaultValue(0);
+        builder.Property(x => x.BreakMode).HasConversion<int>().HasDefaultValue(AttendanceBreakMode.Flexible).IsRequired();
+        builder.Property(x => x.IsBreakPaid).HasDefaultValue(true);
 
         builder.HasIndex(x => new { x.CompanyId, x.Name });
     }

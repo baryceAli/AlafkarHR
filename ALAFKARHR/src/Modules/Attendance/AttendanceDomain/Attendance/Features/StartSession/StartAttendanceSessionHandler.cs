@@ -95,22 +95,11 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
     {
         var workDateUtc = session.ShiftStart == default ? DateTime.UtcNow : UtcDateTime.Normalize(session.ShiftStart);
         var assignedShiftId = await ResolveAssignedShiftIdAsync(employee, workDateUtc, cancellationToken);
-        var effectiveShiftId = assignedShiftId ?? session.ShiftId;
+        var effectiveShiftId = assignedShiftId;
 
         if (!effectiveShiftId.HasValue)
         {
-            var configuredWindow = await ResolveConfiguredWorkdayWindowAsync(employee.CompanyId, workDateUtc, cancellationToken);
-            if (configuredWindow is not null)
-            {
-                return configuredWindow;
-            }
-
-            return new ShiftWindow(
-                null,
-                UtcDateTime.Normalize(session.ShiftStart),
-                UtcDateTime.Normalize(session.ShiftEnd),
-                null,
-                null);
+            throw new BadRequestException("No effective shift was found for this employee. Assign a shift to the employee, department, administration, or company before starting attendance.");
         }
 
         var shift = await dbContext.Shifts
@@ -127,81 +116,6 @@ public class StartAttendanceSessionHandler(AttendanceDbContext dbContext, ISende
             shiftEnd,
             shift.LateAfter(shiftStart),
             shift.ProhibitCheckInAfter(shiftStart));
-    }
-
-    private async Task<ShiftWindow?> ResolveConfiguredWorkdayWindowAsync(
-        Guid companyId,
-        DateTime workDateUtc,
-        CancellationToken cancellationToken)
-    {
-        var configuration = await dbContext.AttendanceConfigurations
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.CompanyId == companyId, cancellationToken);
-
-        var configurationDto = configuration?.ToDto() ?? AttendanceConfiguration.DefaultDto(companyId);
-        var schedule = configurationDto.DaySchedules.First(x => x.DayOfWeek == workDateUtc.DayOfWeek);
-        if (!schedule.IsWorkingDay || configurationDto.WeekendDays.Contains(workDateUtc.DayOfWeek))
-        {
-            throw new BadRequestException("Attendance cannot be started on a configured non-working day.");
-        }
-
-        if (await IsCompanyHolidayAsync(companyId, workDateUtc, cancellationToken))
-        {
-            throw new BadRequestException("Attendance cannot be started on a configured company holiday.");
-        }
-
-        if (!schedule.StartTime.HasValue || !schedule.EndTime.HasValue)
-        {
-            return null;
-        }
-
-        var workDate = UtcDateTime.Normalize(workDateUtc).Date;
-        return new ShiftWindow(
-            null,
-            workDate.Add(schedule.StartTime.Value),
-            workDate.Add(schedule.EndTime.Value),
-            null,
-            null);
-    }
-
-    private async Task<bool> IsCompanyHolidayAsync(Guid companyId, DateTime workDateUtc, CancellationToken cancellationToken)
-    {
-        var date = UtcDateTime.Normalize(workDateUtc).Date;
-        var holidays = await dbContext.AttendanceHolidays
-            .AsNoTracking()
-            .Where(x => x.CompanyId == companyId && x.IsActive && !x.IsDeleted)
-            .ToListAsync(cancellationToken);
-
-        return holidays.Any(x => HolidayMatchesDate(x, date));
-    }
-
-    private static bool HolidayMatchesDate(AttendanceHoliday holiday, DateTime date)
-    {
-        if (!holiday.IsRecurringYearly)
-        {
-            return holiday.StartDate.Date <= date.Date && holiday.EndDate.Date >= date.Date;
-        }
-
-        return RecurringHolidayMatchesYear(holiday, date.Date, date.Year)
-            || RecurringHolidayMatchesYear(holiday, date.Date, date.Year - 1);
-    }
-
-    private static DateTime BuildRecurringDate(DateTime date, int year)
-    {
-        var day = Math.Min(date.Day, DateTime.DaysInMonth(year, date.Month));
-        return new DateTime(year, date.Month, day);
-    }
-
-    private static bool RecurringHolidayMatchesYear(AttendanceHoliday holiday, DateTime date, int year)
-    {
-        var start = BuildRecurringDate(holiday.StartDate.Date, year);
-        var end = BuildRecurringDate(holiday.EndDate.Date, year);
-        if (end < start)
-        {
-            end = end.AddYears(1);
-        }
-
-        return start <= date && end >= date;
     }
 
     private async Task<Guid?> ResolveAssignedShiftIdAsync(

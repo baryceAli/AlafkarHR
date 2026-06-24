@@ -34,13 +34,12 @@ public class CreateMidDayPermissionRequestValidator : AbstractValidator<CreateMi
     }
 }
 
-public class CreateMidDayPermissionRequestHandler(AttendanceDbContext dbContext)
+public class CreateMidDayPermissionRequestHandler(AttendanceDbContext dbContext, ISender sender)
     : ICommandHandler<CreateMidDayPermissionRequestCommand, CreateMidDayPermissionRequestResult>
 {
     public async Task<CreateMidDayPermissionRequestResult> Handle(CreateMidDayPermissionRequestCommand request, CancellationToken cancellationToken)
     {
-        var configuration = await LoadConfigurationAsync(request.Request.CompanyId, cancellationToken);
-        ValidatePermissionWithinWorkingDay(request.Request.Date, request.Request.RequestedStartUtc, request.Request.RequestedEndUtc, configuration);
+        await ValidatePermissionWithinAssignedShiftAsync(request.Request, cancellationToken);
         await EnsureNotCompanyHolidayAsync(request.Request.CompanyId, request.Request.Date, cancellationToken);
 
         var permission = MidDayPermissionRequest.Create(Guid.NewGuid(), request.Request);
@@ -92,47 +91,79 @@ public class CreateMidDayPermissionRequestHandler(AttendanceDbContext dbContext)
         return start <= date && end >= date;
     }
 
-    private async Task<AttendanceConfiguration> LoadConfigurationAsync(Guid companyId, CancellationToken cancellationToken)
+    private async Task ValidatePermissionWithinAssignedShiftAsync(
+        CreateMidDayPermissionRequestDto request,
+        CancellationToken cancellationToken)
     {
-        var configuration = await dbContext.AttendanceConfigurations
-            .FirstOrDefaultAsync(x => x.CompanyId == companyId, cancellationToken);
-
-        if (configuration is not null)
-        {
-            return configuration;
-        }
-
-        return AttendanceConfiguration.Create(Guid.NewGuid(), new UpsertAttendanceConfigurationDto { CompanyId = companyId });
-    }
-
-    private static void ValidatePermissionWithinWorkingDay(
-        DateTime requestDate,
-        DateTime requestedStartUtc,
-        DateTime requestedEndUtc,
-        AttendanceConfiguration configuration)
-    {
-        var date = UtcDateTime.Normalize(requestDate).Date;
-        var start = UtcDateTime.Normalize(requestedStartUtc);
-        var end = UtcDateTime.Normalize(requestedEndUtc);
+        var date = UtcDateTime.Normalize(request.Date).Date;
+        var start = UtcDateTime.Normalize(request.RequestedStartUtc);
+        var end = UtcDateTime.Normalize(request.RequestedEndUtc);
 
         if (start.Date != date || end.Date != date)
         {
-            throw new BadRequestException("Permission request must start and end on the same working day.");
+            throw new BadRequestException("Permission request must start and end on the same shift day.");
         }
 
-        var schedule = configuration.GetSchedule(date);
-        if (!schedule.IsWorkingDay || configuration.IsWeekend(date))
+        var employee = await sender.Send(new GetEmployeeAttendanceProfileQuery(request.EmployeeId), cancellationToken);
+        var shift = await ResolveAssignedShiftAsync(employee, date, cancellationToken);
+        if (shift is null)
         {
-            throw new BadRequestException("Permission request date must be a configured working day.");
+            throw new BadRequestException("Permission request requires an effective assigned shift for the selected date.");
         }
 
-        var startsAfterWorkStart = start.TimeOfDay >= schedule.StartTime;
-        var endsBeforeWorkEnd = end.TimeOfDay <= schedule.EndTime;
-        if (!startsAfterWorkStart || !endsBeforeWorkEnd)
+        var shiftStart = shift.BuildShiftStart(date);
+        var shiftEnd = shift.BuildShiftEnd(date);
+        if (start < shiftStart || end > shiftEnd)
         {
-            throw new BadRequestException("Permission request duration must be inside the configured working day.");
+            throw new BadRequestException("Permission request duration must be inside the assigned shift window.");
         }
     }
+
+    private async Task<Shift?> ResolveAssignedShiftAsync(
+        GetEmployeeAttendanceProfileResult employee,
+        DateTime workDateUtc,
+        CancellationToken cancellationToken)
+    {
+        var assignments = await dbContext.EmployeeShifts
+            .AsNoTracking()
+            .Where(x => x.IsActive
+                && !x.IsDeleted
+                && x.EffectiveFrom <= workDateUtc
+                && (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= workDateUtc)
+                && (
+                    (x.Scope == ShiftAssignmentScope.Employee && x.EmployeeId == employee.EmployeeId)
+                    || (x.Scope == ShiftAssignmentScope.Department && employee.DepartmentId.HasValue && x.DepartmentId == employee.DepartmentId.Value)
+                    || (x.Scope == ShiftAssignmentScope.Administration && x.AdministrationId == employee.AdministrationId)
+                    || (x.Scope == ShiftAssignmentScope.Company && x.CompanyId == employee.CompanyId)))
+            .Select(x => new ShiftAssignmentCandidate(x.ShiftId, x.Scope, x.EffectiveFrom))
+            .ToListAsync(cancellationToken);
+
+        var shiftId = assignments
+            .OrderByDescending(x => Priority(x.Scope))
+            .ThenByDescending(x => x.EffectiveFrom)
+            .Select(x => (Guid?)x.ShiftId)
+            .FirstOrDefault();
+
+        if (!shiftId.HasValue)
+        {
+            return null;
+        }
+
+        return await dbContext.Shifts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == shiftId.Value && !x.IsDeleted, cancellationToken);
+    }
+
+    private static int Priority(ShiftAssignmentScope scope) => scope switch
+    {
+        ShiftAssignmentScope.Employee => 4,
+        ShiftAssignmentScope.Department => 3,
+        ShiftAssignmentScope.Administration => 2,
+        ShiftAssignmentScope.Company => 1,
+        _ => 0
+    };
+
+    private sealed record ShiftAssignmentCandidate(Guid ShiftId, ShiftAssignmentScope Scope, DateTime EffectiveFrom);
 }
 
 public class ReviewMidDayPermissionRequestHandler(AttendanceDbContext dbContext, ISender sender)

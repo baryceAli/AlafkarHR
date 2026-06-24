@@ -6,75 +6,59 @@ using Shared.SaveImages;
 
 namespace AttendanceDomain.Attendance.Features.Configuration;
 
-public record GetAttendanceConfigurationQuery(Guid CompanyId) : IQuery<GetAttendanceConfigurationResult>;
-public record GetAttendanceConfigurationResult(AttendanceConfigurationDto Configuration);
-public record UpsertAttendanceConfigurationCommand(UpsertAttendanceConfigurationDto Configuration, string? ModifiedBy)
-    : ICommand<UpsertAttendanceConfigurationResult>;
-public record UpsertAttendanceConfigurationResult(AttendanceConfigurationDto Configuration);
+public record GetAttendanceCalendarSettingsQuery(Guid CompanyId) : IQuery<GetAttendanceCalendarSettingsResult>;
+public record GetAttendanceCalendarSettingsResult(AttendanceCalendarSettingsDto Settings);
+public record UpsertAttendanceCalendarSettingsCommand(UpsertAttendanceCalendarSettingsDto Settings, string? ModifiedBy)
+    : ICommand<UpsertAttendanceCalendarSettingsResult>;
+public record UpsertAttendanceCalendarSettingsResult(AttendanceCalendarSettingsDto Settings);
 
-public class UpsertAttendanceConfigurationValidator : AbstractValidator<UpsertAttendanceConfigurationCommand>
+public class UpsertAttendanceCalendarSettingsValidator : AbstractValidator<UpsertAttendanceCalendarSettingsCommand>
 {
-    public UpsertAttendanceConfigurationValidator()
+    public UpsertAttendanceCalendarSettingsValidator()
     {
-        RuleFor(x => x.Configuration.CompanyId).NotEmpty();
-        RuleFor(x => x.Configuration.WeekendDays).NotEmpty().WithMessage("At least one weekend day is required.");
-        RuleFor(x => x.Configuration)
-            .Must(configuration => !configuration.DaySchedules
-                .Any(day => day.IsWorkingDay && configuration.WeekendDays.Contains(day.DayOfWeek)))
-            .WithMessage("A day cannot be both a working day and a weekend day.");
-        RuleForEach(x => x.Configuration.DaySchedules).ChildRules(day =>
-        {
-            day.When(x => x.IsWorkingDay, () =>
-            {
-                day.RuleFor(x => x.StartTime).NotNull().WithMessage("Start time is required for working days.");
-                day.RuleFor(x => x.EndTime).NotNull().WithMessage("End time is required for working days.");
-                day.RuleFor(x => x.EndTime)
-                    .GreaterThan(x => x.StartTime)
-                    .When(x => x.StartTime.HasValue && x.EndTime.HasValue)
-                    .WithMessage("End time must be after start time.");
-            });
-        });
+        RuleFor(x => x.Settings.CompanyId).NotEmpty();
+        RuleFor(x => x.Settings.WeekendDays).NotEmpty().WithMessage("At least one weekend day is required.");
     }
 }
 
-public class GetAttendanceConfigurationHandler(AttendanceDbContext dbContext)
-    : IQueryHandler<GetAttendanceConfigurationQuery, GetAttendanceConfigurationResult>
+public class GetAttendanceCalendarSettingsHandler(AttendanceDbContext dbContext)
+    : IQueryHandler<GetAttendanceCalendarSettingsQuery, GetAttendanceCalendarSettingsResult>
 {
-    public async Task<GetAttendanceConfigurationResult> Handle(GetAttendanceConfigurationQuery request, CancellationToken cancellationToken)
+    public async Task<GetAttendanceCalendarSettingsResult> Handle(GetAttendanceCalendarSettingsQuery request, CancellationToken cancellationToken)
     {
         var configuration = await dbContext.AttendanceConfigurations
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.CompanyId == request.CompanyId, cancellationToken);
 
-        return new GetAttendanceConfigurationResult(configuration?.ToDto()
+        return new GetAttendanceCalendarSettingsResult(configuration?.ToDto()
             ?? AttendanceConfiguration.DefaultDto(request.CompanyId));
     }
 }
 
-public class UpsertAttendanceConfigurationHandler(AttendanceDbContext dbContext)
-    : ICommandHandler<UpsertAttendanceConfigurationCommand, UpsertAttendanceConfigurationResult>
+public class UpsertAttendanceCalendarSettingsHandler(AttendanceDbContext dbContext)
+    : ICommandHandler<UpsertAttendanceCalendarSettingsCommand, UpsertAttendanceCalendarSettingsResult>
 {
-    public async Task<UpsertAttendanceConfigurationResult> Handle(
-        UpsertAttendanceConfigurationCommand request,
+    public async Task<UpsertAttendanceCalendarSettingsResult> Handle(
+        UpsertAttendanceCalendarSettingsCommand request,
         CancellationToken cancellationToken)
     {
         var configuration = await dbContext.AttendanceConfigurations
-            .FirstOrDefaultAsync(x => x.CompanyId == request.Configuration.CompanyId, cancellationToken);
+            .FirstOrDefaultAsync(x => x.CompanyId == request.Settings.CompanyId, cancellationToken);
 
         if (configuration is null)
         {
             configuration = AttendanceConfiguration.Create(
                 Guid.NewGuid(),
-                request.Configuration);
+                request.Settings);
             await dbContext.AttendanceConfigurations.AddAsync(configuration, cancellationToken);
         }
         else
         {
-            configuration.Update(request.Configuration, request.ModifiedBy);
+            configuration.Update(request.Settings, request.ModifiedBy);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
-        return new UpsertAttendanceConfigurationResult(configuration.ToDto());
+        return new UpsertAttendanceCalendarSettingsResult(configuration.ToDto());
     }
 }
 
