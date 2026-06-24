@@ -98,7 +98,7 @@
                 {
                     var journeyGroups = VisibleGroupsForFunctionalGroup(group.Key).ToList();
                     var entryCount = journeyGroups.SelectMany(navigationGroup => FilteredEntries(navigationGroup)).Count();
-                    <section class="enterprise-nav-section">
+                    <section class="enterprise-nav-section is-functional-area @(IsFunctionalGroupExpanded(group.Key) ? "is-open-functional-area" : "")">
                         <button type="button"
                                 class="enterprise-section-header"
                                 aria-expanded="@IsFunctionalGroupExpanded(group.Key)"

@@ -4842,6 +4842,21 @@ video {
     background: var(--erp-surface);
 }
 
+:root .enterprise-nav-section.is-functional-area {
+    transition: background var(--erp-transition-fast), border-color var(--erp-transition-fast), box-shadow var(--erp-transition-fast);
+}
+
+:root .enterprise-nav-section.is-open-functional-area {
+    background: color-mix(in srgb, var(--erp-primary) 5%, var(--erp-surface-level-1));
+    border-color: color-mix(in srgb, var(--erp-primary) 28%, var(--erp-border-strong));
+    box-shadow: var(--erp-shadow-sm);
+    padding: var(--erp-space-1);
+}
+
+:root .enterprise-nav-section.is-open-functional-area > .enterprise-section-list {
+    padding: 0 var(--erp-space-1) var(--erp-space-1);
+}
+
 :root .enterprise-section-header {
     align-items: center;
     background: transparent;
