@@ -744,8 +744,8 @@ public class MenuItem
                     Icon = "bi-calendar-check",
                     PermissionPolicy = PermissionList.AttendancePermissions.Select,
                     WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
-                    KeywordsEn = "attendance shifts sessions late holidays permissions reports",
-                    KeywordsAr = "حضور انصراف ورديات جلسات تأخير عطلات أذونات تقارير",
+                    KeywordsEn = "attendance setup configuration shifts shift assignments roster schedules sessions work entries holidays permission requests approvals reports",
+                    KeywordsAr = "حضور انصراف إعداد تهيئة ورديات تعيين الورديات جداول جلسات مدخلات عمل عطلات أذونات اعتماد تقارير",
                     Children = new()
                     {
                         new MenuItem
@@ -754,7 +754,11 @@ public class MenuItem
                             TextAr = "لوحة الحضور",
                             Icon = "bi-speedometer2",
                             Url = "/Attendance/Dashboard",
-                            PermissionPolicy = PermissionList.AttendancePermissions.View
+                            PermissionPolicy = PermissionList.AttendancePermissions.View,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupStart,
+                            NavigationOrder = 2,
+                            KeywordsEn = "attendance dashboard overview",
+                            KeywordsAr = "لوحة الحضور نظرة عامة"
                         },
                         new MenuItem
                         {
@@ -762,7 +766,11 @@ public class MenuItem
                             TextAr = "حضوري",
                             Icon = "bi-person-check",
                             Url = "/Attendance/MyAttendance",
-                            PermissionPolicy = PermissionList.AttendancePermissions.Create
+                            PermissionPolicy = PermissionList.AttendancePermissions.Create,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                            NavigationOrder = 300,
+                            KeywordsEn = "my attendance check in check out clock in clock out",
+                            KeywordsAr = "حضوري تسجيل حضور انصراف"
                         },
                         new MenuItem
                         {
@@ -770,7 +778,11 @@ public class MenuItem
                             TextAr = "جلسات الحضور",
                             Icon = "bi-clock-history",
                             Url = "/Attendance/Sessions",
-                            PermissionPolicy = PermissionList.AttendancePermissions.View
+                            PermissionPolicy = PermissionList.AttendancePermissions.View,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                            NavigationOrder = 301,
+                            KeywordsEn = "attendance sessions daily records check in check out",
+                            KeywordsAr = "جلسات الحضور سجلات يومية حضور انصراف"
                         },
                         new MenuItem
                         {
@@ -778,7 +790,11 @@ public class MenuItem
                             TextAr = "الورديات",
                             Icon = "bi-calendar-range",
                             Url = "/Attendance/Shifts",
-                            PermissionPolicy = PermissionList.AttendancePermissions.Edit
+                            PermissionPolicy = PermissionList.AttendancePermissions.Edit,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 110,
+                            KeywordsEn = "attendance setup shifts work shifts schedule rules",
+                            KeywordsAr = "إعداد الحضور الورديات ورديات العمل قواعد الجدولة"
                         },
                         new MenuItem
                         {
@@ -786,7 +802,11 @@ public class MenuItem
                             TextAr = "تعيين الورديات",
                             Icon = "bi-calendar2-week",
                             Url = "/Attendance/ShiftAssignments",
-                            PermissionPolicy = PermissionList.AttendancePermissions.Edit
+                            PermissionPolicy = PermissionList.AttendancePermissions.Edit,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 111,
+                            KeywordsEn = "attendance setup shift assignments employee shifts",
+                            KeywordsAr = "إعداد الحضور تعيين الورديات ورديات الموظفين"
                         },
                         new MenuItem
                         {
@@ -794,7 +814,11 @@ public class MenuItem
                             TextAr = "الجداول وجدولة الورديات",
                             Icon = "bi-calendar3",
                             Url = "/HR/AttendanceRoster",
-                            PermissionPolicy = PermissionList.AttendanceRosterPermissions.View
+                            PermissionPolicy = PermissionList.AttendanceRosterPermissions.View,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 112,
+                            KeywordsEn = "attendance setup roster shift schedules employee schedules",
+                            KeywordsAr = "إعداد الحضور الجداول جدولة الورديات جداول الموظفين"
                         },
                         new MenuItem
                         {
@@ -802,7 +826,11 @@ public class MenuItem
                             TextAr = "مدخلات عمل الحضور",
                             Icon = "bi-journal-check",
                             Url = "/HR/WorkEntries",
-                            PermissionPolicy = PermissionList.AttendanceWorkEntryPermissions.View
+                            PermissionPolicy = PermissionList.AttendanceWorkEntryPermissions.View,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                            NavigationOrder = 303,
+                            KeywordsEn = "attendance work entries work hours payroll attendance entries",
+                            KeywordsAr = "مدخلات عمل الحضور ساعات العمل مدخلات الرواتب"
                         },
                         new MenuItem
                         {
@@ -810,7 +838,11 @@ public class MenuItem
                             TextAr = "طلبات التأخير",
                             Icon = "bi-exclamation-triangle",
                             Url = "/Attendance/LateRequests",
-                            PermissionPolicy = PermissionList.AttendancePermissions.ReviewRequests
+                            PermissionPolicy = PermissionList.AttendancePermissions.ReviewRequests,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupApprovals,
+                            NavigationOrder = 400,
+                            KeywordsEn = "attendance approvals late requests exceptions",
+                            KeywordsAr = "اعتمادات الحضور طلبات التأخير استثناءات"
                         },
                         new MenuItem
                         {
@@ -818,7 +850,11 @@ public class MenuItem
                             TextAr = "التقويم والعطلات",
                             Icon = "bi-calendar-event",
                             Url = "/Attendance/Holidays",
-                            PermissionPolicy = PermissionList.AttendancePermissions.ManageHolidays
+                            PermissionPolicy = PermissionList.AttendancePermissions.ManageHolidays,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 113,
+                            KeywordsEn = "attendance setup calendar holidays weekends public holidays",
+                            KeywordsAr = "إعداد الحضور التقويم العطلات نهاية الأسبوع الإجازات الرسمية"
                         },
                         new MenuItem
                         {
@@ -826,7 +862,11 @@ public class MenuItem
                             TextAr = "طلبات الاذن",
                             Icon = "bi-door-open",
                             Url = "/Attendance/PermissionRequests",
-                            PermissionPolicy = PermissionList.AttendancePermissions.RequestMidDayPermission
+                            PermissionPolicy = PermissionList.AttendancePermissions.RequestMidDayPermission,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                            NavigationOrder = 304,
+                            KeywordsEn = "attendance permission requests mid day permission daily requests",
+                            KeywordsAr = "طلبات إذن الحضور أذونات منتصف اليوم طلبات يومية"
                         },
                         new MenuItem
                         {
@@ -834,7 +874,11 @@ public class MenuItem
                             TextAr = "اعتماد طلبات الاذن",
                             Icon = "bi-person-check",
                             Url = "/Attendance/ApprovePermissionRequests",
-                            PermissionPolicy = PermissionList.AttendancePermissions.ApproveMidDayPermission
+                            PermissionPolicy = PermissionList.AttendancePermissions.ApproveMidDayPermission,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupApprovals,
+                            NavigationOrder = 401,
+                            KeywordsEn = "attendance approvals approve permission requests mid day permission",
+                            KeywordsAr = "اعتمادات الحضور اعتماد طلبات الإذن أذونات منتصف اليوم"
                         },
                         new MenuItem
                         {
@@ -842,6 +886,10 @@ public class MenuItem
                             TextAr = "التقارير",
                             Icon = "bi-file-earmark-bar-graph",
                             PermissionPolicy = PermissionList.AttendancePermissions.ViewReports,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupReports,
+                            NavigationOrder = 601,
+                            KeywordsEn = "attendance reports daily summary late early leave break absence holidays permissions",
+                            KeywordsAr = "تقارير الحضور يومي ملخص تأخير انصراف مبكر استراحة غياب عطلات أذونات",
                             Children = new()
                             {
                                 new MenuItem
@@ -850,7 +898,11 @@ public class MenuItem
                                     TextAr = "نظرة عامة على التقارير",
                                     Icon = "bi-file-earmark-bar-graph",
                                     Url = "/Attendance/Reports",
-                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports,
+                                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupReports,
+                                    NavigationOrder = 601,
+                                    KeywordsEn = "attendance reports overview",
+                                    KeywordsAr = "نظرة عامة تقارير الحضور"
                                 },
                                 new MenuItem
                                 {
@@ -858,7 +910,11 @@ public class MenuItem
                                     TextAr = "تقرير الحضور اليومي",
                                     Icon = "bi-calendar-day",
                                     Url = "/Attendance/Reports/Attendance",
-                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports,
+                                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupReports,
+                                    NavigationOrder = 602,
+                                    KeywordsEn = "daily attendance report attendance records",
+                                    KeywordsAr = "تقرير الحضور اليومي سجلات الحضور"
                                 },
                                 new MenuItem
                                 {
@@ -866,7 +922,11 @@ public class MenuItem
                                     TextAr = "ملخص حضور الموظف",
                                     Icon = "bi-person-lines-fill",
                                     Url = "/Attendance/Reports/AttendanceSummary",
-                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports,
+                                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupReports,
+                                    NavigationOrder = 603,
+                                    KeywordsEn = "employee attendance summary report",
+                                    KeywordsAr = "ملخص حضور الموظف تقرير"
                                 },
                                 new MenuItem
                                 {
@@ -874,7 +934,11 @@ public class MenuItem
                                     TextAr = "تقرير التأخير",
                                     Icon = "bi-clock",
                                     Url = "/Attendance/Reports/LateArrival",
-                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports,
+                                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupReports,
+                                    NavigationOrder = 604,
+                                    KeywordsEn = "late arrival report attendance delay",
+                                    KeywordsAr = "تقرير التأخير تأخير الحضور"
                                 },
                                 new MenuItem
                                 {
@@ -882,7 +946,11 @@ public class MenuItem
                                     TextAr = "تقرير الانصراف المبكر",
                                     Icon = "bi-box-arrow-right",
                                     Url = "/Attendance/Reports/EarlyLeave",
-                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports,
+                                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupReports,
+                                    NavigationOrder = 605,
+                                    KeywordsEn = "early leave report attendance early checkout",
+                                    KeywordsAr = "تقرير الانصراف المبكر خروج مبكر"
                                 },
                                 new MenuItem
                                 {
@@ -890,7 +958,11 @@ public class MenuItem
                                     TextAr = "تقرير الاستراحة",
                                     Icon = "bi-cup-hot",
                                     Url = "/Attendance/Reports/Break",
-                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports,
+                                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupReports,
+                                    NavigationOrder = 606,
+                                    KeywordsEn = "break report attendance breaks",
+                                    KeywordsAr = "تقرير الاستراحة استراحات الحضور"
                                 },
                                 new MenuItem
                                 {
@@ -898,7 +970,11 @@ public class MenuItem
                                     TextAr = "تقرير طلبات الاذن",
                                     Icon = "bi-door-open",
                                     Url = "/Attendance/Reports/MidDayPermission",
-                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports,
+                                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupReports,
+                                    NavigationOrder = 607,
+                                    KeywordsEn = "permission requests report mid day permission attendance",
+                                    KeywordsAr = "تقرير طلبات الإذن أذونات منتصف اليوم"
                                 },
                                 new MenuItem
                                 {
@@ -906,7 +982,11 @@ public class MenuItem
                                     TextAr = "تقرير الغياب",
                                     Icon = "bi-person-x",
                                     Url = "/Attendance/Reports/Absence",
-                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports,
+                                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupReports,
+                                    NavigationOrder = 608,
+                                    KeywordsEn = "absence report attendance absent employees",
+                                    KeywordsAr = "تقرير الغياب غياب الموظفين"
                                 },
                                 new MenuItem
                                 {
@@ -914,7 +994,11 @@ public class MenuItem
                                     TextAr = "تقرير العطلات ونهاية الأسبوع",
                                     Icon = "bi-calendar-event",
                                     Url = "/Attendance/Reports/HolidayWeekend",
-                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports
+                                    PermissionPolicy = PermissionList.AttendancePermissions.ViewReports,
+                                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupReports,
+                                    NavigationOrder = 609,
+                                    KeywordsEn = "holiday weekend report attendance calendar holidays",
+                                    KeywordsAr = "تقرير العطلات نهاية الأسبوع تقويم الحضور"
                                 }
                             }
                         }
