@@ -238,7 +238,7 @@
             <div class="col-lg-4">
                 @if (CanAssign)
                 {
-                    <AppCard Title="@Text("Reassign", "إعادة الإسناد")" CssClass="mb-3">
+                    <AppCard Title="@Text("Reassign", "إعادة الإسناد")" CssClass="mb-3 allow-overflow">
                         <div class="mb-2">
                             <label class="form-label">@Text("Assigned Employee", "الموظف المسند إليه")</label>
                             <AutoCompleteComponent TItem="EmployeeDto"

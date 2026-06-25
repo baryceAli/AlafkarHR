@@ -33,7 +33,7 @@
     }
     else
     {
-        <AppCard Title="@Text("Task Details", "تفاصيل المهمة")">
+        <AppCard Title="@Text("Task Details", "تفاصيل المهمة")" CssClass="allow-overflow">
             <EditForm Model="task" OnValidSubmit="Save">
                 <DataAnnotationsValidator />
                 <div class="row g-3">

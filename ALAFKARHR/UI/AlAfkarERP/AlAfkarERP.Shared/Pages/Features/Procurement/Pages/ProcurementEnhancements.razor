@@ -46,7 +46,7 @@
     {
         <div class="row g-3">
             <div class="col-xl-4">
-                <AppCard Title="@SharedDataService.SelectViewLang("Supplier Item", "صنف المورد")" CssClass="h-100">
+                <AppCard Title="@SharedDataService.SelectViewLang("Supplier Item", "صنف المورد")" CssClass="h-100 allow-overflow">
                     <EditForm Model="supplierItem" OnValidSubmit="SaveSupplierItemAsync">
                         <DataAnnotationsValidator />
                         <div class="vstack gap-2">
@@ -92,7 +92,7 @@
             </div>
 
             <div class="col-xl-4">
-                <AppCard Title="@SharedDataService.SelectViewLang("Vendor Pricelist", "قائمة أسعار المورد")" CssClass="h-100">
+                <AppCard Title="@SharedDataService.SelectViewLang("Vendor Pricelist", "قائمة أسعار المورد")" CssClass="h-100 allow-overflow">
                     <EditForm Model="vendorPrice" OnValidSubmit="SaveVendorPriceAsync">
                         <DataAnnotationsValidator />
                         <div class="vstack gap-2">
@@ -143,7 +143,7 @@
             </div>
 
             <div class="col-xl-4">
-                <AppCard Title="@SharedDataService.SelectViewLang("Reordering Rule", "قاعدة إعادة الطلب")" CssClass="h-100">
+                <AppCard Title="@SharedDataService.SelectViewLang("Reordering Rule", "قاعدة إعادة الطلب")" CssClass="h-100 allow-overflow">
                     <EditForm Model="reorderRule" OnValidSubmit="SaveReorderRuleAsync">
                         <DataAnnotationsValidator />
                         <div class="vstack gap-2">

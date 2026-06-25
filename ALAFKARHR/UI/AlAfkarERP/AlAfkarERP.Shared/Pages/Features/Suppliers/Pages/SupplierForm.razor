@@ -40,7 +40,7 @@
         <EditForm Model="supplier" OnValidSubmit="SaveAsync">
             <DataAnnotationsValidator />
 
-            <AppCard Title="@SharedDataService.SelectViewLang("Supplier Details", "تفاصيل المورد")" CssClass="mb-3">
+            <AppCard Title="@SharedDataService.SelectViewLang("Supplier Details", "تفاصيل المورد")" CssClass="mb-3 allow-overflow">
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>

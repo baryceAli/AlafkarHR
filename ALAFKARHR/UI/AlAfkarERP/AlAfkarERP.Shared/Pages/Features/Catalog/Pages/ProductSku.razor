@@ -52,7 +52,7 @@
 
     <AppCard Title="@SharedDataService.SelectViewLang("Product Context", "سياق المنتج")"
              Subtitle="@SharedDataService.SelectViewLang("Choose the product before managing its stock keeping units.", "اختر المنتج قبل إدارة منتجاته المخزنية.")"
-             CssClass="mb-3">
+             CssClass="mb-3 allow-overflow">
     <div class="erp-subpanel">
     
         @if (ProductId.HasValue && selectedProduct != null && selectedProduct.Id != Guid.Empty)

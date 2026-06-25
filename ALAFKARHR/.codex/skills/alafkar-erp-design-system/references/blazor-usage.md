@@ -20,7 +20,8 @@ Use this reference when applying the design system to Blazor components, pages, 
 6. Replace workflow/status badge markup with `StatusChip`. Choose tones through explicit semantic helpers such as `StatusTone(...)`, `RequestTone(...)`, `SessionTone(...)`, or a similarly named page-local helper, using tones `primary`, `success`, `warning`, `danger`, `info`, or `muted`.
 7. Keep lightweight non-status chips only for compact value metadata such as configured days, salary-like values, dates, counts, or short labels that are not workflow states.
 8. Keep dynamic inline styles only when values come from data, such as progress width or uploaded image visibility. Prefer CSS variables like `--erp-progress-value`.
-9. Check localized pages for `SharedDataService.OnChange1` subscription/disposal when rendered text or direction depends on language.
+9. Check selectors and menus for clipping before finishing. If `AutoCompleteComponent`, Bootstrap dropdowns, popovers, menus, or other overlays are inside `AppCard`, add `allow-overflow` to the card's existing `CssClass`; if they are inside another clipped ancestor, fix that ancestor or move the selector outside scroll/table wrappers. Raising `z-index` does not escape `overflow: hidden` or `overflow: auto`.
+10. Check localized pages for `SharedDataService.OnChange1` subscription/disposal when rendered text or direction depends on language.
 
 ## Page Patterns
 
@@ -38,6 +39,7 @@ Use this reference when applying the design system to Blazor components, pages, 
 - Use Bootstrap button variants after they have been tokenized by `theme.css`: `btn-primary`, `btn-outline-secondary`, `btn-secondary`, `btn-sm`, and icon button helpers.
 - Use Bootstrap Icons with `bi bi-*`; do not add a new icon library.
 - Avoid cards inside cards. Use cards for repeated items, modals, framed tools, and content panels; use unframed or full-width layouts for sections.
+- `AppCard` clips content by default. Any card that contains autocomplete, dropdown, popover, or menu overlays must preserve existing classes and include `allow-overflow`, such as `CssClass="h-100 allow-overflow"`.
 - Keep page-local CSS only for truly page-specific layouts such as normalization rows, schedule grids, request/action panels, and similarly unique layout mechanics. Use theme tokens, shared classes, and logical properties for reusable spacing, borders, alignment, and positioning.
 - Do not copy the HTML references blindly. Translate their structure into reusable Blazor markup and shared classes.
 

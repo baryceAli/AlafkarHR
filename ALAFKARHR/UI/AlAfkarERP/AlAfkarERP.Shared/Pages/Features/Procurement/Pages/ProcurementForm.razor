@@ -57,7 +57,7 @@
         <EditForm Model="document" OnValidSubmit="SaveAsync">
             <DataAnnotationsValidator />
 
-            <AppCard Title="@SharedDataService.SelectViewLang("Document", "المستند")" CssClass="mb-3 erp-form-section">
+            <AppCard Title="@SharedDataService.SelectViewLang("Document", "المستند")" CssClass="mb-3 erp-form-section allow-overflow">
                 <div class="row g-3">
                     @if (IsGoodsReceipt)
                     {
@@ -229,7 +229,7 @@
                 </div>
             </AppCard>
 
-            <AppCard Title="@SharedDataService.SelectViewLang("Lines", "البنود")" CssClass="erp-form-section">
+            <AppCard Title="@SharedDataService.SelectViewLang("Lines", "البنود")" CssClass="erp-form-section allow-overflow">
                 <div class="d-flex justify-content-end mb-3">
                     <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddLine">
                         <i class="bi bi-plus-lg"></i>
