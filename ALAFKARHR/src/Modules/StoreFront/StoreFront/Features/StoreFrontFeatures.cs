@@ -56,7 +56,7 @@ public class StoreFrontValidator : AbstractValidator<SaveStoreFrontCommand>
     {
         RuleFor(x => x.Store.CompanyId).NotEmpty();
         RuleFor(x => x.Store.StoreFrontTypeId).NotEmpty();
-        RuleFor(x => x.Store.DefaultWarehouseId).NotEmpty();
+        RuleFor(x => x.Store.StoreManagerEmployeeId).NotEmpty();
         RuleFor(x => x.Store.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Store.NameEng).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Store.Code).NotEmpty().MaximumLength(100);
@@ -246,11 +246,15 @@ public class StoreFrontQueryHandler(StoreFrontDbContext dbContext, ISender sende
         StoreFrontTypeName = store.StoreFrontType?.Name,
         StoreFrontTypeNameEng = store.StoreFrontType?.NameEng,
         DefaultWarehouseId = store.DefaultWarehouseId,
+        StoreManagerEmployeeId = store.StoreManagerEmployeeId,
+        StoreManagerName = store.StoreManagerName,
+        StoreManagerNameEng = store.StoreManagerNameEng,
         DefaultCustomerId = store.DefaultCustomerId,
         PriceListId = store.PriceListId,
         Name = store.Name,
         NameEng = store.NameEng,
         Code = store.Code,
+        LogoUrl = store.LogoUrl,
         ReceiptHeader = store.ReceiptHeader,
         ReceiptFooter = store.ReceiptFooter,
         IsActive = store.IsActive,
@@ -352,6 +356,7 @@ public class StoreFrontCommandHandler(
 
     public async Task<SaveStoreFrontResult> Handle(SaveStoreFrontCommand request, CancellationToken cancellationToken)
     {
+        var userId = GetUserId();
         var existing = request.Store.Id == Guid.Empty
             ? null
             : await dbContext.StoreFronts.FirstOrDefaultAsync(x => x.Id == request.Store.Id, cancellationToken);
@@ -365,6 +370,15 @@ public class StoreFrontCommandHandler(
         if (existing is not null)
             await EnsureCanMutateStoreAsync(existing.CompanyId, existing.BranchId, PermissionList.StoreFrontStorePermissions.Edit, cancellationToken);
 
+        var previousManagerEmployeeId = existing?.StoreManagerEmployeeId;
+        request.Store.Id = existing?.Id ?? (request.Store.Id == Guid.Empty ? Guid.NewGuid() : request.Store.Id);
+        request.Store.BranchId = existing?.BranchId;
+        request.Store.AdministrationId = null;
+        request.Store.DepartmentId = null;
+
+        if (!request.Store.StoreManagerEmployeeId.HasValue || request.Store.StoreManagerEmployeeId.Value == Guid.Empty)
+            throw new BadRequestException("Store manager is required.");
+
         var ensuredBranch = await sender.Send(new EnsureStoreFrontBranchCommand(
             request.Store.CompanyId,
             request.Store.BranchId,
@@ -373,19 +387,19 @@ public class StoreFrontCommandHandler(
             request.Store.Code,
             null,
             null,
-            GetUserId()), cancellationToken);
+            userId), cancellationToken);
         request.Store.BranchId = ensuredBranch.BranchId;
-        await sender.Send(new EnsureWarehouseBranchScopeQuery(
+
+        var ensuredWarehouse = await sender.Send(new EnsureStoreFrontWarehouseCommand(
             request.Store.CompanyId,
-            request.Store.DefaultWarehouseId,
-            ensuredBranch.BranchId), cancellationToken);
-        var placement = await sender.Send(new ValidateOrganizationPlacementQuery(
-            request.Store.CompanyId,
-            request.Store.BranchId,
-            request.Store.AdministrationId,
-            request.Store.DepartmentId), cancellationToken);
-        if (!placement.IsValid)
-            throw new BadRequestException(placement.Message ?? "Invalid organization placement.");
+            ensuredBranch.BranchId,
+            existing?.DefaultWarehouseId == Guid.Empty ? null : existing?.DefaultWarehouseId,
+            request.Store.Name,
+            request.Store.NameEng,
+            request.Store.Code,
+            userId), cancellationToken);
+        request.Store.DefaultWarehouseId = ensuredWarehouse.WarehouseId;
+        request.Store.LogoUrl = SaveStoreLogo(request.Store.Id, existing?.LogoUrl, request.Store.LogoUrl);
 
         await EnsureCanMutateStoreAsync(
             request.Store.CompanyId,
@@ -394,19 +408,43 @@ public class StoreFrontCommandHandler(
             cancellationToken);
         await EnsureTypeAsync(request.Store.CompanyId, request.Store.StoreFrontTypeId, cancellationToken);
 
+        var manager = await sender.Send(new MoveStoreFrontManagerEmployeeCommand(
+            request.Store.CompanyId,
+            request.Store.StoreManagerEmployeeId.Value,
+            ensuredBranch.BranchId,
+            userId,
+            RequireActive: true,
+            RequireLinkedUser: true), cancellationToken);
+        request.Store.StoreManagerName = manager.FullName;
+        request.Store.StoreManagerNameEng = manager.FullNameEng;
+
         StoreFrontStore store;
         if (existing is null)
         {
-            store = StoreFrontStore.Create(request.Store, GetUserId());
+            store = StoreFrontStore.Create(request.Store, userId);
             await dbContext.StoreFronts.AddAsync(store, cancellationToken);
         }
         else
         {
-            existing.Update(request.Store, GetUserId());
+            existing.Update(request.Store, userId);
             store = existing;
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        await sender.Send(new AssignStoreFrontBranchRoleCommand(
+            manager.LinkedUserId!.Value,
+            request.Store.CompanyId,
+            ensuredBranch.BranchId,
+            "store-admin"), cancellationToken);
+
+        if (previousManagerEmployeeId.HasValue && previousManagerEmployeeId.Value != request.Store.StoreManagerEmployeeId.Value)
+            await MovePreviousStoreManagerToMainBranchAsync(
+                request.Store.CompanyId,
+                previousManagerEmployeeId.Value,
+                ensuredBranch.BranchId,
+                userId,
+                cancellationToken);
+
         request.Store.Id = store.Id;
         return new SaveStoreFrontResult(request.Store);
     }
@@ -549,6 +587,44 @@ public class StoreFrontCommandHandler(
         department.Remove(GetUserId());
         await dbContext.SaveChangesAsync(cancellationToken);
         return new DeleteStoreFrontDepartmentResult(true);
+    }
+
+    private static string? SaveStoreLogo(Guid storeId, string? currentLogoUrl, string? incomingLogoUrl)
+    {
+        if (string.IsNullOrWhiteSpace(incomingLogoUrl))
+            return currentLogoUrl;
+
+        if (!SaveImages.IsBase64Image(incomingLogoUrl))
+            return incomingLogoUrl;
+
+        string[] pathSegments = ["wwwroot", "Images", "StoreFronts"];
+        return SaveImages.SaveBase64Image($"{storeId}", pathSegments, incomingLogoUrl);
+    }
+
+    private async Task MovePreviousStoreManagerToMainBranchAsync(
+        Guid companyId,
+        Guid previousManagerEmployeeId,
+        Guid storeFrontBranchId,
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        var mainBranch = await sender.Send(new EnsureMainBranchCommand(companyId, userId), cancellationToken);
+        var previousManager = await sender.Send(new MoveStoreFrontManagerEmployeeCommand(
+            companyId,
+            previousManagerEmployeeId,
+            mainBranch.BranchId,
+            userId,
+            RequireActive: false,
+            RequireLinkedUser: false), cancellationToken);
+
+        if (!previousManager.LinkedUserId.HasValue || previousManager.LinkedUserId.Value == Guid.Empty)
+            return;
+
+        await sender.Send(new RevokeStoreFrontBranchRoleCommand(
+            previousManager.LinkedUserId.Value,
+            companyId,
+            storeFrontBranchId,
+            "store-admin"), cancellationToken);
     }
 
     private async Task EnsureStoreActivationAvailableAsync(Guid companyId, Guid? currentStoreId, CancellationToken cancellationToken)

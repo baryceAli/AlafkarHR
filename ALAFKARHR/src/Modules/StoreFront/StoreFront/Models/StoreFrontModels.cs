@@ -66,11 +66,15 @@ public class StoreFrontStore : Aggregate<Guid>
     public Guid StoreFrontTypeId { get; private set; }
     public StoreFrontType StoreFrontType { get; private set; } = default!;
     public Guid DefaultWarehouseId { get; private set; }
+    public Guid? StoreManagerEmployeeId { get; private set; }
+    public string? StoreManagerName { get; private set; }
+    public string? StoreManagerNameEng { get; private set; }
     public Guid? DefaultCustomerId { get; private set; }
     public Guid? PriceListId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public string NameEng { get; private set; } = string.Empty;
     public string Code { get; private set; } = string.Empty;
+    public string? LogoUrl { get; private set; }
     public string? ReceiptHeader { get; private set; }
     public string? ReceiptFooter { get; private set; }
     public bool IsActive { get; private set; } = true;
@@ -90,18 +94,22 @@ public class StoreFrontStore : Aggregate<Guid>
         Validate(dto);
         return new StoreFrontStore
         {
-            Id = Guid.NewGuid(),
+            Id = dto.Id == Guid.Empty ? Guid.NewGuid() : dto.Id,
             CompanyId = dto.CompanyId,
             BranchId = dto.BranchId,
             AdministrationId = dto.AdministrationId,
             DepartmentId = dto.DepartmentId,
             StoreFrontTypeId = dto.StoreFrontTypeId,
             DefaultWarehouseId = dto.DefaultWarehouseId,
+            StoreManagerEmployeeId = dto.StoreManagerEmployeeId,
+            StoreManagerName = dto.StoreManagerName?.Trim(),
+            StoreManagerNameEng = dto.StoreManagerNameEng?.Trim(),
             DefaultCustomerId = dto.DefaultCustomerId,
             PriceListId = dto.PriceListId,
             Name = dto.Name.Trim(),
             NameEng = dto.NameEng.Trim(),
             Code = NormalizeCode(dto.Code),
+            LogoUrl = dto.LogoUrl?.Trim(),
             ReceiptHeader = dto.ReceiptHeader?.Trim(),
             ReceiptFooter = dto.ReceiptFooter?.Trim(),
             IsActive = dto.IsActive,
@@ -118,11 +126,15 @@ public class StoreFrontStore : Aggregate<Guid>
         DepartmentId = dto.DepartmentId;
         StoreFrontTypeId = dto.StoreFrontTypeId;
         DefaultWarehouseId = dto.DefaultWarehouseId;
+        StoreManagerEmployeeId = dto.StoreManagerEmployeeId;
+        StoreManagerName = dto.StoreManagerName?.Trim();
+        StoreManagerNameEng = dto.StoreManagerNameEng?.Trim();
         DefaultCustomerId = dto.DefaultCustomerId;
         PriceListId = dto.PriceListId;
         Name = dto.Name.Trim();
         NameEng = dto.NameEng.Trim();
         Code = NormalizeCode(dto.Code);
+        LogoUrl = dto.LogoUrl?.Trim();
         ReceiptHeader = dto.ReceiptHeader?.Trim();
         ReceiptFooter = dto.ReceiptFooter?.Trim();
         IsActive = dto.IsActive;
@@ -152,6 +164,7 @@ public class StoreFrontStore : Aggregate<Guid>
         if (dto.CompanyId == Guid.Empty) throw new ArgumentException("Company is required");
         if (dto.StoreFrontTypeId == Guid.Empty) throw new ArgumentException("Store type is required");
         if (dto.DefaultWarehouseId == Guid.Empty) throw new ArgumentException("Default warehouse is required");
+        if (!dto.StoreManagerEmployeeId.HasValue || dto.StoreManagerEmployeeId.Value == Guid.Empty) throw new ArgumentException("Store manager is required");
         if (string.IsNullOrWhiteSpace(dto.Name)) throw new ArgumentException("Name is required");
         if (string.IsNullOrWhiteSpace(dto.NameEng)) throw new ArgumentException("English name is required");
         if (string.IsNullOrWhiteSpace(dto.Code)) throw new ArgumentException("Code is required");

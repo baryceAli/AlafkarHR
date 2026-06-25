@@ -25,6 +25,9 @@ public class StoreFrontStoreConfiguration : IEntityTypeConfiguration<StoreFrontS
         builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
         builder.Property(x => x.NameEng).IsRequired().HasMaxLength(200);
         builder.Property(x => x.Code).IsRequired().HasMaxLength(100);
+        builder.Property(x => x.StoreManagerName).HasMaxLength(300);
+        builder.Property(x => x.StoreManagerNameEng).HasMaxLength(300);
+        builder.Property(x => x.LogoUrl).HasMaxLength(500);
         builder.Property(x => x.ReceiptHeader).HasMaxLength(1000);
         builder.Property(x => x.ReceiptFooter).HasMaxLength(1000);
         builder.Property(x => x.CreatedBy).HasMaxLength(100);
@@ -52,6 +55,7 @@ public class StoreFrontStoreConfiguration : IEntityTypeConfiguration<StoreFrontS
         builder.HasIndex(x => new { x.CompanyId, x.IsActive });
         builder.HasIndex(x => x.AdministrationId);
         builder.HasIndex(x => x.DepartmentId);
+        builder.HasIndex(x => x.StoreManagerEmployeeId);
     }
 }
 

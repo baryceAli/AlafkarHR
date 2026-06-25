@@ -1,6 +1,8 @@
 global using Carter;
 global using Accounting.Contracts.Accounting.Features;
 global using Catalog.Contracts.Products.Features.GetProductSkuById;
+global using EmployeeModule.Contracts.Employees.Features.GetStoreManagerEmployee;
+global using EmployeeModule.Contracts.Employees.Features.MoveStoreFrontManagerEmployee;
 global using FluentValidation;
 global using Mapster;
 global using MediatR;
@@ -20,6 +22,7 @@ global using Shared.Contracts.StoreFront;
 global using Shared.Data;
 global using Shared.DDD;
 global using Shared.Exceptions;
+global using Shared.SaveImages;
 global using Shared.Pagination;
 global using SharedWithUI.Accounting.Dtos;
 global using SharedWithUI.Catalog.Dtos;

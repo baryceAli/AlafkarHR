@@ -4070,6 +4070,28 @@ video {
     inline-size: 72px;
 }
 
+.erp-logo-thumb,
+.erp-logo-upload {
+    align-items: center;
+    aspect-ratio: 1;
+    background: var(--erp-surface-muted);
+    border: 1px solid var(--erp-border);
+    border-radius: var(--erp-radius-md);
+    color: var(--erp-text-muted);
+    display: inline-flex;
+    justify-content: center;
+    object-fit: cover;
+}
+
+.erp-logo-thumb {
+    inline-size: 44px;
+}
+
+.erp-logo-upload {
+    cursor: pointer;
+    inline-size: 84px;
+}
+
 .sku-bundle-editor,
 .sku-bundle-editor .erp-subpanel,
 .sku-bundle-component-row,

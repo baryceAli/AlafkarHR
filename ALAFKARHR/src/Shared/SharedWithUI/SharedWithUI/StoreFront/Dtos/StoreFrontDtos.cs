@@ -27,11 +27,15 @@ public class StoreFrontDto
     public string? StoreFrontTypeName { get; set; }
     public string? StoreFrontTypeNameEng { get; set; }
     public Guid DefaultWarehouseId { get; set; }
+    public Guid? StoreManagerEmployeeId { get; set; }
+    public string? StoreManagerName { get; set; }
+    public string? StoreManagerNameEng { get; set; }
     public Guid? DefaultCustomerId { get; set; }
     public Guid? PriceListId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string NameEng { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
+    public string? LogoUrl { get; set; }
     public string? ReceiptHeader { get; set; }
     public string? ReceiptFooter { get; set; }
     public bool IsActive { get; set; } = true;

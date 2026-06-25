@@ -33,6 +33,8 @@ public class BranchAccessHandlers(OrganizationDbContext dbContext, IHttpContextA
     : ICommandHandler<EnsureMainBranchCommand, EnsureMainBranchResult>,
       ICommandHandler<AssignUserBranchesCommand, AssignUserBranchesResult>,
       ICommandHandler<AssignUserBranchRoleCommand, AssignUserBranchRoleResult>,
+      ICommandHandler<AssignStoreFrontBranchRoleCommand, AssignStoreFrontBranchRoleResult>,
+      ICommandHandler<RevokeStoreFrontBranchRoleCommand, RevokeStoreFrontBranchRoleResult>,
       ICommandHandler<RemoveUserBranchRoleCommand, RemoveUserBranchRoleResult>,
       ICommandHandler<EnsureStoreFrontBranchCommand, EnsureStoreFrontBranchResult>,
       IQueryHandler<GetCurrentUserBranchAccessQuery, GetCurrentUserBranchAccessResult>,
@@ -262,41 +264,31 @@ public class BranchAccessHandlers(OrganizationDbContext dbContext, IHttpContextA
 
     public async Task<AssignUserBranchRoleResult> Handle(AssignUserBranchRoleCommand request, CancellationToken cancellationToken)
     {
+        var assignmentId = await AssignStoreFrontBranchRoleAsync(request.UserId, request.CompanyId, request.BranchId, request.TemplateKey, cancellationToken);
+        return new AssignUserBranchRoleResult(assignmentId);
+    }
+
+    public async Task<AssignStoreFrontBranchRoleResult> Handle(AssignStoreFrontBranchRoleCommand request, CancellationToken cancellationToken)
+    {
+        var assignmentId = await AssignStoreFrontBranchRoleAsync(request.UserId, request.CompanyId, request.BranchId, request.TemplateKey, cancellationToken);
+        return new AssignStoreFrontBranchRoleResult(assignmentId);
+    }
+
+    public async Task<RevokeStoreFrontBranchRoleResult> Handle(RevokeStoreFrontBranchRoleCommand request, CancellationToken cancellationToken)
+    {
         var profile = BranchRoleProfiles.GetRequired(request.TemplateKey);
-        var currentUserId = CurrentUserId();
-
-        var userMembership = await sender.Send(new UserBelongsToCompanyQuery(request.UserId, request.CompanyId), cancellationToken);
-        if (!userMembership.BelongsToCompany)
-            throw new BadRequestException("User does not belong to the selected company.");
-
-        var branch = await dbContext.Branches.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == request.BranchId && x.CompanyId == request.CompanyId, cancellationToken)
-            ?? throw new BadRequestException("Branch does not belong to the selected company.");
-        if (branch.Specialization != BranchSpecialization.StoreFront)
-            throw new BadRequestException("Store roles can only be assigned to StoreFront branches.");
-
-        var existing = await dbContext.UserBranchRoleAssignments
+        var assignment = await dbContext.UserBranchRoleAssignments
             .FirstOrDefaultAsync(x => x.CompanyId == request.CompanyId
                 && x.UserId == request.UserId
                 && x.BranchId == request.BranchId
                 && x.TemplateKey == profile.TemplateKey, cancellationToken);
-        if (existing is not null)
-            return new AssignUserBranchRoleResult(existing.Id);
 
-        var assignment = UserBranchRoleAssignment.Create(request.UserId, request.CompanyId, request.BranchId, profile.TemplateKey, currentUserId);
-        await dbContext.UserBranchRoleAssignments.AddAsync(assignment, cancellationToken);
+        if (assignment is null)
+            return new RevokeStoreFrontBranchRoleResult(true);
 
-        var hasBranchAccess = await dbContext.UserBranchAssignments
-            .AnyAsync(x => x.CompanyId == request.CompanyId && x.UserId == request.UserId && x.BranchId == request.BranchId, cancellationToken);
-        if (!hasBranchAccess)
-        {
-            await dbContext.UserBranchAssignments.AddAsync(
-                UserBranchAssignment.Create(request.UserId, request.CompanyId, request.BranchId, false, currentUserId),
-                cancellationToken);
-        }
-
+        assignment.Remove(CurrentUserId());
         await dbContext.SaveChangesAsync(cancellationToken);
-        return new AssignUserBranchRoleResult(assignment.Id);
+        return new RevokeStoreFrontBranchRoleResult(true);
     }
 
     public async Task<RemoveUserBranchRoleResult> Handle(RemoveUserBranchRoleCommand request, CancellationToken cancellationToken)
@@ -449,6 +441,45 @@ public class BranchAccessHandlers(OrganizationDbContext dbContext, IHttpContextA
         NameAr = profile.NameAr,
         Permissions = profile.Permissions.ToList()
     };
+
+    private async Task<Guid> AssignStoreFrontBranchRoleAsync(Guid userId, Guid companyId, Guid branchId, string templateKey, CancellationToken cancellationToken)
+    {
+        var profile = BranchRoleProfiles.GetRequired(templateKey);
+        var currentUserId = CurrentUserId();
+
+        var userMembership = await sender.Send(new UserBelongsToCompanyQuery(userId, companyId), cancellationToken);
+        if (!userMembership.BelongsToCompany)
+            throw new BadRequestException("User does not belong to the selected company.");
+
+        var branch = await dbContext.Branches.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == branchId && x.CompanyId == companyId, cancellationToken)
+            ?? throw new BadRequestException("Branch does not belong to the selected company.");
+        if (branch.Specialization != BranchSpecialization.StoreFront)
+            throw new BadRequestException("Store roles can only be assigned to StoreFront branches.");
+
+        var existing = await dbContext.UserBranchRoleAssignments
+            .FirstOrDefaultAsync(x => x.CompanyId == companyId
+                && x.UserId == userId
+                && x.BranchId == branchId
+                && x.TemplateKey == profile.TemplateKey, cancellationToken);
+        if (existing is not null)
+            return existing.Id;
+
+        var assignment = UserBranchRoleAssignment.Create(userId, companyId, branchId, profile.TemplateKey, currentUserId);
+        await dbContext.UserBranchRoleAssignments.AddAsync(assignment, cancellationToken);
+
+        var hasBranchAccess = await dbContext.UserBranchAssignments
+            .AnyAsync(x => x.CompanyId == companyId && x.UserId == userId && x.BranchId == branchId, cancellationToken);
+        if (!hasBranchAccess)
+        {
+            await dbContext.UserBranchAssignments.AddAsync(
+                UserBranchAssignment.Create(userId, companyId, branchId, false, currentUserId),
+                cancellationToken);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return assignment.Id;
+    }
 
     private static string NormalizeCode(string value) => value.Trim().ToUpperInvariant();
 }

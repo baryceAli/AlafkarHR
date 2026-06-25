@@ -3,17 +3,21 @@
 @implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Auth.Services
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Customers.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @using AlAfkarERP.Shared.Pages.Features.Inventories.Services
 @using AlAfkarERP.Shared.Pages.Features.StoreFront.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.JSInterop
 @using SharedWithUI.Auth.Dtos
 @using SharedWithUI.Catalog.Dtos
 @using SharedWithUI.Customers.Dtos
+@using SharedWithUI.Employees.Dtos
 @using SharedWithUI.Inventory.Dtos
 @using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
@@ -25,10 +29,10 @@
 @inject IProductService ProductService
 @inject IWarehouseService WarehouseService
 @inject IBranchService BranchService
-@inject IAdministrationService AdministrationService
-@inject IDepartmentService DepartmentService
+@inject IEmployeeService EmployeeService
 @inject ICustomerService CustomerService
 @inject IPriceListService PriceListService
+@inject ApiConfig ApiConfig
 @inject IJSRuntime JSRuntime
 @inject ToastService ToastService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -134,15 +138,28 @@
         {
             <div class="table-responsive">
                 <table class="table align-middle">
-                    <thead><tr><th>@Text("Store", "المتجر")</th><th>@Text("Type", "النوع")</th><th>@Text("Branch", "الفرع")</th><th>@Text("Warehouse", "المستودع")</th><th>@Text("Customer", "العميل")</th><th>@Text("Price List", "قائمة الأسعار")</th><th>@Text("Items", "الأصناف")</th><th>@Text("Readiness", "الجاهزية")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                    <thead><tr><th>@Text("Store", "المتجر")</th><th>@Text("Manager", "المدير")</th><th>@Text("Type", "النوع")</th><th>@Text("Branch", "الفرع")</th><th>@Text("Warehouse", "المستودع")</th><th>@Text("Customer", "العميل")</th><th>@Text("Price List", "قائمة الأسعار")</th><th>@Text("Items", "الأصناف")</th><th>@Text("Readiness", "الجاهزية")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                     <tbody>
                         @foreach (var store in stores)
                         {
                             <tr>
                                 <td>
-                                    <a class="fw-semibold text-decoration-none" href="@StoreManageUrl(store.Id)">@Text(store.NameEng, store.Name)</a>
-                                    <div class="text-muted small">@store.Code</div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        @if (!string.IsNullOrWhiteSpace(store.LogoUrl))
+                                        {
+                                            <img class="erp-logo-thumb" src="@StoreLogoUrl(store.LogoUrl)" alt="@Text(store.NameEng, store.Name)" />
+                                        }
+                                        else
+                                        {
+                                            <span class="erp-logo-thumb"><i class="bi bi-shop"></i></span>
+                                        }
+                                        <div>
+                                            <a class="fw-semibold text-decoration-none" href="@StoreManageUrl(store.Id)">@Text(store.NameEng, store.Name)</a>
+                                            <div class="text-muted small">@store.Code</div>
+                                        </div>
+                                    </div>
                                 </td>
+                                <td>@ManagerName(store)</td>
                                 <td>@Text(store.StoreFrontTypeNameEng, store.StoreFrontTypeName)</td>
                                 <td>@BranchName(store.BranchId)</td>
                                 <td>@WarehouseName(store.DefaultWarehouseId)</td>
@@ -209,54 +226,45 @@
                             <div class="col-md-6"><label class="form-label">@Text("Arabic Name", "الاسم العربي")</label><InputText class="form-control" @bind-Value="selectedStore.Name" /></div>
                             <div class="col-md-3"><label class="form-label">@Text("Code", "الرمز")</label><InputText class="form-control" @bind-Value="selectedStore.Code" /></div>
                             <div class="col-md-3"><label class="form-label">@Text("Type", "النوع")</label><InputSelect class="form-select" @bind-Value="selectedStore.StoreFrontTypeId"><option value="@Guid.Empty">@Text("Select", "اختر")</option>@foreach (var type in types.Where(x => x.IsActive || x.Id == selectedStore.StoreFrontTypeId)){<option value="@type.Id">@Text(type.NameEng, type.Name)</option>}</InputSelect></div>
-                            <div class="col-md-3">
-                                <label class="form-label">@Text("Store Branch", "فرع المتجر")</label>
-                                <select class="form-select" value="@NullableIdText(selectedStore.BranchId)" @onchange="OnStoreBranchChanged">
-                                    <option value="">@Text("Auto-create from store", "إنشاء تلقائي من المتجر")</option>
-                                    @foreach (var branch in SelectableStoreFrontBranches)
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Store Manager", "مدير المتجر")</label>
+                                <InputSelect class="form-select" @bind-Value="selectedStore.StoreManagerEmployeeId">
+                                    <option value="">@Text("Select linked employee", "اختر موظفا مرتبطا بمستخدم")</option>
+                                    @foreach (var employee in StoreManagerCandidates)
                                     {
-                                        <option value="@branch.Id">@Text(branch.NameEng, branch.Name)</option>
-                                    }
-                                </select>
-                                <div class="text-muted small">@Text("Stores use specialized StoreFront branches for branch-scoped roles.", "تستخدم المتاجر فروعا مخصصة لواجهة المتجر لصلاحيات الفروع.")</div>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">@Text("Administration", "الإدارة")</label>
-                                <select class="form-select" value="@NullableIdText(selectedStore.AdministrationId)" @onchange="OnStoreAdministrationChanged">
-                                    <option value="">@Text("No administration", "بدون إدارة")</option>
-                                    @foreach (var administration in storeAdministrations)
-                                    {
-                                        <option value="@administration.Id">@Text(administration.NameEng, administration.Name)</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">@Text("Department", "القسم")</label>
-                                <select class="form-select" value="@NullableIdText(selectedStore.DepartmentId)" @onchange="OnStoreDepartmentChanged" disabled="@(selectedStore.AdministrationId is null)">
-                                    <option value="">@Text("No department", "بدون قسم")</option>
-                                    @foreach (var department in storeDepartments)
-                                    {
-                                        <option value="@department.Id">@Text(department.NameEng, department.Name)</option>
-                                    }
-                                </select>
-                                @if (selectedStore.AdministrationId is null)
-                                {
-                                    <div class="text-muted small">@Text("Select an administration first to choose a department.", "اختر الإدارة أولا لتحديد القسم.")</div>
-                                }
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">@Text("Warehouse", "المستودع")</label>
-                                <InputSelect class="form-select" @bind-Value="selectedStore.DefaultWarehouseId">
-                                    <option value="@Guid.Empty">@Text("Select", "اختر")</option>
-                                    @foreach (var warehouse in SelectableWarehouses)
-                                    {
-                                        <option value="@warehouse.Id">@Text(warehouse.NameEng, warehouse.Name)</option>
+                                        <option value="@employee.Id">@EmployeeName(employee)</option>
                                     }
                                 </InputSelect>
-                                @if (selectedStore.BranchId.HasValue && !SelectableWarehouses.Any())
+                                @if (!StoreManagerCandidates.Any())
                                 {
-                                    <div class="text-warning small">@Text("No warehouses belong to this store branch.", "لا توجد مستودعات مرتبطة بفرع هذا المتجر.")</div>
+                                    <div class="text-warning small">@Text("No active employees linked to application users were found.", "لا يوجد موظفون نشطون مرتبطون بمستخدمين.")</div>
                                 }
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Store Image / Logo", "صورة أو شعار المتجر")</label>
+                                <div class="d-flex align-items-center gap-3">
+                                    <label for="storeLogoUpload" class="erp-logo-upload">
+                                        @if (!string.IsNullOrWhiteSpace(selectedStore.LogoUrl))
+                                        {
+                                            <img class="erp-logo-upload" src="@StoreLogoUrl(selectedStore.LogoUrl)" alt="@Text(selectedStore.NameEng, selectedStore.Name)" />
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-image"></i>
+                                        }
+                                    </label>
+                                    <div>
+                                        <InputFile id="storeLogoUpload"
+                                                   class="erp-hidden-input"
+                                                   OnChange="OnStoreLogoSelected"
+                                                   accept="image/*" />
+                                        <label for="storeLogoUpload" class="btn btn-outline-primary btn-sm mb-1">
+                                            <i class="bi bi-upload"></i>
+                                            @Text("Upload Logo", "رفع الشعار")
+                                        </label>
+                                        <div class="text-muted small">@Text("PNG or JPG up to 5 MB.", "PNG أو JPG حتى 5 ميجابايت.")</div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6"><label class="form-label">@Text("Default Customer", "العميل الافتراضي")</label><InputSelect class="form-select" @bind-Value="selectedStore.DefaultCustomerId"><option value="">@Text("No default customer", "بدون عميل افتراضي")</option>@foreach (var customer in customers){<option value="@customer.Id">@customer.Name</option>}</InputSelect></div>
                             <div class="col-md-6"><label class="form-label">@Text("Price List", "قائمة الأسعار")</label><InputSelect class="form-select" @bind-Value="selectedStore.PriceListId"><option value="">@Text("Default pricing", "التسعير الافتراضي")</option>@foreach (var priceList in priceLists.Where(x => x.IsActive || x.Id == selectedStore.PriceListId)){<option value="@priceList.Id">@PriceListLabel(priceList)</option>}</InputSelect></div>
@@ -382,8 +390,7 @@
     private List<WarehouseDto> warehouses = [];
     private Dictionary<Guid, int> storeCashAccountCounts = new();
     private List<BranchDto> branches = [];
-    private List<AdministrationDto> storeAdministrations = [];
-    private List<DepartmentDto> storeDepartments = [];
+    private List<EmployeeDto> employees = [];
     private List<CustomerDto> customers = [];
     private List<PriceListDto> priceLists = [];
     private List<ProductSkuDto> allSkus = [];
@@ -408,9 +415,9 @@
     private bool CanAccessStoresPage => CanView || branchRoleAccess.Assignments.Any(assignment =>
         assignment.Permissions.Contains(PermissionList.StoreFrontStorePermissions.View, StringComparer.Ordinal)
         || assignment.Permissions.Contains(PermissionList.StoreFrontPosPermissions.View, StringComparer.Ordinal));
-    private IEnumerable<BranchDto> SelectableBranches => branchAccess.CanViewAllBranches ? branches : branches.Where(branch => branchAccess.BranchIds.Contains(branch.Id));
-    private IEnumerable<BranchDto> SelectableStoreFrontBranches => SelectableBranches.Where(branch => branch.Specialization == BranchSpecialization.StoreFront);
-    private IEnumerable<WarehouseDto> SelectableWarehouses => selectedStore?.BranchId is Guid branchId ? warehouses.Where(warehouse => warehouse.BranchId == branchId) : warehouses;
+    private IEnumerable<EmployeeDto> StoreManagerCandidates => employees
+        .Where(employee => employee.IsActive && employee.LinkedUserId.HasValue && employee.LinkedUserId.Value != Guid.Empty)
+        .OrderBy(employee => Text(employee.FullNameEng, employee.FullName));
     private IEnumerable<UserDto> FilteredRoleUsers => users
         .Where(user => string.IsNullOrWhiteSpace(selectedRoleUserFilter)
             || (user.UserName?.Contains(selectedRoleUserFilter, StringComparison.OrdinalIgnoreCase) ?? false)
@@ -452,6 +459,7 @@
         var branchResult = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
         var accessResult = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
         var roleAccessResult = await BranchService.GetCurrentUserBranchRoleAccessAsync(companyId);
+        var employeeResult = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 5000);
         var customerResult = await CustomerService.GetByCompany(companyId, 0, 1000);
         var priceListResult = await PriceListService.GetByCompanyId(companyId, 0, 1000);
         types = typeResult.IsSuccess ? typeResult.Data ?? [] : [];
@@ -460,6 +468,7 @@
         branches = branchResult.IsSuccess ? branchResult.Data?.Data?.ToList() ?? [] : [];
         branchAccess = accessResult.IsSuccess ? accessResult.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
         branchRoleAccess = roleAccessResult.IsSuccess ? roleAccessResult.Data ?? new CurrentUserBranchRoleAccessDto() : new CurrentUserBranchRoleAccessDto();
+        employees = employeeResult.IsSuccess ? employeeResult.Data?.Data?.ToList() ?? [] : [];
         customers = customerResult.IsSuccess ? customerResult.Data?.Data?.ToList() ?? [] : [];
         priceLists = priceListResult.IsSuccess ? priceListResult.Data?.Data?.ToList() ?? [] : [];
         if (CanAssignStoreRoles)
@@ -482,8 +491,6 @@
     private async Task NewStore()
     {
         selectedStore = new StoreFrontDto { CompanyId = companyId, IsActive = true };
-        storeAdministrations = [];
-        storeDepartments = [];
         showStoreModal = true;
         await Task.CompletedTask;
     }
@@ -492,96 +499,51 @@
 
     private async Task EditStore(StoreFrontDto store)
     {
-        selectedStore = new StoreFrontDto { Id = store.Id, CompanyId = store.CompanyId, BranchId = store.BranchId, AdministrationId = store.AdministrationId, DepartmentId = store.DepartmentId, StoreFrontTypeId = store.StoreFrontTypeId, DefaultWarehouseId = store.DefaultWarehouseId, DefaultCustomerId = store.DefaultCustomerId, PriceListId = store.PriceListId, Name = store.Name, NameEng = store.NameEng, Code = store.Code, ReceiptHeader = store.ReceiptHeader, ReceiptFooter = store.ReceiptFooter, IsActive = store.IsActive };
-        await LoadSelectedStoreOrganizationAsync();
+        selectedStore = new StoreFrontDto { Id = store.Id, CompanyId = store.CompanyId, BranchId = store.BranchId, AdministrationId = store.AdministrationId, DepartmentId = store.DepartmentId, StoreFrontTypeId = store.StoreFrontTypeId, DefaultWarehouseId = store.DefaultWarehouseId, StoreManagerEmployeeId = store.StoreManagerEmployeeId, StoreManagerName = store.StoreManagerName, StoreManagerNameEng = store.StoreManagerNameEng, DefaultCustomerId = store.DefaultCustomerId, PriceListId = store.PriceListId, Name = store.Name, NameEng = store.NameEng, Code = store.Code, LogoUrl = store.LogoUrl, ReceiptHeader = store.ReceiptHeader, ReceiptFooter = store.ReceiptFooter, IsActive = store.IsActive };
         showStoreModal = true;
-    }
-
-    private async Task OnStoreBranchChanged(ChangeEventArgs args)
-    {
-        if (selectedStore is null)
-            return;
-
-        selectedStore.BranchId = ParseNullableId(args.Value?.ToString());
-        selectedStore.AdministrationId = null;
-        selectedStore.DepartmentId = null;
-        selectedStore.DefaultWarehouseId = Guid.Empty;
-        await LoadSelectedStoreOrganizationAsync();
-    }
-
-    private async Task OnStoreAdministrationChanged(ChangeEventArgs args)
-    {
-        if (selectedStore is null)
-            return;
-
-        selectedStore.AdministrationId = ParseNullableId(args.Value?.ToString());
-        selectedStore.DepartmentId = null;
-        await LoadSelectedStoreDepartmentsAsync();
-    }
-
-    private void OnStoreDepartmentChanged(ChangeEventArgs args)
-    {
-        if (selectedStore is null)
-            return;
-
-        selectedStore.DepartmentId = selectedStore.AdministrationId.HasValue
-            ? ParseNullableId(args.Value?.ToString())
-            : null;
-    }
-
-    private async Task LoadSelectedStoreOrganizationAsync()
-    {
-        storeAdministrations = [];
-        storeDepartments = [];
-        if (selectedStore?.BranchId is not Guid branchId)
-            return;
-
-        var administrationsResult = await AdministrationService.GetByBranchAsync(branchId, 0, 1000);
-        storeAdministrations = administrationsResult.IsSuccess ? administrationsResult.Data?.Data?.ToList() ?? [] : [];
-        if (selectedStore.AdministrationId.HasValue)
-            await LoadSelectedStoreDepartmentsAsync();
-    }
-
-    private async Task LoadSelectedStoreDepartmentsAsync()
-    {
-        storeDepartments = [];
-        if (selectedStore?.AdministrationId is not Guid administrationId)
-            return;
-
-        var departmentsResult = await DepartmentService.GetByAdministrationAsync(administrationId, 0, 1000);
-        storeDepartments = departmentsResult.IsSuccess ? departmentsResult.Data?.Data?.ToList() ?? [] : [];
     }
 
     private async Task SaveStoreAsync()
     {
         if (selectedStore is null) return;
-        if (!branchAccess.CanViewAllBranches && selectedStore.BranchId.HasValue && !branchAccess.BranchIds.Contains(selectedStore.BranchId.Value))
+        if (!selectedStore.StoreManagerEmployeeId.HasValue || selectedStore.StoreManagerEmployeeId.Value == Guid.Empty)
         {
-            ToastService.ShowError(Text("You cannot assign this store to an inaccessible branch.", "لا يمكنك ربط المتجر بفرع غير متاح لك."));
+            ToastService.ShowError(Text("Store manager is required.", "مدير المتجر مطلوب."));
             return;
         }
-        if (selectedStore.BranchId.HasValue && branches.FirstOrDefault(x => x.Id == selectedStore.BranchId.Value)?.Specialization != BranchSpecialization.StoreFront)
+
+        var manager = StoreManagerCandidates.FirstOrDefault(x => x.Id == selectedStore.StoreManagerEmployeeId.Value);
+        if (manager is null)
         {
-            ToastService.ShowError(Text("Store branch must be a StoreFront branch.", "يجب أن يكون فرع المتجر من نوع واجهة متجر."));
+            ToastService.ShowError(Text("Select an active employee linked to an application user.", "اختر موظفا نشطا مرتبطا بمستخدم."));
             return;
         }
-        if (selectedStore.BranchId.HasValue)
-        {
-            var warehouse = warehouses.FirstOrDefault(x => x.Id == selectedStore.DefaultWarehouseId);
-            if (warehouse is null)
-            {
-                ToastService.ShowError(Text("Default warehouse is required.", "المستودع الافتراضي مطلوب."));
-                return;
-            }
-            if (warehouse.BranchId != selectedStore.BranchId.Value)
-            {
-                ToastService.ShowError(Text("Default warehouse must belong to the selected store branch.", "يجب أن يتبع المستودع الافتراضي فرع المتجر المحدد."));
-                return;
-            }
-        }
+
+        selectedStore.StoreManagerName = manager.FullName;
+        selectedStore.StoreManagerNameEng = manager.FullNameEng;
+        selectedStore.AdministrationId = null;
+        selectedStore.DepartmentId = null;
         var result = await StoreFrontService.SaveStoreAsync(selectedStore);
         if (result.IsSuccess) { ToastService.ShowSuccess(Text("Store saved.", "تم حفظ المتجر.")); CloseModals(); await LoadAsync(); }
         else ToastService.ShowError(result.Error?.Detail ?? Text("Unable to save store.", "تعذر حفظ المتجر."));
+    }
+
+    private async Task OnStoreLogoSelected(InputFileChangeEventArgs e)
+    {
+        if (selectedStore is null)
+            return;
+
+        var file = e.File;
+        if (file is null)
+            return;
+
+        using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+
+        var base64 = Convert.ToBase64String(ms.ToArray());
+        selectedStore.LogoUrl = $"data:{file.ContentType};base64,{base64}".Trim();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task SaveTypeAsync()
@@ -652,6 +614,18 @@
 
     private string WarehouseName(Guid id) => Text(warehouses.FirstOrDefault(x => x.Id == id)?.NameEng, warehouses.FirstOrDefault(x => x.Id == id)?.Name) ?? id.ToString();
     private string BranchName(Guid? id) => id.HasValue ? Text(branches.FirstOrDefault(x => x.Id == id)?.NameEng, branches.FirstOrDefault(x => x.Id == id)?.Name) ?? id.Value.ToString() : Text("Auto-created", "ينشأ تلقائيا");
+    private string ManagerName(StoreFrontDto store)
+    {
+        var name = Text(store.StoreManagerNameEng, store.StoreManagerName);
+        return string.IsNullOrWhiteSpace(name) ? Text("Not assigned", "غير معين") : name;
+    }
+    private string EmployeeName(EmployeeDto employee) => Text(employee.FullNameEng, employee.FullName);
+    private string StoreLogoUrl(string? logoUrl) =>
+        string.IsNullOrWhiteSpace(logoUrl)
+            ? string.Empty
+            : logoUrl.Contains("data:", StringComparison.OrdinalIgnoreCase) || logoUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                ? logoUrl
+                : $"{ApiConfig.BaseURL}/Images/StoreFronts/{logoUrl}";
     private string CustomerName(Guid? id) => id.HasValue ? customers.FirstOrDefault(x => x.Id == id)?.Name ?? id.Value.ToString() : Text("Default", "افتراضي");
     private string PriceListName(Guid? id) => id.HasValue ? PriceListLabel(priceLists.FirstOrDefault(x => x.Id == id)) ?? id.Value.ToString() : Text("Default", "افتراضي");
     private static string StoreManageUrl(Guid storeId) => $"/StoreFront/Stores/{storeId}/Manage";
@@ -737,10 +711,8 @@
 
     private string UserName(Guid userId) => users.FirstOrDefault(x => x.Id == userId)?.UserName ?? userId.ToString();
     private void OnRoleUserChanged(ChangeEventArgs args) => selectedRoleUserId = Guid.TryParse(args.Value?.ToString(), out var userId) ? userId : Guid.Empty;
-    private void CloseModals() { showStoreModal = showTypeModal = showItemsModal = showRolesModal = false; selectedStore = null; selectedType = null; storeAdministrations = []; storeDepartments = []; }
+    private void CloseModals() { showStoreModal = showTypeModal = showItemsModal = showRolesModal = false; selectedStore = null; selectedType = null; }
     private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
-    private static Guid? ParseNullableId(string? value) => Guid.TryParse(value, out var id) ? id : null;
-    private static string NullableIdText(Guid? id) => id?.ToString() ?? string.Empty;
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
 

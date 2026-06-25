@@ -12,7 +12,7 @@ public static class BranchRoleProfiles
         new()
         {
             TemplateKey = StoreAdmin,
-            Name = "Store Admin",
+            Name = "Store Manager",
             NameAr = "مدير المتجر",
             Permissions =
             [

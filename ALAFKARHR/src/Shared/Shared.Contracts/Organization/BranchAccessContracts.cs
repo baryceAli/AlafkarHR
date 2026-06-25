@@ -60,6 +60,16 @@ public record GetCurrentUserBranchRoleAccessForAuthorizationResult(List<BranchRo
 
 public record BranchRolePermissionAccess(Guid BranchId, List<string> Permissions);
 
+public record AssignStoreFrontBranchRoleCommand(Guid UserId, Guid CompanyId, Guid BranchId, string TemplateKey)
+    : ICommand<AssignStoreFrontBranchRoleResult>;
+
+public record AssignStoreFrontBranchRoleResult(Guid Id);
+
+public record RevokeStoreFrontBranchRoleCommand(Guid UserId, Guid CompanyId, Guid BranchId, string TemplateKey)
+    : ICommand<RevokeStoreFrontBranchRoleResult>;
+
+public record RevokeStoreFrontBranchRoleResult(bool IsSuccess);
+
 public record BranchAccountingInfo(
     Guid BranchId,
     Guid CompanyId,
