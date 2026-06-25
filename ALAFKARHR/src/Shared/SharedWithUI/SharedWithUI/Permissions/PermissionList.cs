@@ -1694,9 +1694,10 @@ public static class PermissionList
         public static string View { get; set; } = $"{GroupName}.View";
         public static string Create { get; set; } = $"{GroupName}.Create";
         public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Request { get; set; } = $"{GroupName}.Request";
         public static string Approve { get; set; } = $"{GroupName}.Approve";
         public static string Cancel { get; set; } = $"{GroupName}.Cancel";
-        public static List<string> Permissions => [Select, View, Create, Edit, Approve, Cancel];
+        public static List<string> Permissions => [Select, View, Create, Edit, Request, Approve, Cancel];
     }
 
     public static class LeaveLedgerPermissions

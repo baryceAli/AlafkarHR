@@ -1097,11 +1097,14 @@ public class MenuItem
                     TextEn = "Leave Management",
                     TextAr = "إدارة الإجازات",
                     Icon = "bi-calendar-heart",
-                    PermissionPolicy = PermissionList.LeavePermissions.RequestEmergencyLeave,
+                    PermissionPolicy = null,
                     WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
                     NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupLeaves,
-                    KeywordsEn = "leave emergency balances reports approvals",
-                    KeywordsAr = "إجازات طارئة أرصدة تقارير اعتماد",
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                    NavigationOrder = 300,
+                    KeywordsEn = "leave emergency balances reports approvals policies applications ledger encashment allocations",
+                    KeywordsAr = "إجازات طارئة أرصدة تقارير اعتماد سياسات طلبات سجل صرف مخصصات",
+                    IsFavoriteCandidate = false,
                     Children = new()
                     {
                         new MenuItem
@@ -1110,7 +1113,13 @@ public class MenuItem
                             TextAr = "الإجازات الطارئة",
                             Icon = "bi-life-preserver",
                             Url = "/LeavesManagement/EmergencyLeaves",
-                            PermissionPolicy = PermissionList.LeavePermissions.RequestEmergencyLeave
+                            PermissionPolicy = PermissionList.LeavePermissions.RequestEmergencyLeave,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupLeaves,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                            NavigationOrder = 300,
+                            KeywordsEn = "leave emergency request my leaves attachment",
+                            KeywordsAr = "إجازات طارئة طلب إجازاتي مرفق"
                         },
                         new MenuItem
                         {
@@ -1118,7 +1127,13 @@ public class MenuItem
                             TextAr = "اعتماد الإجازة الطارئة",
                             Icon = "bi-patch-check",
                             Url = "/LeavesManagement/ApproveEmergencyLeaves",
-                            PermissionPolicy = PermissionList.LeavePermissions.ApproveEmergencyLeave
+                            PermissionPolicy = PermissionList.LeavePermissions.ApproveEmergencyLeave,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupLeaves,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupApprovals,
+                            NavigationOrder = 310,
+                            KeywordsEn = "leave emergency approval approve reject queue",
+                            KeywordsAr = "إجازات طارئة اعتماد موافقة رفض قائمة"
                         },
                         new MenuItem
                         {
@@ -1126,7 +1141,13 @@ public class MenuItem
                             TextAr = "أرصدة الإجازات",
                             Icon = "bi-sliders",
                             Url = "/LeavesManagement/Balances",
-                            PermissionPolicy = PermissionList.LeavePermissions.ViewLeaveBalances
+                            PermissionPolicy = PermissionList.LeavePermissions.ViewLeaveBalances,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupLeaves,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                            NavigationOrder = 320,
+                            KeywordsEn = "leave balances entitlement annual carry forward remaining",
+                            KeywordsAr = "أرصدة إجازات استحقاق سنوي ترحيل متبقي"
                         },
                         new MenuItem
                         {
@@ -1134,7 +1155,27 @@ public class MenuItem
                             TextAr = "سياسات الإجازات",
                             Icon = "bi-ui-checks-grid",
                             Url = "/HR/LeavePolicies",
-                            PermissionPolicy = PermissionList.LeavePolicyPermissions.View
+                            PermissionPolicy = PermissionList.LeavePolicyPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupLeaves,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 330,
+                            KeywordsEn = "leave policies types periods assignments allocations setup",
+                            KeywordsAr = "سياسات إجازات أنواع فترات تعيينات مخصصات إعداد"
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "My Leave Applications",
+                            TextAr = "طلبات إجازاتي",
+                            Icon = "bi-calendar-plus",
+                            Url = "/LeavesManagement/MyLeaveApplications",
+                            PermissionPolicy = PermissionList.LeaveApplicationPermissions.Request,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupLeaves,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                            NavigationOrder = 335,
+                            KeywordsEn = "my leave applications request submit cancel attachment self service",
+                            KeywordsAr = "طلباتي إجازات إرسال إلغاء مرفق خدمة ذاتية"
                         },
                         new MenuItem
                         {
@@ -1142,7 +1183,13 @@ public class MenuItem
                             TextAr = "طلبات الإجازات",
                             Icon = "bi-calendar-plus",
                             Url = "/HR/LeaveApplications",
-                            PermissionPolicy = PermissionList.LeaveApplicationPermissions.View
+                            PermissionPolicy = PermissionList.LeaveApplicationPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupLeaves,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                            NavigationOrder = 340,
+                            KeywordsEn = "leave applications request submit approve reject cancel attachment",
+                            KeywordsAr = "طلبات إجازات إرسال اعتماد رفض إلغاء مرفق"
                         },
                         new MenuItem
                         {
@@ -1150,7 +1197,13 @@ public class MenuItem
                             TextAr = "سجل الإجازات",
                             Icon = "bi-journal-text",
                             Url = "/HR/LeaveLedger",
-                            PermissionPolicy = PermissionList.LeaveLedgerPermissions.View
+                            PermissionPolicy = PermissionList.LeaveLedgerPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupLeaves,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                            NavigationOrder = 350,
+                            KeywordsEn = "leave ledger adjustments encashment balance movements",
+                            KeywordsAr = "سجل إجازات تسويات صرف رصيد حركات"
                         },
                         new MenuItem
                         {
@@ -1158,7 +1211,13 @@ public class MenuItem
                             TextAr = "تقارير الإجازات",
                             Icon = "bi-file-earmark-bar-graph",
                             Url = "/LeavesManagement/Reports",
-                            PermissionPolicy = PermissionList.LeavePermissions.ViewLeaveReports
+                            PermissionPolicy = PermissionList.LeavePermissions.ViewLeaveReports,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupLeaves,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupReports,
+                            NavigationOrder = 360,
+                            KeywordsEn = "leave reports entitlement taken remaining pending approved rejected",
+                            KeywordsAr = "تقارير إجازات استحقاق مستخدم متبقي معلق معتمد مرفوض"
                         }
                     }
                 },

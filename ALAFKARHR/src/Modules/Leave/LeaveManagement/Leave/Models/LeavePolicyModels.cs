@@ -124,10 +124,35 @@ public class LeavePolicy : Aggregate<Guid>
 
     private void ReplaceLines(IEnumerable<LeavePolicyLineDto> lines)
     {
-        _lines.Clear();
-        foreach (var line in lines.Where(x => x.LeaveTypeId != Guid.Empty))
+        var requestedLines = lines
+            .Where(x => x.LeaveTypeId != Guid.Empty)
+            .ToList();
+        var duplicateLeaveTypeId = requestedLines
+            .GroupBy(x => x.LeaveTypeId)
+            .FirstOrDefault(x => x.Count() > 1)
+            ?.Key;
+
+        if (duplicateLeaveTypeId.HasValue)
         {
-            _lines.Add(LeavePolicyLine.Create(Guid.NewGuid(), Id, line));
+            throw new BadRequestException("Leave policy cannot contain duplicate leave types.");
+        }
+
+        var requestedLeaveTypeIds = requestedLines
+            .Select(x => x.LeaveTypeId)
+            .ToHashSet();
+
+        _lines.RemoveAll(x => !requestedLeaveTypeIds.Contains(x.LeaveTypeId));
+
+        foreach (var line in requestedLines)
+        {
+            var existingLine = _lines.FirstOrDefault(x => x.LeaveTypeId == line.LeaveTypeId);
+            if (existingLine is null)
+            {
+                _lines.Add(LeavePolicyLine.Create(Guid.NewGuid(), Id, line));
+                continue;
+            }
+
+            existingLine.Update(line);
         }
     }
 
@@ -158,10 +183,7 @@ public class LeavePolicyLine : Entity<Guid>
 
     public static LeavePolicyLine Create(Guid id, Guid leavePolicyId, LeavePolicyLineDto dto)
     {
-        if (dto.AnnualAllocationDays < 0 || dto.MaxCarryForwardDays < 0)
-        {
-            throw new BadRequestException("Leave policy days cannot be negative.");
-        }
+        Validate(dto);
 
         return new LeavePolicyLine
         {
@@ -173,6 +195,28 @@ public class LeavePolicyLine : Entity<Guid>
             AllowCarryForward = dto.AllowCarryForward,
             MaxCarryForwardDays = dto.MaxCarryForwardDays
         };
+    }
+
+    public void Update(LeavePolicyLineDto dto)
+    {
+        if (LeaveTypeId != dto.LeaveTypeId)
+        {
+            throw new BadRequestException("Leave policy line leave type cannot be changed.");
+        }
+
+        Validate(dto);
+        AnnualAllocationDays = dto.AnnualAllocationDays;
+        AccruesMonthly = dto.AccruesMonthly;
+        AllowCarryForward = dto.AllowCarryForward;
+        MaxCarryForwardDays = dto.MaxCarryForwardDays;
+    }
+
+    private static void Validate(LeavePolicyLineDto dto)
+    {
+        if (dto.AnnualAllocationDays < 0 || dto.MaxCarryForwardDays < 0)
+        {
+            throw new BadRequestException("Leave policy days cannot be negative.");
+        }
     }
 }
 

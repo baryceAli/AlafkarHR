@@ -70,6 +70,24 @@ public class LeaveEndpoints : ICarterModule
             .RequireAuthorization(PermissionList.LeavePermissions.RequestEmergencyLeave)
             .DisableAntiforgery();
 
+        group.MapPost("/leave-applications/attachments", UploadLeaveApplicationAttachment)
+            .WithName("UploadLeaveApplicationAttachment")
+            .Accepts<IFormFile>("multipart/form-data")
+            .Produces<UploadEmergencyLeaveAttachmentResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Upload a leave application attachment")
+            .RequireAuthorization(PermissionList.LeaveApplicationPermissions.Create)
+            .DisableAntiforgery();
+
+        group.MapPost("/my-leave-applications/attachments", UploadLeaveApplicationAttachment)
+            .WithName("UploadMyLeaveApplicationAttachment")
+            .Accepts<IFormFile>("multipart/form-data")
+            .Produces<UploadEmergencyLeaveAttachmentResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithSummary("Upload a self-service leave application attachment")
+            .RequireAuthorization(PermissionList.LeaveApplicationPermissions.Request)
+            .DisableAntiforgery();
+
         group.MapPost("/emergency-leaves/review", ReviewEmergencyLeave)
             .WithName("ReviewLeaveEmergencyLeaveRequest")
             .Produces<ReviewEmergencyLeaveRequestResult>(StatusCodes.Status200OK)
@@ -101,6 +119,11 @@ public class LeaveEndpoints : ICarterModule
             .WithName("GetLeaveTypes")
             .Produces<GetLeaveTypesResult>(StatusCodes.Status200OK)
             .RequireAuthorization(PermissionList.LeavePolicyPermissions.View);
+
+        group.MapGet("/my-leave-types", GetMyLeaveTypes)
+            .WithName("GetMyLeaveTypes")
+            .Produces<GetLeaveTypesResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.LeaveApplicationPermissions.Request);
 
         group.MapPost("/leave-types", UpsertLeaveType)
             .WithName("UpsertLeaveType")
@@ -189,10 +212,21 @@ public class LeaveEndpoints : ICarterModule
             .Produces<GetLeaveApplicationsResult>(StatusCodes.Status200OK)
             .RequireAuthorization(PermissionList.LeaveApplicationPermissions.View);
 
+        group.MapGet("/my-leave-applications", GetMyLeaveApplications)
+            .WithName("GetMyLeaveApplications")
+            .Produces<GetLeaveApplicationsResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.LeaveApplicationPermissions.Request);
+
         group.MapPost("/leave-applications", UpsertLeaveApplication)
             .WithName("UpsertLeaveApplication")
             .Produces<UpsertLeaveApplicationResult>(StatusCodes.Status200OK)
             .RequireAuthorization(PermissionList.LeaveApplicationPermissions.Create);
+
+        group.MapPost("/my-leave-applications", UpsertMyLeaveApplication)
+            .WithName("UpsertMyLeaveApplication")
+            .Produces<UpsertLeaveApplicationResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .RequireAuthorization(PermissionList.LeaveApplicationPermissions.Request);
 
         group.MapPut("/leave-applications/{id:guid}", UpsertLeaveApplication)
             .WithName("UpdateLeaveApplication")
@@ -204,6 +238,12 @@ public class LeaveEndpoints : ICarterModule
             .Produces<LeaveApplicationActionResult>(StatusCodes.Status200OK)
             .RequireAuthorization(PermissionList.LeaveApplicationPermissions.Edit);
 
+        group.MapPost("/my-leave-applications/{id:guid}/submit", SubmitMyLeaveApplication)
+            .WithName("SubmitMyLeaveApplication")
+            .Produces<LeaveApplicationActionResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .RequireAuthorization(PermissionList.LeaveApplicationPermissions.Request);
+
         group.MapPost("/leave-applications/review", ReviewLeaveApplication)
             .WithName("ReviewLeaveApplication")
             .Produces<LeaveApplicationActionResult>(StatusCodes.Status200OK)
@@ -213,6 +253,12 @@ public class LeaveEndpoints : ICarterModule
             .WithName("CancelLeaveApplication")
             .Produces<LeaveApplicationActionResult>(StatusCodes.Status200OK)
             .RequireAuthorization(PermissionList.LeaveApplicationPermissions.Cancel);
+
+        group.MapPost("/my-leave-applications/{id:guid}/cancel", CancelMyLeaveApplication)
+            .WithName("CancelMyLeaveApplication")
+            .Produces<LeaveApplicationActionResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .RequireAuthorization(PermissionList.LeaveApplicationPermissions.Request);
 
         group.MapGet("/leave-ledger", GetLeaveLedgerEntries)
             .WithName("GetLeaveLedgerEntries")
@@ -307,6 +353,18 @@ public class LeaveEndpoints : ICarterModule
         return TypedResults.Ok(result);
     }
 
+    private static async Task<Ok<UploadEmergencyLeaveAttachmentResult>> UploadLeaveApplicationAttachment(
+        IFormFile file,
+        ClaimsPrincipal user,
+        ISender sender)
+    {
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new UnauthorizedAccessException("User is not authenticated");
+
+        var result = await sender.Send(new UploadEmergencyLeaveAttachmentCommand(file, userId));
+        return TypedResults.Ok(result);
+    }
+
     private static async Task<Ok<ReviewEmergencyLeaveRequestResult>> ReviewEmergencyLeave(
         [FromBody] ReviewEmergencyLeaveRequestRequest request,
         ClaimsPrincipal user,
@@ -351,6 +409,12 @@ public class LeaveEndpoints : ICarterModule
 
     private static async Task<Ok<GetLeaveTypesResult>> GetLeaveTypes([FromQuery] Guid companyId, ISender sender)
         => TypedResults.Ok(await sender.Send(new GetLeaveTypesQuery(companyId)));
+
+    private static async Task<Ok<GetLeaveTypesResult>> GetMyLeaveTypes(ClaimsPrincipal user, ISender sender)
+    {
+        var employee = await ResolveSignedInEmployeeProfileAsync(user, sender);
+        return TypedResults.Ok(await sender.Send(new GetLeaveTypesQuery(employee.CompanyId)));
+    }
 
     private static async Task<Ok<UpsertLeaveTypeResult>> UpsertLeaveType(
         Guid? id,
@@ -426,6 +490,15 @@ public class LeaveEndpoints : ICarterModule
         ISender sender)
         => TypedResults.Ok(await sender.Send(new GetLeaveApplicationsQuery(companyId, employeeId, status)));
 
+    private static async Task<Ok<GetLeaveApplicationsResult>> GetMyLeaveApplications(
+        [FromQuery] LeaveApplicationStatus? status,
+        ClaimsPrincipal user,
+        ISender sender)
+    {
+        var employee = await ResolveSignedInEmployeeProfileAsync(user, sender);
+        return TypedResults.Ok(await sender.Send(new GetLeaveApplicationsQuery(employee.CompanyId, employee.EmployeeId, status)));
+    }
+
     private static async Task<Ok<UpsertLeaveApplicationResult>> UpsertLeaveApplication(
         Guid? id,
         [FromBody] UpsertLeaveApplicationRequest request,
@@ -436,8 +509,30 @@ public class LeaveEndpoints : ICarterModule
         return TypedResults.Ok(await sender.Send(new UpsertLeaveApplicationCommand(request.Application, UserId(user))));
     }
 
+    private static async Task<Ok<UpsertLeaveApplicationResult>> UpsertMyLeaveApplication(
+        [FromBody] UpsertLeaveApplicationRequest request,
+        ClaimsPrincipal user,
+        ISender sender)
+    {
+        var employee = await ResolveSignedInEmployeeProfileAsync(user, sender);
+        request.Application.CompanyId = employee.CompanyId;
+        request.Application.EmployeeId = employee.EmployeeId;
+
+        return TypedResults.Ok(await sender.Send(new UpsertLeaveApplicationCommand(
+            request.Application,
+            UserId(user),
+            employee.CompanyId,
+            employee.EmployeeId)));
+    }
+
     private static async Task<Ok<LeaveApplicationActionResult>> SubmitLeaveApplication(Guid id, ClaimsPrincipal user, ISender sender)
         => TypedResults.Ok(await sender.Send(new SubmitLeaveApplicationCommand(id, UserId(user))));
+
+    private static async Task<Ok<LeaveApplicationActionResult>> SubmitMyLeaveApplication(Guid id, ClaimsPrincipal user, ISender sender)
+    {
+        var employee = await ResolveSignedInEmployeeProfileAsync(user, sender);
+        return TypedResults.Ok(await sender.Send(new SubmitLeaveApplicationCommand(id, UserId(user), employee.CompanyId, employee.EmployeeId)));
+    }
 
     private static async Task<Ok<LeaveApplicationActionResult>> ReviewLeaveApplication(
         [FromBody] ReviewLeaveApplicationRequest request,
@@ -449,6 +544,12 @@ public class LeaveEndpoints : ICarterModule
 
     private static async Task<Ok<LeaveApplicationActionResult>> CancelLeaveApplication(Guid id, ClaimsPrincipal user, ISender sender)
         => TypedResults.Ok(await sender.Send(new CancelLeaveApplicationCommand(id, UserId(user))));
+
+    private static async Task<Ok<LeaveApplicationActionResult>> CancelMyLeaveApplication(Guid id, ClaimsPrincipal user, ISender sender)
+    {
+        var employee = await ResolveSignedInEmployeeProfileAsync(user, sender);
+        return TypedResults.Ok(await sender.Send(new CancelLeaveApplicationCommand(id, UserId(user), employee.CompanyId, employee.EmployeeId)));
+    }
 
     private static async Task<Ok<GetLeaveLedgerEntriesResult>> GetLeaveLedgerEntries(
         [FromQuery] Guid companyId,
@@ -525,6 +626,12 @@ public class LeaveEndpoints : ICarterModule
         {
             throw new UnauthorizedAccessException("This operation requires a linked employee account.", ex);
         }
+    }
+
+    private static async Task<GetEmployeeAttendanceProfileResult> ResolveSignedInEmployeeProfileAsync(ClaimsPrincipal user, ISender sender)
+    {
+        var employeeId = await ResolveSignedInEmployeeIdAsync(user, sender);
+        return await sender.Send(new GetEmployeeAttendanceProfileQuery(employeeId));
     }
 
     private static string? FirstClaimValue(ClaimsPrincipal user, params string[] claimTypes)

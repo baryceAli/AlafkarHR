@@ -13,12 +13,15 @@ public interface ILeaveService
     Task<ApiResult<PaginatedResult<EmergencyLeaveRequestDto>>> GetMyEmergencyLeavesAsync(Guid companyId, int pageIndex, int pageSize, AttendanceExceptionStatus? status = null);
     Task<ApiResult<PaginatedResult<EmergencyLeaveRequestDto>>> GetEmployeeEmergencyLeavesAsync(Guid companyId, Guid employeeId, int pageIndex, int pageSize, AttendanceExceptionStatus? status = null);
     Task<ApiResult<string>> UploadEmergencyLeaveAttachmentAsync(IBrowserFile file);
+    Task<ApiResult<string>> UploadLeaveApplicationAttachmentAsync(IBrowserFile file);
+    Task<ApiResult<string>> UploadMyLeaveApplicationAttachmentAsync(IBrowserFile file);
     Task<ApiResult<EmergencyLeaveRequestDto>> CreateEmergencyLeaveAsync(CreateEmergencyLeaveRequestDto request);
     Task<ApiResult<EmergencyLeaveRequestDto>> ReviewEmergencyLeaveAsync(ReviewEmergencyLeaveRequestDto review);
     Task<ApiResult<List<EmployeeLeaveBalanceDto>>> GetLeaveBalancesAsync(Guid companyId, int year, Guid? employeeId = null);
     Task<ApiResult<EmployeeLeaveBalanceDto>> UpsertLeaveBalanceAsync(UpsertEmployeeLeaveBalanceDto balance);
     Task<ApiResult<LeaveReportDto>> GetLeaveReportAsync(LeaveReportFilterDto filter);
     Task<ApiResult<List<LeaveTypeDto>>> GetLeaveTypesAsync(Guid companyId);
+    Task<ApiResult<List<LeaveTypeDto>>> GetMyLeaveTypesAsync();
     Task<ApiResult<LeaveTypeDto>> UpsertLeaveTypeAsync(UpsertLeaveTypeDto leaveType);
     Task<ApiResult<bool>> DeleteLeaveTypeAsync(Guid id);
     Task<ApiResult<List<LeavePeriodDto>>> GetLeavePeriodsAsync(Guid companyId);
@@ -32,10 +35,14 @@ public interface ILeaveService
     Task<ApiResult<bool>> DeleteLeavePolicyAssignmentAsync(Guid id);
     Task<ApiResult<int>> GenerateLeaveAllocationsAsync(GenerateLeaveAllocationsDto request);
     Task<ApiResult<List<LeaveApplicationDto>>> GetLeaveApplicationsAsync(Guid companyId, Guid? employeeId = null, LeaveApplicationStatus? status = null);
+    Task<ApiResult<List<LeaveApplicationDto>>> GetMyLeaveApplicationsAsync(LeaveApplicationStatus? status = null);
     Task<ApiResult<LeaveApplicationDto>> UpsertLeaveApplicationAsync(UpsertLeaveApplicationDto application);
+    Task<ApiResult<LeaveApplicationDto>> UpsertMyLeaveApplicationAsync(UpsertLeaveApplicationDto application);
     Task<ApiResult<LeaveApplicationDto>> SubmitLeaveApplicationAsync(Guid id);
+    Task<ApiResult<LeaveApplicationDto>> SubmitMyLeaveApplicationAsync(Guid id);
     Task<ApiResult<LeaveApplicationDto>> ReviewLeaveApplicationAsync(ReviewLeaveApplicationDto review);
     Task<ApiResult<LeaveApplicationDto>> CancelLeaveApplicationAsync(Guid id);
+    Task<ApiResult<LeaveApplicationDto>> CancelMyLeaveApplicationAsync(Guid id);
     Task<ApiResult<List<LeaveLedgerEntryDto>>> GetLeaveLedgerEntriesAsync(Guid companyId, Guid? employeeId = null, Guid? leaveTypeId = null, Guid? leavePeriodId = null);
     Task<ApiResult<LeaveLedgerEntryDto>> CreateLeaveLedgerAdjustmentAsync(CreateLeaveLedgerAdjustmentDto adjustment);
     Task<ApiResult<(LeaveEncashmentDto? Encashment, LeaveLedgerEntryDto? Entry)>> CreateLeaveEncashmentAsync(CreateLeaveEncashmentDto encashment);
@@ -111,6 +118,32 @@ public class LeaveService : BaseApiService, ILeaveService
         }, "attachmentPath");
     }
 
+    public async Task<ApiResult<string>> UploadLeaveApplicationAttachmentAsync(IBrowserFile file)
+    {
+        using var content = new MultipartFormDataContent();
+        using var fileContent = new StreamContent(file.OpenReadStream(MaxAttachmentSize));
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+        content.Add(fileContent, "file", file.Name);
+
+        return await SendAsync<string>(new HttpRequestMessage(HttpMethod.Post, $"{path}/leave-applications/attachments")
+        {
+            Content = content
+        }, "attachmentPath");
+    }
+
+    public async Task<ApiResult<string>> UploadMyLeaveApplicationAttachmentAsync(IBrowserFile file)
+    {
+        using var content = new MultipartFormDataContent();
+        using var fileContent = new StreamContent(file.OpenReadStream(MaxAttachmentSize));
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+        content.Add(fileContent, "file", file.Name);
+
+        return await SendAsync<string>(new HttpRequestMessage(HttpMethod.Post, $"{path}/my-leave-applications/attachments")
+        {
+            Content = content
+        }, "attachmentPath");
+    }
+
     public async Task<ApiResult<EmergencyLeaveRequestDto>> ReviewEmergencyLeaveAsync(ReviewEmergencyLeaveRequestDto review)
     {
         return await SendAsync<EmergencyLeaveRequestDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/emergency-leaves/review")
@@ -148,6 +181,9 @@ public class LeaveService : BaseApiService, ILeaveService
 
     public async Task<ApiResult<List<LeaveTypeDto>>> GetLeaveTypesAsync(Guid companyId)
         => await SendAsync<List<LeaveTypeDto>>(new HttpRequestMessage(HttpMethod.Get, $"{path}/leave-types?companyId={companyId}"), "leaveTypes");
+
+    public async Task<ApiResult<List<LeaveTypeDto>>> GetMyLeaveTypesAsync()
+        => await SendAsync<List<LeaveTypeDto>>(new HttpRequestMessage(HttpMethod.Get, $"{path}/my-leave-types"), "leaveTypes");
 
     public async Task<ApiResult<LeaveTypeDto>> UpsertLeaveTypeAsync(UpsertLeaveTypeDto leaveType)
         => await SendAsync<LeaveTypeDto>(new HttpRequestMessage(leaveType.Id.HasValue ? HttpMethod.Put : HttpMethod.Post, leaveType.Id.HasValue ? $"{path}/leave-types/{leaveType.Id}" : $"{path}/leave-types")
@@ -208,14 +244,30 @@ public class LeaveService : BaseApiService, ILeaveService
         return await SendAsync<List<LeaveApplicationDto>>(new HttpRequestMessage(HttpMethod.Get, url), "applications");
     }
 
+    public async Task<ApiResult<List<LeaveApplicationDto>>> GetMyLeaveApplicationsAsync(LeaveApplicationStatus? status = null)
+    {
+        var url = $"{path}/my-leave-applications";
+        if (status.HasValue) url += $"?status={status.Value}";
+        return await SendAsync<List<LeaveApplicationDto>>(new HttpRequestMessage(HttpMethod.Get, url), "applications");
+    }
+
     public async Task<ApiResult<LeaveApplicationDto>> UpsertLeaveApplicationAsync(UpsertLeaveApplicationDto application)
         => await SendAsync<LeaveApplicationDto>(new HttpRequestMessage(application.Id.HasValue ? HttpMethod.Put : HttpMethod.Post, application.Id.HasValue ? $"{path}/leave-applications/{application.Id}" : $"{path}/leave-applications")
         {
             Content = JsonContent.Create(new { Application = application })
         }, "application");
 
+    public async Task<ApiResult<LeaveApplicationDto>> UpsertMyLeaveApplicationAsync(UpsertLeaveApplicationDto application)
+        => await SendAsync<LeaveApplicationDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/my-leave-applications")
+        {
+            Content = JsonContent.Create(new { Application = application })
+        }, "application");
+
     public async Task<ApiResult<LeaveApplicationDto>> SubmitLeaveApplicationAsync(Guid id)
         => await SendAsync<LeaveApplicationDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/leave-applications/{id}/submit"), "application");
+
+    public async Task<ApiResult<LeaveApplicationDto>> SubmitMyLeaveApplicationAsync(Guid id)
+        => await SendAsync<LeaveApplicationDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/my-leave-applications/{id}/submit"), "application");
 
     public async Task<ApiResult<LeaveApplicationDto>> ReviewLeaveApplicationAsync(ReviewLeaveApplicationDto review)
         => await SendAsync<LeaveApplicationDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/leave-applications/review")
@@ -225,6 +277,9 @@ public class LeaveService : BaseApiService, ILeaveService
 
     public async Task<ApiResult<LeaveApplicationDto>> CancelLeaveApplicationAsync(Guid id)
         => await SendAsync<LeaveApplicationDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/leave-applications/{id}/cancel"), "application");
+
+    public async Task<ApiResult<LeaveApplicationDto>> CancelMyLeaveApplicationAsync(Guid id)
+        => await SendAsync<LeaveApplicationDto>(new HttpRequestMessage(HttpMethod.Post, $"{path}/my-leave-applications/{id}/cancel"), "application");
 
     public async Task<ApiResult<List<LeaveLedgerEntryDto>>> GetLeaveLedgerEntriesAsync(Guid companyId, Guid? employeeId = null, Guid? leaveTypeId = null, Guid? leavePeriodId = null)
     {

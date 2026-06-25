@@ -16,14 +16,14 @@
 @inject SharedDataService SharedDataService
 
 <section class="erp-page" dir="@SharedDataService.PageDirection">
-    <PageHeader Title="@Text("Employee Leave Balances", "Employee Leave Balances")"
-                Subtitle="@Text("View annual leave balances and manage entitlement configuration when permitted.", "View annual leave balances and manage entitlement configuration when permitted.")"
-                Overline="@Text("Leave Management", "Leave Management")"
+    <PageHeader Title="@Text("Employee Leave Balances", "أرصدة إجازات الموظفين")"
+                Subtitle="@Text("View annual leave balances and manage entitlement configuration when permitted.", "عرض أرصدة الإجازات السنوية وإدارة إعدادات الاستحقاق عند توفر الصلاحية.")"
+                Overline="@Text("Leave Management", "إدارة الإجازات")"
                 Icon="bi-calendar2-check">
         <Actions>
             <button class="btn btn-outline-secondary" @onclick="LoadAsync" disabled="@isBusy">
                 <i class="bi bi-arrow-clockwise"></i>
-                @Text("Refresh", "Refresh")
+                @Text("Refresh", "تحديث")
             </button>
         </Actions>
     </PageHeader>
@@ -33,18 +33,18 @@
         <div class="alert @messageClass">@message</div>
     }
 
-    <AppCard Title="@Text("Balance Filters", "Balance Filters")"
-             Subtitle="@Text("Narrow the balance table by year and employee.", "Narrow the balance table by year and employee.")"
+    <AppCard Title="@Text("Balance Filters", "عوامل تصفية الأرصدة")"
+             Subtitle="@Text("Narrow the balance table by year and employee.", "تصفية جدول الأرصدة حسب السنة والموظف.")"
              CssClass="mb-3">
             <div class="row g-3 align-items-end">
                 <div class="col-md-3">
-                    <label class="form-label">@Text("Year", "Year")</label>
+                    <label class="form-label">@Text("Year", "السنة")</label>
                     <input class="form-control" type="number" min="2000" max="2100" @bind="year" @bind:after="LoadBalancesAsync" />
                 </div>
                 <div class="col-md-5">
-                    <label class="form-label">@Text("Filter employee", "Filter employee")</label>
+                    <label class="form-label">@Text("Filter employee", "تصفية حسب الموظف")</label>
                     <select class="form-select" @bind="selectedEmployeeId" @bind:after="LoadBalancesAsync">
-                        <option value="@Guid.Empty">@Text("All employees", "All employees")</option>
+                        <option value="@Guid.Empty">@Text("All employees", "كل الموظفين")</option>
                         @foreach (var employee in employees)
                         {
                             <option value="@employee.Id">@EmployeeName(employee)</option>
@@ -54,7 +54,7 @@
                 <div class="col-md-4 text-md-end">
                     @if (!CanManageBalances)
                     {
-                        <StatusChip Text="@Text("Read only", "Read only")" Tone="muted" />
+                        <StatusChip Text="@Text("Read only", "للقراءة فقط")" Tone="muted" />
                     }
                 </div>
             </div>
@@ -62,14 +62,14 @@
 
     @if (CanManageBalances)
     {
-        <AppCard Title="@Text("Entitlement Configuration", "Entitlement Configuration")"
-                 Subtitle="@Text("Set annual days and carry-forward rules for a selected employee.", "Set annual days and carry-forward rules for a selected employee.")"
+        <AppCard Title="@Text("Entitlement Configuration", "إعدادات الاستحقاق")"
+                 Subtitle="@Text("Set annual days and carry-forward rules for a selected employee.", "تحديد أيام الإجازة السنوية وقواعد الترحيل للموظف المحدد.")"
                  CssClass="mb-3">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-4">
-                        <label class="form-label">@Text("Employee", "Employee")</label>
+                        <label class="form-label">@Text("Employee", "الموظف")</label>
                         <select class="form-select" @bind="model.EmployeeId">
-                            <option value="@Guid.Empty">@Text("Select employee", "Select employee")</option>
+                            <option value="@Guid.Empty">@Text("Select employee", "اختر الموظف")</option>
                             @foreach (var employee in employees)
                             {
                                 <option value="@employee.Id">@EmployeeName(employee)</option>
@@ -77,45 +77,45 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">@Text("Annual days", "Annual days")</label>
+                        <label class="form-label">@Text("Annual days", "الأيام السنوية")</label>
                         <input class="form-control" type="number" step="0.5" min="0" @bind="model.AnnualLeaveDays" />
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">@Text("Max carry", "Max carry")</label>
+                        <label class="form-label">@Text("Max carry", "الحد الأقصى للترحيل")</label>
                         <input class="form-control" type="number" step="0.5" min="0" @bind="model.MaxCarryForwardDays" disabled="@(!model.AllowCarryForward)" />
                     </div>
                     <div class="col-md-4">
                         <div class="form-check">
                             <input id="allowCarryForward" class="form-check-input" type="checkbox" @bind="model.AllowCarryForward" />
-                            <label class="form-check-label" for="allowCarryForward">@Text("Carry unused days to next year", "Carry unused days to next year")</label>
+                            <label class="form-check-label" for="allowCarryForward">@Text("Carry unused days to next year", "ترحيل الأيام غير المستخدمة إلى السنة التالية")</label>
                         </div>
                     </div>
                     <div class="col-12 text-md-end">
                         <button class="btn btn-primary" @onclick="SaveAsync" disabled="@isBusy">
-                            <i class="bi bi-save me-1"></i>@Text("Save configuration", "Save configuration")
+                            <i class="bi bi-save me-1"></i>@Text("Save configuration", "حفظ الإعدادات")
                         </button>
-                        <button class="btn btn-outline-secondary" @onclick="ResetModel" disabled="@isBusy">@Text("New", "New")</button>
+                        <button class="btn btn-outline-secondary" @onclick="ResetModel" disabled="@isBusy">@Text("New", "جديد")</button>
                     </div>
                 </div>
         </AppCard>
     }
 
-    <AppCard Title="@Text("Leave Balances", "Leave Balances")"
-             Subtitle="@Text("Review available, taken, and remaining leave by employee.", "Review available, taken, and remaining leave by employee.")">
+    <AppCard Title="@Text("Leave Balances", "أرصدة الإجازات")"
+             Subtitle="@Text("Review available, taken, and remaining leave by employee.", "مراجعة الإجازات المتاحة والمستخدمة والمتبقية حسب الموظف.")">
         <div class="erp-table-wrap">
             <table class="table erp-table align-middle mb-0">
                 <thead>
                     <tr>
-                        <th>@Text("Employee", "Employee")</th>
-                        <th>@Text("Year", "Year")</th>
-                        <th>@Text("Annual", "Annual")</th>
-                        <th>@Text("Carry forward", "Carry forward")</th>
-                        <th>@Text("Available", "Available")</th>
-                        <th>@Text("Taken", "Taken")</th>
-                        <th>@Text("Remaining", "Remaining")</th>
+                        <th>@Text("Employee", "الموظف")</th>
+                        <th>@Text("Year", "السنة")</th>
+                        <th>@Text("Annual", "سنوي")</th>
+                        <th>@Text("Carry forward", "مرحل")</th>
+                        <th>@Text("Available", "متاح")</th>
+                        <th>@Text("Taken", "مستخدم")</th>
+                        <th>@Text("Remaining", "متبقي")</th>
                         @if (CanManageBalances)
                         {
-                            <th class="text-end">@Text("Actions", "Actions")</th>
+                            <th class="text-end">@Text("Actions", "الإجراءات")</th>
                         }
                     </tr>
                 </thead>
@@ -124,8 +124,8 @@
                     {
                         <tr>
                             <td colspan="@(CanManageBalances ? 8 : 7)">
-                                <EmptyState Title="@Text("No leave balances", "No leave balances")"
-                                            Message="@Text("No leave balances are configured for this filter.", "No leave balances are configured for this filter.")"
+                                <EmptyState Title="@Text("No leave balances", "لا توجد أرصدة إجازات")"
+                                            Message="@Text("No leave balances are configured for this filter.", "لا توجد أرصدة إجازات معدة لعوامل التصفية الحالية.")"
                                             Icon="bi-calendar-x" />
                             </td>
                         </tr>
@@ -147,7 +147,7 @@
                                     <td class="text-end">
                                         <button class="btn btn-outline-primary btn-sm" @onclick="() => Edit(balance)">
                                             <i class="bi bi-pencil"></i>
-                                            @Text("Edit", "Edit")
+                                            @Text("Edit", "تعديل")
                                         </button>
                                     </td>
                                 }
@@ -209,7 +209,7 @@
         balances = result.IsSuccess ? result.Data ?? [] : [];
         if (!result.IsSuccess)
         {
-            SetMessage(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load leave balances.", "Unable to load leave balances."), "alert-danger");
+            SetMessage(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load leave balances.", "تعذر تحميل أرصدة الإجازات."), "alert-danger");
         }
     }
 
@@ -217,13 +217,13 @@
     {
         if (!CanManageBalances)
         {
-            SetMessage(Text("You do not have permission to manage leave balances.", "You do not have permission to manage leave balances."), "alert-warning");
+            SetMessage(Text("You do not have permission to manage leave balances.", "ليست لديك صلاحية إدارة أرصدة الإجازات."), "alert-warning");
             return;
         }
 
         if (model.EmployeeId == Guid.Empty)
         {
-            SetMessage(Text("Please select an employee.", "Please select an employee."), "alert-warning");
+            SetMessage(Text("Please select an employee.", "يرجى اختيار موظف."), "alert-warning");
             return;
         }
 
@@ -231,8 +231,8 @@
         model.Year = year;
         var result = await LeaveService.UpsertLeaveBalanceAsync(model);
         SetMessage(result.IsSuccess
-            ? Text("Leave balance saved.", "Leave balance saved.")
-            : result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to save leave balance.", "Unable to save leave balance."),
+            ? Text("Leave balance saved.", "تم حفظ رصيد الإجازة.")
+            : result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to save leave balance.", "تعذر حفظ رصيد الإجازة."),
             result.IsSuccess ? "alert-success" : "alert-danger");
 
         if (result.IsSuccess)

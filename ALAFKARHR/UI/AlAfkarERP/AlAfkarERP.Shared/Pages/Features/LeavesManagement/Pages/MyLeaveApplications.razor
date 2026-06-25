@@ -1,0 +1,320 @@
+@layout AdminLayout
+@page "/LeavesManagement/MyLeaveApplications"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Forms
+@using SharedWithUI.Leave.Dtos
+
+@inject ILeaveService LeaveService
+@inject SharedDataService SharedDataService
+
+<main class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("My Leave Applications", "طلبات إجازاتي")"
+                Subtitle="@Text("Create draft leave applications, submit them for approval, and follow their status.", "إنشاء طلبات الإجازة وإرسالها للاعتماد ومتابعة حالتها.")"
+                Overline="@Text("Leave Management", "إدارة الإجازات")"
+                Icon="bi-calendar-plus">
+        <Actions>
+            <button class="btn btn-outline-secondary" type="button" @onclick="LoadAsync" disabled="@isBusy">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @messageClass">@message</div>
+    }
+
+    <AppCard Title="@Text("New Leave Application", "طلب إجازة جديد")"
+             Subtitle="@Text("Select the leave type, dates, reason, and supporting attachment when required.", "اختر نوع الإجازة والتواريخ والسبب والمرفق الداعم عند الحاجة.")"
+             CssClass="mb-3">
+        <EditForm Model="model" OnValidSubmit="SaveAsync">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">@Text("Leave Type", "نوع الإجازة")</label>
+                    <select class="form-select" @bind="modelLeaveTypeId">
+                        <option value="">@Text("Select type", "اختر النوع")</option>
+                        @foreach (var type in leaveTypes)
+                        {
+                            <option value="@type.Id">@LeaveTypeName(type)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@Text("Start", "البداية")</label>
+                    <InputDate class="form-control" @bind-Value="model.StartDate" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">@Text("End", "النهاية")</label>
+                    <InputDate class="form-control" @bind-Value="model.EndDate" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">@Text("Attachment", "المرفق")</label>
+                    <InputFile @key="attachmentInputKey" class="form-control" OnChange="OnAttachmentSelected" accept="application/pdf,image/*" />
+                    @if (!string.IsNullOrWhiteSpace(selectedAttachmentName))
+                    {
+                        <div class="form-text">@selectedAttachmentName</div>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(model.AttachmentPath))
+                    {
+                        <div class="form-text"><a href="@model.AttachmentPath" target="_blank" rel="noopener">@Text("Open current attachment", "فتح المرفق الحالي")</a></div>
+                    }
+                </div>
+                <div class="col-12">
+                    <label class="form-label">@Text("Reason", "السبب")</label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="model.Reason" />
+                </div>
+                <div class="col-12 d-flex flex-wrap justify-content-end gap-2">
+                    <button class="btn btn-outline-secondary" type="button" @onclick="ResetModel" disabled="@isBusy">
+                        @Text("Clear", "مسح")
+                    </button>
+                    <button class="btn btn-primary" type="submit" disabled="@isBusy">
+                        <i class="bi bi-save"></i>
+                        @Text("Save Draft", "حفظ مسودة")
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    </AppCard>
+
+    <AppCard Title="@Text("Applications", "الطلبات")"
+             Subtitle="@Text("Only your leave applications are shown here.", "تظهر هنا طلبات الإجازة الخاصة بك فقط.")">
+        <div class="row g-3 align-items-end mb-3">
+            <div class="col-md-4">
+                <label class="form-label">@Text("Status", "الحالة")</label>
+                <select class="form-select" @bind="filterStatus" @bind:after="LoadApplicationsAsync">
+                    <option value="">@Text("All statuses", "كل الحالات")</option>
+                    @foreach (var status in Enum.GetValues<LeaveApplicationStatus>())
+                    {
+                        <option value="@status">@StatusText(status)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-8 text-md-end">
+                <span class="text-muted small">@Text("Total", "الإجمالي"): @applications.Count</span>
+            </div>
+        </div>
+
+        @if (isBusy && applications.Count == 0)
+        {
+            <div class="erp-loading py-4">
+                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                <div class="mt-2">@Text("Loading leave applications...", "جاري تحميل طلبات الإجازة...")</div>
+            </div>
+        }
+        else if (applications.Count == 0)
+        {
+            <EmptyState Title="@Text("No leave applications", "لا توجد طلبات إجازة")"
+                        Message="@Text("Your saved and submitted leave applications will appear here.", "ستظهر هنا طلبات الإجازة المحفوظة والمرسلة الخاصة بك.")"
+                        Icon="bi-calendar-plus" />
+        }
+        else
+        {
+            <div class="erp-table-wrap">
+                <table class="table erp-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>@Text("Type", "النوع")</th>
+                            <th>@Text("Dates", "التواريخ")</th>
+                            <th>@Text("Days", "الأيام")</th>
+                            <th>@Text("Status", "الحالة")</th>
+                            <th>@Text("Attachment", "المرفق")</th>
+                            <th>@Text("Approver Comment", "تعليق المعتمد")</th>
+                            <th class="text-end">@Text("Actions", "الإجراءات")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var application in applications)
+                        {
+                            <tr>
+                                <td>@LeaveTypeName(application)</td>
+                                <td>@FormatDate(application.StartDate) - @FormatDate(application.EndDate)</td>
+                                <td>@application.TotalDays.ToString("0.##")</td>
+                                <td><StatusChip Text="@StatusText(application.Status)" Tone="@StatusTone(application.Status)" /></td>
+                                <td>@if (!string.IsNullOrWhiteSpace(application.AttachmentPath)){<a href="@application.AttachmentPath" target="_blank" rel="noopener">@Text("Open", "فتح")</a>}else{<span class="text-muted">-</span>}</td>
+                                <td>@EmptyValue(application.ApproverComment)</td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="@Text("Leave application actions", "إجراءات طلب الإجازة")">
+                                        <button class="btn btn-outline-secondary" type="button" @onclick="() => Edit(application)" disabled="@(application.Status != LeaveApplicationStatus.Draft || isBusy)">
+                                            @Text("Edit", "تعديل")
+                                        </button>
+                                        <button class="btn btn-outline-primary" type="button" @onclick="() => SubmitAsync(application.Id)" disabled="@(application.Status != LeaveApplicationStatus.Draft || isBusy)">
+                                            @Text("Submit", "إرسال")
+                                        </button>
+                                        <button class="btn btn-outline-warning" type="button" @onclick="() => CancelAsync(application.Id)" disabled="@(application.Status == LeaveApplicationStatus.Approved || application.Status == LeaveApplicationStatus.Cancelled || isBusy)">
+                                            @Text("Cancel", "إلغاء")
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </AppCard>
+</main>
+
+@code {
+    private const long MaxAttachmentSize = 10 * 1024 * 1024;
+    private bool isBusy;
+    private string? message;
+    private string messageClass = "alert-info";
+    private List<LeaveTypeDto> leaveTypes = [];
+    private List<LeaveApplicationDto> applications = [];
+    private UpsertLeaveApplicationDto model = NewModel();
+    private string? modelLeaveTypeId;
+    private string? filterStatus;
+    private IBrowserFile? selectedAttachmentFile;
+    private string? selectedAttachmentName;
+    private int attachmentInputKey;
+
+    protected override void OnInitialized() => SharedDataService.OnChange1 += HandleChangeAsync;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        isBusy = true;
+        var typeResult = await LeaveService.GetMyLeaveTypesAsync();
+        leaveTypes = typeResult.IsSuccess ? typeResult.Data ?? [] : [];
+        if (!typeResult.IsSuccess)
+        {
+            SetMessage(Error(typeResult), "alert-danger");
+        }
+
+        await LoadApplicationsAsync();
+        isBusy = false;
+    }
+
+    private async Task LoadApplicationsAsync()
+    {
+        var result = await LeaveService.GetMyLeaveApplicationsAsync(Enum.TryParse<LeaveApplicationStatus>(filterStatus, out var status) ? status : null);
+        applications = result.IsSuccess ? result.Data ?? [] : [];
+        if (!result.IsSuccess)
+        {
+            SetMessage(Error(result), "alert-danger");
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (model.EndDate.Date < model.StartDate.Date)
+        {
+            SetMessage(Text("End date must be on or after start date.", "يجب أن يكون تاريخ النهاية بعد تاريخ البداية أو مساويا له."), "alert-warning");
+            return;
+        }
+
+        model.LeaveTypeId = Parse(modelLeaveTypeId);
+        if (model.LeaveTypeId == Guid.Empty)
+        {
+            SetMessage(Text("Select a leave type.", "اختر نوع الإجازة."), "alert-warning");
+            return;
+        }
+
+        if (leaveTypes.FirstOrDefault(x => x.Id == model.LeaveTypeId)?.RequiresAttachment == true
+            && selectedAttachmentFile is null
+            && string.IsNullOrWhiteSpace(model.AttachmentPath))
+        {
+            SetMessage(Text("Attachment is required for this leave type.", "المرفق مطلوب لهذا النوع من الإجازات."), "alert-warning");
+            return;
+        }
+
+        if (selectedAttachmentFile is not null)
+        {
+            if (selectedAttachmentFile.Size > MaxAttachmentSize)
+            {
+                SetMessage(Text("Attachment size must be 10 MB or less.", "يجب ألا يتجاوز حجم المرفق 10 ميجابايت."), "alert-warning");
+                return;
+            }
+
+            var uploadResult = await LeaveService.UploadMyLeaveApplicationAttachmentAsync(selectedAttachmentFile);
+            if (!uploadResult.IsSuccess || string.IsNullOrWhiteSpace(uploadResult.Data))
+            {
+                SetMessage(uploadResult.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to upload attachment.", "تعذر رفع المرفق."), "alert-danger");
+                return;
+            }
+
+            model.AttachmentPath = uploadResult.Data;
+        }
+
+        isBusy = true;
+        var result = await LeaveService.UpsertMyLeaveApplicationAsync(model);
+        SetMessage(result.IsSuccess ? Text("Leave application saved as draft.", "تم حفظ طلب الإجازة كمسودة.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger");
+        if (result.IsSuccess)
+        {
+            ResetModel();
+            await LoadApplicationsAsync();
+        }
+        isBusy = false;
+    }
+
+    private async Task SubmitAsync(Guid id) => await ApplyActionAsync(() => LeaveService.SubmitMyLeaveApplicationAsync(id), Text("Leave application submitted.", "تم إرسال طلب الإجازة."));
+
+    private async Task CancelAsync(Guid id) => await ApplyActionAsync(() => LeaveService.CancelMyLeaveApplicationAsync(id), Text("Leave application cancelled.", "تم إلغاء طلب الإجازة."));
+
+    private async Task ApplyActionAsync(Func<Task<ApiResult<LeaveApplicationDto>>> action, string success)
+    {
+        isBusy = true;
+        var result = await action();
+        SetMessage(result.IsSuccess ? success : Error(result), result.IsSuccess ? "alert-success" : "alert-danger");
+        if (result.IsSuccess)
+        {
+            await LoadApplicationsAsync();
+        }
+        isBusy = false;
+    }
+
+    private void Edit(LeaveApplicationDto application)
+    {
+        model = new UpsertLeaveApplicationDto
+        {
+            Id = application.Id,
+            CompanyId = application.CompanyId,
+            EmployeeId = application.EmployeeId,
+            LeaveTypeId = application.LeaveTypeId,
+            StartDate = application.StartDate,
+            EndDate = application.EndDate,
+            Reason = application.Reason,
+            AttachmentPath = application.AttachmentPath
+        };
+        modelLeaveTypeId = application.LeaveTypeId.ToString();
+        selectedAttachmentFile = null;
+        selectedAttachmentName = null;
+        attachmentInputKey++;
+    }
+
+    private void OnAttachmentSelected(InputFileChangeEventArgs e)
+    {
+        selectedAttachmentFile = e.File;
+        selectedAttachmentName = $"{e.File.Name} ({e.File.Size / 1024:N0} KB)";
+        model.AttachmentPath = null;
+    }
+
+    private void ResetModel()
+    {
+        model = NewModel();
+        modelLeaveTypeId = null;
+        selectedAttachmentFile = null;
+        selectedAttachmentName = null;
+        attachmentInputKey++;
+    }
+
+    private static UpsertLeaveApplicationDto NewModel() => new() { StartDate = DateTime.Today, EndDate = DateTime.Today };
+    private string LeaveTypeName(LeaveTypeDto type) => SharedDataService.SelectViewLang(type.NameEng, type.Name);
+    private string LeaveTypeName(LeaveApplicationDto application) => SharedDataService.SelectViewLang(application.LeaveTypeNameEng ?? application.LeaveTypeId.ToString(), application.LeaveTypeName ?? application.LeaveTypeId.ToString());
+    private string StatusText(LeaveApplicationStatus status) => status switch { LeaveApplicationStatus.Draft => Text("Draft", "مسودة"), LeaveApplicationStatus.Submitted => Text("Submitted", "مرسل"), LeaveApplicationStatus.Approved => Text("Approved", "معتمد"), LeaveApplicationStatus.Rejected => Text("Rejected", "مرفوض"), LeaveApplicationStatus.Cancelled => Text("Cancelled", "ملغى"), _ => status.ToString() };
+    private static string StatusTone(LeaveApplicationStatus status) => status switch { LeaveApplicationStatus.Approved => "success", LeaveApplicationStatus.Rejected => "danger", LeaveApplicationStatus.Submitted => "info", LeaveApplicationStatus.Cancelled => "muted", _ => "warning" };
+    private static Guid Parse(string? value) => Guid.TryParse(value, out var id) ? id : Guid.Empty;
+    private static string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private static string FormatDate(DateTime date) => date.ToString("yyyy/MM/dd");
+    private string Error<T>(ApiResult<T> result) => result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Operation failed.", "تعذر تنفيذ العملية.");
+    private void SetMessage(string text, string cssClass) { message = text; messageClass = cssClass; }
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

@@ -229,7 +229,7 @@
                             <div class="col-md-6">
                                 <label class="form-label">@Text("Store Manager", "مدير المتجر")</label>
                                 <InputSelect class="form-select" @bind-Value="selectedStore.StoreManagerEmployeeId">
-                                    <option value="">@Text("Select linked employee", "اختر موظفا مرتبطا بمستخدم")</option>
+                                    <option value="">@Text("Select employee", "اختر موظفا")</option>
                                     @foreach (var employee in StoreManagerCandidates)
                                     {
                                         <option value="@employee.Id">@EmployeeName(employee)</option>
@@ -237,7 +237,7 @@
                                 </InputSelect>
                                 @if (!StoreManagerCandidates.Any())
                                 {
-                                    <div class="text-warning small">@Text("No active employees linked to application users were found.", "لا يوجد موظفون نشطون مرتبطون بمستخدمين.")</div>
+                                    <div class="text-warning small">@Text("No active employees were found.", "لا يوجد موظفون نشطون.")</div>
                                 }
                             </div>
                             <div class="col-md-6">
@@ -416,7 +416,7 @@
         assignment.Permissions.Contains(PermissionList.StoreFrontStorePermissions.View, StringComparer.Ordinal)
         || assignment.Permissions.Contains(PermissionList.StoreFrontPosPermissions.View, StringComparer.Ordinal));
     private IEnumerable<EmployeeDto> StoreManagerCandidates => employees
-        .Where(employee => employee.IsActive && employee.LinkedUserId.HasValue && employee.LinkedUserId.Value != Guid.Empty)
+        .Where(employee => employee.IsActive)
         .OrderBy(employee => Text(employee.FullNameEng, employee.FullName));
     private IEnumerable<UserDto> FilteredRoleUsers => users
         .Where(user => string.IsNullOrWhiteSpace(selectedRoleUserFilter)
@@ -515,7 +515,7 @@
         var manager = StoreManagerCandidates.FirstOrDefault(x => x.Id == selectedStore.StoreManagerEmployeeId.Value);
         if (manager is null)
         {
-            ToastService.ShowError(Text("Select an active employee linked to an application user.", "اختر موظفا نشطا مرتبطا بمستخدم."));
+            ToastService.ShowError(Text("Select an active employee.", "اختر موظفا نشطا."));
             return;
         }
 

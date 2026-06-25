@@ -181,7 +181,9 @@
         await SafeLoad(Text("Leave", "الإجازات"), async () =>
         {
             Guid? employeeId = selectedEmployeeId == Guid.Empty ? null : selectedEmployeeId;
-            leaveApplications = (await LeaveService.GetLeaveApplicationsAsync(companyId, employeeId)).Data ?? [];
+            leaveApplications = ((await LeaveService.GetLeaveApplicationsAsync(companyId, employeeId)).Data ?? [])
+                .Where(x => IsActionedLeaveStatus(x.Status))
+                .ToList();
             leaveLedger = (await LeaveService.GetLeaveLedgerEntriesAsync(companyId, employeeId)).Data ?? [];
         });
         await SafeLoad(Text("Attendance", "الحضور"), async () =>
@@ -298,6 +300,8 @@
     private string EmployeeName(EmployeeDto item) => Text(item.FullNameEng, item.FullName);
     private string EmployeeName(Guid id) => employees.FirstOrDefault(x => x.Id == id) is { } employee ? EmployeeName(employee) : id.ToString("N")[..8];
     private string EmployeeStatus(EmployeeDto item) => item.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط");
+    private static bool IsActionedLeaveStatus(LeaveApplicationStatus status)
+        => status is LeaveApplicationStatus.Approved or LeaveApplicationStatus.Rejected or LeaveApplicationStatus.Cancelled;
     private static string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
     private void Go(string url) => NavigationManager.NavigateTo(url);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);

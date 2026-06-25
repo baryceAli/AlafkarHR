@@ -17,15 +17,12 @@
 @inject SharedDataService SharedDataService
 
 <section class="erp-page" dir="@SharedDataService.PageDirection">
-    <PageHeader Title="@Text("Approve Emergency Leave", "Approve Emergency Leave")"
-                Subtitle="@Text("Review emergency leave requests in your approval scope.", "Review emergency leave requests in your approval scope.")"
-                Overline="@Text("Leave Management", "Leave Management")"
+    <PageHeader Title="@Text("Approve Emergency Leave", "اعتماد الإجازة الطارئة")"
+                Subtitle="@Text("Review emergency leave requests in your approval scope.", "مراجعة طلبات الإجازة الطارئة ضمن نطاق اعتمادك.")"
+                Overline="@Text("Leave Management", "إدارة الإجازات")"
                 Icon="bi-patch-check">
         <Actions>
-            <button class="btn btn-outline-secondary" @onclick="LoadAsync" disabled="@isBusy">
-                <i class="bi bi-arrow-clockwise"></i>
-                @Text("Refresh", "Refresh")
-            </button>
+            <button class="btn btn-outline-secondary" @onclick="LoadAsync" disabled="@isBusy"><i class="bi bi-arrow-clockwise"></i> @Text("Refresh", "تحديث")</button>
         </Actions>
     </PageHeader>
 
@@ -34,121 +31,83 @@
         <div class="alert @messageClass">@message</div>
     }
 
-    <AppCard Title="@Text("Approval Queue", "Approval Queue")"
-             Subtitle="@Text("Filter requests, add a review note, and approve or reject pending items.", "Filter requests, add a review note, and approve or reject pending items.")">
-            <div class="row g-3 align-items-end mb-3">
-                <div class="col-md-3">
-                    <label class="form-label">@Text("Status", "Status")</label>
-                    <select class="form-select" @bind="selectedStatus" @bind:after="ResetAndLoadAsync">
-                        <option value="">@Text("All statuses", "All statuses")</option>
-                        <option value="@AttendanceExceptionStatus.Pending">@Text("Pending", "Pending")</option>
-                        <option value="@AttendanceExceptionStatus.Approved">@Text("Approved", "Approved")</option>
-                        <option value="@AttendanceExceptionStatus.Rejected">@Text("Rejected", "Rejected")</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">@Text("Employee", "Employee")</label>
-                    <select class="form-select" @bind="selectedEmployeeId" @bind:after="ResetAndLoadAsync">
-                        <option value="@Guid.Empty">@Text("All employees", "All employees")</option>
-                        @foreach (var employee in employees)
+    <AppCard Title="@Text("Approval Queue", "قائمة الاعتماد")"
+             Subtitle="@Text("Filter requests, add a review note, and approve or reject pending items.", "تصفية الطلبات وإضافة ملاحظة مراجعة واعتماد أو رفض الطلبات المعلقة.")">
+        <div class="row g-3 align-items-end mb-3">
+            <div class="col-md-3">
+                <label class="form-label">@Text("Status", "الحالة")</label>
+                <select class="form-select" @bind="selectedStatus" @bind:after="ResetAndLoadAsync">
+                    <option value="">@Text("All statuses", "كل الحالات")</option>
+                    <option value="@AttendanceExceptionStatus.Pending">@Text("Pending", "معلق")</option>
+                    <option value="@AttendanceExceptionStatus.Approved">@Text("Approved", "معتمد")</option>
+                    <option value="@AttendanceExceptionStatus.Rejected">@Text("Rejected", "مرفوض")</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">@Text("Employee", "الموظف")</label>
+                <select class="form-select" @bind="selectedEmployeeId" @bind:after="ResetAndLoadAsync">
+                    <option value="@Guid.Empty">@Text("All employees", "كل الموظفين")</option>
+                    @foreach (var employee in employees)
+                    {
+                        <option value="@employee.Id">@EmployeeName(employee)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-5"><label class="form-label">@Text("Approval comment", "تعليق الاعتماد")</label><textarea class="form-control" rows="2" @bind="reviewComment" placeholder="@Text("Optional note for the employee", "ملاحظة اختيارية للموظف")"></textarea></div>
+        </div>
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <span class="text-muted small">@Text("Total", "الإجمالي"): @totalCount</span>
+            <StatusChip Text="@PendingPageText" Tone="warning" />
+        </div>
+
+        @if (isBusy)
+        {
+            <div class="erp-loading py-4"><div class="spinner-border spinner-border-sm text-primary" role="status"></div><div class="mt-2">@Text("Loading emergency leave requests...", "جاري تحميل طلبات الإجازة الطارئة...")</div></div>
+        }
+        else if (requests.Count == 0)
+        {
+            <EmptyState Title="@Text("No emergency leave requests", "لا توجد طلبات إجازة طارئة")" Message="@Text("No emergency leave requests are available for the selected filters.", "لا توجد طلبات إجازة طارئة لعوامل التصفية المحددة.")" Icon="bi-check2-circle" />
+        }
+        else
+        {
+            <div class="erp-table-wrap">
+                <table class="table erp-table align-middle mb-0">
+                    <thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Dates", "التواريخ")</th><th>@Text("Reason", "السبب")</th><th>@Text("Status", "الحالة")</th><th>@Text("Attachment", "المرفق")</th><th>@Text("Comment", "التعليق")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                    <tbody>
+                        @foreach (var request in requests)
                         {
-                            <option value="@employee.Id">@EmployeeName(employee)</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-5">
-                    <label class="form-label">@Text("Approval comment", "Approval comment")</label>
-                    <textarea class="form-control" rows="2" @bind="reviewComment" placeholder="@Text("Optional note for the employee", "Optional note for the employee")"></textarea>
-                </div>
-            </div>
-
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                <span class="text-muted small">@Text("Total", "Total"): @totalCount</span>
-                <StatusChip Text="@PendingPageText" Tone="warning" />
-            </div>
-
-            @if (isBusy)
-            {
-                <div class="erp-loading py-4">
-                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                    <div class="mt-2">@Text("Loading emergency leave requests...", "Loading emergency leave requests...")</div>
-                </div>
-            }
-            else if (requests.Count == 0)
-            {
-                <EmptyState Title="@Text("No emergency leave requests", "No emergency leave requests")"
-                            Message="@Text("No emergency leave requests are available for the selected filters.", "No emergency leave requests are available for the selected filters.")"
-                            Icon="bi-check2-circle" />
-            }
-            else
-            {
-                <div class="erp-table-wrap">
-                    <table class="table erp-table align-middle mb-0">
-                        <thead>
                             <tr>
-                                <th>@Text("Employee", "Employee")</th>
-                                <th>@Text("Dates", "Dates")</th>
-                                <th>@Text("Reason", "Reason")</th>
-                                <th>@Text("Status", "Status")</th>
-                                <th>@Text("Attachment", "Attachment")</th>
-                                <th>@Text("Comment", "Comment")</th>
-                                <th class="text-end">@Text("Actions", "Actions")</th>
+                                <td>@EmployeeName(request.EmployeeId)</td>
+                                <td>@FormatDate(request.StartDate) - @FormatDate(request.EndDate)</td>
+                                <td>@request.Reason</td>
+                                <td><StatusChip Text="@StatusText(request.Status)" Tone="@StatusTone(request.Status)" /></td>
+                                <td>@if (!string.IsNullOrWhiteSpace(request.AttachmentPath)){<a href="@request.AttachmentPath" target="_blank" rel="noopener">@Text("Open", "فتح")</a>}else{<span class="text-muted">-</span>}</td>
+                                <td>@EmptyValue(request.ApproverComment)</td>
+                                <td class="text-end">
+                                    @if (request.Status == AttendanceExceptionStatus.Pending)
+                                    {
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="@Text("Approval actions", "إجراءات الاعتماد")">
+                                            <button class="btn btn-outline-success" @onclick="() => ReviewAsync(request.Id, true)" disabled="@isBusy">@Text("Approve", "اعتماد")</button>
+                                            <button class="btn btn-outline-danger" @onclick="() => ReviewAsync(request.Id, false)" disabled="@isBusy">@Text("Reject", "رفض")</button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var request in requests)
-                            {
-                                <tr>
-                                    <td>@EmployeeName(request.EmployeeId)</td>
-                                    <td>@FormatDate(request.StartDate) - @FormatDate(request.EndDate)</td>
-                                    <td>@request.Reason</td>
-                                    <td><StatusChip Text="@Text(request.Status.ToString(), request.Status.ToString())" Tone="@StatusTone(request.Status)" /></td>
-                                    <td>
-                                        @if (!string.IsNullOrWhiteSpace(request.AttachmentPath))
-                                        {
-                                            <a href="@request.AttachmentPath" target="_blank" rel="noopener">@Text("Open", "Open")</a>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">-</span>
-                                        }
-                                    </td>
-                                    <td>@EmptyValue(request.ApproverComment)</td>
-                                    <td class="text-end">
-                                        @if (request.Status == AttendanceExceptionStatus.Pending)
-                                        {
-                                            <div class="btn-group btn-group-sm" role="group" aria-label="@Text("Approval actions", "Approval actions")">
-                                                <button class="btn btn-outline-success" @onclick="() => ReviewAsync(request.Id, true)" disabled="@isBusy">
-                                                    @Text("Approve", "Approve")
-                                                </button>
-                                                <button class="btn btn-outline-danger" @onclick="() => ReviewAsync(request.Id, false)" disabled="@isBusy">
-                                                    @Text("Reject", "Reject")
-                                                </button>
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">-</span>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+                        }
+                    </tbody>
+                </table>
+            </div>
 
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <span class="text-muted small">@Text("Page", "Page") @(pageIndex + 1) @Text("of", "of") @TotalPages</span>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-secondary" @onclick="PreviousPageAsync" disabled="@(isBusy || pageIndex == 0)">
-                            <i class="bi bi-chevron-left"></i>
-                        </button>
-                        <button class="btn btn-outline-secondary" @onclick="NextPageAsync" disabled="@(isBusy || pageIndex + 1 >= TotalPages)">
-                            <i class="bi bi-chevron-right"></i>
-                        </button>
-                    </div>
-                </div>
-            }
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span class="text-muted small">@Text("Page", "صفحة") @(pageIndex + 1) @Text("of", "من") @TotalPages</span>
+                <div class="btn-group btn-group-sm"><button class="btn btn-outline-secondary" @onclick="PreviousPageAsync" disabled="@(isBusy || pageIndex == 0)"><i class="bi bi-chevron-left"></i></button><button class="btn btn-outline-secondary" @onclick="NextPageAsync" disabled="@(isBusy || pageIndex + 1 >= TotalPages)"><i class="bi bi-chevron-right"></i></button></div>
+            </div>
+        }
     </AppCard>
 </section>
 
@@ -166,12 +125,9 @@
     private int pageIndex;
     private long totalCount;
     private int TotalPages => Math.Max(1, (int)Math.Ceiling(totalCount / (double)PageSize));
-    private string PendingPageText => $"{Text("Pending in this page", "Pending in this page")}: {requests.Count(x => x.Status == AttendanceExceptionStatus.Pending)}";
+    private string PendingPageText => $"{Text("Pending in this page", "المعلق في هذه الصفحة")}: {requests.Count(x => x.Status == AttendanceExceptionStatus.Pending)}";
 
-    protected override void OnInitialized()
-    {
-        SharedDataService.OnChange1 += HandleChangeAsync;
-    }
+    protected override void OnInitialized() => SharedDataService.OnChange1 += HandleChangeAsync;
 
     protected override async Task OnInitializedAsync()
     {
@@ -187,10 +143,7 @@
         var result = await LeaveService.GetEmergencyLeavesAsync(companyId, pageIndex, PageSize, SelectedStatus(), employeeId);
         requests = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
         totalCount = result.IsSuccess ? result.Data?.Count ?? 0 : 0;
-        if (!result.IsSuccess)
-        {
-            SetMessage(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load emergency leave requests.", "Unable to load emergency leave requests."), "alert-danger");
-        }
+        if (!result.IsSuccess) SetMessage(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load emergency leave requests.", "تعذر تحميل طلبات الإجازة الطارئة."), "alert-danger");
         isBusy = false;
     }
 
@@ -200,94 +153,30 @@
         employees = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
     }
 
-    private async Task ResetAndLoadAsync()
-    {
-        pageIndex = 0;
-        await LoadAsync();
-    }
+    private async Task ResetAndLoadAsync() { pageIndex = 0; await LoadAsync(); }
 
     private async Task ReviewAsync(Guid requestId, bool isApproved)
     {
         isBusy = true;
-        var result = await LeaveService.ReviewEmergencyLeaveAsync(new ReviewEmergencyLeaveRequestDto
-        {
-            RequestId = requestId,
-            IsApproved = isApproved,
-            ApproverComment = reviewComment
-        });
-
-        SetMessage(
-            result.IsSuccess
-                ? Text("Emergency leave request reviewed.", "Emergency leave request reviewed.")
-                : result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to review request.", "Unable to review request."),
-            result.IsSuccess ? "alert-success" : "alert-danger");
-
-        if (result.IsSuccess)
-        {
-            reviewComment = null;
-        }
-
+        var result = await LeaveService.ReviewEmergencyLeaveAsync(new ReviewEmergencyLeaveRequestDto { RequestId = requestId, IsApproved = isApproved, ApproverComment = reviewComment });
+        SetMessage(result.IsSuccess ? Text("Emergency leave request reviewed.", "تمت مراجعة طلب الإجازة الطارئة.") : result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to review request.", "تعذرت مراجعة الطلب."), result.IsSuccess ? "alert-success" : "alert-danger");
+        if (result.IsSuccess) reviewComment = null;
         isBusy = false;
         await LoadAsync();
     }
 
-    private async Task PreviousPageAsync()
-    {
-        if (pageIndex == 0)
-        {
-            return;
-        }
-
-        pageIndex--;
-        await LoadAsync();
-    }
-
-    private async Task NextPageAsync()
-    {
-        if (pageIndex + 1 >= TotalPages)
-        {
-            return;
-        }
-
-        pageIndex++;
-        await LoadAsync();
-    }
-
-    private AttendanceExceptionStatus? SelectedStatus()
-        => Enum.TryParse<AttendanceExceptionStatus>(selectedStatus, out var status) ? status : null;
-
-    private async Task<Guid> ResolveCompanyIdAsync()
-    {
-        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-        return Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
-    }
-
-    private string EmployeeName(Guid employeeId)
-        => employees.FirstOrDefault(x => x.Id == employeeId) is { } employee ? EmployeeName(employee) : employeeId.ToString();
-
-    private string EmployeeName(EmployeeDto employee)
-        => SharedDataService.SelectViewLang(employee.FullNameEng, employee.FullName);
-
-    private static string StatusTone(AttendanceExceptionStatus status) => status switch
-    {
-        AttendanceExceptionStatus.Approved => "success",
-        AttendanceExceptionStatus.Rejected => "danger",
-        _ => "warning"
-    };
-
+    private async Task PreviousPageAsync() { if (pageIndex == 0) return; pageIndex--; await LoadAsync(); }
+    private async Task NextPageAsync() { if (pageIndex + 1 >= TotalPages) return; pageIndex++; await LoadAsync(); }
+    private AttendanceExceptionStatus? SelectedStatus() => Enum.TryParse<AttendanceExceptionStatus>(selectedStatus, out var status) ? status : null;
+    private async Task<Guid> ResolveCompanyIdAsync() { var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync(); return Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty; }
+    private string EmployeeName(Guid employeeId) => employees.FirstOrDefault(x => x.Id == employeeId) is { } employee ? EmployeeName(employee) : employeeId.ToString();
+    private string EmployeeName(EmployeeDto employee) => SharedDataService.SelectViewLang(employee.FullNameEng, employee.FullName);
+    private string StatusText(AttendanceExceptionStatus status) => status switch { AttendanceExceptionStatus.Pending => Text("Pending", "معلق"), AttendanceExceptionStatus.Approved => Text("Approved", "معتمد"), AttendanceExceptionStatus.Rejected => Text("Rejected", "مرفوض"), _ => status.ToString() };
+    private static string StatusTone(AttendanceExceptionStatus status) => status switch { AttendanceExceptionStatus.Approved => "success", AttendanceExceptionStatus.Rejected => "danger", _ => "warning" };
     private static string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
     private static string FormatDate(DateTime date) => date.ToString("yyyy/MM/dd");
-
-    private async Task HandleChangeAsync()
-    {
-        await InvokeAsync(StateHasChanged);
-    }
-
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private void SetMessage(string text, string cssClass) { message = text; messageClass = cssClass; }
-
-    public void Dispose()
-    {
-        SharedDataService.OnChange1 -= HandleChangeAsync;
-    }
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
 }

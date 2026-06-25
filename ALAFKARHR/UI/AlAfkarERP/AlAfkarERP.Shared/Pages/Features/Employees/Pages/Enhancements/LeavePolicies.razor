@@ -2,15 +2,18 @@
 @page "/HR/LeavePolicies"
 @implements IDisposable
 @using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @using AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Employees.Dtos
 @using SharedWithUI.Leave.Dtos
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 @inject ILeaveService LeaveService
 @inject IEmployeeService EmployeeService
+@inject IDepartmentService DepartmentService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 
@@ -39,7 +42,7 @@
                             <label class="form-check"><InputCheckbox class="form-check-input" @bind-Value="typeModel.IsActive" /> <span class="form-check-label">@Text("Active", "نشطة")</span></label>
                         </div>
                         <div class="col-12 text-end">
-                            <button class="btn btn-primary" type="submit" disabled="@(!Can(PermissionList.LeavePolicyPermissions.Create) && !Can(PermissionList.LeavePolicyPermissions.Edit))"><i class="bi bi-save"></i> @Text("Save Type", "حفظ النوع")</button>
+                            <button class="btn btn-primary" type="submit" disabled="@(!CanSaveType)"><i class="bi bi-save"></i> @Text("Save Type", "حفظ النوع")</button>
                             <button class="btn btn-outline-secondary" type="button" @onclick="ResetType">@Text("New", "جديد")</button>
                         </div>
                     </div>
@@ -55,7 +58,7 @@
                         <div class="col-md-3"><label class="form-label">@Text("End", "النهاية")</label><InputDate class="form-control" @bind-Value="periodModel.EndDate" /></div>
                         <div class="col-md-2 d-flex align-items-end"><label class="form-check"><InputCheckbox class="form-check-input" @bind-Value="periodModel.IsClosed" /> <span class="form-check-label">@Text("Closed", "مغلقة")</span></label></div>
                         <div class="col-12 text-end">
-                            <button class="btn btn-primary" type="submit" disabled="@(!Can(PermissionList.LeavePolicyPermissions.Create) && !Can(PermissionList.LeavePolicyPermissions.Edit))"><i class="bi bi-save"></i> @Text("Save Period", "حفظ الفترة")</button>
+                            <button class="btn btn-primary" type="submit" disabled="@(!CanSavePeriod)"><i class="bi bi-save"></i> @Text("Save Period", "حفظ الفترة")</button>
                             <button class="btn btn-outline-secondary" type="button" @onclick="ResetPeriod">@Text("New", "جديد")</button>
                         </div>
                     </div>
@@ -85,7 +88,7 @@
                 </div>
                 <div class="col-12 text-end">
                     <label class="form-check d-inline-block me-3"><InputCheckbox class="form-check-input" @bind-Value="policyModel.IsActive" /> <span class="form-check-label">@Text("Active", "نشطة")</span></label>
-                    <button class="btn btn-primary" type="submit" disabled="@(!Can(PermissionList.LeavePolicyPermissions.Create) && !Can(PermissionList.LeavePolicyPermissions.Edit))"><i class="bi bi-save"></i> @Text("Save Policy", "حفظ السياسة")</button>
+                    <button class="btn btn-primary" type="submit" disabled="@(!CanSavePolicy)"><i class="bi bi-save"></i> @Text("Save Policy", "حفظ السياسة")</button>
                     <button class="btn btn-outline-secondary" type="button" @onclick="ResetPolicy">@Text("New", "جديد")</button>
                 </div>
             </div>
@@ -98,7 +101,8 @@
                 <EditForm Model="assignmentModel" OnValidSubmit="SaveAssignmentAsync">
                     <div class="row g-3">
                         <div class="col-md-4"><label class="form-label">@Text("Policy", "السياسة")</label><select class="form-select" @bind="assignmentPolicyId"><option value="">@Text("Select", "اختر")</option>@foreach (var policy in policies){<option value="@policy.Id">@PolicyName(policy)</option>}</select></div>
-                        <div class="col-md-3"><label class="form-label">@Text("Target", "النطاق")</label><InputSelect class="form-select" @bind-Value="assignmentModel.Target"><option value="@LeavePolicyAssignmentTarget.Company">@Text("Company", "الشركة")</option><option value="@LeavePolicyAssignmentTarget.Employee">@Text("Employee", "الموظف")</option></InputSelect></div>
+                        <div class="col-md-3"><label class="form-label">@Text("Target", "النطاق")</label><InputSelect class="form-select" @bind-Value="assignmentModel.Target" @bind-Value:after="OnAssignmentTargetChanged"><option value="@LeavePolicyAssignmentTarget.Company">@Text("Company", "الشركة")</option><option value="@LeavePolicyAssignmentTarget.Department">@Text("Department", "القسم")</option><option value="@LeavePolicyAssignmentTarget.Employee">@Text("Employee", "الموظف")</option></InputSelect></div>
+                        <div class="col-md-5"><label class="form-label">@Text("Department", "القسم")</label><select class="form-select" @bind="assignmentDepartmentId" disabled="@(assignmentModel.Target != LeavePolicyAssignmentTarget.Department)"><option value="">@Text("Select department", "اختر القسم")</option>@foreach (var department in departments){<option value="@department.Id">@DepartmentName(department)</option>}</select></div>
                         <div class="col-md-5"><label class="form-label">@Text("Employee", "الموظف")</label><select class="form-select" @bind="assignmentEmployeeId" disabled="@(assignmentModel.Target != LeavePolicyAssignmentTarget.Employee)"><option value="">@Text("Select employee", "اختر الموظف")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div>
                         <div class="col-md-4"><label class="form-label">@Text("Effective From", "يسري من")</label><InputDate class="form-control" @bind-Value="assignmentModel.EffectiveFrom" /></div>
                         <div class="col-md-4"><label class="form-label">@Text("Effective To", "يسري إلى")</label><InputDate class="form-control" @bind-Value="assignmentModel.EffectiveTo" /></div>
@@ -132,6 +136,7 @@
     private string? message;
     private string messageClass = "alert-info";
     private List<EmployeeDto> employees = [];
+    private List<DepartmentDto> departments = [];
     private List<LeaveTypeDto> leaveTypes = [];
     private List<LeavePeriodDto> periods = [];
     private List<LeavePolicyDto> policies = [];
@@ -147,8 +152,12 @@
     private decimal lineMaxCarryForward = 5;
     private string? assignmentPolicyId;
     private string? assignmentEmployeeId;
+    private string? assignmentDepartmentId;
     private string? allocationPeriodId;
     private string? allocationEmployeeId;
+    private bool CanSaveType => typeModel.Id.HasValue ? Can(PermissionList.LeavePolicyPermissions.Edit) : Can(PermissionList.LeavePolicyPermissions.Create);
+    private bool CanSavePeriod => periodModel.Id.HasValue ? Can(PermissionList.LeavePolicyPermissions.Edit) : Can(PermissionList.LeavePolicyPermissions.Create);
+    private bool CanSavePolicy => policyModel.Id.HasValue ? Can(PermissionList.LeavePolicyPermissions.Edit) : Can(PermissionList.LeavePolicyPermissions.Create);
 
     protected override void OnInitialized() => SharedDataService.OnChange1 += HandleChangeAsync;
 
@@ -164,6 +173,10 @@
     {
         var employeeResult = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 5000);
         employees = employeeResult.IsSuccess ? employeeResult.Data?.Data.ToList() ?? [] : [];
+        var departmentResult = await DepartmentService.GetAsync(0, 5000);
+        departments = departmentResult.IsSuccess
+            ? departmentResult.Data?.Data.Where(x => x.CompanyId == companyId).ToList() ?? []
+            : [];
         leaveTypes = (await LeaveService.GetLeaveTypesAsync(companyId)).Data ?? [];
         periods = (await LeaveService.GetLeavePeriodsAsync(companyId)).Data ?? [];
         policies = (await LeaveService.GetLeavePoliciesAsync(companyId)).Data ?? [];
@@ -178,6 +191,7 @@
     {
         assignmentModel.PolicyId = Parse(assignmentPolicyId);
         assignmentModel.EmployeeId = assignmentModel.Target == LeavePolicyAssignmentTarget.Employee ? ParseNullable(assignmentEmployeeId) : null;
+        assignmentModel.DepartmentId = assignmentModel.Target == LeavePolicyAssignmentTarget.Department ? ParseNullable(assignmentDepartmentId) : null;
         await SaveAsync(() => LeaveService.UpsertLeavePolicyAssignmentAsync(assignmentModel), ResetAssignment);
     }
 
@@ -207,13 +221,19 @@
         policyModel.Lines.Add(new LeavePolicyLineDto { LeaveTypeId = typeId, AnnualAllocationDays = lineDays, AccruesMonthly = lineAccruesMonthly, AllowCarryForward = lineAllowCarryForward, MaxCarryForwardDays = lineAllowCarryForward ? lineMaxCarryForward : 0 });
     }
 
-    private async Task DeleteTypeAsync(Guid id) => await DeleteAsync(() => LeaveService.DeleteLeaveTypeAsync(id));
-    private async Task DeletePeriodAsync(Guid id) => await DeleteAsync(() => LeaveService.DeleteLeavePeriodAsync(id));
-    private async Task DeletePolicyAsync(Guid id) => await DeleteAsync(() => LeaveService.DeleteLeavePolicyAsync(id));
-    private async Task DeleteAssignmentAsync(Guid id) => await DeleteAsync(() => LeaveService.DeleteLeavePolicyAssignmentAsync(id));
+    private async Task DeleteTypeAsync(Guid id) => await DeleteAsync(() => LeaveService.DeleteLeaveTypeAsync(id), PermissionList.LeavePolicyPermissions.Delete);
+    private async Task DeletePeriodAsync(Guid id) => await DeleteAsync(() => LeaveService.DeleteLeavePeriodAsync(id), PermissionList.LeavePolicyPermissions.Delete);
+    private async Task DeletePolicyAsync(Guid id) => await DeleteAsync(() => LeaveService.DeleteLeavePolicyAsync(id), PermissionList.LeavePolicyPermissions.Delete);
+    private async Task DeleteAssignmentAsync(Guid id) => await DeleteAsync(() => LeaveService.DeleteLeavePolicyAssignmentAsync(id), PermissionList.LeavePolicyPermissions.Assign);
 
-    private async Task DeleteAsync(Func<Task<ApiResult<bool>>> action)
+    private async Task DeleteAsync(Func<Task<ApiResult<bool>>> action, string permission)
     {
+        if (!Can(permission))
+        {
+            SetMessage(Text("You do not have permission for this action.", "ليست لديك صلاحية لهذا الإجراء."), "alert-warning");
+            return;
+        }
+
         var result = await action();
         SetMessage(result.IsSuccess ? Text("Deleted successfully.", "تم الحذف بنجاح.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger");
         if (result.IsSuccess) await LoadAsync();
@@ -222,7 +242,7 @@
     private void EditType(LeaveTypeDto item) => typeModel = new() { Id = item.Id, CompanyId = item.CompanyId, Code = item.Code, Name = item.Name, NameEng = item.NameEng, IsPaid = item.IsPaid, AllowNegativeBalance = item.AllowNegativeBalance, NegativeBalanceLimit = item.NegativeBalanceLimit, RequiresAttachment = item.RequiresAttachment, IsEmergencyLeave = item.IsEmergencyLeave, IsActive = item.IsActive };
     private void EditPeriod(LeavePeriodDto item) => periodModel = new() { Id = item.Id, CompanyId = item.CompanyId, Name = item.Name, StartDate = item.StartDate, EndDate = item.EndDate, IsClosed = item.IsClosed };
     private void EditPolicy(LeavePolicyDto item) => policyModel = new() { Id = item.Id, CompanyId = item.CompanyId, Name = item.Name, NameEng = item.NameEng, IsActive = item.IsActive, Lines = item.Lines.Select(CloneLine).ToList() };
-    private void EditAssignment(LeavePolicyAssignmentDto item) { assignmentModel = new() { Id = item.Id, CompanyId = item.CompanyId, PolicyId = item.PolicyId, Target = item.Target, EmployeeId = item.EmployeeId, DepartmentId = item.DepartmentId, EffectiveFrom = item.EffectiveFrom, EffectiveTo = item.EffectiveTo }; assignmentPolicyId = item.PolicyId.ToString(); assignmentEmployeeId = item.EmployeeId?.ToString(); }
+    private void EditAssignment(LeavePolicyAssignmentDto item) { assignmentModel = new() { Id = item.Id, CompanyId = item.CompanyId, PolicyId = item.PolicyId, Target = item.Target, EmployeeId = item.EmployeeId, DepartmentId = item.DepartmentId, EffectiveFrom = item.EffectiveFrom, EffectiveTo = item.EffectiveTo }; assignmentPolicyId = item.PolicyId.ToString(); assignmentEmployeeId = item.EmployeeId?.ToString(); assignmentDepartmentId = item.DepartmentId?.ToString(); }
     private void EditPolicyLine(LeavePolicyLineDto line) { lineLeaveTypeId = line.LeaveTypeId.ToString(); lineDays = line.AnnualAllocationDays; lineAccruesMonthly = line.AccruesMonthly; lineAllowCarryForward = line.AllowCarryForward; lineMaxCarryForward = line.MaxCarryForwardDays; }
     private static LeavePolicyLineDto CloneLine(LeavePolicyLineDto line) => new() { Id = line.Id, LeaveTypeId = line.LeaveTypeId, LeaveTypeName = line.LeaveTypeName, LeaveTypeNameEng = line.LeaveTypeNameEng, AnnualAllocationDays = line.AnnualAllocationDays, AccruesMonthly = line.AccruesMonthly, AllowCarryForward = line.AllowCarryForward, MaxCarryForwardDays = line.MaxCarryForwardDays };
     private void RemovePolicyLine(LeavePolicyLineDto line) => policyModel.Lines.Remove(line);
@@ -230,7 +250,12 @@
     private void ResetType() => typeModel = NewType(companyId);
     private void ResetPeriod() => periodModel = NewPeriod(companyId);
     private void ResetPolicy() => policyModel = NewPolicy(companyId);
-    private void ResetAssignment() { assignmentModel = NewAssignment(companyId); assignmentPolicyId = null; assignmentEmployeeId = null; }
+    private void ResetAssignment() { assignmentModel = NewAssignment(companyId); assignmentPolicyId = null; assignmentEmployeeId = null; assignmentDepartmentId = null; }
+    private void OnAssignmentTargetChanged()
+    {
+        if (assignmentModel.Target != LeavePolicyAssignmentTarget.Employee) assignmentEmployeeId = null;
+        if (assignmentModel.Target != LeavePolicyAssignmentTarget.Department) assignmentDepartmentId = null;
+    }
     private static UpsertLeaveTypeDto NewType(Guid companyId = default) => new() { CompanyId = companyId, IsPaid = true, IsActive = true };
     private static UpsertLeavePeriodDto NewPeriod(Guid companyId = default) => new() { CompanyId = companyId, Name = DateTime.Today.Year.ToString(), StartDate = new(DateTime.Today.Year, 1, 1), EndDate = new(DateTime.Today.Year, 12, 31) };
     private static UpsertLeavePolicyDto NewPolicy(Guid companyId = default) => new() { CompanyId = companyId, IsActive = true };
@@ -239,8 +264,16 @@
     private string LeaveTypeName(LeaveTypeDto type) => SharedDataService.SelectViewLang(type.NameEng, type.Name);
     private string PolicyName(LeavePolicyDto policy) => SharedDataService.SelectViewLang(policy.NameEng, policy.Name);
     private string PolicyName(Guid id) => policies.FirstOrDefault(x => x.Id == id) is { } policy ? PolicyName(policy) : id.ToString();
-    private string EmployeeName(Guid? employeeId) => employeeId.HasValue && employees.FirstOrDefault(x => x.Id == employeeId.Value) is { } employee ? EmployeeName(employee) : Text("Company", "الشركة");
+    private string TargetName(LeavePolicyAssignmentDto assignment) => assignment.Target switch
+    {
+        LeavePolicyAssignmentTarget.Employee => EmployeeName(assignment.EmployeeId),
+        LeavePolicyAssignmentTarget.Department => DepartmentName(assignment.DepartmentId),
+        _ => Text("Company", "الشركة")
+    };
+    private string EmployeeName(Guid? employeeId) => employeeId.HasValue && employees.FirstOrDefault(x => x.Id == employeeId.Value) is { } employee ? EmployeeName(employee) : Text("Employee", "الموظف");
     private string EmployeeName(EmployeeDto employee) => SharedDataService.SelectViewLang(employee.FullNameEng, employee.FullName);
+    private string DepartmentName(Guid? departmentId) => departmentId.HasValue && departments.FirstOrDefault(x => x.Id == departmentId.Value) is { } department ? DepartmentName(department) : Text("Department", "القسم");
+    private string DepartmentName(DepartmentDto department) => SharedDataService.SelectViewLang(department.NameEng, department.Name);
     private bool Can(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
     private static Guid Parse(string? value) => Guid.TryParse(value, out var id) ? id : Guid.Empty;
     private static Guid? ParseNullable(string? value) => Guid.TryParse(value, out var id) ? id : null;
@@ -252,9 +285,9 @@
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
 
     private RenderFragment EmptyList() => @<p class="text-muted mb-0">@Text("No records yet.", "لا توجد سجلات بعد.")</p>;
-    private RenderFragment TypeList() => @<div>@if (leaveTypes.Count == 0){@EmptyList()}else{<div class="table-responsive"><table class="table table-sm align-middle"><tbody>@foreach (var item in leaveTypes){<tr><td><div class="fw-semibold">@item.Code</div><div class="small text-muted">@LeaveTypeName(item)</div></td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => EditType(item)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteTypeAsync(item.Id)"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>}</div>;
-    private RenderFragment PeriodList() => @<div>@if (periods.Count == 0){@EmptyList()}else{<div class="table-responsive"><table class="table table-sm align-middle"><tbody>@foreach (var item in periods){<tr><td><div class="fw-semibold">@item.Name</div><div class="small text-muted">@item.StartDate.ToShortDateString() - @item.EndDate.ToShortDateString()</div></td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => EditPeriod(item)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeletePeriodAsync(item.Id)"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>}</div>;
-    private RenderFragment PolicyList() => @<div>@if (policies.Count == 0){@EmptyList()}else{<div class="table-responsive"><table class="table table-sm align-middle"><tbody>@foreach (var item in policies){<tr><td><div class="fw-semibold">@PolicyName(item)</div><div class="small text-muted">@item.Lines.Count @Text("lines", "بنود")</div></td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => EditPolicy(item)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeletePolicyAsync(item.Id)"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>}</div>;
-    private RenderFragment AssignmentList() => @<div>@if (assignments.Count == 0){@EmptyList()}else{<div class="table-responsive"><table class="table table-sm align-middle"><tbody>@foreach (var item in assignments){<tr><td><div class="fw-semibold">@PolicyName(item.PolicyId)</div><div class="small text-muted">@item.Target · @EmployeeName(item.EmployeeId)</div></td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => EditAssignment(item)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteAssignmentAsync(item.Id)"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>}</div>;
+    private RenderFragment TypeList() => @<div>@if (leaveTypes.Count == 0){@EmptyList()}else{<div class="table-responsive"><table class="table table-sm align-middle"><tbody>@foreach (var item in leaveTypes){<tr><td><div class="fw-semibold">@item.Code</div><div class="small text-muted">@LeaveTypeName(item)</div></td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => EditType(item)" disabled="@(!Can(PermissionList.LeavePolicyPermissions.Edit))"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteTypeAsync(item.Id)" disabled="@(!Can(PermissionList.LeavePolicyPermissions.Delete))"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>}</div>;
+    private RenderFragment PeriodList() => @<div>@if (periods.Count == 0){@EmptyList()}else{<div class="table-responsive"><table class="table table-sm align-middle"><tbody>@foreach (var item in periods){<tr><td><div class="fw-semibold">@item.Name</div><div class="small text-muted">@item.StartDate.ToShortDateString() - @item.EndDate.ToShortDateString()</div></td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => EditPeriod(item)" disabled="@(!Can(PermissionList.LeavePolicyPermissions.Edit))"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeletePeriodAsync(item.Id)" disabled="@(!Can(PermissionList.LeavePolicyPermissions.Delete))"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>}</div>;
+    private RenderFragment PolicyList() => @<div>@if (policies.Count == 0){@EmptyList()}else{<div class="table-responsive"><table class="table table-sm align-middle"><tbody>@foreach (var item in policies){<tr><td><div class="fw-semibold">@PolicyName(item)</div><div class="small text-muted">@item.Lines.Count @Text("lines", "بنود")</div></td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => EditPolicy(item)" disabled="@(!Can(PermissionList.LeavePolicyPermissions.Edit))"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeletePolicyAsync(item.Id)" disabled="@(!Can(PermissionList.LeavePolicyPermissions.Delete))"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>}</div>;
+    private RenderFragment AssignmentList() => @<div>@if (assignments.Count == 0){@EmptyList()}else{<div class="table-responsive"><table class="table table-sm align-middle"><tbody>@foreach (var item in assignments){<tr><td><div class="fw-semibold">@PolicyName(item.PolicyId)</div><div class="small text-muted">@item.Target · @TargetName(item)</div></td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => EditAssignment(item)" disabled="@(!Can(PermissionList.LeavePolicyPermissions.Assign))"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteAssignmentAsync(item.Id)" disabled="@(!Can(PermissionList.LeavePolicyPermissions.Assign))"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>}</div>;
 }
 

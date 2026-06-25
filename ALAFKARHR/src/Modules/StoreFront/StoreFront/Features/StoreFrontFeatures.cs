@@ -414,7 +414,7 @@ public class StoreFrontCommandHandler(
             ensuredBranch.BranchId,
             userId,
             RequireActive: true,
-            RequireLinkedUser: true), cancellationToken);
+            RequireLinkedUser: false), cancellationToken);
         request.Store.StoreManagerName = manager.FullName;
         request.Store.StoreManagerNameEng = manager.FullNameEng;
 
@@ -431,11 +431,14 @@ public class StoreFrontCommandHandler(
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
-        await sender.Send(new AssignStoreFrontBranchRoleCommand(
-            manager.LinkedUserId!.Value,
-            request.Store.CompanyId,
-            ensuredBranch.BranchId,
-            "store-admin"), cancellationToken);
+        if (manager.LinkedUserId.HasValue && manager.LinkedUserId.Value != Guid.Empty)
+        {
+            await sender.Send(new AssignStoreFrontBranchRoleCommand(
+                manager.LinkedUserId.Value,
+                request.Store.CompanyId,
+                ensuredBranch.BranchId,
+                "store-admin"), cancellationToken);
+        }
 
         if (previousManagerEmployeeId.HasValue && previousManagerEmployeeId.Value != request.Store.StoreManagerEmployeeId.Value)
             await MovePreviousStoreManagerToMainBranchAsync(

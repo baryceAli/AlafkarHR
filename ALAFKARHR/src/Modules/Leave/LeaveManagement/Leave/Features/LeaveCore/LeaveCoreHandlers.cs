@@ -37,11 +37,11 @@ public record GenerateLeaveAllocationsResult(int CreatedEntries);
 
 public record GetLeaveApplicationsQuery(Guid CompanyId, Guid? EmployeeId, LeaveApplicationStatus? Status) : IQuery<GetLeaveApplicationsResult>;
 public record GetLeaveApplicationsResult(List<LeaveApplicationDto> Applications);
-public record UpsertLeaveApplicationCommand(UpsertLeaveApplicationDto Application, string? UserId) : ICommand<UpsertLeaveApplicationResult>;
+public record UpsertLeaveApplicationCommand(UpsertLeaveApplicationDto Application, string? UserId, Guid? ScopeCompanyId = null, Guid? ScopeEmployeeId = null) : ICommand<UpsertLeaveApplicationResult>;
 public record UpsertLeaveApplicationResult(LeaveApplicationDto Application);
-public record SubmitLeaveApplicationCommand(Guid Id, string? UserId) : ICommand<LeaveApplicationActionResult>;
+public record SubmitLeaveApplicationCommand(Guid Id, string? UserId, Guid? ScopeCompanyId = null, Guid? ScopeEmployeeId = null) : ICommand<LeaveApplicationActionResult>;
 public record ReviewLeaveApplicationCommand(ReviewLeaveApplicationDto Review, string UserId) : ICommand<LeaveApplicationActionResult>;
-public record CancelLeaveApplicationCommand(Guid Id, string? UserId) : ICommand<LeaveApplicationActionResult>;
+public record CancelLeaveApplicationCommand(Guid Id, string? UserId, Guid? ScopeCompanyId = null, Guid? ScopeEmployeeId = null) : ICommand<LeaveApplicationActionResult>;
 public record LeaveApplicationActionResult(LeaveApplicationDto Application);
 
 public record GetLeaveLedgerEntriesQuery(Guid CompanyId, Guid? EmployeeId, Guid? LeaveTypeId, Guid? LeavePeriodId) : IQuery<GetLeaveLedgerEntriesResult>;
@@ -351,6 +351,7 @@ public class LeaveCoreHandler(LeaveDbContext leaveDbContext, AttendanceDbContext
         }
         else
         {
+            EnsureApplicationScope(application, request.ScopeCompanyId, request.ScopeEmployeeId);
             application.UpdateDraft(request.Application, totalDays, request.UserId);
         }
 
@@ -363,6 +364,7 @@ public class LeaveCoreHandler(LeaveDbContext leaveDbContext, AttendanceDbContext
     {
         var application = await leaveDbContext.LeaveApplications.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException("LeaveApplication", request.Id);
+        EnsureApplicationScope(application, request.ScopeCompanyId, request.ScopeEmployeeId);
         application.Submit(request.UserId);
         await leaveDbContext.SaveChangesAsync(cancellationToken);
         var types = await GetTypeMapAsync(application.CompanyId, cancellationToken);
@@ -421,6 +423,7 @@ public class LeaveCoreHandler(LeaveDbContext leaveDbContext, AttendanceDbContext
     {
         var application = await leaveDbContext.LeaveApplications.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException("LeaveApplication", request.Id);
+        EnsureApplicationScope(application, request.ScopeCompanyId, request.ScopeEmployeeId);
         application.Cancel(request.UserId);
         await leaveDbContext.SaveChangesAsync(cancellationToken);
         var types = await GetTypeMapAsync(application.CompanyId, cancellationToken);
@@ -657,6 +660,15 @@ public class LeaveCoreHandler(LeaveDbContext leaveDbContext, AttendanceDbContext
             ApproverComment = application.ApproverComment,
             CreatedAt = application.CreatedAt
         };
+    }
+
+    private static void EnsureApplicationScope(LeaveApplication application, Guid? companyId, Guid? employeeId)
+    {
+        if ((companyId.HasValue && application.CompanyId != companyId.Value)
+            || (employeeId.HasValue && application.EmployeeId != employeeId.Value))
+        {
+            throw new NotFoundException("LeaveApplication", application.Id);
+        }
     }
 
     private static LeaveLedgerEntryDto ToDto(LeaveLedgerEntry entry, Dictionary<Guid, LeaveType> types)

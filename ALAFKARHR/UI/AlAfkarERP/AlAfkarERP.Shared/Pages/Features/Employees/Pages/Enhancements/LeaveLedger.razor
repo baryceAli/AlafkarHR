@@ -15,7 +15,10 @@
 @inject SharedDataService SharedDataService
 
 <main class="erp-page" dir="@SharedDataService.PageDirection">
-    <PageHeader Title="@Text("Leave Ledger", "سجل الإجازات")" Subtitle="@Text("Review leave balance movements, add adjustments, and post encashments.", "مراجعة حركات أرصدة الإجازات وإضافة التسويات وصرف الرصيد.")" Overline="@Text("Leave Management", "إدارة الإجازات")" Icon="bi-journal-text" />
+    <PageHeader Title="@Text("Leave Ledger", "سجل الإجازات")"
+                Subtitle="@Text("Review leave balance movements, add adjustments, and post encashments.", "مراجعة حركات أرصدة الإجازات وإضافة التسويات وصرف الرصيد.")"
+                Overline="@Text("Leave Management", "إدارة الإجازات")"
+                Icon="bi-journal-text" />
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
@@ -27,48 +30,56 @@
             <div class="col-md-3"><label class="form-label">@Text("Employee", "الموظف")</label><select class="form-select" @bind="filterEmployeeId"><option value="">@Text("All employees", "كل الموظفين")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div>
             <div class="col-md-3"><label class="form-label">@Text("Leave Type", "نوع الإجازة")</label><select class="form-select" @bind="filterLeaveTypeId"><option value="">@Text("All types", "كل الأنواع")</option>@foreach (var type in leaveTypes){<option value="@type.Id">@LeaveTypeName(type)</option>}</select></div>
             <div class="col-md-3"><label class="form-label">@Text("Period", "الفترة")</label><select class="form-select" @bind="filterPeriodId"><option value="">@Text("All periods", "كل الفترات")</option>@foreach (var period in periods){<option value="@period.Id">@period.Name</option>}</select></div>
-            <div class="col-md-3"><button class="btn btn-outline-primary w-100" type="button" @onclick="LoadLedgerAsync"><i class="bi bi-arrow-repeat"></i> @Text("Load Ledger", "تحميل السجل")</button></div>
+            <div class="col-md-3"><button class="btn btn-outline-primary w-100" type="button" @onclick="LoadLedgerAsync" disabled="@isBusy"><i class="bi bi-arrow-repeat"></i> @Text("Load Ledger", "تحميل السجل")</button></div>
         </div>
     </AppCard>
 
     <div class="row g-3 mb-3">
-        <div class="col-12 col-xl-6">
-            <AppCard Title="@Text("Manual Adjustment", "تسوية يدوية")">
-                <EditForm Model="adjustmentModel" OnValidSubmit="CreateAdjustmentAsync">
-                    <div class="row g-3">
-                        <div class="col-md-4"><label class="form-label">@Text("Employee", "الموظف")</label><select class="form-select" @bind="adjustmentEmployeeId"><option value="">@Text("Select employee", "اختر الموظف")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div>
-                        <div class="col-md-4"><label class="form-label">@Text("Leave Type", "نوع الإجازة")</label><select class="form-select" @bind="adjustmentLeaveTypeId"><option value="">@Text("Select type", "اختر النوع")</option>@foreach (var type in leaveTypes){<option value="@type.Id">@LeaveTypeName(type)</option>}</select></div>
-                        <div class="col-md-2"><label class="form-label">@Text("Days", "الأيام")</label><InputNumber class="form-control" @bind-Value="adjustmentModel.Days" /></div>
-                        <div class="col-md-2"><label class="form-label">@Text("Date", "التاريخ")</label><InputDate class="form-control" @bind-Value="adjustmentModel.PostingDate" /></div>
-                        <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="adjustmentModel.Notes" /></div>
-                        <div class="col-12 text-end"><button class="btn btn-primary" type="submit" disabled="@(!Can(PermissionList.LeaveLedgerPermissions.Adjust))"><i class="bi bi-plus-circle"></i> @Text("Post Adjustment", "ترحيل التسوية")</button></div>
-                    </div>
-                </EditForm>
-            </AppCard>
-        </div>
-        <div class="col-12 col-xl-6">
-            <AppCard Title="@Text("Encashment", "صرف الرصيد")">
-                <EditForm Model="encashmentModel" OnValidSubmit="CreateEncashmentAsync">
-                    <div class="row g-3">
-                        <div class="col-md-4"><label class="form-label">@Text("Employee", "الموظف")</label><select class="form-select" @bind="encashmentEmployeeId"><option value="">@Text("Select employee", "اختر الموظف")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div>
-                        <div class="col-md-4"><label class="form-label">@Text("Leave Type", "نوع الإجازة")</label><select class="form-select" @bind="encashmentLeaveTypeId"><option value="">@Text("Select type", "اختر النوع")</option>@foreach (var type in leaveTypes){<option value="@type.Id">@LeaveTypeName(type)</option>}</select></div>
-                        <div class="col-md-2"><label class="form-label">@Text("Days", "الأيام")</label><InputNumber class="form-control" @bind-Value="encashmentModel.Days" /></div>
-                        <div class="col-md-2"><label class="form-label">@Text("Amount", "المبلغ")</label><InputNumber class="form-control" @bind-Value="encashmentModel.Amount" /></div>
-                        <div class="col-12 text-end"><button class="btn btn-primary" type="submit" disabled="@(!Can(PermissionList.LeaveLedgerPermissions.Encash))"><i class="bi bi-cash-coin"></i> @Text("Post Encashment", "ترحيل الصرف")</button></div>
-                    </div>
-                </EditForm>
-            </AppCard>
-        </div>
+        @if (Can(PermissionList.LeaveLedgerPermissions.Adjust))
+        {
+            <div class="col-12 col-xl-6">
+                <AppCard Title="@Text("Manual Adjustment", "تسوية يدوية")">
+                    <EditForm Model="adjustmentModel" OnValidSubmit="CreateAdjustmentAsync">
+                        <div class="row g-3">
+                            <div class="col-md-4"><label class="form-label">@Text("Employee", "الموظف")</label><select class="form-select" @bind="adjustmentEmployeeId"><option value="">@Text("Select employee", "اختر الموظف")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div>
+                            <div class="col-md-4"><label class="form-label">@Text("Leave Type", "نوع الإجازة")</label><select class="form-select" @bind="adjustmentLeaveTypeId"><option value="">@Text("Select type", "اختر النوع")</option>@foreach (var type in leaveTypes){<option value="@type.Id">@LeaveTypeName(type)</option>}</select></div>
+                            <div class="col-md-4"><label class="form-label">@Text("Period", "الفترة")</label><select class="form-select" @bind="adjustmentPeriodId"><option value="">@Text("No period", "بدون فترة")</option>@foreach (var period in periods){<option value="@period.Id">@period.Name</option>}</select></div>
+                            <div class="col-md-3"><label class="form-label">@Text("Days", "الأيام")</label><InputNumber class="form-control" @bind-Value="adjustmentModel.Days" /></div>
+                            <div class="col-md-3"><label class="form-label">@Text("Date", "التاريخ")</label><InputDate class="form-control" @bind-Value="adjustmentModel.PostingDate" /></div>
+                            <div class="col-md-6"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="adjustmentModel.Notes" /></div>
+                            <div class="col-12 text-end"><button class="btn btn-primary" type="submit" disabled="@isBusy"><i class="bi bi-plus-circle"></i> @Text("Post Adjustment", "ترحيل التسوية")</button></div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+        }
+
+        @if (Can(PermissionList.LeaveLedgerPermissions.Encash))
+        {
+            <div class="col-12 col-xl-6">
+                <AppCard Title="@Text("Encashment", "صرف الرصيد")">
+                    <EditForm Model="encashmentModel" OnValidSubmit="CreateEncashmentAsync">
+                        <div class="row g-3">
+                            <div class="col-md-4"><label class="form-label">@Text("Employee", "الموظف")</label><select class="form-select" @bind="encashmentEmployeeId"><option value="">@Text("Select employee", "اختر الموظف")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div>
+                            <div class="col-md-4"><label class="form-label">@Text("Leave Type", "نوع الإجازة")</label><select class="form-select" @bind="encashmentLeaveTypeId"><option value="">@Text("Select type", "اختر النوع")</option>@foreach (var type in leaveTypes){<option value="@type.Id">@LeaveTypeName(type)</option>}</select></div>
+                            <div class="col-md-2"><label class="form-label">@Text("Days", "الأيام")</label><InputNumber class="form-control" @bind-Value="encashmentModel.Days" /></div>
+                            <div class="col-md-2"><label class="form-label">@Text("Amount", "المبلغ")</label><InputNumber class="form-control" @bind-Value="encashmentModel.Amount" /></div>
+                            <div class="col-12 text-end"><button class="btn btn-primary" type="submit" disabled="@isBusy"><i class="bi bi-cash-coin"></i> @Text("Post Encashment", "ترحيل الصرف")</button></div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+        }
     </div>
 
     <AppCard Title="@Text("Ledger Entries", "قيود السجل")">
-        <div class="table-responsive">
-            <table class="table align-middle">
+        <div class="erp-table-wrap">
+            <table class="table erp-table align-middle mb-0">
                 <thead><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Employee", "الموظف")</th><th>@Text("Type", "النوع")</th><th>@Text("Entry", "القيد")</th><th>@Text("Days", "الأيام")</th><th>@Text("Balance", "الرصيد")</th><th>@Text("Notes", "ملاحظات")</th></tr></thead>
                 <tbody>
                     @if (entries.Count == 0)
                     {
-                        <tr><td colspan="7" class="text-center text-muted py-4">@Text("No ledger entries found.", "لا توجد قيود في السجل.")</td></tr>
+                        <tr><td colspan="7"><EmptyState Title="@Text("No ledger entries found", "لا توجد قيود في السجل")" Message="@Text("Ledger movements will appear here after allocations, applications, adjustments, or encashments are posted.", "ستظهر حركات السجل هنا بعد ترحيل المخصصات أو الطلبات أو التسويات أو الصرف.")" Icon="bi-journal-text" /></td></tr>
                     }
                     else
                     {
@@ -78,7 +89,7 @@
                                 <td>@entry.PostingDate.ToString("yyyy-MM-dd")</td>
                                 <td>@EmployeeName(entry.EmployeeId)</td>
                                 <td>@LeaveTypeName(entry)</td>
-                                <td>@entry.EntryType</td>
+                                <td>@EntryTypeText(entry.EntryType)</td>
                                 <td class="@(entry.Days < 0 ? "text-danger" : "text-success")">@entry.Days.ToString("0.##")</td>
                                 <td>@entry.BalanceAfter.ToString("0.##")</td>
                                 <td>@entry.Notes</td>
@@ -96,6 +107,7 @@
     private AuthenticationState? authState;
     private string? message;
     private string messageClass = "alert-info";
+    private bool isBusy;
     private List<EmployeeDto> employees = [];
     private List<LeaveTypeDto> leaveTypes = [];
     private List<LeavePeriodDto> periods = [];
@@ -107,6 +119,7 @@
     private string? filterPeriodId;
     private string? adjustmentEmployeeId;
     private string? adjustmentLeaveTypeId;
+    private string? adjustmentPeriodId;
     private string? encashmentEmployeeId;
     private string? encashmentLeaveTypeId;
 
@@ -122,11 +135,13 @@
 
     private async Task LoadAsync()
     {
+        isBusy = true;
         var employeeResult = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 5000);
         employees = employeeResult.IsSuccess ? employeeResult.Data?.Data.ToList() ?? [] : [];
         leaveTypes = (await LeaveService.GetLeaveTypesAsync(companyId)).Data ?? [];
         periods = (await LeaveService.GetLeavePeriodsAsync(companyId)).Data ?? [];
         await LoadLedgerAsync();
+        isBusy = false;
     }
 
     private async Task LoadLedgerAsync()
@@ -138,9 +153,16 @@
 
     private async Task CreateAdjustmentAsync()
     {
+        if (!Can(PermissionList.LeaveLedgerPermissions.Adjust))
+        {
+            SetMessage(Text("You do not have permission to post adjustments.", "ليست لديك صلاحية ترحيل التسويات."), "alert-warning");
+            return;
+        }
+
         adjustmentModel.CompanyId = companyId;
         adjustmentModel.EmployeeId = Parse(adjustmentEmployeeId);
         adjustmentModel.LeaveTypeId = Parse(adjustmentLeaveTypeId);
+        adjustmentModel.LeavePeriodId = ParseNullable(adjustmentPeriodId);
         var result = await LeaveService.CreateLeaveLedgerAdjustmentAsync(adjustmentModel);
         SetMessage(result.IsSuccess ? Text("Adjustment posted.", "تم ترحيل التسوية.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger");
         if (result.IsSuccess) { ResetAdjustment(); await LoadLedgerAsync(); }
@@ -148,6 +170,12 @@
 
     private async Task CreateEncashmentAsync()
     {
+        if (!Can(PermissionList.LeaveLedgerPermissions.Encash))
+        {
+            SetMessage(Text("You do not have permission to post encashments.", "ليست لديك صلاحية ترحيل صرف الرصيد."), "alert-warning");
+            return;
+        }
+
         encashmentModel.CompanyId = companyId;
         encashmentModel.EmployeeId = Parse(encashmentEmployeeId);
         encashmentModel.LeaveTypeId = Parse(encashmentLeaveTypeId);
@@ -157,13 +185,14 @@
     }
 
     private void ResetModels() { ResetAdjustment(); ResetEncashment(); }
-    private void ResetAdjustment() { adjustmentModel = NewAdjustment(companyId); adjustmentEmployeeId = null; adjustmentLeaveTypeId = null; }
+    private void ResetAdjustment() { adjustmentModel = NewAdjustment(companyId); adjustmentEmployeeId = null; adjustmentLeaveTypeId = null; adjustmentPeriodId = null; }
     private void ResetEncashment() { encashmentModel = new CreateLeaveEncashmentDto { CompanyId = companyId }; encashmentEmployeeId = null; encashmentLeaveTypeId = null; }
     private static CreateLeaveLedgerAdjustmentDto NewAdjustment(Guid companyId = default) => new() { CompanyId = companyId, PostingDate = DateTime.Today };
     private string EmployeeName(Guid id) => employees.FirstOrDefault(x => x.Id == id) is { } employee ? EmployeeName(employee) : id.ToString();
     private string EmployeeName(EmployeeDto employee) => SharedDataService.SelectViewLang(employee.FullNameEng, employee.FullName);
     private string LeaveTypeName(LeaveTypeDto type) => SharedDataService.SelectViewLang(type.NameEng, type.Name);
     private string LeaveTypeName(LeaveLedgerEntryDto entry) => SharedDataService.SelectViewLang(entry.LeaveTypeNameEng ?? entry.LeaveTypeId.ToString(), entry.LeaveTypeName ?? entry.LeaveTypeId.ToString());
+    private string EntryTypeText(LeaveLedgerEntryType entryType) => entryType switch { LeaveLedgerEntryType.Allocation => Text("Allocation", "مخصص"), LeaveLedgerEntryType.Application => Text("Application", "طلب"), LeaveLedgerEntryType.Adjustment => Text("Adjustment", "تسوية"), LeaveLedgerEntryType.CarryForward => Text("Carry forward", "ترحيل"), LeaveLedgerEntryType.Encashment => Text("Encashment", "صرف"), LeaveLedgerEntryType.Expiry => Text("Expiry", "انتهاء"), _ => entryType.ToString() };
     private bool Can(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
     private static Guid Parse(string? value) => Guid.TryParse(value, out var id) ? id : Guid.Empty;
     private static Guid? ParseNullable(string? value) => Guid.TryParse(value, out var id) ? id : null;
