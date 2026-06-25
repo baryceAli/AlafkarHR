@@ -107,7 +107,7 @@ public static partial class NavigationMenuResolver
     public static readonly IReadOnlyList<NavigationWorkspace> MobileWorkspaces =
     [
         new(WorkspaceHome, "Home", "\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629", "bi-house-door", "/Dashboard"),
-        new(WorkspaceStoreFront, "StoreFront", "\u0648\u0627\u062c\u0647\u0627\u062a \u0627\u0644\u0645\u062a\u0627\u062c\u0631", "bi-shop", "/StoreFront/POS"),
+        new(WorkspaceStoreFront, "StoreFront", "\u0648\u0627\u062c\u0647\u0627\u062a \u0627\u0644\u0645\u062a\u0627\u062c\u0631", "bi-shop", "/StoreFront/Stores"),
         new(WorkspaceHr, "HR", "\u0627\u0644\u0645\u0648\u0627\u0631\u062f", "bi-people", "/Employee/Dashboard"),
         new(WorkspaceSales, "Sales", "\u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a", "bi-graph-up-arrow", "/Sales/Dashboard"),
         new(WorkspacePurchasing, "Purchasing", "\u0627\u0644\u0645\u0634\u062a\u0631\u064a\u0627\u062a", "bi-cart-check", "/Procurement/Dashboard"),
@@ -397,6 +397,11 @@ public static partial class NavigationMenuResolver
         if (TryResolveWorkspaceMatch(currentPath, preferredWorkspaceKey, out var preferredWorkspace))
         {
             return preferredWorkspace;
+        }
+
+        if (currentPath.StartsWith("/storefront", StringComparison.OrdinalIgnoreCase))
+        {
+            return WorkspaceStoreFront;
         }
 
         if (currentPath.StartsWith("/projectmanagement", StringComparison.OrdinalIgnoreCase))

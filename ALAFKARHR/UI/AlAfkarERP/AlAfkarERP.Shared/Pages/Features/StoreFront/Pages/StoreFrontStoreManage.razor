@@ -1,0 +1,822 @@
+@layout AdminLayout
+@page "/StoreFront/Stores/{StoreId:guid}/Manage"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Auth.Services
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Features.StoreFront.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Accounting.Dtos
+@using SharedWithUI.Auth.Dtos
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Organization.Dtos
+@using SharedWithUI.Permissions
+@using SharedWithUI.Pricing.Dtos
+@using SharedWithUI.StoreFront.Dtos
+
+@inject IStoreFrontService StoreFrontService
+@inject IBranchService BranchService
+@inject IWarehouseService WarehouseService
+@inject IPriceListService PriceListService
+@inject IProductService ProductService
+@inject IUserService UserService
+@inject IAuthService AuthService
+@inject IEmployeeService EmployeeService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<section class="erp-page" dir="@SharedDataService.PageDirection">
+    @if (isLoading)
+    {
+        <AppLoader />
+    }
+    else if (store is null)
+    {
+        <EmptyState Title="@Text("Store not found", "لم يتم العثور على المتجر")"
+                    Message="@Text("Return to StoreFront stores and select an active store.", "ارجع إلى واجهات المتاجر واختر متجرا نشطا.")"
+                    Icon="bi-shop" />
+    }
+    else if (!CanAccessStore)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to manage this store.", "ليس لديك صلاحية لإدارة هذا المتجر.")</div>
+    }
+    else
+    {
+        <PageHeader Title="@Text(store.NameEng, store.Name)"
+                    Subtitle="@Text("Centralized StoreFront management for staff, roles, products, warehouses, prices, cash accounts, and POS readiness.", "إدارة مركزية للمتجر تشمل الموظفين والصلاحيات والأصناف والمستودعات والأسعار وحسابات النقد وجاهزية نقطة البيع.")"
+                    Overline="@Text("StoreFront Management", "إدارة واجهة المتجر")"
+                    Icon="bi-shop">
+            <Actions>
+                <a class="btn btn-outline-secondary" href="/StoreFront/Stores"><i class="bi bi-arrow-left"></i> @Text("Stores", "المتاجر")</a>
+                <a class="btn btn-primary" href="@PosUrl"><i class="bi bi-receipt"></i> @Text("Open POS", "فتح نقطة البيع")</a>
+            </Actions>
+        </PageHeader>
+
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            @foreach (var tab in Tabs)
+            {
+                <button type="button" class="btn btn-sm @(activeTab == tab.Key ? "btn-primary" : "btn-outline-secondary")" @onclick="() => activeTab = tab.Key">
+                    <i class="bi @tab.Icon"></i> @TabLabel(tab)
+                </button>
+            }
+        </div>
+
+        @switch (activeTab)
+        {
+            case "overview":
+                @OverviewSection()
+                break;
+            case "staff":
+                @StaffSection()
+                break;
+            case "products":
+                @ProductsSection()
+                break;
+            case "warehouses":
+                @WarehousesSection()
+                break;
+            case "pricing":
+                @PricingSection()
+                break;
+            case "cash":
+                @CashSection()
+                break;
+        }
+    }
+</section>
+
+@code {
+    [Parameter] public Guid StoreId { get; set; }
+
+    private readonly IReadOnlyList<TabItem> Tabs = [];
+    private readonly RegisterUserModel registerUser = new();
+    private StoreFrontDto? store;
+    private StoreFrontDto editStore = new();
+    private WarehouseDto warehouseDraft = new();
+    private CashAccountDto cashAccountDraft = new();
+    private PosCashierSessionSummaryDto? sessionSummary;
+    private List<BranchDto> branches = [];
+    private List<WarehouseDto> warehouses = [];
+    private List<PriceListDto> priceLists = [];
+    private List<ProductSkuDto> allSkus = [];
+    private List<StoreFrontSellableItemDto> storeItems = [];
+    private List<UserDto> users = [];
+    private List<EmployeeDto> storeEmployees = [];
+    private List<BranchRoleProfileDto> roleProfiles = [];
+    private List<BranchRoleAssignmentDto> storeRoleAssignments = [];
+    private List<CashAccountDto> cashAccounts = [];
+    private List<PosCashierSessionDto> openSessions = [];
+    private CurrentUserBranchAccessDto branchAccess = new();
+    private CurrentUserBranchRoleAccessDto branchRoleAccess = new();
+    private HashSet<string> companyPermissions = new(StringComparer.Ordinal);
+    private Guid companyId;
+    private Guid selectedRoleUserId;
+    private string selectedRoleTemplateKey = string.Empty;
+    private string activeTab = "overview";
+    private bool isLoading = true;
+
+    private string PosUrl => $"/StoreFront/POS?storeFrontId={StoreId}";
+    private Guid? StoreBranchId => store?.BranchId;
+    private BranchDto? StoreBranch => StoreBranchId.HasValue ? branches.FirstOrDefault(x => x.Id == StoreBranchId.Value) : null;
+    private PriceListDto? StorePriceList => store?.PriceListId is Guid id ? priceLists.FirstOrDefault(x => x.Id == id) : null;
+    private WarehouseDto? StoreWarehouse => store is null ? null : warehouses.FirstOrDefault(x => x.Id == store.DefaultWarehouseId);
+    private bool CanAccessStore => store is not null && (HasCompanyPermission(PermissionList.StoreFrontStorePermissions.View) || StoreHasScopedPermission(PermissionList.StoreFrontStorePermissions.View) || StoreHasScopedPermission(PermissionList.StoreFrontPosPermissions.View));
+    private bool CanEditStore => StoreCan(PermissionList.StoreFrontStorePermissions.Edit);
+    private bool CanViewItems => StoreCan(PermissionList.StoreFrontItemPermissions.View);
+    private bool CanEditItems => StoreCan(PermissionList.StoreFrontItemPermissions.Edit);
+    private bool CanManageCash => StoreCan(PermissionList.StoreFrontPosPermissions.ManageCashAccounts);
+    private bool CanAssignStoreRoles => HasCompanyPermission(PermissionList.BranchPermissions.AssignUsers);
+    private bool CanCreateUsers => HasCompanyPermission(PermissionList.UsersPermissions.Create);
+    private bool CanCreateEmployees => HasCompanyPermission(PermissionList.EmployeePermissions.Create);
+    private bool CanCreateWarehouses => HasCompanyPermission(PermissionList.WarehousePermissions.Create);
+    private bool CanEditWarehouses => HasCompanyPermission(PermissionList.WarehousePermissions.Edit);
+
+    public StoreFrontStoreManage()
+    {
+        Tabs =
+        [
+            new("overview", "Overview", "bi-speedometer2"),
+            new("staff", "Staff", "bi-people"),
+            new("products", "Products", "bi-box-seam"),
+            new("warehouses", "Warehouses", "bi-boxes"),
+            new("pricing", "Pricing", "bi-tags"),
+            new("cash", "Cash / POS", "bi-cash-stack")
+        ];
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (!CompanyContext.TryGetCompanyId(auth.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+
+        companyPermissions = auth.User.Claims
+            .Where(c => c.Type == "Permission")
+            .Select(c => c.Value)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var storeResult = await StoreFrontService.GetStoreAsync(StoreId);
+        store = storeResult.IsSuccess ? storeResult.Data : null;
+        if (store is null || store.CompanyId != companyId)
+        {
+            isLoading = false;
+            return;
+        }
+
+        editStore = CopyStore(store);
+
+        var branchResult = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        var accessResult = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        var roleAccessResult = await BranchService.GetCurrentUserBranchRoleAccessAsync(companyId);
+        var warehouseResult = await WarehouseService.GetAsync(companyId, 0, 1000, string.Empty, store.BranchId);
+        var priceListResult = await PriceListService.GetByCompanyId(companyId, 0, 1000);
+        var productResult = await ProductService.GetPricedByCompanyAsync(companyId, null, 0, 1000, store.PriceListId);
+        var itemResult = await StoreFrontService.GetItemsAsync(StoreId);
+        var cashResult = await StoreFrontService.GetCashAccountsAsync(StoreId);
+        var openResult = await StoreFrontService.GetOpenSessionsAsync(StoreId);
+        var summaryResult = await StoreFrontService.GetSessionSummaryAsync(StoreId, DateTime.Today.AddDays(-7), DateTime.Today.AddDays(1), false);
+
+        branches = branchResult.IsSuccess ? branchResult.Data?.Data?.ToList() ?? [] : [];
+        branchAccess = accessResult.IsSuccess ? accessResult.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+        branchRoleAccess = roleAccessResult.IsSuccess ? roleAccessResult.Data ?? new CurrentUserBranchRoleAccessDto() : new CurrentUserBranchRoleAccessDto();
+        warehouses = warehouseResult.IsSuccess ? warehouseResult.Data?.Data?.ToList() ?? [] : [];
+        priceLists = priceListResult.IsSuccess ? priceListResult.Data?.Data?.ToList() ?? [] : [];
+        allSkus = productResult.IsSuccess ? productResult.Data?.Data?.SelectMany(x => x.Skus).Where(x => x.IsSellable).ToList() ?? [] : [];
+        storeItems = itemResult.IsSuccess ? itemResult.Data ?? [] : [];
+        cashAccounts = cashResult.IsSuccess ? cashResult.Data ?? [] : [];
+        openSessions = openResult.IsSuccess ? openResult.Data ?? [] : [];
+        sessionSummary = summaryResult.IsSuccess ? summaryResult.Data : null;
+
+        if (CanAssignStoreRoles || CanCreateUsers)
+        {
+            var usersResult = await UserService.GetUsersByCompany(companyId, 0, 10000);
+            users = usersResult.IsSuccess ? usersResult.Data?.Data?.ToList() ?? [] : [];
+        }
+
+        if (CanAssignStoreRoles)
+        {
+            var profilesResult = await BranchService.GetBranchRoleProfilesAsync();
+            roleProfiles = profilesResult.IsSuccess ? profilesResult.Data ?? [] : [];
+            await LoadStoreRolesAsync();
+        }
+
+        if (StoreBranchId.HasValue)
+        {
+            var employeeResult = await EmployeeService.GetByBranchAsync(StoreBranchId.Value, 0, 200);
+            storeEmployees = employeeResult.IsSuccess ? employeeResult.Data?.Data?.ToList() ?? [] : [];
+        }
+
+        ResetWarehouseDraft();
+        ResetCashAccountDraft();
+        isLoading = false;
+    }
+
+    private RenderFragment OverviewSection() => @<div class="row g-3">
+        <div class="col-lg-4">
+            <AppCard>
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="fw-semibold">@Text("Readiness", "الجاهزية")</div>
+                        <div class="text-muted small">@Text("Store requirements for cashier operations.", "متطلبات تشغيل الكاشير للمتجر.")</div>
+                    </div>
+                    <StatusChip Text="@(store?.IsActive == true ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))" Tone="@(store?.IsActive == true ? "success" : "secondary")" />
+                </div>
+                <div class="d-flex flex-column gap-2 mt-3">
+                    @foreach (var check in ReadinessChecks())
+                    {
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>@check.Label</span>
+                            <StatusChip Text="@(check.IsReady ? Text("Ready", "جاهز") : Text("Missing", "ناقص"))" Tone="@(check.IsReady ? "success" : "warning")" />
+                        </div>
+                    }
+                </div>
+            </AppCard>
+        </div>
+        <div class="col-lg-8">
+            <AppCard>
+                <EditForm Model="editStore" OnValidSubmit="SaveStoreSettingsAsync">
+                    <DataAnnotationsValidator />
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="editStore.NameEng" disabled="@(!CanEditStore)" /></div>
+                        <div class="col-md-6"><label class="form-label">@Text("Arabic Name", "الاسم العربي")</label><InputText class="form-control" @bind-Value="editStore.Name" disabled="@(!CanEditStore)" /></div>
+                        <div class="col-md-4"><label class="form-label">@Text("Code", "الرمز")</label><InputText class="form-control" @bind-Value="editStore.Code" disabled="@(!CanEditStore)" /></div>
+                        <div class="col-md-4"><label class="form-label">@Text("Branch", "الفرع")</label><input class="form-control" value="@BranchName(StoreBranchId)" disabled /></div>
+                        <div class="col-md-4"><label class="form-label">@Text("Default Warehouse", "المستودع الافتراضي")</label><InputSelect class="form-select" @bind-Value="editStore.DefaultWarehouseId" disabled="@(!CanEditStore)"><option value="@Guid.Empty">@Text("Select", "اختر")</option>@foreach (var warehouse in warehouses){<option value="@warehouse.Id">@Text(warehouse.NameEng, warehouse.Name)</option>}</InputSelect></div>
+                        <div class="col-md-6"><label class="form-label">@Text("Receipt Header", "رأس الإيصال")</label><InputTextArea class="form-control" @bind-Value="editStore.ReceiptHeader" disabled="@(!CanEditStore)" /></div>
+                        <div class="col-md-6"><label class="form-label">@Text("Receipt Footer", "تذييل الإيصال")</label><InputTextArea class="form-control" @bind-Value="editStore.ReceiptFooter" disabled="@(!CanEditStore)" /></div>
+                    </div>
+                    @if (CanEditStore)
+                    {
+                        <div class="text-end mt-3"><button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @Text("Save Store", "حفظ المتجر")</button></div>
+                    }
+                </EditForm>
+            </AppCard>
+        </div>
+    </div>;
+
+    private RenderFragment StaffSection() => @<div class="row g-3">
+        <div class="col-lg-7">
+            <AppCard>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <div class="fw-semibold">@Text("Store Roles", "صلاحيات المتجر")</div>
+                        <div class="text-muted small">@Text("Roles are scoped to this StoreFront branch.", "الأدوار محددة بفرع هذا المتجر.")</div>
+                    </div>
+                    @if (StoreBranchId.HasValue && CanCreateEmployees)
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="OpenEmployeeHandoff"><i class="bi bi-person-plus"></i> @Text("New Employee", "موظف جديد")</button>
+                    }
+                </div>
+                @if (!StoreBranchId.HasValue)
+                {
+                    <div class="alert alert-warning">@Text("Save the store with a StoreFront branch before assigning staff.", "احفظ المتجر بفرع واجهة متجر قبل تعيين الموظفين.")</div>
+                }
+                else
+                {
+                    @if (CanAssignStoreRoles)
+                    {
+                        <div class="row g-2 align-items-end mb-3">
+                            <div class="col-md-5"><label class="form-label">@Text("User", "المستخدم")</label><select class="form-select" @bind="selectedRoleUserId"><option value="@Guid.Empty">@Text("Select user", "اختر مستخدم")</option>@foreach (var user in users.OrderBy(x => x.UserName)){<option value="@user.Id">@user.UserName</option>}</select></div>
+                            <div class="col-md-5"><label class="form-label">@Text("Role", "الدور")</label><select class="form-select" @bind="selectedRoleTemplateKey"><option value="">@Text("Select role", "اختر دور")</option>@foreach (var profile in roleProfiles){<option value="@profile.TemplateKey">@Text(profile.Name, profile.NameAr)</option>}</select></div>
+                            <div class="col-md-2 d-grid"><button class="btn btn-primary" @onclick="AssignStoreRoleAsync" disabled="@(selectedRoleUserId == Guid.Empty || string.IsNullOrWhiteSpace(selectedRoleTemplateKey))"><i class="bi bi-plus-lg"></i></button></div>
+                        </div>
+                    }
+                    @if (!storeRoleAssignments.Any())
+                    {
+                        <EmptyState Title="@Text("No staff roles", "لا توجد صلاحيات موظفين")" Message="@Text("Assign users to StoreFront roles for this store branch.", "عيّن المستخدمين لأدوار واجهة متجر لهذا الفرع.")" Icon="bi-people" />
+                    }
+                    else
+                    {
+                        <div class="erp-table-wrap">
+                            <table class="table erp-table align-middle">
+                                <thead><tr><th>@Text("User", "المستخدم")</th><th>@Text("Role", "الدور")</th><th>@Text("Permissions", "الصلاحيات")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                                <tbody>@foreach (var assignment in storeRoleAssignments){<tr><td>@UserName(assignment.UserId)</td><td>@Text(assignment.RoleName, assignment.RoleNameAr)</td><td>@assignment.Permissions.Count</td><td class="text-end">@if (CanAssignStoreRoles){<button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveStoreRoleAsync(assignment.Id)"><i class="bi bi-trash"></i></button>}</td></tr>}</tbody>
+                            </table>
+                        </div>
+                    }
+                }
+            </AppCard>
+        </div>
+        <div class="col-lg-5">
+            <AppCard>
+                <div class="fw-semibold mb-2">@Text("Create Login User", "إنشاء مستخدم دخول")</div>
+                @if (!CanCreateUsers)
+                {
+                    <div class="alert alert-light border">@Text("User creation requires Users.Create.", "إنشاء المستخدمين يتطلب صلاحية Users.Create.")</div>
+                }
+                else
+                {
+                    <EditForm Model="registerUser" OnValidSubmit="CreateUserAsync">
+                        <DataAnnotationsValidator />
+                        <div class="row g-2">
+                            <div class="col-12"><label class="form-label">@Text("User name", "اسم المستخدم")</label><InputText class="form-control" @bind-Value="registerUser.UserName" /></div>
+                            <div class="col-12"><label class="form-label">@Text("Email", "البريد الإلكتروني")</label><InputText class="form-control" @bind-Value="registerUser.Email" /></div>
+                            <div class="col-12"><label class="form-label">@Text("Phone", "الهاتف")</label><InputText class="form-control" @bind-Value="registerUser.PhoneNumber" /></div>
+                            <div class="col-12"><label class="form-label">@Text("Temporary password", "كلمة مرور مؤقتة")</label><InputText type="password" class="form-control" @bind-Value="registerUser.Password" /></div>
+                            <div class="col-12 text-end"><button class="btn btn-primary" type="submit"><i class="bi bi-person-plus"></i> @Text("Create User", "إنشاء مستخدم")</button></div>
+                        </div>
+                    </EditForm>
+                }
+            </AppCard>
+            <AppCard CssClass="mt-3">
+                <div class="fw-semibold mb-2">@Text("HR Employees In Store Branch", "موظفو الموارد في فرع المتجر")</div>
+                @if (!storeEmployees.Any())
+                {
+                    <EmptyState Title="@Text("No employees found", "لا يوجد موظفون")" Message="@Text("Create employees through the HR form with this branch preselected.", "أنشئ الموظفين من نموذج الموارد مع تحديد هذا الفرع.")" Icon="bi-person-badge" />
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-2">@foreach (var employee in storeEmployees.Take(8)){<div class="d-flex justify-content-between border-bottom pb-2"><span>@Text(employee.FullNameEng, employee.FullName)</span><small class="text-muted">@employee.EmployeeNo</small></div>}</div>
+                }
+            </AppCard>
+        </div>
+    </div>;
+
+    private RenderFragment ProductsSection() => @<AppCard>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <div class="fw-semibold">@Text("Sellable Products", "الأصناف القابلة للبيع")</div>
+                <div class="text-muted small">@Text("Select the SKUs this store can sell and configure manual price rules.", "اختر الأصناف التي يستطيع المتجر بيعها واضبط قواعد السعر اليدوي.")</div>
+            </div>
+            @if (CanEditItems)
+            {
+                <button class="btn btn-primary" @onclick="SaveItemsAsync"><i class="bi bi-save"></i> @Text("Save Items", "حفظ الأصناف")</button>
+            }
+        </div>
+        @if (!CanViewItems)
+        {
+            <div class="alert alert-warning">@Text("StoreFront item view permission is required.", "تحتاج صلاحية عرض أصناف واجهة المتجر.")</div>
+        }
+        else if (!allSkus.Any())
+        {
+            <EmptyState Title="@Text("No sellable SKUs", "لا توجد أصناف قابلة للبيع")" Message="@Text("Create products and SKUs in the warehouse catalog first.", "أنشئ المنتجات والأصناف في كتالوج المستودع أولا.")" Icon="bi-box-seam" />
+        }
+        else
+        {
+            <div class="erp-table-wrap">
+                <table class="table erp-table align-middle">
+                    <thead><tr><th>@Text("Sell", "بيع")</th><th>@Text("SKU", "الصنف")</th><th>@Text("Manual Price", "سعر يدوي")</th><th>@Text("Min", "الأدنى")</th><th>@Text("Max", "الأعلى")</th><th>@Text("Order", "الترتيب")</th></tr></thead>
+                    <tbody>@foreach (var sku in allSkus){var item = ItemFor(sku);<tr><td><input type="checkbox" checked="@item.IsActive" disabled="@(!CanEditItems)" @onchange="args => ToggleSku(sku, args)" /></td><td><div class="fw-semibold">@Text(sku.NameEng, sku.Name)</div><div class="text-muted small">@sku.SkuCode</div></td><td><input type="checkbox" checked="@item.AllowManualPrice" disabled="@(!CanEditItems)" @onchange="args => ToggleManualPrice(item, args)" /></td><td><InputNumber class="form-control form-control-sm" @bind-Value="item.MinimumManualPrice" disabled="@(!CanEditItems || !item.AllowManualPrice)" /></td><td><InputNumber class="form-control form-control-sm" @bind-Value="item.MaximumManualPrice" disabled="@(!CanEditItems || !item.AllowManualPrice)" /></td><td><InputNumber class="form-control form-control-sm" @bind-Value="item.DisplayOrder" disabled="@(!CanEditItems)" /></td></tr>}</tbody>
+                </table>
+            </div>
+        }
+    </AppCard>;
+
+    private RenderFragment WarehousesSection() => @<div class="row g-3">
+        <div class="col-lg-7">
+            <AppCard>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div><div class="fw-semibold">@Text("Store Warehouses", "مستودعات المتجر")</div><div class="text-muted small">@Text("Warehouses are filtered to the StoreFront branch.", "المستودعات مصفاة حسب فرع واجهة المتجر.")</div></div>
+                    <StatusChip Text="@(StoreWarehouse is null ? Text("Default missing", "الافتراضي غير محدد") : Text("Default set", "الافتراضي محدد"))" Tone="@(StoreWarehouse is null ? "warning" : "success")" />
+                </div>
+                @if (!warehouses.Any())
+                {
+                    <EmptyState Title="@Text("No warehouses", "لا توجد مستودعات")" Message="@Text("Create a warehouse linked to this StoreFront branch.", "أنشئ مستودعا مرتبطا بفرع هذا المتجر.")" Icon="bi-boxes" />
+                }
+                else
+                {
+                    <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Warehouse", "المستودع")</th><th>@Text("Location", "الموقع")</th><th>@Text("Default", "افتراضي")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead><tbody>@foreach (var warehouse in warehouses){<tr><td>@Text(warehouse.NameEng, warehouse.Name)</td><td>@warehouse.Location</td><td>@if (store?.DefaultWarehouseId == warehouse.Id){<StatusChip Text="@Text("Default", "افتراضي")" Tone="success" />}</td><td class="text-end">@if (CanEditStore){<button class="btn btn-sm btn-outline-primary" @onclick="() => SetDefaultWarehouseAsync(warehouse.Id)">@Text("Set Default", "تعيين افتراضي")</button>} @if (CanEditWarehouses){<button class="btn btn-sm btn-outline-secondary" @onclick="() => EditWarehouse(warehouse)"><i class="bi bi-pencil"></i></button>}</td></tr>}</tbody></table></div>
+                }
+            </AppCard>
+        </div>
+        <div class="col-lg-5">
+            <AppCard>
+                <div class="fw-semibold mb-2">@Text("Warehouse Form", "نموذج المستودع")</div>
+                @if (!CanCreateWarehouses && warehouseDraft.Id == Guid.Empty)
+                {
+                    <div class="alert alert-light border">@Text("Warehouse creation requires Warehouse.Create.", "إنشاء المستودع يتطلب صلاحية Warehouse.Create.")</div>
+                }
+                else
+                {
+                    <EditForm Model="warehouseDraft" OnValidSubmit="SaveWarehouseAsync">
+                        <DataAnnotationsValidator />
+                        <div class="row g-2">
+                            <div class="col-md-6"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="warehouseDraft.NameEng" disabled="@(!CanCreateWarehouses && !CanEditWarehouses)" /></div>
+                            <div class="col-md-6"><label class="form-label">@Text("Arabic Name", "الاسم العربي")</label><InputText class="form-control" @bind-Value="warehouseDraft.Name" disabled="@(!CanCreateWarehouses && !CanEditWarehouses)" /></div>
+                            <div class="col-12"><label class="form-label">@Text("Location", "الموقع")</label><InputText class="form-control" @bind-Value="warehouseDraft.Location" disabled="@(!CanCreateWarehouses && !CanEditWarehouses)" /></div>
+                            <div class="col-md-6"><label class="form-label">@Text("Latitude", "خط العرض")</label><InputNumber class="form-control" @bind-Value="warehouseDraft.Latitude" disabled="@(!CanCreateWarehouses && !CanEditWarehouses)" /></div>
+                            <div class="col-md-6"><label class="form-label">@Text("Longitude", "خط الطول")</label><InputNumber class="form-control" @bind-Value="warehouseDraft.Longitude" disabled="@(!CanCreateWarehouses && !CanEditWarehouses)" /></div>
+                            <div class="col-12 text-end"><button class="btn btn-outline-secondary me-2" type="button" @onclick="ResetWarehouseDraft">@Text("Reset", "إعادة ضبط")</button><button class="btn btn-primary" type="submit" disabled="@(!CanCreateWarehouses && !CanEditWarehouses)">@Text("Save Warehouse", "حفظ المستودع")</button></div>
+                        </div>
+                    </EditForm>
+                }
+            </AppCard>
+        </div>
+    </div>;
+
+    private RenderFragment PricingSection() => @<AppCard>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div><div class="fw-semibold">@Text("Store Pricing", "تسعير المتجر")</div><div class="text-muted small">@Text("Choose the price list used by StoreFront catalog and POS.", "اختر قائمة الأسعار المستخدمة في كتالوج المتجر ونقطة البيع.")</div></div>
+            <a class="btn btn-outline-secondary" href="/Catalog/Pricing/List"><i class="bi bi-box-arrow-up-right"></i> @Text("Full Price Lists", "قوائم الأسعار")</a>
+        </div>
+        <EditForm Model="editStore" OnValidSubmit="SaveStoreSettingsAsync">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-8"><label class="form-label">@Text("Price List", "قائمة الأسعار")</label><InputSelect class="form-select" @bind-Value="editStore.PriceListId" disabled="@(!CanEditStore)"><option value="">@Text("Default pricing", "التسعير الافتراضي")</option>@foreach (var priceList in priceLists.Where(x => x.IsActive || x.Id == editStore.PriceListId)){<option value="@priceList.Id">@PriceListLabel(priceList)</option>}</InputSelect></div>
+                <div class="col-md-4">@if (CanEditStore){<button class="btn btn-primary w-100" type="submit"><i class="bi bi-save"></i> @Text("Save Pricing", "حفظ التسعير")</button>}</div>
+            </div>
+        </EditForm>
+        <div class="mt-3">
+            <StatusChip Text="@(StorePriceList is null ? Text("Default pricing", "التسعير الافتراضي") : PriceListLabel(StorePriceList))" Tone="info" />
+        </div>
+    </AppCard>;
+
+    private RenderFragment CashSection() => @<div class="row g-3">
+        <div class="col-lg-7">
+            <AppCard>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div><div class="fw-semibold">@Text("Cash Accounts", "حسابات النقد")</div><div class="text-muted small">@Text("Cash accounts are scoped to this StoreFront branch.", "حسابات النقد مرتبطة بفرع واجهة المتجر.")</div></div>
+                    <StatusChip Text="@($"{openSessions.Count} {Text("open sessions", "جلسات مفتوحة")}")" Tone="info" />
+                </div>
+                @if (!cashAccounts.Any())
+                {
+                    <EmptyState Title="@Text("No cash accounts", "لا توجد حسابات نقد")" Message="@Text("Create a cash account before cash checkout.", "أنشئ حساب نقد قبل الدفع النقدي.")" Icon="bi-wallet2" />
+                }
+                else
+                {
+                    <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Account", "الحساب")</th><th>@Text("Currency", "العملة")</th><th>@Text("Default", "افتراضي")</th><th>@Text("Status", "الحالة")</th></tr></thead><tbody>@foreach (var account in cashAccounts){<tr><td>@account.DisplayName</td><td>@account.CurrencyCode</td><td>@if (account.IsDefault){<StatusChip Text="@Text("Default", "افتراضي")" Tone="success" />}</td><td><StatusChip Text="@(account.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))" Tone="@(account.IsActive ? "success" : "secondary")" /></td></tr>}</tbody></table></div>
+                }
+                @if (sessionSummary is not null)
+                {
+                    <div class="row g-2 mt-3">
+                        <div class="col-md-3"><div class="border rounded p-2"><div class="text-muted small">@Text("Sessions", "الجلسات")</div><div class="fw-semibold">@sessionSummary.SessionCount</div></div></div>
+                        <div class="col-md-3"><div class="border rounded p-2"><div class="text-muted small">@Text("Cash", "النقد")</div><div class="fw-semibold">@sessionSummary.CashSalesAmount</div></div></div>
+                        <div class="col-md-3"><div class="border rounded p-2"><div class="text-muted small">@Text("Card", "البطاقات")</div><div class="fw-semibold">@sessionSummary.CardSalesAmount</div></div></div>
+                        <div class="col-md-3"><div class="border rounded p-2"><div class="text-muted small">@Text("Variance", "الفروقات")</div><div class="fw-semibold">@sessionSummary.VarianceAmount</div></div></div>
+                    </div>
+                }
+            </AppCard>
+        </div>
+        <div class="col-lg-5">
+            <AppCard>
+                <div class="fw-semibold mb-2">@Text("Cash Account Form", "نموذج حساب النقد")</div>
+                @if (!CanManageCash)
+                {
+                    <div class="alert alert-light border">@Text("Managing cash accounts requires StoreFront.POS.ManageCashAccounts.", "إدارة حسابات النقد تتطلب صلاحية StoreFront.POS.ManageCashAccounts.")</div>
+                }
+                else
+                {
+                    <EditForm Model="cashAccountDraft" OnValidSubmit="SaveCashAccountAsync">
+                        <div class="row g-2">
+                            <div class="col-12"><label class="form-label">@Text("Display Name", "اسم العرض")</label><InputText class="form-control" @bind-Value="cashAccountDraft.DisplayName" /></div>
+                            <div class="col-md-6"><label class="form-label">@Text("Currency", "العملة")</label><InputText class="form-control" @bind-Value="cashAccountDraft.CurrencyCode" /></div>
+                            <div class="col-md-6 form-check align-self-end"><InputCheckbox class="form-check-input" @bind-Value="cashAccountDraft.IsDefault" /><label class="form-check-label">@Text("Default", "افتراضي")</label></div>
+                            <div class="col-12 text-end"><button class="btn btn-outline-secondary me-2" type="button" @onclick="ResetCashAccountDraft">@Text("Reset", "إعادة ضبط")</button><button class="btn btn-primary" type="submit">@Text("Save Cash Account", "حفظ حساب النقد")</button></div>
+                        </div>
+                    </EditForm>
+                }
+                <a class="btn btn-outline-primary w-100 mt-3" href="@PosUrl"><i class="bi bi-receipt"></i> @Text("Open StoreFront POS", "فتح نقطة بيع المتجر")</a>
+            </AppCard>
+        </div>
+    </div>;
+
+    private async Task SaveStoreSettingsAsync()
+    {
+        if (!CanEditStore) return;
+        var result = await StoreFrontService.SaveStoreAsync(editStore);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Store saved.", "تم حفظ المتجر."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to save store.", "تعذر حفظ المتجر."));
+        }
+    }
+
+    private async Task AssignStoreRoleAsync()
+    {
+        if (!CanAssignStoreRoles || StoreBranchId is not Guid branchId || selectedRoleUserId == Guid.Empty || string.IsNullOrWhiteSpace(selectedRoleTemplateKey))
+            return;
+
+        var result = await BranchService.AssignUserBranchRoleAsync(new AssignBranchRoleDto
+        {
+            UserId = selectedRoleUserId,
+            CompanyId = companyId,
+            BranchId = branchId,
+            TemplateKey = selectedRoleTemplateKey
+        });
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Store role assigned.", "تم تعيين صلاحية المتجر."));
+            selectedRoleUserId = Guid.Empty;
+            selectedRoleTemplateKey = string.Empty;
+            await LoadStoreRolesAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to assign store role.", "تعذر تعيين صلاحية المتجر."));
+        }
+    }
+
+    private async Task RemoveStoreRoleAsync(Guid assignmentId)
+    {
+        var result = await BranchService.RemoveUserBranchRoleAsync(assignmentId);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Store role removed.", "تم حذف صلاحية المتجر."));
+            await LoadStoreRolesAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to remove store role.", "تعذر حذف صلاحية المتجر."));
+        }
+    }
+
+    private async Task CreateUserAsync()
+    {
+        if (!CanCreateUsers) return;
+        var result = await AuthService.RegisterAsync(new RegisterDto(
+            Guid.Empty,
+            registerUser.UserName,
+            registerUser.Email,
+            registerUser.PhoneNumber,
+            registerUser.Password,
+            UserType.SystemUser,
+            companyId,
+            null));
+
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("User created.", "تم إنشاء المستخدم."));
+            registerUser.Reset();
+            var usersResult = await UserService.GetUsersByCompany(companyId, 0, 10000);
+            users = usersResult.IsSuccess ? usersResult.Data?.Data?.ToList() ?? [] : users;
+            selectedRoleUserId = result.Data;
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to create user.", "تعذر إنشاء المستخدم."));
+        }
+    }
+
+    private void OpenEmployeeHandoff()
+    {
+        if (StoreBranchId is not Guid branchId) return;
+        var returnUrl = Uri.EscapeDataString($"/StoreFront/Stores/{StoreId}/Manage");
+        NavigationManager.NavigateTo($"/Employee/Employee/Form?branchId={branchId}&returnUrl={returnUrl}");
+    }
+
+    private async Task SaveItemsAsync()
+    {
+        if (!CanEditItems) return;
+        var invalid = storeItems.FirstOrDefault(item => item.IsActive && item.MinimumManualPrice.HasValue && item.MaximumManualPrice.HasValue && item.MinimumManualPrice.Value > item.MaximumManualPrice.Value);
+        if (invalid is not null)
+        {
+            ToastService.ShowError(Text("Minimum manual price cannot be greater than maximum manual price.", "لا يمكن أن يكون الحد الأدنى للسعر اليدوي أكبر من الحد الأعلى."));
+            return;
+        }
+
+        var result = await StoreFrontService.SaveItemsAsync(StoreId, storeItems.Where(x => x.IsActive).ToList());
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Sellable items saved.", "تم حفظ الأصناف."));
+            await LoadAsync();
+            activeTab = "products";
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to save items.", "تعذر حفظ الأصناف."));
+        }
+    }
+
+    private async Task SaveWarehouseAsync()
+    {
+        if (StoreBranchId is not Guid branchId) return;
+        warehouseDraft.CompanyId = companyId;
+        warehouseDraft.BranchId = branchId;
+
+        if (warehouseDraft.Id == Guid.Empty)
+        {
+            var createResult = await WarehouseService.CreateAsync(warehouseDraft);
+            if (!createResult.IsSuccess)
+            {
+                ToastService.ShowError(createResult.Error?.Detail ?? Text("Unable to save warehouse.", "تعذر حفظ المستودع."));
+                return;
+            }
+        }
+        else
+        {
+            var updateResult = await WarehouseService.UpdateAsync(warehouseDraft);
+            if (!updateResult.IsSuccess)
+            {
+                ToastService.ShowError(updateResult.Error?.Detail ?? Text("Unable to save warehouse.", "تعذر حفظ المستودع."));
+                return;
+            }
+        }
+
+        ToastService.ShowSuccess(Text("Warehouse saved.", "تم حفظ المستودع."));
+        await LoadAsync();
+        activeTab = "warehouses";
+    }
+
+    private async Task SetDefaultWarehouseAsync(Guid warehouseId)
+    {
+        if (store is null || !CanEditStore) return;
+        editStore = CopyStore(store);
+        editStore.DefaultWarehouseId = warehouseId;
+        await SaveStoreSettingsAsync();
+        activeTab = "warehouses";
+    }
+
+    private async Task SaveCashAccountAsync()
+    {
+        if (!CanManageCash || StoreBranchId is not Guid branchId) return;
+        cashAccountDraft.CompanyId = companyId;
+        cashAccountDraft.BranchId = branchId;
+        var result = await StoreFrontService.SaveCashAccountAsync(StoreId, cashAccountDraft);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Cash account saved.", "تم حفظ حساب النقد."));
+            await LoadAsync();
+            activeTab = "cash";
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to save cash account.", "تعذر حفظ حساب النقد."));
+        }
+    }
+
+    private async Task LoadStoreRolesAsync()
+    {
+        if (StoreBranchId is not Guid branchId)
+        {
+            storeRoleAssignments = [];
+            return;
+        }
+
+        var result = await BranchService.GetCompanyBranchRoleAssignmentsAsync(companyId, branchId);
+        storeRoleAssignments = result.IsSuccess ? result.Data ?? [] : [];
+    }
+
+    private StoreFrontSellableItemDto ItemFor(ProductSkuDto sku)
+    {
+        var item = storeItems.FirstOrDefault(x => x.ProductSkuId == sku.Id);
+        if (item is not null) return item;
+        item = new StoreFrontSellableItemDto { StoreFrontId = StoreId, ProductSkuId = sku.Id, ProductName = sku.Name, ProductNameEng = sku.NameEng, SkuCode = sku.SkuCode, IsActive = false };
+        storeItems.Add(item);
+        return item;
+    }
+
+    private void ToggleSku(ProductSkuDto sku, ChangeEventArgs args) => ItemFor(sku).IsActive = IsChecked(args);
+    private void ToggleManualPrice(StoreFrontSellableItemDto item, ChangeEventArgs args)
+    {
+        item.AllowManualPrice = IsChecked(args);
+        if (!item.AllowManualPrice)
+        {
+            item.RequireManualPriceNote = false;
+            item.MinimumManualPrice = null;
+            item.MaximumManualPrice = null;
+        }
+    }
+
+    private void EditWarehouse(WarehouseDto warehouse)
+    {
+        warehouseDraft = new WarehouseDto
+        {
+            Id = warehouse.Id,
+            CompanyId = warehouse.CompanyId,
+            BranchId = warehouse.BranchId,
+            Name = warehouse.Name,
+            NameEng = warehouse.NameEng,
+            Location = warehouse.Location,
+            Address = warehouse.Address,
+            Latitude = warehouse.Latitude,
+            Longitude = warehouse.Longitude,
+            WarehouseType = warehouse.WarehouseType
+        };
+    }
+
+    private void ResetWarehouseDraft()
+    {
+        warehouseDraft = new WarehouseDto
+        {
+            CompanyId = companyId,
+            BranchId = StoreBranchId,
+            Name = store?.Name ?? string.Empty,
+            NameEng = store?.NameEng ?? string.Empty,
+            Location = StoreBranch?.Location ?? store?.NameEng ?? string.Empty,
+            Address = StoreBranch?.Location,
+            Latitude = StoreBranch?.Latitude ?? 0.1,
+            Longitude = StoreBranch?.Longitude ?? 0.1
+        };
+    }
+
+    private void ResetCashAccountDraft()
+    {
+        cashAccountDraft = new CashAccountDto
+        {
+            CompanyId = companyId,
+            BranchId = StoreBranchId,
+            DisplayName = store is null ? string.Empty : $"{Text(store.NameEng, store.Name)} Cash",
+            CurrencyCode = "SAR",
+            IsActive = true,
+            CreateLinkedLedger = true
+        };
+    }
+
+    private IEnumerable<ReadinessCheck> ReadinessChecks()
+    {
+        yield return new ReadinessCheck(Text("Branch", "الفرع"), StoreBranchId.HasValue);
+        yield return new ReadinessCheck(Text("Warehouse", "المستودع"), store?.DefaultWarehouseId != Guid.Empty);
+        yield return new ReadinessCheck(Text("Price list", "قائمة الأسعار"), store?.PriceListId.HasValue == true);
+        yield return new ReadinessCheck(Text("SKUs", "الأصناف"), storeItems.Any(x => x.IsActive));
+        yield return new ReadinessCheck(Text("Cash", "النقد"), cashAccounts.Any(x => x.IsActive));
+        yield return new ReadinessCheck(Text("Staff", "الموظفون"), storeRoleAssignments.Any());
+    }
+
+    private bool StoreCan(string permission)
+        => HasCompanyPermission(permission) || StoreHasScopedPermission(permission);
+
+    private bool StoreHasScopedPermission(string permission)
+        => StoreBranchId is Guid branchId
+           && branchRoleAccess.Assignments.Any(assignment =>
+               assignment.BranchId == branchId
+               && assignment.Permissions.Contains(permission, StringComparer.Ordinal));
+
+    private bool HasCompanyPermission(string permission)
+        => companyPermissions.Contains(permission);
+
+    private string BranchName(Guid? id) => id.HasValue ? Text(branches.FirstOrDefault(x => x.Id == id)?.NameEng, branches.FirstOrDefault(x => x.Id == id)?.Name) ?? id.Value.ToString() : Text("Not linked", "غير مرتبط");
+    private string UserName(Guid userId) => users.FirstOrDefault(x => x.Id == userId)?.UserName ?? userId.ToString();
+    private string TabLabel(TabItem tab) => tab.Key switch
+    {
+        "overview" => Text("Overview", "نظرة عامة"),
+        "staff" => Text("Staff", "الموظفون"),
+        "products" => Text("Products", "الأصناف"),
+        "warehouses" => Text("Warehouses", "المستودعات"),
+        "pricing" => Text("Pricing", "التسعير"),
+        "cash" => Text("Cash / POS", "النقد ونقطة البيع"),
+        _ => tab.Label
+    };
+
+    private static bool IsChecked(ChangeEventArgs args) => args.Value is bool value && value;
+    private static string PriceListLabel(PriceListDto priceList) => string.IsNullOrWhiteSpace(priceList.Code) ? priceList.Name : $"{priceList.Name} ({priceList.Code})";
+    private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+
+    private static StoreFrontDto CopyStore(StoreFrontDto source) => new()
+    {
+        Id = source.Id,
+        CompanyId = source.CompanyId,
+        BranchId = source.BranchId,
+        AdministrationId = source.AdministrationId,
+        AdministrationName = source.AdministrationName,
+        AdministrationNameEng = source.AdministrationNameEng,
+        DepartmentId = source.DepartmentId,
+        DepartmentName = source.DepartmentName,
+        DepartmentNameEng = source.DepartmentNameEng,
+        StoreFrontTypeId = source.StoreFrontTypeId,
+        StoreFrontTypeName = source.StoreFrontTypeName,
+        StoreFrontTypeNameEng = source.StoreFrontTypeNameEng,
+        DefaultWarehouseId = source.DefaultWarehouseId,
+        DefaultCustomerId = source.DefaultCustomerId,
+        PriceListId = source.PriceListId,
+        Name = source.Name,
+        NameEng = source.NameEng,
+        Code = source.Code,
+        ReceiptHeader = source.ReceiptHeader,
+        ReceiptFooter = source.ReceiptFooter,
+        IsActive = source.IsActive,
+        ActiveItemsCount = source.ActiveItemsCount
+    };
+
+    private sealed record TabItem(string Key, string Label, string Icon);
+    private sealed record ReadinessCheck(string Label, bool IsReady);
+
+    private sealed class RegisterUserModel
+    {
+        public string UserName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+        public string Password { get; set; } = "Temp@12345";
+
+        public void Reset()
+        {
+            UserName = string.Empty;
+            Email = string.Empty;
+            PhoneNumber = string.Empty;
+            Password = "Temp@12345";
+        }
+    }
+}

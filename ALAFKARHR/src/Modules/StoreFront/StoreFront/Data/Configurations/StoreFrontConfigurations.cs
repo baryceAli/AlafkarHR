@@ -30,6 +30,8 @@ public class StoreFrontStoreConfiguration : IEntityTypeConfiguration<StoreFrontS
         builder.Property(x => x.CreatedBy).HasMaxLength(100);
         builder.Property(x => x.ModifiedBy).HasMaxLength(100);
         builder.Property(x => x.DeletedBy).HasMaxLength(100);
+        builder.Property(x => x.AdministrationId).IsRequired(false);
+        builder.Property(x => x.DepartmentId).IsRequired(false);
 
         builder.HasOne(x => x.StoreFrontType)
             .WithMany()
@@ -41,8 +43,32 @@ public class StoreFrontStoreConfiguration : IEntityTypeConfiguration<StoreFrontS
             .HasForeignKey(x => x.StoreFrontId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasMany(x => x.Departments)
+            .WithOne(x => x.StoreFront)
+            .HasForeignKey(x => x.StoreFrontId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.HasIndex(x => new { x.CompanyId, x.Code }).IsUnique();
         builder.HasIndex(x => new { x.CompanyId, x.IsActive });
+        builder.HasIndex(x => x.AdministrationId);
+        builder.HasIndex(x => x.DepartmentId);
+    }
+}
+
+public class StoreFrontDepartmentConfiguration : IEntityTypeConfiguration<StoreFrontDepartment>
+{
+    public void Configure(EntityTypeBuilder<StoreFrontDepartment> builder)
+    {
+        builder.ToTable("StoreFrontDepartments");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
+        builder.Property(x => x.NameEng).IsRequired().HasMaxLength(200);
+        builder.Property(x => x.Code).IsRequired().HasMaxLength(100);
+        builder.Property(x => x.CreatedBy).HasMaxLength(100);
+        builder.Property(x => x.ModifiedBy).HasMaxLength(100);
+        builder.Property(x => x.DeletedBy).HasMaxLength(100);
+        builder.HasIndex(x => new { x.StoreFrontId, x.Code }).IsUnique();
+        builder.HasIndex(x => new { x.CompanyId, x.StoreFrontId, x.IsActive });
     }
 }
 

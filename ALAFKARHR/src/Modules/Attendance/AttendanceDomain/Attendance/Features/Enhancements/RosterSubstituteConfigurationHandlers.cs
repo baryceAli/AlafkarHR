@@ -53,7 +53,7 @@ public class GetRosterSubstituteConfigurationsHandler(
 
         var employeeResult = await sender.Send(new GetCompanyEmployeeRosterProfilesQuery(companyId), cancellationToken);
         return employeeResult.Employees
-            .Where(x => x.IsActive && x.AdministrationId != Guid.Empty)
+            .Where(x => x.IsActive && x.AdministrationId.HasValue && x.AdministrationId.Value != Guid.Empty)
             .ToList();
     }
 
@@ -69,7 +69,7 @@ public class GetRosterSubstituteConfigurationsHandler(
             EmployeeCode = employee.Code,
             EmployeeName = employee.FullName,
             EmployeeNameEng = employee.FullNameEng,
-            AdministrationId = employee.AdministrationId,
+            AdministrationId = employee.AdministrationId!.Value,
             DepartmentId = employee.DepartmentId,
             PositionId = employee.PositionId,
             PositionName = employee.PositionName,

@@ -87,6 +87,27 @@ public class StoreFrontService : BaseApiService, IStoreFrontService
         return await SendAsync<bool>(request, "isSuccess");
     }
 
+    public async Task<ApiResult<List<StoreFrontDepartmentDto>>> GetDepartmentsAsync(Guid storeFrontId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/stores/{storeFrontId}/departments");
+        return await SendAsync<List<StoreFrontDepartmentDto>>(request, "departments");
+    }
+
+    public async Task<ApiResult<StoreFrontDepartmentDto>> SaveDepartmentAsync(Guid storeFrontId, StoreFrontDepartmentDto department)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/stores/{storeFrontId}/departments")
+        {
+            Content = JsonContent.Create(new { Department = department })
+        };
+        return await SendAsync<StoreFrontDepartmentDto>(request, "department");
+    }
+
+    public async Task<ApiResult<bool>> DeleteDepartmentAsync(Guid storeFrontId, Guid departmentId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"{_path}/stores/{storeFrontId}/departments/{departmentId}");
+        return await SendAsync<bool>(request, "isSuccess");
+    }
+
     public async Task<ApiResult<List<StoreFrontCatalogItemDto>>> GetCatalogAsync(Guid storeFrontId, Guid? customerId = null, string? searchText = null)
     {
         var query = new List<string>();

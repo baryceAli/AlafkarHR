@@ -66,6 +66,7 @@ public static class PermissionList
             .. SalesReportPermissions.Permissions,
             .. SalesPriceOverridePermissions.Permissions,
             .. StoreFrontStorePermissions.Permissions,
+            .. StoreFrontDepartmentPermissions.Permissions,
             .. StoreFrontItemPermissions.Permissions,
             .. StoreFrontPosPermissions.Permissions,
             .. PurchaseRequestPermissions.Permissions,
@@ -1770,6 +1771,16 @@ public static class PermissionList
         public static string Edit { get; set; } = $"{GroupName}.Edit";
         public static string Delete { get; set; } = $"{GroupName}.Delete";
         public static List<string> Permissions => [Select, View, Create, Edit, Delete];
+    }
+
+    public static class StoreFrontDepartmentPermissions
+    {
+        public static string GroupName { get; set; } = "StoreFront.Department";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Edit { get; set; } = $"{GroupName}.Edit";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static List<string> Permissions => [View, Create, Edit, Delete];
     }
 
     public static class StoreFrontItemPermissions

@@ -61,6 +61,8 @@ public class StoreFrontStore : Aggregate<Guid>
 {
     public Guid CompanyId { get; private set; }
     public Guid? BranchId { get; private set; }
+    public Guid? AdministrationId { get; private set; }
+    public Guid? DepartmentId { get; private set; }
     public Guid StoreFrontTypeId { get; private set; }
     public StoreFrontType StoreFrontType { get; private set; } = default!;
     public Guid DefaultWarehouseId { get; private set; }
@@ -76,6 +78,9 @@ public class StoreFrontStore : Aggregate<Guid>
     private readonly List<StoreFrontSellableItem> _sellableItems = [];
     public IReadOnlyCollection<StoreFrontSellableItem> SellableItems => _sellableItems;
 
+    private readonly List<StoreFrontDepartment> _departments = [];
+    public IReadOnlyCollection<StoreFrontDepartment> Departments => _departments;
+
     private StoreFrontStore()
     {
     }
@@ -88,6 +93,8 @@ public class StoreFrontStore : Aggregate<Guid>
             Id = Guid.NewGuid(),
             CompanyId = dto.CompanyId,
             BranchId = dto.BranchId,
+            AdministrationId = dto.AdministrationId,
+            DepartmentId = dto.DepartmentId,
             StoreFrontTypeId = dto.StoreFrontTypeId,
             DefaultWarehouseId = dto.DefaultWarehouseId,
             DefaultCustomerId = dto.DefaultCustomerId,
@@ -107,6 +114,8 @@ public class StoreFrontStore : Aggregate<Guid>
     {
         Validate(dto);
         BranchId = dto.BranchId;
+        AdministrationId = dto.AdministrationId;
+        DepartmentId = dto.DepartmentId;
         StoreFrontTypeId = dto.StoreFrontTypeId;
         DefaultWarehouseId = dto.DefaultWarehouseId;
         DefaultCustomerId = dto.DefaultCustomerId;
@@ -143,6 +152,79 @@ public class StoreFrontStore : Aggregate<Guid>
         if (dto.CompanyId == Guid.Empty) throw new ArgumentException("Company is required");
         if (dto.StoreFrontTypeId == Guid.Empty) throw new ArgumentException("Store type is required");
         if (dto.DefaultWarehouseId == Guid.Empty) throw new ArgumentException("Default warehouse is required");
+        if (string.IsNullOrWhiteSpace(dto.Name)) throw new ArgumentException("Name is required");
+        if (string.IsNullOrWhiteSpace(dto.NameEng)) throw new ArgumentException("English name is required");
+        if (string.IsNullOrWhiteSpace(dto.Code)) throw new ArgumentException("Code is required");
+    }
+}
+
+public class StoreFrontDepartment : Aggregate<Guid>
+{
+    public Guid CompanyId { get; private set; }
+    public Guid StoreFrontId { get; private set; }
+    public StoreFrontStore StoreFront { get; private set; } = default!;
+    public string Name { get; private set; } = string.Empty;
+    public string NameEng { get; private set; } = string.Empty;
+    public string Code { get; private set; } = string.Empty;
+    public bool IsActive { get; private set; } = true;
+
+    private StoreFrontDepartment()
+    {
+    }
+
+    public static StoreFrontDepartment Create(Guid companyId, Guid storeFrontId, StoreFrontDepartmentDto dto, string createdBy)
+    {
+        Validate(companyId, storeFrontId, dto);
+        return new StoreFrontDepartment
+        {
+            Id = Guid.NewGuid(),
+            CompanyId = companyId,
+            StoreFrontId = storeFrontId,
+            Name = dto.Name.Trim(),
+            NameEng = dto.NameEng.Trim(),
+            Code = NormalizeCode(dto.Code),
+            IsActive = dto.IsActive,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = createdBy
+        };
+    }
+
+    public void Update(StoreFrontDepartmentDto dto, string modifiedBy)
+    {
+        Validate(CompanyId, StoreFrontId, dto);
+        Name = dto.Name.Trim();
+        NameEng = dto.NameEng.Trim();
+        Code = NormalizeCode(dto.Code);
+        IsActive = dto.IsActive;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+
+    public void Remove(string deletedBy)
+    {
+        IsDeleted = true;
+        IsActive = false;
+        DeletedAt = DateTime.UtcNow;
+        DeletedBy = deletedBy;
+    }
+
+    public StoreFrontDepartmentDto ToDto() => new()
+    {
+        Id = Id,
+        CompanyId = CompanyId,
+        StoreFrontId = StoreFrontId,
+        Name = Name,
+        NameEng = NameEng,
+        Code = Code,
+        IsActive = IsActive
+    };
+
+    public static string NormalizeCode(string code) => code.Trim().ToLowerInvariant();
+
+    private static void Validate(Guid companyId, Guid storeFrontId, StoreFrontDepartmentDto dto)
+    {
+        if (companyId == Guid.Empty) throw new ArgumentException("Company is required", nameof(companyId));
+        if (storeFrontId == Guid.Empty) throw new ArgumentException("StoreFront is required", nameof(storeFrontId));
         if (string.IsNullOrWhiteSpace(dto.Name)) throw new ArgumentException("Name is required");
         if (string.IsNullOrWhiteSpace(dto.NameEng)) throw new ArgumentException("English name is required");
         if (string.IsNullOrWhiteSpace(dto.Code)) throw new ArgumentException("Code is required");

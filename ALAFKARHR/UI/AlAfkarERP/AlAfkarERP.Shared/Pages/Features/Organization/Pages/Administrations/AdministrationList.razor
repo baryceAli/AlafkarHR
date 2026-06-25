@@ -41,7 +41,7 @@
             <div class="text-muted">@Text("Manage company higher management, branch administrations, hierarchy, managers, and active status.", "إدارة الإدارة العليا على مستوى الشركة وإدارات الفروع والتسلسل الإداري والمدراء وحالة التفعيل.")</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <button class="btn btn-outline-primary" @onclick="LoadAdministrations">
+            <button class="btn btn-outline-primary" @onclick="RefreshAdministrations">
                 <i class="bi bi-arrow-clockwise"></i>
                 @Text("Refresh", "تحديث")
             </button>
@@ -145,9 +145,9 @@
             </tr>
         </thead>
         <tbody>
-            @if (editingAdministrationId !=null)
+            @if (editingAdministration is not null)
             {
-                var admin = administrations.FirstOrDefault(a => a.Id == editingAdministrationId);
+                var admin = editingAdministration;
                 <tr class="org-edit-row">
                     <td colspan="8">
                         <EditForm Model="admin" OnValidSubmit="async () => await SaveAdministration(admin)">
@@ -478,6 +478,7 @@
     private EmployeeDto? manager = new();
     private AdministrationDto? parentAdministration;
     private Guid? editingAdministrationId;
+    private AdministrationDto? editingAdministration;
     // private Guid? newAdministrationId;
     private bool isEdit = false;
     private Guid companyId;
@@ -510,6 +511,7 @@
     private async Task OnBranchSelected(BranchDto? branch)
     {
         selectedBranch = branch;
+        ResetEditState();
 
         await LoadParentAdministrationOptions();
         await LoadAdministrations();
@@ -543,6 +545,7 @@
     {
         selectedBranch = null;
         pageIndex = 0;
+        ResetEditState();
         await LoadParentAdministrationOptions();
         await LoadAdministrations();
     }
@@ -550,23 +553,25 @@
     // Branch
     async Task CreateNew()
     {
+        ResetEditState();
         isEdit = false;
-        var newItem = new AdministrationDto()
+        editingAdministration = new AdministrationDto()
         {
             Id = Guid.NewGuid(),
             BranchId = selectedBranch?.Id
         };
-        administrations.Insert(0, newItem);
         parentAdministration = null;
-        editingAdministrationId = newItem.Id;
+        editingAdministrationId = editingAdministration.Id;
     }
 
 
     void EditAdministration(AdministrationDto admin)
     {
+        ResetEditState();
         isEdit = true;
 
         editingAdministrationId = admin.Id;
+        editingAdministration = CopyAdministration(admin);
         manager = employees?.FirstOrDefault(u => u.Id == admin.ManagerId) ?? null;
         parentAdministration = allBranchAdministrations.FirstOrDefault(x => x.Id == admin.ParentAdministrationId);
     }
@@ -645,10 +650,7 @@
         // {
         //     branches = response.Data?.ToList() ?? [];
         // }
-        editingAdministrationId = null;
-        parentAdministration = null;
-        // newAdministrationId = null;
-        isEdit = false;
+        ResetEditState();
         StateHasChanged();
     }
 
@@ -698,23 +700,10 @@
 
 
     }
-    async Task CancelEdit()
+    void CancelEdit()
     {
 
-        var item = administrations.FirstOrDefault(x => x.Id == editingAdministrationId);
-        if (item != null && isEdit)
-        {
-            await LoadAdministrations();
-        }
-        else
-        {
-            // new record → remove it
-            administrations.Remove(item);
-        }
-        isEdit = false;
-        editingAdministrationId = null;
-        parentAdministration = null;
-        // newAdministrationId = null;
+        ResetEditState();
     }
 
     #region Table Helpers
@@ -730,6 +719,12 @@
     // Pagination
     private int pageSize = 5;
     private int pageIndex = 0;
+    private async Task RefreshAdministrations()
+    {
+        ResetEditState();
+        await LoadAdministrations();
+    }
+
     private async Task LoadAdministrations()
     {
         TotalPages = 0;
@@ -769,6 +764,7 @@
     {
         pageSize = int.Parse(e.Value!.ToString()!);
         pageIndex = 0;
+        ResetEditState();
         await LoadAdministrations();
     }
     private IEnumerable<AdministrationDto> ProcessedAdministrations =>
@@ -814,6 +810,7 @@
         if (pageIndex < TotalPages - 1)
         {
             pageIndex++;
+            ResetEditState();
             await LoadAdministrations();
         }
     }
@@ -826,6 +823,7 @@
         if (pageIndex > 0)
         {
             pageIndex--;
+            ResetEditState();
             await LoadAdministrations();
         }
     }
@@ -874,6 +872,32 @@
         => sortColumn != column
             ? "bi bi-arrow-down-up"
             : sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down";
+
+    private void ResetEditState()
+    {
+        editingAdministrationId = null;
+        editingAdministration = null;
+        manager = null;
+        parentAdministration = null;
+        isEdit = false;
+    }
+
+    private static AdministrationDto CopyAdministration(AdministrationDto administration)
+        => new()
+        {
+            Id = administration.Id,
+            Name = administration.Name,
+            NameEng = administration.NameEng,
+            BranchId = administration.BranchId,
+            ParentAdministrationId = administration.ParentAdministrationId,
+            ParentAdministrationName = administration.ParentAdministrationName,
+            ParentAdministrationNameEng = administration.ParentAdministrationNameEng,
+            Code = administration.Code,
+            ManagerId = administration.ManagerId,
+            IsHigherManagement = administration.IsHigherManagement,
+            IsActive = administration.IsActive,
+            CompanyId = administration.CompanyId
+        };
     #endregion Table helpers
 
     protected override void OnInitialized()

@@ -22,6 +22,12 @@ public record GetStoreFrontItemsQuery(Guid StoreFrontId) : IQuery<GetStoreFrontI
 public record GetStoreFrontItemsResult(List<StoreFrontSellableItemDto> Items);
 public record SaveStoreFrontItemsCommand(Guid StoreFrontId, List<StoreFrontSellableItemDto> Items) : ICommand<SaveStoreFrontItemsResult>;
 public record SaveStoreFrontItemsResult(bool IsSuccess);
+public record GetStoreFrontDepartmentsQuery(Guid StoreFrontId) : IQuery<GetStoreFrontDepartmentsResult>;
+public record GetStoreFrontDepartmentsResult(List<StoreFrontDepartmentDto> Departments);
+public record SaveStoreFrontDepartmentCommand(Guid StoreFrontId, StoreFrontDepartmentDto Department) : ICommand<SaveStoreFrontDepartmentResult>;
+public record SaveStoreFrontDepartmentResult(StoreFrontDepartmentDto Department);
+public record DeleteStoreFrontDepartmentCommand(Guid StoreFrontId, Guid DepartmentId) : ICommand<DeleteStoreFrontDepartmentResult>;
+public record DeleteStoreFrontDepartmentResult(bool IsSuccess);
 public record GetStoreFrontCatalogQuery(Guid StoreFrontId, Guid? CustomerId, string? SearchText) : IQuery<GetStoreFrontCatalogResult>;
 public record GetStoreFrontCatalogResult(List<StoreFrontCatalogItemDto> Items);
 
@@ -31,6 +37,7 @@ public record SaveStoreFrontRequest(StoreFrontDto Store);
 public record SaveStoreFrontResponse(StoreFrontDto Store);
 public record SetStoreFrontStatusRequest(bool IsActive);
 public record SaveStoreFrontItemsRequest(List<StoreFrontSellableItemDto> Items);
+public record SaveStoreFrontDepartmentRequest(StoreFrontDepartmentDto Department);
 
 public class StoreFrontTypeValidator : AbstractValidator<SaveStoreFrontTypeCommand>
 {
@@ -56,11 +63,23 @@ public class StoreFrontValidator : AbstractValidator<SaveStoreFrontCommand>
     }
 }
 
+public class StoreFrontDepartmentValidator : AbstractValidator<SaveStoreFrontDepartmentCommand>
+{
+    public StoreFrontDepartmentValidator()
+    {
+        RuleFor(x => x.StoreFrontId).NotEmpty();
+        RuleFor(x => x.Department.Name).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Department.NameEng).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Department.Code).NotEmpty().MaximumLength(100);
+    }
+}
+
 public class StoreFrontQueryHandler(StoreFrontDbContext dbContext, ISender sender, IHttpContextAccessor httpContextAccessor)
     : IQueryHandler<GetStoreFrontTypesQuery, GetStoreFrontTypesResult>,
       IQueryHandler<GetStoreFrontsByCompanyQuery, GetStoreFrontsByCompanyResult>,
       IQueryHandler<GetStoreFrontByIdQuery, GetStoreFrontByIdResult>,
       IQueryHandler<GetStoreFrontItemsQuery, GetStoreFrontItemsResult>,
+      IQueryHandler<GetStoreFrontDepartmentsQuery, GetStoreFrontDepartmentsResult>,
       IQueryHandler<GetStoreFrontCatalogQuery, GetStoreFrontCatalogResult>,
       IQueryHandler<GetStoreFrontBranchScopeQuery, GetStoreFrontBranchScopeResult>
 {
@@ -87,12 +106,14 @@ public class StoreFrontQueryHandler(StoreFrontDbContext dbContext, ISender sende
     public async Task<GetStoreFrontsByCompanyResult> Handle(GetStoreFrontsByCompanyQuery request, CancellationToken cancellationToken)
     {
         var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(request.CompanyId), cancellationToken);
-        var canViewCompanyStores = HasCompanyPermission(PermissionList.StoreFrontStorePermissions.View);
+        var canViewCompanyStores = HasCompanyPermission(PermissionList.StoreFrontStorePermissions.View)
+            || HasCompanyPermission(PermissionList.StoreFrontDepartmentPermissions.View);
         var branchRoleAccess = canViewCompanyStores
             ? null
             : await sender.Send(new GetCurrentUserBranchRoleAccessForAuthorizationQuery(request.CompanyId), cancellationToken);
         var permittedBranchIds = branchRoleAccess?.Assignments
             .Where(x => x.Permissions.Contains(PermissionList.StoreFrontStorePermissions.View, StringComparer.Ordinal)
+                || x.Permissions.Contains(PermissionList.StoreFrontDepartmentPermissions.View, StringComparer.Ordinal)
                 || x.Permissions.Contains(PermissionList.StoreFrontPosPermissions.View, StringComparer.Ordinal))
             .Select(x => x.BranchId)
             .ToHashSet() ?? [];
@@ -139,6 +160,32 @@ public class StoreFrontQueryHandler(StoreFrontDbContext dbContext, ISender sende
             .ToListAsync(cancellationToken);
 
         return new GetStoreFrontItemsResult(items);
+    }
+
+    public async Task<GetStoreFrontDepartmentsResult> Handle(GetStoreFrontDepartmentsQuery request, CancellationToken cancellationToken)
+    {
+        var store = await dbContext.StoreFronts.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.StoreFrontId, cancellationToken)
+            ?? throw new NotFoundException($"Store front not found: {request.StoreFrontId}");
+        await EnsureCanAccessStoreByEitherPermissionAsync(store.CompanyId, store.BranchId, PermissionList.StoreFrontDepartmentPermissions.View, cancellationToken);
+
+        var departments = await dbContext.StoreFrontDepartments
+            .AsNoTracking()
+            .Where(x => x.StoreFrontId == request.StoreFrontId)
+            .OrderBy(x => x.NameEng)
+            .Select(x => new StoreFrontDepartmentDto
+            {
+                Id = x.Id,
+                CompanyId = x.CompanyId,
+                StoreFrontId = x.StoreFrontId,
+                Name = x.Name,
+                NameEng = x.NameEng,
+                Code = x.Code,
+                IsActive = x.IsActive
+            })
+            .ToListAsync(cancellationToken);
+
+        return new GetStoreFrontDepartmentsResult(departments);
     }
 
     public async Task<GetStoreFrontCatalogResult> Handle(GetStoreFrontCatalogQuery request, CancellationToken cancellationToken)
@@ -193,6 +240,8 @@ public class StoreFrontQueryHandler(StoreFrontDbContext dbContext, ISender sende
         Id = store.Id,
         CompanyId = store.CompanyId,
         BranchId = store.BranchId,
+        AdministrationId = store.AdministrationId,
+        DepartmentId = store.DepartmentId,
         StoreFrontTypeId = store.StoreFrontTypeId,
         StoreFrontTypeName = store.StoreFrontType?.Name,
         StoreFrontTypeNameEng = store.StoreFrontType?.NameEng,
@@ -234,6 +283,18 @@ public class StoreFrontQueryHandler(StoreFrontDbContext dbContext, ISender sende
         await sender.Send(new EnsureCurrentUserBranchPermissionQuery(companyId, branchId.Value, permission), cancellationToken);
     }
 
+    private async Task EnsureCanAccessStoreByEitherPermissionAsync(Guid companyId, Guid? branchId, string permission, CancellationToken cancellationToken)
+    {
+        if (!branchId.HasValue)
+            throw new ForbiddenException("Store front is not linked to a branch.");
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (!BranchScopePolicy.CanRead(branchAccess, branchId))
+            throw new ForbiddenException("You do not have permission to view this storefront branch scope.");
+        if (HasCompanyPermission(permission))
+            return;
+        await sender.Send(new EnsureCurrentUserBranchPermissionQuery(companyId, branchId.Value, permission), cancellationToken);
+    }
+
     private bool HasCompanyPermission(string permission)
         => httpContextAccessor.HttpContext?.User.Claims.Any(x => x.Type == "Permission" && x.Value == permission) == true;
 }
@@ -249,7 +310,9 @@ public class StoreFrontCommandHandler(
       ICommandHandler<SaveStoreFrontCommand, SaveStoreFrontResult>,
       ICommandHandler<SetStoreFrontStatusCommand, SetStoreFrontStatusResult>,
       ICommandHandler<DeleteStoreFrontCommand, DeleteStoreFrontResult>,
-      ICommandHandler<SaveStoreFrontItemsCommand, SaveStoreFrontItemsResult>
+      ICommandHandler<SaveStoreFrontItemsCommand, SaveStoreFrontItemsResult>,
+      ICommandHandler<SaveStoreFrontDepartmentCommand, SaveStoreFrontDepartmentResult>,
+      ICommandHandler<DeleteStoreFrontDepartmentCommand, DeleteStoreFrontDepartmentResult>
 {
     public async Task<SaveStoreFrontTypeResult> Handle(SaveStoreFrontTypeCommand request, CancellationToken cancellationToken)
     {
@@ -316,6 +379,13 @@ public class StoreFrontCommandHandler(
             request.Store.CompanyId,
             request.Store.DefaultWarehouseId,
             ensuredBranch.BranchId), cancellationToken);
+        var placement = await sender.Send(new ValidateOrganizationPlacementQuery(
+            request.Store.CompanyId,
+            request.Store.BranchId,
+            request.Store.AdministrationId,
+            request.Store.DepartmentId), cancellationToken);
+        if (!placement.IsValid)
+            throw new BadRequestException(placement.Message ?? "Invalid organization placement.");
 
         await EnsureCanMutateStoreAsync(
             request.Store.CompanyId,
@@ -419,6 +489,68 @@ public class StoreFrontCommandHandler(
         return new SaveStoreFrontItemsResult(true);
     }
 
+    public async Task<SaveStoreFrontDepartmentResult> Handle(SaveStoreFrontDepartmentCommand request, CancellationToken cancellationToken)
+    {
+        var store = await dbContext.StoreFronts.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.StoreFrontId, cancellationToken)
+            ?? throw new NotFoundException($"Store front not found: {request.StoreFrontId}");
+
+        var existing = request.Department.Id == Guid.Empty
+            ? null
+            : await dbContext.StoreFrontDepartments.FirstOrDefaultAsync(
+                x => x.Id == request.Department.Id && x.StoreFrontId == request.StoreFrontId,
+                cancellationToken);
+
+        await EnsureCanMutateStoreByEitherPermissionAsync(
+            store.CompanyId,
+            store.BranchId,
+            existing is null ? PermissionList.StoreFrontDepartmentPermissions.Create : PermissionList.StoreFrontDepartmentPermissions.Edit,
+            cancellationToken);
+
+        var code = StoreFrontDepartment.NormalizeCode(request.Department.Code);
+        var duplicate = await dbContext.StoreFrontDepartments
+            .AnyAsync(x => x.StoreFrontId == request.StoreFrontId && x.Code == code && (existing == null || x.Id != existing.Id), cancellationToken);
+        if (duplicate)
+            throw new BadRequestException("A department with the same code already exists for this store front.");
+
+        StoreFrontDepartment department;
+        if (existing is null)
+        {
+            request.Department.CompanyId = store.CompanyId;
+            request.Department.StoreFrontId = store.Id;
+            department = StoreFrontDepartment.Create(store.CompanyId, store.Id, request.Department, GetUserId());
+            await dbContext.StoreFrontDepartments.AddAsync(department, cancellationToken);
+        }
+        else
+        {
+            request.Department.CompanyId = store.CompanyId;
+            request.Department.StoreFrontId = store.Id;
+            existing.Update(request.Department, GetUserId());
+            department = existing;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new SaveStoreFrontDepartmentResult(department.ToDto());
+    }
+
+    public async Task<DeleteStoreFrontDepartmentResult> Handle(DeleteStoreFrontDepartmentCommand request, CancellationToken cancellationToken)
+    {
+        var store = await dbContext.StoreFronts.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.StoreFrontId, cancellationToken)
+            ?? throw new NotFoundException($"Store front not found: {request.StoreFrontId}");
+
+        await EnsureCanMutateStoreByEitherPermissionAsync(store.CompanyId, store.BranchId, PermissionList.StoreFrontDepartmentPermissions.Delete, cancellationToken);
+
+        var department = await dbContext.StoreFrontDepartments.FirstOrDefaultAsync(
+                x => x.Id == request.DepartmentId && x.StoreFrontId == request.StoreFrontId,
+                cancellationToken)
+            ?? throw new NotFoundException($"Store front department not found: {request.DepartmentId}");
+
+        department.Remove(GetUserId());
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new DeleteStoreFrontDepartmentResult(true);
+    }
+
     private async Task EnsureStoreActivationAvailableAsync(Guid companyId, Guid? currentStoreId, CancellationToken cancellationToken)
     {
         var parentCompanyId = await companyHierarchyReader.GetParentCompanyIdForCompanyAsync(companyId, cancellationToken);
@@ -445,6 +577,21 @@ public class StoreFrontCommandHandler(
             throw new ForbiddenException("You do not have permission to change this storefront branch scope.");
         await sender.Send(new EnsureCurrentUserBranchPermissionQuery(companyId, branchId.Value, permission), cancellationToken);
     }
+
+    private async Task EnsureCanMutateStoreByEitherPermissionAsync(Guid companyId, Guid? branchId, string permission, CancellationToken cancellationToken)
+    {
+        if (!branchId.HasValue)
+            throw new ForbiddenException("Store front is not linked to a branch.");
+        var branchAccess = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(branchAccess, branchId))
+            throw new ForbiddenException("You do not have permission to change this storefront branch scope.");
+        if (HasCompanyPermission(permission))
+            return;
+        await sender.Send(new EnsureCurrentUserBranchPermissionQuery(companyId, branchId.Value, permission), cancellationToken);
+    }
+
+    private bool HasCompanyPermission(string permission)
+        => httpContextAccessor.HttpContext?.User.Claims.Any(x => x.Type == "Permission" && x.Value == permission) == true;
 
     private string GetUserId() =>
         httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -517,6 +664,24 @@ public class StoreFrontEndpoints : ICarterModule
         app.MapPut($"{Route}/stores/{{id:guid}}/items", async (Guid id, SaveStoreFrontItemsRequest request, ISender sender) =>
         {
             var result = await sender.Send(new SaveStoreFrontItemsCommand(id, request.Items));
+            return Results.Ok(result);
+        }).RequireAuthorization();
+
+        app.MapGet($"{Route}/stores/{{id:guid}}/departments", async (Guid id, ISender sender) =>
+        {
+            var result = await sender.Send(new GetStoreFrontDepartmentsQuery(id));
+            return Results.Ok(result);
+        }).RequireAuthorization();
+
+        app.MapPost($"{Route}/stores/{{id:guid}}/departments", async (Guid id, SaveStoreFrontDepartmentRequest request, ISender sender) =>
+        {
+            var result = await sender.Send(new SaveStoreFrontDepartmentCommand(id, request.Department));
+            return Results.Ok(result);
+        }).RequireAuthorization();
+
+        app.MapDelete($"{Route}/stores/{{storeFrontId:guid}}/departments/{{departmentId:guid}}", async (Guid storeFrontId, Guid departmentId, ISender sender) =>
+        {
+            var result = await sender.Send(new DeleteStoreFrontDepartmentCommand(storeFrontId, departmentId));
             return Results.Ok(result);
         }).RequireAuthorization();
 

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StoreFront.Data;
 
@@ -11,9 +12,11 @@ using StoreFront.Data;
 namespace StoreFront.Data.Migrations
 {
     [DbContext(typeof(StoreFrontDbContext))]
-    partial class StoreFrontDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260625082555_StoreFrontDepartments")]
+    partial class StoreFrontDepartments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -326,9 +329,6 @@ namespace StoreFront.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("AdministrationId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid?>("BranchId")
                         .HasColumnType("uniqueidentifier");
 
@@ -359,9 +359,6 @@ namespace StoreFront.Data.Migrations
                     b.Property<string>("DeletedBy")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<Guid?>("DepartmentId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -401,10 +398,6 @@ namespace StoreFront.Data.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AdministrationId");
-
-                    b.HasIndex("DepartmentId");
 
                     b.HasIndex("StoreFrontTypeId");
 

@@ -58,11 +58,9 @@ public class CreateEmployeeDto
     public Guid? BranchId { get; set; }
 
 
-    [Required(ErrorMessage = "Administration is required")]
     public Guid? AdministrationId { get; set; }
 
 
-    [Required(ErrorMessage = "Department is required")]
     public Guid? DepartmentId { get; set; }
 
     // 🔗 Job info

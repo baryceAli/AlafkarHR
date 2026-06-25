@@ -77,7 +77,6 @@ public class EmployeeDto
     public string BranchName { get; set; }
 
 
-    [Required(ErrorMessage = "Administration is required")]
     public Guid? AdministrationId { get; set; }
     public string AdministrationName { get; set; }
 

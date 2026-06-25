@@ -452,7 +452,7 @@ public class AttendanceRosterControlRowDto
     public string? EmployeeNameEng { get; set; }
     public Guid BranchId { get; set; }
     public string? BranchName { get; set; }
-    public Guid AdministrationId { get; set; }
+    public Guid? AdministrationId { get; set; }
     public string? AdministrationName { get; set; }
     public Guid? DepartmentId { get; set; }
     public string? DepartmentName { get; set; }

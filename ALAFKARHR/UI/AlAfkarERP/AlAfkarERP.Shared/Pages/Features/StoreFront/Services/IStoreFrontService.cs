@@ -16,6 +16,9 @@ public interface IStoreFrontService
     Task<ApiResult<bool>> DeleteStoreAsync(Guid id);
     Task<ApiResult<List<StoreFrontSellableItemDto>>> GetItemsAsync(Guid storeFrontId);
     Task<ApiResult<bool>> SaveItemsAsync(Guid storeFrontId, List<StoreFrontSellableItemDto> items);
+    Task<ApiResult<List<StoreFrontDepartmentDto>>> GetDepartmentsAsync(Guid storeFrontId);
+    Task<ApiResult<StoreFrontDepartmentDto>> SaveDepartmentAsync(Guid storeFrontId, StoreFrontDepartmentDto department);
+    Task<ApiResult<bool>> DeleteDepartmentAsync(Guid storeFrontId, Guid departmentId);
     Task<ApiResult<List<StoreFrontCatalogItemDto>>> GetCatalogAsync(Guid storeFrontId, Guid? customerId = null, string? searchText = null);
     Task<ApiResult<List<CashAccountDto>>> GetCashAccountsAsync(Guid storeFrontId);
     Task<ApiResult<Guid>> SaveCashAccountAsync(Guid storeFrontId, CashAccountDto cashAccount);

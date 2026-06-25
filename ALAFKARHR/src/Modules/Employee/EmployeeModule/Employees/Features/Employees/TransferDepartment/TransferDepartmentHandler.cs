@@ -15,12 +15,10 @@ public class TransferDepartmentCommandValidator : AbstractValidator<TransferDepa
     {
         RuleFor(c => c.TransferDepartment).NotEmpty().WithMessage("Transfer department is required");
         RuleFor(c => c.TransferDepartment.branchId).NotEmpty().WithMessage("Branch is required");
-        RuleFor(c => c.TransferDepartment.administrationId).NotEmpty().WithMessage("Administration is required");
-        RuleFor(c => c.TransferDepartment.departmentId).NotEmpty().WithMessage("Department is required");
         //RuleFor(c => c.TransferDepartment.).NotEmpty().WithMessage("Branch is required");
     }
 }
-public class TransferDepartmentHandler(EmployeeDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class TransferDepartmentHandler(EmployeeDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<TransferDepartmentCommand, TransferDepartmentRresult>
 {
     public async Task<TransferDepartmentRresult> Handle(TransferDepartmentCommand request, CancellationToken cancellationToken)
@@ -30,6 +28,16 @@ public class TransferDepartmentHandler(EmployeeDbContext dbContext, IHttpContext
         var employee = await dbContext.Employees.FirstOrDefaultAsync(e=>e.Id== request.TransferDepartment.Id, cancellationToken);
         if (employee is null)
             throw new NotFoundException($"Employee not found: {request.TransferDepartment.Id}");
+        await EmployeeModule.Employees.Features.Employees.EmployeeBranchScope.EnsureCanMutateAsync(sender, employee.CompanyId, employee.BranchId, cancellationToken);
+        await EmployeeModule.Employees.Features.Employees.EmployeeBranchScope.EnsureCanMutateAsync(sender, employee.CompanyId, request.TransferDepartment.branchId, cancellationToken);
+
+        var placement = await sender.Send(new ValidateOrganizationPlacementQuery(
+            employee.CompanyId,
+            request.TransferDepartment.branchId,
+            request.TransferDepartment.administrationId,
+            request.TransferDepartment.departmentId), cancellationToken);
+        if (!placement.IsValid)
+            throw new BadRequestException(placement.Message ?? "Invalid organization placement.");
 
         var userId = httpContextAccessor.HttpContext?
                         .User?

@@ -37,14 +37,14 @@ public class MenuItem
     {
         new MenuItem
         {
-            TextEn = "Sales Management",
-            TextAr = "إدارة المبيعات",
-            Icon = "bi-graph-up-arrow",
-            PermissionPolicy = PermissionList.SalesOrderPermissions.Select,
-            WorkspaceKey = NavigationMenuResolver.WorkspaceSales,
-            NavigationFunctionalGroupKey = NavigationMenuResolver.SalesFunctionalGroupSales,
-            KeywordsEn = "sales orders order intakes dashboard pos",
-            KeywordsAr = "مبيعات أوامر طلبات لوحة نقطة بيع",
+            TextEn = "StoreFront",
+            TextAr = "واجهات المتاجر",
+            Icon = "bi-shop",
+            PermissionPolicy = null,
+            WorkspaceKey = NavigationMenuResolver.WorkspaceStoreFront,
+            IsFavoriteCandidate = false,
+            KeywordsEn = "storefront stores shops pos checkout cashier",
+            KeywordsAr = "واجهات المتاجر متاجر نقطة بيع كاشير",
             Children = new()
             {
                 new MenuItem
@@ -62,6 +62,66 @@ public class MenuItem
                     KeywordsEn = "storefront pos store front checkout cashier",
                     KeywordsAr = "واجهة متجر متجر نقطة بيع مبيعات كاشير"
                 },
+                new MenuItem
+                {
+                    TextEn = "Store Fronts",
+                    TextAr = "واجهات المتاجر",
+                    Icon = "bi-shop",
+                    Url = "/StoreFront/Stores",
+                    PermissionPolicy = PermissionList.StoreFrontStorePermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceStoreFront,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.StoreFrontFunctionalGroupStores,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                    NavigationOrder = 100,
+                    NavigationAliases = new()
+                    {
+                        "/StoreFront/Stores/"
+                    },
+                    KeywordsEn = "store front shops grocery flowers car wash pos manage stores",
+                    KeywordsAr = "متاجر واجهة متجر بقالة زهور غسيل سيارات نقطة بيع إدارة"
+                },
+                new MenuItem
+                {
+                    TextEn = "Operational Departments",
+                    TextAr = "أقسام المتجر",
+                    Icon = "bi-diagram-3",
+                    Url = "/StoreFront/Departments",
+                    PermissionPolicy = PermissionList.StoreFrontDepartmentPermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceStoreFront,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.StoreFrontFunctionalGroupStores,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                    NavigationOrder = 110,
+                    KeywordsEn = "storefront departments store departments operational teams",
+                    KeywordsAr = "أقسام المتجر واجهة متجر فرق تشغيل"
+                },
+                new MenuItem
+                {
+                    TextEn = "Organization Structure",
+                    TextAr = "الهيكل التنظيمي",
+                    Icon = "bi-building-gear",
+                    Url = "/StoreFront/Organization",
+                    PermissionPolicy = PermissionList.StoreFrontStorePermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceStoreFront,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.StoreFrontFunctionalGroupStores,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                    NavigationOrder = 115,
+                    KeywordsEn = "storefront organization structure administrations departments branch setup",
+                    KeywordsAr = "هيكل تنظيمي واجهة متجر إدارات أقسام فرع إعداد"
+                }
+            }
+        },
+        new MenuItem
+        {
+            TextEn = "Sales Management",
+            TextAr = "إدارة المبيعات",
+            Icon = "bi-graph-up-arrow",
+            PermissionPolicy = PermissionList.SalesOrderPermissions.Select,
+            WorkspaceKey = NavigationMenuResolver.WorkspaceSales,
+            NavigationFunctionalGroupKey = NavigationMenuResolver.SalesFunctionalGroupSales,
+            KeywordsEn = "sales orders order intakes dashboard pos",
+            KeywordsAr = "مبيعات أوامر طلبات لوحة نقطة بيع",
+            Children = new()
+            {
                 new MenuItem
                 {
                     TextEn = "Sales Dashboard",
@@ -580,20 +640,6 @@ public class MenuItem
                     Icon = "bi-patch-check",
                     Url = "/Organization/LicenseCategories",
                     PermissionPolicy = PermissionList.ParentCompanyPermissions.View
-                },
-                new MenuItem
-                {
-                    TextEn = "Store Fronts",
-                    TextAr = "واجهات المتاجر",
-                    Icon = "bi-shop",
-                    Url = "/StoreFront/Stores",
-                    PermissionPolicy = PermissionList.StoreFrontStorePermissions.View,
-                    WorkspaceKey = NavigationMenuResolver.WorkspaceStoreFront,
-                    NavigationFunctionalGroupKey = NavigationMenuResolver.StoreFrontFunctionalGroupStores,
-                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
-                    NavigationOrder = 100,
-                    KeywordsEn = "store front shops grocery flowers car wash pos",
-                    KeywordsAr = "متاجر واجهة متجر بقالة زهور غسيل سيارات نقطة بيع"
                 },
                 new MenuItem
                 {

@@ -1,0 +1,362 @@
+@layout AdminLayout
+@page "/StoreFront/Organization"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.StoreFront.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Organization.Dtos
+@using SharedWithUI.Permissions
+@using SharedWithUI.StoreFront.Dtos
+
+@inject IStoreFrontService StoreFrontService
+@inject IBranchService BranchService
+@inject IAdministrationService AdministrationService
+@inject IDepartmentService DepartmentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<section class="erp-page" dir="@SharedDataService.PageDirection">
+    @if (isLoading)
+    {
+        <AppLoader />
+    }
+    else if (!CanAccessPage)
+    {
+        <div class="alert alert-warning">@Text("You don't have permissions to manage StoreFront organization structure.", "ليس لديك صلاحية لإدارة الهيكل التنظيمي لواجهة المتجر.")</div>
+    }
+    else
+    {
+        <PageHeader Title="@Text("StoreFront Organization Structure", "الهيكل التنظيمي لواجهة المتجر")"
+                    Subtitle="@Text("Manage Organization administrations and departments for StoreFront branches.", "إدارة إدارات وأقسام المؤسسة لفروع واجهة المتجر.")"
+                    Overline="@Text("StoreFront", "واجهة المتجر")"
+                    Icon="bi-diagram-3">
+            <Actions>
+                <a class="btn btn-outline-secondary" href="/StoreFront/Departments">
+                    <i class="bi bi-box-arrow-up-right"></i> @Text("Operational Departments", "الأقسام التشغيلية")
+                </a>
+                <button class="btn btn-outline-secondary" @onclick="LoadAsync">
+                    <i class="bi bi-arrow-clockwise"></i> @Text("Refresh", "تحديث")
+                </button>
+            </Actions>
+        </PageHeader>
+
+        <div class="row g-3">
+            <div class="col-lg-4">
+                <AppCard Title="@Text("StoreFront Branch", "فرع واجهة المتجر")">
+                    @if (!stores.Any())
+                    {
+                        <EmptyState Title="@Text("No accessible storefronts", "لا توجد واجهات متجر متاحة")"
+                                    Message="@Text("Create a StoreFront or request access to a StoreFront branch.", "أنشئ واجهة متجر أو اطلب صلاحية لفرع واجهة متجر.")"
+                                    Icon="bi-shop" />
+                    }
+                    else
+                    {
+                        <label class="form-label">@Text("StoreFront", "واجهة المتجر")</label>
+                        <select class="form-select" value="@selectedStoreIdText" @onchange="OnStoreChanged">
+                            <option value="">@Text("Select", "اختر")</option>
+                            @foreach (var store in stores)
+                            {
+                                <option value="@store.Id">@StoreLabel(store)</option>
+                            }
+                        </select>
+
+                        @if (SelectedStore is not null)
+                        {
+                            <div class="d-flex flex-column gap-2 mt-3">
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">@Text("Branch", "الفرع")</span>
+                                    <span class="fw-semibold">@BranchName(SelectedStore.BranchId)</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">@Text("Administrations", "الإدارات")</span>
+                                    <span class="fw-semibold">@administrations.Count</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">@Text("Departments", "الأقسام")</span>
+                                    <span class="fw-semibold">@departments.Count</span>
+                                </div>
+                            </div>
+                        }
+                    }
+                </AppCard>
+            </div>
+
+            <div class="col-lg-8">
+                <AppCard Title="@Text("Administrations", "الإدارات")">
+                    @if (SelectedStore?.BranchId is not Guid)
+                    {
+                        <EmptyState Title="@Text("Select a StoreFront branch", "اختر فرع واجهة متجر")"
+                                    Message="@Text("Choose a StoreFront with a linked branch to manage its structure.", "اختر واجهة متجر مرتبطة بفرع لإدارة هيكلها.")"
+                                    Icon="bi-diagram-3" />
+                    }
+                    else
+                    {
+                        @if (CanCreateAdministration)
+                        {
+                            <EditForm Model="administrationDraft" OnValidSubmit="SaveAdministrationAsync">
+                                <DataAnnotationsValidator />
+                                <div class="row g-2 align-items-end mb-3">
+                                    <div class="col-md-4"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="administrationDraft.NameEng" /></div>
+                                    <div class="col-md-4"><label class="form-label">@Text("Arabic Name", "الاسم العربي")</label><InputText class="form-control" @bind-Value="administrationDraft.Name" /></div>
+                                    <div class="col-md-2"><label class="form-label">@Text("Code", "الرمز")</label><InputText class="form-control" @bind-Value="administrationDraft.Code" /></div>
+                                    <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">@Text("Save", "حفظ")</button></div>
+                                </div>
+                            </EditForm>
+                        }
+
+                        <div class="erp-table-wrap">
+                            <table class="table erp-table align-middle mb-0">
+                                <thead><tr><th>@Text("Administration", "الإدارة")</th><th>@Text("Code", "الرمز")</th><th>@Text("Departments", "الأقسام")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                                <tbody>
+                                    @foreach (var administration in administrations)
+                                    {
+                                        <tr class="@(selectedAdministrationId == administration.Id ? "table-active" : string.Empty)">
+                                            <td><div class="fw-semibold">@Text(administration.NameEng, administration.Name)</div><div class="text-muted small">@administration.Name</div></td>
+                                            <td>@administration.Code</td>
+                                            <td>@departments.Count(x => x.AdministrationId == administration.Id)</td>
+                                            <td class="text-end">
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="() => SelectAdministrationAsync(administration.Id)">@Text("Departments", "الأقسام")</button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </AppCard>
+
+                @if (selectedAdministrationId.HasValue)
+                {
+                    <AppCard Title="@Text("Departments", "الأقسام")" CssClass="mt-3">
+                        @if (CanCreateDepartment)
+                        {
+                            <EditForm Model="departmentDraft" OnValidSubmit="SaveDepartmentAsync">
+                                <DataAnnotationsValidator />
+                                <div class="row g-2 align-items-end mb-3">
+                                    <div class="col-md-3"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="departmentDraft.NameEng" /></div>
+                                    <div class="col-md-3"><label class="form-label">@Text("Arabic Name", "الاسم العربي")</label><InputText class="form-control" @bind-Value="departmentDraft.Name" /></div>
+                                    <div class="col-md-2"><label class="form-label">@Text("Code", "الرمز")</label><InputText class="form-control" @bind-Value="departmentDraft.Code" /></div>
+                                    <div class="col-md-2"><label class="form-label">@Text("Location", "الموقع")</label><InputText class="form-control" @bind-Value="departmentDraft.Location" /></div>
+                                    <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">@Text("Save", "حفظ")</button></div>
+                                </div>
+                            </EditForm>
+                        }
+
+                        @if (!SelectedAdministrationDepartments.Any())
+                        {
+                            <EmptyState Title="@Text("No departments", "لا توجد أقسام")"
+                                        Message="@Text("Create the first department for the selected administration.", "أنشئ أول قسم للإدارة المحددة.")"
+                                        Icon="bi-diagram-2" />
+                        }
+                        else
+                        {
+                            <div class="erp-table-wrap">
+                                <table class="table erp-table align-middle mb-0">
+                                    <thead><tr><th>@Text("Department", "القسم")</th><th>@Text("Code", "الرمز")</th><th>@Text("Location", "الموقع")</th><th>@Text("Status", "الحالة")</th></tr></thead>
+                                    <tbody>
+                                        @foreach (var department in SelectedAdministrationDepartments)
+                                        {
+                                            <tr>
+                                                <td><div class="fw-semibold">@Text(department.NameEng, department.Name)</div><div class="text-muted small">@department.Name</div></td>
+                                                <td>@department.Code</td>
+                                                <td>@department.Location</td>
+                                                <td><StatusChip Text="@(department.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))" Tone="@(department.IsActive ? "success" : "secondary")" /></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </AppCard>
+                }
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    private Guid companyId;
+    private bool isLoading = true;
+    private AuthenticationState? authState;
+    private List<StoreFrontDto> stores = [];
+    private List<BranchDto> branches = [];
+    private List<AdministrationDto> administrations = [];
+    private List<DepartmentDto> departments = [];
+    private string selectedStoreIdText = string.Empty;
+    private Guid? selectedAdministrationId;
+    private AdministrationDto administrationDraft = new();
+    private DepartmentDto departmentDraft = new();
+
+    private StoreFrontDto? SelectedStore => Guid.TryParse(selectedStoreIdText, out var id)
+        ? stores.FirstOrDefault(x => x.Id == id)
+        : null;
+
+    private IEnumerable<DepartmentDto> SelectedAdministrationDepartments => selectedAdministrationId.HasValue
+        ? departments.Where(x => x.AdministrationId == selectedAdministrationId.Value)
+        : [];
+
+    private bool CanAccessPage => HasPermission(PermissionList.StoreFrontStorePermissions.View)
+        || HasPermission(PermissionList.StoreFrontDepartmentPermissions.View)
+        || HasPermission(PermissionList.AdministrationPermissions.View)
+        || HasPermission(PermissionList.DepartmentPermissions.View);
+    private bool CanCreateAdministration => HasPermission(PermissionList.AdministrationPermissions.Create);
+    private bool CanCreateDepartment => HasPermission(PermissionList.DepartmentPermissions.Create);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+
+        var storeResult = await StoreFrontService.GetStoresAsync(companyId);
+        var branchResult = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        stores = storeResult.IsSuccess ? storeResult.Data ?? [] : [];
+        branches = branchResult.IsSuccess ? branchResult.Data?.Data?.ToList() ?? [] : [];
+
+        if (stores.Count == 1)
+            selectedStoreIdText = stores[0].Id.ToString();
+        else if (!stores.Any(x => x.Id.ToString() == selectedStoreIdText))
+            selectedStoreIdText = string.Empty;
+
+        await LoadSelectedBranchStructureAsync();
+        isLoading = false;
+    }
+
+    private async Task OnStoreChanged(ChangeEventArgs args)
+    {
+        selectedStoreIdText = args.Value?.ToString() ?? string.Empty;
+        await LoadSelectedBranchStructureAsync();
+    }
+
+    private async Task LoadSelectedBranchStructureAsync()
+    {
+        administrations = [];
+        departments = [];
+        selectedAdministrationId = null;
+        ResetAdministrationDraft();
+        ResetDepartmentDraft();
+
+        if (SelectedStore?.BranchId is not Guid branchId)
+            return;
+
+        var administrationResult = await AdministrationService.GetByBranchAsync(branchId, 0, 1000);
+        administrations = administrationResult.IsSuccess ? administrationResult.Data?.Data?.ToList() ?? [] : [];
+        selectedAdministrationId = administrations.FirstOrDefault()?.Id;
+
+        foreach (var administration in administrations)
+        {
+            var departmentResult = await DepartmentService.GetByAdministrationAsync(administration.Id, 0, 1000);
+            if (departmentResult.IsSuccess)
+                departments.AddRange(departmentResult.Data?.Data ?? []);
+        }
+
+        ResetDepartmentDraft();
+    }
+
+    private Task SelectAdministrationAsync(Guid administrationId)
+    {
+        selectedAdministrationId = administrationId;
+        ResetDepartmentDraft();
+        return Task.CompletedTask;
+    }
+
+    private async Task SaveAdministrationAsync()
+    {
+        if (SelectedStore?.BranchId is not Guid branchId)
+            return;
+
+        administrationDraft.CompanyId = companyId;
+        administrationDraft.BranchId = branchId;
+        administrationDraft.IsActive = true;
+        var result = await AdministrationService.CreateAsync(administrationDraft);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Administration saved.", "تم حفظ الإدارة."));
+            await LoadSelectedBranchStructureAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to save administration.", "تعذر حفظ الإدارة."));
+        }
+    }
+
+    private async Task SaveDepartmentAsync()
+    {
+        if (!selectedAdministrationId.HasValue)
+            return;
+
+        var administrationId = selectedAdministrationId.Value;
+        departmentDraft.CompanyId = companyId;
+        departmentDraft.AdministrationId = administrationId;
+        departmentDraft.IsActive = true;
+        departmentDraft.Latitude = departmentDraft.Latitude <= 0 ? 0.1 : departmentDraft.Latitude;
+        departmentDraft.Longitude = departmentDraft.Longitude <= 0 ? 0.1 : departmentDraft.Longitude;
+        departmentDraft.AllowedRadiusMeters = departmentDraft.AllowedRadiusMeters <= 0 ? 100 : departmentDraft.AllowedRadiusMeters;
+        var result = await DepartmentService.CreateAsync(departmentDraft);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Department saved.", "تم حفظ القسم."));
+            await LoadSelectedBranchStructureAsync();
+            selectedAdministrationId = administrationId;
+            ResetDepartmentDraft();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to save department.", "تعذر حفظ القسم."));
+        }
+    }
+
+    private void ResetAdministrationDraft()
+        => administrationDraft = new AdministrationDto { CompanyId = companyId, IsActive = true };
+
+    private void ResetDepartmentDraft()
+        => departmentDraft = new DepartmentDto
+        {
+            CompanyId = companyId,
+            AdministrationId = selectedAdministrationId,
+            IsActive = true,
+            Location = BranchName(SelectedStore?.BranchId),
+            Latitude = 0.1,
+            Longitude = 0.1,
+            AllowedRadiusMeters = 100
+        };
+
+    private string BranchName(Guid? id)
+    {
+        if (!id.HasValue)
+            return Text("Auto-created", "ينشأ تلقائيا");
+
+        var branch = branches.FirstOrDefault(x => x.Id == id.Value);
+        return branch is null ? id.Value.ToString() : Text(branch.NameEng, branch.Name);
+    }
+
+    private string StoreLabel(StoreFrontDto store)
+        => string.IsNullOrWhiteSpace(store.Code)
+            ? Text(store.NameEng, store.Name)
+            : $"{Text(store.NameEng, store.Name)} ({store.Code})";
+
+    private bool HasPermission(string permission)
+        => authState?.User.Claims.Any(c => c.Value == permission) == true;
+
+    private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

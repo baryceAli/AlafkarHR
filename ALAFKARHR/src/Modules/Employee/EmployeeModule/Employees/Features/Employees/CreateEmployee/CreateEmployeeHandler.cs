@@ -50,6 +50,13 @@ public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             request.Employee.CompanyId!.Value,
             request.Employee.BranchId,
             cancellationToken);
+        var placement = await sender.Send(new ValidateOrganizationPlacementQuery(
+            request.Employee.CompanyId!.Value,
+            request.Employee.BranchId,
+            request.Employee.AdministrationId,
+            request.Employee.DepartmentId), cancellationToken);
+        if (!placement.IsValid)
+            throw new BadRequestException(placement.Message ?? "Invalid organization placement.");
 
         //Random rnd = new Random();
         //string code = rnd.Next(100, 9999).ToString();
@@ -82,7 +89,7 @@ public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             DateTimeToUTC.ToUtc(request.Employee.HireDate),
             request.Employee.CompanyId!.Value,
             request.Employee.BranchId!.Value,
-            request.Employee.AdministrationId!.Value,
+            request.Employee.AdministrationId,
             request.Employee.DepartmentId,
             request.Employee.PositionId!.Value,
             request.Employee.ManagerEmployeeId,

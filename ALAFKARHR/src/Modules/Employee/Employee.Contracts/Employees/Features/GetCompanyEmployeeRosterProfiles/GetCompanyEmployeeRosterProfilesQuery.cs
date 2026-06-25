@@ -11,7 +11,7 @@ public record EmployeeRosterProfileDto(
     Guid EmployeeId,
     Guid CompanyId,
     Guid BranchId,
-    Guid AdministrationId,
+    Guid? AdministrationId,
     Guid? DepartmentId,
     Guid? PositionId,
     EmployeeAttendanceType AttendanceType,

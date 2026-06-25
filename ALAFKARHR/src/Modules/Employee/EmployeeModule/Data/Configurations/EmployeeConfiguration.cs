@@ -49,6 +49,9 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
        builder.Property(x => x.DepartmentId)
        .IsRequired(false);
 
+       builder.Property(x => x.AdministrationId)
+       .IsRequired(false);
+
         builder.Property(x => x.AttendanceType)
             .HasConversion<int>()
             .HasDefaultValue(SharedWithUI.Attendance.Enums.EmployeeAttendanceType.FixedLocation)

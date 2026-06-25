@@ -63,7 +63,8 @@
 
         <div class="employee-form-stack">
             <AppCard Title="@(SharedDataService.SelectViewLang("Employment Location", "الموقع الوظيفي"))"
-                     Subtitle="@(SharedDataService.SelectViewLang("Connect the employee to the correct branch, administration, and department.", "ربط الموظف بالفرع والإدارة والقسم المناسب."))">
+                     Subtitle="@(SharedDataService.SelectViewLang("Connect the employee to the correct branch, administration, and department.", "ربط الموظف بالفرع والإدارة والقسم المناسب."))"
+                     CssClass="allow-overflow">
                 @if (!Id.HasValue || 1 == 1)
                 {
                     <div class="employee-form-grid employee-form-grid-three">
@@ -86,17 +87,22 @@
                                                    ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
                                                    ValueChanged="OnAdministrationSelected">
                             </AutoCompleteComponent>
-                            <ValidationMessage For="() => employee.AdministrationId" />
                         </div>
 
                         <div class="employee-field">
                             <label class="form-label">@SharedDataService.SelectViewLang("Department", "القسم")</label>
                             <AutoCompleteComponent TItem="DepartmentDto"
-                                                   Items="departments"
+                                                   Items="DepartmentOptions"
                                                    Value="selectedDepartment"
                                                    ItemText="(b=> SharedDataService.SelectViewLang(b.NameEng,b.Name))"
                                                    ValueChanged="OnDepartmentSelected">
                             </AutoCompleteComponent>
+                            @if (selectedAdministration is null)
+                            {
+                                <div class="employee-help-text">
+                                    @SharedDataService.SelectViewLang("Select an administration first to choose a department.", "اختر الإدارة أولا لتحديد القسم.")
+                                </div>
+                            }
                             @* <ValidationMessage For="() => employee.DepartmentId" /> *@
                         </div>
                     </div>
@@ -455,9 +461,16 @@
     [Parameter]
     public Guid? Id { get; set; }
 
+    [SupplyParameterFromQuery(Name = "branchId")]
+    public Guid? PreselectedBranchId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
     private List<BranchDto> branches = [];
     private List<AdministrationDto> administrations = [];
     private List<DepartmentDto> departments = [];
+    private List<DepartmentDto> DepartmentOptions => selectedAdministration is null ? [] : departments;
     private List<PositionDto> positions = [];
     private List<EmployeeDto> managerEmployees = [];
     private List<AcademicInstitutionDto> academicInstitutions = [];
@@ -528,8 +541,16 @@
                 selectedBranch = branches.FirstOrDefault(b => b.Id == employee.BranchId);
                 await OnBranchSelected(selectedBranch);
                 selectedAdministration = administrations.FirstOrDefault(a => a.Id == employee.AdministrationId);
-                await OnAdministrationSelected(selectedAdministration);
-                selectedDepartment = departments.FirstOrDefault(d => d.Id == employee.DepartmentId);
+                if (selectedAdministration is not null)
+                {
+                    await OnAdministrationSelected(selectedAdministration);
+                    selectedDepartment = departments.FirstOrDefault(d => d.Id == employee.DepartmentId);
+                }
+                else
+                {
+                    selectedDepartment = null;
+                    departments = [];
+                }
                 managerEmployeeIdText = employee.ManagerEmployeeId?.ToString() ?? string.Empty;
                 linkedUserIdText = employee.LinkedUserId?.ToString() ?? string.Empty;
                 StateHasChanged();
@@ -553,6 +574,7 @@
         }
         else
         {
+            ApplyPreselectedBranchForNewEmployee();
             ApplyDefaultBranchForNewEmployee();
         }
     }
@@ -581,6 +603,23 @@
             selectedBranch = branches[0];
             employee.BranchId = selectedBranch.Id;
         }
+    }
+
+    private void ApplyPreselectedBranchForNewEmployee()
+    {
+        if (!PreselectedBranchId.HasValue)
+        {
+            return;
+        }
+
+        var branch = branches.FirstOrDefault(item => item.Id == PreselectedBranchId.Value);
+        if (branch is null)
+        {
+            return;
+        }
+
+        selectedBranch = branch;
+        employee.BranchId = branch.Id;
     }
 
     private void ResetEmployee()
@@ -632,7 +671,14 @@
                     }
                 );
                 //Reset Fields
-                ResetEmployee();
+                if (!string.IsNullOrWhiteSpace(SafeReturnUrl))
+                {
+                    NavigationManager.NavigateTo(SafeReturnUrl);
+                }
+                else
+                {
+                    ResetEmployee();
+                }
             }
             else
             {
@@ -669,7 +715,7 @@
                     }
                 );
 
-                NavigationManager.NavigateTo("/Employee/Employee/List");
+                NavigationManager.NavigateTo(SafeReturnUrl ?? "/Employee/Employee/List");
             }
             else
             {
@@ -700,13 +746,20 @@
 
             selectedDepartment=null;
             departments=[];
+            employee.BranchId = null;
+            employee.AdministrationId = null;
+            employee.DepartmentId = null;
             if (!branches.Any())
             {
                 await LoadAccessibleBranchesAsync();
             }
             return;
         }
-        selectedAdministration = new AdministrationDto();
+        selectedAdministration = null;
+        selectedDepartment = null;
+        departments = [];
+        employee.AdministrationId = null;
+        employee.DepartmentId = null;
         selectedBranch = branch;
         var admResponse = await AdministrationService.GetByBranchAsync(branch.Id, 0, 1000);
         if (admResponse.IsSuccess)
@@ -719,19 +772,20 @@
     }
 
     private AdministrationDto? selectedAdministration;
-    private async Task OnAdministrationSelected(AdministrationDto administration)
+    private async Task OnAdministrationSelected(AdministrationDto? administration)
     {
         if (administration == null)
         {
             departments = [];
-            selectedDepartment = new DepartmentDto();
+            selectedDepartment = null;
             employee.AdministrationId = null;
             employee.DepartmentId = null;
             StateHasChanged();
             
             return;
         }
-        selectedDepartment = new DepartmentDto();
+        selectedDepartment = null;
+        employee.DepartmentId = null;
         selectedAdministration = administration;
         var deptResponse = await DepartmentService.GetByAdministrationAsync(administration.Id, 0, 1000);
         if (deptResponse.IsSuccess)
@@ -742,9 +796,15 @@
         employee.AdministrationId = selectedAdministration?.Id??null;
         StateHasChanged();
     }
-    private DepartmentDto? selectedDepartment = new();
-    private void OnDepartmentSelected(DepartmentDto department)
+    private DepartmentDto? selectedDepartment;
+    private void OnDepartmentSelected(DepartmentDto? department)
     {
+        if (selectedAdministration is null)
+        {
+            selectedDepartment = null;
+            employee.DepartmentId = null;
+            return;
+        }
         selectedDepartment = department;
         employee.DepartmentId = selectedDepartment?.Id??null;
     }
@@ -853,8 +913,14 @@
 
     private void onCancel()
     {
-        NavigationManager.NavigateTo("/Employee/Employee/List");
+        NavigationManager.NavigateTo(SafeReturnUrl ?? "/Employee/Employee/List");
     }
+
+    private string? SafeReturnUrl => !string.IsNullOrWhiteSpace(ReturnUrl)
+        && ReturnUrl.StartsWith("/", StringComparison.Ordinal)
+        && !ReturnUrl.StartsWith("//", StringComparison.Ordinal)
+            ? ReturnUrl
+            : null;
 
     private async Task OnEmployeeImageSelected(InputFileChangeEventArgs e)
     {

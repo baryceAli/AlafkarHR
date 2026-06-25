@@ -10,9 +10,7 @@ public class TransferDepartmentDto
     [Required(ErrorMessage ="Branch is required")]
     public Guid branchId { get; set; }
 
-    [Required (ErrorMessage ="Administration is required")]
-    public Guid administrationId { get; set; }
+    public Guid? administrationId { get; set; }
 
-    [Required (ErrorMessage ="Department is required")]
-    public Guid departmentId { get; set; }
+    public Guid? departmentId { get; set; }
 }

@@ -50,6 +50,15 @@ public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
         if (employee is null)
             throw new NotFoundException($"Employee not found: {request.Employee.Id}");
         await EmployeeModule.Employees.Features.Employees.EmployeeBranchScope.EnsureCanMutateAsync(sender, employee.CompanyId, employee.BranchId, cancellationToken);
+        await EmployeeModule.Employees.Features.Employees.EmployeeBranchScope.EnsureCanMutateAsync(sender, employee.CompanyId, request.Employee.BranchId, cancellationToken);
+
+        var placement = await sender.Send(new ValidateOrganizationPlacementQuery(
+            employee.CompanyId,
+            request.Employee.BranchId,
+            request.Employee.AdministrationId,
+            request.Employee.DepartmentId), cancellationToken);
+        if (!placement.IsValid)
+            throw new BadRequestException(placement.Message ?? "Invalid organization placement.");
 
         var userId = httpContextAccessor.HttpContext?
                         .User?
@@ -115,6 +124,7 @@ public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             userId);
 
         employee.ChangePosition(request.Employee.PositionId!.Value, userId);
+        employee.TransferDepartment(request.Employee.BranchId!.Value, request.Employee.AdministrationId, request.Employee.DepartmentId, userId);
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

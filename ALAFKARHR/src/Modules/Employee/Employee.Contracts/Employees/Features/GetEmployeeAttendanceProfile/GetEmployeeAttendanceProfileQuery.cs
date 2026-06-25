@@ -10,7 +10,7 @@ public record GetEmployeeAttendanceProfileResult(
     Guid EmployeeId,
     Guid CompanyId,
     Guid BranchId,
-    Guid AdministrationId,
+    Guid? AdministrationId,
     Guid? DepartmentId,
     EmployeeAttendanceType AttendanceType,
     int? AllowedRadiusMeters,

@@ -17,6 +17,12 @@ public class StoreFrontDto
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }
     public Guid? BranchId { get; set; }
+    public Guid? AdministrationId { get; set; }
+    public string? AdministrationName { get; set; }
+    public string? AdministrationNameEng { get; set; }
+    public Guid? DepartmentId { get; set; }
+    public string? DepartmentName { get; set; }
+    public string? DepartmentNameEng { get; set; }
     public Guid StoreFrontTypeId { get; set; }
     public string? StoreFrontTypeName { get; set; }
     public string? StoreFrontTypeNameEng { get; set; }
@@ -46,6 +52,17 @@ public class StoreFrontSellableItemDto
     public bool RequireManualPriceNote { get; set; }
     public decimal? MinimumManualPrice { get; set; }
     public decimal? MaximumManualPrice { get; set; }
+}
+
+public class StoreFrontDepartmentDto
+{
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid StoreFrontId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string NameEng { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
 }
 
 public class StoreFrontCatalogItemDto

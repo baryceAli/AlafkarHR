@@ -2,7 +2,7 @@
 ﻿@using AlAfkarERP.Shared.Utilities
 @typeparam TItem
 @inject SharedDataService SharedDataService
-<div class="position-relative" dir="ltr">
+<div class="autocomplete-root position-relative @(isOpen ? "is-open" : null)" dir="ltr">
 @* <div class="position-relative"> *@
     <div class="input-group">
         <span class="input-group-text bg-white border-end-0">
@@ -72,11 +72,25 @@
 </div>
 
 <style>
+    .autocomplete-root {
+        overflow: visible;
+    }
+
+    .autocomplete-root.is-open {
+        z-index: 1065;
+    }
+
     .autocomplete-menu {
+        background: var(--erp-surface-level-2);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        box-shadow: var(--erp-shadow-md);
+        inset-block-start: 100%;
+        inset-inline: 0;
         max-height: 14rem;
         overflow-y: auto;
-        border-radius: var(--erp-radius-md);
-        z-index: 1000;
+        position: absolute;
+        z-index: 1065;
     }
 
     .autocomplete-menu .dropdown-item:hover,
