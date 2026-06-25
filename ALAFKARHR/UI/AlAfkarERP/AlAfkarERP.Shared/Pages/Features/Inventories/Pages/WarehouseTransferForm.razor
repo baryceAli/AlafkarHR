@@ -1,16 +1,20 @@
 @layout AdminLayout
 @page "/Inventory/WarehouseTransfer/Form"
+@implements IDisposable
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Inventories.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Catalog.Dtos
 @using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 
 @inject IWarehouseService WarehouseService
 @inject IProductService ProductService
+@inject IBranchService BranchService
 
 @if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BatchPermissions.View}"))
 {
@@ -42,7 +46,7 @@
                     <AutoCompleteComponent TItem="WarehouseDto"
                                            Items="warehouses"
                                            Value="selectedSourceWarehouse"
-                                           ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                           ItemText="WarehouseText"
                                            PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse","اختر مستودع")"
                                            ValueChanged="onSourceWarehouseSelected" />
                 </div>
@@ -52,7 +56,7 @@
                     <AutoCompleteComponent TItem="WarehouseDto"
                                            Items="warehouses"
                                            Value="selectedDestinationWarehouse"
-                                           ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                           ItemText="WarehouseText"
                                            PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse","اختر مستودع")"
                                            ValueChanged="onDestinationWarehouseSelected" />
                 </div>
@@ -106,6 +110,8 @@
     private ProductDto? selectedProduct;
     private List<ProductSkuDto> productSkus = [];
     private ProductSkuDto? selectedProductSku;
+    private List<BranchDto> branches = [];
+    private CurrentUserBranchAccessDto branchAccess = new();
     private Guid companyId;
     private AuthenticationState AuthState;
     protected override async Task OnInitializedAsync()
@@ -121,10 +127,17 @@
             NavigationManager.NavigateTo("/Dashboard");
             return;
         }
+        await LoadBranchAccessAsync();
         var wareRes = await WarehouseService.GetAsync(companyId, 0, 10000);
         if (wareRes.IsSuccess)
         {
-            warehouses = wareRes.Data?.Data?.ToList() ?? [];
+            var loadedWarehouses = wareRes.Data?.Data?.ToList() ?? [];
+            warehouses = branchAccess.CanViewAllBranches
+                ? loadedWarehouses
+                : loadedWarehouses
+                    .Where(warehouse => warehouse.BranchId == null || (warehouse.BranchId.HasValue && branchAccess.BranchIds.Contains(warehouse.BranchId.Value)))
+                    .ToList();
+            ClearInaccessibleWarehouseSelections();
         }
 
         var prodRes = await ProductService.GetByCompanyAsync(companyId, 0, 10000);
@@ -178,6 +191,51 @@
         selectedProduct = null;
         selectedProductSku = null;
         productSkus = [];
+    }
+
+    private async Task LoadBranchAccessAsync()
+    {
+        var accessResponse = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        branchAccess = accessResponse.IsSuccess ? accessResponse.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+
+        var branchResponse = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        branches = branchResponse.IsSuccess ? branchResponse.Data?.Data?.ToList() ?? [] : [];
+    }
+
+    private void ClearInaccessibleWarehouseSelections()
+    {
+        if (selectedSourceWarehouse is not null && warehouses.All(x => x.Id != selectedSourceWarehouse.Id))
+        {
+            selectedSourceWarehouse = null;
+            ToastService.ShowWarning(SharedDataService.SelectViewLang(
+                "The selected source warehouse is no longer accessible.",
+                "المستودع المصدر المحدد لم يعد متاحاً."));
+        }
+
+        if (selectedDestinationWarehouse is not null && warehouses.All(x => x.Id != selectedDestinationWarehouse.Id))
+        {
+            selectedDestinationWarehouse = null;
+            ToastService.ShowWarning(SharedDataService.SelectViewLang(
+                "The selected destination warehouse is no longer accessible.",
+                "المستودع الوجهة المحدد لم يعد متاحاً."));
+        }
+    }
+
+    private string WarehouseText(WarehouseDto warehouse)
+    {
+        var name = SharedDataService.SelectViewLang(warehouse.NameEng, warehouse.Name);
+        var scope = warehouse.BranchId.HasValue
+            ? BranchName(warehouse.BranchId.Value)
+            : SharedDataService.SelectViewLang("Company", "الشركة");
+        return $"{name} - {scope}";
+    }
+
+    private string BranchName(Guid branchId)
+    {
+        var branch = branches.FirstOrDefault(x => x.Id == branchId);
+        return branch is null
+            ? branchId.ToString("N")
+            : SharedDataService.SelectViewLang(branch.NameEng, branch.Name);
     }
 
     protected override void OnInitialized()

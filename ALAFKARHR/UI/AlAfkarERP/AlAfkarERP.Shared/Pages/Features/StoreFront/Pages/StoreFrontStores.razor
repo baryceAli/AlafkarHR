@@ -34,7 +34,7 @@
 @inject SharedDataService SharedDataService
 
 <section dir="@SharedDataService.PageDirection">
-    @if (!CanView)
+    @if (!CanAccessStoresPage)
     {
         <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")</div>
         return;
@@ -123,7 +123,7 @@
         {
             <div class="table-responsive">
                 <table class="table align-middle">
-                    <thead><tr><th>@Text("Store", "المتجر")</th><th>@Text("Type", "النوع")</th><th>@Text("Branch", "الفرع")</th><th>@Text("Warehouse", "المستودع")</th><th>@Text("Customer", "العميل")</th><th>@Text("Price List", "قائمة الأسعار")</th><th>@Text("Items", "الأصناف")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                    <thead><tr><th>@Text("Store", "المتجر")</th><th>@Text("Type", "النوع")</th><th>@Text("Branch", "الفرع")</th><th>@Text("Warehouse", "المستودع")</th><th>@Text("Customer", "العميل")</th><th>@Text("Price List", "قائمة الأسعار")</th><th>@Text("Items", "الأصناف")</th><th>@Text("Readiness", "الجاهزية")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                     <tbody>
                         @foreach (var store in stores)
                         {
@@ -135,6 +135,14 @@
                                 <td>@CustomerName(store.DefaultCustomerId)</td>
                                 <td>@PriceListName(store.PriceListId)</td>
                                 <td>@store.ActiveItemsCount</td>
+                                <td>
+                                    <div class="d-flex flex-column gap-1">
+                                        @foreach (var check in ReadinessChecks(store))
+                                        {
+                                            <span class="badge text-bg-@(check.IsReady ? "success" : "warning")">@check.Label</span>
+                                        }
+                                    </div>
+                                </td>
                                 <td>
                                     <StatusChip Text="@(store.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))" Tone="@(store.IsActive ? "success" : "secondary")" />
                                     @if (!store.BranchId.HasValue)
@@ -331,6 +339,7 @@
     private List<StoreFrontDto> stores = [];
     private List<StoreFrontTypeDto> types = [];
     private List<WarehouseDto> warehouses = [];
+    private Dictionary<Guid, int> storeCashAccountCounts = new();
     private List<BranchDto> branches = [];
     private List<CustomerDto> customers = [];
     private List<PriceListDto> priceLists = [];
@@ -353,6 +362,9 @@
     private bool showItemsModal;
     private bool showRolesModal;
 
+    private bool CanAccessStoresPage => CanView || branchRoleAccess.Assignments.Any(assignment =>
+        assignment.Permissions.Contains(PermissionList.StoreFrontStorePermissions.View, StringComparer.Ordinal)
+        || assignment.Permissions.Contains(PermissionList.StoreFrontPosPermissions.View, StringComparer.Ordinal));
     private IEnumerable<BranchDto> SelectableBranches => branchAccess.CanViewAllBranches ? branches : branches.Where(branch => branchAccess.BranchIds.Contains(branch.Id));
     private IEnumerable<BranchDto> SelectableStoreFrontBranches => SelectableBranches.Where(branch => branch.Specialization == BranchSpecialization.StoreFront);
     private IEnumerable<WarehouseDto> SelectableWarehouses => selectedStore?.BranchId is Guid branchId ? warehouses.Where(warehouse => warehouse.BranchId == branchId) : warehouses;
@@ -385,8 +397,7 @@
             NavigationManager.NavigateTo("/Dashboard");
             return;
         }
-        if (CanView)
-            await LoadAsync();
+        await LoadAsync();
     }
 
     private async Task LoadAsync()
@@ -414,6 +425,13 @@
             users = usersResult.IsSuccess ? usersResult.Data?.Data?.ToList() ?? [] : [];
             var profilesResult = await BranchService.GetBranchRoleProfilesAsync();
             roleProfiles = profilesResult.IsSuccess ? profilesResult.Data ?? [] : [];
+        }
+        storeCashAccountCounts = new();
+        foreach (var store in stores.Where(x => x.BranchId.HasValue))
+        {
+            var cashResult = await StoreFrontService.GetCashAccountsAsync(store.Id);
+            if (cashResult.IsSuccess)
+                storeCashAccountCounts[store.Id] = cashResult.Data?.Count(x => x.IsActive) ?? 0;
         }
         isLoading = false;
     }
@@ -531,6 +549,14 @@
     private string CustomerName(Guid? id) => id.HasValue ? customers.FirstOrDefault(x => x.Id == id)?.Name ?? id.Value.ToString() : Text("Default", "افتراضي");
     private string PriceListName(Guid? id) => id.HasValue ? PriceListLabel(priceLists.FirstOrDefault(x => x.Id == id)) ?? id.Value.ToString() : Text("Default", "افتراضي");
     private static string? PriceListLabel(PriceListDto? priceList) => priceList is null ? null : string.IsNullOrWhiteSpace(priceList.Code) ? priceList.Name : $"{priceList.Name} ({priceList.Code})";
+    private IEnumerable<ReadinessCheck> ReadinessChecks(StoreFrontDto store)
+    {
+        yield return new ReadinessCheck(Text("Branch", "الفرع"), store.BranchId.HasValue);
+        yield return new ReadinessCheck(Text("Warehouse", "المستودع"), store.DefaultWarehouseId != Guid.Empty);
+        yield return new ReadinessCheck(Text("Price list", "قائمة الأسعار"), store.PriceListId.HasValue);
+        yield return new ReadinessCheck(Text("SKUs", "الأصناف"), store.ActiveItemsCount > 0);
+        yield return new ReadinessCheck(Text("Cash", "النقد"), storeCashAccountCounts.TryGetValue(store.Id, out var count) && count > 0);
+    }
     private async Task<bool> ConfirmAsync(string message) => await JSRuntime.InvokeAsync<bool>("confirm", message);
     private async Task OpenStoreRolesAsync(StoreFrontDto store)
     {
@@ -608,4 +634,6 @@
     private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+
+    private sealed record ReadinessCheck(string Label, bool IsReady);
 }

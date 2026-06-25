@@ -53,6 +53,9 @@ public class SalesOrderDto
     public DateTime? CompletedAt { get; set; }
 
     public Guid CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
+    public Guid? StoreFrontId { get; set; }
+    public Guid? PosCashierSessionId { get; set; }
     public SalesInvoicingPolicy InvoicingPolicy { get; set; } = SalesInvoicingPolicy.InvoiceDeliveredQuantity;
 
 }

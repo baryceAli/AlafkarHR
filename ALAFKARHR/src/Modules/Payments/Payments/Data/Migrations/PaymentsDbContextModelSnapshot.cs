@@ -35,6 +35,15 @@ namespace Payments.Data.Migrations
                     b.Property<DateTime?>("ApprovedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("BankAccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CashAccountId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Channel")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -83,6 +92,9 @@ namespace Payments.Data.Migrations
                     b.Property<Guid?>("OrderIntakeId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("PosCashierSessionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Reference")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -103,9 +115,18 @@ namespace Payments.Data.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("StoreFrontId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("SourceType", "SourceDocumentId");
+
+                    b.HasIndex("StoreFrontId", "PosCashierSessionId");
+
+                    b.HasIndex("CompanyId", "BranchId", "CashAccountId");
+
+                    b.HasIndex("CompanyId", "BranchId", "CreatedAt");
 
                     b.HasIndex("CompanyId", "CustomerId", "CreatedAt");
 

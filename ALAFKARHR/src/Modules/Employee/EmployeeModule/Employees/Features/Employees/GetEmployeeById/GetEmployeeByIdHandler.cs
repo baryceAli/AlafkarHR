@@ -6,7 +6,7 @@ namespace EmployeeModule.Employees.Features.Employees.GetEmployeeById;
 
 public record GetEmployeeByIdQuery(Guid Id) : IQuery<GetEmployeeByIdResult>;
 public record GetEmployeeByIdResult(EmployeeDto Employee);
-public class GetEmployeeByIdHandler(EmployeeDbContext dbContext)
+public class GetEmployeeByIdHandler(EmployeeDbContext dbContext, ISender sender)
     : IQueryHandler<GetEmployeeByIdQuery, GetEmployeeByIdResult>
 {
     public async Task<GetEmployeeByIdResult> Handle(GetEmployeeByIdQuery request, CancellationToken cancellationToken)
@@ -19,6 +19,7 @@ public class GetEmployeeByIdHandler(EmployeeDbContext dbContext)
                             cancellationToken);
         if (employee is null)
             throw new NotFoundException($"Employee not found: {request.Id}");
+        await EmployeeModule.Employees.Features.Employees.EmployeeBranchScope.EnsureCanReadAsync(sender, employee.CompanyId, employee.BranchId, cancellationToken);
 
         //var employeeDto= await (from pos in dbContext.Positions
         //                        join emp in dbContext.Employees on pos.Id equals emp.PositionId

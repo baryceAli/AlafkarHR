@@ -24,6 +24,9 @@ public class PaymentAttemptConfiguration : IEntityTypeConfiguration<PaymentAttem
         builder.Property(x => x.ModifiedBy).HasMaxLength(100);
         builder.Property(x => x.DeletedBy).HasMaxLength(100);
         builder.HasIndex(x => new { x.CompanyId, x.CustomerId, x.CreatedAt });
+        builder.HasIndex(x => new { x.CompanyId, x.BranchId, x.CreatedAt });
+        builder.HasIndex(x => new { x.StoreFrontId, x.PosCashierSessionId });
+        builder.HasIndex(x => new { x.CompanyId, x.BranchId, x.CashAccountId });
         builder.HasIndex(x => new { x.SourceType, x.SourceDocumentId });
         builder.HasQueryFilter(x => !x.IsDeleted);
     }

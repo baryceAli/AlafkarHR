@@ -1041,6 +1041,8 @@ public class AccountingDocument : Aggregate<Guid>
 
     public Guid CompanyId { get; private set; }
     public Guid? BranchId { get; private set; }
+    public Guid? CashAccountId { get; private set; }
+    public Guid? BankAccountId { get; private set; }
     public AccountingDocumentType Type { get; private set; }
     public AccountingDocumentStatus Status { get; private set; }
     public string Number { get; private set; } = string.Empty;
@@ -1065,6 +1067,8 @@ public class AccountingDocument : Aggregate<Guid>
             Id = dto.Id == Guid.Empty ? Guid.NewGuid() : dto.Id,
             CompanyId = dto.CompanyId,
             BranchId = dto.BranchId,
+            CashAccountId = dto.CashAccountId,
+            BankAccountId = dto.BankAccountId,
             Type = dto.Type,
             Status = AccountingDocumentStatus.Draft,
             Number = number,
@@ -1121,6 +1125,8 @@ public class AccountingDocument : Aggregate<Guid>
         Id = Id,
         CompanyId = CompanyId,
         BranchId = BranchId,
+        CashAccountId = CashAccountId,
+        BankAccountId = BankAccountId,
         Type = Type,
         Status = Status,
         Number = Number,

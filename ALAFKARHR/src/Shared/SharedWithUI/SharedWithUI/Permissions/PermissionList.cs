@@ -1786,7 +1786,13 @@ public static class PermissionList
         public static string View { get; set; } = $"{GroupName}.View";
         public static string Checkout { get; set; } = $"{GroupName}.Checkout";
         public static string PriceOverride { get; set; } = $"{GroupName}.PriceOverride";
-        public static List<string> Permissions => [View, Checkout, PriceOverride];
+        public static string OpenSession { get; set; } = $"{GroupName}.OpenSession";
+        public static string CloseSession { get; set; } = $"{GroupName}.CloseSession";
+        public static string ViewOwnSummary { get; set; } = $"{GroupName}.ViewOwnSummary";
+        public static string ViewBranchSummaries { get; set; } = $"{GroupName}.ViewBranchSummaries";
+        public static string HandoverCash { get; set; } = $"{GroupName}.HandoverCash";
+        public static string ManageCashAccounts { get; set; } = $"{GroupName}.ManageCashAccounts";
+        public static List<string> Permissions => [View, Checkout, PriceOverride, OpenSession, CloseSession, ViewOwnSummary, ViewBranchSummaries, HandoverCash, ManageCashAccounts];
     }
 
     public static class CateringContractPermissions

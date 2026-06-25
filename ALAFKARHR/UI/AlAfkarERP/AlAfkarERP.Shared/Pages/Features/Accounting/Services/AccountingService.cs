@@ -192,9 +192,12 @@ public class AccountingService : BaseApiService, IAccountingService
         return await SendAsync<Guid>(request, "id");
     }
 
-    public async Task<ApiResult<List<CashAccountDto>>> GetCashAccountsAsync(Guid companyId)
+    public async Task<ApiResult<List<CashAccountDto>>> GetCashAccountsAsync(Guid companyId, Guid? branchId = null)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/cash-accounts?companyId={companyId}");
+        var url = $"api/{_apiConfig.Version}/accounting/cash-accounts?companyId={companyId}";
+        if (branchId.HasValue)
+            url += $"&branchId={branchId.Value}";
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
         return await SendAsync<List<CashAccountDto>>(request, "cashAccounts");
     }
 

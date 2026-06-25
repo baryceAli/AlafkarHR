@@ -24,7 +24,13 @@ public static class BranchRoleProfiles
                 PermissionList.StoreFrontItemPermissions.Edit,
                 PermissionList.StoreFrontPosPermissions.View,
                 PermissionList.StoreFrontPosPermissions.Checkout,
-                PermissionList.StoreFrontPosPermissions.PriceOverride
+                PermissionList.StoreFrontPosPermissions.PriceOverride,
+                PermissionList.StoreFrontPosPermissions.OpenSession,
+                PermissionList.StoreFrontPosPermissions.CloseSession,
+                PermissionList.StoreFrontPosPermissions.ViewOwnSummary,
+                PermissionList.StoreFrontPosPermissions.ViewBranchSummaries,
+                PermissionList.StoreFrontPosPermissions.HandoverCash,
+                PermissionList.StoreFrontPosPermissions.ManageCashAccounts
             ]
         },
         new()
@@ -36,7 +42,11 @@ public static class BranchRoleProfiles
             [
                 PermissionList.StoreFrontStorePermissions.View,
                 PermissionList.StoreFrontPosPermissions.View,
-                PermissionList.StoreFrontPosPermissions.Checkout
+                PermissionList.StoreFrontPosPermissions.Checkout,
+                PermissionList.StoreFrontPosPermissions.OpenSession,
+                PermissionList.StoreFrontPosPermissions.CloseSession,
+                PermissionList.StoreFrontPosPermissions.ViewOwnSummary,
+                PermissionList.StoreFrontPosPermissions.HandoverCash
             ]
         },
         new()
@@ -48,6 +58,9 @@ public static class BranchRoleProfiles
             [
                 PermissionList.StoreFrontStorePermissions.View,
                 PermissionList.StoreFrontPosPermissions.View,
+                PermissionList.StoreFrontPosPermissions.ViewOwnSummary,
+                PermissionList.StoreFrontPosPermissions.ViewBranchSummaries,
+                PermissionList.StoreFrontPosPermissions.ManageCashAccounts,
                 PermissionList.PaymentPermissions.View,
                 PermissionList.PaymentPermissions.Create,
                 PermissionList.AccountingDocumentPermissions.View,

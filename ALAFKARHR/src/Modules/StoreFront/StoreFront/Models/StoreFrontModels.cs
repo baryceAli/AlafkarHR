@@ -223,3 +223,156 @@ public class StoreFrontSellableItem : Entity<Guid>
             throw new ArgumentException("Minimum manual price cannot be greater than maximum manual price");
     }
 }
+
+public class PosCashierSession : Aggregate<Guid>
+{
+    public Guid CompanyId { get; private set; }
+    public Guid BranchId { get; private set; }
+    public Guid StoreFrontId { get; private set; }
+    public string CashierUserId { get; private set; } = string.Empty;
+    public Guid? CashAccountId { get; private set; }
+    public decimal OpeningAmount { get; private set; }
+    public decimal ExpectedCashAmount { get; private set; }
+    public decimal CashSalesAmount { get; private set; }
+    public decimal CardSalesAmount { get; private set; }
+    public int PaymentCount { get; private set; }
+    public decimal? CountedCashAmount { get; private set; }
+    public decimal? VarianceAmount { get; private set; }
+    public PosCashierSessionStatus Status { get; private set; } = PosCashierSessionStatus.Open;
+    public DateTime OpenedAt { get; private set; }
+    public DateTime? ClosedAt { get; private set; }
+
+    private PosCashierSession()
+    {
+    }
+
+    public static PosCashierSession Open(Guid companyId, Guid branchId, Guid storeFrontId, string cashierUserId, Guid? cashAccountId, decimal openingAmount)
+    {
+        if (companyId == Guid.Empty) throw new ArgumentException("Company is required", nameof(companyId));
+        if (branchId == Guid.Empty) throw new ArgumentException("Branch is required", nameof(branchId));
+        if (storeFrontId == Guid.Empty) throw new ArgumentException("StoreFront is required", nameof(storeFrontId));
+        if (string.IsNullOrWhiteSpace(cashierUserId)) throw new ArgumentException("Cashier is required", nameof(cashierUserId));
+        if (openingAmount < 0) throw new ArgumentException("Opening amount cannot be negative", nameof(openingAmount));
+
+        var now = DateTime.UtcNow;
+        return new PosCashierSession
+        {
+            Id = Guid.NewGuid(),
+            CompanyId = companyId,
+            BranchId = branchId,
+            StoreFrontId = storeFrontId,
+            CashierUserId = cashierUserId,
+            CashAccountId = cashAccountId,
+            OpeningAmount = openingAmount,
+            ExpectedCashAmount = openingAmount,
+            Status = PosCashierSessionStatus.Open,
+            OpenedAt = now,
+            CreatedAt = now,
+            CreatedBy = cashierUserId
+        };
+    }
+
+    public void RecordPayment(Guid paymentId, PaymentMethodType paymentMethod, decimal amount, string userId)
+    {
+        if (Status != PosCashierSessionStatus.Open)
+            throw new BadRequestException("Cashier session is closed.");
+        if (amount <= 0)
+            throw new BadRequestException("Payment amount must be greater than zero.");
+
+        PaymentCount++;
+        if (paymentMethod == PaymentMethodType.Cash)
+        {
+            CashSalesAmount += amount;
+            ExpectedCashAmount += amount;
+        }
+        else if (paymentMethod == PaymentMethodType.CardRecorded)
+        {
+            CardSalesAmount += amount;
+        }
+
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+
+    public void ReceiveHandover(decimal amount, string userId)
+    {
+        if (Status != PosCashierSessionStatus.Open)
+            throw new BadRequestException("Only open cashier sessions can receive handover cash.");
+        if (amount <= 0)
+            throw new BadRequestException("Handover amount must be greater than zero.");
+
+        ExpectedCashAmount += amount;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+
+    public void Close(decimal countedCashAmount, string userId)
+    {
+        if (Status != PosCashierSessionStatus.Open)
+            throw new BadRequestException("Cashier session is already closed.");
+        if (countedCashAmount < 0)
+            throw new BadRequestException("Counted cash cannot be negative.");
+
+        CountedCashAmount = countedCashAmount;
+        VarianceAmount = countedCashAmount - ExpectedCashAmount;
+        Status = PosCashierSessionStatus.Closed;
+        ClosedAt = DateTime.UtcNow;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+
+    public PosCashierSessionDto ToDto() => new()
+    {
+        Id = Id,
+        CompanyId = CompanyId,
+        BranchId = BranchId,
+        StoreFrontId = StoreFrontId,
+        CashierUserId = CashierUserId,
+        CashAccountId = CashAccountId,
+        OpeningAmount = OpeningAmount,
+        ExpectedCashAmount = ExpectedCashAmount,
+        CashSalesAmount = CashSalesAmount,
+        CardSalesAmount = CardSalesAmount,
+        PaymentCount = PaymentCount,
+        CountedCashAmount = CountedCashAmount,
+        VarianceAmount = VarianceAmount,
+        Status = Status,
+        OpenedAt = OpenedAt,
+        ClosedAt = ClosedAt
+    };
+}
+
+public class PosCashierSessionTransfer : Entity<Guid>
+{
+    public Guid CompanyId { get; private set; }
+    public Guid BranchId { get; private set; }
+    public Guid StoreFrontId { get; private set; }
+    public Guid FromSessionId { get; private set; }
+    public Guid? ToSessionId { get; private set; }
+    public Guid? ToCashAccountId { get; private set; }
+    public decimal Amount { get; private set; }
+
+    private PosCashierSessionTransfer()
+    {
+    }
+
+    public static PosCashierSessionTransfer Create(Guid companyId, Guid branchId, Guid storeFrontId, Guid fromSessionId, Guid? toSessionId, Guid? toCashAccountId, decimal amount, string userId)
+    {
+        if (!toSessionId.HasValue && !toCashAccountId.HasValue)
+            throw new BadRequestException("Select a handover session or cash account.");
+
+        return new PosCashierSessionTransfer
+        {
+            Id = Guid.NewGuid(),
+            CompanyId = companyId,
+            BranchId = branchId,
+            StoreFrontId = storeFrontId,
+            FromSessionId = fromSessionId,
+            ToSessionId = toSessionId,
+            ToCashAccountId = toCashAccountId,
+            Amount = amount,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = userId
+        };
+    }
+}

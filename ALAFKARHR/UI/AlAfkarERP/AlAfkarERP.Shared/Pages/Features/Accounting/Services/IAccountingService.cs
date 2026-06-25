@@ -29,7 +29,7 @@ public interface IAccountingService
     Task<ApiResult<Guid>> CreatePostingProfileAsync(PostingProfileDto profile);
     Task<ApiResult<List<BankAccountDto>>> GetBankAccountsAsync(Guid companyId);
     Task<ApiResult<Guid>> SaveBankAccountAsync(BankAccountDto bankAccount);
-    Task<ApiResult<List<CashAccountDto>>> GetCashAccountsAsync(Guid companyId);
+    Task<ApiResult<List<CashAccountDto>>> GetCashAccountsAsync(Guid companyId, Guid? branchId = null);
     Task<ApiResult<Guid>> SaveCashAccountAsync(CashAccountDto cashAccount);
     Task<ApiResult<CompanyAccountingSettingsDto?>> GetCompanyAccountingSettingsAsync(Guid companyId);
     Task<ApiResult<Guid>> SaveCompanyAccountingSettingsAsync(CompanyAccountingSettingsDto settings);

@@ -21,6 +21,13 @@ public class CreateCartHandler(CartDbContext dbContext, IHttpContextAccessor htt
 
         var userId = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
         var cart = ShoppingCart.Create(request.Cart, userId);
+        var scope = await CartAuthorization.ResolveStoreFrontScopeAsync(sender, request.Cart.Channel, cancellationToken);
+        if (scope is not null)
+        {
+            if (scope.CompanyId != cart.CompanyId)
+                throw new BadRequestException("StoreFront does not belong to the cart company.");
+            cart.ApplyStoreFrontScope(scope.StoreFrontId, scope.BranchId, null, userId);
+        }
         foreach (var line in request.Cart.Lines)
         {
             cart.AddLine(line, userId);

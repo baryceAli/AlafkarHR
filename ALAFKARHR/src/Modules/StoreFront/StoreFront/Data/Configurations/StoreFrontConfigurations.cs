@@ -64,3 +64,41 @@ public class StoreFrontSellableItemConfiguration : IEntityTypeConfiguration<Stor
         builder.HasIndex(x => x.ProductSkuId);
     }
 }
+
+public class PosCashierSessionConfiguration : IEntityTypeConfiguration<PosCashierSession>
+{
+    public void Configure(EntityTypeBuilder<PosCashierSession> builder)
+    {
+        builder.ToTable("PosCashierSessions");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.CashierUserId).IsRequired().HasMaxLength(100);
+        builder.Property(x => x.OpeningAmount).HasPrecision(18, 2);
+        builder.Property(x => x.ExpectedCashAmount).HasPrecision(18, 2);
+        builder.Property(x => x.CashSalesAmount).HasPrecision(18, 2);
+        builder.Property(x => x.CardSalesAmount).HasPrecision(18, 2);
+        builder.Property(x => x.CountedCashAmount).HasPrecision(18, 2);
+        builder.Property(x => x.VarianceAmount).HasPrecision(18, 2);
+        builder.Property(x => x.Status).HasConversion<int>().IsRequired();
+        builder.Property(x => x.CreatedBy).HasMaxLength(100);
+        builder.Property(x => x.ModifiedBy).HasMaxLength(100);
+        builder.Property(x => x.DeletedBy).HasMaxLength(100);
+        builder.HasIndex(x => new { x.CompanyId, x.BranchId, x.StoreFrontId });
+        builder.HasIndex(x => new { x.StoreFrontId, x.CashierUserId, x.Status });
+    }
+}
+
+public class PosCashierSessionTransferConfiguration : IEntityTypeConfiguration<PosCashierSessionTransfer>
+{
+    public void Configure(EntityTypeBuilder<PosCashierSessionTransfer> builder)
+    {
+        builder.ToTable("PosCashierSessionTransfers");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Amount).HasPrecision(18, 2);
+        builder.Property(x => x.CreatedBy).HasMaxLength(100);
+        builder.Property(x => x.ModifiedBy).HasMaxLength(100);
+        builder.Property(x => x.DeletedBy).HasMaxLength(100);
+        builder.HasIndex(x => new { x.CompanyId, x.BranchId, x.StoreFrontId });
+        builder.HasIndex(x => x.FromSessionId);
+        builder.HasIndex(x => x.ToSessionId);
+    }
+}

@@ -23,7 +23,18 @@ public static class CartAuthorization
         await sender.Send(new EnsureCurrentUserBranchPermissionQuery(scope.CompanyId, scope.BranchId, storeFrontPermission), cancellationToken);
     }
 
-    private static Guid? TryParseStoreFrontId(string? channel)
+    public static async Task<GetStoreFrontBranchScopeResult?> ResolveStoreFrontScopeAsync(
+        ISender sender,
+        string? channel,
+        CancellationToken cancellationToken)
+    {
+        var storeFrontId = TryParseStoreFrontId(channel);
+        return storeFrontId.HasValue
+            ? await sender.Send(new GetStoreFrontBranchScopeQuery(storeFrontId.Value), cancellationToken)
+            : null;
+    }
+
+    public static Guid? TryParseStoreFrontId(string? channel)
     {
         if (string.IsNullOrWhiteSpace(channel) || !channel.StartsWith(StoreFrontChannelPrefix, StringComparison.OrdinalIgnoreCase))
             return null;

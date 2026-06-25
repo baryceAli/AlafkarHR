@@ -255,6 +255,8 @@ public class AccountingDocumentConfiguration : IEntityTypeConfiguration<Accounti
         builder.Property(x => x.TotalAmount).HasPrecision(18, 2);
         builder.HasIndex(x => new { x.CompanyId, x.Type, x.Number }).IsUnique();
         builder.HasIndex(x => new { x.CompanyId, x.BranchId, x.DocumentDate });
+        builder.HasIndex(x => new { x.CompanyId, x.BranchId, x.CashAccountId });
+        builder.HasIndex(x => new { x.CompanyId, x.BranchId, x.BankAccountId });
         builder.HasIndex(x => new { x.CompanyId, x.SourceDocumentId });
         builder.HasIndex(x => new { x.CompanyId, x.Type, x.SourceModule, x.SourceDocumentId })
             .IsUnique()

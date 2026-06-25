@@ -6,6 +6,9 @@ public class CartDto
 {
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
+    public Guid? StoreFrontId { get; set; }
+    public Guid? PosCashierSessionId { get; set; }
     public Guid? CustomerId { get; set; }
     public string? UserId { get; set; }
     public string? SessionId { get; set; }

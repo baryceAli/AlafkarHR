@@ -7,7 +7,7 @@ namespace EmployeeModule.Employees.Features.Employees.GetEmployeesByCompanyId;
 
 public record GetEmployeesByCompanyIdQuery(Guid CompanyId, PaginationRequest PaginationRequest) : IQuery<GetEmployeesByCompanyIdResult>;
 public record GetEmployeesByCompanyIdResult(PaginatedResult<EmployeeDto> EmployeeList);
-public class GetEmployeesByCompanyIdHandler(EmployeeDbContext dbContext)
+public class GetEmployeesByCompanyIdHandler(EmployeeDbContext dbContext, ISender sender)
     : IQueryHandler<GetEmployeesByCompanyIdQuery, GetEmployeesByCompanyIdResult>
 {
     public async Task<GetEmployeesByCompanyIdResult> Handle(GetEmployeesByCompanyIdQuery request, CancellationToken cancellationToken)
@@ -15,6 +15,7 @@ public class GetEmployeesByCompanyIdHandler(EmployeeDbContext dbContext)
         var query = dbContext.Employees.AsNoTracking().AsQueryable();
        //request.PaginationRequest.SearchText
         query = query.Where(e => e.CompanyId == request.CompanyId && e.IsDeleted == false);
+        query = await EmployeeModule.Employees.Features.Employees.EmployeeBranchScope.ApplyAccessAsync(sender, query, request.CompanyId, cancellationToken);
         // 🔍 Search
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
         {

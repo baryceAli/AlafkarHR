@@ -171,6 +171,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
       ICommandHandler<CreatePostingProfileCommand, CreatePostingProfileResult>,
       ICommandHandler<UpsertBankAccountCommand, UpsertBankAccountResult>,
       ICommandHandler<UpsertCashAccountCommand, UpsertCashAccountResult>,
+      ICommandHandler<UpsertAccountingCashAccountCommand, UpsertAccountingCashAccountResult>,
       ICommandHandler<UpsertCompanyAccountingSettingsCommand, UpsertCompanyAccountingSettingsResult>,
       ICommandHandler<UpsertAccountCodingSettingsCommand, UpsertAccountCodingSettingsResult>,
       ICommandHandler<PreviewAccountRenumberCommand, PreviewAccountRenumberResult>,
@@ -178,6 +179,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
       ICommandHandler<CreateAccountingDocumentCommand, CreateAccountingDocumentResult>,
       ICommandHandler<PostAccountingDocumentCommand, PostAccountingDocumentResult>,
       ICommandHandler<CreateAndPostJournalEntryCommand, CreateAndPostJournalEntryResult>,
+      IQueryHandler<GetAccountingCashAccountScopeQuery, GetAccountingCashAccountScopeResult>,
       ICommandHandler<CreateQuickJournalEntryCommand, CreateAndPostJournalEntryResult>,
       ICommandHandler<RecordAccountingReceiptCommand, CreateAccountingDocumentResult>,
       ICommandHandler<GenerateZatcaInvoiceCommand, GenerateZatcaInvoiceResult>,
@@ -405,6 +407,12 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         return new UpsertCashAccountResult(cashAccount.Id);
     }
 
+    public async Task<UpsertAccountingCashAccountResult> Handle(UpsertAccountingCashAccountCommand command, CancellationToken cancellationToken)
+    {
+        var result = await Handle(new UpsertCashAccountCommand(command.CashAccount), cancellationToken);
+        return new UpsertAccountingCashAccountResult(result.Id);
+    }
+
     public async Task<UpsertCompanyAccountingSettingsResult> Handle(UpsertCompanyAccountingSettingsCommand command, CancellationToken cancellationToken)
     {
         var settings = await dbContext.CompanyAccountingSettings.FirstOrDefaultAsync(x => x.CompanyId == command.Settings.CompanyId, cancellationToken);
@@ -516,6 +524,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
     public async Task<CreateAccountingDocumentResult> Handle(CreateAccountingDocumentCommand command, CancellationToken cancellationToken)
     {
         await EnsureCanAccessBranchAsync(command.Document.CompanyId, command.Document.BranchId, cancellationToken);
+        await EnsureDocumentCashBankAccountsAsync(command.Document, cancellationToken);
         if (command.Document.SourceDocumentId.HasValue && !string.IsNullOrWhiteSpace(command.Document.SourceModule))
         {
             var sourceModule = command.Document.SourceModule.Trim();
@@ -622,6 +631,18 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         return new CreateAndPostJournalEntryResult(entry.Id, entry.Number);
     }
 
+    public async Task<GetAccountingCashAccountScopeResult> Handle(GetAccountingCashAccountScopeQuery query, CancellationToken cancellationToken)
+    {
+        var cashAccount = await dbContext.CashAccounts.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == query.CashAccountId
+                && x.CompanyId == query.CompanyId
+                && x.BranchId == query.BranchId
+                && x.IsActive, cancellationToken)
+            ?? throw new BadRequestException("Cash account must be active and belong to the StoreFront branch.");
+
+        return new GetAccountingCashAccountScopeResult(cashAccount.Id, cashAccount.LedgerAccountId);
+    }
+
     public async Task<CreateAndPostJournalEntryResult> Handle(CreateQuickJournalEntryCommand command, CancellationToken cancellationToken)
     {
         var quick = command.JournalEntry;
@@ -716,6 +737,8 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         {
             CompanyId = command.CompanyId,
             BranchId = command.BranchId,
+            CashAccountId = command.CashAccountId,
+            BankAccountId = command.BankAccountId,
             Type = AccountingDocumentType.CustomerReceipt,
             DocumentDate = command.ReceiptDate,
             PartyId = command.PartyId,
@@ -2002,7 +2025,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
             ],
             AccountingDocumentType.CustomerReceipt =>
             [
-                new() { AccountId = settings?.CashAccountId ?? settings?.BankAccountId ?? profile.CashAccountId, Debit = document.TotalAmount, Description = document.Number },
+                new() { AccountId = document.CashAccountId ?? document.BankAccountId ?? settings?.CashAccountId ?? settings?.BankAccountId ?? profile.CashAccountId, Debit = document.TotalAmount, Description = document.Number },
                 new() { AccountId = profile.ReceivableAccountId, Credit = document.TotalAmount, Description = document.Number }
             ],
             AccountingDocumentType.SupplierPayment =>
@@ -2023,6 +2046,34 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
                 new() { AccountId = profile.OutputVatAccountId, Credit = document.TaxAmount, Description = document.Number }
             ]
         });
+
+    private async Task EnsureDocumentCashBankAccountsAsync(AccountingDocumentDto document, CancellationToken cancellationToken)
+    {
+        if (!document.CashAccountId.HasValue && !document.BankAccountId.HasValue)
+            return;
+
+        if (document.CashAccountId.HasValue)
+        {
+            var exists = await dbContext.CashAccounts.AsNoTracking()
+                .AnyAsync(x => x.Id == document.CashAccountId.Value
+                    && x.CompanyId == document.CompanyId
+                    && x.BranchId == document.BranchId
+                    && x.IsActive, cancellationToken);
+            if (!exists)
+                throw new BadRequestException("Cash account must be active and belong to the document branch.");
+        }
+
+        if (document.BankAccountId.HasValue)
+        {
+            var exists = await dbContext.BankAccounts.AsNoTracking()
+                .AnyAsync(x => x.Id == document.BankAccountId.Value
+                    && x.CompanyId == document.CompanyId
+                    && x.BranchId == document.BranchId
+                    && x.IsActive, cancellationToken);
+            if (!exists)
+                throw new BadRequestException("Bank account must be active and belong to the document branch.");
+        }
+    }
 
     private static List<JournalEntryLineDto> NonZeroLines(IEnumerable<JournalEntryLineDto> lines) =>
         lines.Where(x => x.Debit > 0 || x.Credit > 0).ToList();
@@ -2076,6 +2127,7 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext, ISender send
       IQueryHandler<GetPostingProfilesQuery, GetPostingProfilesResult>,
       IQueryHandler<GetBankAccountsQuery, GetBankAccountsResult>,
       IQueryHandler<GetCashAccountsQuery, GetCashAccountsResult>,
+      IQueryHandler<GetAccountingCashAccountsQuery, GetAccountingCashAccountsResult>,
       IQueryHandler<GetCompanyAccountingSettingsQuery, GetCompanyAccountingSettingsResult>,
       IQueryHandler<GetAccountCodingSettingsQuery, GetAccountCodingSettingsResult>,
       IQueryHandler<GetAccountingDocumentsQuery, GetAccountingDocumentsResult>,
@@ -2218,6 +2270,12 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext, ISender send
         var cashAccounts = dbContext.CashAccounts.AsNoTracking().Where(x => x.CompanyId == query.CompanyId);
         cashAccounts = await ApplyBranchAccessAsync(cashAccounts, query.CompanyId, query.BranchId, cancellationToken);
         return new((await cashAccounts.OrderByDescending(x => x.IsDefault).ThenBy(x => x.DisplayName).ToListAsync(cancellationToken)).Select(x => x.ToDto()).ToList());
+    }
+
+    public async Task<GetAccountingCashAccountsResult> Handle(GetAccountingCashAccountsQuery query, CancellationToken cancellationToken)
+    {
+        var result = await Handle(new GetCashAccountsQuery(query.CompanyId, query.BranchId), cancellationToken);
+        return new GetAccountingCashAccountsResult(result.CashAccounts);
     }
 
     public async Task<GetCompanyAccountingSettingsResult> Handle(GetCompanyAccountingSettingsQuery query, CancellationToken cancellationToken)

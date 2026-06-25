@@ -46,7 +46,7 @@ public class ConfirmCheckoutPaymentHandler(PaymentsDbContext dbContext, ISender 
         {
             await sender.Send(new RecordAccountingReceiptCommand(
                 request.Payment.CompanyId,
-                null,
+                request.Payment.BranchId,
                 request.Payment.CustomerId,
                 null,
                 "Payments",
@@ -54,7 +54,9 @@ public class ConfirmCheckoutPaymentHandler(PaymentsDbContext dbContext, ISender 
                 request.Payment.SourceDocumentNumber,
                 request.Payment.Amount,
                 request.Payment.Method == PaymentMethodType.CardRecorded,
-                DateTime.UtcNow), cancellationToken);
+                DateTime.UtcNow,
+                request.Payment.CashAccountId,
+                request.Payment.BankAccountId), cancellationToken);
         }
 
         return new ConfirmCheckoutPaymentResult(payment.ToDecisionDto());

@@ -2,6 +2,7 @@
 @page "/Inventory/Transfers"
 @implements IDisposable
 
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
 @using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Pages.Features.Inventories.Services
@@ -12,10 +13,12 @@
 @using SharedWithUI.GeneralSettings.Dtos
 @using SharedWithUI.Inventory.Dtos
 @using SharedWithUI.Inventory.Enums
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 
 @inject IWarehouseTransferService TransferService
 @inject IWarehouseService WarehouseService
+@inject IBranchService BranchService
 @inject IProductService ProductService
 @inject IBatchService BatchService
 @inject ICurrencyService CurrencyService
@@ -303,6 +306,8 @@
     private Guid companyId;
     private List<WarehouseTransferDto> transfers = [];
     private List<WarehouseDto> warehouses = [];
+    private List<BranchDto> branches = [];
+    private CurrentUserBranchAccessDto branchAccess = new();
     private List<ProductDto> products = [];
     private List<ProductSkuDto> productSkus = [];
     private List<BatchDto> batches = [];
@@ -334,6 +339,7 @@
         }
 
         ResetTransfer();
+        await LoadBranchAccessAsync();
         await LoadLookupsAsync();
         await LoadTransfersAsync();
     }
@@ -344,7 +350,12 @@
     {
         var warehouseResult = await WarehouseService.GetAsync(companyId, 0, 10000);
         if (warehouseResult.IsSuccess)
-            warehouses = warehouseResult.Data?.Data?.ToList() ?? [];
+        {
+            var loadedWarehouses = warehouseResult.Data?.Data?.ToList() ?? [];
+            warehouses = branchAccess.CanViewAllBranches
+                ? loadedWarehouses
+                : loadedWarehouses.Where(warehouse => warehouse.BranchId == null || (warehouse.BranchId.HasValue && branchAccess.BranchIds.Contains(warehouse.BranchId.Value))).ToList();
+        }
 
         var productResult = await ProductService.GetByCompanyAsync(companyId, 0, 10000);
         if (productResult.IsSuccess)
@@ -361,6 +372,15 @@
             selectedCurrency = currencies.FirstOrDefault(c => c.IsDefault);
             newItem.CurrencyId = selectedCurrency?.Id ?? Guid.Empty;
         }
+    }
+
+    private async Task LoadBranchAccessAsync()
+    {
+        var accessResponse = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        branchAccess = accessResponse.IsSuccess ? accessResponse.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+
+        var branchResponse = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        branches = branchResponse.IsSuccess ? branchResponse.Data?.Data?.ToList() ?? [] : [];
     }
 
     private async Task LoadTransfersAsync()
@@ -538,11 +558,20 @@
         filteredBatches = [];
     }
 
-    private string DisplayWarehouse(WarehouseDto warehouse) =>
-        SharedDataService.Language == "Ar" ? warehouse.Name : warehouse.NameEng;
+    private string DisplayWarehouse(WarehouseDto warehouse)
+    {
+        var name = SharedDataService.Language == "Ar" ? warehouse.Name : warehouse.NameEng;
+        return warehouse.BranchId.HasValue ? $"{name} - {BranchName(warehouse.BranchId.Value)}" : $"{name} - {SharedDataService.SelectViewLang("Company", "الشركة")}";
+    }
 
     private string DisplayWarehouseName(string? ar, string? en) =>
         SharedDataService.Language == "Ar" ? ar ?? string.Empty : en ?? ar ?? string.Empty;
+
+    private string BranchName(Guid branchId)
+    {
+        var branch = branches.FirstOrDefault(x => x.Id == branchId);
+        return branch is null ? branchId.ToString("N")[..8] : SharedDataService.SelectViewLang(branch.NameEng, branch.Name);
+    }
 
     private string DisplayProduct(Guid id)
     {

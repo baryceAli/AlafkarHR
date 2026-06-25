@@ -45,6 +45,11 @@ public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
                     .FindFirst(ClaimTypes.NameIdentifier)?
                     .Value ??
                     throw new UnauthorizedAccessException("User is not authenticated");
+        await EmployeeModule.Employees.Features.Employees.EmployeeBranchScope.EnsureCanMutateAsync(
+            sender,
+            request.Employee.CompanyId!.Value,
+            request.Employee.BranchId,
+            cancellationToken);
 
         //Random rnd = new Random();
         //string code = rnd.Next(100, 9999).ToString();

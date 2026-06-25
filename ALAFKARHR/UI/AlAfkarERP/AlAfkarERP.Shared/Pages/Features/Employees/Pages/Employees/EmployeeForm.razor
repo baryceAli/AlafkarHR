@@ -11,6 +11,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Employees.Dtos
 @using SharedWithUI.Employees.Enums
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 @using SharedWithUI.Attendance.Enums
 @inject IBranchService BranchService
@@ -463,6 +464,8 @@
     private List<SpecializationDto> specializations = [];
     private List<int> graduationYears = [];
     private EmployeeDto employee = new();
+    private CurrentUserBranchAccessDto branchAccess = new();
+    private bool canViewAllBranches;
     private string managerEmployeeIdText = string.Empty;
     private string linkedUserIdText = string.Empty;
 
@@ -481,11 +484,7 @@
         }
         ResetEmployee();
         title = SharedDataService.SelectViewLang("New Employee", "موظف جديد");
-        var bResponse = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
-        if (bResponse.IsSuccess)
-        {
-            branches = bResponse.Data?.Data?.ToList() ?? [];
-        }
+        await LoadAccessibleBranchesAsync();
 
         var posResponse = await PositionService.GetAsync(companyId, 0, 1000);
         if (posResponse.IsSuccess)
@@ -554,9 +553,36 @@
         }
         else
         {
-
+            ApplyDefaultBranchForNewEmployee();
         }
     }
+    private async Task LoadAccessibleBranchesAsync()
+    {
+        var accessResponse = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        branchAccess = accessResponse.IsSuccess ? accessResponse.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+        canViewAllBranches = branchAccess.CanViewAllBranches;
+
+        var bResponse = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        if (!bResponse.IsSuccess)
+        {
+            branches = [];
+            return;
+        }
+
+        branches = bResponse.Data?.Data?.ToList() ?? [];
+        if (!canViewAllBranches)
+            branches = branches.Where(branch => branchAccess.BranchIds.Contains(branch.Id)).ToList();
+    }
+
+    private void ApplyDefaultBranchForNewEmployee()
+    {
+        if (selectedBranch is null && !canViewAllBranches && branches.Count == 1)
+        {
+            selectedBranch = branches[0];
+            employee.BranchId = selectedBranch.Id;
+        }
+    }
+
     private void ResetEmployee()
     {
         employee = new()
@@ -676,11 +702,7 @@
             departments=[];
             if (!branches.Any())
             {
-                var brRes=await BranchService.GetByCompanyIdAsync(companyId,0,10000);
-                if (brRes.IsSuccess)
-                {
-                    branches = brRes.Data?.Data?.ToList() ?? [];
-                }
+                await LoadAccessibleBranchesAsync();
             }
             return;
         }

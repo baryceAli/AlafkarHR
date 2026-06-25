@@ -60,7 +60,7 @@ public class CartService : BaseApiService, ICartService
         return await SendAsync<bool>(request, "isSuccess");
     }
 
-    public async Task<ApiResult<CheckoutCartResultDto>> CheckoutAsync(Guid cartId, PaymentMethodType paymentMethod, string? paymentReference, string? paymentNotes)
+    public async Task<ApiResult<CheckoutCartResultDto>> CheckoutAsync(Guid cartId, PaymentMethodType paymentMethod, string? paymentReference, string? paymentNotes, Guid? bankAccountId = null)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/{cartId}/checkout")
         {
@@ -68,7 +68,8 @@ public class CartService : BaseApiService, ICartService
             {
                 PaymentMethod = paymentMethod,
                 PaymentReference = paymentReference,
-                PaymentNotes = paymentNotes
+                PaymentNotes = paymentNotes,
+                BankAccountId = bankAccountId
             })
         };
         return await SendAsync<CheckoutCartResultDto>(request, null);

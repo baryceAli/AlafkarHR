@@ -53,7 +53,7 @@ public class MenuItem
                     TextAr = "نقطة بيع",
                     Icon = "bi-receipt",
                     Url = "/StoreFront/POS",
-                    PermissionPolicy = PermissionList.StoreFrontPosPermissions.View,
+                    PermissionPolicy = null,
                     WorkspaceKey = NavigationMenuResolver.WorkspaceStoreFront,
                     NavigationFunctionalGroupKey = NavigationMenuResolver.StoreFrontFunctionalGroupCheckout,
                     NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,

@@ -2,10 +2,12 @@
 @page "/Sales/Orders/{Id:guid}"
 @implements IDisposable
 
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 @using SharedWithUI.SalesOrder.Dtos
 @using SharedWithUI.SalesOrder.Enums
@@ -13,6 +15,7 @@
 @inject ISalesService SalesService
 @inject ISalesOrderWorkflowService WorkflowService
 @inject ICurrencyService CurrencyService
+@inject IBranchService BranchService
 @inject ToastService ToastService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
@@ -86,6 +89,10 @@
             <div class="col-lg-4">
                 <AppCard Title="@Text("Summary", "الملخص")" CssClass="mb-3">
                     <div class="summary-row"><span>@Text("Status", "الحالة")</span><strong>@StatusText(order.Status)</strong></div>
+                    @if (order.BranchId.HasValue)
+                    {
+                        <div class="summary-row"><span>@Text("Branch", "الفرع")</span><strong>@BranchName(order.BranchId.Value)</strong></div>
+                    }
                     <div class="summary-row"><span>@Text("Order date", "تاريخ الأمر")</span><strong>@order.OrderDate.ToString("yyyy-MM-dd")</strong></div>
                     <div class="summary-row"><span>@Text("Subtotal", "المجموع")</span><strong>@Money(order.Subtotal)</strong></div>
                     <div class="summary-row"><span>@Text("Tax", "الضريبة")</span><strong>@Money(order.TaxAmount)</strong></div>
@@ -129,6 +136,7 @@
     private bool isSaving;
     private string cancelReason = string.Empty;
     private string currencyCode = string.Empty;
+    private List<BranchDto> branches = [];
     private SalesOrderDto? order;
 
     protected override async Task OnInitializedAsync()
@@ -155,8 +163,20 @@
         var result = await SalesService.GetOrderByIdAsync(Id);
         order = result.IsSuccess ? result.Data : null;
         if (order is not null)
+        {
             await LoadCurrencyAsync(order.CompanyId);
+            await LoadBranchesAsync(order.CompanyId);
+        }
         isLoading = false;
+    }
+
+    private async Task LoadBranchesAsync(Guid companyId)
+    {
+        var result = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        if (result.IsSuccess)
+        {
+            branches = result.Data?.Data?.ToList() ?? [];
+        }
     }
 
     private async Task LoadCurrencyAsync(Guid companyId)
@@ -215,6 +235,12 @@
     };
 
     private string Money(decimal value) => string.IsNullOrWhiteSpace(currencyCode) ? $"{value:N2}" : $"{value:N2} {currencyCode}";
+    private string BranchName(Guid branchId)
+    {
+        var branch = branches.FirstOrDefault(x => x.Id == branchId);
+        return branch is null ? branchId.ToString("N")[..8] : Text(branch.NameEng, branch.Name);
+    }
+
     private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
 

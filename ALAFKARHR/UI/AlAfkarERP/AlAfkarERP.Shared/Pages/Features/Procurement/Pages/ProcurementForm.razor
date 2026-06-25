@@ -3,6 +3,7 @@
 @page "/Procurement/{KindRoute}/Form/{Id:guid}"
 
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Pages.Features.Inventories.Services
 @using AlAfkarERP.Shared.Pages.Features.Procurement.Services
@@ -11,6 +12,7 @@
 @using SharedWithUI.Catalog.Dtos
 @using SharedWithUI.GeneralSettings.Dtos
 @using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Procurement.Dtos
 @using SharedWithUI.Procurement.Enums
 @using SharedWithUI.Suppliers.Dtos
@@ -20,6 +22,7 @@
 @inject ISupplierService SupplierService
 @inject IProductService ProductService
 @inject IWarehouseService WarehouseService
+@inject IBranchService BranchService
 @inject IBatchService BatchService
 @inject ICurrencyService CurrencyService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -70,7 +73,7 @@
                         <div class="col-md-3">
                             <label class="form-label">@SharedDataService.SelectViewLang("Warehouse", "Warehouse")</label>
                             <AutoCompleteComponent TItem="WarehouseDto"
-                                                   Items="warehouses"
+                                                   Items="WarehouseOptions"
                                                    ItemText="WarehouseText"
                                                    Value="selectedWarehouse"
                                                    ValueChanged="OnWarehouseChanged"
@@ -115,7 +118,7 @@
                         <div class="col-md-3">
                             <label class="form-label">@SharedDataService.SelectViewLang("Warehouse", "المستودع")</label>
                             <AutoCompleteComponent TItem="WarehouseDto"
-                                                   Items="warehouses"
+                                                   Items="WarehouseOptions"
                                                    ItemText="WarehouseText"
                                                    Value="selectedWarehouse"
                                                    ValueChanged="OnWarehouseChanged"
@@ -558,6 +561,7 @@
     private readonly List<ProductDto> products = [];
     private readonly List<ProductSkuDto> allSkus = [];
     private readonly List<WarehouseDto> warehouses = [];
+    private readonly List<BranchDto> branches = [];
     private readonly List<BatchDto> batches = [];
     private readonly List<CurrencyDto> currencies = [];
     private readonly List<ProcurementDocumentDto> approvedPurchaseRequests = [];
@@ -579,6 +583,7 @@
     private ProcurementDocumentDto? selectedInvoiceGoodsReceipt;
     private InvoiceSourceMode invoiceSourceMode = InvoiceSourceMode.PurchaseOrder;
     private Guid companyId;
+    private CurrentUserBranchAccessDto branchAccess = new();
     private bool isLoading = true;
     private bool isSaving;
     private bool isBatchModalOpen;
@@ -632,6 +637,9 @@
         ProcurementDocumentKind.SupplierInvoice => SharedDataService.SelectViewLang("Supplier Invoice Number", "Supplier Invoice Number"),
         _ => SharedDataService.SelectViewLang("Number", "الرقم")
     };
+    private List<WarehouseDto> WarehouseOptions => warehouses
+        .Where(WarehouseMatchesDocumentBranch)
+        .ToList();
 
     protected override void OnInitialized()
     {
@@ -686,6 +694,7 @@
         products.Clear();
         allSkus.Clear();
         warehouses.Clear();
+        branches.Clear();
         batches.Clear();
         currencies.Clear();
         approvedPurchaseRequests.Clear();
@@ -700,6 +709,8 @@
         if (companyId == Guid.Empty)
             return;
 
+        await LoadBranchAccessAsync();
+
         var supplierResponse = await SupplierService.GetByCompanyAsync(companyId, 0, 200);
         if (supplierResponse.IsSuccess)
             suppliers.AddRange(supplierResponse.Data?.Data ?? []);
@@ -713,7 +724,12 @@
 
         var warehouseResponse = await WarehouseService.GetAsync(companyId, 0, 10000);
         if (warehouseResponse.IsSuccess)
-            warehouses.AddRange(warehouseResponse.Data?.Data ?? []);
+        {
+            var loadedWarehouses = warehouseResponse.Data?.Data?.ToList() ?? [];
+            warehouses.AddRange(branchAccess.CanViewAllBranches
+                ? loadedWarehouses
+                : loadedWarehouses.Where(warehouse => warehouse.BranchId == null || (warehouse.BranchId.HasValue && branchAccess.BranchIds.Contains(warehouse.BranchId.Value))));
+        }
 
         var batchResponse = await BatchService.GetAsync(companyId, 0, 10000);
         if (batchResponse.IsSuccess)
@@ -798,6 +814,9 @@
 
     private async Task SaveAsync()
     {
+        if (!ValidateWarehouseBranch())
+            return;
+
         isSaving = true;
         var dto = ToDto();
         bool success;
@@ -912,7 +931,7 @@
     private void ApplySelectionsFromDocument()
     {
         selectedSupplier = suppliers.FirstOrDefault(x => x.Id == document.SupplierId);
-        selectedWarehouse = warehouses.FirstOrDefault(x => x.Id == document.WarehouseId);
+        selectedWarehouse = WarehouseOptions.FirstOrDefault(x => x.Id == document.WarehouseId);
         selectedCurrency = currencies.FirstOrDefault(x => x.Id == document.CurrencyId) ?? currencies.FirstOrDefault(x => x.IsDefault);
         selectedSourcePurchaseRequest = approvedPurchaseRequests.FirstOrDefault(x => x.Id == document.SourceDocumentId)
             ?? approvedPurchaseRequests.FirstOrDefault(x => string.Equals(x.Number, document.SourceDocumentNumber, StringComparison.OrdinalIgnoreCase));
@@ -977,6 +996,7 @@
             return Task.CompletedTask;
         }
 
+        ApplySourceDocumentBranch(purchaseRequest);
         document.SourceDocumentId = purchaseRequest.Id;
         document.SourceDocumentNumber = purchaseRequest.Number;
         document.Lines = purchaseRequest.Lines.Select(line => new EditableProcurementLine(line)
@@ -1007,6 +1027,7 @@
             return Task.CompletedTask;
         }
 
+        ApplySourceDocumentBranch(rfq);
         document.SourceDocumentId = rfq.Id;
         document.SourceDocumentNumber = rfq.Number;
         document.Lines = rfq.Lines.Select(line => new EditableProcurementLine(line)
@@ -1037,6 +1058,7 @@
             return Task.CompletedTask;
         }
 
+        ApplySourceDocumentBranch(supplierQuotation);
         document.SourceDocumentId = supplierQuotation.Id;
         document.SourceDocumentNumber = supplierQuotation.Number;
         document.SupplierId = supplierQuotation.SupplierId;
@@ -1072,6 +1094,7 @@
             return Task.CompletedTask;
         }
 
+        ApplySourceDocumentBranch(purchaseOrder);
         document.SourceDocumentId = purchaseOrder.Id;
         document.SourceDocumentNumber = purchaseOrder.Number;
         document.SupplierId = purchaseOrder.SupplierId;
@@ -1103,6 +1126,7 @@
             return Task.CompletedTask;
         }
 
+        ApplySourceDocumentBranch(purchaseOrder);
         document.SourceDocumentId = purchaseOrder.Id;
         document.SourceDocumentNumber = purchaseOrder.Number;
         document.SupplierId = purchaseOrder.SupplierId;
@@ -1134,6 +1158,7 @@
             return Task.CompletedTask;
         }
 
+        ApplySourceDocumentBranch(goodsReceipt);
         document.SourceDocumentId = goodsReceipt.Id;
         document.SourceDocumentNumber = goodsReceipt.Number;
         document.SupplierId = goodsReceipt.SupplierId;
@@ -1239,9 +1264,57 @@
     {
         selectedWarehouse = warehouse;
         document.WarehouseId = warehouse?.Id;
+        if (warehouse?.BranchId is not null)
+            document.BranchId = warehouse.BranchId;
         foreach (var line in document.Lines)
             line.WarehouseId = warehouse?.Id;
         return Task.CompletedTask;
+    }
+
+    private bool WarehouseMatchesDocumentBranch(WarehouseDto warehouse)
+    {
+        if (!document.BranchId.HasValue)
+            return true;
+
+        return warehouse.BranchId == document.BranchId;
+    }
+
+    private async Task LoadBranchAccessAsync()
+    {
+        var accessResponse = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        branchAccess = accessResponse.IsSuccess ? accessResponse.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+
+        var branchResponse = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        if (branchResponse.IsSuccess)
+            branches.AddRange(branchResponse.Data?.Data ?? []);
+    }
+
+    private void ApplySourceDocumentBranch(ProcurementDocumentDto source)
+    {
+        if (!source.BranchId.HasValue)
+            return;
+
+        document.BranchId = source.BranchId;
+        if (selectedWarehouse is not null && selectedWarehouse.BranchId != source.BranchId)
+        {
+            selectedWarehouse = null;
+            document.WarehouseId = null;
+            foreach (var line in document.Lines)
+                line.WarehouseId = null;
+        }
+    }
+
+    private bool ValidateWarehouseBranch()
+    {
+        if (selectedWarehouse is not null && document.BranchId.HasValue && selectedWarehouse.BranchId != document.BranchId)
+        {
+            ToastService.ShowWarning(SharedDataService.SelectViewLang(
+                "Select a warehouse that belongs to the document branch.",
+                "اختر مستودعاً يتبع فرع المستند."));
+            return false;
+        }
+
+        return true;
     }
 
     private Task OnCurrencyChanged(CurrencyDto? currency)
@@ -1420,7 +1493,22 @@
     private static string FirstNonEmpty(params string?[] values) =>
         values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
     private string PackageText(ProductPackageDto package) => $"{SharedDataService.SelectViewLang(package.NameEng, package.Name)} ({package.Quantity:N2})";
-    private string WarehouseText(WarehouseDto warehouse) => SharedDataService.SelectViewLang(warehouse.NameEng, warehouse.Name);
+    private string WarehouseText(WarehouseDto warehouse)
+    {
+        var name = SharedDataService.SelectViewLang(warehouse.NameEng, warehouse.Name);
+        var scope = warehouse.BranchId.HasValue
+            ? BranchName(warehouse.BranchId.Value)
+            : SharedDataService.SelectViewLang("Company", "الشركة");
+        return $"{name} - {scope}";
+    }
+
+    private string BranchName(Guid branchId)
+    {
+        var branch = branches.FirstOrDefault(x => x.Id == branchId);
+        return branch is null
+            ? branchId.ToString("N")
+            : SharedDataService.SelectViewLang(branch.NameEng, branch.Name);
+    }
     private string BatchText(BatchDto batch)
     {
         if (IsCreateBatchOption(batch))

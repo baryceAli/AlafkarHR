@@ -6,7 +6,7 @@ using Cart.Carts.Features;
 
 namespace Cart.Carts.Features.CheckoutCart;
 
-public record CheckoutCartCommand(Guid CartId, PaymentMethodType PaymentMethod, string? PaymentReference, string? PaymentNotes, string? CouponCode = null) : ICommand<CheckoutCartResult>;
+public record CheckoutCartCommand(Guid CartId, PaymentMethodType PaymentMethod, string? PaymentReference, string? PaymentNotes, string? CouponCode = null, Guid? BankAccountId = null) : ICommand<CheckoutCartResult>;
 public record CheckoutCartResult(
     Guid? OrderIntakeId,
     Guid? SalesOrderId,
@@ -38,6 +38,24 @@ public class CheckoutCartHandler(CartDbContext dbContext, ISender sender, IHttpC
         if (!cart.CustomerId.HasValue)
             throw new Exception("Customer is required for checkout pricing and payment.");
 
+        var scope = await CartAuthorization.ResolveStoreFrontScopeAsync(sender, cart.Channel, cancellationToken);
+        Guid? posSessionId = null;
+        Guid? cashAccountId = null;
+        if (scope is not null)
+        {
+            if (scope.CompanyId != cart.CompanyId)
+                throw new BadRequestException("StoreFront does not belong to the cart company.");
+
+            var session = await sender.Send(new EnsurePosCashierSessionForCheckoutQuery(
+                scope.StoreFrontId,
+                scope.CompanyId,
+                scope.BranchId,
+                (int)request.PaymentMethod), cancellationToken);
+            posSessionId = session.SessionId;
+            cashAccountId = session.CashAccountId;
+            cart.ApplyStoreFrontScope(scope.StoreFrontId, scope.BranchId, posSessionId, "checkout");
+        }
+
         var userId = "checkout";
         var cartSubtotal = cart.Lines.Where(x => !x.IsDeleted).Sum(x => x.Quantity * x.UnitPrice);
         foreach (var line in cart.Lines.Where(x => !x.IsDeleted))
@@ -68,6 +86,11 @@ public class CheckoutCartHandler(CartDbContext dbContext, ISender sender, IHttpC
         var paymentResult = await sender.Send(new ConfirmCheckoutPaymentCommand(new CheckoutPaymentRequestDto
         {
             CompanyId = cart.CompanyId,
+            BranchId = cart.BranchId,
+            StoreFrontId = cart.StoreFrontId,
+            PosCashierSessionId = cart.PosCashierSessionId,
+            CashAccountId = request.PaymentMethod == PaymentMethodType.Cash ? cashAccountId : null,
+            BankAccountId = request.PaymentMethod == PaymentMethodType.CardRecorded ? request.BankAccountId : null,
             CustomerId = cart.CustomerId,
             Source = cart.Source,
             Channel = cart.Channel,
@@ -79,6 +102,17 @@ public class CheckoutCartHandler(CartDbContext dbContext, ISender sender, IHttpC
 
         if (!paymentResult.Payment.IsApproved)
             throw new Exception(paymentResult.Payment.DecisionReason ?? "Checkout payment was rejected.");
+
+        if (scope is not null)
+        {
+            await sender.Send(new RecordPosCashierSessionPaymentCommand(
+                scope.StoreFrontId,
+                scope.BranchId,
+                posSessionId,
+                paymentResult.Payment.PaymentId,
+                (int)paymentResult.Payment.Method,
+                paymentResult.Payment.Amount), cancellationToken);
+        }
 
         if (cart.Source == OrderIntakeSource.Pos)
         {

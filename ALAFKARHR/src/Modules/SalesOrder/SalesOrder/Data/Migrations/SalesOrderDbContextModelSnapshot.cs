@@ -180,6 +180,9 @@ namespace SalesOrder.Data.Migrations
                     b.Property<Guid?>("AccountingDocumentId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("datetime2");
 
@@ -244,6 +247,9 @@ namespace SalesOrder.Data.Migrations
                     b.Property<Guid?>("PaymentId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("PosCashierSessionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("PriceListId")
                         .HasColumnType("uniqueidentifier");
 
@@ -264,6 +270,9 @@ namespace SalesOrder.Data.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
+
+                    b.Property<Guid?>("StoreFrontId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Subtotal")
                         .HasColumnType("decimal(18,2)");

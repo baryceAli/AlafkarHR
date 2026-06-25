@@ -16,6 +16,21 @@ public record CreateAndPostJournalEntryCommand(CreateJournalEntryDto JournalEntr
 
 public record CreateAndPostJournalEntryResult(Guid JournalEntryId, string Number);
 
+public record GetAccountingCashAccountScopeQuery(Guid CompanyId, Guid BranchId, Guid CashAccountId)
+    : IQuery<GetAccountingCashAccountScopeResult>;
+
+public record GetAccountingCashAccountScopeResult(Guid CashAccountId, Guid LedgerAccountId);
+
+public record GetAccountingCashAccountsQuery(Guid CompanyId, Guid? BranchId)
+    : IQuery<GetAccountingCashAccountsResult>;
+
+public record GetAccountingCashAccountsResult(List<CashAccountDto> CashAccounts);
+
+public record UpsertAccountingCashAccountCommand(CashAccountDto CashAccount)
+    : ICommand<UpsertAccountingCashAccountResult>;
+
+public record UpsertAccountingCashAccountResult(Guid Id);
+
 public record RecordAccountingReceiptCommand(
     Guid CompanyId,
     Guid? BranchId,
@@ -26,7 +41,9 @@ public record RecordAccountingReceiptCommand(
     string? SourceDocumentNumber,
     decimal Amount,
     bool ToBank,
-    DateTime ReceiptDate) : ICommand<CreateAccountingDocumentResult>;
+    DateTime ReceiptDate,
+    Guid? CashAccountId = null,
+    Guid? BankAccountId = null) : ICommand<CreateAccountingDocumentResult>;
 
 public record GenerateZatcaInvoiceCommand(Guid AccountingDocumentId, ZatcaInvoiceType InvoiceType) : ICommand<GenerateZatcaInvoiceResult>;
 

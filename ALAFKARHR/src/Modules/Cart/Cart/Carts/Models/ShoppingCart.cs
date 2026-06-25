@@ -9,6 +9,9 @@ public class ShoppingCart : Aggregate<Guid>
     private ShoppingCart() { }
 
     public Guid CompanyId { get; private set; }
+    public Guid? BranchId { get; private set; }
+    public Guid? StoreFrontId { get; private set; }
+    public Guid? PosCashierSessionId { get; private set; }
     public Guid? CustomerId { get; private set; }
     public string? UserId { get; private set; }
     public string? SessionId { get; private set; }
@@ -27,6 +30,9 @@ public class ShoppingCart : Aggregate<Guid>
         {
             Id = Guid.NewGuid(),
             CompanyId = dto.CompanyId,
+            BranchId = dto.BranchId,
+            StoreFrontId = dto.StoreFrontId,
+            PosCashierSessionId = dto.PosCashierSessionId,
             CustomerId = dto.CustomerId,
             UserId = dto.UserId ?? userId,
             SessionId = dto.SessionId,
@@ -49,6 +55,15 @@ public class ShoppingCart : Aggregate<Guid>
         }
 
         _lines.Add(ShoppingCartLine.Create(dto, userId));
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+
+    public void ApplyStoreFrontScope(Guid storeFrontId, Guid branchId, Guid? sessionId, string userId)
+    {
+        StoreFrontId = storeFrontId;
+        BranchId = branchId;
+        PosCashierSessionId = sessionId;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = userId;
     }
@@ -95,6 +110,9 @@ public class ShoppingCart : Aggregate<Guid>
     {
         Id = Id,
         CompanyId = CompanyId,
+        BranchId = BranchId,
+        StoreFrontId = StoreFrontId,
+        PosCashierSessionId = PosCashierSessionId,
         CustomerId = CustomerId,
         UserId = UserId,
         SessionId = SessionId,

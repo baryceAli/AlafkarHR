@@ -12,6 +12,7 @@ public class InvoiceOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcce
         var order = await dbContext.SalesOrders.Include(o => o.Lines).FirstOrDefaultAsync(o => o.Id == request.SalesOrder.Id, cancellationToken);
         if (order is null)
             throw new NotFoundException($"Order not found: {request.SalesOrder.Id}");
+        await SalesOrderBranchScope.EnsureCanMutateAsync(sender, order.CompanyId, order.BranchId, cancellationToken);
 
         var user = httpContextAccessor.HttpContext?
                     .User?
@@ -30,6 +31,7 @@ public class InvoiceOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcce
         var accountingDocument = new AccountingDocumentDto
         {
             CompanyId = order.CompanyId,
+            BranchId = order.BranchId,
             Type = AccountingDocumentType.SalesInvoice,
             DocumentDate = DateTime.UtcNow,
             PartyId = order.CustomerId,

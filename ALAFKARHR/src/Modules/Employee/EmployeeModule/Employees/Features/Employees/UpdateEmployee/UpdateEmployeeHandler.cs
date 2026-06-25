@@ -49,6 +49,7 @@ public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
         var employee = await dbContext.Employees.FirstOrDefaultAsync(e => e.Id == request.Employee.Id, cancellationToken);
         if (employee is null)
             throw new NotFoundException($"Employee not found: {request.Employee.Id}");
+        await EmployeeModule.Employees.Features.Employees.EmployeeBranchScope.EnsureCanMutateAsync(sender, employee.CompanyId, employee.BranchId, cancellationToken);
 
         var userId = httpContextAccessor.HttpContext?
                         .User?

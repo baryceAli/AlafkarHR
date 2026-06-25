@@ -2,16 +2,19 @@
 @page "/Sales/Orders"
 @implements IDisposable
 
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
 @using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 @using SharedWithUI.SalesOrder.Dtos
 @using SharedWithUI.SalesOrder.Enums
 
 @inject ISalesService SalesService
 @inject ICurrencyService CurrencyService
+@inject IBranchService BranchService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
@@ -66,6 +69,7 @@
                             <th>@Text("Subtotal", "المجموع")</th>
                             <th>@Text("Tax", "الضريبة")</th>
                             <th>@Text("Total", "الإجمالي")</th>
+                            <th>@Text("Branch", "الفرع")</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -79,6 +83,7 @@
                                 <td>@Money(order.Subtotal)</td>
                                 <td>@Money(order.TaxAmount)</td>
                                 <td>@Money(order.TotalAmount)</td>
+                                <td>@BranchText(order.BranchId)</td>
                                 <td class="text-end">
                                     <button class="btn btn-sm btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo($"/Sales/Orders/{order.Id}")'>
                                         <i class="bi bi-eye"></i>
@@ -109,6 +114,7 @@
     private const int PageSize = 20;
     private long totalCount;
     private List<SalesOrderDto> orders = [];
+    private List<BranchDto> branches = [];
     private bool HasNextPage => (pageIndex + 1) * PageSize < totalCount;
 
     protected override async Task OnInitializedAsync()
@@ -134,6 +140,7 @@
         if (CanView)
         {
             await LoadCurrencyAsync();
+            await LoadBranchesAsync();
             await LoadAsync();
         }
     }
@@ -143,6 +150,12 @@
         var result = await CurrencyService.GetAsync(companyId, 0, 1000);
         var currencies = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
         currencyCode = currencies.FirstOrDefault(c => c.IsDefault)?.Code ?? currencies.FirstOrDefault()?.Code ?? string.Empty;
+    }
+
+    private async Task LoadBranchesAsync()
+    {
+        var result = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        branches = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
     }
 
     private async Task LoadAsync()
@@ -194,6 +207,15 @@
     };
 
     private string Money(decimal value) => string.IsNullOrWhiteSpace(currencyCode) ? $"{value:N2}" : $"{value:N2} {currencyCode}";
+    private string BranchText(Guid? branchId)
+    {
+        if (!branchId.HasValue)
+            return Text("Company", "الشركة");
+
+        var branch = branches.FirstOrDefault(x => x.Id == branchId.Value);
+        return branch is null ? branchId.Value.ToString("N")[..8] : Text(branch.NameEng, branch.Name);
+    }
+
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
 

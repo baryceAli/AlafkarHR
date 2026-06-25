@@ -12,6 +12,7 @@ public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
                        .FindFirst(ClaimTypes.NameIdentifier)?
                        .Value ??
                        throw new UnauthorizedAccessException("User is not authenticated");
+        await SalesOrderBranchScope.EnsureCanMutateAsync(sender, request.SalesOrder.CompanyId, request.SalesOrder.BranchId, cancellationToken);
 
         var order=Models.SalesOrder.Create(
             Guid.NewGuid(),
@@ -19,6 +20,9 @@ public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
             request.SalesOrder.CustomerId,
             request.SalesOrder.PriceListId,
             request.SalesOrder.CompanyId,
+            request.SalesOrder.BranchId,
+            request.SalesOrder.StoreFrontId,
+            request.SalesOrder.PosCashierSessionId,
             user,
             request.SalesOrder.SalespersonId,
             request.SalesOrder.SourceQuotationId,

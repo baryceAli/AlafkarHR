@@ -6,6 +6,11 @@ namespace SharedWithUI.Payments.Dtos;
 public class CheckoutPaymentRequestDto
 {
     public Guid CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
+    public Guid? StoreFrontId { get; set; }
+    public Guid? PosCashierSessionId { get; set; }
+    public Guid? CashAccountId { get; set; }
+    public Guid? BankAccountId { get; set; }
     public Guid? CustomerId { get; set; }
     public OrderIntakeSource Source { get; set; }
     public PaymentSourceType SourceType { get; set; } = PaymentSourceType.Checkout;

@@ -31,6 +31,12 @@
     @if (!CanView)
     {
         <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        <div class="alert alert-info">
+            <div>@Text("StoreFront branch cashiers should use the StoreFront POS workflow.", "يجب على كاشيري فروع الواجهة استخدام نقطة بيع الواجهة.")</div>
+            <a class="btn btn-sm btn-outline-primary mt-2" href="/StoreFront/POS">
+                <i class="bi bi-shop"></i> @Text("Open StoreFront POS", "فتح نقطة بيع الواجهة")
+            </a>
+        </div>
         return;
     }
 
@@ -44,6 +50,13 @@
             </a>
         </Actions>
     </PageHeader>
+
+    <div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <span>@Text("This is the company-level POS. Use StoreFront POS for branch-scoped stores, cashier sessions, handovers, and StoreFront inventory.", "هذه نقطة بيع عامة على مستوى الشركة. استخدم نقطة بيع الواجهة للمتاجر المرتبطة بالفروع وجلسات الكاشير والمناقلات ومخزون الواجهة.")</span>
+        <a class="btn btn-sm btn-outline-primary" href="/StoreFront/POS">
+            <i class="bi bi-shop"></i> @Text("StoreFront POS", "نقطة بيع الواجهة")
+        </a>
+    </div>
 
     <div class="row g-3">
         <div class="col-xl-8">

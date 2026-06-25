@@ -2,6 +2,7 @@
 @page "/StoreFront/POS"
 @implements IDisposable
 
+@using AlAfkarERP.Shared.Pages.Features.Accounting.Services
 @using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
@@ -9,6 +10,7 @@
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Cart.Dtos
+@using SharedWithUI.Accounting.Dtos
 @using SharedWithUI.Orders.Enums
 @using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Payments.Enums
@@ -16,6 +18,7 @@
 @using SharedWithUI.StoreFront.Dtos
 
 @inject IStoreFrontService StoreFrontService
+@inject IAccountingService AccountingService
 @inject IBranchService BranchService
 @inject ICartService CartService
 @inject ICurrencyService CurrencyService
@@ -25,14 +28,14 @@
 @inject SharedDataService SharedDataService
 
 <section class="pos-page" dir="@SharedDataService.PageDirection">
-    @if (!CanView)
+    @if (isAccessLoading)
     {
-        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")</div>
+        <div class="alert alert-info">@Text("Loading StoreFront access...", "جاري تحميل صلاحيات واجهة المتجر...")</div>
         return;
     }
-    @if (!CanViewStores)
+    @if (!CanAccessPosPage)
     {
-        <div class="alert alert-warning">@Text("POS requires StoreFront.Store.View so stores can be loaded.", "تتطلب نقطة البيع صلاحية عرض المتاجر لتحميل المتاجر.")</div>
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")</div>
         return;
     }
 
@@ -44,6 +47,12 @@
             @if (CanOpenStoresPage)
             {
                 <a class="btn btn-outline-secondary" href="/StoreFront/Stores"><i class="bi bi-shop"></i> @Text("Stores", "المتاجر")</a>
+            }
+            @if (selectedStoreId != Guid.Empty && CanManageCashAccountsSelectedStore)
+            {
+                <button class="btn btn-outline-secondary" @onclick="OpenCashAccountsModal">
+                    <i class="bi bi-cash-stack"></i> @Text("Cash accounts", "حسابات النقد")
+                </button>
             }
         </Actions>
     </PageHeader>
@@ -69,6 +78,205 @@
             </div>
         </div>
     </AppCard>
+
+    @if (selectedStoreId != Guid.Empty)
+    {
+        @if (ReadinessWarnings.Any())
+        {
+            <div class="alert alert-warning">
+                <div class="fw-semibold">@Text("StoreFront readiness", "جاهزية واجهة المتجر")</div>
+                <ul class="mb-0">
+                    @foreach (var warning in ReadinessWarnings)
+                    {
+                        <li>@warning</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <AppCard CssClass="mb-3">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-4">
+                    <div class="text-muted small">@Text("Cashier session", "جلسة الكاشير")</div>
+                    @if (activeSession is null)
+                    {
+                        <div class="fw-semibold text-warning">@Text("No open session", "لا توجد جلسة مفتوحة")</div>
+                    }
+                    else
+                    {
+                        <div class="fw-semibold text-success">@Text("Open", "مفتوحة")</div>
+                        <div class="small text-muted">@Text("Expected cash", "النقد المتوقع"): @Money(activeSession.ExpectedCashAmount)</div>
+                        <div class="small text-muted">@Text("Cash account", "حساب النقد"): @CashAccountName(activeSession.CashAccountId)</div>
+                    }
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">@Text("Opening cash", "نقد البداية")</label>
+                    <InputNumber class="form-control" @bind-Value="openingAmount" disabled="@(activeSession is not null || !CanOpenSessionSelectedStore)" />
+                </div>
+                <div class="col-lg-3">
+                    <label class="form-label">@Text("Cash account", "حساب النقد")</label>
+                    <select class="form-select" @bind="selectedCashAccountId" disabled="@(activeSession is not null || !CanOpenSessionSelectedStore)">
+                        <option value="">@Text("Default branch cash", "النقد الافتراضي للفرع")</option>
+                        @foreach (var account in cashAccounts.Where(x => x.IsActive))
+                        {
+                            <option value="@account.Id">@account.DisplayName</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <button class="btn btn-outline-success w-100" @onclick="OpenSessionAsync" disabled="@(activeSession is not null || !CanOpenSessionSelectedStore)">
+                        <i class="bi bi-play-circle"></i> @Text("Open", "فتح")
+                    </button>
+                </div>
+                <div class="col-lg-2">
+                    <label class="form-label">@Text("Counted cash", "النقد المعدود")</label>
+                    <InputNumber class="form-control" @bind-Value="countedCashAmount" disabled="@(activeSession is null || !CanCloseSessionSelectedStore)" />
+                </div>
+                <div class="col-lg-3">
+                    <label class="form-label">@Text("Handover mode", "طريقة التسليم")</label>
+                    <select class="form-select" @bind="handoverMode" disabled="@(activeSession is null || !CanCloseSessionSelectedStore || !CanHandoverSelectedStore)">
+                        <option value="none">@Text("No handover", "بدون تسليم")</option>
+                        <option value="account">@Text("Branch cash account", "حساب نقد الفرع")</option>
+                        <option value="session">@Text("Open cashier session", "جلسة كاشير مفتوحة")</option>
+                    </select>
+                </div>
+                @if (handoverMode == "account")
+                {
+                    <div class="col-lg-3">
+                        <label class="form-label">@Text("Cash account target", "حساب النقد المستلم")</label>
+                        <select class="form-select" @bind="handoverCashAccountId" disabled="@(activeSession is null || !CanCloseSessionSelectedStore || !CanHandoverSelectedStore)">
+                            <option value="">@Text("Select account", "اختر الحساب")</option>
+                            @foreach (var account in cashAccounts.Where(x => x.IsActive && x.Id != activeSession?.CashAccountId))
+                            {
+                                <option value="@account.Id">@account.DisplayName</option>
+                            }
+                        </select>
+                    </div>
+                }
+                @if (handoverMode == "session")
+                {
+                    <div class="col-lg-3">
+                        <label class="form-label">@Text("Cashier target", "الكاشير المستلم")</label>
+                        <select class="form-select" @bind="handoverSessionId" disabled="@(activeSession is null || !CanCloseSessionSelectedStore || !CanHandoverSelectedStore)">
+                            <option value="">@Text("Select session", "اختر الجلسة")</option>
+                            @foreach (var session in openHandoverSessions)
+                            {
+                                <option value="@session.Id">@SessionLabel(session)</option>
+                            }
+                        </select>
+                    </div>
+                }
+                @if (activeSession is not null && !CanHandoverSelectedStore && handoverMode != "none")
+                {
+                    <div class="col-12">
+                        <div class="alert alert-warning mb-0">@Text("Cash handover requires StoreFront.POS.HandoverCash.", "تسليم النقد يتطلب صلاحية تسليم النقد في نقطة البيع.")</div>
+                    </div>
+                }
+                <div class="col-lg-2">
+                    <button class="btn btn-outline-primary w-100" @onclick="CloseSessionAsync" disabled="@(activeSession is null || !CanCloseSessionSelectedStore)">
+                        <i class="bi bi-stop-circle"></i> @Text("Close", "إغلاق")
+                    </button>
+                </div>
+                @if (activeSession is not null)
+                {
+                    <div class="col-12 small text-muted">
+                        @Text("Variance", "الفرق"): <strong>@Money(countedCashAmount - activeSession.ExpectedCashAmount)</strong>
+                    </div>
+                }
+                @if (sessionSummary is not null)
+                {
+                    <div class="col-12">
+                        <div class="d-flex flex-wrap gap-3 small text-muted">
+                            <span>@Text("Cash", "نقدا"): <strong>@Money(sessionSummary.CashSalesAmount)</strong></span>
+                            <span>@Text("Card", "بطاقة"): <strong>@Money(sessionSummary.CardSalesAmount)</strong></span>
+                            <span>@Text("Expected", "المتوقع"): <strong>@Money(sessionSummary.ExpectedCashAmount)</strong></span>
+                            <span>@Text("Counted", "المعدود"): <strong>@Money(sessionSummary.CountedCashAmount)</strong></span>
+                            <span>@Text("Variance", "الفرق"): <strong>@Money(sessionSummary.VarianceAmount)</strong></span>
+                            <span>@Text("Sessions", "الجلسات"): <strong>@sessionSummary.SessionCount</strong></span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </AppCard>
+
+        <AppCard CssClass="mb-3" Title="@Text("Cashier work range", "نطاق عمل الكاشير")">
+            <div class="row g-2 align-items-end mb-3">
+                <div class="col-md-3">
+                    <label class="form-label">@Text("From", "من")</label>
+                    <InputDate class="form-control" @bind-Value="summaryFromDate" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">@Text("To", "إلى")</label>
+                    <InputDate class="form-control" @bind-Value="summaryToDate" />
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary w-100" @onclick="LoadSessionRangeAsync" disabled="@(!CanViewAnySummarySelectedStore)">
+                        <i class="bi bi-arrow-clockwise"></i> @Text("Refresh", "تحديث")
+                    </button>
+                </div>
+                @if (!CanViewAnySummarySelectedStore)
+                {
+                    <div class="col-12">
+                        <div class="alert alert-warning mb-0">@Text("Range summary requires StoreFront.POS.ViewOwnSummary or StoreFront.POS.ViewBranchSummaries.", "ملخص النطاق يتطلب صلاحية عرض ملخصك أو ملخصات الفرع.")</div>
+                    </div>
+                }
+                else if (UseOwnSessionRange)
+                {
+                    <div class="col-12">
+                        <div class="alert alert-info mb-0">@Text("Showing your own cashier sessions.", "يتم عرض جلسات الكاشير الخاصة بك.")</div>
+                    </div>
+                }
+            </div>
+            @if (!sessionRows.Any())
+            {
+                <EmptyState Title="@Text("No sessions in range", "لا توجد جلسات ضمن النطاق")"
+                            Message="@Text("Open and close cashier sessions to build the daily record.", "افتح وأغلق جلسات الكاشير لبناء السجل اليومي.")"
+                            Icon="bi-calendar-range" />
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@Text("Cashier", "الكاشير")</th>
+                                <th>@Text("Status", "الحالة")</th>
+                                <th>@Text("Cash account", "حساب النقد")</th>
+                                <th>@Text("Expected", "المتوقع")</th>
+                                <th>@Text("Counted", "المعدود")</th>
+                                <th>@Text("Variance", "الفرق")</th>
+                                <th>@Text("Sales", "المبيعات")</th>
+                                <th>@Text("Handover", "التسليم")</th>
+                                <th>@Text("Opened", "فتح")</th>
+                                <th>@Text("Closed", "إغلاق")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var session in sessionRows)
+                            {
+                                <tr>
+                                    <td><span class="small">@ShortUser(session.CashierUserId)</span></td>
+                                    <td><StatusChip Text="@SessionStatusText(session.Status)" Tone="@(session.Status == PosCashierSessionStatus.Open ? "success" : "secondary")" /></td>
+                                    <td>@CashAccountName(session.CashAccountId)</td>
+                                    <td>@Money(session.ExpectedCashAmount)</td>
+                                    <td>@Money(session.CountedCashAmount ?? 0)</td>
+                                    <td>@Money(session.VarianceAmount ?? 0)</td>
+                                    <td>
+                                        <div class="small">@Text("Cash", "نقدا"): @Money(session.CashSalesAmount)</div>
+                                        <div class="small">@Text("Card", "بطاقة"): @Money(session.CardSalesAmount)</div>
+                                        <div class="text-muted small">@session.PaymentCount @Text("payments", "دفعات")</div>
+                                    </td>
+                                    <td>@HandoverLabel(session)</td>
+                                    <td>@session.OpenedAt.ToLocalTime().ToString("g")</td>
+                                    <td>@(session.ClosedAt.HasValue ? session.ClosedAt.Value.ToLocalTime().ToString("g") : "-")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </AppCard>
+    }
 
     <div class="row g-3">
         <div class="col-xl-8">
@@ -173,14 +381,41 @@
                     }
                     <div class="d-flex justify-content-between border-top pt-2"><span>@Text("Total", "الإجمالي")</span><strong>@Money(cart.TotalAmount)</strong></div>
                     <div class="mt-3"><label class="form-label">@Text("Payment method", "طريقة الدفع")</label><select class="form-select" @bind="paymentMethod">@foreach (var method in Enum.GetValues<PaymentMethodType>()){<option value="@method">@method</option>}</select></div>
+                    @if (paymentMethod == PaymentMethodType.CardRecorded)
+                    {
+                        <div class="mt-2">
+                            <label class="form-label">@Text("Branch bank account", "حساب البنك للفرع")</label>
+                            <select class="form-select" @bind="selectedBankAccountId">
+                                <option value="">@Text("Default branch bank account", "الحساب البنكي الافتراضي للفرع")</option>
+                                @foreach (var account in bankAccounts.Where(x => x.IsActive))
+                                {
+                                    <option value="@account.Id">@account.DisplayName</option>
+                                }
+                            </select>
+                            <div class="form-text">
+                                @if (bankAccounts.Any(x => x.IsActive))
+                                {
+                                    @Text("Leave empty to use the default branch bank account.", "اتركه فارغاً لاستخدام الحساب البنكي الافتراضي للفرع.")
+                                }
+                                else
+                                {
+                                    @Text("Card receipts will use the default branch bank account.", "إيصالات البطاقة ستستخدم الحساب البنكي الافتراضي للفرع.")
+                                }
+                            </div>
+                        </div>
+                    }
                     <div class="mt-2"><label class="form-label">@Text("Payment reference", "مرجع الدفع")</label><input class="form-control" @bind="paymentReference" /></div>
                     <div class="mt-2"><label class="form-label">@Text("Payment notes", "ملاحظات الدفع")</label><textarea class="form-control" rows="2" @bind="paymentNotes"></textarea></div>
                     @if (!CanCheckoutSelectedStore)
                     {
                         <div class="alert alert-warning mt-3 mb-0">@Text("Checkout requires StoreFront.POS.Checkout.", "إتمام البيع يتطلب صلاحية إتمام نقطة البيع.")</div>
                     }
+                    @if (CashCheckoutNeedsSession)
+                    {
+                        <div class="alert alert-warning mt-3 mb-0">@Text("Cash checkout is blocked until you open a cashier session for this StoreFront.", "إتمام الدفع نقداً متوقف حتى تفتح جلسة كاشير لهذا المتجر.")</div>
+                    }
                     <div class="d-flex gap-2 mt-3">
-                        <button class="btn btn-primary flex-grow-1" @onclick="CheckoutAsync" disabled="@(isCartBusy || !CanCheckoutSelectedStore)"><i class="bi bi-check2-circle"></i> @Text("Checkout", "إتمام الطلب")</button>
+                        <button class="btn btn-primary flex-grow-1" @onclick="CheckoutAsync" disabled="@(isCartBusy || !CanCheckoutSelectedStore || CashCheckoutNeedsSession)"><i class="bi bi-check2-circle"></i> @Text("Checkout", "إتمام الطلب")</button>
                         <button class="btn btn-outline-secondary" @onclick="ClearCartAsync" disabled="@(isCartBusy || !CanManageSelectedCart)"><i class="bi bi-x-circle"></i></button>
                     </div>
                 }
@@ -189,12 +424,107 @@
     </div>
 </section>
 
+@if (showCashAccountsModal)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Text("Store cash accounts", "حسابات نقد المتجر")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseCashAccountsModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (SelectedStore?.BranchId is not Guid)
+                    {
+                        <div class="alert alert-warning">@Text("Save the store with a StoreFront branch before managing branch cash accounts.", "احفظ المتجر بفرع واجهة متجر قبل إدارة حسابات النقد.")</div>
+                    }
+                    else
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <div class="fw-semibold">@Text("Cashier ledgers", "دفاتر الكاشير")</div>
+                                <div class="text-muted small">@Text("These are accounting cash accounts scoped to the selected StoreFront branch.", "هذه حسابات نقد محاسبية مرتبطة بفرع واجهة المتجر المحدد.")</div>
+                            </div>
+                            <button class="btn btn-sm btn-primary" @onclick="NewCashAccount" disabled="@(!CanManageCashAccountsSelectedStore)">
+                                <i class="bi bi-plus-lg"></i> @Text("Cash account", "حساب نقد")
+                            </button>
+                        </div>
+                        @if (!cashAccounts.Any())
+                        {
+                            <EmptyState Title="@Text("No branch cash accounts", "لا توجد حسابات نقد للفرع")"
+                                        Message="@Text("Create a cashier cash account before assigning it to an opening session.", "أنشئ حساب نقد للكاشير قبل ربطه بجلسة افتتاحية.")"
+                                        Icon="bi-cash-stack" />
+                        }
+                        else
+                        {
+                            <div class="table-responsive mb-3">
+                                <table class="table align-middle mb-0">
+                                    <thead><tr><th>@Text("Account", "الحساب")</th><th>@Text("Currency", "العملة")</th><th>@Text("Default", "افتراضي")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
+                                    <tbody>
+                                        @foreach (var account in cashAccounts)
+                                        {
+                                            <tr>
+                                                <td>@account.DisplayName</td>
+                                                <td>@account.CurrencyCode</td>
+                                                <td>@(account.IsDefault ? Text("Yes", "نعم") : Text("No", "لا"))</td>
+                                                <td><StatusChip Text="@(account.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))" Tone="@(account.IsActive ? "success" : "secondary")" /></td>
+                                                <td class="text-end">
+                                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => EditCashAccount(account)" disabled="@(!CanManageCashAccountsSelectedStore)">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+
+                        @if (editingCashAccount is not null)
+                        {
+                            <EditForm Model="editingCashAccount" OnValidSubmit="SaveCashAccountAsync">
+                                <DataAnnotationsValidator />
+                                <div class="row g-3 border rounded p-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">@Text("Display name", "اسم العرض")</label>
+                                        <InputText class="form-control" @bind-Value="editingCashAccount.DisplayName" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">@Text("Currency", "العملة")</label>
+                                        <InputText class="form-control" @bind-Value="editingCashAccount.CurrencyCode" />
+                                    </div>
+                                    <div class="col-md-3 d-flex align-items-end gap-3">
+                                        <div class="form-check">
+                                            <InputCheckbox class="form-check-input" @bind-Value="editingCashAccount.IsDefault" />
+                                            <label class="form-check-label">@Text("Default", "افتراضي")</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <InputCheckbox class="form-check-input" @bind-Value="editingCashAccount.IsActive" />
+                                            <label class="form-check-label">@Text("Active", "نشط")</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 d-flex justify-content-end gap-2">
+                                        <button type="button" class="btn btn-outline-secondary" @onclick="CancelCashAccountEdit">@Text("Cancel", "إلغاء")</button>
+                                        <button type="submit" class="btn btn-primary" disabled="@(!CanManageCashAccountsSelectedStore)">@Text("Save", "حفظ")</button>
+                                    </div>
+                                </div>
+                            </EditForm>
+                        }
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="CloseCashAccountsModal">@Text("Close", "إغلاق")</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
 @code {
     private bool CanView;
-    private bool CanCheckout;
-    private bool CanPriceOverride;
     private bool CanViewStores;
-    private bool CanOpenStoresPage;
+    private bool isAccessLoading = true;
     private bool isLoading;
     private bool isCartBusy;
     private Guid companyId;
@@ -205,16 +535,68 @@
     private string? paymentReference;
     private string? paymentNotes;
     private PaymentMethodType paymentMethod = PaymentMethodType.Cash;
+    private decimal openingAmount;
+    private decimal countedCashAmount;
+    private Guid? selectedCashAccountId;
+    private Guid? selectedBankAccountId;
+    private Guid? handoverCashAccountId;
+    private Guid? handoverSessionId;
+    private string handoverMode = "none";
+    private DateTime summaryFromDate = DateTime.Today;
+    private DateTime summaryToDate = DateTime.Today;
     private List<StoreFrontDto> stores = [];
+    private List<CashAccountDto> cashAccounts = [];
+    private List<BankAccountDto> bankAccounts = [];
+    private List<PosCashierSessionDto> openHandoverSessions = [];
+    private List<PosCashierSessionDto> sessionRows = [];
     private List<StoreFrontCatalogItemDto> catalog = [];
     private Dictionary<Guid, PosItemDraft> drafts = new();
     private CartDto? cart;
     private CheckoutCartResultDto? checkoutResult;
+    private PosCashierSessionDto? activeSession;
+    private PosCashierSessionSummaryDto? sessionSummary;
+    private CashAccountDto? editingCashAccount;
     private CurrentUserBranchRoleAccessDto branchRoleAccess = new();
     private HashSet<string> companyPermissions = new(StringComparer.Ordinal);
+    private bool showCashAccountsModal;
+    private StoreFrontDto? SelectedStore => stores.FirstOrDefault(x => x.Id == selectedStoreId);
+    private bool CanAccessPosPage => CanView || branchRoleAccess.Assignments.Any(x => x.Permissions.Contains(PermissionList.StoreFrontPosPermissions.View, StringComparer.Ordinal));
+    private bool CanOpenStoresPage => CanViewStores || branchRoleAccess.Assignments.Any(assignment =>
+        assignment.Permissions.Contains(PermissionList.StoreFrontStorePermissions.View, StringComparer.Ordinal)
+        || assignment.Permissions.Contains(PermissionList.StoreFrontStorePermissions.Edit, StringComparer.Ordinal)
+        || assignment.Permissions.Contains(PermissionList.StoreFrontItemPermissions.View, StringComparer.Ordinal)
+        || assignment.Permissions.Contains(PermissionList.StoreFrontItemPermissions.Edit, StringComparer.Ordinal));
     private bool CanManageSelectedCart => SelectedStoreHasPermission(PermissionList.StoreFrontPosPermissions.View);
     private bool CanCheckoutSelectedStore => SelectedStoreHasPermission(PermissionList.StoreFrontPosPermissions.Checkout);
     private bool CanPriceOverrideSelectedStore => SelectedStoreHasPermission(PermissionList.StoreFrontPosPermissions.PriceOverride);
+    private bool CanOpenSessionSelectedStore => SelectedStoreHasPermission(PermissionList.StoreFrontPosPermissions.OpenSession);
+    private bool CanCloseSessionSelectedStore => SelectedStoreHasPermission(PermissionList.StoreFrontPosPermissions.CloseSession);
+    private bool CanHandoverSelectedStore => SelectedStoreHasPermission(PermissionList.StoreFrontPosPermissions.HandoverCash);
+    private bool CanViewOwnSummarySelectedStore => SelectedStoreHasPermission(PermissionList.StoreFrontPosPermissions.ViewOwnSummary);
+    private bool CanViewBranchSummariesSelectedStore => SelectedStoreHasPermission(PermissionList.StoreFrontPosPermissions.ViewBranchSummaries);
+    private bool CanViewAnySummarySelectedStore => CanViewOwnSummarySelectedStore || CanViewBranchSummariesSelectedStore;
+    private bool UseOwnSessionRange => !CanViewBranchSummariesSelectedStore && CanViewOwnSummarySelectedStore;
+    private bool CanManageCashAccountsSelectedStore => SelectedStoreHasPermission(PermissionList.StoreFrontPosPermissions.ManageCashAccounts);
+    private bool CashCheckoutNeedsSession => paymentMethod == PaymentMethodType.Cash && activeSession is null;
+    private IEnumerable<string> ReadinessWarnings
+    {
+        get
+        {
+            var store = SelectedStore;
+            if (store is null)
+                yield break;
+            if (!store.BranchId.HasValue)
+                yield return Text("This store is not linked to a StoreFront branch.", "هذا المتجر غير مرتبط بفرع واجهة متجر.");
+            if (store.DefaultWarehouseId == Guid.Empty)
+                yield return Text("Default warehouse is missing, so POS stock-out cannot be posted.", "المستودع الافتراضي غير محدد، لذلك لا يمكن ترحيل صرف المخزون من نقطة البيع.");
+            if (store.ActiveItemsCount <= 0)
+                yield return Text("No active sellable SKUs are configured for this store.", "لا توجد أصناف مفعلة للبيع في هذا المتجر.");
+            if (!cashAccounts.Any(x => x.IsActive))
+                yield return Text("No active branch cash accounts are available for cashier ledgers.", "لا توجد حسابات نقد نشطة للفرع لاستخدامها كدفاتر كاشير.");
+            if (CashCheckoutNeedsSession)
+                yield return Text("Cash checkout is blocked until an open cashier session exists.", "الدفع النقدي متوقف حتى توجد جلسة كاشير مفتوحة.");
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -225,18 +607,16 @@
             .Select(c => c.Value)
             .ToHashSet(StringComparer.Ordinal);
         CanView = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontPosPermissions.View);
-        CanCheckout = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontPosPermissions.Checkout);
-        CanPriceOverride = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontPosPermissions.PriceOverride);
         CanViewStores = auth.User.Claims.Any(c => c.Value == PermissionList.StoreFrontStorePermissions.View);
-        CanOpenStoresPage = CanViewStores;
         userId = auth.User.Claims.FirstOrDefault(c => c.Type.EndsWith("nameidentifier", StringComparison.OrdinalIgnoreCase))?.Value;
         if (!CompanyContext.TryGetCompanyId(auth.User, out companyId))
         {
+            isAccessLoading = false;
             NavigationManager.NavigateTo("/Dashboard");
             return;
         }
-        if (CanView && CanViewStores)
-            await LoadAsync();
+        await LoadAsync();
+        isAccessLoading = false;
     }
 
     private async Task LoadAsync()
@@ -254,12 +634,130 @@
     {
         cart = null;
         checkoutResult = null;
+        activeSession = null;
+        sessionSummary = null;
+        openingAmount = 0;
+        countedCashAmount = 0;
+        selectedCashAccountId = null;
+        handoverCashAccountId = null;
+        handoverSessionId = null;
+        handoverMode = "none";
+        cashAccounts = [];
+        bankAccounts = [];
+        openHandoverSessions = [];
+        sessionRows = [];
         paymentReference = null;
         paymentNotes = null;
+        selectedBankAccountId = null;
         catalog = [];
         drafts.Clear();
         selectedStoreId = Guid.TryParse(args.Value?.ToString(), out var id) ? id : Guid.Empty;
+        await LoadSessionAsync();
         await LoadCatalogAsync();
+    }
+
+    private async Task LoadSessionAsync()
+    {
+        if (selectedStoreId == Guid.Empty)
+            return;
+
+        var store = SelectedStore;
+        var cashResult = await StoreFrontService.GetCashAccountsAsync(selectedStoreId);
+        cashAccounts = cashResult.IsSuccess ? cashResult.Data ?? [] : [];
+
+        if (store?.BranchId is Guid branchId)
+        {
+            var bankResult = await AccountingService.GetBankAccountsAsync(companyId);
+            bankAccounts = bankResult.IsSuccess
+                ? (bankResult.Data ?? []).Where(account => account.IsActive && account.BranchId == branchId).ToList()
+                : [];
+            if (selectedBankAccountId.HasValue && bankAccounts.All(account => account.Id != selectedBankAccountId.Value))
+                selectedBankAccountId = null;
+        }
+        else
+        {
+            bankAccounts = [];
+            selectedBankAccountId = null;
+        }
+
+        var open = await StoreFrontService.GetOpenSessionAsync(selectedStoreId);
+        activeSession = open.IsSuccess ? open.Data : null;
+        selectedCashAccountId = activeSession?.CashAccountId;
+        countedCashAmount = activeSession?.ExpectedCashAmount ?? 0;
+        handoverMode = "none";
+        handoverCashAccountId = null;
+        handoverSessionId = null;
+
+        if (CanHandoverSelectedStore)
+        {
+            var targets = await StoreFrontService.GetOpenSessionsAsync(selectedStoreId);
+            openHandoverSessions = targets.IsSuccess ? targets.Data ?? [] : [];
+        }
+
+        await LoadSessionRangeAsync();
+    }
+
+    private async Task LoadSessionRangeAsync()
+    {
+        if (selectedStoreId == Guid.Empty || !CanViewAnySummarySelectedStore)
+            return;
+
+        var summary = await StoreFrontService.GetSessionSummaryAsync(selectedStoreId, summaryFromDate, summaryToDate, UseOwnSessionRange);
+        sessionSummary = summary.IsSuccess ? summary.Data : null;
+        var sessions = await StoreFrontService.GetSessionsAsync(selectedStoreId, summaryFromDate, summaryToDate, UseOwnSessionRange);
+        sessionRows = sessions.IsSuccess ? sessions.Data ?? [] : [];
+    }
+
+    private async Task OpenSessionAsync()
+    {
+        if (selectedStoreId == Guid.Empty || !CanOpenSessionSelectedStore)
+            return;
+
+        var result = await StoreFrontService.OpenSessionAsync(new OpenPosCashierSessionDto
+        {
+            StoreFrontId = selectedStoreId,
+            CashAccountId = selectedCashAccountId,
+            OpeningAmount = openingAmount
+        });
+        if (result.IsSuccess)
+        {
+            activeSession = result.Data;
+            countedCashAmount = activeSession?.ExpectedCashAmount ?? 0;
+            ToastService.ShowSuccess(Text("Cashier session opened.", "تم فتح جلسة الكاشير."));
+            await LoadSessionAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to open cashier session.", "تعذر فتح جلسة الكاشير."));
+        }
+    }
+
+    private async Task CloseSessionAsync()
+    {
+        if (activeSession is null || !CanCloseSessionSelectedStore)
+            return;
+
+        var result = await StoreFrontService.CloseSessionAsync(activeSession.Id, new ClosePosCashierSessionDto
+        {
+            CountedCashAmount = countedCashAmount,
+            HandoverToCashAccountId = handoverMode == "account" ? handoverCashAccountId : null,
+            HandoverToSessionId = handoverMode == "session" ? handoverSessionId : null
+        });
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Cashier session closed.", "تم إغلاق جلسة الكاشير."));
+            activeSession = null;
+            countedCashAmount = 0;
+            selectedCashAccountId = null;
+            handoverCashAccountId = null;
+            handoverSessionId = null;
+            handoverMode = "none";
+            await LoadSessionAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to close cashier session.", "تعذر إغلاق جلسة الكاشير."));
+        }
     }
 
     private async Task LoadCatalogAsync()
@@ -412,8 +910,14 @@
     private async Task CheckoutAsync()
     {
         if (!CanCheckoutSelectedStore || cart is null) return;
+        if (CashCheckoutNeedsSession)
+        {
+            ToastService.ShowError(Text("Open a cashier session before cash checkout.", "افتح جلسة كاشير قبل الدفع النقدي."));
+            return;
+        }
         isCartBusy = true;
-        var result = await CartService.CheckoutAsync(cart.Id, paymentMethod, paymentReference, paymentNotes);
+        var bankAccountId = paymentMethod == PaymentMethodType.CardRecorded ? selectedBankAccountId : null;
+        var result = await CartService.CheckoutAsync(cart.Id, paymentMethod, paymentReference, paymentNotes, bankAccountId);
         if (result.IsSuccess)
         {
             checkoutResult = result.Data;
@@ -421,9 +925,79 @@
             cart = null;
             paymentReference = null;
             paymentNotes = null;
+            selectedBankAccountId = null;
+            await LoadSessionAsync();
         }
         else ToastService.ShowError(result.Error?.Detail ?? Text("Unable to checkout cart.", "تعذر إتمام الطلب."));
         isCartBusy = false;
+    }
+
+    private void OpenCashAccountsModal()
+    {
+        editingCashAccount = null;
+        showCashAccountsModal = true;
+    }
+
+    private void CloseCashAccountsModal()
+    {
+        editingCashAccount = null;
+        showCashAccountsModal = false;
+    }
+
+    private void NewCashAccount()
+    {
+        if (SelectedStore?.BranchId is not Guid branchId)
+            return;
+
+        editingCashAccount = new CashAccountDto
+        {
+            CompanyId = companyId,
+            BranchId = branchId,
+            DisplayName = Text("Cashier cash", "نقد الكاشير"),
+            CurrencyCode = string.IsNullOrWhiteSpace(currencyCode) ? "SAR" : currencyCode,
+            CreateLinkedLedger = true,
+            IsDefault = !cashAccounts.Any(),
+            IsActive = true
+        };
+    }
+
+    private void EditCashAccount(CashAccountDto account)
+    {
+        editingCashAccount = new CashAccountDto
+        {
+            Id = account.Id,
+            CompanyId = account.CompanyId,
+            BranchId = account.BranchId,
+            DisplayName = account.DisplayName,
+            CurrencyCode = account.CurrencyCode,
+            LedgerAccountId = account.LedgerAccountId,
+            JournalId = account.JournalId,
+            CreateLinkedLedger = false,
+            IsDefault = account.IsDefault,
+            IsActive = account.IsActive
+        };
+    }
+
+    private void CancelCashAccountEdit() => editingCashAccount = null;
+
+    private async Task SaveCashAccountAsync()
+    {
+        if (editingCashAccount is null || !CanManageCashAccountsSelectedStore || SelectedStore?.BranchId is not Guid branchId)
+            return;
+
+        editingCashAccount.CompanyId = companyId;
+        editingCashAccount.BranchId = branchId;
+        var result = await StoreFrontService.SaveCashAccountAsync(selectedStoreId, editingCashAccount);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Cash account saved.", "تم حفظ حساب النقد."));
+            editingCashAccount = null;
+            await LoadSessionAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to save cash account.", "تعذر حفظ حساب النقد."));
+        }
     }
 
     private PosItemDraft DraftFor(StoreFrontCatalogItemDto item)
@@ -450,7 +1024,30 @@
         return parts.Count == 0 ? Text("Optional override", "تعديل اختياري") : string.Join(" / ", parts);
     }
 
+    private string SessionLabel(PosCashierSessionDto session) =>
+        $"{ShortUser(session.CashierUserId)} - {Money(session.ExpectedCashAmount)} - {CashAccountName(session.CashAccountId)}";
+
+    private string ShortUser(string cashierUserId) =>
+        string.IsNullOrWhiteSpace(cashierUserId)
+            ? "-"
+            : cashierUserId.Length <= 8 ? cashierUserId : cashierUserId[..8];
+
+    private string SessionStatusText(PosCashierSessionStatus status) =>
+        status == PosCashierSessionStatus.Open ? Text("Open", "مفتوحة") : Text("Closed", "مغلقة");
+
+    private string HandoverLabel(PosCashierSessionDto session)
+    {
+        if (session.HandoverToCashAccountId.HasValue)
+            return $"{Money(session.HandoverAmount ?? 0)} -> {CashAccountName(session.HandoverToCashAccountId)}";
+        if (session.HandoverToSessionId.HasValue)
+            return $"{Money(session.HandoverAmount ?? 0)} -> {Text("cashier session", "جلسة كاشير")}";
+        return "-";
+    }
+
     private string Money(decimal amount) => string.IsNullOrWhiteSpace(currencyCode) ? $"{amount:N2}" : $"{amount:N2} {currencyCode}";
+    private string CashAccountName(Guid? id) => id.HasValue
+        ? cashAccounts.FirstOrDefault(x => x.Id == id.Value)?.DisplayName ?? id.Value.ToString("N")
+        : Text("Default branch cash", "النقد الافتراضي للفرع");
     private bool SelectedStoreHasPermission(string permission)
     {
         if (companyPermissions.Contains(permission))

@@ -33,4 +33,18 @@ public record PostInventoryStockOutCommand(
     string? SourceDocumentType = null,
     bool ConsumeReservedQuantity = false) : ICommand<PostInventoryStockResult>;
 
+public record PostInventoryStockOutBySkuCommand(
+    Guid ProductId,
+    Guid ProductSkuId,
+    Guid? ProductPackageId,
+    Guid WarehouseId,
+    decimal Quantity,
+    decimal UnitCost,
+    decimal TotalCost,
+    Guid? CurrencyId,
+    Guid CompanyId,
+    string? Notes,
+    string? ReferenceNumber = null,
+    string? SourceDocumentType = null) : ICommand<PostInventoryStockResult>;
+
 public record PostInventoryStockResult(Guid InventoryId);

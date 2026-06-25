@@ -2,6 +2,7 @@
 @page "/Inventory/Operations/StockIn"
 
 
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
 @using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Pages.Features.Inventories.Services
@@ -12,11 +13,13 @@
 @using SharedWithUI.GeneralSettings.Dtos
 @using SharedWithUI.Inventory.Dtos
 @using SharedWithUI.Inventory.Enums
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 
 
 @inject IInventoryService InventoryService
 @inject IWarehouseService WarehouseService
+@inject IBranchService BranchService
 @inject IBatchService BatchService
 @inject IProductService ProductService
 @inject ICurrencyService CurrencyService
@@ -81,7 +84,7 @@
                             <AutoCompleteComponent TItem="WarehouseDto"
                                                    Items="warehouses"
                                                    Value="selectedWarehouse"
-                                                   ItemText='(p=> SharedDataService.Language=="Ar"? p.Name:p.NameEng)'
+                                                   ItemText="WarehouseText"
                                                    PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse","اختر مستودع")"
                                                    ValueChanged="onWarehouseChanged" />
                         </div>
@@ -244,6 +247,8 @@
     private ProductDto? selectedProduct;
 
     private List<WarehouseDto> warehouses = [];
+    private List<BranchDto> branches = [];
+    private CurrentUserBranchAccessDto branchAccess = new();
     private WarehouseDto? selectedWarehouse;
 
     private List<ProductSkuDto> productSkus = [];
@@ -269,6 +274,8 @@
             NavigationManager.NavigateTo("/Dashboard");
             return;
         }
+        await LoadBranchAccessAsync();
+
         var prodRes = await ProductService.GetByCompanyAsync(companyId, 0, 10000);
         if (prodRes.IsSuccess)
         {
@@ -277,7 +284,10 @@
         var wareRes = await WarehouseService.GetAsync(companyId, 0, 10000);
         if (wareRes.IsSuccess)
         {
-            warehouses = wareRes.Data?.Data?.ToList() ?? [];
+            var loadedWarehouses = wareRes.Data?.Data?.ToList() ?? [];
+            warehouses = branchAccess.CanViewAllBranches
+                ? loadedWarehouses
+                : loadedWarehouses.Where(warehouse => warehouse.BranchId == null || (warehouse.BranchId.HasValue && branchAccess.BranchIds.Contains(warehouse.BranchId.Value))).ToList();
         }
 
         var batchRes = await BatchService.GetAsync(companyId, 0, 10000);
@@ -304,6 +314,15 @@
         };
 
 
+    }
+
+    private async Task LoadBranchAccessAsync()
+    {
+        var accessResponse = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        branchAccess = accessResponse.IsSuccess ? accessResponse.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+
+        var branchResponse = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        branches = branchResponse.IsSuccess ? branchResponse.Data?.Data?.ToList() ?? [] : [];
     }
 
     async Task SaveInventory(CreateInventoryAggregateDto inventory)
@@ -392,6 +411,18 @@
             selectedCurrency = currency;
             inventoryDto.CurrencyId = currency.Id;
         }
+    }
+
+    private string WarehouseText(WarehouseDto warehouse)
+    {
+        var name = SharedDataService.SelectViewLang(warehouse.NameEng, warehouse.Name);
+        return warehouse.BranchId.HasValue ? $"{name} - {BranchName(warehouse.BranchId.Value)}" : $"{name} - {SharedDataService.SelectViewLang("Company", "الشركة")}";
+    }
+
+    private string BranchName(Guid branchId)
+    {
+        var branch = branches.FirstOrDefault(x => x.Id == branchId);
+        return branch is null ? branchId.ToString("N")[..8] : SharedDataService.SelectViewLang(branch.NameEng, branch.Name);
     }
 
     protected override void OnInitialized()

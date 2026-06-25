@@ -62,12 +62,18 @@ public class SalesOrder : Aggregate<Guid>
     public DateTime? CompletedAt { get; private set; }
 
     public Guid CompanyId { get; private set; }
+    public Guid? BranchId { get; private set; }
+    public Guid? StoreFrontId { get; private set; }
+    public Guid? PosCashierSessionId { get; private set; }
     public static SalesOrder Create(
         Guid id,
         string number,
         Guid customerId,
         Guid? priceListId,
         Guid companyId,
+        Guid? branchId,
+        Guid? storeFrontId,
+        Guid? posCashierSessionId,
         string createdBy,
         string? salespersonId = null,
         Guid? sourceQuotationId = null,
@@ -90,6 +96,9 @@ public class SalesOrder : Aggregate<Guid>
             Status = SalesOrderStatus.Draft,
             OrderDate = DateTime.UtcNow,
             CompanyId = companyId,
+            BranchId = branchId,
+            StoreFrontId = storeFrontId,
+            PosCashierSessionId = posCashierSessionId,
             SalespersonId = salespersonId ?? createdBy,
             SourceQuotationId = sourceQuotationId,
             InvoicingPolicy = invoicingPolicy,

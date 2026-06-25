@@ -8,6 +8,11 @@ public class PaymentAttempt : Aggregate<Guid>
     private PaymentAttempt() { }
 
     public Guid CompanyId { get; private set; }
+    public Guid? BranchId { get; private set; }
+    public Guid? StoreFrontId { get; private set; }
+    public Guid? PosCashierSessionId { get; private set; }
+    public Guid? CashAccountId { get; private set; }
+    public Guid? BankAccountId { get; private set; }
     public Guid? CustomerId { get; private set; }
     public Guid? OrderIntakeId { get; private set; }
     public OrderIntakeSource Source { get; private set; }
@@ -35,6 +40,11 @@ public class PaymentAttempt : Aggregate<Guid>
         {
             Id = Guid.NewGuid(),
             CompanyId = dto.CompanyId,
+            BranchId = dto.BranchId,
+            StoreFrontId = dto.StoreFrontId,
+            PosCashierSessionId = dto.PosCashierSessionId,
+            CashAccountId = dto.CashAccountId,
+            BankAccountId = dto.BankAccountId,
             CustomerId = dto.CustomerId,
             Source = dto.Source,
             SourceType = dto.SourceType,
@@ -56,6 +66,11 @@ public class PaymentAttempt : Aggregate<Guid>
     public CheckoutPaymentDecisionDto ToDecisionDto() => new()
     {
         PaymentId = Id,
+        BranchId = BranchId,
+        StoreFrontId = StoreFrontId,
+        PosCashierSessionId = PosCashierSessionId,
+        CashAccountId = CashAccountId,
+        BankAccountId = BankAccountId,
         Method = Method,
         Status = Status,
         Amount = Amount,

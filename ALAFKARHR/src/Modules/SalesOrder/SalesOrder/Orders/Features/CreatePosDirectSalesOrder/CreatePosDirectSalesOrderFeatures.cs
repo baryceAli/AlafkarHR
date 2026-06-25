@@ -16,6 +16,7 @@ public class CreatePosDirectSalesOrderHandler(SalesOrderDbContext dbContext, IHt
 
         if (request.SalesOrder.Lines.Count == 0)
             throw new Exception("Sales order must include at least one line.");
+        await SalesOrderBranchScope.EnsureCanMutateAsync(sender, request.SalesOrder.CompanyId, request.SalesOrder.BranchId, cancellationToken);
 
         var user = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "checkout";
         var order = Models.SalesOrder.Create(
@@ -24,6 +25,9 @@ public class CreatePosDirectSalesOrderHandler(SalesOrderDbContext dbContext, IHt
             request.SalesOrder.CustomerId,
             request.SalesOrder.PriceListId,
             request.SalesOrder.CompanyId,
+            request.SalesOrder.BranchId,
+            request.SalesOrder.StoreFrontId,
+            request.SalesOrder.PosCashierSessionId,
             user,
             request.SalesOrder.SalespersonId ?? user,
             request.SalesOrder.SourceQuotationId,
@@ -106,6 +110,7 @@ public class CreatePosDirectSalesOrderHandler(SalesOrderDbContext dbContext, IHt
         var accountingDocument = new AccountingDocumentDto
         {
             CompanyId = order.CompanyId,
+            BranchId = order.BranchId,
             Type = AccountingDocumentType.SalesInvoice,
             DocumentDate = DateTime.UtcNow,
             PartyId = order.CustomerId,
@@ -138,10 +143,44 @@ public class CreatePosDirectSalesOrderHandler(SalesOrderDbContext dbContext, IHt
         var createdDocument = await sender.Send(new CreateAccountingDocumentCommand(accountingDocument), cancellationToken);
         await sender.Send(new PostAccountingDocumentCommand(createdDocument.Id), cancellationToken);
         var zatca = await sender.Send(new GenerateZatcaInvoiceCommand(createdDocument.Id, ZatcaInvoiceType.StandardTaxInvoice), cancellationToken);
+        await ConsumeStoreFrontInventoryAsync(order, cancellationToken);
 
         order.LinkAccounting(createdDocument.Id, zatca.EInvoiceId);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new CreatePosDirectSalesOrderResult(order.Id, order.Number, createdDocument.Id, zatca.EInvoiceId);
+    }
+
+    private async Task ConsumeStoreFrontInventoryAsync(Models.SalesOrder order, CancellationToken cancellationToken)
+    {
+        if (!order.StoreFrontId.HasValue || !order.BranchId.HasValue)
+            return;
+
+        var scope = await sender.Send(new GetStoreFrontBranchScopeQuery(order.StoreFrontId.Value), cancellationToken);
+        if (scope.CompanyId != order.CompanyId || scope.BranchId != order.BranchId.Value)
+            throw new BadRequestException("StoreFront branch scope does not match the POS sale.");
+
+        foreach (var line in order.Lines)
+        {
+            var sku = await sender.Send(new GetProductSkuByIdQuery(line.ProductSkuId), cancellationToken);
+            if (sku.ProductSku.CompanyId != order.CompanyId)
+                throw new BadRequestException("POS sale SKU does not belong to the order company.");
+            if (!sku.ProductSku.IsInventoryTracked)
+                continue;
+
+            await sender.Send(new PostInventoryStockOutBySkuCommand(
+                line.ProductId,
+                line.ProductSkuId,
+                null,
+                scope.DefaultWarehouseId,
+                line.Quantity,
+                0m,
+                0m,
+                null,
+                order.CompanyId,
+                $"POS sale {order.Number}",
+                order.Number,
+                "POSDirectSale"), cancellationToken);
+        }
     }
 }

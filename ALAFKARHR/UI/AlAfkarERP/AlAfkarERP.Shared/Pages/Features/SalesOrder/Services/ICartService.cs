@@ -12,7 +12,7 @@ public interface ICartService
     Task<ApiResult<bool>> UpdateLineAsync(Guid cartId, Guid lineId, decimal quantity);
     Task<ApiResult<bool>> RemoveLineAsync(Guid cartId, Guid lineId);
     Task<ApiResult<bool>> ClearAsync(Guid cartId);
-    Task<ApiResult<CheckoutCartResultDto>> CheckoutAsync(Guid cartId, PaymentMethodType paymentMethod, string? paymentReference, string? paymentNotes);
+    Task<ApiResult<CheckoutCartResultDto>> CheckoutAsync(Guid cartId, PaymentMethodType paymentMethod, string? paymentReference, string? paymentNotes, Guid? bankAccountId = null);
 }
 
 public class CheckoutCartResultDto

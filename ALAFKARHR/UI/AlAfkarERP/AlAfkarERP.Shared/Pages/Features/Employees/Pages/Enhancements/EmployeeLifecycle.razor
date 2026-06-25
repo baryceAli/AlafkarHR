@@ -7,6 +7,7 @@
 @using AlAfkarERP.Shared.Utilities
 @using SharedWithUI.Employees.Dtos
 @using SharedWithUI.HRCore.Dtos
+@using SharedWithUI.Organization.Dtos
 @inject IEmployeeService EmployeeService
 @inject IBranchService BranchService
 @inject IPositionService PositionService
@@ -167,6 +168,7 @@
 @code {
     private List<EmployeeDto> employees = [];
     private List<BranchDto> branches = [];
+    private CurrentUserBranchAccessDto branchAccess = new();
     private List<PositionDto> positions = [];
     private List<HrLifecycleEventDto> events = [];
     private HrLifecycleEventDto editingEvent = NewEventDto();
@@ -190,12 +192,56 @@
     private async Task LoadLookupsAsync()
     {
         if (ApiConfig.CompanyId == Guid.Empty) return;
-        var employeesResult = await EmployeeService.GetByCompanyIdAsync(ApiConfig.CompanyId, 0, 1000);
-        if (employeesResult.IsSuccess) employees = employeesResult.Data?.Data.ToList() ?? [];
+        await LoadBranchAccessAsync();
+        await LoadEmployeesAsync();
         var branchesResult = await BranchService.GetByCompanyIdAsync(ApiConfig.CompanyId, 0, 1000);
-        if (branchesResult.IsSuccess) branches = branchesResult.Data?.Data.ToList() ?? [];
+        if (branchesResult.IsSuccess)
+        {
+            var loadedBranches = branchesResult.Data?.Data.ToList() ?? [];
+            branches = branchAccess.CanViewAllBranches
+                ? loadedBranches
+                : loadedBranches.Where(branch => branchAccess.BranchIds.Contains(branch.Id)).ToList();
+        }
         var positionsResult = await PositionService.GetAsync(ApiConfig.CompanyId, 0, 1000);
         if (positionsResult.IsSuccess) positions = positionsResult.Data?.Data.ToList() ?? [];
+    }
+
+    private async Task LoadBranchAccessAsync()
+    {
+        var accessResult = await BranchService.GetCurrentUserBranchAccessAsync(ApiConfig.CompanyId);
+        if (accessResult.IsSuccess && accessResult.Data is not null)
+        {
+            branchAccess = accessResult.Data;
+        }
+    }
+
+    private async Task LoadEmployeesAsync()
+    {
+        if (branchAccess.CanViewAllBranches)
+        {
+            var employeesResult = await EmployeeService.GetByCompanyIdAsync(ApiConfig.CompanyId, 0, 1000);
+            if (employeesResult.IsSuccess)
+            {
+                employees = employeesResult.Data?.Data.ToList() ?? [];
+            }
+            return;
+        }
+
+        var scopedEmployees = new List<EmployeeDto>();
+        foreach (var branchId in branchAccess.BranchIds)
+        {
+            var branchEmployees = await EmployeeService.GetByBranchAsync(branchId, 0, 1000);
+            if (branchEmployees.IsSuccess)
+            {
+                scopedEmployees.AddRange(branchEmployees.Data?.Data ?? []);
+            }
+        }
+
+        employees = scopedEmployees
+            .GroupBy(employee => employee.Id)
+            .Select(group => group.First())
+            .OrderBy(EmployeeDisplay)
+            .ToList();
     }
 
     private async Task OnEmployeeChanged(ChangeEventArgs args)

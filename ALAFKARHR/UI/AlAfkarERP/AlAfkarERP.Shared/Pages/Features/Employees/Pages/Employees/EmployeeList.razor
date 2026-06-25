@@ -8,10 +8,12 @@
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 
 @inject IEmployeeService EmployeeService
 @inject IPositionService PositionService
+@inject IBranchService BranchService
 @inject ToastService ToastService
 @inject ModalService ModalService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -90,6 +92,19 @@ else
                     </div>
                 </ChildContent>
                 <Actions>
+                    <div class="employee-page-size-control">
+                        <label class="text-muted small mb-0" for="employee-branch-filter">@Text("Branch", "الفرع")</label>
+                        <select id="employee-branch-filter" class="form-select erp-page-size-select" @onchange="OnBranchFilterChanged" value="@branchFilterText">
+                            @if (canViewAllBranches)
+                            {
+                                <option value="">@Text("All", "الكل")</option>
+                            }
+                            @foreach (var branch in branches)
+                            {
+                                <option value="@branch.Id">@Text(branch.NameEng, branch.Name)</option>
+                            }
+                        </select>
+                    </div>
                     <TableExportActions />
                     <div class="employee-page-size-control">
                         <label class="text-muted small mb-0" for="employee-page-size">@Text("Rows", "الصفوف")</label>
@@ -149,6 +164,7 @@ else
                                 <th>@Text("DOB", "الميلاد")</th>
                                 <th>@Text("Phone", "الهاتف")</th>
                                 <th>@Text("Hire Date", "تاريخ التعيين")</th>
+                                <th>@Text("Branch", "الفرع")</th>
                                 <th @onclick="() => Sort(nameof(EmployeeDto.PositionName))" class="sortable">
                                     @Text("Position", "المسمى الوظيفي")
                                     <i class="@SortIcon(nameof(EmployeeDto.PositionName))"></i>
@@ -171,6 +187,7 @@ else
                                     <td class="text-nowrap">@FormatDate(emp.DateOfBirth)</td>
                                     <td class="text-nowrap">@EmptyValue(emp.Phone)</td>
                                     <td class="text-nowrap">@FormatDate(emp.HireDate)</td>
+                                    <td>@BranchText(emp.BranchId)</td>
                                     <td><span class="badge rounded-pill text-bg-light">@EmptyValue(GetPositionName(emp.PositionId))</span></td>
                                     <td class="text-end">
                                         <div class="employee-row-actions">
@@ -237,7 +254,10 @@ else
 @code {
     private List<PositionDto> positions = [];
     private List<EmployeeDto> employees = [];
+    private List<BranchDto> branches = [];
     private Dictionary<Guid, string> positionCache = new();
+    private CurrentUserBranchAccessDto branchAccess = new();
+    private bool canViewAllBranches;
 
     private Guid companyId;
     private AuthenticationState? AuthState;
@@ -247,6 +267,7 @@ else
 
     // Search, Sort, Pagination
     private string searchText = "";
+    private string branchFilterText = string.Empty;
     private string sortColumn = nameof(EmployeeDto.FullName);
     private bool sortAscending = true;
     private int pageSize = 10;
@@ -276,6 +297,7 @@ else
             return;
         }
 
+        await LoadBranchAccessAsync();
         await LoadPositions();
         await LoadEmployees();
     }
@@ -296,6 +318,22 @@ else
         }
     }
 
+    private async Task LoadBranchAccessAsync()
+    {
+        var accessResponse = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        branchAccess = accessResponse.IsSuccess ? accessResponse.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+        canViewAllBranches = branchAccess.CanViewAllBranches;
+
+        var branchResponse = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        branches = branchResponse.IsSuccess ? branchResponse.Data?.Data.ToList() ?? [] : [];
+        if (!canViewAllBranches)
+        {
+            branches = branches.Where(branch => branchAccess.BranchIds.Contains(branch.Id)).ToList();
+            if (branches.Count == 1)
+                branchFilterText = branches[0].Id.ToString();
+        }
+    }
+
     private void BuildPositionCache()
     {
         positionCache.Clear();
@@ -308,7 +346,10 @@ else
     private async Task LoadEmployees()
     {
         isLoading = true;
-        var response = await EmployeeService.GetByCompanyIdAsync(companyId, pageIndex, pageSize);
+        var branchId = ParseBranchFilter();
+        var response = branchId.HasValue
+            ? await EmployeeService.GetByBranchAsync(branchId.Value, pageIndex, pageSize)
+            : await EmployeeService.GetByCompanyIdAsync(companyId, pageIndex, pageSize);
 
         if (response.IsSuccess)
         {
@@ -338,8 +379,27 @@ else
     private bool HasPermission(string permission) =>
         AuthState?.User.Claims.Any(c => c.Value == permission) ?? false;
 
+    private Guid? ParseBranchFilter() =>
+        Guid.TryParse(branchFilterText, out var branchId) ? branchId : null;
+
+    private async Task OnBranchFilterChanged(ChangeEventArgs e)
+    {
+        branchFilterText = e.Value?.ToString() ?? string.Empty;
+        pageIndex = 0;
+        await LoadEmployees();
+    }
+
     private string GetPositionName(Guid? positionId) =>
         positionId.HasValue && positionCache.TryGetValue(positionId.Value, out var name) ? name : "";
+
+    private string BranchText(Guid? branchId)
+    {
+        if (!branchId.HasValue)
+            return Text("Company", "الشركة");
+
+        var branch = branches.FirstOrDefault(x => x.Id == branchId.Value);
+        return branch is null ? branchId.Value.ToString("N")[..8] : Text(branch.NameEng, branch.Name);
+    }
 
     private string FormatDate(DateTime date) => date.ToString("yyyy/MM/dd");
     private static string FormatCount(long value) => value.ToString("N0");

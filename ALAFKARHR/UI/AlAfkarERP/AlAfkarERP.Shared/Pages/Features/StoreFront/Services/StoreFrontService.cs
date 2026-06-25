@@ -1,5 +1,6 @@
 using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
+using SharedWithUI.Accounting.Dtos;
 using SharedWithUI.StoreFront.Dtos;
 using System.Net.Http.Json;
 
@@ -97,5 +98,84 @@ public class StoreFrontService : BaseApiService, IStoreFrontService
         var suffix = query.Count == 0 ? string.Empty : $"?{string.Join("&", query)}";
         var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/stores/{storeFrontId}/catalog{suffix}");
         return await SendAsync<List<StoreFrontCatalogItemDto>>(request, "items");
+    }
+
+    public async Task<ApiResult<List<CashAccountDto>>> GetCashAccountsAsync(Guid storeFrontId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/stores/{storeFrontId}/cash-accounts");
+        return await SendAsync<List<CashAccountDto>>(request, "cashAccounts");
+    }
+
+    public async Task<ApiResult<Guid>> SaveCashAccountAsync(Guid storeFrontId, CashAccountDto cashAccount)
+    {
+        var method = cashAccount.Id == Guid.Empty ? HttpMethod.Post : HttpMethod.Put;
+        var url = cashAccount.Id == Guid.Empty
+            ? $"{_path}/stores/{storeFrontId}/cash-accounts"
+            : $"{_path}/stores/{storeFrontId}/cash-accounts/{cashAccount.Id}";
+        var request = new HttpRequestMessage(method, url)
+        {
+            Content = JsonContent.Create(new { CashAccount = cashAccount })
+        };
+        return await SendAsync<Guid>(request, "id");
+    }
+
+    public async Task<ApiResult<PosCashierSessionDto?>> GetOpenSessionAsync(Guid storeFrontId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/stores/{storeFrontId}/sessions/open");
+        return await SendAsync<PosCashierSessionDto?>(request, "session");
+    }
+
+    public async Task<ApiResult<List<PosCashierSessionDto>>> GetOpenSessionsAsync(Guid storeFrontId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/stores/{storeFrontId}/sessions/open-targets");
+        return await SendAsync<List<PosCashierSessionDto>>(request, "sessions");
+    }
+
+    public async Task<ApiResult<PosCashierSessionDto>> OpenSessionAsync(OpenPosCashierSessionDto session)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/sessions/open")
+        {
+            Content = JsonContent.Create(new { Session = session })
+        };
+        return await SendAsync<PosCashierSessionDto>(request, "session");
+    }
+
+    public async Task<ApiResult<PosCashierSessionDto>> CloseSessionAsync(Guid sessionId, ClosePosCashierSessionDto close)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/sessions/{sessionId}/close")
+        {
+            Content = JsonContent.Create(new { Close = close })
+        };
+        return await SendAsync<PosCashierSessionDto>(request, "session");
+    }
+
+    public async Task<ApiResult<PosCashierSessionSummaryDto>> GetSessionSummaryAsync(Guid storeFrontId, DateTime? fromDate = null, DateTime? toDate = null, bool ownOnly = false)
+    {
+        var query = new List<string>();
+        if (fromDate.HasValue)
+            query.Add($"fromDate={Uri.EscapeDataString(fromDate.Value.ToString("O"))}");
+        if (toDate.HasValue)
+            query.Add($"toDate={Uri.EscapeDataString(toDate.Value.ToString("O"))}");
+        if (ownOnly)
+            query.Add("ownOnly=true");
+
+        var suffix = query.Count == 0 ? string.Empty : $"?{string.Join("&", query)}";
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/stores/{storeFrontId}/sessions/summary{suffix}");
+        return await SendAsync<PosCashierSessionSummaryDto>(request, "summary");
+    }
+
+    public async Task<ApiResult<List<PosCashierSessionDto>>> GetSessionsAsync(Guid storeFrontId, DateTime? fromDate = null, DateTime? toDate = null, bool ownOnly = false)
+    {
+        var query = new List<string>();
+        if (fromDate.HasValue)
+            query.Add($"fromDate={Uri.EscapeDataString(fromDate.Value.ToString("O"))}");
+        if (toDate.HasValue)
+            query.Add($"toDate={Uri.EscapeDataString(toDate.Value.ToString("O"))}");
+        if (ownOnly)
+            query.Add("ownOnly=true");
+
+        var suffix = query.Count == 0 ? string.Empty : $"?{string.Join("&", query)}";
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/stores/{storeFrontId}/sessions{suffix}");
+        return await SendAsync<List<PosCashierSessionDto>>(request, "sessions");
     }
 }

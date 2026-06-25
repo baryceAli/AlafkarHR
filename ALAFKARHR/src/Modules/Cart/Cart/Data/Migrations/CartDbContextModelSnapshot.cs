@@ -28,6 +28,9 @@ namespace Cart.Data.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Channel")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -66,6 +69,9 @@ namespace Cart.Data.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<Guid?>("PosCashierSessionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("PriceListId")
                         .HasColumnType("uniqueidentifier");
 
@@ -76,11 +82,18 @@ namespace Cart.Data.Migrations
                     b.Property<int>("Source")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("StoreFrontId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("UserId")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "BranchId");
+
+                    b.HasIndex("StoreFrontId", "PosCashierSessionId");
 
                     b.HasIndex("CompanyId", "UserId", "SessionId");
 

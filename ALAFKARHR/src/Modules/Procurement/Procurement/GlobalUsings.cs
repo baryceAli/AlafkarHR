@@ -17,6 +17,8 @@ global using Microsoft.Extensions.Hosting;
 global using Procurement.Data;
 global using Procurement.Procurement.Models;
 global using Shared.Contracts.CQRS;
+global using Shared.Contracts.Inventory;
+global using Shared.Contracts.Organization;
 global using Shared.DDD;
 global using Shared.Exceptions;
 global using Shared.Pagination;

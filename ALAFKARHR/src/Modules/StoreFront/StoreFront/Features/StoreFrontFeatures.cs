@@ -92,7 +92,8 @@ public class StoreFrontQueryHandler(StoreFrontDbContext dbContext, ISender sende
             ? null
             : await sender.Send(new GetCurrentUserBranchRoleAccessForAuthorizationQuery(request.CompanyId), cancellationToken);
         var permittedBranchIds = branchRoleAccess?.Assignments
-            .Where(x => x.Permissions.Contains(PermissionList.StoreFrontStorePermissions.View, StringComparer.Ordinal))
+            .Where(x => x.Permissions.Contains(PermissionList.StoreFrontStorePermissions.View, StringComparer.Ordinal)
+                || x.Permissions.Contains(PermissionList.StoreFrontPosPermissions.View, StringComparer.Ordinal))
             .Select(x => x.BranchId)
             .ToHashSet() ?? [];
 
@@ -183,7 +184,8 @@ public class StoreFrontQueryHandler(StoreFrontDbContext dbContext, ISender sende
             ?? throw new NotFoundException($"Store front not found: {request.StoreFrontId}");
         if (!store.BranchId.HasValue)
             throw new BadRequestException("Store front is not linked to a branch.");
-        return new GetStoreFrontBranchScopeResult(store.Id, store.CompanyId, store.BranchId.Value);
+        await sender.Send(new EnsureWarehouseBranchScopeQuery(store.CompanyId, store.DefaultWarehouseId, store.BranchId.Value), cancellationToken);
+        return new GetStoreFrontBranchScopeResult(store.Id, store.CompanyId, store.BranchId.Value, store.DefaultWarehouseId);
     }
 
     private static StoreFrontDto ToStoreDto(StoreFrontStore store, int activeItemsCount) => new()
@@ -310,6 +312,10 @@ public class StoreFrontCommandHandler(
             null,
             GetUserId()), cancellationToken);
         request.Store.BranchId = ensuredBranch.BranchId;
+        await sender.Send(new EnsureWarehouseBranchScopeQuery(
+            request.Store.CompanyId,
+            request.Store.DefaultWarehouseId,
+            ensuredBranch.BranchId), cancellationToken);
 
         await EnsureCanMutateStoreAsync(
             request.Store.CompanyId,
@@ -381,6 +387,13 @@ public class StoreFrontCommandHandler(
             .Where(x => x.ProductSkuId != Guid.Empty)
             .GroupBy(x => x.ProductSkuId)
             .ToDictionary(x => x.Key, x => x.First());
+
+        foreach (var skuId in requestedBySku.Keys)
+        {
+            var sku = await sender.Send(new GetProductSkuByIdQuery(skuId), cancellationToken);
+            if (sku.ProductSku.CompanyId != store.CompanyId)
+                throw new BadRequestException("StoreFront items must belong to the same company catalog.");
+        }
 
         var currentItems = await dbContext.StoreFrontSellableItems
             .Where(x => x.StoreFrontId == request.StoreFrontId)

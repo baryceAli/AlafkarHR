@@ -19,6 +19,8 @@ public class ShoppingCartConfiguration : IEntityTypeConfiguration<ShoppingCart>
         builder.Property(x => x.ModifiedBy).HasMaxLength(100);
         builder.Property(x => x.DeletedBy).HasMaxLength(100);
         builder.HasIndex(x => new { x.CompanyId, x.UserId, x.SessionId });
+        builder.HasIndex(x => new { x.CompanyId, x.BranchId });
+        builder.HasIndex(x => new { x.StoreFrontId, x.PosCashierSessionId });
         builder.HasQueryFilter(x => !x.IsDeleted);
         builder.Ignore(x => x.Lines);
         builder.HasMany<ShoppingCartLine>("_lines").WithOne().OnDelete(DeleteBehavior.Cascade);

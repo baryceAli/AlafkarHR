@@ -213,6 +213,8 @@ public class AccountingDocumentDto
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }
     public Guid? BranchId { get; set; }
+    public Guid? CashAccountId { get; set; }
+    public Guid? BankAccountId { get; set; }
     public AccountingDocumentType Type { get; set; }
     public AccountingDocumentStatus Status { get; set; } = AccountingDocumentStatus.Draft;
     public string Number { get; set; } = string.Empty;

@@ -1,6 +1,7 @@
 @layout AdminLayout
 @page "/Procurement/ReorderingRules"
 
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
 @using AlAfkarERP.Shared.Pages.Features.Inventories.Services
 @using AlAfkarERP.Shared.Pages.Features.Procurement.Services
@@ -9,6 +10,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Catalog.Dtos
 @using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 @using SharedWithUI.Procurement.Dtos
 @using SharedWithUI.Suppliers.Dtos
@@ -17,6 +19,7 @@
 @inject IProcurementService ProcurementService
 @inject IProductService ProductService
 @inject IWarehouseService WarehouseService
+@inject IBranchService BranchService
 @inject ISupplierService SupplierService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
@@ -186,7 +189,9 @@
     private readonly List<ProductDto> products = [];
     private readonly List<ProductSkuDto> allSkus = [];
     private readonly List<WarehouseDto> warehouses = [];
+    private readonly List<BranchDto> branches = [];
     private readonly List<SupplierDto> suppliers = [];
+    private CurrentUserBranchAccessDto branchAccess = new();
     private ProductDto? selectedProduct;
     private ProductSkuDto? selectedSku;
     private WarehouseDto? selectedWarehouse;
@@ -212,6 +217,7 @@
         }
 
         ResetForm();
+        await LoadBranchAccessAsync();
         await LoadLookupsAsync();
         await LoadItemsAsync();
         isLoading = false;
@@ -228,11 +234,27 @@
 
         var warehouseResponse = await WarehouseService.GetAsync(companyId, 0, 10000);
         if (warehouseResponse.IsSuccess)
-            warehouses.AddRange(warehouseResponse.Data?.Data ?? []);
+        {
+            var loadedWarehouses = warehouseResponse.Data?.Data ?? [];
+            warehouses.AddRange(branchAccess.CanViewAllBranches
+                ? loadedWarehouses
+                : loadedWarehouses.Where(warehouse => warehouse.BranchId == null || (warehouse.BranchId.HasValue && branchAccess.BranchIds.Contains(warehouse.BranchId.Value))));
+        }
 
         var supplierResponse = await SupplierService.GetByCompanyAsync(companyId, 0, 200);
         if (supplierResponse.IsSuccess)
             suppliers.AddRange(supplierResponse.Data?.Data ?? []);
+    }
+
+    private async Task LoadBranchAccessAsync()
+    {
+        var accessResponse = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        branchAccess = accessResponse.IsSuccess ? accessResponse.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+
+        branches.Clear();
+        var branchResponse = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        if (branchResponse.IsSuccess)
+            branches.AddRange(branchResponse.Data?.Data ?? []);
     }
 
     private async Task LoadItemsAsync()
@@ -359,7 +381,17 @@
     private string? WarehouseName(Guid? warehouseId) => warehouses.FirstOrDefault(warehouse => warehouse.Id == warehouseId)?.Name;
     private string ProductText(ProductDto product) => SharedDataService.SelectViewLang(product.NameEng, product.Name);
     private string SkuText(ProductSkuDto sku) => FirstNonEmpty(SharedDataService.SelectViewLang(sku.NameEng ?? string.Empty, sku.Name ?? string.Empty), sku.SkuCode, sku.Name, sku.NameEng);
-    private string WarehouseText(WarehouseDto warehouse) => SharedDataService.SelectViewLang(warehouse.NameEng, warehouse.Name);
+    private string WarehouseText(WarehouseDto warehouse)
+    {
+        var name = SharedDataService.SelectViewLang(warehouse.NameEng, warehouse.Name);
+        return warehouse.BranchId.HasValue ? $"{name} - {BranchName(warehouse.BranchId.Value)}" : $"{name} - {Text("Company", "الشركة")}";
+    }
+
+    private string BranchName(Guid branchId)
+    {
+        var branch = branches.FirstOrDefault(x => x.Id == branchId);
+        return branch is null ? branchId.ToString("N")[..8] : SharedDataService.SelectViewLang(branch.NameEng, branch.Name);
+    }
     private string SupplierText(SupplierDto supplier) => string.IsNullOrWhiteSpace(supplier.SupplierCode) ? supplier.Name : $"{supplier.Name} ({supplier.SupplierCode})";
     private static string FirstNonEmpty(params string?[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
     private static bool Contains(string? value, string? query) => !string.IsNullOrWhiteSpace(value) && !string.IsNullOrWhiteSpace(query) && value.Contains(query, StringComparison.OrdinalIgnoreCase);

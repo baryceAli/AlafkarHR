@@ -183,7 +183,13 @@ namespace Accounting.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("BankAccountId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CashAccountId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("CompanyId")
@@ -267,6 +273,10 @@ namespace Accounting.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyId", "SourceDocumentId");
+
+                    b.HasIndex("CompanyId", "BranchId", "BankAccountId");
+
+                    b.HasIndex("CompanyId", "BranchId", "CashAccountId");
 
                     b.HasIndex("CompanyId", "BranchId", "DocumentDate");
 

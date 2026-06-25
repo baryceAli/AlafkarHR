@@ -36,12 +36,14 @@ public class CreateProcurementDocumentCommandValidator : AbstractValidator<Creat
     }
 }
 
-public class CreateProcurementDocumentHandler(ProcurementDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class CreateProcurementDocumentHandler(ProcurementDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<CreateProcurementDocumentCommand, CreateProcurementDocumentResult>
 {
     public async Task<CreateProcurementDocumentResult> Handle(CreateProcurementDocumentCommand command, CancellationToken cancellationToken)
     {
         var userId = GetUserId(httpContextAccessor);
+        await EnsureCanMutateBranchAsync(sender, command.Document.CompanyId, command.Document.BranchId, cancellationToken);
+        await EnsureWarehousesMatchBranchAsync(sender, command.Document, cancellationToken);
         command.Document.Kind = command.Kind;
         if (command.Kind == ProcurementDocumentKind.PurchaseRequest)
             return await CreateNumberedDocumentAsync(command, userId, "PR", 4, "purchase request", cancellationToken);
@@ -153,9 +155,49 @@ public class CreateProcurementDocumentHandler(ProcurementDbContext dbContext, IH
     internal static string GetUserId(IHttpContextAccessor accessor) =>
         accessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? throw new UnauthorizedAccessException("User is not authenticated");
+
+    internal static async Task EnsureCanMutateBranchAsync(ISender sender, Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    {
+        var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (!BranchScopePolicy.CanMutate(access, branchId))
+            throw new ForbiddenException("You do not have permission to change procurement data in this branch scope.");
+    }
+
+    internal static async Task EnsureCanReadBranchAsync(ISender sender, Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    {
+        var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (!BranchScopePolicy.CanRead(access, branchId))
+            throw new ForbiddenException("You do not have permission to view procurement data in this branch scope.");
+    }
+
+    internal static async Task<IQueryable<ProcurementDocument>> ApplyBranchAccessAsync(ISender sender, IQueryable<ProcurementDocument> query, Guid companyId, Guid? branchId, CancellationToken cancellationToken)
+    {
+        var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        if (!BranchScopePolicy.CanFilter(access, branchId))
+            throw new ForbiddenException("You do not have permission to filter procurement data by this branch.");
+
+        if (access.CanViewAllBranches)
+            return branchId.HasValue ? query.Where(x => x.BranchId == branchId.Value) : query;
+
+        return branchId.HasValue
+            ? query.Where(x => x.BranchId == null || x.BranchId == branchId.Value)
+            : query.Where(x => x.BranchId == null || (x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value)));
+    }
+
+    internal static async Task EnsureWarehousesMatchBranchAsync(ISender sender, ProcurementDocumentDto document, CancellationToken cancellationToken)
+    {
+        if (!document.BranchId.HasValue)
+            return;
+
+        if (document.WarehouseId.HasValue)
+            await sender.Send(new EnsureWarehouseBranchScopeQuery(document.CompanyId, document.WarehouseId.Value, document.BranchId.Value), cancellationToken);
+
+        foreach (var warehouseId in document.Lines.Select(x => x.WarehouseId).Where(x => x.HasValue).Select(x => x!.Value).Distinct())
+            await sender.Send(new EnsureWarehouseBranchScopeQuery(document.CompanyId, warehouseId, document.BranchId.Value), cancellationToken);
+    }
 }
 
-public class UpdateProcurementDocumentHandler(ProcurementDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class UpdateProcurementDocumentHandler(ProcurementDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<UpdateProcurementDocumentCommand>
 {
     public async Task<Unit> Handle(UpdateProcurementDocumentCommand command, CancellationToken cancellationToken)
@@ -166,6 +208,9 @@ public class UpdateProcurementDocumentHandler(ProcurementDbContext dbContext, IH
 
         if (!ProcurementDocumentLockRules.CanEditDocument(command.Kind, document.Status))
             throw new BadRequestException(ProcurementDocumentLockRules.LockedEditMessage(command.Kind, document.Status));
+        await CreateProcurementDocumentHandler.EnsureCanMutateBranchAsync(sender, document.CompanyId, document.BranchId, cancellationToken);
+        await CreateProcurementDocumentHandler.EnsureCanMutateBranchAsync(sender, command.Document.CompanyId, command.Document.BranchId, cancellationToken);
+        await CreateProcurementDocumentHandler.EnsureWarehousesMatchBranchAsync(sender, command.Document, cancellationToken);
 
         command.Document.Kind = command.Kind;
         if (command.Kind is ProcurementDocumentKind.PurchaseRequest
@@ -185,7 +230,7 @@ public class UpdateProcurementDocumentHandler(ProcurementDbContext dbContext, IH
     }
 }
 
-public class RemoveProcurementDocumentHandler(ProcurementDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class RemoveProcurementDocumentHandler(ProcurementDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<RemoveProcurementDocumentCommand>
 {
     public async Task<Unit> Handle(RemoveProcurementDocumentCommand command, CancellationToken cancellationToken)
@@ -196,6 +241,7 @@ public class RemoveProcurementDocumentHandler(ProcurementDbContext dbContext, IH
 
         if (!ProcurementDocumentLockRules.CanDeleteDocument(command.Kind, document.Status))
             throw new BadRequestException(ProcurementDocumentLockRules.LockedDeleteMessage(command.Kind, document.Status));
+        await CreateProcurementDocumentHandler.EnsureCanMutateBranchAsync(sender, document.CompanyId, document.BranchId, cancellationToken);
 
         document.Remove(CreateProcurementDocumentHandler.GetUserId(httpContextAccessor));
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -203,7 +249,7 @@ public class RemoveProcurementDocumentHandler(ProcurementDbContext dbContext, IH
     }
 }
 
-public class GetProcurementDocumentByIdHandler(ProcurementDbContext dbContext)
+public class GetProcurementDocumentByIdHandler(ProcurementDbContext dbContext, ISender sender)
     : IQueryHandler<GetProcurementDocumentByIdQuery, GetProcurementDocumentByIdResult>
 {
     public async Task<GetProcurementDocumentByIdResult> Handle(GetProcurementDocumentByIdQuery query, CancellationToken cancellationToken)
@@ -211,12 +257,13 @@ public class GetProcurementDocumentByIdHandler(ProcurementDbContext dbContext)
         var document = await dbContext.ProcurementDocuments.AsNoTracking().Include(x => x.Lines)
             .FirstOrDefaultAsync(x => x.Id == query.Id && x.Kind == query.Kind, cancellationToken)
             ?? throw new NotFoundException("Procurement document", query.Id);
+        await CreateProcurementDocumentHandler.EnsureCanReadBranchAsync(sender, document.CompanyId, document.BranchId, cancellationToken);
 
         return new GetProcurementDocumentByIdResult(document.ToDto());
     }
 }
 
-public class GetProcurementDocumentsHandler(ProcurementDbContext dbContext)
+public class GetProcurementDocumentsHandler(ProcurementDbContext dbContext, ISender sender)
     : IQueryHandler<GetProcurementDocumentsQuery, GetProcurementDocumentsResult>
 {
     public async Task<GetProcurementDocumentsResult> Handle(GetProcurementDocumentsQuery query, CancellationToken cancellationToken)
@@ -225,7 +272,10 @@ public class GetProcurementDocumentsHandler(ProcurementDbContext dbContext)
             .Where(x => x.Kind == query.Kind);
 
         if (query.CompanyId.HasValue)
+        {
             documents = documents.Where(x => x.CompanyId == query.CompanyId.Value);
+            documents = await CreateProcurementDocumentHandler.ApplyBranchAccessAsync(sender, documents, query.CompanyId.Value, null, cancellationToken);
+        }
 
         if (!string.IsNullOrWhiteSpace(query.SearchText))
             documents = documents.Where(x => x.Number.Contains(query.SearchText) || (x.SupplierName != null && x.SupplierName.Contains(query.SearchText)));
@@ -243,14 +293,17 @@ public class GetProcurementDocumentsHandler(ProcurementDbContext dbContext)
     }
 }
 
-public class GetProcurementDashboardHandler(ProcurementDbContext dbContext)
+public class GetProcurementDashboardHandler(ProcurementDbContext dbContext, ISender sender)
     : IQueryHandler<GetProcurementDashboardQuery, GetProcurementDashboardResult>
 {
     public async Task<GetProcurementDashboardResult> Handle(GetProcurementDashboardQuery query, CancellationToken cancellationToken)
     {
         var documents = dbContext.ProcurementDocuments.AsNoTracking();
         if (query.CompanyId.HasValue)
+        {
             documents = documents.Where(x => x.CompanyId == query.CompanyId.Value);
+            documents = await CreateProcurementDocumentHandler.ApplyBranchAccessAsync(sender, documents, query.CompanyId.Value, null, cancellationToken);
+        }
 
         return new GetProcurementDashboardResult(new ProcurementDashboardDto
         {
@@ -273,6 +326,7 @@ public class ChangeProcurementDocumentStatusHandler(ProcurementDbContext dbConte
         var document = await dbContext.ProcurementDocuments.Include(x => x.Lines)
             .FirstOrDefaultAsync(x => x.Id == command.Id && x.Kind == command.Kind, cancellationToken)
             ?? throw new NotFoundException("Procurement document", command.Id);
+        await CreateProcurementDocumentHandler.EnsureCanMutateBranchAsync(sender, document.CompanyId, document.BranchId, cancellationToken);
 
         var status = ProcurementWorkflow.ResolveNextStatus(command.Kind, document.Status, command.Action);
         var userId = CreateProcurementDocumentHandler.GetUserId(httpContextAccessor);
@@ -299,6 +353,8 @@ public class ChangeProcurementDocumentStatusHandler(ProcurementDbContext dbConte
         foreach (var line in document.Lines)
         {
             var warehouseId = line.WarehouseId ?? document.WarehouseId ?? throw new Exception("Warehouse is required for goods receipt lines.");
+            if (document.BranchId.HasValue)
+                await sender.Send(new EnsureWarehouseBranchScopeQuery(document.CompanyId, warehouseId, document.BranchId.Value), cancellationToken);
             var batchId = line.BatchId ?? throw new Exception("Batch is required for goods receipt lines.");
             var currencyId = document.CurrencyId ?? throw new Exception("Currency is required for goods receipt.");
             var inventoryQuantity = await ResolveInventoryPackageEnteredQuantityAsync(line, cancellationToken);
@@ -322,6 +378,8 @@ public class ChangeProcurementDocumentStatusHandler(ProcurementDbContext dbConte
         foreach (var line in document.Lines)
         {
             var warehouseId = line.WarehouseId ?? document.WarehouseId ?? throw new Exception("Warehouse is required for purchase return lines.");
+            if (document.BranchId.HasValue)
+                await sender.Send(new EnsureWarehouseBranchScopeQuery(document.CompanyId, warehouseId, document.BranchId.Value), cancellationToken);
             var batchId = line.BatchId ?? throw new Exception("Batch is required for purchase return lines.");
             var currencyId = document.CurrencyId ?? throw new Exception("Currency is required for purchase return.");
             var inventoryQuantity = await ResolveInventoryPackageEnteredQuantityAsync(line, cancellationToken);

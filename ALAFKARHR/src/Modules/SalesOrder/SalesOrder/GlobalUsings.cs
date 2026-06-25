@@ -1,8 +1,11 @@
 ﻿global using Microsoft.EntityFrameworkCore;
 global using Microsoft.AspNetCore.Http;
 global using Accounting.Contracts.Accounting.Features;
+global using Catalog.Contracts.Products.Features.GetProductSkuById;
 global using SalesOrder.Data;
 global using Shared.Contracts.CQRS;
+global using Shared.Contracts.Organization;
+global using Shared.Contracts.StoreFront;
 global using Shared.Exceptions;
 global using SharedWithUI.SalesOrder.Dtos;
 global using SharedWithUI.SalesOrder.Enums;
