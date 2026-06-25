@@ -79,7 +79,8 @@
     </AppCard>
 
     <AppCard Title="@SharedDataService.SelectViewLang("SKUs", "المنتجات المخزنية")"
-             Subtitle="@SharedDataService.SelectViewLang("Search, sort, edit, and remove SKU records.", "ابحث ورتب وعدل واحذف سجلات المنتجات المخزنية.")">
+             Subtitle="@SharedDataService.SelectViewLang("Search, sort, edit, and remove SKU records.", "ابحث ورتب وعدل واحذف سجلات المنتجات المخزنية.")"
+             CssClass="allow-overflow">
         <FilterBar CssClass="mb-3">
             <ChildContent>
             <div class="input-group erp-search-control">
@@ -90,6 +91,7 @@
             </div>
             </ChildContent>
             <Actions>
+                <TableExportActions />
                 <select class="form-select" @onchange="OnPageSizeChanged" aria-label="@SharedDataService.SelectViewLang("Page size", "حجم الصفحة")">
                     <option value="5">5</option>
                     <option value="10">10</option>
@@ -100,11 +102,37 @@
             </Actions>
         </FilterBar>
 
+    @if (!HasSelectedProduct && editingProductSkuId is null)
+    {
+        <EmptyState Title="@SharedDataService.SelectViewLang("Select a product", "اختر منتجا")"
+                    Message="@SharedDataService.SelectViewLang("Choose a product before managing its SKUs.", "اختر منتجا قبل إدارة منتجاته المخزنية.")"
+                    Icon="bi-box" />
+    }
+    else if (!productskuList.Any() && editingProductSkuId is null)
+    {
+        <EmptyState Title="@SharedDataService.SelectViewLang("No SKUs yet", "لا توجد منتجات مخزنية بعد")"
+                    Message="@SharedDataService.SelectViewLang("Create the first SKU for the selected product.", "أنشئ أول منتج مخزني للمنتج المحدد.")"
+                    Icon="bi-upc-scan">
+            <Actions>
+                @if (CanCreateProduct)
+                {
+                    <button class="btn btn-primary" @onclick="CreateNew">
+                        <i class="bi bi-plus-lg"></i>
+                        @SharedDataService.SelectViewLang("Create New", "إضافة جديد")
+                    </button>
+                }
+            </Actions>
+        </EmptyState>
+    }
+    else if (!ProcessedVariants.Any() && editingProductSkuId is null)
+    {
+        <EmptyState Title="@SharedDataService.SelectViewLang("No matching SKUs", "لا توجد منتجات مخزنية مطابقة")"
+                    Message="@SharedDataService.SelectViewLang("Try a different SKU name or code.", "جرب اسم منتج مخزني أو رمزا مختلفا.")"
+                    Icon="bi-search" />
+    }
+    else
+    {
     <div class="erp-table-wrap">
-            <div class="erp-table-toolbar">
-            <TableExportActions />
-        </div>
-
     <table class="table erp-table mb-0">
         <thead>
             
@@ -534,6 +562,7 @@
         </tbody>
     </table>
     </div>
+    }
     <div class="erp-pagination-bar">
 
         <button class="btn btn-sm btn-secondary"
@@ -568,6 +597,9 @@
     private List<ProductSkuDto> allProductSkus = [];
     private List<VariantDto> variants = [];
     private VariantDto? selectedVariant;
+    private bool HasSelectedProduct => selectedProduct != null && selectedProduct.Id != Guid.Empty;
+    private bool CanCreateProduct => HasPermission(PermissionList.ProductPermissions.Create);
+    private bool HasPermission(string permission) => AuthState?.User?.Claims.Any(c => c.Value == permission) == true;
     private List<VariantValueDto> variantValues = [];
     // private List<VariantValueDto> allVariantValues = [];
     private VariantValueDto? selectedVariantValue;

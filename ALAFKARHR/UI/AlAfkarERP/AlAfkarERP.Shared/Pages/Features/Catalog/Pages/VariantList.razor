@@ -53,6 +53,7 @@
             </div>
             </ChildContent>
             <Actions>
+                <TableExportActions />
                 <select class="form-select" @onchange="OnPageSizeChanged" aria-label="@SharedDataService.SelectViewLang("Page size", "حجم الصفحة")">
                     <option value="5">5</option>
                     <option value="10">10</option>
@@ -63,11 +64,31 @@
             </Actions>
         </FilterBar>
 
+    @if (!variants.Any() && editingVariantId is null)
+    {
+        <EmptyState Title="@SharedDataService.SelectViewLang("No variants yet", "لا توجد خيارات بعد")"
+                    Message="@SharedDataService.SelectViewLang("Create the first variant option and its selectable values.", "أنشئ أول خيار منتج وقيمه المتاحة.")"
+                    Icon="bi-ui-checks-grid">
+            <Actions>
+                @if (CanCreateVariant)
+                {
+                    <button class="btn btn-primary" @onclick="CreateNew">
+                        <i class="bi bi-plus-lg"></i>
+                        @SharedDataService.SelectViewLang("Create New", "إضافة جديد")
+                    </button>
+                }
+            </Actions>
+        </EmptyState>
+    }
+    else if (!ProcessedVariants.Any() && editingVariantId is null)
+    {
+        <EmptyState Title="@SharedDataService.SelectViewLang("No matching variants", "لا توجد خيارات مطابقة")"
+                    Message="@SharedDataService.SelectViewLang("Try a different variant name.", "جرب اسم خيار مختلفا.")"
+                    Icon="bi-search" />
+    }
+    else
+    {
     <div class="erp-table-wrap">
-            <div class="erp-table-toolbar">
-            <TableExportActions />
-        </div>
-
     <table class="table erp-table mb-0">
         <thead>
             <tr>
@@ -205,6 +226,7 @@
         </tbody>
     </table>
     </div>
+    }
     <div class="erp-pagination-bar">
 
         <button class="btn btn-sm btn-secondary"
@@ -232,6 +254,8 @@
     private Guid companyId;
     private bool isEdit = false;
     private AuthenticationState AuthState;
+    private bool CanCreateVariant => HasPermission(PermissionList.VariantPermissions.Create);
+    private bool HasPermission(string permission) => AuthState?.User?.Claims.Any(c => c.Value == permission) == true;
     protected override async Task OnInitializedAsync()
     {
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();

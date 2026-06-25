@@ -60,6 +60,7 @@
             </div>
             </ChildContent>
             <Actions>
+                <TableExportActions />
                 <select class="form-select" @onchange="OnPageSizeChanged" aria-label="@SharedDataService.SelectViewLang("Page size", "حجم الصفحة")">
                     <option value="5">5</option>
                     <option value="10">10</option>
@@ -70,11 +71,31 @@
             </Actions>
         </FilterBar>
 
+    @if (!priceLists.Any() && editingPriceListId is null)
+    {
+        <EmptyState Title="@SharedDataService.SelectViewLang("No price lists yet", "لا توجد قوائم أسعار بعد")"
+                    Message="@SharedDataService.SelectViewLang("Create the first price list to manage SKU prices.", "أنشئ أول قائمة أسعار لإدارة أسعار المنتجات المخزنية.")"
+                    Icon="bi-cash-coin">
+            <Actions>
+                @if (CanCreatePriceList)
+                {
+                    <button class="btn btn-primary" @onclick="CreateNew">
+                        <i class="bi bi-plus-lg"></i>
+                        @SharedDataService.SelectViewLang("Create New", "إضافة جديد")
+                    </button>
+                }
+            </Actions>
+        </EmptyState>
+    }
+    else if (!ProcessedVariants.Any() && editingPriceListId is null)
+    {
+        <EmptyState Title="@SharedDataService.SelectViewLang("No matching price lists", "لا توجد قوائم أسعار مطابقة")"
+                    Message="@SharedDataService.SelectViewLang("Try a different price list name or date.", "جرب اسم قائمة أسعار أو تاريخا مختلفا.")"
+                    Icon="bi-search" />
+    }
+    else
+    {
     <div class="erp-table-wrap">
-            <div class="erp-table-toolbar">
-            <TableExportActions />
-        </div>
-
     <table class="table erp-table mb-0">
         <thead>
             <tr>
@@ -284,6 +305,7 @@
         </tbody>
     </table>
     </div>
+    }
     <div class="erp-pagination-bar">
 
         <button class="btn btn-sm btn-secondary"
@@ -318,6 +340,8 @@
     private ProductSkuDto? selectedProductSku;
     private bool isEdit = false;
     private AuthenticationState AuthState;
+    private bool CanCreatePriceList => HasPermission(PermissionList.PricingPermissions.Create);
+    private bool HasPermission(string permission) => AuthState?.User?.Claims.Any(c => c.Value == permission) == true;
     protected override async Task OnInitializedAsync()
     {
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();

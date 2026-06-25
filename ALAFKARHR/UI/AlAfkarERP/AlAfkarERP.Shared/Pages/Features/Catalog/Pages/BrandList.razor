@@ -54,6 +54,7 @@
             </div>
             </ChildContent>
             <Actions>
+                <TableExportActions />
                 <select class="form-select" @onchange="OnPageSizeChanged" aria-label="@SharedDataService.SelectViewLang("Page size", "حجم الصفحة")">
                     <option value="5">5</option>
                     <option value="10">10</option>
@@ -64,11 +65,31 @@
             </Actions>
         </FilterBar>
 
+        @if (!brands.Any() && editingBrandId is null)
+        {
+            <EmptyState Title="@SharedDataService.SelectViewLang("No brands yet", "لا توجد علامات تجارية بعد")"
+                        Message="@SharedDataService.SelectViewLang("Create the first brand to classify catalog products.", "أنشئ أول علامة تجارية لتصنيف منتجات الكتالوج.")"
+                        Icon="bi-tags">
+                <Actions>
+                    @if (CanCreateBrand)
+                    {
+                        <button class="btn btn-primary" @onclick="CreateNew">
+                            <i class="bi bi-plus-lg"></i>
+                            @SharedDataService.SelectViewLang("Create New", "إضافة جديد")
+                        </button>
+                    }
+                </Actions>
+            </EmptyState>
+        }
+        else if (!ProcessedBrands.Any() && editingBrandId is null)
+        {
+            <EmptyState Title="@SharedDataService.SelectViewLang("No matching brands", "لا توجد علامات تجارية مطابقة")"
+                        Message="@SharedDataService.SelectViewLang("Try a different brand name or description.", "جرب اسم علامة تجارية أو وصفا مختلفا.")"
+                        Icon="bi-search" />
+        }
+        else
+        {
         <div class="erp-table-wrap">
-                    <div class="erp-table-toolbar">
-            <TableExportActions />
-        </div>
-
             <table class="table erp-table mb-0">
                 <thead>
                     <tr>
@@ -162,6 +183,7 @@
                 </tbody>
             </table>
         </div>
+        }
     <div class="erp-pagination-bar">
 
         <button class="btn btn-sm btn-secondary"
@@ -188,6 +210,8 @@
     private Guid companyId;
     private bool isEdit = false;
     private AuthenticationState AuthState;
+    private bool CanCreateBrand => HasPermission(PermissionList.BrandPermissions.Create);
+    private bool HasPermission(string permission) => AuthState?.User?.Claims.Any(c => c.Value == permission) == true;
     protected override async Task OnInitializedAsync()
     {
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();

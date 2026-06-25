@@ -55,6 +55,7 @@
             </div>
             </ChildContent>
             <Actions>
+                <TableExportActions />
                 <select class="form-select" @onchange="OnPageSizeChanged" aria-label="@SharedDataService.SelectViewLang("Page size", "حجم الصفحة")">
                     <option value="5">5</option>
                     <option value="10">10</option>
@@ -65,11 +66,31 @@
             </Actions>
         </FilterBar>
 
+    @if (!packages.Any() && editingPackageId is null)
+    {
+        <EmptyState Title="@SharedDataService.SelectViewLang("No packages yet", "لا توجد عبوات بعد")"
+                    Message="@SharedDataService.SelectViewLang("Create the first package option for catalog products.", "أنشئ أول خيار عبوة لمنتجات الكتالوج.")"
+                    Icon="bi-box-seam">
+            <Actions>
+                @if (CanCreatePackage)
+                {
+                    <button class="btn btn-primary" @onclick="CreateNew">
+                        <i class="bi bi-plus-lg"></i>
+                        @SharedDataService.SelectViewLang("Create New", "إضافة جديد")
+                    </button>
+                }
+            </Actions>
+        </EmptyState>
+    }
+    else if (!ProcessedPackages.Any() && editingPackageId is null)
+    {
+        <EmptyState Title="@SharedDataService.SelectViewLang("No matching packages", "لا توجد عبوات مطابقة")"
+                    Message="@SharedDataService.SelectViewLang("Try a different package name or quantity.", "جرب اسم عبوة أو كمية مختلفة.")"
+                    Icon="bi-search" />
+    }
+    else
+    {
     <div class="erp-table-wrap">
-            <div class="erp-table-toolbar">
-            <TableExportActions />
-        </div>
-
     <table class="table erp-table mb-0">
         <thead>
             <tr>
@@ -164,6 +185,7 @@
         </tbody>
     </table>
     </div>
+    }
     <div class="erp-pagination-bar">
 
         <button class="btn btn-sm btn-secondary"
@@ -192,6 +214,8 @@
     private Guid companyId;
     private bool isEdit = false;
     private AuthenticationState AuthState;
+    private bool CanCreatePackage => HasPermission(PermissionList.ProductPackagePermissions.Create);
+    private bool HasPermission(string permission) => AuthState?.User?.Claims.Any(c => c.Value == permission) == true;
     protected override async Task OnInitializedAsync()
     {
         AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();

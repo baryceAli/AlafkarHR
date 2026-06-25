@@ -182,12 +182,6 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @if (assetInstances.Count == 0)
-                        {
-                            <tr>
-                                <td colspan="6" class="text-muted text-center py-4">@SharedDataService.SelectViewLang("No asset instances found", "لا توجد أصول مخزنية")</td>
-                            </tr>
-                        }
                         @foreach (var asset in assetInstances)
                         {
                             <tr>
@@ -212,6 +206,13 @@
                     </tbody>
                 </table>
             </div>
+
+            @if (assetInstances.Count == 0)
+            {
+                <EmptyState Icon="bi-box-seam"
+                            Title="@SharedDataService.SelectViewLang("No asset instances found", "لا توجد أصول مخزنية")"
+                            Message="@SharedDataService.SelectViewLang("Create an asset instance or adjust your filters.", "أنشئ أصلا مخزنيا أو عدل عوامل التصفية.")" />
+            }
         </div>
     </div>
 </div>

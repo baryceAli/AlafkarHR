@@ -68,7 +68,7 @@
                     </div>
                     <div class="col-lg-2 col-md-6">
                         <label class="form-label">@SharedDataService.SelectViewLang("Reference", "المرجع")</label>
-                        <InputText class="form-control" @bind-Value="newTransfer.ReferenceNumber" />
+                        <InputText class="form-control" @bind-Value="newTransfer.ReferenceNumber" readonly disabled />
                     </div>
                     <div class="col-lg-2 col-md-6">
                         <label class="form-label">@SharedDataService.SelectViewLang("Expected", "المتوقع")</label>
@@ -541,6 +541,7 @@
         newTransfer = new CreateWarehouseTransferDto
         {
             CompanyId = companyId,
+            ReferenceNumber = $"TR-{DateTime.UtcNow:yyyyMMddHHmmssfff}",
             ExpectedDeliveryDate = DateTime.Today
         };
     }
