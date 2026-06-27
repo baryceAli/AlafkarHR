@@ -115,7 +115,7 @@
             <AppCard Title="@Text("Generate Allocations", "توليد المخصصات")">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-5"><label class="form-label">@Text("Period", "الفترة")</label><select class="form-select" @bind="allocationPeriodId"><option value="">@Text("Select period", "اختر الفترة")</option>@foreach (var period in periods){<option value="@period.Id">@period.Name</option>}</select></div>
-                    <div class="col-md-5"><label class="form-label">@Text("Employee", "الموظف")</label><select class="form-select" @bind="allocationEmployeeId"><option value="">@Text("Select employee", "اختر الموظف")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div>
+                    <div class="col-md-5"><label class="form-label">@Text("Employee", "الموظف")</label><select class="form-select" @bind="allocationEmployeeId"><option value="">@Text("Select employee", "اختر الموظف")</option><option value="@AllEmployeesAllocationValue">@Text("Apply to all employees", "تطبيق على جميع الموظفين")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div>
                     <div class="col-md-2"><button class="btn btn-outline-primary w-100" type="button" @onclick="GenerateAllocationsAsync" disabled="@(!Can(PermissionList.LeavePolicyPermissions.Assign))"><i class="bi bi-magic"></i> @Text("Run", "تنفيذ")</button></div>
                 </div>
             </AppCard>
@@ -155,6 +155,7 @@
     private string? assignmentDepartmentId;
     private string? allocationPeriodId;
     private string? allocationEmployeeId;
+    private const string AllEmployeesAllocationValue = "__all_employees__";
     private bool CanSaveType => typeModel.Id.HasValue ? Can(PermissionList.LeavePolicyPermissions.Edit) : Can(PermissionList.LeavePolicyPermissions.Create);
     private bool CanSavePeriod => periodModel.Id.HasValue ? Can(PermissionList.LeavePolicyPermissions.Edit) : Can(PermissionList.LeavePolicyPermissions.Create);
     private bool CanSavePolicy => policyModel.Id.HasValue ? Can(PermissionList.LeavePolicyPermissions.Edit) : Can(PermissionList.LeavePolicyPermissions.Create);
@@ -185,7 +186,15 @@
 
     private async Task SaveTypeAsync() => await SaveAsync(() => LeaveService.UpsertLeaveTypeAsync(typeModel), ResetType);
     private async Task SavePeriodAsync() => await SaveAsync(() => LeaveService.UpsertLeavePeriodAsync(periodModel), ResetPeriod);
-    private async Task SavePolicyAsync() => await SaveAsync(() => LeaveService.UpsertLeavePolicyAsync(policyModel), ResetPolicy);
+    private async Task SavePolicyAsync()
+    {
+        if (!TryApplyPolicyLine(resetAfterApply: false))
+        {
+            return;
+        }
+
+        await SaveAsync(() => LeaveService.UpsertLeavePolicyAsync(policyModel), ResetPolicy);
+    }
 
     private async Task SaveAssignmentAsync()
     {
@@ -208,17 +217,70 @@
 
     private async Task GenerateAllocationsAsync()
     {
-        var request = new GenerateLeaveAllocationsDto { CompanyId = companyId, LeavePeriodId = Parse(allocationPeriodId), EmployeeId = ParseNullable(allocationEmployeeId) };
+        var periodId = Parse(allocationPeriodId);
+        if (periodId == Guid.Empty)
+        {
+            SetMessage(Text("Select a leave period before generating allocations.", "اختر فترة الإجازات قبل توليد المخصصات."), "alert-warning");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(allocationEmployeeId))
+        {
+            SetMessage(Text("Select an employee or apply to all employees.", "اختر موظفا أو طبق على جميع الموظفين."), "alert-warning");
+            return;
+        }
+
+        var employeeId = allocationEmployeeId == AllEmployeesAllocationValue
+            ? null
+            : ParseNullable(allocationEmployeeId);
+        if (allocationEmployeeId != AllEmployeesAllocationValue && !employeeId.HasValue)
+        {
+            SetMessage(Text("Select a valid employee.", "اختر موظفا صالحا."), "alert-warning");
+            return;
+        }
+
+        var request = new GenerateLeaveAllocationsDto { CompanyId = companyId, LeavePeriodId = periodId, EmployeeId = employeeId };
         var result = await LeaveService.GenerateLeaveAllocationsAsync(request);
         SetMessage(result.IsSuccess ? Text($"Created {result.Data} allocation entries.", $"تم إنشاء {result.Data} قيود مخصصات.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger");
     }
 
     private void AddPolicyLine()
     {
+        TryApplyPolicyLine(resetAfterApply: true);
+    }
+
+    private bool TryApplyPolicyLine(bool resetAfterApply)
+    {
         var typeId = Parse(lineLeaveTypeId);
-        if (typeId == Guid.Empty || lineDays <= 0) return;
-        policyModel.Lines.RemoveAll(x => x.LeaveTypeId == typeId);
-        policyModel.Lines.Add(new LeavePolicyLineDto { LeaveTypeId = typeId, AnnualAllocationDays = lineDays, AccruesMonthly = lineAccruesMonthly, AllowCarryForward = lineAllowCarryForward, MaxCarryForwardDays = lineAllowCarryForward ? lineMaxCarryForward : 0 });
+        if (typeId == Guid.Empty)
+        {
+            return true;
+        }
+
+        if (lineDays <= 0)
+        {
+            SetMessage(Text("Annual days must be greater than zero.", "يجب أن تكون الأيام السنوية أكبر من صفر."), "alert-warning");
+            return false;
+        }
+
+        var existingLine = policyModel.Lines.FirstOrDefault(x => x.LeaveTypeId == typeId);
+        if (existingLine is null)
+        {
+            policyModel.Lines.Add(new LeavePolicyLineDto { LeaveTypeId = typeId });
+            existingLine = policyModel.Lines[^1];
+        }
+
+        existingLine.AnnualAllocationDays = lineDays;
+        existingLine.AccruesMonthly = lineAccruesMonthly;
+        existingLine.AllowCarryForward = lineAllowCarryForward;
+        existingLine.MaxCarryForwardDays = lineAllowCarryForward ? lineMaxCarryForward : 0;
+
+        if (resetAfterApply)
+        {
+            ResetPolicyLineEditor();
+        }
+
+        return true;
     }
 
     private async Task DeleteTypeAsync(Guid id) => await DeleteAsync(() => LeaveService.DeleteLeaveTypeAsync(id), PermissionList.LeavePolicyPermissions.Delete);
@@ -245,12 +307,20 @@
     private void EditAssignment(LeavePolicyAssignmentDto item) { assignmentModel = new() { Id = item.Id, CompanyId = item.CompanyId, PolicyId = item.PolicyId, Target = item.Target, EmployeeId = item.EmployeeId, DepartmentId = item.DepartmentId, EffectiveFrom = item.EffectiveFrom, EffectiveTo = item.EffectiveTo }; assignmentPolicyId = item.PolicyId.ToString(); assignmentEmployeeId = item.EmployeeId?.ToString(); assignmentDepartmentId = item.DepartmentId?.ToString(); }
     private void EditPolicyLine(LeavePolicyLineDto line) { lineLeaveTypeId = line.LeaveTypeId.ToString(); lineDays = line.AnnualAllocationDays; lineAccruesMonthly = line.AccruesMonthly; lineAllowCarryForward = line.AllowCarryForward; lineMaxCarryForward = line.MaxCarryForwardDays; }
     private static LeavePolicyLineDto CloneLine(LeavePolicyLineDto line) => new() { Id = line.Id, LeaveTypeId = line.LeaveTypeId, LeaveTypeName = line.LeaveTypeName, LeaveTypeNameEng = line.LeaveTypeNameEng, AnnualAllocationDays = line.AnnualAllocationDays, AccruesMonthly = line.AccruesMonthly, AllowCarryForward = line.AllowCarryForward, MaxCarryForwardDays = line.MaxCarryForwardDays };
-    private void RemovePolicyLine(LeavePolicyLineDto line) => policyModel.Lines.Remove(line);
+    private void RemovePolicyLine(LeavePolicyLineDto line)
+    {
+        policyModel.Lines.Remove(line);
+        if (Parse(lineLeaveTypeId) == line.LeaveTypeId)
+        {
+            ResetPolicyLineEditor();
+        }
+    }
     private void ResetModels() { ResetType(); ResetPeriod(); ResetPolicy(); ResetAssignment(); }
     private void ResetType() => typeModel = NewType(companyId);
     private void ResetPeriod() => periodModel = NewPeriod(companyId);
-    private void ResetPolicy() => policyModel = NewPolicy(companyId);
+    private void ResetPolicy() { policyModel = NewPolicy(companyId); ResetPolicyLineEditor(); }
     private void ResetAssignment() { assignmentModel = NewAssignment(companyId); assignmentPolicyId = null; assignmentEmployeeId = null; assignmentDepartmentId = null; }
+    private void ResetPolicyLineEditor() { lineLeaveTypeId = null; lineDays = 30; lineAccruesMonthly = true; lineAllowCarryForward = true; lineMaxCarryForward = 5; }
     private void OnAssignmentTargetChanged()
     {
         if (assignmentModel.Target != LeavePolicyAssignmentTarget.Employee) assignmentEmployeeId = null;

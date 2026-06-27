@@ -1,5 +1,6 @@
 using AttendanceDomain.Attendance.Models;
 using AttendanceDomain.Data;
+using EmployeeModule.Contracts.Employees.Features.GetCompanyEmployeeRosterProfiles;
 using LeaveManagement.Data;
 using LeaveManagement.Leave.Models;
 
@@ -51,7 +52,7 @@ public record CreateLeaveLedgerAdjustmentResult(LeaveLedgerEntryDto Entry);
 public record CreateLeaveEncashmentCommand(CreateLeaveEncashmentDto Encashment, string? UserId) : ICommand<CreateLeaveEncashmentResult>;
 public record CreateLeaveEncashmentResult(LeaveEncashmentDto Encashment, LeaveLedgerEntryDto Entry);
 
-public class LeaveCoreHandler(LeaveDbContext leaveDbContext, AttendanceDbContext attendanceDbContext) :
+public class LeaveCoreHandler(LeaveDbContext leaveDbContext, AttendanceDbContext attendanceDbContext, ISender sender) :
     IQueryHandler<GetLeaveTypesQuery, GetLeaveTypesResult>,
     ICommandHandler<UpsertLeaveTypeCommand, UpsertLeaveTypeResult>,
     ICommandHandler<DeleteLeaveTypeCommand, DeleteLeaveTypeResult>,
@@ -241,26 +242,52 @@ public class LeaveCoreHandler(LeaveDbContext leaveDbContext, AttendanceDbContext
 
     public async Task<GenerateLeaveAllocationsResult> Handle(GenerateLeaveAllocationsCommand request, CancellationToken cancellationToken)
     {
-        if (!request.Request.EmployeeId.HasValue)
+        if (request.Request.CompanyId == Guid.Empty)
         {
-            throw new BadRequestException("Employee is required when generating leave allocations.");
+            throw new BadRequestException("Company is required.");
+        }
+
+        if (request.Request.LeavePeriodId == Guid.Empty)
+        {
+            throw new BadRequestException("Leave period is required.");
         }
 
         var period = await leaveDbContext.LeavePeriods.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == request.Request.LeavePeriodId && x.CompanyId == request.Request.CompanyId, cancellationToken)
             ?? throw new NotFoundException("LeavePeriod", request.Request.LeavePeriodId);
+        var employeeResult = await sender.Send(new GetCompanyEmployeeRosterProfilesQuery(request.Request.CompanyId), cancellationToken);
+        var employees = employeeResult.Employees
+            .Where(x => x.IsActive && x.CompanyId == request.Request.CompanyId)
+            .ToList();
+        if (request.Request.EmployeeId.HasValue && employees.All(x => x.EmployeeId != request.Request.EmployeeId.Value))
+        {
+            throw new NotFoundException("Employee", request.Request.EmployeeId.Value);
+        }
+
+        var targetEmployeeIds = request.Request.EmployeeId.HasValue
+            ? new HashSet<Guid> { request.Request.EmployeeId.Value }
+            : employees.Select(x => x.EmployeeId).ToHashSet();
+        if (targetEmployeeIds.Count == 0)
+        {
+            return new GenerateLeaveAllocationsResult(0);
+        }
+
         var assignments = await leaveDbContext.LeavePolicyAssignments.AsNoTracking()
             .Where(x => x.CompanyId == request.Request.CompanyId
                 && x.EffectiveFrom <= period.EndDate
-                && (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= period.StartDate)
-                && (request.Request.EmployeeId == null || x.EmployeeId == request.Request.EmployeeId || x.Target == LeavePolicyAssignmentTarget.Company))
+                && (!x.EffectiveTo.HasValue || x.EffectiveTo.Value >= period.StartDate))
             .ToListAsync(cancellationToken);
         var policyIds = assignments.Select(x => x.PolicyId).Distinct().ToList();
         var policies = await leaveDbContext.LeavePolicies.Include(x => x.Lines)
             .Where(x => policyIds.Contains(x.Id) && x.IsActive)
             .ToDictionaryAsync(x => x.Id, cancellationToken);
+        var employeesByDepartment = employees
+            .Where(x => x.DepartmentId.HasValue)
+            .GroupBy(x => x.DepartmentId!.Value)
+            .ToDictionary(x => x.Key, x => x.Select(employee => employee.EmployeeId).ToList());
 
         var created = 0;
+        var generatedKeys = new HashSet<(Guid EmployeeId, Guid LeaveTypeId)>();
         foreach (var assignment in assignments)
         {
             if (!policies.TryGetValue(assignment.PolicyId, out var policy))
@@ -268,14 +295,15 @@ public class LeaveCoreHandler(LeaveDbContext leaveDbContext, AttendanceDbContext
                 continue;
             }
 
-            var employeeIds = assignment.Target == LeavePolicyAssignmentTarget.Employee && assignment.EmployeeId.HasValue
-                ? [assignment.EmployeeId.Value]
-                : request.Request.EmployeeId.HasValue ? [request.Request.EmployeeId.Value] : Array.Empty<Guid>();
-
-            foreach (var employeeId in employeeIds)
+            foreach (var employeeId in GetAllocationEmployeeIds(assignment, targetEmployeeIds, employeesByDepartment))
             {
                 foreach (var line in policy.Lines)
                 {
+                    if (!generatedKeys.Add((employeeId, line.LeaveTypeId)))
+                    {
+                        continue;
+                    }
+
                     var exists = await leaveDbContext.LeaveLedgerEntries.AnyAsync(x => x.CompanyId == request.Request.CompanyId
                         && x.EmployeeId == employeeId
                         && x.LeaveTypeId == line.LeaveTypeId
@@ -307,6 +335,33 @@ public class LeaveCoreHandler(LeaveDbContext leaveDbContext, AttendanceDbContext
 
         await leaveDbContext.SaveChangesAsync(cancellationToken);
         return new GenerateLeaveAllocationsResult(created);
+    }
+
+    private static IEnumerable<Guid> GetAllocationEmployeeIds(
+        LeavePolicyAssignment assignment,
+        HashSet<Guid> targetEmployeeIds,
+        Dictionary<Guid, List<Guid>> employeesByDepartment)
+    {
+        if (assignment.Target == LeavePolicyAssignmentTarget.Company)
+        {
+            return targetEmployeeIds;
+        }
+
+        if (assignment.Target == LeavePolicyAssignmentTarget.Employee && assignment.EmployeeId.HasValue)
+        {
+            return targetEmployeeIds.Contains(assignment.EmployeeId.Value)
+                ? [assignment.EmployeeId.Value]
+                : [];
+        }
+
+        if (assignment.Target == LeavePolicyAssignmentTarget.Department
+            && assignment.DepartmentId.HasValue
+            && employeesByDepartment.TryGetValue(assignment.DepartmentId.Value, out var employeeIds))
+        {
+            return employeeIds.Where(targetEmployeeIds.Contains);
+        }
+
+        return [];
     }
 
     public async Task<GetLeaveApplicationsResult> Handle(GetLeaveApplicationsQuery request, CancellationToken cancellationToken)

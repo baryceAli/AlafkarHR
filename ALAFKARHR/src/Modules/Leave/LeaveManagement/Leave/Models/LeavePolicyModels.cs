@@ -148,7 +148,7 @@ public class LeavePolicy : Aggregate<Guid>
             var existingLine = _lines.FirstOrDefault(x => x.LeaveTypeId == line.LeaveTypeId);
             if (existingLine is null)
             {
-                _lines.Add(LeavePolicyLine.Create(Guid.NewGuid(), Id, line));
+                _lines.Add(LeavePolicyLine.Create(Id, line));
                 continue;
             }
 
@@ -181,13 +181,12 @@ public class LeavePolicyLine : Entity<Guid>
 
     private LeavePolicyLine() { }
 
-    public static LeavePolicyLine Create(Guid id, Guid leavePolicyId, LeavePolicyLineDto dto)
+    public static LeavePolicyLine Create(Guid leavePolicyId, LeavePolicyLineDto dto)
     {
         Validate(dto);
 
         return new LeavePolicyLine
         {
-            Id = id,
             LeavePolicyId = leavePolicyId,
             LeaveTypeId = dto.LeaveTypeId,
             AnnualAllocationDays = dto.AnnualAllocationDays,
