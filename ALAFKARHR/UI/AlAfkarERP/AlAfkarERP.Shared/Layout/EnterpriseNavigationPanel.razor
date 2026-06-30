@@ -78,19 +78,6 @@
             }
         </div>
 
-        @if (string.IsNullOrWhiteSpace(searchText) && QuickLinks.Any())
-        {
-            <section class="enterprise-quick-links" aria-label="@Text("Quick links", "\u0631\u0648\u0627\u0628\u0637 \u0633\u0631\u064a\u0639\u0629")">
-                @foreach (var item in QuickLinks)
-                {
-                    <button type="button" class="enterprise-quick-link" @onclick="() => NavigateAsync(item)">
-                        <i class="bi @item.Icon"></i>
-                        <span>@Label(item)</span>
-                    </button>
-                }
-            </section>
-        }
-
         @if (ShouldUseFunctionalDrilldown)
         {
             <div class="enterprise-section-list">
@@ -253,14 +240,8 @@
     private IReadOnlyList<NavigationFunctionalGroup> FunctionalGroups => NavigationMenuResolver.GetAuthorizedWorkspaceFunctionalGroups(AuthState?.User, FunctionalWorkspaceKey, LicensedBusinessLineKeys);
     private IReadOnlyList<EnterpriseNavigationGroup> Groups => NavigationMenuResolver.GetEnterpriseNavigationGroups(AuthState?.User, EnterpriseWorkspaceKey, CurrentPath, LicensedBusinessLineKeys, EffectiveFunctionalGroupKey);
     private IEnumerable<EnterpriseNavigationGroup> VisibleGroups => Groups.Where(group => FilteredEntries(group).Any());
-    private IEnumerable<MenuItem> CurrentItems => Groups.SelectMany(group => group.Entries).Select(entry => entry.Item);
     private IEnumerable<MenuItem> FavoriteItems => NavigationPanelShared.ResolveKeys(favoriteKeys, AuthorizedItems).Where(MatchesCurrentWorkspace);
     private IEnumerable<MenuItem> RecentItems => NavigationPanelShared.ResolveKeys(recentKeys, AuthorizedItems).Where(MatchesCurrentWorkspace);
-    private IEnumerable<MenuItem> QuickLinks => CurrentItems.Where(IsActive)
-        .Concat(FavoriteItems)
-        .Concat(RecentItems)
-        .DistinctBy(NavigationMenuResolver.GetStorageKey)
-        .Take(6);
     private string CurrentPath => NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
     private string EnterpriseWorkspaceKey => ActiveWorkspace == NavigationMenuResolver.WorkspaceMore
         ? NavigationMenuResolver.WorkspaceMore
