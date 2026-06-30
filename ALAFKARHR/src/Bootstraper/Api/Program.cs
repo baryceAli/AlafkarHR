@@ -27,6 +27,7 @@ using RealEstate;
 using Recruitment;
 using Sales;
 using SalesOrder;
+using Api.DemoData;
 using StoreFront;
 using Shared.Exceptions.Handler;
 using Shared.Extentions;
@@ -206,6 +207,7 @@ builder.Services
 //// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 //builder.Services.AddOpenApi();
 builder.Services.AddExceptionHandler<CustomExceptionHandler>();
+builder.Services.AddScoped<DemoDataSeeder>();
 //builder.Services.AddAntiforgery();
 var app = builder.Build();
 
@@ -252,6 +254,11 @@ app
     .UseMaintenanceModule(app.Environment)
     .UseMediaCenterModule(app.Environment)
     .UseFleetModule(app.Environment);
+
+using (var scope = app.Services.CreateScope())
+{
+    await scope.ServiceProvider.GetRequiredService<DemoDataSeeder>().SeedAsync();
+}
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())
