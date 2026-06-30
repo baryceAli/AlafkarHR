@@ -1,9 +1,7 @@
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Web
-@using System.Globalization
 @using System.Security.Claims
-@using System.Text
 @inject SharedDataService SharedDataService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
@@ -77,8 +75,11 @@
     [Parameter] public AuthenticationState? AuthState { get; set; }
     [Parameter] public IReadOnlySet<string>? LicensedBusinessLineKeys { get; set; }
     [Parameter] public EventCallback<MenuItem> OnNavigate { get; set; }
+    [Parameter] public string? InitialSearchText { get; set; }
 
     private string searchText = "";
+    private string? appliedInitialSearchText;
+    private bool wasOpen;
     private int selectedIndex;
 
     private IReadOnlyList<MenuItem> VisibleResults => NavigationMenuResolver.GetAuthorizedNavigableItems(AuthState?.User, LicensedBusinessLineKeys)
@@ -105,9 +106,27 @@
         SharedDataService.OnChange1 += HandleChangeAsync;
     }
 
+    protected override void OnParametersSet()
+    {
+        if (!IsOpen)
+        {
+            wasOpen = false;
+            return;
+        }
+
+        if (!wasOpen || !string.Equals(appliedInitialSearchText, InitialSearchText, StringComparison.Ordinal))
+        {
+            searchText = InitialSearchText ?? "";
+            appliedInitialSearchText = InitialSearchText;
+            selectedIndex = 0;
+        }
+
+        wasOpen = true;
+    }
+
     private bool MatchesSearch(MenuItem item)
     {
-        var term = Normalize(SearchTerm);
+        var term = NavigationPanelShared.NormalizeSearchText(SearchTerm);
         if (string.IsNullOrWhiteSpace(term))
         {
             return true;
@@ -115,13 +134,13 @@
 
         var path = NavigationMenuResolver.GetMenuPath(item, ActiveWorkspace);
         var haystack = string.Join(" ", item.TextEn, item.TextAr, item.Url, item.KeywordsEn, item.KeywordsAr, string.Join(" ", path.Select(p => $"{p.TextEn} {p.TextAr}")));
-        return Normalize(haystack).Contains(term);
+        return NavigationPanelShared.NormalizeSearchText(haystack).Contains(term);
     }
 
     private bool MatchesMode(MenuItem item)
         => SearchMode switch
         {
-            CommandSearchMode.Action => IsActionLike(item),
+            CommandSearchMode.Action => NavigationPanelShared.IsActionLike(item),
             CommandSearchMode.People => false,
             _ => true
         };
@@ -194,7 +213,7 @@
     private string Label(MenuItem item) => SharedDataService.SelectViewLang(item.TextEn, item.TextAr);
 
     private string ModeLabel(MenuItem item)
-        => IsActionLike(item)
+        => NavigationPanelShared.IsActionLike(item)
             ? SharedDataService.SelectViewLang("Action", "\u0625\u062c\u0631\u0627\u0621")
             : SharedDataService.SelectViewLang("Page", "\u0635\u0641\u062d\u0629");
 
@@ -209,6 +228,8 @@
     private async Task CloseAsync()
     {
         searchText = "";
+        appliedInitialSearchText = null;
+        wasOpen = false;
         selectedIndex = 0;
         await IsOpenChanged.InvokeAsync(false);
     }
@@ -242,47 +263,6 @@
                || trimmed.StartsWith("@", StringComparison.Ordinal)
             ? trimmed[1..].TrimStart()
             : value;
-    }
-
-    private static bool IsActionLike(MenuItem item)
-    {
-        var haystack = Normalize(string.Join(" ", item.TextEn, item.TextAr, item.Url, item.KeywordsEn, item.KeywordsAr));
-        return haystack.Contains("create")
-               || haystack.Contains("new")
-               || haystack.Contains("add")
-               || haystack.Contains("assign")
-               || haystack.Contains("approve")
-               || haystack.Contains("generate")
-               || haystack.Contains("upload")
-               || haystack.Contains("setup")
-               || haystack.Contains("configuration")
-               || haystack.Contains("\u0625\u0646\u0634\u0627\u0621")
-               || haystack.Contains("\u0625\u0636\u0627\u0641\u0629")
-               || haystack.Contains("\u062a\u0639\u064a\u064a\u0646")
-               || haystack.Contains("\u0627\u0639\u062a\u0645\u0627\u062f");
-    }
-
-    private static string Normalize(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return "";
-        }
-
-        var normalized = value.Trim().Normalize(NormalizationForm.FormD);
-        var builder = new StringBuilder(normalized.Length);
-        foreach (var character in normalized)
-        {
-            var category = CharUnicodeInfo.GetUnicodeCategory(character);
-            if (category is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or UnicodeCategory.EnclosingMark || character == '\u0640')
-            {
-                continue;
-            }
-
-            builder.Append(char.ToLowerInvariant(character));
-        }
-
-        return builder.ToString().Normalize(NormalizationForm.FormC);
     }
 
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);

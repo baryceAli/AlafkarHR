@@ -1,5 +1,6 @@
 @layout AdminLayout
 @page "/Employee/Position/List"
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
@@ -20,7 +21,16 @@
 @inject SharedDataService SharedDataService
 
 
-@if (!AuthState.User.Claims.Any(c => c.Value == PermissionList.PositionPermissions.View))
+@if (AuthState is null)
+{
+    <div class="erp-loading">
+        <div class="spinner-border text-primary" role="status"></div>
+        <div class="mt-2">@Text("Loading positions...", "جاري تحميل المسميات الوظيفية...")</div>
+    </div>
+
+    return;
+}
+else if (!CanViewPositions)
 {
     <div class="alert alert-warning">
         <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحيات لعرض هذه الصفحة")</span>
@@ -28,7 +38,7 @@
     return;
 }
 
-<div class="employee-lookup-page" dir="@SharedDataService.PageDirection">
+<div class="erp-page hr-pilot-page employee-lookup-page" dir="@SharedDataService.PageDirection">
     <div class="employee-lookup-header mb-4">
         <div>
             <div class="text-uppercase text-primary fw-semibold small mb-1">@Text("Employee Setup", "اعدادات الموظفين")</div>
@@ -37,7 +47,7 @@
         </div>
         <button class="btn btn-primary"
                 @onclick="CreateNew"
-                disabled="@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.PositionPermissions.Create))">
+                disabled="@(!CanCreatePositions)">
             <i class="bi bi-plus-lg"></i>
             @Text("Create New", "اضافة جديد")
         </button>
@@ -73,9 +83,9 @@
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm mb-3">
+    <div class="erp-card card border-0 shadow-sm mb-3">
         <div class="card-body">
-            <div class="employee-lookup-toolbar mb-3">
+            <div class="erp-filter-bar employee-lookup-toolbar mb-3">
                 <div class="employee-lookup-search">
                     <i class="bi bi-search"></i>
                     <input class="form-control"
@@ -95,12 +105,12 @@
                 </div>
             </div>
 
-    <div class="table-responsive">
+    <div class="erp-table-wrap employee-lookup-table-wrap">
             <div class="d-flex justify-content-end mb-2">
             <TableExportActions />
         </div>
 
-    <table class="table employee-lookup-table align-middle mb-0">
+    <table class="table erp-table employee-lookup-table align-middle mb-0">
         <thead>
             <tr>
                 <th @onclick="() => Sort(nameof(PositionDto.Title))" class="sortable">
@@ -181,18 +191,18 @@
                 <tr>
                     <td class="fw-semibold">@EmptyValue(position.Title)</td>
                     <td>@EmptyValue(position.TitleEng)</td>
-                    <td><span class="badge rounded-pill text-bg-light">@position.BaseSalary.ToString("N2")</span></td>
+                    <td><span class="erp-value-pill">@position.BaseSalary.ToString("N2")</span></td>
                     <td class="text-end">
                         <div class="d-flex justify-content-end gap-2">
                         <button class="btn btn-outline-warning btn-sm employee-lookup-action"
                                 @onclick="() => EditPosition(position.Id)"
-                                disabled="@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.PositionPermissions.Edit))"
+                                disabled="@(!CanEditPositions)"
                                 title="@SharedDataService.SelectViewLang("Edit", "تعديل")">
                             <i class="bi bi-pencil-square"></i>
                         </button>
                         <button class="btn btn-outline-danger btn-sm employee-lookup-action"
                                 @onclick="() => DeletePosition(position)"
-                                disabled="@(!AuthState.User.Claims.Any(c => c.Value == PermissionList.PositionPermissions.Delete))"
+                                disabled="@(!CanDeletePositions)"
                                 title="@SharedDataService.SelectViewLang("Delete", "حذف")">
                             <i class="bi bi-trash"></i>
                         </button>
@@ -205,7 +215,7 @@
         </tbody>
     </table>
     </div>
-    <div class="employee-lookup-pagination">
+    <div class="erp-table-footer employee-lookup-pagination">
 
         <button class="btn btn-sm btn-outline-secondary"
                 @onclick="PrevPage"
@@ -364,10 +374,16 @@
     private List<PositionDto> positions = new();
     private Guid? editingPositionId;
     private Guid companyId;
-    private AuthenticationState AuthState;
+    private AuthenticationState? AuthState;
+
+    private bool CanViewPositions => HasPermission(PermissionList.PositionPermissions.View);
+    private bool CanCreatePositions => HasPermission(PermissionList.PositionPermissions.Create);
+    private bool CanEditPositions => HasPermission(PermissionList.PositionPermissions.Edit);
+    private bool CanDeletePositions => HasPermission(PermissionList.PositionPermissions.Delete);
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private bool HasPermission(string permission) => AuthState?.User.Claims.Any(c => c.Value == permission) ?? false;
 
     private string SortIcon(string column)
         => sortColumn != column
@@ -382,7 +398,10 @@
             NavigationManager.NavigateTo("/Dashboard");
             return;
         }
-        await LoadPositions();
+        if (CanViewPositions)
+        {
+            await LoadPositions();
+        }
         // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
         // if (branchResponse.IsSuccess)
         // {

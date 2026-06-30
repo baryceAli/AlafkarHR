@@ -6,6 +6,9 @@ public static class NavigationShellState
     public const string FavoriteStorageKey = "alafkar.mobileNav.favoriteKeys";
     public const string RecentStorageKey = "alafkar.mobileNav.recentKeys";
     public const string SidebarCollapsedStorageKey = "alafkar.desktopNav.isCollapsed";
+    public const string NavigationModeStorageKey = "alafkar.navigation.mode";
+    public const string NavigationModeClassic = "classic";
+    public const string NavigationModeFluentFlow = "fluent-flow";
     public const int MaxRecentItems = 6;
 
     public static IReadOnlyList<string> ParseKeys(string? value)
