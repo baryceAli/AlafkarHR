@@ -7,7 +7,7 @@
         <i class="bi bi-search"></i>
         <span>@SharedDataService.SelectViewLang("Search", "\u0628\u062d\u062b")</span>
     </button>
-    <button type="button" class="mobile-action-bar-item" @onclick="OnOpenWorkspace">
+    <button type="button" class="mobile-action-bar-item @(IsWorkspaceOpen ? "is-active" : "")" @onclick="OnOpenWorkspace">
         <i class="bi bi-compass"></i>
         <span>@SharedDataService.SelectViewLang("Workspace", "\u0645\u0633\u0627\u062d\u0629")</span>
     </button>
@@ -27,6 +27,7 @@
 
 @code {
     [Parameter] public bool IsMoreOpen { get; set; }
+    [Parameter] public bool IsWorkspaceOpen { get; set; }
     [Parameter] public EventCallback OnOpenCommand { get; set; }
     [Parameter] public EventCallback OnOpenWorkspace { get; set; }
     [Parameter] public EventCallback OnOpenRecent { get; set; }

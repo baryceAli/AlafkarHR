@@ -15,6 +15,8 @@ Preserve current business logic, routes, DTOs, permissions, services, APIs, and 
 
 Read this skill first, then inspect only files directly related to the request. Avoid whole-repo scans unless required to find an unknown pattern. Reuse existing project patterns, keep changes small, avoid unrelated refactors, avoid duplicated CSS/components, and prefer extending local conventions over adding packages.
 
+Before any mutating development task, check the current Git branch and working tree. If the task is not already on a suitable task branch, create or switch to a task branch using the `codex/` prefix by default and a short kebab-case name derived from the task, such as `codex/add-uat-estimate-plan`. Do not create a new branch for read-only analysis, planning-only work, or when the user explicitly asks not to. Do not overwrite, reset, or discard existing user changes while creating or switching branches.
+
 Before coding, list the expected files/modules to inspect or change. After coding, summarize changed files and manual test steps. Ask before large architectural changes.
 
 For every new or changed business feature, make sure the user-facing UI is updated so the feature can actually be used from the application, unless the user explicitly requests backend-only work. Backend endpoints, DTOs, permissions, services, and migrations are not complete by themselves when the feature requires user interaction. Add or update the relevant Blazor page/component, feature service/interface, menu entry, permission-gated actions, forms/tables/modals, loading/error/toast states, and localization/RTL behavior needed for the user workflow.
@@ -186,7 +188,7 @@ Avoid tight coupling between modules. Use shared contracts for data crossing mod
 
 ## 23. Required Output Format for Future Codex Tasks
 
-For future development tasks, respond with: brief understanding; files/modules to inspect; minimal implementation plan; files changed; UI exposure; manual test checklist; assumptions or risks.
+For future development tasks, respond with: brief understanding; files/modules to inspect; minimal implementation plan; files changed; UI exposure; manual test checklist; assumptions or risks. When development changes are made, mention the Git branch used for the implementation in the final summary.
 
 UI exposure: describe where the user can access the feature, including route/menu/action/button/form changes, or state explicitly that the user requested backend-only work.
 

@@ -377,6 +377,13 @@ public static partial class NavigationMenuResolver
 
     public static string? ResolveActiveFunctionalGroupKey(string currentUri, string baseUri, string workspaceKey)
     {
+        var currentPath = NormalizePath(ToRelativePath(currentUri, baseUri));
+        var guidedPrefix = $"/guidedworkspace/{workspaceKey.ToLowerInvariant()}/";
+        if (currentPath.StartsWith(guidedPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return currentPath[guidedPrefix.Length..];
+        }
+
         var activePath = GetActivePath(currentUri, baseUri, workspaceKey);
         return activePath
             .Select(GetFunctionalGroupKey)
@@ -392,6 +399,15 @@ public static partial class NavigationMenuResolver
         if (currentPath == "/" || currentPath == "/dashboard")
         {
             return WorkspaceHome;
+        }
+
+        if (currentPath.StartsWith("/guidedworkspace/", StringComparison.OrdinalIgnoreCase))
+        {
+            var parts = currentPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2)
+            {
+                return parts[1];
+            }
         }
 
         if (TryResolveWorkspaceMatch(currentPath, preferredWorkspaceKey, out var preferredWorkspace))

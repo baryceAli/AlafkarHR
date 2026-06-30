@@ -9,7 +9,7 @@
             class="mobile-workspace-trigger"
             aria-expanded="@isOpen"
             aria-haspopup="menu"
-            @onclick="Toggle">
+            @onclick="ToggleAsync">
         <span class="mobile-workspace-icon"><i class="bi @ActiveWorkspaceItem.Icon"></i></span>
         <span class="mobile-workspace-copy">
             <small>@SharedDataService.SelectViewLang("Workspace", "\u0645\u0633\u0627\u062d\u0629 \u0627\u0644\u0639\u0645\u0644")</small>
@@ -51,6 +51,8 @@
     [Parameter] public IReadOnlySet<string>? LicensedBusinessLineKeys { get; set; }
     [Parameter] public EventCallback<string> ActiveWorkspaceChanged { get; set; }
     [Parameter] public EventCallback OnOpenMore { get; set; }
+    [Parameter] public bool UseGuidedNavigation { get; set; }
+    [Parameter] public EventCallback OnOpenGuidedNavigation { get; set; }
 
     private bool isOpen;
 
@@ -63,7 +65,18 @@
             : WorkspaceItems.FirstOrDefault(item => item.Key == ActiveWorkspace)
               ?? NavigationMenuResolver.MobileWorkspaces.First(item => item.Key == NavigationMenuResolver.WorkspaceHome);
 
-    private void Toggle() => isOpen = !isOpen;
+    private async Task ToggleAsync()
+    {
+        if (UseGuidedNavigation && OnOpenGuidedNavigation.HasDelegate)
+        {
+            isOpen = false;
+            await OnOpenGuidedNavigation.InvokeAsync();
+            return;
+        }
+
+        isOpen = !isOpen;
+    }
+
     private void Close() => isOpen = false;
 
     private async Task SelectWorkspaceAsync(NavigationWorkspace workspace)

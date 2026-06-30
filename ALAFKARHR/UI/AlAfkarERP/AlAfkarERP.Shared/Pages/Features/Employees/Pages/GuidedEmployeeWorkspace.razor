@@ -1,0 +1,1231 @@
+@layout AdminLayout
+@page "/GuidedWorkspace/{WorkspaceKey}"
+@page "/GuidedWorkspace/{WorkspaceKey}/{FunctionalGroupKey}"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.GuidedAssistant.Models
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Attendance.Enums
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Employees.Enums
+@using SharedWithUI.Organization.Dtos
+@using SharedWithUI.Permissions
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IBranchService BranchService
+@inject IAdministrationService AdministrationService
+@inject IDepartmentService DepartmentService
+@inject IEmployeeService EmployeeService
+@inject IPositionService PositionService
+@inject IAcademicInistitutionService AcademicInistitutionService
+@inject ISpecializationService SpecializationService
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+@inject NavigationManager NavigationManager
+
+<div class="guided-workspace-page" dir="@SharedDataService.PageDirection">
+    <section class="guided-chat-surface" aria-label="@Text("Guided workspace", "\u0645\u0633\u0627\u062d\u0629 \u0639\u0645\u0644 \u0645\u0648\u062c\u0647\u0629")">
+        <header class="guided-chat-topbar">
+            <div>
+                <span>@WorkspaceTitle</span>
+                <strong>@AreaTitle</strong>
+            </div>
+            <div class="guided-chat-topbar-actions">
+                @if (IsEmployeeArea)
+                {
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="GoToEmployeeDirectory">
+                        <i class="bi bi-list-ul"></i>
+                        @Text("Directory", "\u0627\u0644\u062f\u0644\u064a\u0644")
+                    </button>
+                }
+            </div>
+        </header>
+
+        <div class="guided-chat-layout @(IsEmployeeArea ? "has-draft-panel" : "is-full-width")">
+            <main class="guided-chat-thread" role="log" aria-live="polite">
+                @if (IsWorkspaceLanding)
+                {
+                    <article class="guided-message is-system">
+                        <span class="guided-message-avatar"><i class="bi bi-chat-square-text"></i></span>
+                        <div class="guided-message-stack">
+                            <div class="guided-message-bubble">
+                                @Text("Welcome to HR. Choose a functional area to start a guided conversation.", "\u0645\u0631\u062d\u0628\u0627 \u0628\u0643 \u0641\u064a \u0627\u0644\u0645\u0648\u0627\u0631\u062f \u0627\u0644\u0628\u0634\u0631\u064a\u0629. \u0627\u062e\u062a\u0631 \u0645\u0646\u0637\u0642\u0629 \u0648\u0638\u064a\u0641\u064a\u0629 \u0644\u0628\u062f\u0621 \u0645\u062d\u0627\u062f\u062b\u0629 \u0645\u0648\u062c\u0647\u0629.")
+                            </div>
+                            <small>@Text("Assistant", "\u0627\u0644\u0645\u0633\u0627\u0639\u062f")</small>
+                        </div>
+                    </article>
+
+                    <section class="guided-area-grid" aria-label="@Text("HR functional areas", "\u0645\u0646\u0627\u0637\u0642 \u0627\u0644\u0645\u0648\u0627\u0631\u062f")">
+                        @foreach (var area in GuidedAreas)
+                        {
+                            <button type="button"
+                                    class="guided-area-card"
+                                    disabled="@(!area.IsEnabled)"
+                                    @onclick="() => OpenGuidedArea(area)">
+                                <i class="bi @area.Icon"></i>
+                                <span>
+                                    <strong>@area.Title</strong>
+                                    <small>@area.Description</small>
+                                </span>
+                            </button>
+                        }
+                    </section>
+                }
+                else if (!IsEmployeeArea)
+                {
+                    <article class="guided-message is-system">
+                        <span class="guided-message-avatar"><i class="bi bi-chat-square-text"></i></span>
+                        <div class="guided-message-stack">
+                            <div class="guided-message-bubble">
+                                @Text("This guided area is not connected yet. Choose Employees to use the first guided HR assistant.", "\u0647\u0630\u0647 \u0627\u0644\u0645\u0646\u0637\u0642\u0629 \u0627\u0644\u0645\u0648\u062c\u0647\u0629 \u063a\u064a\u0631 \u0645\u0631\u0628\u0648\u0637\u0629 \u0628\u0639\u062f. \u0627\u062e\u062a\u0631 \u0627\u0644\u0645\u0648\u0638\u0641\u064a\u0646 \u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0623\u0648\u0644 \u0645\u0633\u0627\u0639\u062f \u0645\u0648\u062c\u0647 \u0644\u0644\u0645\u0648\u0627\u0631\u062f.")
+                            </div>
+                        </div>
+                    </article>
+                }
+                else
+                {
+                    @foreach (var message in messages)
+                    {
+                        <article class="guided-message @(message.IsUser ? "is-user" : "is-system")">
+                            @if (!message.IsUser)
+                            {
+                                <span class="guided-message-avatar"><i class="bi bi-stars"></i></span>
+                            }
+                            <div class="guided-message-stack">
+                                <div class="guided-message-bubble">@message.Text</div>
+                                <small>@(message.IsUser ? Text("You", "\u0623\u0646\u062a") : Text("Assistant", "\u0627\u0644\u0645\u0633\u0627\u0639\u062f"))</small>
+                            </div>
+                        </article>
+                    }
+
+                    @if (mode == GuidedMode.Actions)
+                    {
+                        <section class="guided-action-grid" aria-label="@Text("Employee actions", "\u0625\u062c\u0631\u0627\u0621\u0627\u062a \u0627\u0644\u0645\u0648\u0638\u0641\u064a\u0646")">
+                            @foreach (var action in EmployeeActions)
+                            {
+                                <button type="button"
+                                        class="guided-action-card"
+                                        disabled="@(!action.IsEnabled)"
+                                        @onclick="() => RunActionAsync(action.Key)">
+                                    <i class="bi @action.Icon"></i>
+                                    <span>
+                                        <strong>@action.Title</strong>
+                                        <small>@action.Description</small>
+                                    </span>
+                                </button>
+                            }
+                        </section>
+                    }
+
+                    @if (mode == GuidedMode.AddEmployee && CurrentStep is not null && !isReviewing && !isSubmitted)
+                    {
+                        <section class="guided-current-step">
+                            @if (CurrentStep.Kind == GuidedStepKind.Text || CurrentStep.Kind == GuidedStepKind.Number || CurrentStep.Kind == GuidedStepKind.Date)
+                            {
+                                <div class="guided-message-bar">
+                                    <input class="form-control"
+                                           type="@InputType"
+                                           value="@currentInput"
+                                           @oninput="OnInputChanged"
+                                           @onkeydown="OnInputKeyDown"
+                                           placeholder="@CurrentStep.Placeholder" />
+                                    <button type="button" class="btn btn-primary" @onclick="SubmitCurrentInputAsync" disabled="@isSaving">
+                                        <i class="bi bi-send"></i>
+                                    </button>
+                                </div>
+                            }
+                            else if (CurrentStep.Kind == GuidedStepKind.Choice)
+                            {
+                                <div class="guided-choice-grid">
+                                    @foreach (var choice in ChoiceOptions)
+                                    {
+                                        <button type="button"
+                                                class="guided-choice-card @(choice.IsDefault ? "is-default" : "")"
+                                                @onclick="() => SubmitChoiceAsync(choice)">
+                                            <span>@choice.Label</span>
+                                            @if (choice.IsDefault)
+                                            {
+                                                <small>@Text("Default", "\u0627\u0641\u062a\u0631\u0627\u0636\u064a")</small>
+                                            }
+                                        </button>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="guided-selector-card">
+                                    @SelectorForCurrentStep()
+                                    @if (!CurrentStep.IsRequired)
+                                    {
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="SkipCurrentStepAsync">
+                                            <i class="bi bi-skip-forward"></i>
+                                            @Text("Skip", "\u062a\u062e\u0637\u064a")
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </section>
+                    }
+
+                    @if (mode == GuidedMode.AddEmployee)
+                    {
+                        <section class="guided-flow-actions" aria-label="@Text("Flow actions", "\u0625\u062c\u0631\u0627\u0621\u0627\u062a \u0627\u0644\u062a\u062f\u0641\u0642")">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="BackAsync" disabled="@(currentStepIndex <= 0 || isSaving || isSubmitted)">
+                                <i class="bi bi-arrow-left"></i>
+                                @Text("Back", "\u0631\u062c\u0648\u0639")
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelFlowAsync" disabled="@isSaving">
+                                <i class="bi bi-x-lg"></i>
+                                @Text("Cancel", "\u0625\u0644\u063a\u0627\u0621")
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="ReviewDraftAsync" disabled="@isSaving">
+                                <i class="bi bi-clipboard-check"></i>
+                                @Text("Review Draft", "\u0645\u0631\u0627\u062c\u0639\u0629 \u0627\u0644\u0645\u0633\u0648\u062f\u0629")
+                            </button>
+                        </section>
+                    }
+
+                    @if (isReviewing)
+                    {
+                        <section class="guided-review-panel">
+                            <header>
+                                <strong>@Text("Review employee draft", "\u0645\u0631\u0627\u062c\u0639\u0629 \u0645\u0633\u0648\u062f\u0629 \u0627\u0644\u0645\u0648\u0638\u0641")</strong>
+                                <span>@Text("Missing required fields are marked before submit.", "\u062a\u0645 \u062a\u0645\u064a\u064a\u0632 \u0627\u0644\u062d\u0642\u0648\u0644 \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629 \u0627\u0644\u0646\u0627\u0642\u0635\u0629 \u0642\u0628\u0644 \u0627\u0644\u0625\u0631\u0633\u0627\u0644.")
+                                </span>
+                            </header>
+                            <div class="guided-review-grid">
+                                @foreach (var field in DraftFields)
+                                {
+                                    <div class="guided-review-row @(field.IsMissing ? "is-missing" : "")">
+                                        <span>@field.Label</span>
+                                        <strong>@(string.IsNullOrWhiteSpace(field.Value) ? Text("Missing", "\u0646\u0627\u0642\u0635") : field.Value)</strong>
+                                        @if (CanEditField(field))
+                                        {
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary btn-sm guided-edit-field"
+                                                    @onclick="() => EditDraftFieldAsync(field.Key)"
+                                                    disabled="@isSaving">
+                                                <i class="bi bi-pencil"></i>
+                                                @Text("Edit", "\u062a\u0639\u062f\u064a\u0644")
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            <div class="guided-review-actions">
+                                <button type="button" class="btn btn-outline-secondary" @onclick="ContinueEditingAsync" disabled="@isSaving">
+                                    <i class="bi bi-pencil"></i>
+                                    @Text("Edit", "\u062a\u0639\u062f\u064a\u0644")
+                                </button>
+                                <button type="button" class="btn btn-primary" @onclick="SubmitEmployeeAsync" disabled="@(isSaving || MissingRequiredFields.Any())">
+                                    <i class="bi bi-check2-circle"></i>
+                                    @(isSaving ? Text("Submitting...", "\u062c\u0627\u0631\u064a \u0627\u0644\u0625\u0631\u0633\u0627\u0644...") : Text("Submit Employee", "\u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0645\u0648\u0638\u0641"))
+                                </button>
+                            </div>
+                        </section>
+                    }
+
+                    @if (isSubmitted)
+                    {
+                        <section class="guided-success-actions" aria-label="@Text("Next actions", "\u0627\u0644\u0625\u062c\u0631\u0627\u0621\u0627\u062a \u0627\u0644\u062a\u0627\u0644\u064a\u0629")">
+                            @if (createdEmployeeId.HasValue)
+                            {
+                                <button type="button" class="btn btn-outline-primary" @onclick="ViewCreatedEmployee">
+                                    <i class="bi bi-person-lines-fill"></i>
+                                    @Text("View Employee", "\u0639\u0631\u0636 \u0627\u0644\u0645\u0648\u0638\u0641")
+                                </button>
+                            }
+                            <button type="button" class="btn btn-primary" @onclick="StartAnotherEmployeeAsync">
+                                <i class="bi bi-person-plus"></i>
+                                @Text("Add Another", "\u0625\u0636\u0627\u0641\u0629 \u0622\u062e\u0631")
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" @onclick="GoToEmployeeDirectory">
+                                <i class="bi bi-list-ul"></i>
+                                @Text("Directory", "\u0627\u0644\u062f\u0644\u064a\u0644")
+                            </button>
+                        </section>
+                    }
+                }
+            </main>
+
+            @if (IsEmployeeArea)
+            {
+                <aside class="guided-draft-panel" aria-label="@Text("Draft summary", "\u0645\u0644\u062e\u0635 \u0627\u0644\u0645\u0633\u0648\u062f\u0629")">
+                    <header>
+                        <span>@Text("Employee draft", "\u0645\u0633\u0648\u062f\u0629 \u0627\u0644\u0645\u0648\u0638\u0641")</span>
+                        <strong>@(string.IsNullOrWhiteSpace(employee.FullNameEng.Trim()) ? Text("New employee", "\u0645\u0648\u0638\u0641 \u062c\u062f\u064a\u062f") : employee.FullNameEng)</strong>
+                    </header>
+                    <div class="guided-draft-progress">
+                        <span>@Text("Completed", "\u0645\u0643\u062a\u0645\u0644")</span>
+                        <strong>@CompletedRequiredCount / @RequiredFieldCount</strong>
+                    </div>
+                    <div class="guided-draft-list">
+                        @foreach (var field in DraftFields.Take(10))
+                        {
+                            <div class="guided-draft-row @(field.IsMissing ? "is-missing" : "")">
+                                <span>@field.Label</span>
+                                <strong>@(string.IsNullOrWhiteSpace(field.Value) ? Text("Missing", "\u0646\u0627\u0642\u0635") : field.Value)</strong>
+                                @if (CanEditField(field) && mode == GuidedMode.AddEmployee && !isSubmitted)
+                                {
+                                    <button type="button"
+                                            class="btn btn-outline-secondary btn-sm guided-edit-field"
+                                            @onclick="() => EditDraftFieldAsync(field.Key)"
+                                            disabled="@isSaving">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                    @if (MissingRequiredFields.Any())
+                    {
+                        <div class="guided-draft-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <span>@Text($"{MissingRequiredFields.Count()} required fields left.", $"{MissingRequiredFields.Count()} \u062d\u0642\u0648\u0644 \u0645\u0637\u0644\u0648\u0628\u0629 \u0645\u062a\u0628\u0642\u064a\u0629.")</span>
+                        </div>
+                    }
+                </aside>
+            }
+        </div>
+    </section>
+</div>
+
+@code {
+    [Parameter] public string WorkspaceKey { get; set; } = string.Empty;
+    [Parameter] public string? FunctionalGroupKey { get; set; }
+    [SupplyParameterFromQuery(Name = "action")] public string? ActionKey { get; set; }
+
+    private AuthenticationState? authState;
+    private Guid companyId;
+    private EmployeeDto employee = new();
+    private List<BranchDto> branches = [];
+    private List<AdministrationDto> administrations = [];
+    private List<DepartmentDto> departments = [];
+    private List<PositionDto> positions = [];
+    private List<EmployeeDto> managerEmployees = [];
+    private List<AcademicInstitutionDto> academicInstitutions = [];
+    private List<SpecializationDto> specializations = [];
+    private BranchDto? selectedBranch;
+    private AdministrationDto? selectedAdministration;
+    private DepartmentDto? selectedDepartment;
+    private PositionDto? selectedPosition;
+    private EmployeeDto? selectedManager;
+    private AcademicInstitutionDto? selectedAcademicInstitution;
+    private SpecializationDto? selectedSpecialization;
+    private readonly List<ChatMessage> messages = [];
+    private List<GuidedStep> steps = [];
+    private int currentStepIndex;
+    private string currentInput = string.Empty;
+    private bool isLoaded;
+    private bool isSaving;
+    private bool isReviewing;
+    private bool isSubmitted;
+    private bool returnToReviewAfterEdit;
+    private Guid? createdEmployeeId;
+    private GuidedMode mode = GuidedMode.Actions;
+    private string? handledActionKey;
+
+    private bool IsEmployeeArea
+        => string.Equals(WorkspaceKey, NavigationMenuResolver.WorkspaceHr, StringComparison.OrdinalIgnoreCase)
+           && string.Equals(FunctionalGroupKey, NavigationMenuResolver.HrFunctionalGroupEmployees, StringComparison.OrdinalIgnoreCase);
+
+    private bool IsWorkspaceLanding
+        => string.Equals(WorkspaceKey, NavigationMenuResolver.WorkspaceHr, StringComparison.OrdinalIgnoreCase)
+           && string.IsNullOrWhiteSpace(FunctionalGroupKey);
+
+    private string WorkspaceTitle => Text("HR", "\u0627\u0644\u0645\u0648\u0627\u0631\u062f");
+    private string AreaTitle => IsEmployeeArea
+        ? Text("Employees", "\u0627\u0644\u0645\u0648\u0638\u0641\u0648\u0646")
+        : IsWorkspaceLanding
+            ? Text("HR guided workspace", "\u0645\u0633\u0627\u062d\u0629 \u0645\u0648\u0627\u0631\u062f \u0645\u0648\u062c\u0647\u0629")
+            : Text("Guided workspace", "\u0645\u0633\u0627\u062d\u0629 \u0645\u0648\u062c\u0647\u0629");
+    private GuidedStep? CurrentStep => mode == GuidedMode.AddEmployee && currentStepIndex >= 0 && currentStepIndex < steps.Count ? steps[currentStepIndex] : null;
+    private string InputType => CurrentStep?.Kind == GuidedStepKind.Date ? "date" : CurrentStep?.Kind == GuidedStepKind.Number ? "number" : "text";
+    private bool CanCreateEmployee => HasPermission(PermissionList.EmployeePermissions.Create) && HasPermission(PermissionList.EmployeePermissions.Edit);
+    private bool CanViewEmployee => HasPermission(PermissionList.EmployeePermissions.View) || HasPermission(PermissionList.EmployeePermissions.Select);
+    private int RequiredFieldCount => DraftFields.Count(item => item.IsRequired);
+    private int CompletedRequiredCount => DraftFields.Count(item => item.IsRequired && !item.IsMissing);
+    private IEnumerable<DraftField> MissingRequiredFields => DraftFields.Where(item => item.IsRequired && item.IsMissing);
+    private List<DepartmentDto> DepartmentSelectorItems => selectedAdministration is null ? [] : departments;
+
+    private IReadOnlyList<GuidedArea> GuidedAreas
+        => NavigationMenuResolver.GetAuthorizedWorkspaceFunctionalGroups(authState?.User, NavigationMenuResolver.WorkspaceHr, null)
+            .Select(group => new GuidedArea(
+                group.Key,
+                group.WorkspaceKey,
+                Text(group.TextEn, group.TextAr),
+                AreaDescription(group.Key),
+                group.Icon,
+                string.Equals(group.Key, NavigationMenuResolver.HrFunctionalGroupEmployees, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+    private IReadOnlyList<GuidedAction> EmployeeActions =>
+    [
+        new("add-employee", Text("Add New Employee", "\u0625\u0636\u0627\u0641\u0629 \u0645\u0648\u0638\u0641 \u062c\u062f\u064a\u062f"), Text("Onboard a new team member step by step.", "\u0625\u062f\u062e\u0627\u0644 \u0645\u0648\u0638\u0641 \u062c\u062f\u064a\u062f \u062e\u0637\u0648\u0629 \u0628\u062e\u0637\u0648\u0629."), "bi-person-plus", CanCreateEmployee),
+        new("change-department", Text("Change Department", "\u062a\u063a\u064a\u064a\u0631 \u0627\u0644\u0642\u0633\u0645"), Text("Reassign an employee to another department.", "\u0646\u0642\u0644 \u0645\u0648\u0638\u0641 \u0625\u0644\u0649 \u0642\u0633\u0645 \u0622\u062e\u0631."), "bi-arrow-left-right", false),
+        new("change-position", Text("Change Position", "\u062a\u063a\u064a\u064a\u0631 \u0627\u0644\u0645\u0633\u0645\u0649"), Text("Move an employee to a new position.", "\u0646\u0642\u0644 \u0645\u0648\u0638\u0641 \u0625\u0644\u0649 \u0645\u0633\u0645\u0649 \u062c\u062f\u064a\u062f."), "bi-briefcase", false),
+        new("terminate", Text("Terminate Employee", "\u0625\u0646\u0647\u0627\u0621 \u062e\u062f\u0645\u0629"), Text("Prepare an employee termination request.", "\u062a\u062c\u0647\u064a\u0632 \u0637\u0644\u0628 \u0625\u0646\u0647\u0627\u0621 \u062e\u062f\u0645\u0629."), "bi-person-dash", false),
+        new("directory", Text("Employee Directory", "\u062f\u0644\u064a\u0644 \u0627\u0644\u0645\u0648\u0638\u0641\u064a\u0646"), Text("Open the existing employee list.", "\u0641\u062a\u062d \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u0648\u0638\u0641\u064a\u0646 \u0627\u0644\u062d\u0627\u0644\u064a\u0629."), "bi-list-ul", CanViewEmployee)
+    ];
+
+    private IReadOnlyList<DraftField> DraftFields =>
+    [
+        Field("CompanyId", Text("Company", "\u0627\u0644\u0634\u0631\u0643\u0629"), companyId == Guid.Empty ? "" : companyId.ToString(), true),
+        Field("BranchId", Text("Branch", "\u0627\u0644\u0641\u0631\u0639"), selectedBranch is null ? "" : BranchLabel(selectedBranch), true),
+        Field("EmployeeNo", Text("Employee No", "\u0631\u0642\u0645 \u0627\u0644\u0645\u0648\u0638\u0641"), employee.EmployeeNo, true),
+        Field("Code", Text("Code", "\u0627\u0644\u0643\u0648\u062f"), employee.Code, true),
+        Field("FirstName", Text("First Name", "\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u0648\u0644"), employee.FirstName, true),
+        Field("FirstNameEng", Text("First Name Eng", "\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u0648\u0644 \u0625\u0646\u062c\u0644\u064a\u0632\u064a"), employee.FirstNameEng, true),
+        Field("MiddleName", Text("Middle Name", "\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u0648\u0633\u0637"), employee.MiddleName, true),
+        Field("MiddleNameEng", Text("Middle Name Eng", "\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u0648\u0633\u0637 \u0625\u0646\u062c\u0644\u064a\u0632\u064a"), employee.MiddleNameEng, true),
+        Field("LastName", Text("Last Name", "\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u062e\u064a\u0631"), employee.LastName, true),
+        Field("LastNameEng", Text("Last Name Eng", "\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u062e\u064a\u0631 \u0625\u0646\u062c\u0644\u064a\u0632\u064a"), employee.LastNameEng, true),
+        Field("Email", Text("Email", "\u0627\u0644\u0628\u0631\u064a\u062f"), employee.Email, true),
+        Field("Phone", Text("Phone", "\u0627\u0644\u0647\u0627\u062a\u0641"), employee.Phone, true),
+        Field("DateOfBirth", Text("Birth date", "\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0645\u064a\u0644\u0627\u062f"), FormatDate(employee.DateOfBirth), true),
+        Field("NationalId", Text("National ID", "\u0631\u0642\u0645 \u0627\u0644\u0647\u0648\u064a\u0629"), employee.NationalId, true),
+        Field("HireDate", Text("Hire date", "\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u062a\u0639\u064a\u064a\u0646"), FormatDate(employee.HireDate), true),
+        Field("PositionId", Text("Position", "\u0627\u0644\u0645\u0633\u0645\u0649"), selectedPosition is null ? "" : PositionLabel(selectedPosition), true),
+        Field("Nationality", Text("Nationality", "\u0627\u0644\u062c\u0646\u0633\u064a\u0629"), employee.Nationality, true),
+        Field("Address", Text("Address", "\u0627\u0644\u0639\u0646\u0648\u0627\u0646"), employee.Address, true),
+        Field("SpecializationId", Text("Specialization", "\u0627\u0644\u062a\u062e\u0635\u0635"), selectedSpecialization is null ? "" : NameLabel(selectedSpecialization.NameEng, selectedSpecialization.Name), true),
+        Field("AcademicInstituteId", Text("Academic Institute", "\u0627\u0644\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u0623\u0643\u0627\u062f\u064a\u0645\u064a\u0629"), selectedAcademicInstitution is null ? "" : NameLabel(selectedAcademicInstitution.NameEng, selectedAcademicInstitution.Name), true),
+        Field("GraduationYear", Text("Graduation Year", "\u0633\u0646\u0629 \u0627\u0644\u062a\u062e\u0631\u062c"), employee.GraduationYear > 0 ? employee.GraduationYear.ToString() : "", true),
+        Field("IdentityType", Text("Identity Type", "\u0646\u0648\u0639 \u0627\u0644\u0647\u0648\u064a\u0629"), GetIdentityTypeDisplay(employee.IdentityType), false),
+        Field("Gender", Text("Gender", "\u0627\u0644\u0646\u0648\u0639"), GetGenderDisplay(employee.Gender), false),
+        Field("MaritalStatus", Text("Marital Status", "\u0627\u0644\u062d\u0627\u0644\u0629 \u0627\u0644\u0627\u062c\u062a\u0645\u0627\u0639\u064a\u0629"), GetMaritalStatusDisplay(employee.MaritalStatus), false),
+        Field("EmploymentType", Text("Employment Type", "\u0646\u0648\u0639 \u0627\u0644\u062a\u0648\u0638\u064a\u0641"), GetEmploymentTypeDisplay(employee.EmploymentType), false),
+        Field("Qualification", Text("Qualification", "\u0627\u0644\u0645\u0624\u0647\u0644"), GetQualificationDisplay(employee.Qualification), false),
+        Field("AttendanceType", Text("Attendance Type", "\u0646\u0648\u0639 \u0627\u0644\u062d\u0636\u0648\u0631"), GetAttendanceTypeDisplay(employee.AttendanceType), false),
+        Field("AllowedRadiusMeters", Text("Allowed Radius", "\u0646\u0637\u0627\u0642 \u0627\u0644\u062d\u0636\u0648\u0631"), employee.AllowedRadiusMeters?.ToString(), false),
+        Field("AdministrationId", Text("Administration", "\u0627\u0644\u0625\u062f\u0627\u0631\u0629"), selectedAdministration is null ? "" : NameLabel(selectedAdministration.NameEng, selectedAdministration.Name), false),
+        Field("DepartmentId", Text("Department", "\u0627\u0644\u0642\u0633\u0645"), selectedDepartment is null ? "" : NameLabel(selectedDepartment.NameEng, selectedDepartment.Name), false),
+        Field("ManagerEmployeeId", Text("Manager", "\u0627\u0644\u0645\u062f\u064a\u0631"), selectedManager is null ? "" : EmployeeLabel(selectedManager), false)
+    ];
+
+    private IReadOnlyList<GuidedChoice> ChoiceOptions
+        => CurrentStep?.Key switch
+        {
+            "IdentityType" => Enum.GetValues<IdentityType>()
+                .Select(item => new GuidedChoice(item.ToString(), GetIdentityTypeDisplay(item), item == employee.IdentityType))
+                .ToList(),
+            "Gender" => Enum.GetValues<Gender>()
+                .Select(item => new GuidedChoice(item.ToString(), GetGenderDisplay(item), item == employee.Gender))
+                .ToList(),
+            "MaritalStatus" => Enum.GetValues<MaritalStatus>()
+                .Select(item => new GuidedChoice(item.ToString(), GetMaritalStatusDisplay(item), item == employee.MaritalStatus))
+                .ToList(),
+            "EmploymentType" => Enum.GetValues<EmploymentType>()
+                .Select(item => new GuidedChoice(item.ToString(), GetEmploymentTypeDisplay(item), item == employee.EmploymentType))
+                .ToList(),
+            "Qualification" => Enum.GetValues<Qualification>()
+                .Select(item => new GuidedChoice(item.ToString(), GetQualificationDisplay(item), item == employee.Qualification))
+                .ToList(),
+            "AttendanceType" => Enum.GetValues<EmployeeAttendanceType>()
+                .Select(item => new GuidedChoice(item.ToString(), GetAttendanceTypeDisplay(item), item == employee.AttendanceType))
+                .ToList(),
+            _ => []
+        };
+
+    private string AreaDescription(string key)
+        => key switch
+        {
+            var value when string.Equals(value, NavigationMenuResolver.HrFunctionalGroupEmployees, StringComparison.OrdinalIgnoreCase)
+                => Text("Open employee actions and guided onboarding.", "\u0627\u0641\u062a\u062d \u0625\u062c\u0631\u0627\u0621\u0627\u062a \u0627\u0644\u0645\u0648\u0638\u0641\u064a\u0646 \u0648\u0627\u0644\u062a\u0639\u064a\u064a\u0646 \u0627\u0644\u0645\u0648\u062c\u0647."),
+            _ => Text("Coming later as a guided conversation.", "\u0633\u064a\u062a\u0645 \u0631\u0628\u0637\u0647\u0627 \u0644\u0627\u062d\u0642\u0627 \u0643\u0645\u062d\u0627\u062f\u062b\u0629 \u0645\u0648\u062c\u0647\u0629.")
+        };
+
+    private void OpenGuidedArea(GuidedArea area)
+    {
+        if (!area.IsEnabled)
+        {
+            return;
+        }
+
+        NavigationManager.NavigateTo($"/GuidedWorkspace/{area.WorkspaceKey}/{area.Key}");
+    }
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+
+        ResetEmployee();
+        BuildSteps();
+        await LoadLookupsAsync();
+        isLoaded = true;
+        ResetAreaState();
+        ResetWelcome();
+        if (IsEmployeeArea && !string.IsNullOrWhiteSpace(ActionKey))
+        {
+            handledActionKey = ActionKey;
+            await RunActionAsync(ActionKey);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!isLoaded)
+        {
+            return;
+        }
+
+        ResetAreaState();
+        ResetWelcome();
+        if (IsEmployeeArea && !string.IsNullOrWhiteSpace(ActionKey) && !string.Equals(handledActionKey, ActionKey, StringComparison.OrdinalIgnoreCase))
+        {
+            handledActionKey = ActionKey;
+            await RunActionAsync(ActionKey);
+        }
+    }
+
+    private void ResetWelcome()
+    {
+        if (!IsEmployeeArea || mode != GuidedMode.Actions)
+        {
+            return;
+        }
+
+        messages.Clear();
+        AddAssistant(Text("Welcome to Employees. What would you like to do?", "\u0645\u0631\u062d\u0628\u0627 \u0628\u0643 \u0641\u064a \u0627\u0644\u0645\u0648\u0638\u0641\u064a\u0646. \u0645\u0627\u0630\u0627 \u062a\u0631\u064a\u062f \u0623\u0646 \u062a\u0641\u0639\u0644\u061f"));
+    }
+
+    private async Task RunActionAsync(string key)
+    {
+        if (string.Equals(key, "directory", StringComparison.OrdinalIgnoreCase))
+        {
+            GoToEmployeeDirectory();
+            return;
+        }
+
+        if (!string.Equals(key, "add-employee", StringComparison.OrdinalIgnoreCase))
+        {
+            AddAssistant(Text("This guided action is not connected yet. Add New Employee is available in this first slice.", "\u0647\u0630\u0627 \u0627\u0644\u0625\u062c\u0631\u0627\u0621 \u0627\u0644\u0645\u0648\u062c\u0647 \u063a\u064a\u0631 \u0645\u0631\u0628\u0648\u0637 \u0628\u0639\u062f. \u0625\u0636\u0627\u0641\u0629 \u0645\u0648\u0638\u0641 \u062c\u062f\u064a\u062f \u0645\u062a\u0627\u062d\u0629 \u0641\u064a \u0647\u0630\u0647 \u0627\u0644\u0645\u0631\u062d\u0644\u0629."));
+            return;
+        }
+
+        if (!CanCreateEmployee)
+        {
+            AddAssistant(Text("You do not have permission to add employees.", "\u0644\u064a\u0633 \u0644\u062f\u064a\u0643 \u0635\u0644\u0627\u062d\u064a\u0629 \u0625\u0636\u0627\u0641\u0629 \u0645\u0648\u0638\u0641\u064a\u0646."));
+            return;
+        }
+
+        ResetEmployee();
+        BuildSteps();
+        mode = GuidedMode.AddEmployee;
+        isReviewing = false;
+        isSubmitted = false;
+        returnToReviewAfterEdit = false;
+        createdEmployeeId = null;
+        currentStepIndex = 0;
+        currentInput = string.Empty;
+        messages.Clear();
+        AddAssistant(Text("Great. Let's add a new employee.", "\u0631\u0627\u0626\u0639. \u0644\u0646\u0636\u0641 \u0645\u0648\u0638\u0641\u0627 \u062c\u062f\u064a\u062f\u0627."));
+        PromptCurrentStep();
+        await Task.CompletedTask;
+    }
+
+    private RenderFragment SelectorForCurrentStep() => builder =>
+    {
+        var step = CurrentStep;
+        if (step is null)
+        {
+            return;
+        }
+
+        if (step.Key == "BranchId")
+        {
+            builder.OpenComponent<AutoCompleteComponent<BranchDto>>(0);
+            builder.AddAttribute(1, "Items", branches);
+            builder.AddAttribute(2, "Value", selectedBranch);
+            builder.AddAttribute(3, "ItemText", (Func<BranchDto, string>)BranchLabel);
+            builder.AddAttribute(4, "ValueChanged", EventCallback.Factory.Create<BranchDto?>(this, OnBranchSelected));
+            builder.CloseComponent();
+        }
+        else if (step.Key == "AdministrationId")
+        {
+            builder.OpenComponent<AutoCompleteComponent<AdministrationDto>>(10);
+            builder.AddAttribute(11, "Items", administrations);
+            builder.AddAttribute(12, "Value", selectedAdministration);
+            builder.AddAttribute(13, "ItemText", (Func<AdministrationDto, string>)(item => NameLabel(item.NameEng, item.Name)));
+            builder.AddAttribute(14, "ValueChanged", EventCallback.Factory.Create<AdministrationDto?>(this, OnAdministrationSelected));
+            builder.CloseComponent();
+        }
+        else if (step.Key == "DepartmentId")
+        {
+            builder.OpenComponent<AutoCompleteComponent<DepartmentDto>>(20);
+            builder.AddAttribute(21, "Items", DepartmentSelectorItems);
+            builder.AddAttribute(22, "Value", selectedDepartment);
+            builder.AddAttribute(23, "ItemText", (Func<DepartmentDto, string>)(item => NameLabel(item.NameEng, item.Name)));
+            builder.AddAttribute(24, "ValueChanged", EventCallback.Factory.Create<DepartmentDto?>(this, OnDepartmentSelected));
+            builder.CloseComponent();
+        }
+        else if (step.Key == "PositionId")
+        {
+            builder.OpenComponent<AutoCompleteComponent<PositionDto>>(30);
+            builder.AddAttribute(31, "Items", positions);
+            builder.AddAttribute(32, "Value", selectedPosition);
+            builder.AddAttribute(33, "ItemText", (Func<PositionDto, string>)PositionLabel);
+            builder.AddAttribute(34, "ValueChanged", EventCallback.Factory.Create<PositionDto?>(this, OnPositionSelected));
+            builder.CloseComponent();
+        }
+        else if (step.Key == "ManagerEmployeeId")
+        {
+            builder.OpenComponent<AutoCompleteComponent<EmployeeDto>>(40);
+            builder.AddAttribute(41, "Items", managerEmployees);
+            builder.AddAttribute(42, "Value", selectedManager);
+            builder.AddAttribute(43, "ItemText", (Func<EmployeeDto, string>)EmployeeLabel);
+            builder.AddAttribute(44, "ValueChanged", EventCallback.Factory.Create<EmployeeDto?>(this, OnManagerSelected));
+            builder.CloseComponent();
+        }
+        else if (step.Key == "AcademicInstituteId")
+        {
+            builder.OpenComponent<AutoCompleteComponent<AcademicInstitutionDto>>(50);
+            builder.AddAttribute(51, "Items", academicInstitutions);
+            builder.AddAttribute(52, "Value", selectedAcademicInstitution);
+            builder.AddAttribute(53, "ItemText", (Func<AcademicInstitutionDto, string>)(item => NameLabel(item.NameEng, item.Name)));
+            builder.AddAttribute(54, "ValueChanged", EventCallback.Factory.Create<AcademicInstitutionDto?>(this, OnAcademicInstitutionSelected));
+            builder.CloseComponent();
+        }
+        else if (step.Key == "SpecializationId")
+        {
+            builder.OpenComponent<AutoCompleteComponent<SpecializationDto>>(60);
+            builder.AddAttribute(61, "Items", specializations);
+            builder.AddAttribute(62, "Value", selectedSpecialization);
+            builder.AddAttribute(63, "ItemText", (Func<SpecializationDto, string>)(item => NameLabel(item.NameEng, item.Name)));
+            builder.AddAttribute(64, "ValueChanged", EventCallback.Factory.Create<SpecializationDto?>(this, OnSpecializationSelected));
+            builder.CloseComponent();
+        }
+    };
+
+    private async Task LoadLookupsAsync()
+    {
+        var branchAccessResponse = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        var branchAccess = branchAccessResponse.IsSuccess ? branchAccessResponse.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+
+        var branchResponse = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        branches = branchResponse.IsSuccess ? branchResponse.Data?.Data?.ToList() ?? [] : [];
+        if (!branchAccess.CanViewAllBranches)
+        {
+            branches = branches.Where(branch => branchAccess.BranchIds.Contains(branch.Id)).ToList();
+        }
+
+        if (!branchAccess.CanViewAllBranches && branches.Count == 1)
+        {
+            await OnBranchSelected(branches[0], false);
+        }
+
+        var positionResponse = await PositionService.GetAsync(companyId, 0, 1000);
+        positions = positionResponse.IsSuccess ? positionResponse.Data?.Data?.ToList() ?? [] : [];
+
+        var managerResponse = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 1000);
+        managerEmployees = managerResponse.IsSuccess ? managerResponse.Data?.Data?.ToList() ?? [] : [];
+
+        var academicResponse = await AcademicInistitutionService.GetByCompanyAsync(companyId, 0, 1000);
+        academicInstitutions = academicResponse.IsSuccess ? academicResponse.Data?.Data?.ToList() ?? [] : [];
+
+        var specializationResponse = await SpecializationService.GetByCompanyAsync(companyId, 0, 1000);
+        specializations = specializationResponse.IsSuccess ? specializationResponse.Data?.Data?.ToList() ?? [] : [];
+    }
+
+    private void BuildSteps()
+    {
+        steps =
+        [
+            TextStep("EmployeeNo", Text("Enter the employee number.", "\u0623\u062f\u062e\u0644 \u0631\u0642\u0645 \u0627\u0644\u0645\u0648\u0638\u0641."), Text("Employee number", "\u0631\u0642\u0645 \u0627\u0644\u0645\u0648\u0638\u0641")),
+            TextStep("Code", Text("Enter the login/code value.", "\u0623\u062f\u062e\u0644 \u0643\u0648\u062f \u0627\u0644\u062f\u062e\u0648\u0644."), Text("Code", "\u0627\u0644\u0643\u0648\u062f")),
+            TextStep("FirstName", Text("What is the employee's first name?", "\u0645\u0627 \u0647\u0648 \u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u0648\u0644\u061f"), Text("First name", "\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u0648\u0644")),
+            TextStep("FirstNameEng", Text("Enter the first name in English.", "\u0623\u062f\u062e\u0644 \u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u0648\u0644 \u0628\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629."), Text("First name English", "\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u0648\u0644 \u0625\u0646\u062c\u0644\u064a\u0632\u064a")),
+            TextStep("MiddleName", Text("Enter the middle name.", "\u0623\u062f\u062e\u0644 \u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u0648\u0633\u0637."), Text("Middle name", "\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u0648\u0633\u0637")),
+            TextStep("MiddleNameEng", Text("Enter the middle name in English.", "\u0623\u062f\u062e\u0644 \u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u0648\u0633\u0637 \u0628\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629."), Text("Middle name English", "\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u0648\u0633\u0637 \u0625\u0646\u062c\u0644\u064a\u0632\u064a")),
+            TextStep("LastName", Text("Enter the last name.", "\u0623\u062f\u062e\u0644 \u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u062e\u064a\u0631."), Text("Last name", "\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u062e\u064a\u0631")),
+            TextStep("LastNameEng", Text("Enter the last name in English.", "\u0623\u062f\u062e\u0644 \u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u062e\u064a\u0631 \u0628\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629."), Text("Last name English", "\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0623\u062e\u064a\u0631 \u0625\u0646\u062c\u0644\u064a\u0632\u064a")),
+            TextStep("Email", Text("Enter the email address.", "\u0623\u062f\u062e\u0644 \u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a."), "name@example.com"),
+            TextStep("Phone", Text("Enter the phone number.", "\u0623\u062f\u062e\u0644 \u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062a\u0641."), Text("Phone", "\u0627\u0644\u0647\u0627\u062a\u0641")),
+            new("DateOfBirth", Text("Select the date of birth.", "\u062d\u062f\u062f \u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0645\u064a\u0644\u0627\u062f."), GuidedStepKind.Date, true, "yyyy-mm-dd"),
+            TextStep("NationalId", Text("Enter the national ID.", "\u0623\u062f\u062e\u0644 \u0631\u0642\u0645 \u0627\u0644\u0647\u0648\u064a\u0629."), Text("National ID", "\u0631\u0642\u0645 \u0627\u0644\u0647\u0648\u064a\u0629")),
+            new("HireDate", Text("Select the hire date.", "\u062d\u062f\u062f \u062a\u0627\u0631\u064a\u062e \u0627\u0644\u062a\u0639\u064a\u064a\u0646."), GuidedStepKind.Date, true, "yyyy-mm-dd"),
+            new("BranchId", Text("Select the branch.", "\u0627\u062e\u062a\u0631 \u0627\u0644\u0641\u0631\u0639."), GuidedStepKind.Select, true, ""),
+            new("AdministrationId", Text("Optionally select the administration.", "\u064a\u0645\u0643\u0646\u0643 \u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0625\u062f\u0627\u0631\u0629."), GuidedStepKind.Select, false, ""),
+            new("DepartmentId", Text("Optionally select the department.", "\u064a\u0645\u0643\u0646\u0643 \u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0642\u0633\u0645."), GuidedStepKind.Select, false, ""),
+            new("PositionId", Text("Select the position.", "\u0627\u062e\u062a\u0631 \u0627\u0644\u0645\u0633\u0645\u0649 \u0627\u0644\u0648\u0638\u064a\u0641\u064a."), GuidedStepKind.Select, true, ""),
+            new("ManagerEmployeeId", Text("Optionally select the manager.", "\u064a\u0645\u0643\u0646\u0643 \u0627\u062e\u062a\u064a\u0627\u0631 \u0627\u0644\u0645\u062f\u064a\u0631."), GuidedStepKind.Select, false, ""),
+            TextStep("Nationality", Text("Enter the nationality.", "\u0623\u062f\u062e\u0644 \u0627\u0644\u062c\u0646\u0633\u064a\u0629."), Text("Nationality", "\u0627\u0644\u062c\u0646\u0633\u064a\u0629")),
+            TextStep("Address", Text("Enter the address.", "\u0623\u062f\u062e\u0644 \u0627\u0644\u0639\u0646\u0648\u0627\u0646."), Text("Address", "\u0627\u0644\u0639\u0646\u0648\u0627\u0646")),
+            new("SpecializationId", Text("Select the specialization.", "\u0627\u062e\u062a\u0631 \u0627\u0644\u062a\u062e\u0635\u0635."), GuidedStepKind.Select, true, ""),
+            new("AcademicInstituteId", Text("Select the academic institute.", "\u0627\u062e\u062a\u0631 \u0627\u0644\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u0623\u0643\u0627\u062f\u064a\u0645\u064a\u0629."), GuidedStepKind.Select, true, ""),
+            new("GraduationYear", Text("Enter the graduation year.", "\u0623\u062f\u062e\u0644 \u0633\u0646\u0629 \u0627\u0644\u062a\u062e\u0631\u062c."), GuidedStepKind.Number, true, DateTime.Now.Year.ToString()),
+            new("IdentityType", Text("Choose the identity type.", "\u0627\u062e\u062a\u0631 \u0646\u0648\u0639 \u0627\u0644\u0647\u0648\u064a\u0629."), GuidedStepKind.Choice, false, ""),
+            new("Gender", Text("Choose the gender.", "\u0627\u062e\u062a\u0631 \u0627\u0644\u0646\u0648\u0639."), GuidedStepKind.Choice, false, ""),
+            new("MaritalStatus", Text("Choose the marital status.", "\u0627\u062e\u062a\u0631 \u0627\u0644\u062d\u0627\u0644\u0629 \u0627\u0644\u0627\u062c\u062a\u0645\u0627\u0639\u064a\u0629."), GuidedStepKind.Choice, false, ""),
+            new("EmploymentType", Text("Choose the employment type.", "\u0627\u062e\u062a\u0631 \u0646\u0648\u0639 \u0627\u0644\u062a\u0648\u0638\u064a\u0641."), GuidedStepKind.Choice, false, ""),
+            new("Qualification", Text("Choose the qualification.", "\u0627\u062e\u062a\u0631 \u0627\u0644\u0645\u0624\u0647\u0644."), GuidedStepKind.Choice, false, ""),
+            new("AttendanceType", Text("Choose the attendance type.", "\u0627\u062e\u062a\u0631 \u0646\u0648\u0639 \u0627\u0644\u062d\u0636\u0648\u0631."), GuidedStepKind.Choice, false, ""),
+            new("AllowedRadiusMeters", Text("Enter the allowed attendance radius in meters.", "\u0623\u062f\u062e\u0644 \u0646\u0637\u0627\u0642 \u0627\u0644\u062d\u0636\u0648\u0631 \u0628\u0627\u0644\u0645\u062a\u0631."), GuidedStepKind.Number, false, "100")
+        ];
+    }
+
+    private GuidedStep TextStep(string key, string prompt, string placeholder) => new(key, prompt, GuidedStepKind.Text, true, placeholder);
+
+    private async Task SubmitCurrentInputAsync()
+    {
+        if (CurrentStep is null)
+        {
+            return;
+        }
+
+        var value = currentInput.Trim();
+        if (CurrentStep.IsRequired && string.IsNullOrWhiteSpace(value))
+        {
+            AddAssistant(Text("This field is required. Please enter a value.", "\u0647\u0630\u0627 \u0627\u0644\u062d\u0642\u0644 \u0645\u0637\u0644\u0648\u0628. \u0627\u0644\u0631\u062c\u0627\u0621 \u0625\u062f\u062e\u0627\u0644 \u0642\u064a\u0645\u0629."));
+            return;
+        }
+
+        if (!ApplyInput(CurrentStep, value))
+        {
+            return;
+        }
+
+        await CompleteCurrentStepAsync(value);
+    }
+
+    private bool ApplyInput(GuidedStep step, string value)
+    {
+        switch (step.Key)
+        {
+            case "EmployeeNo": employee.EmployeeNo = value; break;
+            case "Code": employee.Code = value; break;
+            case "FirstName": employee.FirstName = value; break;
+            case "FirstNameEng": employee.FirstNameEng = value; break;
+            case "MiddleName": employee.MiddleName = value; break;
+            case "MiddleNameEng": employee.MiddleNameEng = value; break;
+            case "LastName": employee.LastName = value; break;
+            case "LastNameEng": employee.LastNameEng = value; break;
+            case "Email": employee.Email = value; break;
+            case "Phone": employee.Phone = value; break;
+            case "NationalId": employee.NationalId = value; break;
+            case "Nationality": employee.Nationality = value; break;
+            case "Address": employee.Address = value; break;
+            case "GraduationYear":
+                if (!int.TryParse(value, out var graduationYear) || graduationYear <= 0)
+                {
+                    AddAssistant(Text("Enter a valid graduation year.", "\u0623\u062f\u062e\u0644 \u0633\u0646\u0629 \u062a\u062e\u0631\u062c \u0635\u062d\u064a\u062d\u0629."));
+                    return false;
+                }
+                employee.GraduationYear = graduationYear;
+                break;
+            case "AllowedRadiusMeters":
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    employee.AllowedRadiusMeters = null;
+                    break;
+                }
+
+                if (!int.TryParse(value, out var allowedRadiusMeters) || allowedRadiusMeters <= 0)
+                {
+                    AddAssistant(Text("Enter a valid radius greater than zero.", "\u0623\u062f\u062e\u0644 \u0646\u0637\u0627\u0642\u0627 \u0635\u062d\u064a\u062d\u0627 \u0623\u0643\u0628\u0631 \u0645\u0646 \u0635\u0641\u0631."));
+                    return false;
+                }
+                employee.AllowedRadiusMeters = allowedRadiusMeters;
+                break;
+            case "DateOfBirth":
+                if (!DateTime.TryParse(value, out var dateOfBirth))
+                {
+                    AddAssistant(Text("Select a valid date of birth.", "\u062d\u062f\u062f \u062a\u0627\u0631\u064a\u062e \u0645\u064a\u0644\u0627\u062f \u0635\u062d\u064a\u062d."));
+                    return false;
+                }
+                employee.DateOfBirth = dateOfBirth;
+                break;
+            case "HireDate":
+                if (!DateTime.TryParse(value, out var hireDate))
+                {
+                    AddAssistant(Text("Select a valid hire date.", "\u062d\u062f\u062f \u062a\u0627\u0631\u064a\u062e \u062a\u0639\u064a\u064a\u0646 \u0635\u062d\u064a\u062d."));
+                    return false;
+                }
+                employee.HireDate = hireDate;
+                break;
+        }
+
+        return true;
+    }
+
+    private async Task SubmitChoiceAsync(GuidedChoice choice)
+    {
+        if (CurrentStep is null)
+        {
+            return;
+        }
+
+        if (!ApplyChoice(CurrentStep.Key, choice.Key))
+        {
+            return;
+        }
+
+        await CompleteCurrentStepAsync(choice.Label);
+    }
+
+    private bool ApplyChoice(string stepKey, string value)
+    {
+        switch (stepKey)
+        {
+            case "IdentityType":
+                if (!Enum.TryParse<IdentityType>(value, out var identityType))
+                {
+                    return false;
+                }
+                employee.IdentityType = identityType;
+                break;
+            case "Gender":
+                if (!Enum.TryParse<Gender>(value, out var gender))
+                {
+                    return false;
+                }
+                employee.Gender = gender;
+                break;
+            case "MaritalStatus":
+                if (!Enum.TryParse<MaritalStatus>(value, out var maritalStatus))
+                {
+                    return false;
+                }
+                employee.MaritalStatus = maritalStatus;
+                break;
+            case "EmploymentType":
+                if (!Enum.TryParse<EmploymentType>(value, out var employmentType))
+                {
+                    return false;
+                }
+                employee.EmploymentType = employmentType;
+                break;
+            case "Qualification":
+                if (!Enum.TryParse<Qualification>(value, out var qualification))
+                {
+                    return false;
+                }
+                employee.Qualification = qualification;
+                break;
+            case "AttendanceType":
+                if (!Enum.TryParse<EmployeeAttendanceType>(value, out var attendanceType))
+                {
+                    return false;
+                }
+                employee.AttendanceType = attendanceType;
+                break;
+        }
+
+        return true;
+    }
+
+    private async Task CompleteCurrentStepAsync(string answer)
+    {
+        AddUser(answer);
+        currentInput = string.Empty;
+        currentStepIndex++;
+
+        if (currentStepIndex >= steps.Count)
+        {
+            await ReviewDraftAsync();
+            return;
+        }
+
+        if (returnToReviewAfterEdit)
+        {
+            returnToReviewAfterEdit = false;
+            await ReviewDraftAsync();
+            return;
+        }
+
+        PromptCurrentStep();
+    }
+
+    private void PromptCurrentStep()
+    {
+        if (CurrentStep is null)
+        {
+            return;
+        }
+
+        AddAssistant(CurrentStep.Prompt);
+    }
+
+    private async Task OnBranchSelected(BranchDto? branch) => await OnBranchSelected(branch, true);
+
+    private async Task OnBranchSelected(BranchDto? branch, bool completeStep)
+    {
+        selectedBranch = branch;
+        employee.BranchId = branch?.Id;
+        selectedAdministration = null;
+        selectedDepartment = null;
+        employee.AdministrationId = null;
+        employee.DepartmentId = null;
+        administrations = [];
+        departments = [];
+
+        if (branch is not null)
+        {
+            var response = await AdministrationService.GetByBranchAsync(branch.Id, 0, 1000);
+            administrations = response.IsSuccess ? response.Data?.Data?.ToList() ?? [] : [];
+        }
+
+        if (completeStep && CurrentStep?.Key == "BranchId" && branch is not null)
+        {
+            await CompleteCurrentStepAsync(BranchLabel(branch));
+        }
+    }
+
+    private async Task OnAdministrationSelected(AdministrationDto? administration)
+    {
+        selectedAdministration = administration;
+        employee.AdministrationId = administration?.Id;
+        selectedDepartment = null;
+        employee.DepartmentId = null;
+        departments = [];
+
+        if (administration is not null)
+        {
+            var response = await DepartmentService.GetByAdministrationAsync(administration.Id, 0, 1000);
+            departments = response.IsSuccess ? response.Data?.Data?.ToList() ?? [] : [];
+            if (CurrentStep?.Key == "AdministrationId")
+            {
+                await CompleteCurrentStepAsync(NameLabel(administration.NameEng, administration.Name));
+            }
+        }
+        else if (CurrentStep?.Key == "AdministrationId")
+        {
+            await CompleteCurrentStepAsync(Text("Skipped", "\u062a\u0645 \u0627\u0644\u062a\u062e\u0637\u064a"));
+        }
+    }
+
+    private async Task OnDepartmentSelected(DepartmentDto? department)
+    {
+        selectedDepartment = department;
+        employee.DepartmentId = department?.Id;
+        if (CurrentStep?.Key == "DepartmentId")
+        {
+            await CompleteCurrentStepAsync(department is null ? Text("Skipped", "\u062a\u0645 \u0627\u0644\u062a\u062e\u0637\u064a") : NameLabel(department.NameEng, department.Name));
+        }
+    }
+
+    private async Task OnPositionSelected(PositionDto? position)
+    {
+        selectedPosition = position;
+        employee.PositionId = position?.Id;
+        if (CurrentStep?.Key == "PositionId" && position is not null)
+        {
+            await CompleteCurrentStepAsync(PositionLabel(position));
+        }
+    }
+
+    private async Task OnManagerSelected(EmployeeDto? manager)
+    {
+        selectedManager = manager;
+        employee.ManagerEmployeeId = manager?.Id;
+        if (CurrentStep?.Key == "ManagerEmployeeId")
+        {
+            await CompleteCurrentStepAsync(manager is null ? Text("Skipped", "\u062a\u0645 \u0627\u0644\u062a\u062e\u0637\u064a") : EmployeeLabel(manager));
+        }
+    }
+
+    private async Task OnAcademicInstitutionSelected(AcademicInstitutionDto? academicInstitution)
+    {
+        selectedAcademicInstitution = academicInstitution;
+        employee.AcademicInstituteId = academicInstitution?.Id;
+        if (CurrentStep?.Key == "AcademicInstituteId" && academicInstitution is not null)
+        {
+            await CompleteCurrentStepAsync(NameLabel(academicInstitution.NameEng, academicInstitution.Name));
+        }
+    }
+
+    private async Task OnSpecializationSelected(SpecializationDto? specialization)
+    {
+        selectedSpecialization = specialization;
+        employee.SpecializationId = specialization?.Id;
+        if (CurrentStep?.Key == "SpecializationId" && specialization is not null)
+        {
+            await CompleteCurrentStepAsync(NameLabel(specialization.NameEng, specialization.Name));
+        }
+    }
+
+    private async Task ReviewDraftAsync()
+    {
+        isReviewing = true;
+        AddAssistant(MissingRequiredFields.Any()
+            ? Text("Review the draft. Some required fields are still missing.", "\u0631\u0627\u062c\u0639 \u0627\u0644\u0645\u0633\u0648\u062f\u0629. \u0644\u0627 \u062a\u0632\u0627\u0644 \u0628\u0639\u0636 \u0627\u0644\u062d\u0642\u0648\u0644 \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629 \u0646\u0627\u0642\u0635\u0629.")
+            : Text("Everything required is captured. You can submit the employee now.", "\u062a\u0645 \u062c\u0645\u0639 \u0643\u0644 \u0627\u0644\u062d\u0642\u0648\u0644 \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629. \u064a\u0645\u0643\u0646\u0643 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0645\u0648\u0638\u0641 \u0627\u0644\u0622\u0646."));
+        await Task.CompletedTask;
+    }
+
+    private async Task ContinueEditingAsync()
+    {
+        isReviewing = false;
+        var missingStep = steps.FindIndex(step => DraftFields.Any(field => field.IsRequired && field.IsMissing && IsStepForField(step, field.Label)));
+        currentStepIndex = missingStep >= 0 ? missingStep : Math.Min(currentStepIndex, steps.Count - 1);
+        returnToReviewAfterEdit = false;
+        PromptCurrentStep();
+        await Task.CompletedTask;
+    }
+
+    private bool IsStepForField(GuidedStep step, string label)
+        => DraftFields.Any(field => field.Label == label && FieldMatchesStep(field, step));
+
+    private static bool FieldMatchesStep(DraftField field, GuidedStep step)
+        => field.Key == step.Key;
+
+    private bool CanEditField(DraftField field)
+        => steps.Any(step => FieldMatchesStep(field, step));
+
+    private async Task EditDraftFieldAsync(string fieldKey)
+    {
+        var stepIndex = steps.FindIndex(step => string.Equals(step.Key, fieldKey, StringComparison.OrdinalIgnoreCase));
+        if (stepIndex < 0)
+        {
+            return;
+        }
+
+        returnToReviewAfterEdit = isReviewing;
+        isReviewing = false;
+        currentStepIndex = stepIndex;
+        currentInput = CurrentTextValue(fieldKey);
+        PromptCurrentStep();
+        await Task.CompletedTask;
+    }
+
+    private string CurrentTextValue(string fieldKey)
+        => fieldKey switch
+        {
+            "EmployeeNo" => employee.EmployeeNo,
+            "Code" => employee.Code,
+            "FirstName" => employee.FirstName,
+            "FirstNameEng" => employee.FirstNameEng,
+            "MiddleName" => employee.MiddleName,
+            "MiddleNameEng" => employee.MiddleNameEng,
+            "LastName" => employee.LastName,
+            "LastNameEng" => employee.LastNameEng,
+            "Email" => employee.Email,
+            "Phone" => employee.Phone,
+            "DateOfBirth" => FormatDate(employee.DateOfBirth),
+            "NationalId" => employee.NationalId,
+            "HireDate" => FormatDate(employee.HireDate),
+            "Nationality" => employee.Nationality,
+            "Address" => employee.Address,
+            "GraduationYear" => employee.GraduationYear > 0 ? employee.GraduationYear.ToString() : "",
+            "AllowedRadiusMeters" => employee.AllowedRadiusMeters?.ToString() ?? "",
+            _ => string.Empty
+        };
+
+    private async Task BackAsync()
+    {
+        if (currentStepIndex <= 0)
+        {
+            return;
+        }
+
+        currentStepIndex--;
+        isReviewing = false;
+        PromptCurrentStep();
+        await Task.CompletedTask;
+    }
+
+    private async Task CancelFlowAsync()
+    {
+        mode = GuidedMode.Actions;
+        isReviewing = false;
+        isSubmitted = false;
+        returnToReviewAfterEdit = false;
+        ResetEmployee();
+        ResetWelcome();
+        await Task.CompletedTask;
+    }
+
+    private async Task SubmitEmployeeAsync()
+    {
+        if (MissingRequiredFields.Any())
+        {
+            AddAssistant(Text("Complete the missing required fields before submitting.", "\u0623\u0643\u0645\u0644 \u0627\u0644\u062d\u0642\u0648\u0644 \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629 \u0627\u0644\u0646\u0627\u0642\u0635\u0629 \u0642\u0628\u0644 \u0627\u0644\u0625\u0631\u0633\u0627\u0644."));
+            return;
+        }
+
+        isSaving = true;
+        employee.CompanyId = companyId;
+        employee.PhotoUrl ??= string.Empty;
+        var result = await EmployeeService.CreateAsync(employee);
+        isSaving = false;
+
+        if (result.IsSuccess)
+        {
+            isSubmitted = true;
+            isReviewing = false;
+            var created = result.Data;
+            createdEmployeeId = created?.Id == Guid.Empty ? null : created?.Id;
+            ToastService.Show(new ToastMessage { Message = Text("Employee created successfully", "\u062a\u0645 \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u0645\u0648\u0638\u0641 \u0628\u0646\u062c\u0627\u062d"), Type = "Success" });
+            AddAssistant(Text("Employee created successfully. What would you like to do next?", "\u062a\u0645 \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u0645\u0648\u0638\u0641 \u0628\u0646\u062c\u0627\u062d. \u0645\u0627\u0630\u0627 \u062a\u0631\u064a\u062f \u0628\u0639\u062f \u0630\u0644\u0643\u061f"));
+        }
+        else
+        {
+            AddAssistant($"{Text("The employee could not be created.", "\u062a\u0639\u0630\u0631 \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u0645\u0648\u0638\u0641.")} {result.Error?.Detail}");
+        }
+    }
+
+    private void ResetEmployee()
+    {
+        employee = new EmployeeDto
+        {
+            CompanyId = companyId,
+            HireDate = DateTime.Today,
+            DateOfBirth = DateTime.Today.AddYears(-20),
+            Nationality = "Saudi Arabian",
+            IdentityType = IdentityType.Iqama,
+            Gender = Gender.Male,
+            MaritalStatus = MaritalStatus.Single,
+            Qualification = Qualification.Bachelor,
+            GraduationYear = DateTime.Today.Year - 1,
+            EmploymentType = EmploymentType.Full,
+            AttendanceType = EmployeeAttendanceType.FixedLocation,
+            AllowedRadiusMeters = 100,
+            PhotoUrl = string.Empty
+        };
+
+        selectedBranch = null;
+        selectedAdministration = null;
+        selectedDepartment = null;
+        selectedPosition = null;
+        selectedManager = null;
+        selectedAcademicInstitution = null;
+        selectedSpecialization = null;
+        createdEmployeeId = null;
+        currentStepIndex = 0;
+        currentInput = string.Empty;
+        returnToReviewAfterEdit = false;
+    }
+
+    private void GoToEmployeeDirectory() => NavigationManager.NavigateTo("/Employee/Employee/List");
+    private void ViewCreatedEmployee()
+    {
+        if (createdEmployeeId.HasValue)
+        {
+            NavigationManager.NavigateTo($"/Employee/Employee/view/{createdEmployeeId.Value}");
+        }
+    }
+
+    private void ResetAreaState()
+    {
+        if (IsEmployeeArea)
+        {
+            return;
+        }
+
+        mode = GuidedMode.Actions;
+        isReviewing = false;
+        isSubmitted = false;
+        returnToReviewAfterEdit = false;
+        currentInput = string.Empty;
+    }
+
+    private async Task StartAnotherEmployeeAsync() => await RunActionAsync("add-employee");
+
+    private async Task SkipCurrentStepAsync()
+    {
+        if (CurrentStep is null || CurrentStep.IsRequired)
+        {
+            return;
+        }
+
+        await CompleteCurrentStepAsync(Text("Skipped", "\u062a\u0645 \u0627\u0644\u062a\u062e\u0637\u064a"));
+    }
+
+    private void OnInputChanged(ChangeEventArgs args) => currentInput = args.Value?.ToString() ?? string.Empty;
+
+    private async Task OnInputKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            await SubmitCurrentInputAsync();
+        }
+    }
+
+    private void AddAssistant(string text) => messages.Add(new ChatMessage(text, false));
+    private void AddUser(string text) => messages.Add(new ChatMessage(text, true));
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(claim => string.Equals(claim.Value, permission, StringComparison.OrdinalIgnoreCase)) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string NameLabel(string? en, string? ar) => Text(string.IsNullOrWhiteSpace(en) ? ar ?? "" : en, string.IsNullOrWhiteSpace(ar) ? en ?? "" : ar);
+    private string BranchLabel(BranchDto branch) => NameLabel(branch.NameEng, branch.Name);
+    private string PositionLabel(PositionDto position) => Text(position.TitleEng, position.Title);
+    private string EmployeeLabel(EmployeeDto item) => string.IsNullOrWhiteSpace(item.EmployeeNo) ? item.FullNameEng : $"{item.FullNameEng} ({item.EmployeeNo})";
+    private string GetIdentityTypeDisplay(IdentityType type)
+        => type switch
+        {
+            IdentityType.Iqama => Text("Iqama", "\u0625\u0642\u0627\u0645\u0629"),
+            IdentityType.Passpord => Text("Passport", "\u062c\u0648\u0627\u0632 \u0633\u0641\u0631"),
+            IdentityType.DrivingLicense => Text("Driving License", "\u0631\u062e\u0635\u0629 \u0642\u064a\u0627\u062f\u0629"),
+            _ => type.ToString()
+        };
+
+    private string GetGenderDisplay(Gender gender)
+        => gender switch
+        {
+            Gender.Male => Text("Male", "\u0630\u0643\u0631"),
+            Gender.Female => Text("Female", "\u0623\u0646\u062b\u0649"),
+            _ => gender.ToString()
+        };
+
+    private string GetQualificationDisplay(Qualification qualification)
+        => qualification switch
+        {
+            Qualification.None => Text("None", "\u0644\u0627 \u064a\u0648\u062c\u062f"),
+            Qualification.HighSchool => Text("High School", "\u062b\u0627\u0646\u0648\u064a\u0629 \u0639\u0627\u0645\u0629"),
+            Qualification.Bachelor => Text("Bachelor", "\u0628\u0643\u0627\u0644\u0648\u0631\u064a\u0648\u0633"),
+            Qualification.Master => Text("Master", "\u0645\u0627\u062c\u0633\u062a\u064a\u0631"),
+            Qualification.PHD => Text("PHD", "\u062f\u0643\u062a\u0648\u0631\u0627\u0647"),
+            _ => qualification.ToString()
+        };
+
+    private string GetAttendanceTypeDisplay(EmployeeAttendanceType attendanceType)
+        => attendanceType switch
+        {
+            EmployeeAttendanceType.FixedLocation => Text("Fixed Location", "\u0645\u0648\u0642\u0639 \u062b\u0627\u0628\u062a"),
+            EmployeeAttendanceType.Mobile => Text("Mobile", "\u0645\u062a\u0646\u0642\u0644"),
+            _ => attendanceType.ToString()
+        };
+
+    private string GetMaritalStatusDisplay(MaritalStatus maritalStatus)
+        => maritalStatus switch
+        {
+            MaritalStatus.Single => Text("Single", "\u0623\u0639\u0632\u0628"),
+            MaritalStatus.Married => Text("Married", "\u0645\u062a\u0632\u0648\u062c"),
+            MaritalStatus.Devorced => Text("Divorced", "\u0645\u0637\u0644\u0642"),
+            MaritalStatus.Wedowed => Text("Widowed", "\u0623\u0631\u0645\u0644"),
+            _ => maritalStatus.ToString()
+        };
+
+    private string GetEmploymentTypeDisplay(EmploymentType employmentType)
+        => employmentType switch
+        {
+            EmploymentType.Full => Text("Full", "\u062f\u0648\u0627\u0645 \u0643\u0627\u0645\u0644"),
+            EmploymentType.Parttime => Text("Part time", "\u062c\u0632\u0626\u064a"),
+            EmploymentType.Remote => Text("Remote", "\u0639\u0646 \u0628\u0639\u062f"),
+            _ => employmentType.ToString()
+        };
+
+    private static string FormatDate(DateTime value) => value == default ? "" : value.ToString("yyyy-MM-dd");
+    private static DraftField Field(string key, string label, string? value, bool isRequired) => new(key, label, value ?? "", isRequired);
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+
+}
