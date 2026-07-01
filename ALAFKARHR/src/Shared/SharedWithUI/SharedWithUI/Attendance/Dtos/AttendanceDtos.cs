@@ -162,6 +162,7 @@ public class LateCheckInRequestDto
 {
     public Guid Id { get; set; }
     public Guid EmployeeId { get; set; }
+    public string? EmployeeName { get; set; }
     public Guid? ShiftId { get; set; }
     public Guid? SessionId { get; set; }
     public EmployeeAttendanceType AttendanceType { get; set; }

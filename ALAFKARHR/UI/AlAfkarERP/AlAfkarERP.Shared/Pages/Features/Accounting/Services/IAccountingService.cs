@@ -6,7 +6,7 @@ namespace AlAfkarERP.Shared.Pages.Features.Accounting.Services;
 
 public interface IAccountingService
 {
-    Task<ApiResult<AccountingDashboardDto>> GetDashboardAsync(Guid? companyId);
+    Task<ApiResult<AccountingDashboardDto>> GetDashboardAsync(Guid? companyId, Guid? branchId = null);
     Task<ApiResult<List<AccountingTemplateDto>>> GetTemplatesAsync(Guid? companyId = null);
     Task<ApiResult<AccountingTemplateDto>> GetTemplateAsync(Guid id, Guid? companyId = null);
     Task<ApiResult<Guid>> SaveTemplateAsync(AccountingTemplateDto template);
@@ -14,7 +14,7 @@ public interface IAccountingService
     Task<ApiResult<Guid>> CaptureTemplateAsync(CaptureAccountingTemplateDto template);
     Task<ApiResult<AccountingSetupStatusDto>> GetSetupStatusAsync(Guid companyId);
     Task<ApiResult<ApplyAccountingTemplateResultDto>> ApplyTemplateAsync(ApplyAccountingTemplateDto setup);
-    Task<ApiResult<PaginatedResult<AccountDto>>> GetAccountsAsync(Guid companyId, int pageIndex, int pageSize, string? searchText);
+    Task<ApiResult<PaginatedResult<AccountDto>>> GetAccountsAsync(Guid companyId, int pageIndex, int pageSize, string? searchText, Guid? branchId = null);
     Task<ApiResult<Guid>> CreateAccountAsync(AccountDto account);
     Task<ApiResult<Guid>> SaveAccountAsync(AccountDto account);
     Task<ApiResult<List<FiscalPeriodDto>>> GetFiscalPeriodsAsync(Guid companyId);
@@ -27,7 +27,7 @@ public interface IAccountingService
     Task<ApiResult<Guid>> CreateTaxCodeAsync(TaxCodeDto taxCode);
     Task<ApiResult<List<PostingProfileDto>>> GetPostingProfilesAsync(Guid companyId);
     Task<ApiResult<Guid>> CreatePostingProfileAsync(PostingProfileDto profile);
-    Task<ApiResult<List<BankAccountDto>>> GetBankAccountsAsync(Guid companyId);
+    Task<ApiResult<List<BankAccountDto>>> GetBankAccountsAsync(Guid companyId, Guid? branchId = null);
     Task<ApiResult<Guid>> SaveBankAccountAsync(BankAccountDto bankAccount);
     Task<ApiResult<List<CashAccountDto>>> GetCashAccountsAsync(Guid companyId, Guid? branchId = null);
     Task<ApiResult<Guid>> SaveCashAccountAsync(CashAccountDto cashAccount);
@@ -37,18 +37,22 @@ public interface IAccountingService
     Task<ApiResult<Guid>> SaveAccountCodingSettingsAsync(AccountCodingSettingsDto settings);
     Task<ApiResult<AccountRenumberPreviewDto>> PreviewAccountRenumberAsync(AccountCodingSettingsDto settings);
     Task<ApiResult<AccountRenumberPreviewDto>> ApplyAccountRenumberAsync(ApplyAccountRenumberDto renumber);
-    Task<ApiResult<PaginatedResult<AccountingDocumentDto>>> GetDocumentsAsync(AccountingDocumentType? type, Guid? companyId, int pageIndex, int pageSize, string? searchText);
+    Task<ApiResult<PaginatedResult<AccountingDocumentDto>>> GetDocumentsAsync(AccountingDocumentType? type, Guid? companyId, int pageIndex, int pageSize, string? searchText, Guid? branchId = null);
     Task<ApiResult<Guid>> CreateDocumentAsync(AccountingDocumentDto document);
     Task<ApiResult<Guid>> PostDocumentAsync(Guid id);
+    Task<ApiResult<Guid>> ReverseDocumentAsync(Guid id);
     Task<ApiResult<Guid>> GenerateZatcaInvoiceAsync(Guid documentId, ZatcaInvoiceType invoiceType);
-    Task<ApiResult<PaginatedResult<JournalEntryDto>>> GetJournalsAsync(Guid? companyId, int pageIndex, int pageSize, string? searchText);
+    Task<ApiResult<PaginatedResult<JournalEntryDto>>> GetJournalsAsync(Guid? companyId, int pageIndex, int pageSize, string? searchText, Guid? branchId = null);
     Task<ApiResult<Guid>> CreateQuickJournalEntryAsync(QuickJournalEntryDto journalEntry);
-    Task<ApiResult<PaginatedResult<BankTransactionDto>>> GetBankTransactionsAsync(Guid companyId, BankTransactionStatus? status, int pageIndex, int pageSize, string? searchText);
-    Task<ApiResult<BankReconciliationSummaryDto>> GetBankReconciliationSummaryAsync(Guid companyId);
+    Task<ApiResult<Guid>> ReverseJournalEntryAsync(Guid id);
+    Task<ApiResult<PaginatedResult<BankTransactionDto>>> GetBankTransactionsAsync(Guid companyId, BankTransactionStatus? status, int pageIndex, int pageSize, string? searchText, Guid? branchId = null);
+    Task<ApiResult<BankReconciliationSummaryDto>> GetBankReconciliationSummaryAsync(Guid companyId, Guid? branchId = null);
     Task<ApiResult<List<BankReconciliationMatchDto>>> GetBankReconciliationMatchesAsync(Guid bankTransactionId);
     Task<ApiResult<Guid>> CreateBankTransactionAsync(BankTransactionDto transaction);
     Task<ApiResult<Guid>> ReconcileBankTransactionAsync(ReconcileBankTransactionDto reconciliation);
-    Task<ApiResult<AccountingReportDto>> GetAccountingReportAsync(AccountingReportType type, Guid companyId, DateTime? fromDate, DateTime? toDate);
+    Task<ApiResult<Guid>> IgnoreBankTransactionAsync(Guid id);
+    Task<ApiResult<Guid>> UnreconcileBankTransactionAsync(Guid id);
+    Task<ApiResult<AccountingReportDto>> GetAccountingReportAsync(AccountingReportType type, Guid companyId, DateTime? fromDate, DateTime? toDate, Guid? branchId = null);
     Task<ApiResult<PaginatedResult<EInvoiceDto>>> GetEInvoicesAsync(Guid? companyId, ZatcaSubmissionStatus? status, int pageIndex, int pageSize);
     Task<ApiResult<ZatcaSettingsDto?>> GetZatcaSettingsAsync(Guid companyId);
     Task<ApiResult<Guid>> SaveZatcaSettingsAsync(ZatcaSettingsDto settings);

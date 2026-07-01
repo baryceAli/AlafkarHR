@@ -263,20 +263,23 @@
         </div>
     </AppCard>
 
-    <AppCard Title="@Text("Roster assignments", "تعيينات الورديات")" CssClass="mb-3">
+    <AppCard Title="@Text("Roster assignments", "تعيينات الورديات")" CssClass="mb-3 allow-overflow">
         <div class="row g-3 align-items-end">
             <div class="col-md-3"><label class="form-label">@Text("Schedule", "الجدول")</label><select class="form-select" @bind="assignmentModel.ScheduleId"><option value="@Guid.Empty">@Text("Select schedule", "اختر الجدول")</option>@foreach (var s in ActiveSchedules){<option value="@s.Id">@s.Name</option>}</select></div>
             <div class="col-md-3">
                 <label class="form-label">@Text("Employees", "الموظفون")</label>
-                <div class="employee-checklist">
-                    @foreach (var employee in employees.OrderBy(EmployeeName))
-                    {
-                        <label class="form-check">
-                            <input class="form-check-input" type="checkbox" checked="@assignmentEmployeeIds.Contains(employee.Id)" @onchange="args => ToggleAssignmentEmployee(employee.Id, IsChecked(args))" />
-                            <span class="form-check-label">@EmployeeName(employee)</span>
-                        </label>
-                    }
-                </div>
+                <MultiSelectAutoCompleteComponent TItem="EmployeeDto"
+                                                  Items="employees"
+                                                  SelectedIds="assignmentEmployeeIds"
+                                                  SelectedIdsChanged="OnAssignmentEmployeesChanged"
+                                                  ItemId="@(employee => employee.Id)"
+                                                  ItemText="@(employee => EmployeeName(employee))"
+                                                  Placeholder="@Text("Search and select employees...", "ابحث واختر الموظفين...")"
+                                                  NoResultsText="@Text("No employees found", "لا يوجد موظفون")"
+                                                  ClearTitle="@Text("Clear employees", "مسح الموظفين")"
+                                                  RemoveTitle="@Text("Remove employee", "إزالة الموظف")"
+                                                  SelectedLabel="@Text("Selected employees", "الموظفون المحددون")"
+                                                  ResultsLabel="@Text("Employee search results", "نتائج بحث الموظفين")" />
             </div>
             <div class="col-md-2"><label class="form-label">@Text("Shift", "الوردية")</label><select class="form-select" @bind="assignmentModel.ShiftId"><option value="@Guid.Empty">@Text("Select shift", "اختر الوردية")</option>@foreach (var shift in shifts){<option value="@shift.Id">@shift.Name</option>}</select></div>
             <div class="col-md-2"><label class="form-label">@Text("Work Date", "تاريخ العمل")</label><InputDate class="form-control" @bind-Value="assignmentModel.WorkDate" /></div>
@@ -684,6 +687,11 @@
             assignmentEmployeeIds.Remove(employeeId);
         }
     }
+    private Task OnAssignmentEmployeesChanged(HashSet<Guid> selectedIds)
+    {
+        assignmentEmployeeIds = selectedIds;
+        return Task.CompletedTask;
+    }
     private static ApiResult<object> ToObjectResult<T>(ApiResult<T> result)
         => new() { IsSuccess = result.IsSuccess, Data = result.Data, Error = result.Error };
     private static string FormatDateTimeLocal(DateTime? value)
@@ -869,22 +877,6 @@
         color: var(--erp-text-muted);
         font-size: .68rem;
         font-weight: 500;
-    }
-
-    .employee-checklist {
-        display: grid;
-        gap: .35rem;
-        max-height: 9.5rem;
-        overflow: auto;
-        padding: .5rem;
-        border: 1px solid var(--erp-border);
-        border-radius: var(--erp-radius-md);
-        background: var(--erp-surface);
-    }
-
-    .employee-checklist .form-check {
-        min-height: 1.5rem;
-        margin: 0;
     }
 
     @@media (max-width: 760px) {

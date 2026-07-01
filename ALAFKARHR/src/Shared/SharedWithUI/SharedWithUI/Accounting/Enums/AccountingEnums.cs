@@ -123,5 +123,10 @@ public enum AccountingReportType
     TrialBalance = 2,
     AgedReceivables = 3,
     AgedPayables = 4,
-    TaxSummary = 5
+    TaxSummary = 5,
+    BalanceSheet = 6,
+    ProfitAndLoss = 7,
+    CashFlow = 8,
+    VatReturn = 9,
+    AuditTrail = 10
 }

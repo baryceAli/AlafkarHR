@@ -1,5 +1,7 @@
 using AttendanceDomain.Attendance.Models;
+using EmployeeModule.Contracts.Employees.Features.GetCompanyEmployeeRosterProfiles;
 using FluentValidation;
+using Shared.Contracts.Leave;
 using Shared.Pagination;
 
 namespace AttendanceDomain.Attendance.Features.Enhancements;
@@ -530,7 +532,7 @@ public class BiometricImportHandlers(AttendanceDbContext dbContext) :
     }
 }
 
-public class AttendanceWorkEntryHandlers(AttendanceDbContext dbContext) :
+public class AttendanceWorkEntryHandlers(AttendanceDbContext dbContext, ISender sender) :
     IQueryHandler<GetAttendanceWorkEntriesQuery, GetAttendanceWorkEntriesResult>,
     ICommandHandler<GenerateAttendanceWorkEntriesCommand, GenerateAttendanceWorkEntriesResult>,
     ICommandHandler<UpsertAttendanceWorkEntryCommand, UpsertAttendanceWorkEntryResult>,
@@ -556,7 +558,7 @@ public class AttendanceWorkEntryHandlers(AttendanceDbContext dbContext) :
         }
 
         var created = 0;
-        var sessions = await dbContext.AttendanceSessions.AsNoTracking()
+        var completedSessions = await dbContext.AttendanceSessions.AsNoTracking()
             .Where(x => x.CompanyId == request.Request.CompanyId
                 && x.Status == AttendanceSessionStatus.Completed
                 && x.ShiftStart.Date >= from
@@ -564,7 +566,7 @@ public class AttendanceWorkEntryHandlers(AttendanceDbContext dbContext) :
                 && (!request.Request.EmployeeId.HasValue || x.EmployeeId == request.Request.EmployeeId.Value))
             .ToListAsync(cancellationToken);
 
-        foreach (var session in sessions)
+        foreach (var session in completedSessions)
         {
             created += await EnsureWorkEntryAsync(session.CompanyId, session.EmployeeId, session.ShiftStart.Date, AttendanceWorkEntryType.Regular, session.TotalHours, "AttendanceSession", session.Id, session.NormalizationNote, cancellationToken);
             var expectedHours = Math.Max(0, (decimal)(session.ShiftEnd - session.ShiftStart).TotalHours);
@@ -574,26 +576,153 @@ public class AttendanceWorkEntryHandlers(AttendanceDbContext dbContext) :
             }
         }
 
-        var assignments = await dbContext.ShiftScheduleAssignments.AsNoTracking()
+        var plannedRows = await ResolvePlannedRosterRowsAsync(request.Request, from, to, cancellationToken);
+        var plannedEmployeeIds = plannedRows.Select(x => x.EmployeeId).Distinct().ToList();
+        var sessions = await dbContext.AttendanceSessions.AsNoTracking()
             .Where(x => x.CompanyId == request.Request.CompanyId
-                && x.WorkDate >= from
-                && x.WorkDate <= to
-                && !x.IsDeleted
-                && (!request.Request.EmployeeId.HasValue || x.EmployeeId == request.Request.EmployeeId.Value))
+                && x.ShiftStart.Date >= from
+                && x.ShiftStart.Date <= to
+                && plannedEmployeeIds.Contains(x.EmployeeId))
             .ToListAsync(cancellationToken);
+        var approvedLeaveDays = await sender.Send(
+            new GetApprovedLeaveCoverageQuery(request.Request.CompanyId, plannedEmployeeIds, from, to),
+            cancellationToken);
+        var approvedLeaveLookup = approvedLeaveDays.Days
+            .Select(x => (x.EmployeeId, Date: UtcDateTime.Normalize(x.Date).Date))
+            .ToHashSet();
 
-        foreach (var assignment in assignments)
+        foreach (var plannedRow in plannedRows)
         {
-            var hasSession = sessions.Any(x => x.EmployeeId == assignment.EmployeeId && x.ShiftStart.Date == assignment.WorkDate);
-            if (!hasSession)
+            var hasSession = sessions.Any(x => x.EmployeeId == plannedRow.EmployeeId && x.ShiftStart.Date == plannedRow.WorkDate);
+            var hasApprovedLeave = approvedLeaveLookup.Contains((plannedRow.EmployeeId, plannedRow.WorkDate));
+            if (!hasSession && !hasApprovedLeave)
             {
-                created += await EnsureWorkEntryAsync(assignment.CompanyId, assignment.EmployeeId, assignment.WorkDate, AttendanceWorkEntryType.Absence, 0, "ShiftScheduleAssignmentAbsence", assignment.Id, "Generated absence from roster assignment without attendance session.", cancellationToken);
+                created += await EnsureWorkEntryAsync(
+                    request.Request.CompanyId,
+                    plannedRow.EmployeeId,
+                    plannedRow.WorkDate,
+                    AttendanceWorkEntryType.Absence,
+                    0,
+                    plannedRow.SourceModule,
+                    plannedRow.SourceDocumentId,
+                    plannedRow.Notes,
+                    cancellationToken);
             }
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
         var entries = await Handle(new GetAttendanceWorkEntriesQuery(request.Request.CompanyId, request.Request.EmployeeId, from, to, null), cancellationToken);
         return new GenerateAttendanceWorkEntriesResult(created, entries.EntryList);
+    }
+
+    private async Task<List<PlannedRosterWorkEntry>> ResolvePlannedRosterRowsAsync(
+        GenerateAttendanceWorkEntriesDto request,
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken)
+    {
+        var employeeResult = await sender.Send(new GetCompanyEmployeeRosterProfilesQuery(request.CompanyId), cancellationToken);
+        var substituteConfigs = await dbContext.AttendanceRosterSubstituteConfigurations.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId && !x.IsDeleted)
+            .ToDictionaryAsync(x => x.EmployeeId, cancellationToken);
+        var employees = employeeResult.Employees
+            .Where(x => x.IsActive && x.AdministrationId.HasValue && x.AdministrationId.Value != Guid.Empty)
+            .Where(x => !request.EmployeeId.HasValue || x.EmployeeId == request.EmployeeId.Value)
+            .Where(x => IsRosterVisible(x, substituteConfigs))
+            .ToList();
+        var employeeIds = employees.Select(x => x.EmployeeId).ToHashSet();
+
+        if (employeeIds.Count == 0)
+        {
+            return [];
+        }
+
+        var explicitAssignments = await dbContext.ShiftScheduleAssignments.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId
+                && x.WorkDate >= from
+                && x.WorkDate <= to
+                && !x.IsDeleted
+                && employeeIds.Contains(x.EmployeeId))
+            .ToListAsync(cancellationToken);
+
+        var baseAssignments = await dbContext.EmployeeShifts.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId
+                && x.IsActive
+                && !x.IsDeleted
+                && x.EffectiveFrom.Date <= to
+                && (!x.EffectiveTo.HasValue || x.EffectiveTo.Value.Date >= from))
+            .ToListAsync(cancellationToken);
+
+        var rows = new List<PlannedRosterWorkEntry>();
+        for (var date = from; date <= to; date = date.AddDays(1))
+        {
+            foreach (var employee in employees)
+            {
+                var explicitAssignment = explicitAssignments
+                    .FirstOrDefault(x => x.EmployeeId == employee.EmployeeId && x.WorkDate == date);
+                if (explicitAssignment is not null)
+                {
+                    rows.Add(new PlannedRosterWorkEntry(
+                        explicitAssignment.EmployeeId,
+                        explicitAssignment.WorkDate,
+                        "ShiftScheduleAssignmentAbsence",
+                        explicitAssignment.Id,
+                        "Generated absence from roster assignment without attendance session."));
+                    continue;
+                }
+
+                var baseAssignment = ResolveBaseAssignment(employee, date, baseAssignments);
+                if (baseAssignment is null)
+                {
+                    continue;
+                }
+
+                rows.Add(new PlannedRosterWorkEntry(
+                    employee.EmployeeId,
+                    date,
+                    "EmployeeShiftAbsence",
+                    DeterministicGuid($"EmployeeShiftAbsence|{request.CompanyId:N}|{employee.EmployeeId:N}|{date:yyyyMMdd}"),
+                    "Generated absence from baseline shift assignment without attendance session."));
+            }
+        }
+
+        return rows;
+    }
+
+    private static EmployeeShift? ResolveBaseAssignment(
+        EmployeeRosterProfileDto employee,
+        DateTime date,
+        List<EmployeeShift> baseAssignments)
+        => baseAssignments
+            .Where(x => x.EffectiveFrom.Date <= date && (!x.EffectiveTo.HasValue || x.EffectiveTo.Value.Date >= date))
+            .Where(x =>
+                (x.Scope == ShiftAssignmentScope.Employee && x.EmployeeId == employee.EmployeeId)
+                || (x.Scope == ShiftAssignmentScope.Department && employee.DepartmentId.HasValue && x.DepartmentId == employee.DepartmentId.Value)
+                || (x.Scope == ShiftAssignmentScope.Administration && x.AdministrationId.HasValue && x.AdministrationId == employee.AdministrationId)
+                || (x.Scope == ShiftAssignmentScope.Company && x.CompanyId == employee.CompanyId))
+            .OrderByDescending(x => ScopePriority(x.Scope))
+            .ThenByDescending(x => x.EffectiveFrom)
+            .FirstOrDefault();
+
+    private static int ScopePriority(ShiftAssignmentScope scope) => scope switch
+    {
+        ShiftAssignmentScope.Employee => 4,
+        ShiftAssignmentScope.Department => 3,
+        ShiftAssignmentScope.Administration => 2,
+        _ => 1
+    };
+
+    private static bool IsRosterVisible(
+        EmployeeRosterProfileDto employee,
+        Dictionary<Guid, AttendanceRosterSubstituteConfiguration> configs)
+        => !configs.TryGetValue(employee.EmployeeId, out var config) || config.IsRosterVisible;
+
+    private static Guid DeterministicGuid(string value)
+    {
+        var bytes = System.Security.Cryptography.MD5.HashData(System.Text.Encoding.UTF8.GetBytes(value));
+        bytes[6] = (byte)((bytes[6] & 0x0F) | 0x30);
+        bytes[8] = (byte)((bytes[8] & 0x3F) | 0x80);
+        return new Guid(bytes);
     }
 
     public async Task<UpsertAttendanceWorkEntryResult> Handle(UpsertAttendanceWorkEntryCommand request, CancellationToken cancellationToken)
@@ -638,7 +767,16 @@ public class AttendanceWorkEntryHandlers(AttendanceDbContext dbContext) :
 
     private async Task<int> EnsureWorkEntryAsync(Guid companyId, Guid employeeId, DateTime workDate, AttendanceWorkEntryType type, decimal hours, string sourceModule, Guid sourceDocumentId, string? notes, CancellationToken cancellationToken)
     {
-        var exists = await dbContext.AttendanceWorkEntries.AnyAsync(x => x.SourceModule == sourceModule && x.SourceDocumentId == sourceDocumentId && x.EntryType == type && !x.IsDeleted, cancellationToken);
+        var normalizedWorkDate = UtcDateTime.Normalize(workDate).Date;
+        var exists = await dbContext.AttendanceWorkEntries.AnyAsync(x =>
+            !x.IsDeleted
+            && x.EntryType == type
+            && ((x.SourceModule == sourceModule && x.SourceDocumentId == sourceDocumentId)
+                || (type == AttendanceWorkEntryType.Absence
+                    && x.CompanyId == companyId
+                    && x.EmployeeId == employeeId
+                    && x.WorkDate == normalizedWorkDate)),
+            cancellationToken);
         if (exists)
         {
             return 0;
@@ -657,4 +795,11 @@ public class AttendanceWorkEntryHandlers(AttendanceDbContext dbContext) :
         }), cancellationToken);
         return 1;
     }
+
+    private sealed record PlannedRosterWorkEntry(
+        Guid EmployeeId,
+        DateTime WorkDate,
+        string SourceModule,
+        Guid SourceDocumentId,
+        string Notes);
 }

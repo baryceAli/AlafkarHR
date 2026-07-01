@@ -1601,6 +1601,7 @@ public static class PermissionList
     public static class AttendancePermissions
     {
         public static string GroupName { get; set; } = "Attendance.Attendance";
+        public static string ViewReportsOrScopedReportsPolicy { get; set; } = $"{GroupName}.ViewReportsOrScopedReports";
         public static string Select { get; set; } = $"{GroupName}.Select";
         public static string View { get; set; } = $"{GroupName}.View";
         public static string Create { get; set; } = $"{GroupName}.Create";

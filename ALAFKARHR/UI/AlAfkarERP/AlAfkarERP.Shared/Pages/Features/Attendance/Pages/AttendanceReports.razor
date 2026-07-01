@@ -13,6 +13,7 @@
 @using SharedWithUI.Attendance.Enums
 @using SharedWithUI.Employees.Dtos
 @using SharedWithUI.Organization.Dtos
+@using SharedWithUI.Permissions
 
 @inject IAttendanceService AttendanceService
 @inject IAdministrationService AdministrationService
@@ -50,6 +51,8 @@
                     <label class="form-label">@Text("To", "الى")</label>
                     <input class="form-control" type="date" @bind="filter.ToDate" />
                 </div>
+                @if (canViewAllReports)
+                {
                 <div class="col-md-3">
                     <label class="form-label">@Text("Employee", "الموظف")</label>
                     <AutoCompleteComponent TItem="EmployeeDto"
@@ -77,6 +80,13 @@
                                            PlaceHolder="@Text("Search administration by name or code", "ابحث عن الإدارة بالاسم أو الكود")"
                                            ValueChanged="OnAdministrationSelected" />
                 </div>
+                }
+                else
+                {
+                <div class="col-md-3 d-flex align-items-end">
+                    <span class="badge bg-light text-dark">@Text("Scoped to my attendance", "محصور على حضوري")</span>
+                </div>
+                }
                 <div class="col-md-2">
                     <label class="form-label">@Text("Status", "الحالة")</label>
                     <select class="form-select" @bind="filter.Status">
@@ -196,6 +206,8 @@
     private DepartmentDto? selectedDepartment;
     private AdministrationDto? selectedAdministration;
     private bool isBusy;
+    private bool canViewAllReports;
+    private bool canViewScopedReports;
     private string? message;
     private string messageClass = "alert-info";
 
@@ -219,6 +231,7 @@
     protected override async Task OnInitializedAsync()
     {
         companyId = await ResolveCompanyIdAsync();
+        await ResolveReportPermissionsAsync();
         filter.CompanyId = companyId;
         filter.Category = NormalizeCategory(ReportCategory);
         await LoadReferenceDataAsync();
@@ -245,6 +258,22 @@
 
     private async Task LoadReportAsync()
     {
+        if (!canViewAllReports && !canViewScopedReports)
+        {
+            SetMessage(Text("You do not have permission to view attendance reports.", "ليس لديك صلاحية عرض تقارير الحضور."), "alert-warning");
+            return;
+        }
+
+        if (!canViewAllReports)
+        {
+            filter.EmployeeId = null;
+            filter.DepartmentId = null;
+            filter.AdministrationId = null;
+            selectedEmployee = null;
+            selectedDepartment = null;
+            selectedAdministration = null;
+        }
+
         isBusy = true;
         filter.CompanyId = companyId;
         var result = await AttendanceService.GetReportAsync(filter);
@@ -283,9 +312,19 @@
         return Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var id) ? id : Guid.Empty;
     }
 
+    private async Task ResolveReportPermissionsAsync()
+    {
+        var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        canViewAllReports = HasPermission(authState.User, PermissionList.AttendancePermissions.ViewReports);
+        canViewScopedReports = HasPermission(authState.User, PermissionList.AttendancePermissions.ViewScopedReports);
+    }
+
+    private static bool HasPermission(System.Security.Claims.ClaimsPrincipal user, string permission)
+        => user.Claims.Any(c => c.Type == "Permission" && string.Equals(c.Value, permission, StringComparison.Ordinal));
+
     private async Task LoadReferenceDataAsync()
     {
-        if (companyId == Guid.Empty)
+        if (companyId == Guid.Empty || !canViewAllReports)
             return;
 
         var employeesResult = await EmployeeService.GetByCompanyIdAsync(companyId, 0, 5000);

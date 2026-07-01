@@ -273,7 +273,7 @@ public class AttendanceEndpoints : ICarterModule
             .Produces<GetAttendanceReportResult>(StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithSummary("Get detailed attendance report rows")
-            .RequireAuthorization(PermissionList.AttendancePermissions.ViewReports);
+            .RequireAuthorization(PermissionList.AttendancePermissions.ViewReportsOrScopedReportsPolicy);
 
         group.MapGet("/shift-schedules", GetShiftSchedules)
             .WithName("GetShiftSchedules")
@@ -665,8 +665,18 @@ public class AttendanceEndpoints : ICarterModule
 
     private static async Task<Ok<GetAttendanceReportResult>> GetAttendanceReport(
         [FromBody] GetAttendanceReportRequest request,
+        ClaimsPrincipal user,
         ISender sender)
     {
+        if (!HasPermission(user, PermissionList.AttendancePermissions.ViewReports)
+            && HasPermission(user, PermissionList.AttendancePermissions.ViewScopedReports))
+        {
+            var employeeId = await ResolveSignedInEmployeeIdAsync(user, sender);
+            request.Filter.EmployeeId = employeeId;
+            request.Filter.DepartmentId = null;
+            request.Filter.AdministrationId = null;
+        }
+
         var result = await sender.Send(new GetAttendanceReportQuery(request.Filter));
         return TypedResults.Ok(result);
     }
@@ -885,6 +895,9 @@ public class AttendanceEndpoints : ICarterModule
 
         return Guid.TryParse(value, out var employeeId) ? employeeId : null;
     }
+
+    private static bool HasPermission(ClaimsPrincipal user, string permission)
+        => user.FindAll("Permission").Any(x => string.Equals(x.Value, permission, StringComparison.Ordinal));
 
     private static async Task<Guid> ResolveSignedInEmployeeIdAsync(ClaimsPrincipal user, ISender sender)
     {

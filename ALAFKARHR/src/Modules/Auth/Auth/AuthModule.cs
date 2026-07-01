@@ -102,6 +102,17 @@ public static class AuthModule
             {
                 options.AddPolicy(permissions, policy => policy.AddRequirements(new PermissionRequirement(permissions)));
             }
+
+            options.AddPolicy(PermissionList.AttendancePermissions.ViewReportsOrScopedReportsPolicy, policy =>
+                policy.RequireAssertion(context =>
+                {
+                    var permissions = context.User.FindAll(CompanyRoleTemplates.ManagedClaimType)
+                        .Select(x => x.Value)
+                        .ToHashSet(StringComparer.Ordinal);
+
+                    return permissions.Contains(PermissionList.AttendancePermissions.ViewReports)
+                        || permissions.Contains(PermissionList.AttendancePermissions.ViewScopedReports);
+                }));
         });
 
         services.AddSingleton<IAuthorizationHandler, PermissionHandler>();

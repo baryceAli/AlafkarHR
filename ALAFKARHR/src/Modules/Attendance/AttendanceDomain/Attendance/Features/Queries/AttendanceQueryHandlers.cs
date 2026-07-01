@@ -66,6 +66,8 @@ public class GetAttendanceDashboardHandler(AttendanceDbContext dbContext, ISende
             .ProjectToType<LateCheckInRequestDto>()
             .ToListAsync(cancellationToken);
 
+        await PopulateLateRequestEmployeeNamesAsync(pendingRequests, cancellationToken);
+
         var dashboard = new AttendanceDashboardDto
         {
             ActiveSessions = await sessions.CountAsync(x => x.Status == AttendanceSessionStatus.Active, cancellationToken),
@@ -106,6 +108,35 @@ public class GetAttendanceDashboardHandler(AttendanceDbContext dbContext, ISende
             foreach (var session in employeeSessions)
             {
                 session.EmployeeName = employee.FullName;
+            }
+        }
+    }
+
+    private async Task PopulateLateRequestEmployeeNamesAsync(List<LateCheckInRequestDto> requests, CancellationToken cancellationToken)
+    {
+        var employeeIds = requests
+            .Select(x => x.EmployeeId)
+            .Distinct()
+            .ToList();
+
+        foreach (var employeeId in employeeIds)
+        {
+            GetEmployeeAttendanceProfileResult employee;
+
+            try
+            {
+                employee = await sender.Send(new GetEmployeeAttendanceProfileQuery(employeeId), cancellationToken);
+            }
+            catch (NotFoundException)
+            {
+                continue;
+            }
+
+            var employeeRequests = requests.Where(x => x.EmployeeId == employeeId);
+
+            foreach (var lateRequest in employeeRequests)
+            {
+                lateRequest.EmployeeName = employee.FullName;
             }
         }
     }
@@ -457,7 +488,7 @@ public class GetAttendanceCheckInPreviewHandler(AttendanceDbContext dbContext, I
         DateTime EffectiveFrom);
 }
 
-public class GetLateCheckInRequestsHandler(AttendanceDbContext dbContext)
+public class GetLateCheckInRequestsHandler(AttendanceDbContext dbContext, ISender sender)
     : IQueryHandler<GetLateCheckInRequestsQuery, GetLateCheckInRequestsResult>
 {
     public async Task<GetLateCheckInRequestsResult> Handle(GetLateCheckInRequestsQuery request, CancellationToken cancellationToken)
@@ -482,12 +513,43 @@ public class GetLateCheckInRequestsHandler(AttendanceDbContext dbContext)
             .ProjectToType<LateCheckInRequestDto>()
             .ToListAsync(cancellationToken);
 
+        await PopulateEmployeeNamesAsync(requests, cancellationToken);
+
         return new GetLateCheckInRequestsResult(
             new PaginatedResult<LateCheckInRequestDto>(
                 request.PaginationRequest.PageIndex,
                 request.PaginationRequest.PageSize,
                 total,
                 requests));
+    }
+
+    private async Task PopulateEmployeeNamesAsync(List<LateCheckInRequestDto> requests, CancellationToken cancellationToken)
+    {
+        var employeeIds = requests
+            .Select(x => x.EmployeeId)
+            .Distinct()
+            .ToList();
+
+        foreach (var employeeId in employeeIds)
+        {
+            GetEmployeeAttendanceProfileResult employee;
+
+            try
+            {
+                employee = await sender.Send(new GetEmployeeAttendanceProfileQuery(employeeId), cancellationToken);
+            }
+            catch (NotFoundException)
+            {
+                continue;
+            }
+
+            var employeeRequests = requests.Where(x => x.EmployeeId == employeeId);
+
+            foreach (var lateRequest in employeeRequests)
+            {
+                lateRequest.EmployeeName = employee.FullName;
+            }
+        }
     }
 }
 

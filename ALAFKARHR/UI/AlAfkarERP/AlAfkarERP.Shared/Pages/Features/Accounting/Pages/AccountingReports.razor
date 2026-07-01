@@ -1,14 +1,17 @@
 @layout AdminLayout
 @page "/Accounting/Reports"
 
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Accounting.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Accounting.Dtos
 @using SharedWithUI.Accounting.Enums
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 
 @implements IDisposable
 @inject IAccountingService AccountingService
+@inject IBranchService BranchService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 @inject ToastService ToastService
@@ -35,6 +38,21 @@
                         <option value="@AccountingReportType.AgedReceivables">@T("Aged Receivables", "أعمار الذمم المدينة")</option>
                         <option value="@AccountingReportType.AgedPayables">@T("Aged Payables", "أعمار الذمم الدائنة")</option>
                         <option value="@AccountingReportType.TaxSummary">@T("VAT Summary", "ملخص الضريبة")</option>
+                        <option value="@AccountingReportType.BalanceSheet">@T("Balance Sheet", "المركز المالي")</option>
+                        <option value="@AccountingReportType.ProfitAndLoss">@T("Profit and Loss", "الأرباح والخسائر")</option>
+                        <option value="@AccountingReportType.CashFlow">@T("Cash Flow", "التدفق النقدي")</option>
+                        <option value="@AccountingReportType.VatReturn">@T("VAT Return", "إقرار الضريبة")</option>
+                        <option value="@AccountingReportType.AuditTrail">@T("Audit Trail", "أثر التدقيق")</option>
+                    </InputSelect>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">@T("Branch", "الفرع")</label>
+                    <InputSelect class="form-select" @bind-Value="selectedBranchId">
+                        <option value="">@T("All allowed branches", "كل الفروع المتاحة")</option>
+                        @foreach (var branch in VisibleBranches)
+                        {
+                            <option value="@branch.Id">@BranchLabel(branch)</option>
+                        }
                     </InputSelect>
                 </div>
                 <div class="col-12 col-md-3">
@@ -109,6 +127,9 @@
 @code {
     private AuthenticationState? authState;
     private Guid companyId;
+    private Guid? selectedBranchId;
+    private List<BranchDto> branches = [];
+    private CurrentUserBranchAccessDto branchAccess = new();
     private AccountingReportType reportType = AccountingReportType.GeneralLedger;
     private DateTime? fromDate = new(DateTime.UtcNow.Year, 1, 1);
     private DateTime? toDate = DateTime.UtcNow.Date;
@@ -121,7 +142,24 @@
         SharedDataService.OnChange1 += HandleChangeAsync;
         authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId);
+        await LoadBranchAccessAsync();
         await LoadReportAsync();
+    }
+
+    private IEnumerable<BranchDto> VisibleBranches => branchAccess.CanViewAllBranches
+        ? branches
+        : branches.Where(x => branchAccess.BranchIds.Contains(x.Id));
+
+    private async Task LoadBranchAccessAsync()
+    {
+        if (companyId == Guid.Empty)
+            return;
+
+        var accessResult = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        branchAccess = accessResult.IsSuccess ? accessResult.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+        var branchesResult = await BranchService.GetByCompanyIdAsync(companyId, 1, 500);
+        if (branchesResult.IsSuccess && branchesResult.Data is not null)
+            branches = branchesResult.Data.Data.ToList();
     }
 
     private async Task LoadReportAsync()
@@ -130,7 +168,7 @@
             return;
 
         loading = true;
-        var result = await AccountingService.GetAccountingReportAsync(reportType, companyId, fromDate, toDate);
+        var result = await AccountingService.GetAccountingReportAsync(reportType, companyId, fromDate, toDate, selectedBranchId);
         loading = false;
 
         if (result.IsSuccess && result.Data is not null)
@@ -140,6 +178,7 @@
     }
 
     private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string BranchLabel(BranchDto branch) => SharedDataService.SelectViewLang(branch.NameEng ?? branch.Name, branch.Name);
     private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;

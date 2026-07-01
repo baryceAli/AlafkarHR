@@ -1,0 +1,290 @@
+@implements IDisposable
+@typeparam TItem
+@using AlAfkarERP.Shared.Utilities
+@inject SharedDataService SharedDataService
+
+<div class="multi-autocomplete-root position-relative @(isOpen ? "is-open" : null)" dir="@SharedDataService.PageDirection">
+    <div class="input-group">
+        <span class="input-group-text bg-white border-end-0">
+            <i class="bi bi-search" aria-hidden="true"></i>
+        </span>
+        <input class="form-control border-start-0 @(SharedDataService.Language == "Ar" ? "text-end" : "text-start")"
+               value="@searchText"
+               @oninput="OnSearchInput"
+               @onfocus="ShowDropdown"
+               @onblur="HideDropdown"
+               @onkeydown="OnKeyDown"
+               placeholder="@Placeholder"
+               aria-expanded="@isOpen"
+               role="combobox" />
+        <button class="btn btn-outline-secondary" type="button" title="@ClearTitle" @onclick="Clear" disabled="@(SelectedIds.Count == 0 && string.IsNullOrWhiteSpace(searchText))">
+            &times;
+        </button>
+    </div>
+
+    @if (SelectedItems.Count > 0)
+    {
+        <div class="multi-autocomplete-chips" aria-label="@SelectedLabel">
+            @foreach (var item in SelectedItems)
+            {
+                var id = ItemId(item);
+                <span class="multi-autocomplete-chip">
+                    <span>@GetItemText(item)</span>
+                    <button type="button" title="@RemoveTitle" @onclick="() => ToggleItemAsync(id, false)">
+                        <i class="bi bi-x" aria-hidden="true"></i>
+                    </button>
+                </span>
+            }
+        </div>
+    }
+
+    @if (isOpen)
+    {
+        <div class="dropdown-menu show w-100 mt-1 p-0 shadow-sm multi-autocomplete-menu" role="listbox" aria-label="@ResultsLabel">
+            @if (FilteredItems.Count > 0)
+            {
+                @foreach (var item in FilteredItems.Select((value, index) => (value, index)))
+                {
+                    var it = item.value;
+                    var index = item.index;
+                    var id = ItemId(it);
+                    var isSelected = SelectedIds.Contains(id);
+
+                    <button type="button"
+                            class="dropdown-item multi-autocomplete-option @((index == selectedIndex) ? "active" : null)"
+                            @onclick="() => ToggleItemAsync(id, !isSelected)"
+                            @onmousedown:preventDefault="true"
+                            role="option"
+                            aria-selected="@isSelected">
+                        <input class="form-check-input" type="checkbox" checked="@isSelected" tabindex="-1" readonly />
+                        <span>@GetItemText(it)</span>
+                    </button>
+                }
+            }
+            else
+            {
+                <div class="dropdown-item text-muted text-center">@NoResultsText</div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .multi-autocomplete-root {
+        overflow: visible;
+    }
+
+    .multi-autocomplete-root.is-open {
+        z-index: 1065;
+    }
+
+    .multi-autocomplete-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--erp-space-2, .5rem);
+        margin-block-start: var(--erp-space-2, .5rem);
+    }
+
+    .multi-autocomplete-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        max-width: 100%;
+        min-height: 1.65rem;
+        padding-inline: .5rem .25rem;
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-full);
+        background: var(--erp-surface-level-0, var(--erp-bg));
+        color: var(--erp-text);
+        font-size: .78rem;
+        font-weight: 600;
+    }
+
+    .multi-autocomplete-chip span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .multi-autocomplete-chip button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.25rem;
+        height: 1.25rem;
+        padding: 0;
+        border: 0;
+        border-radius: var(--erp-radius-full);
+        background: transparent;
+        color: var(--erp-text-muted);
+    }
+
+    .multi-autocomplete-chip button:hover {
+        background: color-mix(in srgb, var(--erp-danger) 10%, transparent);
+        color: var(--erp-danger);
+    }
+
+    .multi-autocomplete-menu {
+        background: var(--erp-surface-level-2);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        box-shadow: var(--erp-shadow-md);
+        inset-block-start: 100%;
+        inset-inline: 0;
+        max-height: 14rem;
+        overflow-y: auto;
+        position: absolute;
+        z-index: 1065;
+    }
+
+    .multi-autocomplete-option {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        min-height: 2.25rem;
+    }
+
+    .multi-autocomplete-option .form-check-input {
+        margin: 0;
+        flex: 0 0 auto;
+    }
+
+    .multi-autocomplete-option:hover,
+    .multi-autocomplete-option.active {
+        background-color: color-mix(in srgb, var(--erp-primary) 8%, transparent);
+        color: var(--erp-primary);
+    }
+</style>
+
+@code {
+    private string searchText = string.Empty;
+    private bool isOpen;
+    private int selectedIndex = -1;
+
+    [Parameter] public List<TItem> Items { get; set; } = [];
+    [Parameter] public HashSet<Guid> SelectedIds { get; set; } = [];
+    [Parameter] public EventCallback<HashSet<Guid>> SelectedIdsChanged { get; set; }
+    [Parameter] public Func<TItem, Guid> ItemId { get; set; } = default!;
+    [Parameter] public Func<TItem, string> ItemText { get; set; } = default!;
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string NoResultsText { get; set; } = "No results found";
+    [Parameter] public string ClearTitle { get; set; } = "Clear";
+    [Parameter] public string RemoveTitle { get; set; } = "Remove";
+    [Parameter] public string SelectedLabel { get; set; } = "Selected items";
+    [Parameter] public string ResultsLabel { get; set; } = "Search results";
+
+    private List<TItem> FilteredItems
+    {
+        get
+        {
+            var text = searchText.Trim();
+            var query = string.IsNullOrWhiteSpace(text)
+                ? Items
+                : Items.Where(x => GetItemText(x).Contains(text, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            return query
+                .OrderByDescending(x => SelectedIds.Contains(ItemId(x)))
+                .ThenBy(GetItemText)
+                .ToList();
+        }
+    }
+
+    private List<TItem> SelectedItems => Items
+        .Where(x => SelectedIds.Contains(ItemId(x)))
+        .OrderBy(GetItemText)
+        .ToList();
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+    }
+
+    private Task ShowDropdown()
+    {
+        isOpen = true;
+        selectedIndex = FilteredItems.Count > 0 ? 0 : -1;
+        return Task.CompletedTask;
+    }
+
+    private async Task HideDropdown()
+    {
+        await Task.Delay(200);
+        isOpen = false;
+        selectedIndex = -1;
+    }
+
+    private Task OnSearchInput(ChangeEventArgs e)
+    {
+        searchText = e.Value?.ToString() ?? string.Empty;
+        isOpen = true;
+        selectedIndex = FilteredItems.Count > 0 ? 0 : -1;
+        return Task.CompletedTask;
+    }
+
+    private async Task ToggleItemAsync(Guid id, bool isSelected)
+    {
+        var next = new HashSet<Guid>(SelectedIds);
+        if (isSelected)
+        {
+            next.Add(id);
+        }
+        else
+        {
+            next.Remove(id);
+        }
+
+        SelectedIds = next;
+        await SelectedIdsChanged.InvokeAsync(next);
+    }
+
+    private async Task Clear()
+    {
+        searchText = string.Empty;
+        isOpen = false;
+        selectedIndex = -1;
+        SelectedIds = [];
+        await SelectedIdsChanged.InvokeAsync(SelectedIds);
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (!isOpen)
+        {
+            return;
+        }
+
+        var items = FilteredItems;
+        if (e.Key == "ArrowDown" && items.Count > 0)
+        {
+            selectedIndex = Math.Min(selectedIndex + 1, items.Count - 1);
+        }
+        else if (e.Key == "ArrowUp" && items.Count > 0)
+        {
+            selectedIndex = Math.Max(selectedIndex - 1, 0);
+        }
+        else if (e.Key == "Enter" && selectedIndex >= 0 && selectedIndex < items.Count)
+        {
+            var item = items[selectedIndex];
+            var id = ItemId(item);
+            await ToggleItemAsync(id, !SelectedIds.Contains(id));
+        }
+        else if (e.Key == "Escape")
+        {
+            isOpen = false;
+            selectedIndex = -1;
+        }
+    }
+
+    private string GetItemText(TItem item)
+        => ItemText?.Invoke(item) ?? item?.ToString() ?? string.Empty;
+
+    private async Task HandleChangeAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

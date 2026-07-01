@@ -76,6 +76,9 @@ public record CreateBankTransactionCommand(BankTransactionDto Transaction) : ICo
 public record CreateBankTransactionResult(Guid Id);
 public record ReconcileBankTransactionCommand(ReconcileBankTransactionDto Reconciliation) : ICommand<ReconcileBankTransactionResult>;
 public record ReconcileBankTransactionResult(Guid Id, BankTransactionStatus Status);
+public record IgnoreBankTransactionCommand(Guid Id) : ICommand<BankTransactionActionResult>;
+public record UnreconcileBankTransactionCommand(Guid Id) : ICommand<BankTransactionActionResult>;
+public record BankTransactionActionResult(Guid Id, BankTransactionStatus Status);
 public record GetBankTransactionsQuery(Guid CompanyId, Guid? BranchId, BankTransactionStatus? Status, int PageIndex, int PageSize, string? SearchText) : IQuery<GetBankTransactionsResult>;
 public record GetBankTransactionsResult(PaginatedResult<BankTransactionDto> Transactions);
 public record GetBankReconciliationSummaryQuery(Guid CompanyId, Guid? BranchId) : IQuery<GetBankReconciliationSummaryResult>;
@@ -84,6 +87,10 @@ public record GetBankReconciliationMatchesQuery(Guid BankTransactionId) : IQuery
 public record GetBankReconciliationMatchesResult(List<BankReconciliationMatchDto> Matches);
 public record GetAccountingReportQuery(AccountingReportType Type, Guid CompanyId, Guid? BranchId, DateTime? FromDate, DateTime? ToDate) : IQuery<GetAccountingReportResult>;
 public record GetAccountingReportResult(AccountingReportDto Report);
+public record ReverseAccountingDocumentCommand(Guid Id) : ICommand<ReverseAccountingDocumentResult>;
+public record ReverseAccountingDocumentResult(Guid Id, AccountingDocumentStatus Status, Guid? ReversalJournalEntryId);
+public record ReverseJournalEntryCommand(Guid Id) : ICommand<ReverseJournalEntryResult>;
+public record ReverseJournalEntryResult(Guid Id, JournalEntryStatus Status, Guid ReversalJournalEntryId);
 
 public class CreateAccountCommandValidator : AbstractValidator<CreateAccountCommand>
 {
@@ -191,7 +198,11 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
       ICommandHandler<ApplyAccountingTemplateCommand, ApplyAccountingTemplateResult>,
       ICommandHandler<EnsureBranchAccountingCommand, EnsureBranchAccountingResult>,
       ICommandHandler<CreateBankTransactionCommand, CreateBankTransactionResult>,
-      ICommandHandler<ReconcileBankTransactionCommand, ReconcileBankTransactionResult>
+      ICommandHandler<ReconcileBankTransactionCommand, ReconcileBankTransactionResult>,
+      ICommandHandler<IgnoreBankTransactionCommand, BankTransactionActionResult>,
+      ICommandHandler<UnreconcileBankTransactionCommand, BankTransactionActionResult>,
+      ICommandHandler<ReverseAccountingDocumentCommand, ReverseAccountingDocumentResult>,
+      ICommandHandler<ReverseJournalEntryCommand, ReverseJournalEntryResult>
 {
     public async Task<CreateAccountResult> Handle(CreateAccountCommand command, CancellationToken cancellationToken)
     {
@@ -582,6 +593,24 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         return new PostAccountingDocumentResult(entry.Id);
     }
 
+    public async Task<ReverseAccountingDocumentResult> Handle(ReverseAccountingDocumentCommand command, CancellationToken cancellationToken)
+    {
+        var document = await dbContext.AccountingDocuments.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken)
+            ?? throw new NotFoundException("Accounting document", command.Id);
+
+        await EnsureCanAccessBranchAsync(document.CompanyId, document.BranchId, cancellationToken);
+        if (document.Status != AccountingDocumentStatus.Posted)
+            throw new BadRequestException("Only posted accounting documents can be reversed.");
+
+        Guid? reversalJournalEntryId = null;
+        if (document.JournalEntryId.HasValue)
+            reversalJournalEntryId = await ReverseJournalEntryAsync(document.JournalEntryId.Value, cancellationToken, allowAccountingDocumentJournal: true);
+
+        document.Reverse(UserId);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new ReverseAccountingDocumentResult(document.Id, document.Status, reversalJournalEntryId);
+    }
+
     public async Task<CreateAndPostJournalEntryResult> Handle(CreateAndPostJournalEntryCommand command, CancellationToken cancellationToken)
     {
         if (command.JournalEntry.SourceDocumentId.HasValue && !string.IsNullOrWhiteSpace(command.JournalEntry.SourceModule))
@@ -629,6 +658,13 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         await dbContext.JournalEntries.AddAsync(entry, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new CreateAndPostJournalEntryResult(entry.Id, entry.Number);
+    }
+
+    public async Task<ReverseJournalEntryResult> Handle(ReverseJournalEntryCommand command, CancellationToken cancellationToken)
+    {
+        var reversalJournalEntryId = await ReverseJournalEntryAsync(command.Id, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new ReverseJournalEntryResult(command.Id, JournalEntryStatus.Reversed, reversalJournalEntryId);
     }
 
     public async Task<GetAccountingCashAccountScopeResult> Handle(GetAccountingCashAccountScopeQuery query, CancellationToken cancellationToken)
@@ -729,6 +765,26 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         transaction.Reconcile(dto.JournalEntryId, dto.AccountingDocumentId, dto.WriteOffAccountId, dto.ClearanceDate, UserId);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new ReconcileBankTransactionResult(transaction.Id, transaction.Status);
+    }
+
+    public async Task<BankTransactionActionResult> Handle(IgnoreBankTransactionCommand command, CancellationToken cancellationToken)
+    {
+        var transaction = await dbContext.BankTransactions.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken)
+            ?? throw new NotFoundException("Bank transaction", command.Id);
+        await EnsureCanAccessBranchAsync(transaction.CompanyId, transaction.BranchId, cancellationToken);
+        transaction.Ignore(UserId);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new BankTransactionActionResult(transaction.Id, transaction.Status);
+    }
+
+    public async Task<BankTransactionActionResult> Handle(UnreconcileBankTransactionCommand command, CancellationToken cancellationToken)
+    {
+        var transaction = await dbContext.BankTransactions.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken)
+            ?? throw new NotFoundException("Bank transaction", command.Id);
+        await EnsureCanAccessBranchAsync(transaction.CompanyId, transaction.BranchId, cancellationToken);
+        transaction.Unreconcile(UserId);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new BankTransactionActionResult(transaction.Id, transaction.Status);
     }
 
     public async Task<CreateAccountingDocumentResult> Handle(RecordAccountingReceiptCommand command, CancellationToken cancellationToken)
@@ -1215,6 +1271,61 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
 
         if (period.Status != FiscalPeriodStatus.Open)
             throw new BadRequestException($"Fiscal period {period.Name} is {period.Status} and cannot accept postings.");
+    }
+
+    private async Task<Guid> ReverseJournalEntryAsync(Guid journalEntryId, CancellationToken cancellationToken, bool allowAccountingDocumentJournal = false)
+    {
+        var entry = await dbContext.JournalEntries.Include(x => x.Lines).FirstOrDefaultAsync(x => x.Id == journalEntryId, cancellationToken)
+            ?? throw new NotFoundException("Journal entry", journalEntryId);
+
+        await EnsureCanAccessBranchAsync(entry.CompanyId, entry.BranchId, cancellationToken);
+        var existingReversal = await dbContext.JournalEntries.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == entry.CompanyId
+                && x.SourceModule == "AccountingReversal"
+                && x.SourceDocumentId == entry.Id
+                && x.Status == JournalEntryStatus.Posted, cancellationToken);
+        if (existingReversal is not null)
+        {
+            entry.Reverse(UserId);
+            return existingReversal.Id;
+        }
+
+        if (entry.Status != JournalEntryStatus.Posted)
+            throw new BadRequestException("Only posted journal entries can be reversed.");
+
+        if (!allowAccountingDocumentJournal
+            && string.Equals(entry.SourceModule, "Accounting", StringComparison.OrdinalIgnoreCase)
+            && entry.SourceDocumentId.HasValue)
+            throw new BadRequestException("Reverse the accounting document instead of reversing its generated journal entry directly.");
+
+        var reversalDate = DateTime.UtcNow.Date;
+        await EnsureOpenFiscalPeriodAsync(entry.CompanyId, reversalDate, cancellationToken);
+        var reversalNumber = await GenerateJournalNumberAsync(entry.CompanyId, reversalDate, cancellationToken);
+        var reversalLines = entry.Lines
+            .Select(line => new JournalEntryLineDto
+            {
+                AccountId = line.AccountId,
+                Debit = line.Credit,
+                Credit = line.Debit,
+                Description = $"Reversal of {entry.Number}: {line.Description}".Trim()
+            })
+            .ToList();
+
+        var reversal = JournalEntry.Create(
+            entry.CompanyId,
+            entry.BranchId,
+            reversalNumber,
+            reversalDate,
+            "AccountingReversal",
+            entry.Id,
+            entry.Number,
+            $"Reversal of {entry.Number}",
+            reversalLines,
+            UserId);
+        reversal.Post(UserId);
+        entry.Reverse(UserId);
+        await dbContext.JournalEntries.AddAsync(reversal, cancellationToken);
+        return reversal.Id;
     }
 
     private async Task<List<ClosingAccountBalance>> GetClosingAccountBalancesAsync(FiscalPeriod period, CancellationToken cancellationToken)
@@ -2582,6 +2693,11 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext, ISender send
             AccountingReportType.AgedReceivables => await BuildAgedDocumentRowsAsync(query.CompanyId, query.BranchId, AccountingDocumentType.SalesInvoice, cancellationToken),
             AccountingReportType.AgedPayables => await BuildAgedDocumentRowsAsync(query.CompanyId, query.BranchId, AccountingDocumentType.SupplierInvoice, cancellationToken),
             AccountingReportType.TaxSummary => await BuildTaxSummaryRowsAsync(query.CompanyId, query.BranchId, fromDate, toDate, cancellationToken),
+            AccountingReportType.BalanceSheet => BuildStatementRows(entryList, accounts, [AccountType.Asset, AccountType.Liability, AccountType.Equity]),
+            AccountingReportType.ProfitAndLoss => BuildStatementRows(entryList, accounts, [AccountType.Revenue, AccountType.Expense]),
+            AccountingReportType.CashFlow => BuildCashFlowRows(entryList, accounts),
+            AccountingReportType.VatReturn => await BuildVatReturnRowsAsync(query.CompanyId, query.BranchId, fromDate, toDate, cancellationToken),
+            AccountingReportType.AuditTrail => BuildAuditTrailRows(entryList),
             _ => BuildGeneralLedgerRows(entryList, accounts)
         };
 
@@ -2646,6 +2762,79 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext, ISender send
             .OrderBy(x => x.Code)
             .ToList();
 
+    private static List<AccountingReportRowDto> BuildStatementRows(List<JournalEntry> entries, Dictionary<Guid, Account> accounts, AccountType[] types) =>
+        entries.SelectMany(x => x.Lines)
+            .GroupBy(x => x.AccountId)
+            .Select(x =>
+            {
+                accounts.TryGetValue(x.Key, out var account);
+                if (account is null || !types.Contains(account.Type))
+                    return null;
+
+                var debit = x.Sum(line => line.Debit);
+                var credit = x.Sum(line => line.Credit);
+                var balance = account.NormalBalance == NormalBalance.Debit ? debit - credit : credit - debit;
+                return new AccountingReportRowDto
+                {
+                    Code = account.Code,
+                    Name = account.NameEng,
+                    Source = account.Type.ToString(),
+                    Debit = debit,
+                    Credit = credit,
+                    Balance = balance
+                };
+            })
+            .Where(x => x is not null)
+            .Select(x => x!)
+            .OrderBy(x => x.Code)
+            .ToList();
+
+    private static List<AccountingReportRowDto> BuildCashFlowRows(List<JournalEntry> entries, Dictionary<Guid, Account> accounts)
+    {
+        var cashAccountIds = accounts
+            .Where(x => x.Value.Role is AccountRole.Cash or AccountRole.Bank)
+            .Select(x => x.Key)
+            .ToHashSet();
+
+        return entries
+            .SelectMany(entry => entry.Lines
+                .Where(line => cashAccountIds.Contains(line.AccountId))
+                .Select(line =>
+                {
+                    accounts.TryGetValue(line.AccountId, out var account);
+                    return new AccountingReportRowDto
+                    {
+                        Date = entry.EntryDate,
+                        Code = account?.Code ?? string.Empty,
+                        Name = account?.NameEng ?? account?.Name ?? line.AccountId.ToString(),
+                        Source = entry.SourceDocumentNumber ?? entry.Number,
+                        Party = entry.Memo,
+                        Debit = line.Debit,
+                        Credit = line.Credit,
+                        Balance = line.Debit - line.Credit
+                    };
+                }))
+            .OrderBy(x => x.Date)
+            .ThenBy(x => x.Code)
+            .ToList();
+    }
+
+    private static List<AccountingReportRowDto> BuildAuditTrailRows(List<JournalEntry> entries) =>
+        entries.Select(x => new AccountingReportRowDto
+            {
+                Date = x.EntryDate,
+                Code = x.Number,
+                Name = x.Status.ToString(),
+                Source = x.SourceModule,
+                Party = x.SourceDocumentNumber ?? x.Memo,
+                Debit = x.TotalDebit,
+                Credit = x.TotalCredit,
+                Balance = x.TotalDebit - x.TotalCredit
+            })
+            .OrderBy(x => x.Date)
+            .ThenBy(x => x.Code)
+            .ToList();
+
     private async Task<List<AccountingReportRowDto>> BuildAgedDocumentRowsAsync(Guid companyId, Guid? branchId, AccountingDocumentType type, CancellationToken cancellationToken)
     {
         var today = DateTime.UtcNow.Date;
@@ -2691,6 +2880,19 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext, ISender send
                 Balance = x.Sum(d => d.TaxAmount)
             })
             .ToListAsync(cancellationToken);
+    }
+
+    private async Task<List<AccountingReportRowDto>> BuildVatReturnRowsAsync(Guid companyId, Guid? branchId, DateTime? fromDate, DateTime? toDate, CancellationToken cancellationToken)
+    {
+        var rows = await BuildTaxSummaryRowsAsync(companyId, branchId, fromDate, toDate, cancellationToken);
+        var outputVat = rows.Sum(x => x.Credit);
+        var inputVat = rows.Sum(x => x.Debit);
+        return
+        [
+            new AccountingReportRowDto { Code = "OUTPUT_VAT", Name = "Output VAT", Credit = outputVat, TaxAmount = outputVat, Balance = outputVat },
+            new AccountingReportRowDto { Code = "INPUT_VAT", Name = "Input VAT", Debit = inputVat, TaxAmount = inputVat, Balance = inputVat },
+            new AccountingReportRowDto { Code = "VAT_DUE", Name = "Net VAT Due", Credit = Math.Max(0, outputVat - inputVat), Debit = Math.Max(0, inputVat - outputVat), Balance = outputVat - inputVat }
+        ];
     }
 
     private async Task EnsureCanReadBranchAsync(Guid companyId, Guid? branchId, CancellationToken cancellationToken)

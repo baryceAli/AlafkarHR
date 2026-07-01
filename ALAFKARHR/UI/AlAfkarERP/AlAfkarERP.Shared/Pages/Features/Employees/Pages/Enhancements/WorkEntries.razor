@@ -15,13 +15,19 @@
 @inject SharedDataService SharedDataService
 
 <main class="erp-page" dir="@SharedDataService.PageDirection">
-    <PageHeader Title="@Text("Payroll Work Entries", "مدخلات عمل الرواتب")" Subtitle="@Text("Generate, review, approve, and lock attendance-owned payroll work entries.", "توليد ومراجعة واعتماد وإقفال مدخلات العمل المرتبطة بالحضور.")" Overline="@Text("HR Attendance", "حضور الموارد البشرية")" Icon="bi-journal-check" />
+    <PageHeader Title="@Text("Attendance Work Entries", "مدخلات عمل الحضور")" Subtitle="@Text("Generate, review, approve, and lock attendance-owned payroll work entries.", "توليد ومراجعة واعتماد وإقفال مدخلات العمل المرتبطة بالحضور.")" Overline="@Text("HR Attendance", "حضور الموارد البشرية")" Icon="bi-journal-check" />
 
-    @if (!string.IsNullOrWhiteSpace(message))
+    @if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permission to view attendance work entries.", "ليست لديك صلاحية عرض مدخلات عمل الحضور.")</div>
+    }
+    else if (!string.IsNullOrWhiteSpace(message))
     {
         <div class="alert @messageClass">@message</div>
     }
 
+    @if (CanView)
+    {
     <AppCard Title="@Text("Filters and generation", "الفلاتر والتوليد")" CssClass="mb-3">
         <div class="row g-3 align-items-end">
             <div class="col-md-3">
@@ -44,38 +50,71 @@
         </div>
     </AppCard>
 
-    <AppCard Title="@Text("Manual correction entry", "مدخل تصحيح يدوي")" CssClass="mb-3">
-        <div class="row g-3 align-items-end">
-            <div class="col-md-3"><label class="form-label">@Text("Employee", "الموظف")</label><select class="form-select" @bind="manualEmployeeId"><option value="">@Text("Select employee", "اختر الموظف")</option>@foreach (var employee in employees){<option value="@employee.Id">@EmployeeName(employee)</option>}</select></div>
-            <div class="col-md-2"><label class="form-label">@Text("Date", "التاريخ")</label><InputDate class="form-control" @bind-Value="manualEntry.WorkDate" /></div>
-            <div class="col-md-2"><label class="form-label">@Text("Type", "النوع")</label><select class="form-select" @bind="manualEntry.EntryType">@foreach (var type in Enum.GetValues<AttendanceWorkEntryType>()){<option value="@type">@type</option>}</select></div>
-            <div class="col-md-2"><label class="form-label">@Text("Hours", "الساعات")</label><InputNumber class="form-control" @bind-Value="manualEntry.Hours" /></div>
-            <div class="col-md-2"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="manualEntry.Notes" /></div>
-            <div class="col-md-1"><button class="btn btn-primary w-100" type="button" @onclick="SaveManualEntryAsync" disabled="@(!Can(PermissionList.AttendanceWorkEntryPermissions.Edit))"><i class="bi bi-save"></i></button></div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-3">
+            <StatsCard Title="@Text("Draft absences", "غيابات قيد المراجعة")" Value="@DraftAbsenceCount.ToString()" Subtitle="@Text("Need HR decision", "تحتاج قرار الموارد البشرية")" Icon="bi-person-x" Tone="warning" />
         </div>
-    </AppCard>
+        <div class="col-md-3">
+            <StatsCard Title="@Text("Manual corrections", "التصحيحات اليدوية")" Value="@ManualCorrectionCount.ToString()" Subtitle="@Text("Entered by HR", "مدخلة من الموارد البشرية")" Icon="bi-pencil-square" Tone="info" />
+        </div>
+        <div class="col-md-3">
+            <StatsCard Title="@Text("Approved", "معتمدة")" Value="@ApprovedCount.ToString()" Subtitle="@Text("Ready to lock", "جاهزة للإقفال")" Icon="bi-check2-circle" Tone="success" />
+        </div>
+        <div class="col-md-3">
+            <StatsCard Title="@Text("Locked payroll-ready", "مقفلة وجاهزة للرواتب")" Value="@LockedCount.ToString()" Subtitle="@Text("Protected from edits", "محمية من التعديل")" Icon="bi-lock" Tone="muted" />
+        </div>
+    </div>
 
     <AppCard Title="@Text("Work entries", "مدخلات العمل")">
+        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+            <div class="btn-group flex-wrap" role="group" aria-label="@Text("Work entry state filters", "فلاتر حالة مدخلات العمل")">
+                <button class="@OperationFilterButtonClass("NeedsReview")" type="button" @onclick='() => SetOperationFilter("NeedsReview")'>@Text("Needs review", "تحتاج مراجعة")</button>
+                <button class="@OperationFilterButtonClass("Approved")" type="button" @onclick='() => SetOperationFilter("Approved")'>@Text("Approved", "معتمدة")</button>
+                <button class="@OperationFilterButtonClass("Locked")" type="button" @onclick='() => SetOperationFilter("Locked")'>@Text("Locked", "مقفلة")</button>
+                <button class="@OperationFilterButtonClass("Cancelled")" type="button" @onclick='() => SetOperationFilter("Cancelled")'>@Text("Cancelled", "ملغاة")</button>
+                <button class="@OperationFilterButtonClass("")" type="button" @onclick='() => SetOperationFilter("")'>@Text("All", "الكل")</button>
+            </div>
+
+            <button class="btn btn-outline-primary btn-sm" type="button" @onclick="OpenNewManualEntry" disabled="@(!Can(PermissionList.AttendanceWorkEntryPermissions.Edit))">
+                <i class="bi bi-plus-lg"></i> @Text("New manual entry", "مدخل يدوي جديد")
+            </button>
+        </div>
+
         <div class="table-responsive">
             <table class="table align-middle">
                 <thead><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Employee", "الموظف")</th><th>@Text("Type", "النوع")</th><th>@Text("Hours", "الساعات")</th><th>@Text("Source", "المصدر")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                 <tbody>
-                    @if (entries.Count == 0)
+                    @if (FilteredEntries.Count == 0)
                     {
                         <tr><td colspan="7" class="text-center text-muted py-4">@Text("No work entries found.", "لا توجد مدخلات عمل.")</td></tr>
                     }
-                    @foreach (var entry in entries)
+                    @foreach (var entry in FilteredEntries)
                     {
                         <tr>
                             <td>@entry.WorkDate.ToString("yyyy-MM-dd")</td>
                             <td>@EmployeeName(entry.EmployeeId)</td>
-                            <td>@entry.EntryType</td>
+                            <td><StatusChip Text="@EntryTypeText(entry.EntryType)" Tone="@EntryTypeTone(entry.EntryType)" /></td>
                             <td>@entry.Hours.ToString("0.##")</td>
-                            <td>@entry.SourceModule</td>
-                            <td><span class="badge text-bg-@StatusCss(entry.Status)">@entry.Status</span></td>
+                            <td>
+                                <button class="btn btn-link btn-sm p-0" type="button" @onclick="() => OpenSourceModal(entry)">
+                                    @SourceSummary(entry)
+                                </button>
+                            </td>
+                            <td><span class="badge text-bg-@StatusCss(entry.Status)">@StatusText(entry.Status)</span></td>
                             <td class="text-end">
-                                <button class="btn btn-outline-success btn-sm" type="button" disabled="@(entry.Status != AttendanceWorkEntryStatus.Draft || !Can(PermissionList.AttendanceWorkEntryPermissions.Approve))" @onclick="() => ApproveAsync(entry.Id)">@Text("Approve", "اعتماد")</button>
-                                <button class="btn btn-outline-dark btn-sm" type="button" disabled="@(entry.Status != AttendanceWorkEntryStatus.Approved || !Can(PermissionList.AttendanceWorkEntryPermissions.Approve))" @onclick="() => LockAsync(entry.Id)">@Text("Lock", "إقفال")</button>
+                                <div class="d-inline-flex flex-wrap gap-1 justify-content-end">
+                                    @if (CanCorrect(entry))
+                                    {
+                                        <button class="btn btn-outline-primary btn-sm" type="button" @onclick="() => OpenManualCorrection(entry)">
+                                            <i class="bi bi-pencil-square"></i> @Text("Manual correction", "تصحيح يدوي")
+                                        </button>
+                                        <button class="btn btn-outline-warning btn-sm" type="button" @onclick="() => OpenUnpaidAbsence(entry)">
+                                            <i class="bi bi-person-dash"></i> @Text("Unpaid absence", "غياب غير مدفوع")
+                                        </button>
+                                    }
+                                    <button class="btn btn-outline-success btn-sm" type="button" disabled="@(entry.Status != AttendanceWorkEntryStatus.Draft || !Can(PermissionList.AttendanceWorkEntryPermissions.Approve))" @onclick="() => ApproveAsync(entry.Id)">@Text("Approve", "اعتماد")</button>
+                                    <button class="btn btn-outline-dark btn-sm" type="button" disabled="@(entry.Status != AttendanceWorkEntryStatus.Approved || !Can(PermissionList.AttendanceWorkEntryPermissions.Approve))" @onclick="() => LockAsync(entry.Id)">@Text("Lock", "إقفال")</button>
+                                </div>
                             </td>
                         </tr>
                     }
@@ -83,6 +122,94 @@
             </table>
         </div>
     </AppCard>
+    }
+
+    @if (showManualModal)
+    {
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" dir="@SharedDataService.PageDirection">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div>
+                            <h5 class="modal-title">@manualModalTitle</h5>
+                            <div class="text-muted small">@manualModalSubtitle</div>
+                        </div>
+                        <button type="button" class="btn-close" aria-label="@Text("Close", "إغلاق")" @onclick="CloseManualModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Employee", "الموظف")</label>
+                                <select class="form-select" @bind="manualEmployeeId" disabled="@isRowCorrection">
+                                    <option value="">@Text("Select employee", "اختر الموظف")</option>
+                                    @foreach (var employee in employees)
+                                    {
+                                        <option value="@employee.Id">@EmployeeName(employee)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">@Text("Date", "التاريخ")</label>
+                                <InputDate class="form-control" @bind-Value="manualEntry.WorkDate" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">@Text("Type", "النوع")</label>
+                                <select class="form-select" @bind="manualEntry.EntryType" disabled="@isUnpaidAbsence">
+                                    @foreach (var type in Enum.GetValues<AttendanceWorkEntryType>())
+                                    {
+                                        <option value="@type">@EntryTypeText(type)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">@Text("Hours", "الساعات")</label>
+                                <InputNumber class="form-control" @bind-Value="manualEntry.Hours" disabled="@isUnpaidAbsence" />
+                            </div>
+                            <div class="col-md-9">
+                                <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                                <InputText class="form-control" @bind-Value="manualEntry.Notes" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CloseManualModal">@Text("Cancel", "إلغاء")</button>
+                        <button type="button" class="btn btn-primary" @onclick="SaveManualEntryAsync" disabled="@(!Can(PermissionList.AttendanceWorkEntryPermissions.Edit))">
+                            <i class="bi bi-save"></i> @manualSaveText
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (showSourceModal && sourceEntry is not null)
+    {
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" dir="@SharedDataService.PageDirection">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">@Text("Work entry source", "مصدر مدخل العمل")</h5>
+                        <button type="button" class="btn-close" aria-label="@Text("Close", "إغلاق")" @onclick="CloseSourceModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">@Text("Employee", "الموظف")</dt>
+                            <dd class="col-sm-8">@EmployeeName(sourceEntry.EmployeeId)</dd>
+                            <dt class="col-sm-4">@Text("Date", "التاريخ")</dt>
+                            <dd class="col-sm-8">@sourceEntry.WorkDate.ToString("yyyy-MM-dd")</dd>
+                            <dt class="col-sm-4">@Text("Source", "المصدر")</dt>
+                            <dd class="col-sm-8">@SourceDescription(sourceEntry)</dd>
+                            <dt class="col-sm-4">@Text("Notes", "ملاحظات")</dt>
+                            <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(sourceEntry.Notes) ? Text("No notes", "لا توجد ملاحظات") : sourceEntry.Notes)</dd>
+                        </dl>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" @onclick="CloseSourceModal">@Text("Done", "تم")</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </main>
 
 @code {
@@ -90,20 +217,40 @@
     private AuthenticationState? authState;
     private string? message;
     private string messageClass = "alert-info";
+    private bool CanView;
     private List<EmployeeDto> employees = [];
     private List<PayrollWorkEntryDto> entries = [];
     private DateTime fromDate = DateTime.Today.AddDays(-7);
     private DateTime toDate = DateTime.Today;
     private string? filterEmployeeId;
     private string? filterStatus;
+    private string operationFilter = "NeedsReview";
     private string? manualEmployeeId;
     private UpsertAttendanceWorkEntryDto manualEntry = NewManual();
+    private bool showManualModal;
+    private bool showSourceModal;
+    private bool isRowCorrection;
+    private bool isUnpaidAbsence;
+    private string manualModalTitle = "";
+    private string manualModalSubtitle = "";
+    private string manualSaveText = "";
+    private PayrollWorkEntryDto? sourceEntry;
+
+    private List<PayrollWorkEntryDto> FilteredEntries => entries.Where(MatchesOperationFilter).ToList();
+    private int DraftAbsenceCount => entries.Count(x => x.Status == AttendanceWorkEntryStatus.Draft && x.EntryType == AttendanceWorkEntryType.Absence);
+    private int ManualCorrectionCount => entries.Count(x => x.EntryType == AttendanceWorkEntryType.ManualCorrection);
+    private int ApprovedCount => entries.Count(x => x.Status == AttendanceWorkEntryStatus.Approved);
+    private int LockedCount => entries.Count(x => x.Status == AttendanceWorkEntryStatus.Locked);
 
     protected override void OnInitialized() => SharedDataService.OnChange1 += HandleChangeAsync;
 
     protected override async Task OnInitializedAsync()
     {
         authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        CanView = Can(PermissionList.AttendanceWorkEntryPermissions.View);
+        if (!CanView)
+            return;
+
         companyId = await ResolveCompanyIdAsync();
         manualEntry.CompanyId = companyId;
         employees = (await EmployeeService.GetByCompanyIdAsync(companyId, 0, 5000)).Data?.Data.ToList() ?? [];
@@ -129,13 +276,12 @@
     {
         manualEntry.CompanyId = companyId;
         manualEntry.EmployeeId = Parse(manualEmployeeId);
-        manualEntry.SourceModule = "Manual";
+        manualEntry.SourceModule = isUnpaidAbsence ? "ManualAbsenceReview" : "ManualCorrection";
         var result = await AttendanceService.UpsertAttendanceWorkEntryAsync(manualEntry);
         SetMessage(result.IsSuccess ? Text("Manual entry saved.", "تم حفظ المدخل اليدوي.") : Error(result), result.IsSuccess ? "alert-success" : "alert-danger");
         if (result.IsSuccess)
         {
-            manualEntry = NewManual(companyId);
-            manualEmployeeId = null;
+            CloseManualModal();
             await LoadEntriesAsync();
         }
     }
@@ -158,6 +304,7 @@
     private string EmployeeName(Guid id) => employees.FirstOrDefault(x => x.Id == id) is { } employee ? EmployeeName(employee) : id.ToString();
     private string EmployeeName(EmployeeDto employee) => SharedDataService.SelectViewLang(employee.FullNameEng, employee.FullName);
     private static string StatusCss(AttendanceWorkEntryStatus status) => status switch { AttendanceWorkEntryStatus.Approved => "success", AttendanceWorkEntryStatus.Locked => "dark", AttendanceWorkEntryStatus.Cancelled => "secondary", _ => "light" };
+    private string StatusText(AttendanceWorkEntryStatus status) => status switch { AttendanceWorkEntryStatus.Approved => Text("Approved", "معتمدة"), AttendanceWorkEntryStatus.Locked => Text("Locked", "مقفلة"), AttendanceWorkEntryStatus.Cancelled => Text("Cancelled", "ملغاة"), _ => Text("Draft", "مسودة") };
     private bool Can(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
     private static Guid Parse(string? value) => Guid.TryParse(value, out var id) ? id : Guid.Empty;
     private static Guid? ParseNullable(string? value) => Guid.TryParse(value, out var id) ? id : null;
@@ -167,4 +314,148 @@
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+
+    private bool CanCorrect(PayrollWorkEntryDto entry)
+        => entry.Status == AttendanceWorkEntryStatus.Draft
+            && entry.EntryType == AttendanceWorkEntryType.Absence
+            && Can(PermissionList.AttendanceWorkEntryPermissions.Edit);
+
+    private bool MatchesOperationFilter(PayrollWorkEntryDto entry) => operationFilter switch
+    {
+        "NeedsReview" => entry.Status == AttendanceWorkEntryStatus.Draft
+            && (entry.EntryType == AttendanceWorkEntryType.Absence || entry.EntryType == AttendanceWorkEntryType.ManualCorrection),
+        "Approved" => entry.Status == AttendanceWorkEntryStatus.Approved,
+        "Locked" => entry.Status == AttendanceWorkEntryStatus.Locked,
+        "Cancelled" => entry.Status == AttendanceWorkEntryStatus.Cancelled,
+        _ => true
+    };
+
+    private void SetOperationFilter(string filter) => operationFilter = filter;
+
+    private string OperationFilterButtonClass(string filter)
+        => operationFilter == filter ? "btn btn-primary btn-sm" : "btn btn-outline-secondary btn-sm";
+
+    private void OpenNewManualEntry()
+    {
+        manualEntry = NewManual(companyId);
+        manualEmployeeId = null;
+        isRowCorrection = false;
+        isUnpaidAbsence = false;
+        manualModalTitle = Text("New manual entry", "مدخل يدوي جديد");
+        manualModalSubtitle = Text("Create an attendance-owned work entry for payroll review.", "إنشاء مدخل عمل مرتبط بالحضور لمراجعته في الرواتب.");
+        manualSaveText = Text("Save entry", "حفظ المدخل");
+        showManualModal = true;
+    }
+
+    private void OpenManualCorrection(PayrollWorkEntryDto entry)
+    {
+        manualEntry = new UpsertAttendanceWorkEntryDto
+        {
+            CompanyId = companyId,
+            EmployeeId = entry.EmployeeId,
+            WorkDate = entry.WorkDate,
+            EntryType = AttendanceWorkEntryType.ManualCorrection,
+            Hours = 0,
+            SourceDocumentId = entry.Id,
+            SourceModule = "ManualCorrection",
+            Notes = Text("Corrected attended hours for generated absence.", "تصحيح ساعات الحضور لغياب مولد.")
+        };
+        manualEmployeeId = entry.EmployeeId.ToString();
+        isRowCorrection = true;
+        isUnpaidAbsence = false;
+        manualModalTitle = Text("Manual correction", "تصحيح يدوي");
+        manualModalSubtitle = $"{EmployeeName(entry.EmployeeId)} - {entry.WorkDate:yyyy-MM-dd}";
+        manualSaveText = Text("Save correction", "حفظ التصحيح");
+        showManualModal = true;
+    }
+
+    private void OpenUnpaidAbsence(PayrollWorkEntryDto entry)
+    {
+        manualEntry = new UpsertAttendanceWorkEntryDto
+        {
+            Id = entry.Id,
+            CompanyId = entry.CompanyId,
+            EmployeeId = entry.EmployeeId,
+            WorkDate = entry.WorkDate,
+            EntryType = AttendanceWorkEntryType.Absence,
+            Hours = 0,
+            SourceDocumentId = entry.SourceDocumentId,
+            SourceModule = entry.SourceModule,
+            Notes = string.IsNullOrWhiteSpace(entry.Notes)
+                ? Text("Confirmed as unpaid absence.", "تم تأكيده كغياب غير مدفوع.")
+                : entry.Notes
+        };
+        manualEmployeeId = entry.EmployeeId.ToString();
+        isRowCorrection = true;
+        isUnpaidAbsence = true;
+        manualModalTitle = Text("Mark as unpaid absence", "تحديد كغياب غير مدفوع");
+        manualModalSubtitle = $"{EmployeeName(entry.EmployeeId)} - {entry.WorkDate:yyyy-MM-dd}";
+        manualSaveText = Text("Save absence", "حفظ الغياب");
+        showManualModal = true;
+    }
+
+    private void CloseManualModal()
+    {
+        showManualModal = false;
+        isRowCorrection = false;
+        isUnpaidAbsence = false;
+        manualEntry = NewManual(companyId);
+        manualEmployeeId = null;
+    }
+
+    private void OpenSourceModal(PayrollWorkEntryDto entry)
+    {
+        sourceEntry = entry;
+        showSourceModal = true;
+    }
+
+    private void CloseSourceModal()
+    {
+        sourceEntry = null;
+        showSourceModal = false;
+    }
+
+    private string SourceSummary(PayrollWorkEntryDto entry) => entry.SourceModule switch
+    {
+        "ShiftScheduleAssignmentAbsence" => Text("Roster absence", "غياب من الجدول"),
+        "EmployeeShiftAbsence" => Text("Baseline shift absence", "غياب من الوردية الأساسية"),
+        "AttendanceSession" => Text("Attendance session", "جلسة حضور"),
+        "AttendanceSessionOvertime" => Text("Attendance overtime", "عمل إضافي من الحضور"),
+        "ManualCorrection" => Text("Manual correction", "تصحيح يدوي"),
+        "ManualAbsenceReview" => Text("Manual absence review", "مراجعة غياب يدوية"),
+        "Manual" => Text("Manual", "يدوي"),
+        _ => string.IsNullOrWhiteSpace(entry.SourceModule) ? Text("Manual", "يدوي") : entry.SourceModule
+    };
+
+    private string SourceDescription(PayrollWorkEntryDto entry) => entry.SourceModule switch
+    {
+        "ShiftScheduleAssignmentAbsence" => Text("Generated from a roster assignment with no attendance session.", "تم توليده من تعيين جدول بدون جلسة حضور."),
+        "EmployeeShiftAbsence" => Text("Generated from the employee baseline shift with no attendance session.", "تم توليده من الوردية الأساسية للموظف بدون جلسة حضور."),
+        "AttendanceSession" => Text("Generated from a completed attendance session.", "تم توليده من جلسة حضور مكتملة."),
+        "AttendanceSessionOvertime" => Text("Generated from attendance hours beyond the expected shift.", "تم توليده من ساعات حضور تتجاوز الوردية المتوقعة."),
+        "ManualCorrection" => Text("Created manually by HR to correct attended hours.", "تم إنشاؤه يدوياً من الموارد البشرية لتصحيح ساعات الحضور."),
+        "ManualAbsenceReview" => Text("Reviewed manually by HR as unpaid absence.", "تمت مراجعته يدوياً من الموارد البشرية كغياب غير مدفوع."),
+        _ => SourceSummary(entry)
+    };
+
+    private string EntryTypeText(AttendanceWorkEntryType type) => type switch
+    {
+        AttendanceWorkEntryType.Regular => Text("Regular", "عادي"),
+        AttendanceWorkEntryType.Overtime => Text("Overtime", "عمل إضافي"),
+        AttendanceWorkEntryType.PaidLeave => Text("Paid leave", "إجازة مدفوعة"),
+        AttendanceWorkEntryType.UnpaidLeave => Text("Unpaid leave", "إجازة غير مدفوعة"),
+        AttendanceWorkEntryType.Holiday => Text("Holiday", "عطلة"),
+        AttendanceWorkEntryType.Absence => Text("Absence", "غياب"),
+        AttendanceWorkEntryType.ManualCorrection => Text("Manual correction", "تصحيح يدوي"),
+        _ => type.ToString()
+    };
+
+    private static string EntryTypeTone(AttendanceWorkEntryType type) => type switch
+    {
+        AttendanceWorkEntryType.Absence => "danger",
+        AttendanceWorkEntryType.ManualCorrection => "info",
+        AttendanceWorkEntryType.Overtime => "warning",
+        AttendanceWorkEntryType.Regular => "success",
+        _ => "muted"
+    };
 }
