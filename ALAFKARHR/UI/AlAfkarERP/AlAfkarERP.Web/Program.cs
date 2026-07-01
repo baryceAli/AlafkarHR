@@ -311,6 +311,12 @@ builder.Services.AddHttpClient<IHomePageTemplateService, HomePageTemplateService
 {
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
 });
+
+builder.Services.AddScoped<IDemoDataService, DemoDataService>();
+builder.Services.AddHttpClient<IDemoDataService, DemoDataService>(client =>
+{
+    client.BaseAddress = new Uri($"{apiConfig.BaseURL}");
+});
 #endregion GeneralSettings
 
 #region Attendance

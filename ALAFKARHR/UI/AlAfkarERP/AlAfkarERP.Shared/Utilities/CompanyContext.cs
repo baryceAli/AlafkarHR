@@ -1,11 +1,11 @@
 using System.Security.Claims;
+using SharedWithUI.Permissions;
 
 namespace AlAfkarERP.Shared.Utilities;
 
 public static class CompanyContext
 {
     public const string CompanyIdClaimType = "company_id";
-    private const string ParentCompanyPermissionPrefix = "Organization.ParentCompany.";
 
     public static bool TryGetCompanyId(ClaimsPrincipal? user, out Guid companyId)
         => Guid.TryParse(
@@ -20,7 +20,7 @@ public static class CompanyContext
 
     public static bool IsPlatformPermission(string? permission)
         => !string.IsNullOrWhiteSpace(permission)
-           && permission.StartsWith(ParentCompanyPermissionPrefix, StringComparison.Ordinal);
+           && PermissionList.GetPlatformPermissions().Contains(permission, StringComparer.Ordinal);
 
     public static bool HasPermission(ClaimsPrincipal? user, string? permission)
     {

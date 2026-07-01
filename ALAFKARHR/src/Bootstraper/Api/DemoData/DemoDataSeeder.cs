@@ -4,6 +4,7 @@ using System.Text;
 using Accounting.Accounting.Features;
 using Accounting.Contracts.Accounting.Features;
 using Accounting.Data;
+using Auth.Contracts.Features.ResetCompanyAdminPassword;
 using Auth.Users.Dtos;
 using Auth.Users.Models;
 using Auth.Users.Roles;
@@ -30,9 +31,11 @@ using SharedWithUI.Catalog.Enums;
 using SharedWithUI.Customers.Enums;
 using SharedWithUI.Employees.Dtos;
 using SharedWithUI.Employees.Enums;
+using SharedWithUI.GeneralSettings.Dtos;
 using SharedWithUI.Inventory.Enums;
 using SharedWithUI.Organization.Dtos;
 using SharedWithUI.Organization.Enums;
+using SharedWithUI.Permissions;
 using SharedWithUI.Suppliers.Enums;
 using SharedWithUI.TaskManagement.Enums;
 using SuppliersModule.Data;
@@ -42,6 +45,17 @@ using TaskManagement.Tasks.Models;
 using TaskWorkflowStatus = SharedWithUI.TaskManagement.Enums.TaskStatus;
 
 namespace Api.DemoData;
+
+public interface IDemoDataManagementService
+{
+    Task<IReadOnlyList<DemoDataSummaryDto>> ListAsync(CancellationToken cancellationToken = default);
+    Task<DemoDataStatusDto> GetStatusAsync(string companyCode, CancellationToken cancellationToken = default);
+    Task<DemoDataOperationResultDto> CreateAsync(CancellationToken cancellationToken = default);
+    Task<DemoDataOperationResultDto> CreateAsync(DemoDataCreateRequestDto request, CancellationToken cancellationToken = default);
+    Task<DemoDataOperationResultDto> ResetAsync(string companyCode, DemoDataConfirmationRequestDto request, CancellationToken cancellationToken = default);
+    Task<DemoDataOperationResultDto> DeleteAsync(string companyCode, DemoDataConfirmationRequestDto request, CancellationToken cancellationToken = default);
+    Task<DemoDataOperationResultDto> ResetAdminPasswordAsync(string companyCode, DemoDataConfirmationRequestDto request, CancellationToken cancellationToken = default);
+}
 
 public sealed class DemoDataSeeder(
     IConfiguration configuration,
@@ -57,42 +71,214 @@ public sealed class DemoDataSeeder(
     CustomerDbContext customerDbContext,
     SupplierDbContext supplierDbContext,
     InventoryDbContext inventoryDbContext,
-    AccountingDbContext accountingDbContext)
+    AccountingDbContext accountingDbContext) : IDemoDataManagementService
 {
     private const string DemoActorName = "demo.seed";
     private const string DefaultCompanyCode = "DEMO-ERP";
-    private const string DefaultPassword = "Demo@12345";
+    private const string DefaultPassword = "Admin@123";
+    private const string DemoMarker = "Managed by DemoData";
+
+    private sealed record DemoSeedContext(
+        string CompanyCode,
+        string CompanyName,
+        string CompanyNameEng,
+        string AdminUserName,
+        string AdminEmail,
+        string AdminPhoneNumber,
+        string DisplayLabel,
+        string CodeSlug,
+        string Marker)
+    {
+        public string UserName(string roleKey) => $"demo.{roleKey}.{CodeSlug}";
+        public string Email(string roleKey) => $"demo.{roleKey}.{CodeSlug}@alafkar.demo";
+        public string TaskNumber(string number) => $"DEMO-{CompanyCode}-TASK-{number}";
+        public string TaskNumberPrefix => $"DEMO-{CompanyCode}-TASK-";
+        public string DocumentNumber(string number) => $"DEMO-{CompanyCode}-{number}";
+    }
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
         if (!configuration.GetValue<bool>("DemoData:Enabled"))
             return;
 
-        if (environment.IsProduction() && !configuration.GetValue<bool>("DemoData:AllowProduction"))
-            throw new InvalidOperationException("Demo data seeding is disabled in production unless DemoData:AllowProduction is true.");
+        await CreateAsync(cancellationToken);
+    }
 
-        var companyCode = configuration["DemoData:CompanyCode"]?.Trim();
-        if (string.IsNullOrWhiteSpace(companyCode))
-            companyCode = DefaultCompanyCode;
+    public async Task<IReadOnlyList<DemoDataSummaryDto>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        var configuredCode = ResolveCompanyCode();
+        var candidates = await organizationDbContext.Companies
+            .AsNoTracking()
+            .Where(x => x.ParentCompanyId == null)
+            .Where(x => x.Code == configuredCode || organizationDbContext.CompanyLicenses.Any(l => l.CompanyId == x.Id && l.Notes != null && l.Notes.Contains(DemoMarker)))
+            .OrderBy(x => x.Code)
+            .Select(x => x.Code)
+            .ToListAsync(cancellationToken);
+
+        var demos = new List<DemoDataSummaryDto>();
+        foreach (var companyCode in candidates.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var status = await GetStatusAsync(companyCode, cancellationToken);
+            if (status.Exists && status.IsRecognizedDemoTenant)
+                demos.Add(ToSummary(status));
+        }
+
+        return demos;
+    }
+
+    public async Task<DemoDataStatusDto> GetStatusAsync(string companyCode, CancellationToken cancellationToken = default)
+    {
+        companyCode = NormalizeCompanyCode(companyCode);
+        var company = await organizationDbContext.Companies
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Code == companyCode && x.ParentCompanyId == null, cancellationToken);
+
+        if (company is null)
+        {
+            return new DemoDataStatusDto
+            {
+                CompanyCode = companyCode,
+                Exists = false,
+                IsProduction = environment.IsProduction(),
+                AllowProductionActions = configuration.GetValue<bool>("DemoData:AllowProduction"),
+                DestructiveActionsAllowed = !environment.IsProduction() || configuration.GetValue<bool>("DemoData:AllowProduction")
+            };
+        }
+
+        var isRecognizedDemoTenant = await IsRecognizedDemoTenantAsync(company.Id, companyCode, cancellationToken);
+        var adminIdentity = await GetDemoAdminIdentityAsync(company.Id, companyCode, cancellationToken);
+        var demoUserIds = await userManager.Users
+            .Where(x => x.CompanyId == company.Id && x.UserName != null && x.UserName.StartsWith("demo."))
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+        var taskNumberPrefix = TaskNumberPrefix(companyCode);
+
+        return new DemoDataStatusDto
+        {
+            CompanyCode = companyCode,
+            CompanyId = company.Id,
+            CompanyName = company.Name,
+            CompanyNameEng = company.NameEng,
+            AdminUserName = adminIdentity.UserName,
+            AdminEmail = adminIdentity.Email,
+            Exists = true,
+            IsRecognizedDemoTenant = isRecognizedDemoTenant,
+            IsProduction = environment.IsProduction(),
+            AllowProductionActions = configuration.GetValue<bool>("DemoData:AllowProduction"),
+            DestructiveActionsAllowed = isRecognizedDemoTenant && (!environment.IsProduction() || configuration.GetValue<bool>("DemoData:AllowProduction")),
+            BranchCount = await organizationDbContext.Branches.CountAsync(x => x.CompanyId == company.Id, cancellationToken),
+            UserCount = demoUserIds.Count,
+            EmployeeCount = await employeeDbContext.Employees.CountAsync(x => x.CompanyId == company.Id, cancellationToken),
+            TaskCount = await taskDbContext.TaskItems.CountAsync(x => x.TaskNumber.StartsWith(taskNumberPrefix) || (companyCode == DefaultCompanyCode && x.TaskNumber.StartsWith("DEMO-TASK-")), cancellationToken),
+            ProductSkuCount = await catalogDbContext.ProductSkus.CountAsync(x => x.CompanyId == company.Id, cancellationToken),
+            CustomerCount = await customerDbContext.Customers.CountAsync(x => x.CompanyId == company.Id, cancellationToken),
+            SupplierCount = await supplierDbContext.Suppliers.CountAsync(x => x.CompanyId == company.Id, cancellationToken),
+            WarehouseCount = await inventoryDbContext.Warehouses.CountAsync(x => x.CompanyId == company.Id, cancellationToken),
+            AccountingDocumentCount = await accountingDbContext.AccountingDocuments.CountAsync(x => x.CompanyId == company.Id, cancellationToken),
+            JournalEntryCount = await accountingDbContext.JournalEntries.CountAsync(x => x.CompanyId == company.Id, cancellationToken),
+            LastKnownMarker = isRecognizedDemoTenant ? DemoMarker : string.Empty
+        };
+    }
+
+    public async Task<DemoDataOperationResultDto> CreateAsync(CancellationToken cancellationToken = default)
+    {
+        return await CreateAsync(BuildDefaultCreateRequest(), cancellationToken);
+    }
+
+    public async Task<DemoDataOperationResultDto> CreateAsync(DemoDataCreateRequestDto request, CancellationToken cancellationToken = default)
+    {
+        EnsureEnvironmentAllowsAction();
+        var context = BuildSeedContext(request);
 
         var platformUser = await EnsurePlatformSeedUserAsync(cancellationToken);
-        using var _ = Impersonate(platformUser.Id, null);
+        using var _ = Impersonate(platformUser.Id, null, PermissionList.GetPlatformPermissions());
 
-        var company = await EnsureParentCompanyAsync(companyCode, cancellationToken);
-        using var __ = Impersonate(platformUser.Id, company.Id);
+        Company? company = null;
+        try
+        {
+            company = await EnsureParentCompanyAsync(context, cancellationToken);
+            using var __ = Impersonate(platformUser.Id, company.Id, PermissionList.GetTenantPermissions());
 
-        await EnsureRolesAndUsersAsync(company.Id);
-        var branches = await EnsureOrganizationAsync(company.Id, cancellationToken);
-        await EnsureAccountingAsync(company.Id, branches, cancellationToken);
-        var employees = await EnsureEmployeesAsync(company.Id, branches, cancellationToken);
-        await EnsureTasksAsync(employees, cancellationToken);
-        var skus = await EnsureCatalogAsync(company.Id, cancellationToken);
-        var customers = await EnsureCustomersAsync(company.Id, cancellationToken);
-        await EnsureSuppliersAsync(company.Id, cancellationToken);
-        await EnsureInventoryAsync(company.Id, branches, cancellationToken);
-        await EnsureAccountingActivityAsync(company.Id, branches.First().Id, customers.FirstOrDefault()?.Id, skus.FirstOrDefault()?.Id, cancellationToken);
+            await EnsureRolesAndUsersAsync(company.Id, context);
+            var branches = await EnsureOrganizationAsync(company.Id, cancellationToken);
+            await EnsureAccountingAsync(company.Id, branches, cancellationToken);
+            var employees = await EnsureEmployeesAsync(company.Id, branches, context, cancellationToken);
+            await EnsureTasksAsync(employees, context, cancellationToken);
+            var skus = await EnsureCatalogAsync(company.Id, cancellationToken);
+            var customers = await EnsureCustomersAsync(company.Id, cancellationToken);
+            await EnsureSuppliersAsync(company.Id, cancellationToken);
+            await EnsureInventoryAsync(company.Id, branches, cancellationToken);
+            await EnsureAccountingActivityAsync(company.Id, branches.First().Id, customers.FirstOrDefault()?.Id, skus.FirstOrDefault()?.Id, context, cancellationToken);
+        }
+        catch
+        {
+            if (company is not null)
+                await TryPurgeDemoTenantAfterFailedCreateAsync(context.CompanyCode, cancellationToken);
 
-        Console.WriteLine($"Demo data ready for {company.NameEng} ({company.Code}). Admin: demo.admin@alafkar.demo / {DefaultPassword}");
+            throw;
+        }
+
+        var seededCompany = company ?? throw new InvalidOperationException($"Demo company {context.CompanyCode} was not created.");
+        Console.WriteLine($"Demo data ready for {seededCompany.NameEng} ({seededCompany.Code}). Admin: {context.AdminEmail} / {DefaultPassword}");
+        return new DemoDataOperationResultDto
+        {
+            Success = true,
+            Message = $"Demo data ready for {seededCompany.NameEng} ({seededCompany.Code}).",
+            Status = await GetStatusAsync(context.CompanyCode, cancellationToken)
+        };
+    }
+
+    public async Task<DemoDataOperationResultDto> ResetAsync(string companyCode, DemoDataConfirmationRequestDto request, CancellationToken cancellationToken = default)
+    {
+        EnsureEnvironmentAllowsAction();
+        companyCode = NormalizeCompanyCode(companyCode);
+        var existingStatus = await GetStatusAsync(companyCode, cancellationToken);
+        await PurgeDemoTenantAsync(companyCode, request, cancellationToken);
+        var result = await CreateAsync(new DemoDataCreateRequestDto
+        {
+            CompanyCode = companyCode,
+            CompanyName = existingStatus.CompanyName ?? string.Empty,
+            CompanyNameEng = existingStatus.CompanyNameEng ?? string.Empty
+        }, cancellationToken);
+        return result with { Message = "Demo data reset successfully." };
+    }
+
+    public async Task<DemoDataOperationResultDto> DeleteAsync(string companyCode, DemoDataConfirmationRequestDto request, CancellationToken cancellationToken = default)
+    {
+        EnsureEnvironmentAllowsAction();
+        companyCode = NormalizeCompanyCode(companyCode);
+        await PurgeDemoTenantAsync(companyCode, request, cancellationToken);
+        return new DemoDataOperationResultDto
+        {
+            Success = true,
+            Message = "Demo data deleted successfully.",
+            Status = await GetStatusAsync(companyCode, cancellationToken)
+        };
+    }
+
+    public async Task<DemoDataOperationResultDto> ResetAdminPasswordAsync(string companyCode, DemoDataConfirmationRequestDto request, CancellationToken cancellationToken = default)
+    {
+        EnsureEnvironmentAllowsAction();
+        companyCode = NormalizeCompanyCode(companyCode);
+        if (!string.Equals(NormalizeCompanyCode(request.CompanyCode), companyCode, StringComparison.Ordinal))
+            throw new InvalidOperationException($"Confirmation code must exactly match {companyCode}.");
+
+        var company = await organizationDbContext.Companies
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Code == companyCode && x.ParentCompanyId == null, cancellationToken)
+            ?? throw new InvalidOperationException($"Demo company {companyCode} was not found.");
+
+        if (!await IsRecognizedDemoTenantAsync(company.Id, companyCode, cancellationToken))
+            throw new InvalidOperationException("The selected company does not match the demo data safety markers.");
+
+        await sender.Send(new ResetCompanyAdminPasswordCommand(company.Id, DefaultPassword), cancellationToken);
+
+        return new DemoDataOperationResultDto
+        {
+            Success = true,
+            Message = $"Demo admin password reset for {company.NameEng} ({company.Code}). Password: {DefaultPassword}",
+            Status = await GetStatusAsync(companyCode, cancellationToken)
+        };
     }
 
     private async Task<ApplicationUser> EnsurePlatformSeedUserAsync(CancellationToken cancellationToken)
@@ -128,12 +314,18 @@ public sealed class DemoDataSeeder(
         return user;
     }
 
-    private async Task<Company> EnsureParentCompanyAsync(string companyCode, CancellationToken cancellationToken)
+    private async Task<Company> EnsureParentCompanyAsync(DemoSeedContext context, CancellationToken cancellationToken)
     {
         var existing = await organizationDbContext.Companies
-            .FirstOrDefaultAsync(x => x.Code == companyCode && x.ParentCompanyId == null, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Code == context.CompanyCode && x.ParentCompanyId == null, cancellationToken);
         if (existing is not null)
+        {
+            if (!await IsRecognizedDemoTenantAsync(existing.Id, context.CompanyCode, cancellationToken))
+                throw new InvalidOperationException($"Company code {context.CompanyCode} already exists and is not recognized as a demo tenant.");
+
+            await EnsureDemoLicenseMarkerAsync(existing.Id, context, cancellationToken);
             return existing;
+        }
 
         var licenseCategory = await organizationDbContext.LicenseCategories
             .OrderByDescending(x => x.MaxUsers)
@@ -154,9 +346,9 @@ public sealed class DemoDataSeeder(
 
         var result = await sender.Send(new CreateParentCompanyCommand(new ParentCompanyDto
         {
-            Name = "شركة العرض الشامل",
-            NameEng = "Alafkar Demo Holding",
-            Code = companyCode,
+            Name = context.CompanyName,
+            NameEng = context.CompanyNameEng,
+            Code = context.CompanyCode,
             Logo = string.Empty,
             HqLocation = "Riyadh, Saudi Arabia",
             HqLatitude = 24.7136,
@@ -165,9 +357,9 @@ public sealed class DemoDataSeeder(
             Phone = "0110000000",
             Email = "info@alafkar.demo",
             TimeZone = "Asia/Riyadh",
-            AdminUserName = "demo.admin",
-            AdminEmail = "demo.admin@alafkar.demo",
-            AdminPhoneNumber = "0500000002",
+            AdminUserName = context.AdminUserName,
+            AdminEmail = context.AdminEmail,
+            AdminPhoneNumber = context.AdminPhoneNumber,
             AdminTemporaryPassword = DefaultPassword,
             License = new CompanyLicenseDto
             {
@@ -175,7 +367,7 @@ public sealed class DemoDataSeeder(
                 Status = CompanyLicenseStatus.Active,
                 StartDate = DateTime.UtcNow.Date.AddMonths(-1),
                 EndDate = DateTime.UtcNow.Date.AddYears(2),
-                Notes = "Demo license with all available business lines.",
+                Notes = context.Marker,
                 BusinessLines = businessLines
             }
         }), cancellationToken);
@@ -184,19 +376,19 @@ public sealed class DemoDataSeeder(
             .FirstAsync(x => x.Id == result.CreatedCompany.Id, cancellationToken);
     }
 
-    private async Task EnsureRolesAndUsersAsync(Guid companyId)
+    private async Task EnsureRolesAndUsersAsync(Guid companyId, DemoSeedContext context)
     {
         await CompanyRoleTemplates.SeedDefaultRolesAsync(roleManager, companyId);
 
         var demoUsers = new[]
         {
-            ("demo.hr", "demo.hr@alafkar.demo", "0501000001", "hr-manager"),
-            ("demo.accountant", "demo.accountant@alafkar.demo", "0501000002", "accounting-manager"),
-            ("demo.sales", "demo.sales@alafkar.demo", "0501000003", "sales-manager"),
-            ("demo.procurement", "demo.procurement@alafkar.demo", "0501000004", "procurement-manager"),
-            ("demo.cashier", "demo.cashier@alafkar.demo", "0501000005", "cashier"),
-            ("demo.employee", "demo.employee@alafkar.demo", "0501000006", "employee"),
-            ("demo.approver", "demo.approver@alafkar.demo", "0501000007", "approver")
+            (context.UserName("hr"), context.Email("hr"), "0501000001", "hr-manager"),
+            (context.UserName("accountant"), context.Email("accountant"), "0501000002", "accounting-manager"),
+            (context.UserName("sales"), context.Email("sales"), "0501000003", "sales-manager"),
+            (context.UserName("procurement"), context.Email("procurement"), "0501000004", "procurement-manager"),
+            (context.UserName("cashier"), context.Email("cashier"), "0501000005", "cashier"),
+            (context.UserName("employee"), context.Email("employee"), "0501000006", "employee"),
+            (context.UserName("approver"), context.Email("approver"), "0501000007", "approver")
         };
 
         foreach (var (userName, email, phone, roleKey) in demoUsers)
@@ -369,7 +561,7 @@ public sealed class DemoDataSeeder(
         }
     }
 
-    private async Task<List<Employee>> EnsureEmployeesAsync(Guid companyId, List<Branch> branches, CancellationToken cancellationToken)
+    private async Task<List<Employee>> EnsureEmployeesAsync(Guid companyId, List<Branch> branches, DemoSeedContext context, CancellationToken cancellationToken)
     {
         var positionSpecs = new[]
         {
@@ -420,13 +612,13 @@ public sealed class DemoDataSeeder(
 
         var employeeSpecs = new[]
         {
-            ("EMP-001", "سارة", "Sara", "عبدالله", "Abdullah", "العتيبي", "Alotaibi", "demo.hr", "POS-HR-MGR", "DEP-HR"),
-            ("EMP-002", "خالد", "Khalid", "محمد", "Mohammed", "القحطاني", "Alqahtani", "demo.accountant", "POS-ACC-MGR", "DEP-AR"),
-            ("EMP-003", "نورة", "Noura", "سالم", "Salem", "الحربي", "Alharbi", "demo.sales", "POS-SALES-MGR", "DEP-SALES"),
-            ("EMP-004", "فيصل", "Faisal", "ناصر", "Nasser", "الدوسري", "Aldosari", "demo.procurement", "POS-PROC-MGR", "DEP-PROC"),
-            ("EMP-005", "ريم", "Reem", "علي", "Ali", "الزهراني", "Alzahrani", "demo.cashier", "POS-CASHIER", "DEP-SALES"),
-            ("EMP-006", "ماجد", "Majed", "حسن", "Hassan", "الشمري", "Alshammari", "demo.employee", "POS-WH", "DEP-WH"),
-            ("EMP-007", "عبدالعزيز", "Abdulaziz", "فهد", "Fahad", "الغامدي", "Alghamdi", "demo.approver", "POS-EMP", "DEP-PAY")
+            ("EMP-001", "سارة", "Sara", "عبدالله", "Abdullah", "العتيبي", "Alotaibi", context.UserName("hr"), "POS-HR-MGR", "DEP-HR"),
+            ("EMP-002", "خالد", "Khalid", "محمد", "Mohammed", "القحطاني", "Alqahtani", context.UserName("accountant"), "POS-ACC-MGR", "DEP-AR"),
+            ("EMP-003", "نورة", "Noura", "سالم", "Salem", "الحربي", "Alharbi", context.UserName("sales"), "POS-SALES-MGR", "DEP-SALES"),
+            ("EMP-004", "فيصل", "Faisal", "ناصر", "Nasser", "الدوسري", "Aldosari", context.UserName("procurement"), "POS-PROC-MGR", "DEP-PROC"),
+            ("EMP-005", "ريم", "Reem", "علي", "Ali", "الزهراني", "Alzahrani", context.UserName("cashier"), "POS-CASHIER", "DEP-SALES"),
+            ("EMP-006", "ماجد", "Majed", "حسن", "Hassan", "الشمري", "Alshammari", context.UserName("employee"), "POS-WH", "DEP-WH"),
+            ("EMP-007", "عبدالعزيز", "Abdulaziz", "فهد", "Fahad", "الغامدي", "Alghamdi", context.UserName("approver"), "POS-EMP", "DEP-PAY")
         };
 
         foreach (var spec in employeeSpecs)
@@ -484,25 +676,26 @@ public sealed class DemoDataSeeder(
         return await employeeDbContext.Employees.Where(x => x.CompanyId == companyId).OrderBy(x => x.EmployeeNo).ToListAsync(cancellationToken);
     }
 
-    private async Task EnsureTasksAsync(List<Employee> employees, CancellationToken cancellationToken)
+    private async Task EnsureTasksAsync(List<Employee> employees, DemoSeedContext context, CancellationToken cancellationToken)
     {
         if (employees.Count == 0)
             return;
 
-        var assignedBy = employees[0].LinkedUserId ?? StableGuid("user", "demo.hr");
+        var assignedBy = employees[0].LinkedUserId ?? StableGuid("user", context.UserName("hr"));
         var assignedTo = employees.FirstOrDefault(x => x.LinkedUserId.HasValue)?.LinkedUserId?.ToString() ?? assignedBy.ToString();
         var departmentId = employees.FirstOrDefault(x => x.DepartmentId.HasValue)?.DepartmentId;
+        var today = DateTime.UtcNow.Date;
 
         var taskSpecs = new[]
         {
-            ("DEMO-TASK-001", "Prepare onboarding checklist", "New joiner onboarding tasks for HR demo.", TaskPriority.Normal, TaskWorkflowStatus.Assigned, 0m, DateTime.UtcNow.Date.AddDays(5)),
-            ("DEMO-TASK-002", "Review overdue supplier invoice", "Finance task intentionally overdue for dashboard counters.", TaskPriority.High, TaskWorkflowStatus.Overdue, 25m, DateTime.UtcNow.Date.AddDays(-3)),
-            ("DEMO-TASK-003", "Update sales price list", "Sales operations task in progress.", TaskPriority.Normal, TaskWorkflowStatus.InProgress, 60m, DateTime.UtcNow.Date.AddDays(2)),
-            ("DEMO-TASK-004", "Complete monthly attendance audit", "Completed HR control task.", TaskPriority.Low, TaskWorkflowStatus.Completed, 100m, DateTime.UtcNow.Date.AddDays(-1)),
-            ("DEMO-TASK-005", "Cancelled warehouse cycle count", "Cancelled task for status filtering.", TaskPriority.Normal, TaskWorkflowStatus.Cancelled, 0m, DateTime.UtcNow.Date.AddDays(4))
+            (context.TaskNumber("001"), "Prepare onboarding checklist", "New joiner onboarding tasks for HR demo.", TaskPriority.Normal, TaskWorkflowStatus.Assigned, 0m, today, today.AddDays(5)),
+            (context.TaskNumber("002"), "Review overdue supplier invoice", "Finance task intentionally overdue for dashboard counters.", TaskPriority.High, TaskWorkflowStatus.Overdue, 25m, today.AddDays(-7), today.AddDays(-3)),
+            (context.TaskNumber("003"), "Update sales price list", "Sales operations task in progress.", TaskPriority.Normal, TaskWorkflowStatus.InProgress, 60m, today.AddDays(-2), today.AddDays(2)),
+            (context.TaskNumber("004"), "Complete monthly attendance audit", "Completed HR control task.", TaskPriority.Low, TaskWorkflowStatus.Completed, 100m, today.AddDays(-5), today.AddDays(-1)),
+            (context.TaskNumber("005"), "Cancelled warehouse cycle count", "Cancelled task for status filtering.", TaskPriority.Normal, TaskWorkflowStatus.Cancelled, 0m, today.AddDays(-1), today.AddDays(4))
         };
 
-        foreach (var (number, title, description, priority, status, progress, dueDate) in taskSpecs)
+        foreach (var (number, title, description, priority, status, progress, startDate, dueDate) in taskSpecs)
         {
             if (await taskDbContext.TaskItems.AnyAsync(x => x.TaskNumber == number, cancellationToken))
                 continue;
@@ -512,7 +705,7 @@ public sealed class DemoDataSeeder(
                 title,
                 description,
                 priority,
-                DateTime.UtcNow.Date.AddDays(-2),
+                startDate,
                 dueDate,
                 assignedBy,
                 assignedTo,
@@ -692,7 +885,7 @@ public sealed class DemoDataSeeder(
         await inventoryDbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task EnsureAccountingActivityAsync(Guid companyId, Guid branchId, Guid? customerId, Guid? skuId, CancellationToken cancellationToken)
+    private async Task EnsureAccountingActivityAsync(Guid companyId, Guid branchId, Guid? customerId, Guid? skuId, DemoSeedContext context, CancellationToken cancellationToken)
     {
         if (await accountingDbContext.AccountingDocuments.AnyAsync(x => x.CompanyId == companyId && x.SourceModule == "DemoData", cancellationToken))
             return;
@@ -708,7 +901,7 @@ public sealed class DemoDataSeeder(
             PartyVatNumber = "300000000000011",
             SourceModule = "DemoData",
             SourceDocumentId = StableGuid("demo-doc", companyId, "sales"),
-            SourceDocumentNumber = "DEMO-SINV-001",
+            SourceDocumentNumber = context.DocumentNumber("SINV-001"),
             Lines =
             [
                 new AccountingDocumentLineDto
@@ -726,18 +919,379 @@ public sealed class DemoDataSeeder(
         var salesResult = await sender.Send(new CreateAccountingDocumentCommand(salesDocument), cancellationToken);
         await sender.Send(new PostAccountingDocumentCommand(salesResult.Id), cancellationToken);
 
+        var branch = await organizationDbContext.Branches
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == companyId && x.Id == branchId, cancellationToken)
+            ?? throw new InvalidOperationException($"Demo branch {branchId} was not found for company {companyId}.");
+
+        await sender.Send(new EnsureBranchAccountingCommand(branch.CompanyId, branch.Id, branch.Code, branch.Name, branch.NameEng), cancellationToken);
+
+        var cashAccountId = await accountingDbContext.CashAccounts
+            .AsNoTracking()
+            .Where(x => x.CompanyId == companyId && x.BranchId == branchId && x.IsActive)
+            .OrderByDescending(x => x.IsDefault)
+            .ThenBy(x => x.DisplayName)
+            .Select(x => (Guid?)x.Id)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new InvalidOperationException($"Demo branch accounting did not create an active cash account for branch {branch.Code}.");
+
         await sender.Send(new CreateBankTransactionCommand(new BankTransactionDto
         {
             CompanyId = companyId,
             BranchId = branchId,
+            CashAccountId = cashAccountId,
             TransactionDate = DateTime.UtcNow.Date.AddDays(-4),
             Description = "Demo customer receipt for SINV-001",
-            ReferenceNumber = "DEMO-REC-001",
+            ReferenceNumber = context.DocumentNumber("REC-001"),
             Amount = 667m
         }), cancellationToken);
     }
 
-    private IDisposable Impersonate(Guid userId, Guid? companyId)
+    private string ResolveCompanyCode()
+    {
+        var companyCode = configuration["DemoData:CompanyCode"]?.Trim();
+        return string.IsNullOrWhiteSpace(companyCode) ? DefaultCompanyCode : NormalizeCompanyCode(companyCode);
+    }
+
+    private DemoDataCreateRequestDto BuildDefaultCreateRequest()
+    {
+        var companyCode = ResolveCompanyCode();
+        return new DemoDataCreateRequestDto
+        {
+            CompanyCode = companyCode,
+            CompanyName = "شركة العرض الشامل",
+            CompanyNameEng = "Alafkar Demo Holding",
+            DisplayLabel = "Default Demo"
+        };
+    }
+
+    private DemoSeedContext BuildSeedContext(DemoDataCreateRequestDto request)
+    {
+        var companyCode = NormalizeCompanyCode(request.CompanyCode);
+        var slug = CreateCodeSlug(companyCode);
+        var companyNameEng = string.IsNullOrWhiteSpace(request.CompanyNameEng)
+            ? $"Alafkar Demo Holding {companyCode}"
+            : request.CompanyNameEng.Trim();
+        var companyName = string.IsNullOrWhiteSpace(request.CompanyName)
+            ? companyNameEng
+            : request.CompanyName.Trim();
+        var adminUserName = string.IsNullOrWhiteSpace(request.AdminUserName)
+            ? $"demo.admin.{slug}"
+            : request.AdminUserName.Trim();
+        var adminEmail = string.IsNullOrWhiteSpace(request.AdminEmail)
+            ? $"demo.admin.{slug}@alafkar.demo"
+            : request.AdminEmail.Trim();
+        var displayLabel = string.IsNullOrWhiteSpace(request.DisplayLabel)
+            ? companyNameEng
+            : request.DisplayLabel.Trim();
+
+        return new DemoSeedContext(
+            companyCode,
+            companyName,
+            companyNameEng,
+            adminUserName,
+            adminEmail,
+            "0500000002",
+            displayLabel,
+            slug,
+            $"Demo license with all available business lines. {DemoMarker}; CompanyCode={companyCode}; Label={displayLabel}.");
+    }
+
+    private static string NormalizeCompanyCode(string? companyCode)
+    {
+        if (string.IsNullOrWhiteSpace(companyCode))
+            throw new InvalidOperationException("Company code is required.");
+
+        var normalized = companyCode.Trim().ToUpperInvariant();
+        if (normalized.Length > 64)
+            throw new InvalidOperationException("Company code must be 64 characters or fewer.");
+
+        if (normalized.Any(ch => !char.IsLetterOrDigit(ch) && ch != '-' && ch != '_'))
+            throw new InvalidOperationException("Company code may contain only letters, numbers, hyphens, and underscores.");
+
+        return normalized;
+    }
+
+    private static string CreateCodeSlug(string companyCode)
+    {
+        var builder = new StringBuilder(companyCode.Length);
+        foreach (var ch in companyCode.ToLowerInvariant())
+        {
+            builder.Append(char.IsLetterOrDigit(ch) ? ch : '.');
+        }
+
+        return builder.ToString().Trim('.');
+    }
+
+    private static string TaskNumberPrefix(string companyCode) => $"DEMO-{NormalizeCompanyCode(companyCode)}-TASK-";
+
+    private static DemoDataSummaryDto ToSummary(DemoDataStatusDto status) => new()
+    {
+        CompanyCode = status.CompanyCode,
+        CompanyId = status.CompanyId,
+        CompanyName = status.CompanyName,
+        CompanyNameEng = status.CompanyNameEng,
+        AdminUserName = status.AdminUserName,
+        AdminEmail = status.AdminEmail,
+        Exists = status.Exists,
+        IsRecognizedDemoTenant = status.IsRecognizedDemoTenant,
+        IsProduction = status.IsProduction,
+        AllowProductionActions = status.AllowProductionActions,
+        DestructiveActionsAllowed = status.DestructiveActionsAllowed,
+        BranchCount = status.BranchCount,
+        UserCount = status.UserCount,
+        EmployeeCount = status.EmployeeCount,
+        TaskCount = status.TaskCount,
+        ProductSkuCount = status.ProductSkuCount,
+        CustomerCount = status.CustomerCount,
+        SupplierCount = status.SupplierCount,
+        WarehouseCount = status.WarehouseCount,
+        AccountingDocumentCount = status.AccountingDocumentCount,
+        JournalEntryCount = status.JournalEntryCount,
+        LastKnownMarker = status.LastKnownMarker
+    };
+
+    private async Task<(string? UserName, string? Email)> GetDemoAdminIdentityAsync(Guid companyId, string companyCode, CancellationToken cancellationToken)
+    {
+        companyCode = NormalizeCompanyCode(companyCode);
+        var slug = CreateCodeSlug(companyCode);
+        var expectedUserName = $"demo.admin.{slug}";
+        var expectedEmail = $"demo.admin.{slug}@alafkar.demo";
+
+        var expectedAdmin = await userManager.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == companyId
+                && x.UserName != null
+                && x.Email != null
+                && ((x.UserName == expectedUserName && x.Email == expectedEmail)
+                    || (companyCode == DefaultCompanyCode && x.UserName == "demo.admin" && x.Email == "demo.admin@alafkar.demo")), cancellationToken);
+
+        if (expectedAdmin is not null)
+            return (expectedAdmin.UserName, expectedAdmin.Email);
+
+        var roleName = CompanyRoleTemplates.BuildSystemAdminRoleName(companyId);
+        var roleAdmins = await userManager.GetUsersInRoleAsync(roleName);
+        var admin = roleAdmins.FirstOrDefault(x => x.CompanyId == companyId && x.UserName != null && x.UserName.StartsWith("demo.admin"));
+        return (admin?.UserName, admin?.Email);
+    }
+
+    private async Task EnsureDemoLicenseMarkerAsync(Guid companyId, DemoSeedContext context, CancellationToken cancellationToken)
+    {
+        var license = await organizationDbContext.CompanyLicenses
+            .FirstOrDefaultAsync(x => x.CompanyId == companyId, cancellationToken);
+
+        if (license is null || (license.Notes?.Contains(context.Marker, StringComparison.Ordinal) ?? false))
+            return;
+
+        var notes = string.IsNullOrWhiteSpace(license.Notes)
+            ? context.Marker
+            : $"{license.Notes} {context.Marker}";
+
+        license.Update(
+            license.Status,
+            license.PlanKey,
+            license.PlanName,
+            license.StartDate,
+            license.EndDate,
+            license.MaxUsers,
+            license.MaxChildCompanies,
+            license.MaxBranches,
+            notes,
+            DemoActorName,
+            license.LicenseCategoryId);
+
+        await organizationDbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private void EnsureEnvironmentAllowsAction()
+    {
+        if (environment.IsProduction() && !configuration.GetValue<bool>("DemoData:AllowProduction"))
+            throw new InvalidOperationException("Demo data management is disabled in production unless DemoData:AllowProduction is true.");
+    }
+
+    private async Task PurgeDemoTenantAsync(string companyCode, DemoDataConfirmationRequestDto request, CancellationToken cancellationToken)
+    {
+        companyCode = NormalizeCompanyCode(companyCode);
+        if (!string.Equals(NormalizeCompanyCode(request.CompanyCode), companyCode, StringComparison.Ordinal))
+            throw new InvalidOperationException($"Confirmation code must exactly match {companyCode}.");
+
+        var company = await organizationDbContext.Companies
+            .FirstOrDefaultAsync(x => x.Code == companyCode && x.ParentCompanyId == null, cancellationToken);
+
+        if (company is null)
+            return;
+
+        if (!await IsRecognizedDemoTenantAsync(company.Id, companyCode, cancellationToken))
+            throw new InvalidOperationException("The selected company does not match the demo data safety markers.");
+
+        var companyId = company.Id;
+
+        var eInvoiceIds = await accountingDbContext.EInvoices
+            .Where(x => x.CompanyId == companyId)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+        await accountingDbContext.EInvoiceSubmissions.Where(x => eInvoiceIds.Contains(x.EInvoiceId)).ExecuteDeleteAsync(cancellationToken);
+        await accountingDbContext.EInvoices.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await accountingDbContext.BankTransactions.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await accountingDbContext.AccountingDocuments.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await accountingDbContext.JournalEntries.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await accountingDbContext.ZatcaDevices.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await accountingDbContext.ZatcaSettings.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await accountingDbContext.CashAccounts.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await accountingDbContext.BankAccounts.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await accountingDbContext.PostingProfiles.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await accountingDbContext.TaxCodes.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await accountingDbContext.FiscalPeriods.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await accountingDbContext.CompanyAccountingSettings.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await accountingDbContext.AccountCodingSettings.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await accountingDbContext.Accounts.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+
+        var warehouseIds = await inventoryDbContext.Warehouses
+            .Where(x => x.CompanyId == companyId)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+        var batchIds = await inventoryDbContext.Batches
+            .Where(x => x.CompanyId == companyId)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+        var inventorySkuIds = await catalogDbContext.ProductSkus
+            .Where(x => x.CompanyId == companyId)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        await inventoryDbContext.InventoryValuationLayers.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await inventoryDbContext.LandedCostVouchers.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await inventoryDbContext.QualityInspections.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await inventoryDbContext.PutawayRules.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await inventoryDbContext.TransferItems.Where(x => batchIds.Contains(x.BatchId) || inventorySkuIds.Contains(x.ProductSkuId)).ExecuteDeleteAsync(cancellationToken);
+        await inventoryDbContext.WarehouseTransfers.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await inventoryDbContext.StockMovements.Where(x => warehouseIds.Contains(x.WarehouseId) || batchIds.Contains(x.BatchId) || inventorySkuIds.Contains(x.ProductSkuId)).ExecuteDeleteAsync(cancellationToken);
+        await inventoryDbContext.InventorySnapshots.Where(x => warehouseIds.Contains(x.WarehouseId) || batchIds.Contains(x.BatchId) || inventorySkuIds.Contains(x.ProductSkuId)).ExecuteDeleteAsync(cancellationToken);
+        await inventoryDbContext.Inventories.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await inventoryDbContext.BatchStocks.Where(x => warehouseIds.Contains(x.WarehouseId) || batchIds.Contains(x.BatchId)).ExecuteDeleteAsync(cancellationToken);
+        await inventoryDbContext.Batches.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await inventoryDbContext.AssetInstances.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await inventoryDbContext.WarehouseLocations.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await inventoryDbContext.Warehouses.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+
+        var taskNumberPrefix = TaskNumberPrefix(companyCode);
+        await taskDbContext.TaskItems
+            .Where(x => x.TaskNumber.StartsWith(taskNumberPrefix) || (companyCode == DefaultCompanyCode && x.TaskNumber.StartsWith("DEMO-TASK-")))
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await supplierDbContext.Suppliers.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await supplierDbContext.SupplierGroups.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+
+        await customerDbContext.Customers.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await customerDbContext.CustomerPricingProfiles.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await customerDbContext.CustomerGroups.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+
+        var productSkuIds = await catalogDbContext.ProductSkus
+            .Where(x => x.CompanyId == companyId)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+        var productPackageIds = await catalogDbContext.ProductPackages
+            .Where(x => x.CompanyId == companyId)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        await catalogDbContext.ProductSkuPackages.Where(x => productSkuIds.Contains(x.ProductSkuId) || productPackageIds.Contains(x.ProductPackageId)).ExecuteDeleteAsync(cancellationToken);
+        await catalogDbContext.ProductSkuVariants.Where(x => productSkuIds.Contains(x.ProductSkuId)).ExecuteDeleteAsync(cancellationToken);
+        await catalogDbContext.ProductSkuComponents.Where(x => productSkuIds.Contains(x.ParentProductSkuId) || productSkuIds.Contains(x.ComponentProductSkuId)).ExecuteDeleteAsync(cancellationToken);
+        await catalogDbContext.ProductSkus.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await catalogDbContext.Products.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+
+        var teamIds = await employeeDbContext.EmployeeTeams
+            .Where(x => x.CompanyId == companyId)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+        await employeeDbContext.EmployeeCertifications.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await employeeDbContext.EmployeeSkills.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await employeeDbContext.EmployeeDocumentLinks.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await employeeDbContext.EmployeeEmergencyContacts.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await employeeDbContext.HrLifecycleEvents.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await employeeDbContext.EmployeeTeamMembers.Where(x => teamIds.Contains(x.TeamId)).ExecuteDeleteAsync(cancellationToken);
+        await employeeDbContext.EmployeeTeams.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await employeeDbContext.Employees.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await employeeDbContext.Positions.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await employeeDbContext.Specializations.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await employeeDbContext.AcademicInstitutions.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+
+        await organizationDbContext.UserBranchRoleAssignments.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await organizationDbContext.UserBranchAssignments.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await organizationDbContext.Departments.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await organizationDbContext.Administrations.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await organizationDbContext.Branches.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+
+        var licenseIds = await organizationDbContext.CompanyLicenses
+            .Where(x => x.CompanyId == companyId)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+        await organizationDbContext.CompanyLicenseBusinessLines.Where(x => licenseIds.Contains(x.CompanyLicenseId)).ExecuteDeleteAsync(cancellationToken);
+        await organizationDbContext.CompanyLicenses.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await organizationDbContext.BusinessLineActivations.Where(x => x.CompanyId == companyId).ExecuteDeleteAsync(cancellationToken);
+        await organizationDbContext.Companies.Where(x => x.Id == companyId).ExecuteDeleteAsync(cancellationToken);
+
+        await DeleteDemoUsersAndRolesAsync(companyId, cancellationToken);
+    }
+
+    private async Task TryPurgeDemoTenantAfterFailedCreateAsync(string companyCode, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await PurgeDemoTenantAsync(
+                companyCode,
+                new DemoDataConfirmationRequestDto { CompanyCode = companyCode },
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Demo data cleanup failed for {companyCode}: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteDemoUsersAndRolesAsync(Guid companyId, CancellationToken cancellationToken)
+    {
+        var users = await userManager.Users
+            .Where(x => x.CompanyId == companyId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var user in users)
+        {
+            var result = await userManager.DeleteAsync(user);
+            if (!result.Succeeded)
+                throw new InvalidOperationException(string.Join(", ", result.Errors.Select(x => x.Description)));
+        }
+
+        var roles = await roleManager.Roles
+            .Where(x => x.CompanyId == companyId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var role in roles)
+        {
+            var result = await roleManager.DeleteAsync(role);
+            if (!result.Succeeded)
+                throw new InvalidOperationException(string.Join(", ", result.Errors.Select(x => x.Description)));
+        }
+    }
+
+    private async Task<bool> IsRecognizedDemoTenantAsync(Guid companyId, string companyCode, CancellationToken cancellationToken)
+    {
+        companyCode = NormalizeCompanyCode(companyCode);
+
+        var hasMarker = await organizationDbContext.CompanyLicenses
+            .AnyAsync(x => x.CompanyId == companyId
+                && x.Notes != null
+                && x.Notes.Contains(DemoMarker)
+                && x.Notes.Contains($"CompanyCode={companyCode}"), cancellationToken);
+
+        var hasLegacyMarker = companyCode == DefaultCompanyCode && await organizationDbContext.CompanyLicenses
+            .AnyAsync(x => x.CompanyId == companyId && x.Notes != null && x.Notes.Contains(DemoMarker), cancellationToken);
+
+        return hasMarker || hasLegacyMarker;
+    }
+
+    private IDisposable Impersonate(Guid userId, Guid? companyId, IEnumerable<string> permissions)
     {
         var previous = httpContextAccessor.HttpContext;
         var claims = new List<Claim>
@@ -748,6 +1302,12 @@ public sealed class DemoDataSeeder(
 
         if (companyId.HasValue)
             claims.Add(new Claim("company_id", companyId.Value.ToString()));
+
+        claims.AddRange(permissions
+            .Where(permission => !string.IsNullOrWhiteSpace(permission))
+            .Select(permission => permission.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .Select(permission => new Claim("Permission", permission)));
 
         httpContextAccessor.HttpContext = new DefaultHttpContext
         {

@@ -208,6 +208,7 @@ builder.Services
 //builder.Services.AddOpenApi();
 builder.Services.AddExceptionHandler<CustomExceptionHandler>();
 builder.Services.AddScoped<DemoDataSeeder>();
+builder.Services.AddScoped<IDemoDataManagementService>(sp => sp.GetRequiredService<DemoDataSeeder>());
 //builder.Services.AddAntiforgery();
 var app = builder.Build();
 
@@ -221,6 +222,7 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapCarter();
+app.MapDemoDataEndpoints();
 app
     .UseOrganizationModule(app.Environment)
     .UseAccountingModule(app.Environment)

@@ -2237,7 +2237,6 @@ public class MenuItem
             TextEn = "General Settings",
             TextAr = "الإعدادات العامة",
             Icon = "bi-gear-wide-connected",
-            PermissionPolicy = PermissionList.SystemSettingsPermissions.Select,
             WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
             NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupGeneralSettings,
             KeywordsEn = "admin general settings system settings currencies configuration",
@@ -2267,6 +2266,20 @@ public class MenuItem
                     Icon = "bi-currency-exchange",
                     Url = "/GeneralSettings/Currencies",
                     PermissionPolicy = PermissionList.SystemSettingsPermissions.View
+                },
+                new MenuItem
+                {
+                    TextEn = "Demo Data",
+                    TextAr = "البيانات التجريبية",
+                    Icon = "bi-database-gear",
+                    Url = "/GeneralSettings/DemoData",
+                    PermissionPolicy = PermissionList.DemoDataPermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupGeneralSettings,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                    NavigationOrder = 140,
+                    KeywordsEn = "admin general settings demo data seed reset delete tenant",
+                    KeywordsAr = "إدارة إعدادات عامة بيانات تجريبية إنشاء إعادة ضبط حذف شركة"
                 }
             }
         },

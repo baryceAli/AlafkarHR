@@ -1,0 +1,307 @@
+﻿@layout AdminLayout
+@page "/GeneralSettings/DemoData"
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Permissions
+@implements IDisposable
+
+@inject IDemoDataService DemoDataService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="demo-data-page erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Demo Data", "بيانات العرض التجريبي")"
+                Subtitle="@Text("Create and manage full demo parent companies for platform demonstrations.", "إنشاء وإدارة شركات تجريبية كاملة لعروض المنصة.")"
+                Overline="@Text("General Settings", "الإعدادات العامة")"
+                Icon="bi-database-gear">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="LoadDemosAsync" disabled="@isLoading">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+            <button class="btn btn-primary" @onclick="OpenCreateModal" disabled="@(!CanCreate || isBusy)">
+                <i class="bi bi-database-add"></i>
+                @Text("Create Demo Company", "إنشاء شركة تجريبية")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    <AppPageMessage Message="@pageMessage" Type="@pageMessageType" Direction="@SharedDataService.PageDirection" OnDismiss="ClearPageMessage" />
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="erp-loading py-5 text-center">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div class="fw-semibold">@Text("Loading demo companies...", "جاري تحميل الشركات التجريبية...")</div>
+            </div>
+        </AppCard>
+    }
+    else if (!CanView)
+    {
+        <div class="alert alert-warning d-flex align-items-center gap-2">
+            <i class="bi bi-shield-lock"></i>
+            <span>@Text("You don't have permission to view demo data management.", "ليست لديك صلاحية عرض إدارة البيانات التجريبية.")</span>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-xl-3 col-md-6">
+                <AppCard CssClass="h-100"><div class="demo-stat"><span class="demo-stat-icon"><i class="bi bi-buildings"></i></span><div><div class="text-muted small">@Text("Demo Companies", "الشركات التجريبية")</div><div class="demo-stat-value">@demos.Count</div></div></div></AppCard>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <AppCard CssClass="h-100"><div class="demo-stat"><span class="demo-stat-icon"><i class="bi bi-people"></i></span><div><div class="text-muted small">@Text("Demo Users", "مستخدمو العرض")</div><div class="demo-stat-value">@demos.Sum(x => x.UserCount)</div></div></div></AppCard>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <AppCard CssClass="h-100"><div class="demo-stat"><span class="demo-stat-icon"><i class="bi bi-list-check"></i></span><div><div class="text-muted small">@Text("Tasks", "المهام")</div><div class="demo-stat-value">@demos.Sum(x => x.TaskCount)</div></div></div></AppCard>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <AppCard CssClass="h-100"><div class="demo-stat"><span class="demo-stat-icon"><i class="bi bi-shield-check"></i></span><div><div class="text-muted small">@Text("Safety Guard", "حماية التنفيذ")</div><div class="demo-stat-value">@SafetyText</div></div></div></AppCard>
+            </div>
+        </div>
+
+        <AppCard Title="@Text("Demo Companies", "الشركات التجريبية")" Subtitle="@Text("Only tenants stamped and recognized by the demo system can be reset or deleted.", "يمكن إعادة ضبط أو حذف الشركات التي تحمل علامات نظام البيانات التجريبية فقط.")">
+            <ChildContent>
+                @if (demos.Count == 0)
+                {
+                    <div class="demo-empty"><i class="bi bi-database"></i><div><div class="fw-semibold">@Text("No demo companies yet", "لا توجد شركات تجريبية بعد")</div><div class="text-muted small">@Text("Create the first demo company from the page action.", "أنشئ أول شركة تجريبية من زر الإجراء في الصفحة.")</div></div></div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table erp-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>@Text("Company", "الشركة")</th>
+                                    <th>@Text("Code", "الرمز")</th>
+                                    <th>@Text("Demo Admin", "مدير العرض")</th>
+                                    <th class="text-center">@Text("Branches", "الفروع")</th>
+                                    <th class="text-center">@Text("Users", "المستخدمون")</th>
+                                    <th class="text-center">@Text("Employees", "الموظفون")</th>
+                                    <th class="text-center">@Text("Tasks", "المهام")</th>
+                                    <th class="text-center">@Text("Accounting", "المحاسبة")</th>
+                                    <th>@Text("Status", "الحالة")</th>
+                                    <th class="text-end">@Text("Actions", "الإجراءات")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var demo in demos)
+                                {
+                                    <tr>
+                                        <td><div class="fw-semibold">@DisplayName(demo)</div><div class="text-muted small">@demo.LastKnownMarker</div></td>
+                                        <td><code>@demo.CompanyCode</code></td>
+                                        <td><div class="fw-semibold">@(!string.IsNullOrWhiteSpace(demo.AdminUserName) ? demo.AdminUserName : "-")</div><div class="text-muted small">@demo.AdminEmail</div></td>
+                                        <td class="text-center">@demo.BranchCount</td>
+                                        <td class="text-center">@demo.UserCount</td>
+                                        <td class="text-center">@demo.EmployeeCount</td>
+                                        <td class="text-center">@demo.TaskCount</td>
+                                        <td class="text-center">@demo.AccountingDocumentCount / @demo.JournalEntryCount</td>
+                                        <td><span class="demo-badge @(demo.DestructiveActionsAllowed ? "is-ok" : "is-guarded")">@(demo.DestructiveActionsAllowed ? Text("Managed", "مدارة") : Text("Guarded", "محمية"))</span></td>
+                                        <td><div class="demo-row-actions"><button class="btn btn-sm btn-outline-secondary" @onclick="@(() => OpenConfirmation("reset", demo))" disabled="@(!CanReset || isBusy || !demo.DestructiveActionsAllowed)"><i class="bi bi-arrow-repeat"></i> @Text("Reset", "إعادة ضبط")</button><button class="btn btn-sm btn-outline-secondary" @onclick="@(() => OpenConfirmation("password", demo))" disabled="@(!CanResetAdminPassword || isBusy || !demo.DestructiveActionsAllowed)"><i class="bi bi-key"></i> @Text("Admin Password", "كلمة مرور المدير")</button><button class="btn btn-sm btn-outline-danger" @onclick="@(() => OpenConfirmation("delete", demo))" disabled="@(!CanDelete || isBusy || !demo.DestructiveActionsAllowed)"><i class="bi bi-trash3"></i> @Text("Delete", "حذف")</button></div></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </ChildContent>
+        </AppCard>
+    }
+</div>
+
+@if (showCreateModal)
+{
+    <div class="demo-modal-backdrop" role="presentation">
+        <div class="demo-modal" role="dialog" aria-modal="true" dir="@SharedDataService.PageDirection">
+            <div class="demo-modal-header"><div><h5 class="mb-1">@Text("Create Demo Company", "إنشاء شركة تجريبية")</h5><div class="text-muted small">@Text("The platform admin creates a new parent company and seeds full demo data under it.", "يقوم مسؤول المنصة بإنشاء شركة أم جديدة وإضافة بيانات تجريبية كاملة تحتها.")</div></div><button type="button" class="btn btn-sm btn-outline-secondary" title="@Text("Close", "إغلاق")" @onclick="CloseCreateModal"><i class="bi bi-x-lg"></i></button></div>
+            <div class="demo-modal-body">
+                <div class="row g-3">
+                    <div class="col-12"><label class="form-label">@Text("Company Code", "رمز الشركة")</label><InputText class="form-control" @bind-Value="createModel.CompanyCode" /></div>
+                    <div class="col-12"><label class="form-label">@Text("English Name", "الاسم بالإنجليزية")</label><InputText class="form-control" @bind-Value="createModel.CompanyNameEng" /></div>
+                    <div class="col-12"><label class="form-label">@Text("Arabic Name", "الاسم بالعربية")</label><InputText class="form-control" @bind-Value="createModel.CompanyName" /></div>
+                    <div class="col-md-6"><label class="form-label">@Text("Admin Username", "اسم مستخدم المدير")</label><InputText class="form-control" @bind-Value="createModel.AdminUserName" /><div class="form-text">@Text("Optional; generated from code if blank.", "اختياري؛ يتم توليده من الرمز إذا ترك فارغا.")</div></div>
+                    <div class="col-md-6"><label class="form-label">@Text("Admin Email", "بريد المدير")</label><InputText class="form-control" @bind-Value="createModel.AdminEmail" /></div>
+                </div>
+            </div>
+            <div class="demo-modal-footer"><button type="button" class="btn btn-outline-secondary" @onclick="CloseCreateModal" disabled="@isBusy">@Text("Cancel", "إلغاء")</button><button type="button" class="btn btn-primary" @onclick="CreateDemoAsync" disabled="@(!CanSubmitCreate)">@if (isBusy) { <span class="spinner-border spinner-border-sm" role="status"></span> } else { <i class="bi bi-check2-circle"></i> } @Text("Create Demo", "إنشاء العرض")</button></div>
+        </div>
+    </div>
+}
+
+@if (confirmationAction is not null && selectedDemo is not null)
+{
+    <div class="demo-modal-backdrop" role="presentation">
+        <div class="demo-modal" role="dialog" aria-modal="true" dir="@SharedDataService.PageDirection">
+            <div class="demo-modal-header"><div><h5 class="mb-1">@ConfirmationTitle</h5><div class="text-muted small">@ConfirmationHelpText</div></div><button type="button" class="btn btn-sm btn-outline-secondary" title="@Text("Close", "إغلاق")" @onclick="CloseConfirmation"><i class="bi bi-x-lg"></i></button></div>
+            <div class="demo-modal-body"><label class="form-label">@Text("Company Code", "رمز الشركة")</label><InputText class="form-control" @bind-Value="confirmationCode" /><div class="form-text">@Text("Required value:", "القيمة المطلوبة:") <strong>@selectedDemo.CompanyCode</strong></div></div>
+            <div class="demo-modal-footer"><button type="button" class="btn btn-outline-secondary" @onclick="CloseConfirmation" disabled="@isBusy">@Text("Cancel", "إلغاء")</button><button type="button" class="btn btn-danger" @onclick="ConfirmDestructiveActionAsync" disabled="@(!CanConfirmDestructiveAction)">@if (isBusy) { <span class="spinner-border spinner-border-sm" role="status"></span> } else { <i class="bi bi-check2-circle"></i> } @ConfirmationButtonText</button></div>
+        </div>
+    </div>
+}
+
+@code {
+    private AuthenticationState? authState;
+    private List<DemoDataSummaryDto> demos = [];
+    private DemoDataCreateRequestDto createModel = new();
+    private DemoDataSummaryDto? selectedDemo;
+    private bool isLoading = true;
+    private bool isBusy;
+    private bool showCreateModal;
+    private string? pageMessage;
+    private string pageMessageType = "warning";
+    private string? confirmationAction;
+    private string confirmationCode = string.Empty;
+
+    private bool CanView => HasPermission(PermissionList.DemoDataPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.DemoDataPermissions.Create);
+    private bool CanReset => HasPermission(PermissionList.DemoDataPermissions.Reset);
+    private bool CanDelete => HasPermission(PermissionList.DemoDataPermissions.Delete);
+    private bool CanResetAdminPassword => HasPermission(PermissionList.DemoDataPermissions.ResetAdminPassword);
+    private bool ActionsBlocked => demos.Any(x => x.IsProduction && !x.AllowProductionActions);
+    private bool CanSubmitCreate => !isBusy && CanCreate && !string.IsNullOrWhiteSpace(createModel.CompanyCode) && !string.IsNullOrWhiteSpace(createModel.CompanyNameEng) && !string.IsNullOrWhiteSpace(createModel.CompanyName);
+    private bool CanConfirmDestructiveAction => !isBusy && selectedDemo is not null && !string.IsNullOrWhiteSpace(confirmationAction) && string.Equals(confirmationCode.Trim(), selectedDemo.CompanyCode, StringComparison.Ordinal);
+    private string SafetyText => ActionsBlocked ? Text("Production blocked", "الإنتاج محجوب") : Text("Guarded", "محمي");
+    private string ConfirmationTitle => confirmationAction switch
+    {
+        "delete" => Text("Delete Demo Company", "حذف الشركة التجريبية"),
+        "password" => Text("Reset Demo Admin Password", "إعادة ضبط كلمة مرور مدير العرض"),
+        _ => Text("Reset Demo Company", "إعادة ضبط الشركة التجريبية")
+    };
+    private string ConfirmationHelpText => confirmationAction == "password"
+        ? Text("Type the selected company code to reset the demo admin password to Admin@123.", "اكتب رمز الشركة المحددة لإعادة كلمة مرور مدير العرض إلى Admin@123.")
+        : Text("Type the selected company code to confirm this destructive action.", "اكتب رمز الشركة المحددة لتأكيد هذه العملية الحساسة.");
+    private string ConfirmationButtonText => confirmationAction switch
+    {
+        "delete" => Text("Delete Demo", "حذف العرض"),
+        "password" => Text("Reset Password", "إعادة ضبط كلمة المرور"),
+        _ => Text("Reset Demo", "إعادة ضبط العرض")
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleLanguageChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+        await LoadDemosAsync();
+    }
+
+    private async Task LoadDemosAsync()
+    {
+        isLoading = true;
+        ClearPageMessage();
+        if (!CanView)
+        {
+            isLoading = false;
+            return;
+        }
+        var response = await DemoDataService.ListAsync();
+        if (response.IsSuccess && response.Data is not null)
+            demos = response.Data;
+        else
+            ShowPageError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load demo companies.", "تعذر تحميل الشركات التجريبية."));
+        isLoading = false;
+    }
+
+    private void OpenCreateModal()
+    {
+        var nextNumber = demos.Count + 1;
+        createModel = new DemoDataCreateRequestDto { CompanyCode = $"DEMO-ERP-{nextNumber:00}", CompanyNameEng = $"Alafkar Demo Holding {nextNumber:00}", CompanyName = $"شركة العرض التجريبي {nextNumber:00}" };
+        showCreateModal = true;
+    }
+
+    private void CloseCreateModal()
+    {
+        showCreateModal = false;
+        createModel = new DemoDataCreateRequestDto();
+    }
+
+    private async Task CreateDemoAsync()
+    {
+        if (!CanSubmitCreate)
+            return;
+        await ExecuteOperationAsync(() => DemoDataService.CreateAsync(createModel));
+        CloseCreateModal();
+    }
+
+    private void OpenConfirmation(string action, DemoDataSummaryDto demo)
+    {
+        confirmationAction = action;
+        selectedDemo = demo;
+        confirmationCode = string.Empty;
+    }
+
+    private void CloseConfirmation()
+    {
+        confirmationAction = null;
+        selectedDemo = null;
+        confirmationCode = string.Empty;
+    }
+
+    private async Task ConfirmDestructiveActionAsync()
+    {
+        if (!CanConfirmDestructiveAction || confirmationAction is null || selectedDemo is null)
+            return;
+        var companyCode = selectedDemo.CompanyCode;
+        var action = confirmationAction;
+        await ExecuteOperationAsync(() => action switch
+        {
+            "delete" => DemoDataService.DeleteAsync(companyCode),
+            "password" => DemoDataService.ResetAdminPasswordAsync(companyCode),
+            _ => DemoDataService.ResetAsync(companyCode)
+        });
+        CloseConfirmation();
+    }
+
+    private async Task ExecuteOperationAsync(Func<Task<AlAfkarERP.Shared.Dtos.ApiResult<DemoDataOperationResultDto>>> operation)
+    {
+        isBusy = true;
+        ClearPageMessage();
+        var response = await operation();
+        if (response.IsSuccess && response.Data is not null)
+        {
+            ToastService.ShowSuccess(response.Data.Message);
+            await LoadDemosAsync();
+        }
+        else
+        {
+            ShowPageError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Demo data operation failed.", "فشلت عملية البيانات التجريبية."));
+        }
+        isBusy = false;
+    }
+
+    private string DisplayName(DemoDataSummaryDto demo) => SharedDataService.Language == "Ar" ? demo.CompanyName ?? demo.CompanyNameEng ?? demo.CompanyCode : demo.CompanyNameEng ?? demo.CompanyName ?? demo.CompanyCode;
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private void ShowPageError(string message) { pageMessage = message; pageMessageType = "error"; ToastService.ShowError(message); }
+    private void ClearPageMessage() { pageMessage = null; pageMessageType = "warning"; }
+    private async Task HandleLanguageChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleLanguageChangeAsync;
+}
+
+<style>
+    .demo-data-page { margin-inline: auto; max-inline-size: 1280px; }
+    .demo-stat { align-items: center; display: flex; gap: var(--erp-space-3); }
+    .demo-stat-icon { align-items: center; background: var(--erp-primary-soft); block-size: 40px; border-radius: var(--erp-radius-lg); color: var(--erp-primary); display: inline-flex; flex: 0 0 auto; inline-size: 40px; justify-content: center; }
+    .demo-stat-value { font-size: var(--erp-font-size-lg); font-weight: 700; }
+    .demo-empty { align-items: center; border: 1px dashed var(--erp-border); border-radius: var(--erp-radius-lg); color: var(--erp-text-muted); display: flex; gap: var(--erp-space-3); padding: var(--erp-space-4); }
+    .demo-empty > i { color: var(--erp-primary); font-size: var(--erp-font-size-2xl); }
+    .demo-badge { border-radius: var(--erp-radius-pill); display: inline-flex; font-size: var(--erp-font-size-xs); font-weight: 700; padding: var(--erp-space-1) var(--erp-space-2); }
+    .demo-badge.is-ok { background: var(--erp-success-soft); color: var(--erp-success); }
+    .demo-badge.is-guarded { background: var(--erp-warning-soft); color: var(--erp-warning); }
+    .demo-row-actions { display: flex; flex-wrap: wrap; gap: var(--erp-space-2); justify-content: flex-end; }
+    .demo-modal-backdrop { align-items: center; background: color-mix(in srgb, var(--erp-color-inverse-surface) 45%, transparent); display: flex; inset: 0; justify-content: center; padding: var(--erp-space-4); position: fixed; z-index: 1050; }
+    .demo-modal { background: var(--erp-surface-level-2); border: 1px solid var(--erp-border); border-radius: var(--erp-radius-xl); box-shadow: var(--erp-shadow-lg); inline-size: min(100%, 640px); }
+    .demo-modal-header, .demo-modal-footer { align-items: center; display: flex; gap: var(--erp-space-3); justify-content: space-between; padding: var(--erp-space-4); }
+    .demo-modal-body { border-block: 1px solid var(--erp-border); padding: var(--erp-space-4); }
+    .demo-modal-footer { justify-content: flex-end; }
+</style>
