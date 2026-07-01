@@ -25,6 +25,31 @@
         <div class="alert @messageClass">@message</div>
     }
 
+    <div class="roster-tabs" role="tablist" aria-label="@Text("Attendance roster sections", "أقسام جداول الحضور")">
+        <button type="button" class="@RosterTabButtonClass(RosterTab.Board)" role="tab" aria-selected="@(activeTab == RosterTab.Board)" @onclick="() => activeTab = RosterTab.Board">
+            <i class="bi bi-clipboard-data"></i>
+            <span>@Text("Roster Board", "لوحة الجداول")</span>
+        </button>
+        <button type="button" class="@RosterTabButtonClass(RosterTab.Assignments)" role="tab" aria-selected="@(activeTab == RosterTab.Assignments)" @onclick="() => activeTab = RosterTab.Assignments">
+            <i class="bi bi-person-plus"></i>
+            <span>@Text("Assignments", "التعيينات")</span>
+        </button>
+        <button type="button" class="@RosterTabButtonClass(RosterTab.Schedules)" role="tab" aria-selected="@(activeTab == RosterTab.Schedules)" @onclick="() => activeTab = RosterTab.Schedules">
+            <i class="bi bi-calendar-week"></i>
+            <span>@Text("Schedules", "الجداول")</span>
+        </button>
+        <button type="button" class="@RosterTabButtonClass(RosterTab.Exceptions)" role="tab" aria-selected="@(activeTab == RosterTab.Exceptions)" @onclick="() => activeTab = RosterTab.Exceptions">
+            <i class="bi bi-arrow-left-right"></i>
+            <span>@Text("Exceptions & Imports", "الاستثناءات والاستيراد")</span>
+        </button>
+        <button type="button" class="@RosterTabButtonClass(RosterTab.Substitutes)" role="tab" aria-selected="@(activeTab == RosterTab.Substitutes)" @onclick="() => activeTab = RosterTab.Substitutes">
+            <i class="bi bi-person-gear"></i>
+            <span>@Text("Substitutes", "البدلاء")</span>
+        </button>
+    </div>
+
+    @if (activeTab == RosterTab.Board)
+    {
     <AppCard Title="@Text("Control board", "لوحة التحكم")" CssClass="mb-3">
         <div class="row g-3 align-items-end mb-3">
             <div class="col-md-2">
@@ -158,7 +183,10 @@
             }
         }
     </AppCard>
+    }
 
+    @if (activeTab == RosterTab.Substitutes)
+    {
     <AppCard Title="@Text("Substitute configuration", "إعداد البدلاء")" CssClass="mb-3">
         <div class="row g-3 align-items-end mb-3">
             <div class="col-md-5">
@@ -224,7 +252,10 @@
             </div>
         }
     </AppCard>
+    }
 
+    @if (activeTab == RosterTab.Schedules)
+    {
     <AppCard Title="@Text("Schedule setup", "إعداد الجدول")" CssClass="mb-3">
         <EditForm Model="scheduleModel" OnValidSubmit="SaveScheduleAsync">
             <div class="row g-3 align-items-end">
@@ -235,8 +266,8 @@
                 <div class="col-md-2"><button class="btn btn-primary w-100" type="submit" disabled="@(!Can(PermissionList.AttendanceRosterPermissions.Create) && !Can(PermissionList.AttendanceRosterPermissions.Edit))"><i class="bi bi-save"></i> @Text("Save", "حفظ")</button></div>
             </div>
         </EditForm>
-        <div class="table-responsive mt-3">
-            <table class="table align-middle">
+        <div class="erp-table-wrap mt-3">
+            <table class="table erp-table align-middle mb-0">
                 <thead><tr><th>@Text("Schedule", "الجدول")</th><th>@Text("Dates", "التواريخ")</th><th>@Text("Status", "الحالة")</th><th>@Text("Assignments", "التعيينات")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                 <tbody>
                     @if (ActiveSchedules.Count == 0)
@@ -248,7 +279,7 @@
                         <tr>
                             <td>@schedule.Name</td>
                             <td>@Date(schedule.StartDate) - @Date(schedule.EndDate)</td>
-                            <td><span class="badge text-bg-@RosterCss(schedule.Status)">@schedule.Status</span></td>
+                            <td><StatusChip Text="@schedule.Status.ToString()" Tone="@RosterStatusTone(schedule.Status)" /></td>
                             <td>@schedule.AssignmentCount</td>
                             <td class="text-end">
                                 <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="() => EditSchedule(schedule)">@Text("Edit", "تعديل")</button>
@@ -262,7 +293,10 @@
             </table>
         </div>
     </AppCard>
+    }
 
+    @if (activeTab == RosterTab.Assignments)
+    {
     <AppCard Title="@Text("Roster assignments", "تعيينات الورديات")" CssClass="mb-3 allow-overflow">
         <div class="row g-3 align-items-end">
             <div class="col-md-3"><label class="form-label">@Text("Schedule", "الجدول")</label><select class="form-select" @bind="assignmentModel.ScheduleId"><option value="@Guid.Empty">@Text("Select schedule", "اختر الجدول")</option>@foreach (var s in ActiveSchedules){<option value="@s.Id">@s.Name</option>}</select></div>
@@ -293,8 +327,8 @@
             <div class="col-md-2"><button class="btn btn-outline-secondary w-100" type="button" @onclick="ResetAssignment">@Text("Reset", "إعادة ضبط")</button></div>
             <div class="col-md-2"><button class="btn btn-outline-secondary w-100" type="button" @onclick="LoadAssignmentsAsync"><i class="bi bi-arrow-repeat"></i> @Text("Load", "تحميل")</button></div>
         </div>
-        <div class="table-responsive mt-3">
-            <table class="table align-middle"><thead><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Employee", "الموظف")</th><th>@Text("Shift", "الوردية")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead><tbody>
+        <div class="erp-table-wrap mt-3">
+            <table class="table erp-table align-middle mb-0"><thead><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Employee", "الموظف")</th><th>@Text("Shift", "الوردية")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead><tbody>
                 @foreach (var item in assignments)
                 {
                     <tr><td>@Date(item.WorkDate)</td><td>@EmployeeName(item.EmployeeId)</td><td>@ShiftName(item.ShiftId)</td><td class="text-end"><button class="btn btn-outline-primary btn-sm" type="button" @onclick="() => EditAssignment(item)">@Text("Edit", "تعديل")</button> <button class="btn btn-outline-danger btn-sm" type="button" @onclick="() => DeleteAssignmentAsync(item.Id)">@Text("Delete", "حذف")</button></td></tr>
@@ -302,7 +336,10 @@
             </tbody></table>
         </div>
     </AppCard>
+    }
 
+    @if (activeTab == RosterTab.Exceptions)
+    {
     <div class="row g-3">
         <div class="col-xl-4">
             <AppCard Title="@Text("Swap requests", "طلبات التبديل")">
@@ -312,10 +349,10 @@
                     <div class="col-7"><InputDate class="form-control" @bind-Value="swapModel.WorkDate" /></div>
                     <div class="col-5"><button class="btn btn-primary w-100" type="button" @onclick="CreateSwapAsync">@Text("Create", "إنشاء")</button></div>
                 </div>
-                <div class="table-responsive mt-3"><table class="table align-middle"><tbody>
+                <div class="erp-table-wrap mt-3"><table class="table erp-table align-middle mb-0"><tbody>
                     @foreach (var item in swapRequests)
                     {
-                        <tr><td>@Date(item.WorkDate)<br />@EmployeeName(item.RequestingEmployeeId) -> @EmployeeName(item.TargetEmployeeId)</td><td><span class="badge text-bg-@ExceptionCss(item.Status)">@item.Status</span></td><td class="text-end"><button class="btn btn-outline-success btn-sm" disabled="@(item.Status != AttendanceExceptionStatus.Pending)" @onclick="() => ReviewSwapAsync(item.Id, true)">@Text("Approve", "اعتماد")</button> <button class="btn btn-outline-danger btn-sm" disabled="@(item.Status != AttendanceExceptionStatus.Pending)" @onclick="() => ReviewSwapAsync(item.Id, false)">@Text("Reject", "رفض")</button> <button class="btn btn-outline-warning btn-sm" disabled="@(item.Status != AttendanceExceptionStatus.Pending)" @onclick="() => CancelSwapAsync(item.Id)">@Text("Cancel", "إلغاء")</button></td></tr>
+                        <tr><td>@Date(item.WorkDate)<br />@EmployeeName(item.RequestingEmployeeId) -> @EmployeeName(item.TargetEmployeeId)</td><td><StatusChip Text="@item.Status.ToString()" Tone="@ExceptionTone(item.Status)" /></td><td class="text-end"><button class="btn btn-outline-success btn-sm" disabled="@(item.Status != AttendanceExceptionStatus.Pending)" @onclick="() => ReviewSwapAsync(item.Id, true)">@Text("Approve", "اعتماد")</button> <button class="btn btn-outline-danger btn-sm" disabled="@(item.Status != AttendanceExceptionStatus.Pending)" @onclick="() => ReviewSwapAsync(item.Id, false)">@Text("Reject", "رفض")</button> <button class="btn btn-outline-warning btn-sm" disabled="@(item.Status != AttendanceExceptionStatus.Pending)" @onclick="() => CancelSwapAsync(item.Id)">@Text("Cancel", "إلغاء")</button></td></tr>
                     }
                 </tbody></table></div>
             </AppCard>
@@ -330,14 +367,14 @@
                     <div class="col-12"><input class="form-control" placeholder="@Text("Reason", "السبب")" @bind="correctionModel.Reason" /></div>
                     <div class="col-12"><button class="btn btn-primary w-100" type="button" @onclick="CreateCorrectionAsync">@Text("Create correction", "إنشاء تصحيح")</button></div>
                 </div>
-                <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Current", "الحالي")</th><th>@Text("Correction", "التصحيح")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead><tbody>
+                <div class="erp-table-wrap mt-3"><table class="table erp-table align-middle mb-0"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Current", "الحالي")</th><th>@Text("Correction", "التصحيح")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead><tbody>
                     @foreach (var item in corrections)
                     {
                         <tr>
                             <td>@Date(item.WorkDate)<br />@EmployeeName(item.EmployeeId)</td>
                             <td>@CorrectionSituation(item.CurrentCheckInUtc, item.CurrentCheckOutUtc)<br /><span class="text-muted small">@(item.CurrentSessionStatus?.ToString() ?? Text("No session", "لا توجد جلسة"))</span></td>
                             <td>@CorrectionSituation(item.CorrectedCheckInUtc, item.CorrectedCheckOutUtc)</td>
-                            <td><span class="badge text-bg-@ExceptionCss(item.Status)">@item.Status</span>@if (item.AppliedAtUtc.HasValue) { <div class="text-muted small">@Text("Applied", "مطبق")</div> }</td>
+                            <td><StatusChip Text="@item.Status.ToString()" Tone="@ExceptionTone(item.Status)" />@if (item.AppliedAtUtc.HasValue) { <div class="text-muted small">@Text("Applied", "مطبق")</div> }</td>
                             <td class="text-end"><button class="btn btn-outline-success btn-sm" disabled="@(item.Status != AttendanceExceptionStatus.Pending)" @onclick="() => ReviewCorrectionAsync(item.Id, true)">@Text("Approve & apply", "اعتماد وتطبيق")</button> <button class="btn btn-outline-danger btn-sm" disabled="@(item.Status != AttendanceExceptionStatus.Pending)" @onclick="() => ReviewCorrectionAsync(item.Id, false)">@Text("Reject", "رفض")</button></td>
                         </tr>
                     }
@@ -352,7 +389,7 @@
                     <div class="col-12"><input class="form-control" placeholder="@Text("Notes", "ملاحظات")" @bind="batchModel.Notes" /></div>
                     <div class="col-12"><button class="btn btn-primary w-100" type="button" @onclick="CreateBatchAsync">@Text("Create import batch", "إنشاء دفعة استيراد")</button></div>
                 </div>
-                <div class="table-responsive mt-3"><table class="table align-middle"><tbody>
+                <div class="erp-table-wrap mt-3"><table class="table erp-table align-middle mb-0"><tbody>
                     @foreach (var batch in batches)
                     {
                         <tr class="@(selectedBatchId == batch.Id ? "table-primary" : string.Empty)"><td>@batch.SourceName<br />@batch.Status</td><td>@batch.AcceptedRows / @batch.TotalRows</td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => SelectBatch(batch)">@Text("Rows", "الصفوف")</button> <button class="btn btn-outline-dark btn-sm" disabled="@(batch.Status == AttendanceImportBatchStatus.Posted)" @onclick="() => PostBatchAsync(batch.Id)">@Text("Post", "ترحيل")</button></td></tr>
@@ -370,10 +407,10 @@
                             <div class="col-12"><label class="form-check"><InputCheckbox class="form-check-input" @bind-Value="importRowModel.IsCheckOut" /> <span class="form-check-label">@Text("Checkout punch", "بصمة خروج")</span></label></div>
                             <div class="col-12 d-flex gap-2"><button class="btn btn-primary btn-sm" type="button" @onclick="SaveImportRowAsync" disabled="@(selectedBatch.Status == AttendanceImportBatchStatus.Posted)"><i class="bi bi-save"></i> @Text("Save Row", "حفظ الصف")</button><button class="btn btn-outline-secondary btn-sm" type="button" @onclick="ResetImportRow">@Text("Reset", "إعادة ضبط")</button></div>
                         </div>
-                        <div class="table-responsive mt-2"><table class="table table-sm align-middle"><tbody>
+                        <div class="erp-table-wrap mt-2"><table class="table table-sm erp-table align-middle mb-0"><tbody>
                             @foreach (var row in selectedBatch.Rows)
                             {
-                                <tr><td>@(row.EmployeeName ?? row.DeviceEmployeeCode ?? "-")<br /><span class="text-muted small">@row.PunchTimeUtc.ToString("yyyy-MM-dd HH:mm")</span></td><td><span class="badge text-bg-@ImportRowCss(row.Status)">@row.Status</span></td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => EditImportRow(row)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-success btn-sm" disabled="@(row.Status == AttendanceImportRowStatus.Posted)" @onclick="() => ReviewImportRowAsync(row.Id, true)">@Text("Accept", "قبول")</button> <button class="btn btn-outline-danger btn-sm" disabled="@(row.Status == AttendanceImportRowStatus.Posted)" @onclick="() => ReviewImportRowAsync(row.Id, false)">@Text("Reject", "رفض")</button></td></tr>
+                                <tr><td>@(row.EmployeeName ?? row.DeviceEmployeeCode ?? "-")<br /><span class="text-muted small">@row.PunchTimeUtc.ToString("yyyy-MM-dd HH:mm")</span></td><td><StatusChip Text="@row.Status.ToString()" Tone="@ImportRowTone(row.Status)" /></td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => EditImportRow(row)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-success btn-sm" disabled="@(row.Status == AttendanceImportRowStatus.Posted)" @onclick="() => ReviewImportRowAsync(row.Id, true)">@Text("Accept", "قبول")</button> <button class="btn btn-outline-danger btn-sm" disabled="@(row.Status == AttendanceImportRowStatus.Posted)" @onclick="() => ReviewImportRowAsync(row.Id, false)">@Text("Reject", "رفض")</button></td></tr>
                             }
                         </tbody></table></div>
                     </div>
@@ -381,9 +418,20 @@
             </AppCard>
         </div>
     </div>
+    }
 </main>
 
 @code {
+    private enum RosterTab
+    {
+        Board,
+        Assignments,
+        Schedules,
+        Exceptions,
+        Substitutes
+    }
+
+    private RosterTab activeTab = RosterTab.Board;
     private Guid companyId;
     private AuthenticationState? authState;
     private string? message;
@@ -702,7 +750,15 @@
         => $"{TimeValue(checkIn)} - {TimeValue(checkOut)}";
     private string TimeValue(DateTime? value)
         => value.HasValue ? value.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm") : Text("Missing", "غير مسجل");
-    private static string RosterCss(AttendanceRosterStatus status) => status switch { AttendanceRosterStatus.Published => "primary", AttendanceRosterStatus.Locked => "dark", AttendanceRosterStatus.Cancelled => "secondary", _ => "light" };
+    private string RosterTabButtonClass(RosterTab tab)
+        => activeTab == tab ? "roster-tab is-active" : "roster-tab";
+    private static string RosterStatusTone(AttendanceRosterStatus status) => status switch
+    {
+        AttendanceRosterStatus.Published => "primary",
+        AttendanceRosterStatus.Locked => "muted",
+        AttendanceRosterStatus.Cancelled => "muted",
+        _ => "warning"
+    };
     private string RosterStatusText(AttendanceRosterControlStatus status) => status switch
     {
         AttendanceRosterControlStatus.Active => Text("Active", "نشط"),
@@ -723,8 +779,8 @@
     };
     private static bool IsPresent(AttendanceRosterControlStatus status)
         => status is AttendanceRosterControlStatus.Active or AttendanceRosterControlStatus.OnBreak or AttendanceRosterControlStatus.Completed;
-    private static string ExceptionCss(AttendanceExceptionStatus status) => status switch { AttendanceExceptionStatus.Approved => "success", AttendanceExceptionStatus.Rejected => "danger", AttendanceExceptionStatus.Cancelled => "secondary", _ => "warning" };
-    private static string ImportRowCss(AttendanceImportRowStatus status) => status switch { AttendanceImportRowStatus.Accepted => "success", AttendanceImportRowStatus.Rejected => "danger", AttendanceImportRowStatus.Posted => "dark", _ => "warning" };
+    private static string ExceptionTone(AttendanceExceptionStatus status) => status switch { AttendanceExceptionStatus.Approved => "success", AttendanceExceptionStatus.Rejected => "danger", AttendanceExceptionStatus.Cancelled => "muted", _ => "warning" };
+    private static string ImportRowTone(AttendanceImportRowStatus status) => status switch { AttendanceImportRowStatus.Accepted => "success", AttendanceImportRowStatus.Rejected => "danger", AttendanceImportRowStatus.Posted => "muted", _ => "warning" };
     private bool Can(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
     private static Guid Parse(string? value) => Guid.TryParse(value, out var id) ? id : Guid.Empty;
     private static Guid? ParseNullable(string? value) => Guid.TryParse(value, out var id) ? id : null;
@@ -805,6 +861,44 @@
 }
 
 <style>
+    .roster-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--erp-space-2, .5rem);
+        margin-block-end: var(--erp-space-3, .75rem);
+        padding: var(--erp-space-2, .5rem);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
+        background: var(--erp-surface);
+    }
+
+    .roster-tab {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--erp-space-2, .5rem);
+        min-height: 36px;
+        padding-block: var(--erp-space-2, .5rem);
+        padding-inline: var(--erp-space-3, .75rem);
+        border: 1px solid transparent;
+        border-radius: var(--erp-radius-md);
+        background: transparent;
+        color: var(--erp-text-muted);
+        font-size: .875rem;
+        font-weight: 600;
+    }
+
+    .roster-tab:hover {
+        border-color: var(--erp-border);
+        color: var(--erp-text);
+    }
+
+    .roster-tab.is-active {
+        border-color: var(--erp-primary);
+        background: var(--erp-primary-soft, var(--erp-surface-level-0));
+        color: var(--erp-primary);
+    }
+
     .roster-kpis {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -880,6 +974,15 @@
     }
 
     @@media (max-width: 760px) {
+        .roster-tabs {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+        }
+
+        .roster-tab {
+            flex: 0 0 auto;
+        }
+
         .roster-group-title {
             align-items: flex-start;
             flex-direction: column;
