@@ -1181,6 +1181,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         {
             journalsCreated += await EnsureDefaultBranchJournalAsync(command.CompanyId, command.BranchId, command.BranchCode, command.BranchName, AccountingJournalType.Cash, assetGroup, codingSettings, cancellationToken);
             journalsCreated += await EnsureDefaultBranchJournalAsync(command.CompanyId, command.BranchId, command.BranchCode, command.BranchName, AccountingJournalType.Bank, assetGroup, codingSettings, cancellationToken);
+            await EnsureDefaultBranchPaymentAccountsAsync(command.CompanyId, command.BranchId, command.BranchName, cancellationToken);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -1682,7 +1683,80 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
             IsActive = true
         }, UserId);
         await dbContext.AccountingJournals.AddAsync(journal, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
         return 1;
+    }
+
+    private async Task EnsureDefaultBranchPaymentAccountsAsync(Guid companyId, Guid branchId, string branchName, CancellationToken cancellationToken)
+    {
+        var cashJournal = await dbContext.AccountingJournals.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == companyId && x.BranchId == branchId && x.Type == AccountingJournalType.Cash && x.IsActive, cancellationToken)
+            ?? throw new BadRequestException($"Branch {branchName} cash journal was not found.");
+        var bankJournal = await dbContext.AccountingJournals.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.CompanyId == companyId && x.BranchId == branchId && x.Type == AccountingJournalType.Bank && x.IsActive, cancellationToken)
+            ?? throw new BadRequestException($"Branch {branchName} bank journal was not found.");
+
+        var cashLedgerId = cashJournal.DefaultDebitAccountId ?? cashJournal.DefaultCreditAccountId
+            ?? throw new BadRequestException($"Branch {branchName} cash journal must have a default ledger account.");
+        var bankLedgerId = bankJournal.DefaultDebitAccountId ?? bankJournal.DefaultCreditAccountId
+            ?? throw new BadRequestException($"Branch {branchName} bank journal must have a default ledger account.");
+
+        var cashAccounts = await dbContext.CashAccounts
+            .Where(x => x.CompanyId == companyId && x.BranchId == branchId && x.IsActive)
+            .OrderByDescending(x => x.IsDefault)
+            .ThenBy(x => x.DisplayName)
+            .ToListAsync(cancellationToken);
+        if (cashAccounts.Any())
+        {
+            var defaultCash = cashAccounts.FirstOrDefault(x => x.IsDefault) ?? cashAccounts.First();
+            foreach (var account in cashAccounts.Where(x => x.Id != defaultCash.Id && x.IsDefault))
+                account.SetDefault(false, UserId);
+            if (!defaultCash.IsDefault)
+                defaultCash.SetDefault(true, UserId);
+        }
+        else
+        {
+            await dbContext.CashAccounts.AddAsync(CashAccount.Create(new CashAccountDto
+            {
+                CompanyId = companyId,
+                BranchId = branchId,
+                DisplayName = $"{branchName} Cash",
+                CurrencyCode = "SAR",
+                LedgerAccountId = cashLedgerId,
+                JournalId = cashJournal.Id,
+                IsDefault = true,
+                IsActive = true
+            }, cashLedgerId, cashJournal.Id, UserId), cancellationToken);
+        }
+
+        var bankAccounts = await dbContext.BankAccounts
+            .Where(x => x.CompanyId == companyId && x.BranchId == branchId && x.IsActive)
+            .OrderByDescending(x => x.IsDefault)
+            .ThenBy(x => x.DisplayName)
+            .ToListAsync(cancellationToken);
+        if (bankAccounts.Any())
+        {
+            var defaultBank = bankAccounts.FirstOrDefault(x => x.IsDefault) ?? bankAccounts.First();
+            foreach (var account in bankAccounts.Where(x => x.Id != defaultBank.Id && x.IsDefault))
+                account.SetDefault(false, UserId);
+            if (!defaultBank.IsDefault)
+                defaultBank.SetDefault(true, UserId);
+        }
+        else
+        {
+            await dbContext.BankAccounts.AddAsync(BankAccount.Create(new BankAccountDto
+            {
+                CompanyId = companyId,
+                BranchId = branchId,
+                DisplayName = $"{branchName} Bank",
+                BankName = "Company Bank",
+                CurrencyCode = "SAR",
+                LedgerAccountId = bankLedgerId,
+                JournalId = bankJournal.Id,
+                IsDefault = true,
+                IsActive = true
+            }, bankLedgerId, bankJournal.Id, UserId), cancellationToken);
+        }
     }
 
     private static string NormalizeBranchCode(string branchCode)

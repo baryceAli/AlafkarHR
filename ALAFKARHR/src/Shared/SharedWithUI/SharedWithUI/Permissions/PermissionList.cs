@@ -136,6 +136,7 @@ public static class PermissionList
 
     public static List<string> GetPlatformPermissions()
         => ParentCompanyPermissions.Permissions
+            .Concat(DemoDataPermissions.Permissions)
             .Where(p => !string.IsNullOrWhiteSpace(p))
             .Select(p => p.Trim())
             .Distinct(StringComparer.Ordinal)
@@ -1761,6 +1762,18 @@ public static class PermissionList
                 $"{Create}",
                 $"{Edit}",
             };
+    }
+
+    public static class DemoDataPermissions
+    {
+        public static string GroupName { get; set; } = "GeneralSettings.DemoData";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Create { get; set; } = $"{GroupName}.Create";
+        public static string Reset { get; set; } = $"{GroupName}.Reset";
+        public static string Delete { get; set; } = $"{GroupName}.Delete";
+        public static string ResetAdminPassword { get; set; } = $"{GroupName}.ResetAdminPassword";
+
+        public static List<string> Permissions => [View, Create, Reset, Delete, ResetAdminPassword];
     }
 
     public static class StoreFrontStorePermissions
