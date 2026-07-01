@@ -2,6 +2,7 @@ using AttendanceDomain.Attendance.Models;
 using AttendanceDomain.Data;
 using EmployeeModule.Contracts.Employees.Features.GetCompanyEmployeeRosterProfiles;
 using LeaveManagement.Data;
+using Shared.Contracts.Leave;
 using SharedWithUI.Attendance.Dtos;
 
 namespace LeaveManagement.Leave.Features.RosterControl;
@@ -10,6 +11,72 @@ public record GetAttendanceRosterControlQuery(AttendanceRosterControlFilterDto F
     : IQuery<GetAttendanceRosterControlResult>;
 
 public record GetAttendanceRosterControlResult(AttendanceRosterControlDto Roster);
+
+public class GetApprovedLeaveCoverageHandler(LeaveDbContext leaveDbContext)
+    : IQueryHandler<GetApprovedLeaveCoverageQuery, GetApprovedLeaveCoverageResult>
+{
+    public async Task<GetApprovedLeaveCoverageResult> Handle(
+        GetApprovedLeaveCoverageQuery request,
+        CancellationToken cancellationToken)
+    {
+        var from = DateTime.SpecifyKind(request.FromDate.Date, DateTimeKind.Utc);
+        var to = DateTime.SpecifyKind(request.ToDate.Date, DateTimeKind.Utc);
+        if (to < from)
+        {
+            throw new BadRequestException("Approved leave coverage end date must be on or after start date.");
+        }
+
+        var employeeIds = request.EmployeeIds
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToHashSet();
+        if (request.CompanyId == Guid.Empty || employeeIds.Count == 0)
+        {
+            return new GetApprovedLeaveCoverageResult([]);
+        }
+
+        var leaveApplications = await leaveDbContext.LeaveApplications.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId
+                && x.Status == LeaveApplicationStatus.Approved
+                && x.StartDate.Date <= to
+                && x.EndDate.Date >= from
+                && employeeIds.Contains(x.EmployeeId))
+            .Select(x => new { x.EmployeeId, x.StartDate, x.EndDate })
+            .ToListAsync(cancellationToken);
+
+        var emergencyLeaves = await leaveDbContext.EmergencyLeaveRequests.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId
+                && x.Status == AttendanceExceptionStatus.Approved
+                && x.StartDate.Date <= to
+                && x.EndDate.Date >= from
+                && employeeIds.Contains(x.EmployeeId))
+            .Select(x => new { x.EmployeeId, x.StartDate, x.EndDate })
+            .ToListAsync(cancellationToken);
+
+        var days = leaveApplications
+            .SelectMany(x => ExpandCoverage(x.EmployeeId, x.StartDate, x.EndDate, from, to))
+            .Concat(emergencyLeaves.SelectMany(x => ExpandCoverage(x.EmployeeId, x.StartDate, x.EndDate, from, to)))
+            .Distinct()
+            .ToList();
+
+        return new GetApprovedLeaveCoverageResult(days);
+    }
+
+    private static IEnumerable<ApprovedLeaveCoverageDay> ExpandCoverage(
+        Guid employeeId,
+        DateTime startDate,
+        DateTime endDate,
+        DateTime from,
+        DateTime to)
+    {
+        var start = startDate.Date < from ? from : startDate.Date;
+        var end = endDate.Date > to ? to : endDate.Date;
+        for (var date = start; date <= end; date = date.AddDays(1))
+        {
+            yield return new ApprovedLeaveCoverageDay(employeeId, date);
+        }
+    }
+}
 
 public class GetAttendanceRosterControlHandler(
     LeaveDbContext leaveDbContext,

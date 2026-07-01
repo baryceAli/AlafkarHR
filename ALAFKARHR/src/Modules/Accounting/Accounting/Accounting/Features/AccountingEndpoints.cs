@@ -164,6 +164,14 @@ public class AccountingEndpoints : ICarterModule
             Results.Ok(await sender.Send(new ReconcileBankTransactionCommand(reconciliation))))
             .RequireAuthorization(PermissionList.BankReconciliationPermissions.Reconcile);
 
+        app.MapPost($"{baseRoute}/bank-reconciliation/transactions/{{id:guid}}/ignore", async (Guid id, ISender sender) =>
+            Results.Ok(await sender.Send(new IgnoreBankTransactionCommand(id))))
+            .RequireAuthorization(PermissionList.BankReconciliationPermissions.Reconcile);
+
+        app.MapPost($"{baseRoute}/bank-reconciliation/transactions/{{id:guid}}/unreconcile", async (Guid id, ISender sender) =>
+            Results.Ok(await sender.Send(new UnreconcileBankTransactionCommand(id))))
+            .RequireAuthorization(PermissionList.BankReconciliationPermissions.Reconcile);
+
         app.MapGet($"{baseRoute}/settings", async (Guid companyId, ISender sender) =>
             Results.Ok(await sender.Send(new GetCompanyAccountingSettingsQuery(companyId))))
             .RequireAuthorization(PermissionList.AccountingSettingsPermissions.View);
@@ -184,6 +192,10 @@ public class AccountingEndpoints : ICarterModule
             Results.Ok(await sender.Send(new PostAccountingDocumentCommand(id))))
             .RequireAuthorization(PermissionList.AccountingDocumentPermissions.Post);
 
+        app.MapPost($"{baseRoute}/documents/{{id:guid}}/reverse", async (Guid id, ISender sender) =>
+            Results.Ok(await sender.Send(new ReverseAccountingDocumentCommand(id))))
+            .RequireAuthorization(PermissionList.AccountingDocumentPermissions.Reverse);
+
         app.MapPost($"{baseRoute}/documents/{{id:guid}}/zatca", async (Guid id, ZatcaInvoiceType invoiceType, ISender sender) =>
             Results.Ok(await sender.Send(new GenerateZatcaInvoiceCommand(id, invoiceType))))
             .RequireAuthorization(PermissionList.ZatcaEInvoicePermissions.Generate);
@@ -195,6 +207,10 @@ public class AccountingEndpoints : ICarterModule
         app.MapPost($"{baseRoute}/journals/quick-entry", async (QuickJournalEntryDto journalEntry, ISender sender) =>
             Results.Created($"{baseRoute}/journals", await sender.Send(new CreateQuickJournalEntryCommand(journalEntry))))
             .RequireAuthorization(PermissionList.JournalEntryPermissions.Create);
+
+        app.MapPost($"{baseRoute}/journals/{{id:guid}}/reverse", async (Guid id, ISender sender) =>
+            Results.Ok(await sender.Send(new ReverseJournalEntryCommand(id))))
+            .RequireAuthorization(PermissionList.JournalEntryPermissions.Reverse);
 
         app.MapGet($"{baseRoute}/zatca/settings", async (Guid companyId, ISender sender) =>
             Results.Ok(await sender.Send(new GetZatcaSettingsQuery(companyId))))

@@ -6,15 +6,18 @@
 @page "/Accounting/CreditNotes"
 @page "/Accounting/DebitNotes"
 
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Accounting.Pages
 @using AlAfkarERP.Shared.Pages.Features.Accounting.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Accounting.Dtos
 @using SharedWithUI.Accounting.Enums
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 
 @implements IDisposable
 @inject IAccountingService AccountingService
+@inject IBranchService BranchService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
@@ -39,6 +42,13 @@
                     <input class="form-control" placeholder="@T("Search number or party", "بحث بالرقم أو الطرف")" @bind="searchText" @bind:event="oninput" />
                     <button class="btn btn-outline-secondary" type="button" @onclick="LoadAsync">@T("Search", "بحث")</button>
                 </div>
+                <InputSelect class="form-select w-auto" @bind-Value="selectedBranchId" @bind-Value:after="LoadAsync">
+                    <option value="">@T("All allowed branches", "كل الفروع المتاحة")</option>
+                    @foreach (var branch in VisibleBranches)
+                    {
+                        <option value="@branch.Id">@BranchLabel(branch)</option>
+                    }
+                </InputSelect>
                 @if (CanCreate)
                 {
                     <button class="btn btn-primary" type="button" @onclick="OpenCreate"><i class="bi bi-plus-lg"></i> @T("Create Document", "إضافة مستند")</button>
@@ -85,6 +95,12 @@
                                         {
                                             <button class="btn btn-outline-success" type="button" title="@T("Generate ZATCA", "توليد فاتورة زاتكا")" @onclick="() => GenerateZatcaAsync(document)">
                                                 <i class="bi bi-qr-code"></i>
+                                            </button>
+                                        }
+                                        @if (CanReverse && document.Status == AccountingDocumentStatus.Posted)
+                                        {
+                                            <button class="btn btn-outline-danger" type="button" title="@T("Reverse", "عكس")" @onclick="() => ReverseAsync(document.Id)">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
                                             </button>
                                         }
                                     </div>
@@ -253,6 +269,9 @@
     private List<AccountingDocumentDto> documents = [];
     private AuthenticationState? authState;
     private Guid? companyId;
+    private Guid? selectedBranchId;
+    private List<BranchDto> branches = [];
+    private CurrentUserBranchAccessDto branchAccess = new();
     private string? searchText;
     private bool showCreate;
     private bool saving;
@@ -261,6 +280,7 @@
     private bool CanView => HasPermission(PermissionList.AccountingDocumentPermissions.View);
     private bool CanCreate => HasPermission(PermissionList.AccountingDocumentPermissions.Create);
     private bool CanPost => HasPermission(PermissionList.AccountingDocumentPermissions.Post);
+    private bool CanReverse => HasPermission(PermissionList.AccountingDocumentPermissions.Reverse);
     private bool CanGenerateZatca => HasPermission(PermissionList.ZatcaEInvoicePermissions.Generate);
 
     private string CurrentPath => NavigationManager.Uri.ToLowerInvariant();
@@ -334,7 +354,24 @@
         if (Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var parsedCompanyId))
             companyId = parsedCompanyId;
 
+        await LoadBranchAccessAsync();
         await LoadAsync();
+    }
+
+    private IEnumerable<BranchDto> VisibleBranches => branchAccess.CanViewAllBranches
+        ? branches
+        : branches.Where(x => branchAccess.BranchIds.Contains(x.Id));
+
+    private async Task LoadBranchAccessAsync()
+    {
+        if (!companyId.HasValue || companyId.Value == Guid.Empty)
+            return;
+
+        var accessResult = await BranchService.GetCurrentUserBranchAccessAsync(companyId.Value);
+        branchAccess = accessResult.IsSuccess ? accessResult.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+        var branchesResult = await BranchService.GetByCompanyIdAsync(companyId.Value, 1, 500);
+        if (branchesResult.IsSuccess && branchesResult.Data is not null)
+            branches = branchesResult.Data.Data.ToList();
     }
 
     private async Task LoadAsync()
@@ -345,7 +382,7 @@
         var loaded = new List<AccountingDocumentDto>();
         foreach (var type in QueryTypes)
         {
-            var queryResult = await AccountingService.GetDocumentsAsync(type, companyId, 1, 100, searchText);
+            var queryResult = await AccountingService.GetDocumentsAsync(type, companyId, 1, 100, searchText, selectedBranchId);
             if (queryResult.IsSuccess && queryResult.Data is not null)
             {
                 loaded.AddRange(queryResult.Data.Data);
@@ -377,6 +414,7 @@
         newDocument = new AccountingDocumentDto
         {
             CompanyId = companyId ?? Guid.Empty,
+            BranchId = selectedBranchId,
             Type = CreatableTypes.First(),
             DocumentDate = DateTime.UtcNow,
             Lines = []
@@ -432,6 +470,7 @@
         Recalculate();
         saving = true;
         newDocument.CompanyId = companyId ?? Guid.Empty;
+        newDocument.BranchId = selectedBranchId;
         var result = await AccountingService.CreateDocumentAsync(newDocument);
         saving = false;
 
@@ -477,6 +516,20 @@
             ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not generate ZATCA invoice.", "تعذر توليد فاتورة زاتكا."));
     }
 
+    private async Task ReverseAsync(Guid id)
+    {
+        var result = await AccountingService.ReverseDocumentAsync(id);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Document reversed.", "تم عكس المستند."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not reverse document.", "تعذر عكس المستند."));
+        }
+    }
+
     private static bool CanGenerateZatcaFor(AccountingDocumentDto document) =>
         document.Status == AccountingDocumentStatus.Posted &&
         document.Type is AccountingDocumentType.SalesInvoice or AccountingDocumentType.SalesCreditNote or AccountingDocumentType.SalesDebitNote;
@@ -502,6 +555,7 @@
     };
 
     private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string BranchLabel(BranchDto branch) => SharedDataService.SelectViewLang(branch.NameEng, branch.Name);
     private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;

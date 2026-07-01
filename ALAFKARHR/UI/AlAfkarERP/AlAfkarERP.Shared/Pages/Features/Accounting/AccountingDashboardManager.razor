@@ -1,14 +1,17 @@
 @layout AdminLayout
 @page "/Accounting/Dashboard"
 
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Accounting.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Accounting.Dtos
 @using SharedWithUI.Accounting.Enums
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 
 @implements IDisposable
 @inject IAccountingService AccountingService
+@inject IBranchService BranchService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
@@ -25,6 +28,15 @@
     }
     else
     {
+        <div class="d-flex justify-content-end mb-3">
+            <InputSelect class="form-select w-auto" @bind-Value="selectedBranchId" @bind-Value:after="LoadDashboardAsync">
+                <option value="">@T("All allowed branches", "كل الفروع المتاحة")</option>
+                @foreach (var branch in VisibleBranches)
+                {
+                    <option value="@branch.Id">@BranchLabel(branch)</option>
+                }
+            </InputSelect>
+        </div>
         <div class="row g-3">
             <div class="col-12 col-sm-6 col-xl-3">
                 <StatsCard Title="@T("Accounts", "الحسابات")" Value="@dashboard.Accounts.ToString("N0")" Icon="bi-diagram-3" Tone="primary" CssClass="h-100" OnClick="@(() => Go("/Accounting/Accounts"))" />
@@ -107,6 +119,9 @@
     private AccountingSetupStatusDto? setupStatus;
     private AuthenticationState? authState;
     private Guid? companyId;
+    private Guid? selectedBranchId;
+    private List<BranchDto> branches = [];
+    private CurrentUserBranchAccessDto branchAccess = new();
     private bool CanView => authState?.User.Claims.Any(c => c.Value == PermissionList.AccountingDashboardPermissions.View) == true;
 
     protected override async Task OnInitializedAsync()
@@ -116,9 +131,8 @@
         if (Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var parsedCompanyId))
             companyId = parsedCompanyId;
 
-        var result = await AccountingService.GetDashboardAsync(companyId);
-        if (result.IsSuccess && result.Data is not null)
-            dashboard = result.Data;
+        await LoadBranchAccessAsync();
+        await LoadDashboardAsync();
 
         if (companyId.HasValue)
         {
@@ -126,6 +140,29 @@
             if (setupResult.IsSuccess)
                 setupStatus = setupResult.Data;
         }
+    }
+
+    private IEnumerable<BranchDto> VisibleBranches => branchAccess.CanViewAllBranches
+        ? branches
+        : branches.Where(x => branchAccess.BranchIds.Contains(x.Id));
+
+    private async Task LoadBranchAccessAsync()
+    {
+        if (!companyId.HasValue || companyId.Value == Guid.Empty)
+            return;
+
+        var accessResult = await BranchService.GetCurrentUserBranchAccessAsync(companyId.Value);
+        branchAccess = accessResult.IsSuccess ? accessResult.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+        var branchesResult = await BranchService.GetByCompanyIdAsync(companyId.Value, 1, 500);
+        if (branchesResult.IsSuccess && branchesResult.Data is not null)
+            branches = branchesResult.Data.Data.ToList();
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        var result = await AccountingService.GetDashboardAsync(companyId, selectedBranchId);
+        if (result.IsSuccess && result.Data is not null)
+            dashboard = result.Data;
     }
 
     private RenderFragment QuickLink(string en, string ar, string url, string icon) => builder =>
@@ -162,6 +199,7 @@
 
     private void Go(string url) => NavigationManager.NavigateTo(url);
     private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string BranchLabel(BranchDto branch) => SharedDataService.SelectViewLang(branch.NameEng, branch.Name);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
 }

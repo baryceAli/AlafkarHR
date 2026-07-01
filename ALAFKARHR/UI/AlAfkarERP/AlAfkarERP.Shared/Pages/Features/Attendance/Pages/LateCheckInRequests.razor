@@ -52,7 +52,7 @@
                     <article class="request-card">
                         <div class="request-main">
                             <div>
-                                <div class="request-title">@Text("Employee", "الموظف") @ShortId(request.EmployeeId)</div>
+                                <div class="request-title">@Text("Employee", "الموظف") @EmployeeDisplayName(request)</div>
                                 <div class="request-meta">
                                     @Text("Requested", "وقت الطلب") @request.RequestedCheckInTimeUtc.ToLocalTime().ToString("g")
                                     <span>@Text("Shift", "الوردية") @request.ShiftStart.ToLocalTime().ToString("g") - @request.ShiftEnd.ToLocalTime().ToString("g")</span>
@@ -184,7 +184,9 @@
         messageClass = cssClass;
     }
 
-    private static string ShortId(Guid id) => id.ToString()[..8];
+    private static string EmployeeDisplayName(LateCheckInRequestDto request)
+        => string.IsNullOrWhiteSpace(request.EmployeeName) ? request.EmployeeId.ToString()[..8] : request.EmployeeName;
+
     private static string FormatNullable(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("g") : "-";
 
     private string StatusText(AttendanceExceptionStatus status) => status switch

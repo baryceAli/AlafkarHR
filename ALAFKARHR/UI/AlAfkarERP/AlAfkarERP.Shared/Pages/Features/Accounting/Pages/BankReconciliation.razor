@@ -1,14 +1,17 @@
 @layout AdminLayout
 @page "/Accounting/BankReconciliation"
 
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Accounting.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Accounting.Dtos
 @using SharedWithUI.Accounting.Enums
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 
 @implements IDisposable
 @inject IAccountingService AccountingService
+@inject IBranchService BranchService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 @inject ToastService ToastService
@@ -97,6 +100,14 @@
                             <option value="">@T("All statuses", "كل الحالات")</option>
                             <option value="@BankTransactionStatus.Unreconciled">@T("Unreconciled", "غير مسواة")</option>
                             <option value="@BankTransactionStatus.Reconciled">@T("Reconciled", "مسواة")</option>
+                            <option value="@BankTransactionStatus.Ignored">@T("Ignored", "متجاهلة")</option>
+                        </InputSelect>
+                        <InputSelect class="form-select w-auto" @bind-Value="selectedBranchId" @bind-Value:after="OnBranchChangedAsync">
+                            <option value="">@T("All allowed branches", "كل الفروع المتاحة")</option>
+                            @foreach (var branch in VisibleBranches)
+                            {
+                                <option value="@branch.Id">@BranchLabel(branch)</option>
+                            }
                         </InputSelect>
                     </div>
                     <div class="erp-table-wrap">
@@ -121,10 +132,24 @@
                                         <td class="@(transaction.Amount >= 0 ? "text-success" : "text-danger")">@transaction.Amount.ToString("N2")</td>
                                         <td><StatusChip Text="@transaction.Status.ToString()" Tone="@(transaction.Status == BankTransactionStatus.Reconciled ? "success" : "warning")" /></td>
                                         <td class="text-end">
-                                            <button class="btn btn-sm btn-outline-primary" type="button" disabled="@(transaction.Status == BankTransactionStatus.Reconciled || !CanReconcile)" @onclick="() => OpenMatchAsync(transaction)">
-                                                <i class="bi bi-shuffle"></i>
-                                                @T("Match", "مطابقة")
-                                            </button>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" type="button" disabled="@(transaction.Status != BankTransactionStatus.Unreconciled || !CanReconcile)" @onclick="() => OpenMatchAsync(transaction)">
+                                                    <i class="bi bi-shuffle"></i>
+                                                    @T("Match", "مطابقة")
+                                                </button>
+                                                @if (CanReconcile && transaction.Status == BankTransactionStatus.Unreconciled)
+                                                {
+                                                    <button class="btn btn-outline-secondary" type="button" @onclick="() => IgnoreAsync(transaction.Id)">
+                                                        <i class="bi bi-eye-slash"></i>
+                                                    </button>
+                                                }
+                                                @if (CanReconcile && transaction.Status is BankTransactionStatus.Reconciled or BankTransactionStatus.Ignored)
+                                                {
+                                                    <button class="btn btn-outline-warning" type="button" @onclick="() => UnreconcileAsync(transaction.Id)">
+                                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                                    </button>
+                                                }
+                                            </div>
                                         </td>
                                     </tr>
                                 }
@@ -221,6 +246,9 @@
 @code {
     private AuthenticationState? authState;
     private Guid companyId;
+    private Guid? selectedBranchId;
+    private List<BranchDto> branches = [];
+    private CurrentUserBranchAccessDto branchAccess = new();
     private List<BankTransactionDto> transactions = [];
     private List<BankReconciliationMatchDto> matches = [];
     private List<BankAccountDto> bankAccounts = [];
@@ -245,6 +273,30 @@
         authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out companyId);
         ResetTransaction();
+        await LoadBranchAccessAsync();
+        await LoadLookupsAsync();
+        await LoadAsync();
+    }
+
+    private IEnumerable<BranchDto> VisibleBranches => branchAccess.CanViewAllBranches
+        ? branches
+        : branches.Where(x => branchAccess.BranchIds.Contains(x.Id));
+
+    private async Task LoadBranchAccessAsync()
+    {
+        if (companyId == Guid.Empty)
+            return;
+
+        var accessResult = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        branchAccess = accessResult.IsSuccess ? accessResult.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+        var branchesResult = await BranchService.GetByCompanyIdAsync(companyId, 1, 500);
+        if (branchesResult.IsSuccess && branchesResult.Data is not null)
+            branches = branchesResult.Data.Data.ToList();
+    }
+
+    private async Task OnBranchChangedAsync()
+    {
+        ResetTransaction();
         await LoadLookupsAsync();
         await LoadAsync();
     }
@@ -254,11 +306,11 @@
         if (companyId == Guid.Empty || !CanView)
             return;
 
-        var summaryResult = await AccountingService.GetBankReconciliationSummaryAsync(companyId);
+        var summaryResult = await AccountingService.GetBankReconciliationSummaryAsync(companyId, selectedBranchId);
         if (summaryResult.IsSuccess && summaryResult.Data is not null)
             summary = summaryResult.Data;
 
-        var result = await AccountingService.GetBankTransactionsAsync(companyId, statusFilter, 1, 100, searchText);
+        var result = await AccountingService.GetBankTransactionsAsync(companyId, statusFilter, 1, 100, searchText, selectedBranchId);
         if (result.IsSuccess && result.Data is not null)
             transactions = result.Data.Data.ToList();
         else
@@ -270,15 +322,15 @@
         if (companyId == Guid.Empty)
             return;
 
-        var bankResult = await AccountingService.GetBankAccountsAsync(companyId);
+        var bankResult = await AccountingService.GetBankAccountsAsync(companyId, selectedBranchId);
         if (bankResult.IsSuccess && bankResult.Data is not null)
             bankAccounts = bankResult.Data;
 
-        var cashResult = await AccountingService.GetCashAccountsAsync(companyId);
+        var cashResult = await AccountingService.GetCashAccountsAsync(companyId, selectedBranchId);
         if (cashResult.IsSuccess && cashResult.Data is not null)
             cashAccounts = cashResult.Data;
 
-        var accountResult = await AccountingService.GetAccountsAsync(companyId, 1, 500, null);
+        var accountResult = await AccountingService.GetAccountsAsync(companyId, 1, 500, null, selectedBranchId);
         if (accountResult.IsSuccess && accountResult.Data is not null)
             postingAccounts = accountResult.Data.Data.Where(x => x.IsActive && x.IsPostingAccount).OrderBy(x => x.Code).ToList();
     }
@@ -287,6 +339,7 @@
     {
         ApplySelectedAccount();
         newTransaction.CompanyId = companyId;
+        newTransaction.BranchId = selectedBranchId;
         savingTransaction = true;
         var result = await AccountingService.CreateBankTransactionAsync(newTransaction);
         savingTransaction = false;
@@ -359,6 +412,34 @@
         }
     }
 
+    private async Task IgnoreAsync(Guid id)
+    {
+        var result = await AccountingService.IgnoreBankTransactionAsync(id);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Transaction ignored.", "تم تجاهل الحركة."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not ignore transaction.", "تعذر تجاهل الحركة."));
+        }
+    }
+
+    private async Task UnreconcileAsync(Guid id)
+    {
+        var result = await AccountingService.UnreconcileBankTransactionAsync(id);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Transaction returned to unreconciled.", "تمت إعادة الحركة إلى غير مسواة."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not unreconcile transaction.", "تعذر إلغاء تسوية الحركة."));
+        }
+    }
+
     private void ApplySelectedAccount()
     {
         newTransaction.BankAccountId = null;
@@ -382,6 +463,7 @@
         newTransaction = new BankTransactionDto
         {
             CompanyId = companyId,
+            BranchId = selectedBranchId,
             TransactionDate = DateTime.UtcNow.Date
         };
     }
@@ -394,6 +476,7 @@
     }
 
     private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string BranchLabel(BranchDto branch) => SharedDataService.SelectViewLang(branch.NameEng, branch.Name);
     private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;

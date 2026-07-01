@@ -15,9 +15,9 @@ public class AccountingService : BaseApiService, IAccountingService
         _apiConfig = apiConfig;
     }
 
-    public async Task<ApiResult<AccountingDashboardDto>> GetDashboardAsync(Guid? companyId)
+    public async Task<ApiResult<AccountingDashboardDto>> GetDashboardAsync(Guid? companyId, Guid? branchId = null)
     {
-        var query = companyId.HasValue ? $"?companyId={companyId}" : string.Empty;
+        var query = BuildQuery(("companyId", companyId), ("branchId", branchId));
         var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/dashboard{query}");
         return await SendAsync<AccountingDashboardDto>(request, "dashboard");
     }
@@ -79,9 +79,9 @@ public class AccountingService : BaseApiService, IAccountingService
         return await SendAsync<ApplyAccountingTemplateResultDto>(request, "result");
     }
 
-    public async Task<ApiResult<PaginatedResult<AccountDto>>> GetAccountsAsync(Guid companyId, int pageIndex, int pageSize, string? searchText)
+    public async Task<ApiResult<PaginatedResult<AccountDto>>> GetAccountsAsync(Guid companyId, int pageIndex, int pageSize, string? searchText, Guid? branchId = null)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/accounts?companyId={companyId}&pageIndex={pageIndex}&pageSize={pageSize}&searchText={searchText}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/accounts{BuildQuery(("companyId", companyId), ("branchId", branchId), ("pageIndex", pageIndex), ("pageSize", pageSize), ("searchText", searchText))}");
         return await SendAsync<PaginatedResult<AccountDto>>(request, "accounts");
     }
 
@@ -176,9 +176,9 @@ public class AccountingService : BaseApiService, IAccountingService
         return await SendAsync<Guid>(request, "id");
     }
 
-    public async Task<ApiResult<List<BankAccountDto>>> GetBankAccountsAsync(Guid companyId)
+    public async Task<ApiResult<List<BankAccountDto>>> GetBankAccountsAsync(Guid companyId, Guid? branchId = null)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/bank-accounts?companyId={companyId}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/bank-accounts{BuildQuery(("companyId", companyId), ("branchId", branchId))}");
         return await SendAsync<List<BankAccountDto>>(request, "bankAccounts");
     }
 
@@ -259,13 +259,9 @@ public class AccountingService : BaseApiService, IAccountingService
         return await SendAsync<AccountRenumberPreviewDto>(request, "preview");
     }
 
-    public async Task<ApiResult<PaginatedResult<AccountingDocumentDto>>> GetDocumentsAsync(AccountingDocumentType? type, Guid? companyId, int pageIndex, int pageSize, string? searchText)
+    public async Task<ApiResult<PaginatedResult<AccountingDocumentDto>>> GetDocumentsAsync(AccountingDocumentType? type, Guid? companyId, int pageIndex, int pageSize, string? searchText, Guid? branchId = null)
     {
-        var query = $"companyId={companyId}&pageIndex={pageIndex}&pageSize={pageSize}&searchText={searchText}";
-        if (type.HasValue)
-            query = $"type={type.Value}&{query}";
-
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/documents?{query}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/documents{BuildQuery(("type", type), ("companyId", companyId), ("branchId", branchId), ("pageIndex", pageIndex), ("pageSize", pageSize), ("searchText", searchText))}");
         return await SendAsync<PaginatedResult<AccountingDocumentDto>>(request, "documents");
     }
 
@@ -284,15 +280,21 @@ public class AccountingService : BaseApiService, IAccountingService
         return await SendAsync<Guid>(request, "entryId");
     }
 
+    public async Task<ApiResult<Guid>> ReverseDocumentAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/accounting/documents/{id}/reverse");
+        return await SendAsync<Guid>(request, "reversalJournalEntryId");
+    }
+
     public async Task<ApiResult<Guid>> GenerateZatcaInvoiceAsync(Guid documentId, ZatcaInvoiceType invoiceType)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/accounting/documents/{documentId}/zatca?invoiceType={invoiceType}");
         return await SendAsync<Guid>(request, "id");
     }
 
-    public async Task<ApiResult<PaginatedResult<JournalEntryDto>>> GetJournalsAsync(Guid? companyId, int pageIndex, int pageSize, string? searchText)
+    public async Task<ApiResult<PaginatedResult<JournalEntryDto>>> GetJournalsAsync(Guid? companyId, int pageIndex, int pageSize, string? searchText, Guid? branchId = null)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/journals?companyId={companyId}&pageIndex={pageIndex}&pageSize={pageSize}&searchText={searchText}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/journals{BuildQuery(("companyId", companyId), ("branchId", branchId), ("pageIndex", pageIndex), ("pageSize", pageSize), ("searchText", searchText))}");
         return await SendAsync<PaginatedResult<JournalEntryDto>>(request, "journalEntries");
     }
 
@@ -305,19 +307,21 @@ public class AccountingService : BaseApiService, IAccountingService
         return await SendAsync<Guid>(request, "id");
     }
 
-    public async Task<ApiResult<PaginatedResult<BankTransactionDto>>> GetBankTransactionsAsync(Guid companyId, BankTransactionStatus? status, int pageIndex, int pageSize, string? searchText)
+    public async Task<ApiResult<Guid>> ReverseJournalEntryAsync(Guid id)
     {
-        var query = $"companyId={companyId}&pageIndex={pageIndex}&pageSize={pageSize}&searchText={searchText}";
-        if (status.HasValue)
-            query = $"status={status.Value}&{query}";
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/accounting/journals/{id}/reverse");
+        return await SendAsync<Guid>(request, "reversalJournalEntryId");
+    }
 
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/bank-reconciliation/transactions?{query}");
+    public async Task<ApiResult<PaginatedResult<BankTransactionDto>>> GetBankTransactionsAsync(Guid companyId, BankTransactionStatus? status, int pageIndex, int pageSize, string? searchText, Guid? branchId = null)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/bank-reconciliation/transactions{BuildQuery(("companyId", companyId), ("branchId", branchId), ("status", status), ("pageIndex", pageIndex), ("pageSize", pageSize), ("searchText", searchText))}");
         return await SendAsync<PaginatedResult<BankTransactionDto>>(request, "transactions");
     }
 
-    public async Task<ApiResult<BankReconciliationSummaryDto>> GetBankReconciliationSummaryAsync(Guid companyId)
+    public async Task<ApiResult<BankReconciliationSummaryDto>> GetBankReconciliationSummaryAsync(Guid companyId, Guid? branchId = null)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/bank-reconciliation/summary?companyId={companyId}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/bank-reconciliation/summary{BuildQuery(("companyId", companyId), ("branchId", branchId))}");
         return await SendAsync<BankReconciliationSummaryDto>(request, "summary");
     }
 
@@ -345,9 +349,23 @@ public class AccountingService : BaseApiService, IAccountingService
         return await SendAsync<Guid>(request, "id");
     }
 
-    public async Task<ApiResult<AccountingReportDto>> GetAccountingReportAsync(AccountingReportType type, Guid companyId, DateTime? fromDate, DateTime? toDate)
+    public async Task<ApiResult<Guid>> IgnoreBankTransactionAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/accounting/bank-reconciliation/transactions/{id}/ignore");
+        return await SendAsync<Guid>(request, "id");
+    }
+
+    public async Task<ApiResult<Guid>> UnreconcileBankTransactionAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/accounting/bank-reconciliation/transactions/{id}/unreconcile");
+        return await SendAsync<Guid>(request, "id");
+    }
+
+    public async Task<ApiResult<AccountingReportDto>> GetAccountingReportAsync(AccountingReportType type, Guid companyId, DateTime? fromDate, DateTime? toDate, Guid? branchId = null)
     {
         var query = $"type={type}&companyId={companyId}";
+        if (branchId.HasValue)
+            query += $"&branchId={branchId.Value}";
         if (fromDate.HasValue)
             query += $"&fromDate={fromDate.Value:O}";
         if (toDate.HasValue)
@@ -355,6 +373,15 @@ public class AccountingService : BaseApiService, IAccountingService
 
         var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/accounting/reports?{query}");
         return await SendAsync<AccountingReportDto>(request, "report");
+    }
+
+    private static string BuildQuery(params (string Name, object? Value)[] values)
+    {
+        var parts = values
+            .Where(x => x.Value is not null && !string.IsNullOrWhiteSpace(x.Value.ToString()))
+            .Select(x => $"{Uri.EscapeDataString(x.Name)}={Uri.EscapeDataString(x.Value!.ToString()!)}")
+            .ToList();
+        return parts.Count == 0 ? string.Empty : $"?{string.Join("&", parts)}";
     }
 
     public async Task<ApiResult<PaginatedResult<EInvoiceDto>>> GetEInvoicesAsync(Guid? companyId, ZatcaSubmissionStatus? status, int pageIndex, int pageSize)

@@ -1247,6 +1247,9 @@ public class BankTransaction : Aggregate<Guid>
         if (Status == BankTransactionStatus.Reconciled)
             return;
 
+        if (Status == BankTransactionStatus.Ignored)
+            throw new BadRequestException("Ignored bank transactions must be unreconciled before matching.");
+
         if (!journalEntryId.HasValue && !accountingDocumentId.HasValue && !writeOffAccountId.HasValue)
             throw new BadRequestException("Select a journal entry, document, or write-off account before reconciling.");
 
@@ -1255,6 +1258,31 @@ public class BankTransaction : Aggregate<Guid>
         WriteOffAccountId = writeOffAccountId;
         ClearanceDate = clearanceDate == default ? DateTime.UtcNow.Date : clearanceDate.Date;
         Status = BankTransactionStatus.Reconciled;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+
+    public void Ignore(string userId)
+    {
+        if (Status == BankTransactionStatus.Reconciled)
+            throw new BadRequestException("Reconciled bank transactions must be unreconciled before ignoring.");
+
+        MatchedJournalEntryId = null;
+        MatchedAccountingDocumentId = null;
+        WriteOffAccountId = null;
+        ClearanceDate = null;
+        Status = BankTransactionStatus.Ignored;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+
+    public void Unreconcile(string userId)
+    {
+        MatchedJournalEntryId = null;
+        MatchedAccountingDocumentId = null;
+        WriteOffAccountId = null;
+        ClearanceDate = null;
+        Status = BankTransactionStatus.Unreconciled;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = userId;
     }

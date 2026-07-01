@@ -1,14 +1,17 @@
 @layout AdminLayout
 @page "/Accounting/Journals"
 
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Accounting.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Accounting.Dtos
 @using SharedWithUI.Accounting.Enums
+@using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 
 @implements IDisposable
 @inject IAccountingService AccountingService
+@inject IBranchService BranchService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 @inject ToastService ToastService
@@ -77,6 +80,15 @@
                 <input class="form-control" placeholder="@T("Search journals", "بحث في القيود")" @bind="searchText" @bind:event="oninput" />
                 <button class="btn btn-outline-secondary" type="button" @onclick="LoadAsync">@T("Search", "بحث")</button>
             </div>
+            <div class="mb-3">
+                <InputSelect class="form-select w-auto" @bind-Value="selectedBranchId" @bind-Value:after="OnBranchChangedAsync">
+                    <option value="">@T("All allowed branches", "كل الفروع المتاحة")</option>
+                    @foreach (var branch in VisibleBranches)
+                    {
+                        <option value="@branch.Id">@BranchLabel(branch)</option>
+                    }
+                </InputSelect>
+            </div>
             <div class="erp-table-wrap">
                 <table class="table align-middle erp-table">
                     <thead>
@@ -101,7 +113,13 @@
                                 <td>@entry.TotalCredit.ToString("N2")</td>
                                 <td><StatusChip Text="@entry.Status.ToString()" Tone="@JournalTone(entry.Status)" /></td>
                                 <td class="text-end">
-                                    <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="() => selectedEntry = entry"><i class="bi bi-eye"></i></button>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary" type="button" @onclick="() => selectedEntry = entry"><i class="bi bi-eye"></i></button>
+                                        @if (CanReverseJournal(entry))
+                                        {
+                                            <button class="btn btn-outline-danger" type="button" @onclick="() => ReverseEntryAsync(entry.Id)"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                        }
+                                    </div>
                                 </td>
                             </tr>
                         }
@@ -170,11 +188,15 @@
     private JournalEntryDto? selectedEntry;
     private AuthenticationState? authState;
     private Guid? companyId;
+    private Guid? selectedBranchId;
+    private List<BranchDto> branches = [];
+    private CurrentUserBranchAccessDto branchAccess = new();
     private string? searchText;
     private bool savingQuick;
     private QuickJournalEntryDto quickEntry = new();
     private bool CanView => HasPermission(PermissionList.JournalEntryPermissions.View);
     private bool CanCreate => HasPermission(PermissionList.JournalEntryPermissions.Create);
+    private bool CanReverse => HasPermission(PermissionList.JournalEntryPermissions.Reverse);
     private bool CanSaveQuick => companyId.HasValue
         && companyId.Value != Guid.Empty
         && quickEntry.DebitAccountId != Guid.Empty
@@ -189,6 +211,30 @@
         if (Guid.TryParse(authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value, out var parsedCompanyId))
             companyId = parsedCompanyId;
 
+        await LoadBranchAccessAsync();
+        ResetQuickEntry();
+        await LoadAccountsAsync();
+        await LoadAsync();
+    }
+
+    private IEnumerable<BranchDto> VisibleBranches => branchAccess.CanViewAllBranches
+        ? branches
+        : branches.Where(x => branchAccess.BranchIds.Contains(x.Id));
+
+    private async Task LoadBranchAccessAsync()
+    {
+        if (!companyId.HasValue || companyId.Value == Guid.Empty)
+            return;
+
+        var accessResult = await BranchService.GetCurrentUserBranchAccessAsync(companyId.Value);
+        branchAccess = accessResult.IsSuccess ? accessResult.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+        var branchesResult = await BranchService.GetByCompanyIdAsync(companyId.Value, 1, 500);
+        if (branchesResult.IsSuccess && branchesResult.Data is not null)
+            branches = branchesResult.Data.Data.ToList();
+    }
+
+    private async Task OnBranchChangedAsync()
+    {
         ResetQuickEntry();
         await LoadAccountsAsync();
         await LoadAsync();
@@ -199,7 +245,7 @@
         if (!CanView)
             return;
 
-        var result = await AccountingService.GetJournalsAsync(companyId, 1, 100, searchText);
+        var result = await AccountingService.GetJournalsAsync(companyId, 1, 100, searchText, selectedBranchId);
         if (result.IsSuccess && result.Data is not null)
             entries = result.Data.Data.ToList();
         else
@@ -211,7 +257,7 @@
         if (!companyId.HasValue || companyId.Value == Guid.Empty)
             return;
 
-        var result = await AccountingService.GetAccountsAsync(companyId.Value, 1, 500, null);
+        var result = await AccountingService.GetAccountsAsync(companyId.Value, 1, 500, null, selectedBranchId);
         if (result.IsSuccess && result.Data is not null)
             postingAccounts = result.Data.Data.Where(x => x.IsActive && x.IsPostingAccount).OrderBy(x => x.Code).ToList();
     }
@@ -243,11 +289,27 @@
         quickEntry = new QuickJournalEntryDto
         {
             CompanyId = companyId ?? Guid.Empty,
+            BranchId = selectedBranchId,
             EntryDate = DateTime.UtcNow.Date
         };
     }
 
+    private async Task ReverseEntryAsync(Guid id)
+    {
+        var result = await AccountingService.ReverseJournalEntryAsync(id);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(T("Journal entry reversed.", "تم عكس القيد."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not reverse journal entry.", "تعذر عكس القيد."));
+        }
+    }
+
     private string AccountLabel(AccountDto account) => $"{account.Code} - {T(account.NameEng, account.Name)}";
+    private string BranchLabel(BranchDto branch) => SharedDataService.SelectViewLang(branch.NameEng, branch.Name);
 
     private static string JournalTone(JournalEntryStatus status) => status switch
     {
@@ -256,6 +318,11 @@
         JournalEntryStatus.Reversed => "info",
         _ => "muted"
     };
+
+    private bool CanReverseJournal(JournalEntryDto entry) =>
+        CanReverse
+        && entry.Status == JournalEntryStatus.Posted
+        && !string.Equals(entry.SourceModule, "Accounting", StringComparison.OrdinalIgnoreCase);
 
     private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
     private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);

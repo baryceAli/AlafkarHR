@@ -96,12 +96,8 @@
                         </select>
                     </div>
                     <div class="col-12 col-md-3">
-                        <label class="form-label">@Text("Target Grade", "الدرجة المستهدفة")</label>
-                        <InputText class="form-control" @bind-Value="editingEvent.ToGrade" />
-                    </div>
-                    <div class="col-12 col-md-3">
-                        <label class="form-label">@Text("Work Location", "موقع العمل")</label>
-                        <InputText class="form-control" @bind-Value="editingEvent.ToWorkLocation" />
+                        <label class="form-label">@Text("Target Grade / Band", "الدرجة / النطاق المستهدف")</label>
+                        <InputText class="form-control" @bind-Value="editingEvent.ToGrade" placeholder="@Text("G5, Band 3, Senior", "G5، النطاق 3، Senior")" />
                     </div>
                     <div class="col-12 col-md-3">
                         <label class="form-label">@Text("Reason", "السبب")</label>
@@ -285,7 +281,6 @@
             ToPositionId = item.ToPositionId,
             ToManagerEmployeeId = item.ToManagerEmployeeId,
             ToGrade = item.ToGrade,
-            ToWorkLocation = item.ToWorkLocation,
             Reason = item.Reason,
             Notes = item.Notes
         };
@@ -346,13 +341,49 @@
     private static HrLifecycleEventDto NewEventDto() => new() { EffectiveDate = DateTime.Today, EventType = HrLifecycleEventType.Onboarding };
     private static Guid? ParseGuid(string value) => Guid.TryParse(value, out var id) ? id : null;
     private string EmployeeDisplay(EmployeeDto employee) => $"{(SharedDataService.Language == "Ar" ? employee.FullName : employee.FullNameEng)} ({employee.EmployeeNo})";
-    private string TargetSummary(HrLifecycleEventDto item) => string.Join(" / ", new[] { ShortId(item.ToBranchId), ShortId(item.ToPositionId), item.ToGrade, item.ToWorkLocation }.Where(x => !string.IsNullOrWhiteSpace(x) && x != "-"));
+    private string TargetSummary(HrLifecycleEventDto item)
+    {
+        var parts = new[]
+        {
+            TargetPart("Branch", "الفرع", BranchName(item.ToBranchId)),
+            TargetPart("Position", "المسمى", PositionName(item.ToPositionId)),
+            TargetPart("Manager", "المدير", ManagerName(item.ToManagerEmployeeId)),
+            TargetPart("Grade", "الدرجة", item.ToGrade)
+        }.Where(x => !string.IsNullOrWhiteSpace(x));
+
+        var summary = string.Join(" / ", parts);
+        return string.IsNullOrWhiteSpace(summary) ? "-" : summary;
+    }
+
+    private string? BranchName(Guid? id)
+    {
+        if (!id.HasValue || id.Value == Guid.Empty) return null;
+        var branch = branches.FirstOrDefault(x => x.Id == id.Value);
+        return branch is null ? Text("Unknown branch", "فرع غير معروف") : SharedDataService.SelectViewLang(branch.NameEng, branch.Name);
+    }
+
+    private string? PositionName(Guid? id)
+    {
+        if (!id.HasValue || id.Value == Guid.Empty) return null;
+        var position = positions.FirstOrDefault(x => x.Id == id.Value);
+        return position is null ? Text("Unknown position", "مسمى غير معروف") : SharedDataService.SelectViewLang(position.TitleEng, position.Title);
+    }
+
+    private string? ManagerName(Guid? id)
+    {
+        if (!id.HasValue || id.Value == Guid.Empty) return null;
+        var manager = employees.FirstOrDefault(x => x.Id == id.Value);
+        return manager is null ? Text("Unknown manager", "مدير غير معروف") : EmployeeDisplay(manager);
+    }
+
+    private string? TargetPart(string labelEn, string labelAr, string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : $"{Text(labelEn, labelAr)}: {value}";
+
     private string LifecycleTypeText(HrLifecycleEventType type) => type.ToString();
     private string LifecycleStatusText(HrLifecycleEventStatus status) => status.ToString();
     private string StatusClass(HrLifecycleEventStatus status) => status switch { HrLifecycleEventStatus.Completed => "text-bg-success", HrLifecycleEventStatus.Approved => "text-bg-primary", HrLifecycleEventStatus.Submitted => "text-bg-warning", HrLifecycleEventStatus.Cancelled => "text-bg-secondary", _ => "text-bg-light" };
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private string FormatDate(DateTime? date) => date.HasValue ? date.Value.ToString("yyyy/MM/dd") : "-";
-    private string ShortId(Guid? id) => id.HasValue && id.Value != Guid.Empty ? id.Value.ToString()[..8] : "-";
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
 }

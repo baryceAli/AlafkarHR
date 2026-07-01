@@ -21,6 +21,7 @@ public static class CompanyRoleTemplates
         new("procurement-manager", "Procurement Manager", ProcurementManagerPermissions()),
         new("hr-manager", "HR Manager", HrManagerPermissions()),
         new("hr-employee", "HR Employee", HrEmployeePermissions()),
+        new("attendance-officer", "Attendance Officer", AttendanceOfficerPermissions()),
         new("payroll-employee", "Payroll Employee", PayrollEmployeePermissions()),
         new("accounting-manager", "Accounting Manager", AccountingManagerPermissions()),
         new("senior-accountant", "Senior Accountant", SeniorAccountantPermissions()),
@@ -293,6 +294,7 @@ public static class CompanyRoleTemplates
         PermissionList.AttendancePermissions.View,
         PermissionList.AttendancePermissions.Create,
         PermissionList.AttendancePermissions.RequestMidDayPermission,
+        PermissionList.AttendancePermissions.ViewScopedReports,
         PermissionList.LeavePermissions.RequestEmergencyLeave,
         PermissionList.LeavePermissions.ViewLeaveBalances,
         PermissionList.LeaveApplicationPermissions.Request,
@@ -461,6 +463,7 @@ public static class CompanyRoleTemplates
         PermissionList.AttendancePermissions.ViewAllReports,
         PermissionList.AttendancePermissions.ViewScopedReports,
         PermissionList.AttendancePermissions.ApproveMidDayPermission,
+        ..PermissionList.AttendanceWorkEntryPermissions.Permissions,
         PermissionList.LeavePermissions.ViewLeaveReports,
         PermissionList.LeavePermissions.ViewLeaveBalances,
         PermissionList.LeavePermissions.ManageLeaveBalances,
@@ -522,6 +525,18 @@ public static class CompanyRoleTemplates
         PermissionList.LeaveApplicationPermissions.Create,
         PermissionList.LeaveApplicationPermissions.Edit,
         PermissionList.LeaveLedgerPermissions.View,
+    ];
+
+    private static List<string> AttendanceOfficerPermissions() =>
+    [
+        PermissionList.AttendancePermissions.Select,
+        PermissionList.AttendancePermissions.View,
+        PermissionList.AttendancePermissions.ViewReports,
+        PermissionList.AttendancePermissions.ViewScopedReports,
+        PermissionList.AttendancePermissions.ReviewRequests,
+        PermissionList.AttendancePermissions.ApproveMidDayPermission,
+        PermissionList.AttendanceRosterPermissions.View,
+        ..PermissionList.AttendanceWorkEntryPermissions.Permissions,
     ];
 
     private static List<string> PayrollEmployeePermissions() =>
