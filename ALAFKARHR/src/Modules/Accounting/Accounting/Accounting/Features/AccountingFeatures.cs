@@ -1358,6 +1358,8 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         {
             if (string.IsNullOrWhiteSpace(account.TemplateKey) || string.IsNullOrWhiteSpace(account.Code) || string.IsNullOrWhiteSpace(account.Name) || string.IsNullOrWhiteSpace(account.NameEng))
                 throw new BadRequestException("Every template account requires key, code, Arabic name, and English name.");
+            if (string.IsNullOrWhiteSpace(account.ParentTemplateKey) && account.IsPostingAccount)
+                throw new BadRequestException($"Top-level template account '{account.TemplateKey}' must be a group account.");
             if (!accountKeys.Add(account.TemplateKey.Trim()))
                 throw new BadRequestException($"Duplicate account template key '{account.TemplateKey}'.");
             if (!accountCodes.Add(account.Code.Trim()))
@@ -2705,66 +2707,84 @@ public class AccountingQueryHandlers(AccountingDbContext dbContext, ISender send
     {
         var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
         if (access.CanViewAllBranches)
-            return branchId.HasValue ? query.Where(x => x.BranchId == branchId.Value) : query;
+            return branchId.HasValue ? query.Where(x => !x.BranchId.HasValue || x.BranchId == branchId.Value) : query;
+
+        if (branchId.HasValue && !access.BranchIds.Contains(branchId.Value))
+            return query.Where(x => false);
 
         return branchId.HasValue
-            ? query.Where(x => x.BranchId.HasValue && x.BranchId == branchId.Value && access.BranchIds.Contains(x.BranchId.Value))
-            : query.Where(x => x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value));
+            ? query.Where(x => !x.BranchId.HasValue || x.BranchId == branchId.Value)
+            : query.Where(x => !x.BranchId.HasValue || (x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value)));
     }
 
     private async Task<IQueryable<AccountingDocument>> ApplyBranchAccessAsync(IQueryable<AccountingDocument> query, Guid companyId, Guid? branchId, CancellationToken cancellationToken)
     {
         var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
         if (access.CanViewAllBranches)
-            return branchId.HasValue ? query.Where(x => x.BranchId == branchId.Value) : query;
+            return branchId.HasValue ? query.Where(x => !x.BranchId.HasValue || x.BranchId == branchId.Value) : query;
+
+        if (branchId.HasValue && !access.BranchIds.Contains(branchId.Value))
+            return query.Where(x => false);
 
         return branchId.HasValue
-            ? query.Where(x => x.BranchId.HasValue && x.BranchId == branchId.Value && access.BranchIds.Contains(x.BranchId.Value))
-            : query.Where(x => x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value));
+            ? query.Where(x => !x.BranchId.HasValue || x.BranchId == branchId.Value)
+            : query.Where(x => !x.BranchId.HasValue || (x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value)));
     }
 
     private async Task<IQueryable<JournalEntry>> ApplyBranchAccessAsync(IQueryable<JournalEntry> query, Guid companyId, Guid? branchId, CancellationToken cancellationToken)
     {
         var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
         if (access.CanViewAllBranches)
-            return branchId.HasValue ? query.Where(x => x.BranchId == branchId.Value) : query;
+            return branchId.HasValue ? query.Where(x => !x.BranchId.HasValue || x.BranchId == branchId.Value) : query;
+
+        if (branchId.HasValue && !access.BranchIds.Contains(branchId.Value))
+            return query.Where(x => false);
 
         return branchId.HasValue
-            ? query.Where(x => x.BranchId.HasValue && x.BranchId == branchId.Value && access.BranchIds.Contains(x.BranchId.Value))
-            : query.Where(x => x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value));
+            ? query.Where(x => !x.BranchId.HasValue || x.BranchId == branchId.Value)
+            : query.Where(x => !x.BranchId.HasValue || (x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value)));
     }
 
     private async Task<IQueryable<BankAccount>> ApplyBranchAccessAsync(IQueryable<BankAccount> query, Guid companyId, Guid? branchId, CancellationToken cancellationToken)
     {
         var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
         if (access.CanViewAllBranches)
-            return branchId.HasValue ? query.Where(x => x.BranchId == branchId.Value) : query;
+            return branchId.HasValue ? query.Where(x => !x.BranchId.HasValue || x.BranchId == branchId.Value) : query;
+
+        if (branchId.HasValue && !access.BranchIds.Contains(branchId.Value))
+            return query.Where(x => false);
 
         return branchId.HasValue
-            ? query.Where(x => x.BranchId.HasValue && x.BranchId == branchId.Value && access.BranchIds.Contains(x.BranchId.Value))
-            : query.Where(x => x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value));
+            ? query.Where(x => !x.BranchId.HasValue || x.BranchId == branchId.Value)
+            : query.Where(x => !x.BranchId.HasValue || (x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value)));
     }
 
     private async Task<IQueryable<CashAccount>> ApplyBranchAccessAsync(IQueryable<CashAccount> query, Guid companyId, Guid? branchId, CancellationToken cancellationToken)
     {
         var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
         if (access.CanViewAllBranches)
-            return branchId.HasValue ? query.Where(x => x.BranchId == branchId.Value) : query;
+            return branchId.HasValue ? query.Where(x => !x.BranchId.HasValue || x.BranchId == branchId.Value) : query;
+
+        if (branchId.HasValue && !access.BranchIds.Contains(branchId.Value))
+            return query.Where(x => false);
 
         return branchId.HasValue
-            ? query.Where(x => x.BranchId.HasValue && x.BranchId == branchId.Value && access.BranchIds.Contains(x.BranchId.Value))
-            : query.Where(x => x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value));
+            ? query.Where(x => !x.BranchId.HasValue || x.BranchId == branchId.Value)
+            : query.Where(x => !x.BranchId.HasValue || (x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value)));
     }
 
     private async Task<IQueryable<BankTransaction>> ApplyBranchAccessAsync(IQueryable<BankTransaction> query, Guid companyId, Guid? branchId, CancellationToken cancellationToken)
     {
         var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
         if (access.CanViewAllBranches)
-            return branchId.HasValue ? query.Where(x => x.BranchId == branchId.Value) : query;
+            return branchId.HasValue ? query.Where(x => !x.BranchId.HasValue || x.BranchId == branchId.Value) : query;
+
+        if (branchId.HasValue && !access.BranchIds.Contains(branchId.Value))
+            return query.Where(x => false);
 
         return branchId.HasValue
-            ? query.Where(x => x.BranchId.HasValue && x.BranchId == branchId.Value && access.BranchIds.Contains(x.BranchId.Value))
-            : query.Where(x => x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value));
+            ? query.Where(x => !x.BranchId.HasValue || x.BranchId == branchId.Value)
+            : query.Where(x => !x.BranchId.HasValue || (x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value)));
     }
 
     private static IEnumerable<Guid?> SettingsAccountIds(CompanyAccountingSettingsDto settings) =>

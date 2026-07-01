@@ -412,7 +412,7 @@
         }
     };
 
-    private void AddAccount() => selected.Accounts.Add(new AccountingTemplateAccountDto { TemplateKey = $"ACC_{selected.Accounts.Count + 1}", Code = $"{selected.Accounts.Count + 1:0000}", Name = "حساب", NameEng = "Account", Type = AccountType.Asset, NormalBalance = NormalBalance.Debit, IsPostingAccount = true });
+    private void AddAccount() => selected.Accounts.Add(new AccountingTemplateAccountDto { TemplateKey = $"ACC_{selected.Accounts.Count + 1}", Code = $"{selected.Accounts.Count + 1:0000}", Name = "حساب", NameEng = "Account", Type = AccountType.Asset, NormalBalance = NormalBalance.Debit, IsPostingAccount = false });
     private void AddTax() => selected.TaxCodes.Add(new AccountingTemplateTaxCodeDto { Code = $"TAX{selected.TaxCodes.Count + 1}", Name = "Tax", IsActive = true });
     private void AddProfile() => selected.PostingProfiles.Add(new AccountingTemplatePostingProfileDto { Type = PostingProfileType.Sales, IsDefault = true });
     private void AddJournal() => selected.Journals.Add(new AccountingTemplateJournalDto { Code = $"J{selected.Journals.Count + 1}", Name = "Journal", NameAr = "يومية", Type = AccountingJournalType.Miscellaneous, IsSystemJournal = true, IsActive = true });
