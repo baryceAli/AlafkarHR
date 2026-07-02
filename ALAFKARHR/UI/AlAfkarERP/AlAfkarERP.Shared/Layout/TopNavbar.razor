@@ -7,7 +7,7 @@
 @inject NavigationManager NavigationManager
 @implements IDisposable
 
-<nav class="navbar navbar-expand-lg erp-topbar px-3">
+<nav class="navbar navbar-expand-lg erp-topbar">
     <div class="d-flex align-items-center min-w-0 topbar-context">
         <button class="btn erp-icon-btn me-2 topbar-command-btn d-none d-lg-inline-flex"
                 title="@SharedDataService.SelectViewLang("Search", "\u0628\u062d\u062b")"
@@ -23,9 +23,7 @@
                                      AuthState="@(ShellAuthState ?? authState)"
                                      LicensedBusinessLineKeys="@LicensedBusinessLineKeys"
                                      ActiveWorkspaceChanged="ActiveWorkspaceChanged"
-                                     OnOpenMore="OnOpenMore"
-                                     UseGuidedNavigation="@UseGuidedNavigation"
-                                     OnOpenGuidedNavigation="OnOpenGuidedNavigation" />
+                                     OnOpenMore="OnOpenMore" />
         }
 
         <div class="enterprise-topbar-context min-w-0">
@@ -61,27 +59,6 @@
     </div>
 
     <div class="ms-auto d-flex align-items-center topbar-actions">
-        <div class="navigation-mode-switcher"
-             role="group"
-             aria-label="@SharedDataService.SelectViewLang("Navigation mode", "\u0646\u0645\u0637 \u0627\u0644\u062a\u0646\u0642\u0644")">
-            <button type="button"
-                    class="navigation-mode-option @(IsClassicNavigation ? "is-active" : "")"
-                    title="@SharedDataService.SelectViewLang("Classic navigation", "\u0627\u0644\u062a\u0646\u0642\u0644 \u0627\u0644\u0643\u0644\u0627\u0633\u064a\u0643\u064a")"
-                    aria-pressed="@IsClassicNavigation"
-                    @onclick="() => SetNavigationModeAsync(NavigationShellState.NavigationModeClassic)">
-                <i class="bi bi-layout-sidebar"></i>
-                <span>@SharedDataService.SelectViewLang("Classic", "\u0643\u0644\u0627\u0633\u064a\u0643\u064a")</span>
-            </button>
-            <button type="button"
-                    class="navigation-mode-option @(IsFluentFlowNavigation ? "is-active" : "")"
-                    title="@SharedDataService.SelectViewLang("Guided navigation", "\u0627\u0644\u062a\u0646\u0642\u0644 \u0627\u0644\u0645\u0648\u062c\u0647")"
-                    aria-pressed="@IsFluentFlowNavigation"
-                    @onclick="() => SetNavigationModeAsync(NavigationShellState.NavigationModeFluentFlow)">
-                <i class="bi bi-chat-square-text"></i>
-                <span>@SharedDataService.SelectViewLang("Guided", "\u0645\u0648\u062c\u0647")</span>
-            </button>
-        </div>
-
         <ThemeSelector />
 
         <button @onclick="async () => { await SharedDataService.UpdateLanguageAsync(); }"
@@ -124,10 +101,6 @@
     [Parameter] public bool IsMoreOpen { get; set; }
     [Parameter] public AuthenticationState? ShellAuthState { get; set; }
     [Parameter] public IReadOnlySet<string>? LicensedBusinessLineKeys { get; set; }
-    [Parameter] public string NavigationMode { get; set; } = NavigationShellState.NavigationModeClassic;
-    [Parameter] public EventCallback<string> NavigationModeChanged { get; set; }
-    [Parameter] public bool UseGuidedNavigation { get; set; }
-    [Parameter] public EventCallback OnOpenGuidedNavigation { get; set; }
 
     private AuthenticationState? authState;
     private IReadOnlyList<MenuItem> ActivePath { get; set; } = Array.Empty<MenuItem>();
@@ -139,11 +112,6 @@
 
     private NavigationWorkspace? ActiveWorkspaceModel
         => NavigationMenuResolver.MobileWorkspaces.FirstOrDefault(item => item.Key == ActiveWorkspace);
-
-    private bool IsFluentFlowNavigation
-        => string.Equals(NavigationMode, NavigationShellState.NavigationModeFluentFlow, StringComparison.OrdinalIgnoreCase);
-
-    private bool IsClassicNavigation => !IsFluentFlowNavigation;
 
     private string WorkspaceLabel
         => ActiveWorkspaceModel is { } workspace
@@ -207,14 +175,6 @@
     {
         await ((CustomAuthStateProvider)AuthenticationStateProvider).NotifyUserLogout();
         NavigationManager.NavigateTo("/", true);
-    }
-
-    private async Task SetNavigationModeAsync(string mode)
-    {
-        if (NavigationModeChanged.HasDelegate)
-        {
-            await NavigationModeChanged.InvokeAsync(mode);
-        }
     }
 
     private void UpdateActivePath()

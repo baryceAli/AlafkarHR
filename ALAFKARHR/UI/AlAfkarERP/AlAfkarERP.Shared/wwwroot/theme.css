@@ -209,13 +209,19 @@ body {
 }
 
 .erp-topbar {
+    align-items: center;
     min-height: var(--erp-topbar-height);
+    height: var(--erp-topbar-height);
     background: color-mix(in srgb, var(--erp-surface) 94%, transparent);
     border-bottom: 1px solid var(--erp-border);
     box-shadow: var(--erp-shadow-xs);
     color: var(--erp-text);
+    display: flex;
+    gap: var(--erp-space-3);
     max-width: 100%;
     min-width: 0;
+    padding-block: 0;
+    padding-inline: var(--erp-space-4);
     width: 100%;
 }
 
@@ -995,8 +1001,25 @@ body {
 }
 
 .topbar-actions {
-    flex: 0 1 auto;
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    gap: var(--erp-space-2);
     min-width: 0;
+    white-space: nowrap;
+}
+
+.topbar-actions .erp-icon-btn,
+.topbar-actions .theme-selector,
+.topbar-actions .form-select {
+    min-height: 36px;
+}
+
+.topbar-actions .erp-icon-btn {
+    height: 36px;
+    min-width: 36px;
+    padding-block: 0;
+    padding-inline: var(--erp-space-2);
 }
 
 .mobile-workspace-switcher {
@@ -1150,8 +1173,10 @@ body {
 }
 
 .topbar-user-button {
+    height: 36px;
     max-width: 220px;
-    min-width: 38px;
+    min-width: 36px;
+    padding-inline: var(--erp-space-2);
 }
 
 .topbar-user-avatar {
@@ -1166,6 +1191,27 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+@media (max-width: 1399.98px) {
+    .topbar-user-name {
+        display: none;
+    }
+
+    :root .enterprise-command-trigger kbd {
+        display: none;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    :root .enterprise-command-trigger {
+        flex-basis: clamp(180px, 30vw, 320px);
+        inline-size: clamp(180px, 30vw, 320px);
+    }
+
+    :root .enterprise-context-trail li {
+        max-inline-size: 128px;
+    }
 }
 
 @media (max-width: 991.98px) {
@@ -4265,8 +4311,15 @@ video {
 }
 
 :root .erp-topbar {
+    align-items: center;
     background: color-mix(in srgb, var(--erp-surface) 96%, transparent);
     border-bottom: 1px solid var(--erp-border);
+    display: flex;
+    gap: var(--erp-space-3);
+    height: var(--erp-topbar-height);
+    min-height: var(--erp-topbar-height);
+    padding-block: 0;
+    padding-inline: var(--erp-space-4);
     box-shadow: none;
 }
 
@@ -4281,24 +4334,27 @@ video {
 }
 
 :root .theme-selector {
+    align-items: center;
     background: var(--erp-surface-muted);
     border: 1px solid var(--erp-border);
     border-radius: var(--erp-radius-lg);
+    display: inline-flex;
     gap: var(--erp-space-1) !important;
-    padding: var(--erp-space-1);
+    min-height: 36px;
+    padding: 2px;
 }
 
 :root .theme-selector .form-select {
     background-color: transparent;
     border-color: transparent;
-    min-height: var(--erp-control-height-sm);
-    padding-block: var(--erp-space-1);
+    min-height: 30px;
+    padding-block: 2px;
 }
 
 :root .theme-selector .erp-icon-btn {
     background: var(--erp-surface);
-    min-height: var(--erp-control-height-sm);
-    min-width: var(--erp-control-height-sm);
+    min-height: 30px;
+    min-width: 30px;
 }
 
 :root .desktop-workspace-shell {
@@ -5005,6 +5061,7 @@ video {
 :root .enterprise-topbar-context {
     display: grid;
     gap: var(--erp-space-1);
+    max-inline-size: 100%;
     min-width: 0;
 }
 
@@ -5012,6 +5069,7 @@ video {
     align-items: center;
     display: flex;
     gap: var(--erp-space-2);
+    max-inline-size: 100%;
     min-width: 0;
 }
 
@@ -5037,9 +5095,12 @@ video {
     border-radius: var(--erp-radius-full);
     color: var(--erp-text-muted);
     display: inline-flex;
+    flex: 1 1 clamp(220px, 34vw, 520px);
     gap: var(--erp-space-2);
+    inline-size: clamp(220px, 34vw, 520px);
+    max-inline-size: 100%;
     min-height: 30px;
-    min-width: 220px;
+    min-width: 0;
     padding: var(--erp-space-1) var(--erp-space-2);
 }
 
@@ -5140,40 +5201,6 @@ video {
     --fluent-flow-border: var(--erp-border);
     --fluent-flow-rail-width: 260px;
     --fluent-flow-context-width: 320px;
-}
-
-.navigation-mode-switcher {
-    align-items: center;
-    background: var(--erp-surface-muted);
-    border: 1px solid var(--erp-border);
-    border-radius: var(--erp-radius-lg);
-    display: inline-flex;
-    gap: var(--erp-space-1);
-    padding: var(--erp-space-1);
-}
-
-.navigation-mode-option {
-    align-items: center;
-    background: transparent;
-    border: 0;
-    border-radius: var(--erp-radius-md);
-    color: var(--erp-text-muted);
-    display: inline-flex;
-    font-size: var(--erp-font-size-sm);
-    font-weight: 600;
-    gap: var(--erp-space-2);
-    min-height: 32px;
-    padding-block: var(--erp-space-1);
-    padding-inline: var(--erp-space-3);
-    transition: background var(--erp-transition-fast), color var(--erp-transition-fast), box-shadow var(--erp-transition-fast);
-}
-
-.navigation-mode-option:hover,
-.navigation-mode-option:focus-visible,
-.navigation-mode-option.is-active {
-    background: var(--erp-surface);
-    box-shadow: var(--erp-shadow-xs);
-    color: var(--erp-primary);
 }
 
 .fluent-flow-shell {
@@ -5998,10 +6025,6 @@ video {
 }
 
 @media (max-width: 991.98px) {
-    .navigation-mode-option span {
-        display: none;
-    }
-
     .fluent-flow-mobile-backdrop {
         background: color-mix(in srgb, var(--erp-text) 42%, transparent);
         border: 0;
@@ -6172,7 +6195,9 @@ video {
 }
 
 :root .enterprise-command-trigger {
-    min-width: min(420px, 38vw);
+    flex-basis: clamp(220px, 34vw, 520px);
+    inline-size: clamp(220px, 34vw, 520px);
+    min-width: 0;
 }
 
 :root .enterprise-context-trail {

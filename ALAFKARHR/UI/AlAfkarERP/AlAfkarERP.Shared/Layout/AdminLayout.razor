@@ -16,34 +16,12 @@
 
 @* @Body *@
 @* <div class="d-flex vh-100"> *@
-<div class="erp-shell mobile-first-shell @(IsFluentFlowNavigation ? "fluent-flow-shell" : "") d-flex vh-100 overflow-hidden">
-    @if (IsFluentFlowNavigation)
-    {
-        @if (isMobileGuidedNavigationOpen)
-        {
-            <button type="button"
-                    class="fluent-flow-mobile-backdrop"
-                    aria-label="@SharedDataService.SelectViewLang("Close guided navigation", "\u0625\u063a\u0644\u0627\u0642 \u0627\u0644\u062a\u0646\u0642\u0644 \u0627\u0644\u0645\u0648\u062c\u0647")"
-                    @onclick="CloseMobileGuidedNavigation"></button>
-        }
-
-        <FluentFlowNavigationPanel ActiveWorkspace="@activeWorkspace"
-                                   ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
-                                   AuthState="@AuthState"
-                                   LicensedBusinessLineKeys="@licensedBusinessLineKeys"
-                                   OnOpenCommand="OpenCommandPalette"
-                                   OnOpenActionCommand="OpenActionCommandPalette"
-                                   IsMobilePanelOpen="@isMobileGuidedNavigationOpen"
-                                   IsMobilePanelOpenChanged="CloseMobileGuidedNavigation" />
-    }
-    else
-    {
-        <EnterpriseNavigationPanel ActiveWorkspace="@activeWorkspace"
-                                   ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
-                                   AuthState="@AuthState"
-                                   LicensedBusinessLineKeys="@licensedBusinessLineKeys"
-                                   OnOpenCommand="OpenCommandPalette" />
-    }
+<div class="erp-shell mobile-first-shell d-flex vh-100 overflow-hidden">
+    <EnterpriseNavigationPanel ActiveWorkspace="@activeWorkspace"
+                               ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
+                               AuthState="@AuthState"
+                               LicensedBusinessLineKeys="@licensedBusinessLineKeys"
+                               OnOpenCommand="OpenCommandPalette" />
 
     <!-- Main Area -->
     @* <div class="flex-grow-1 d-flex flex-column"> *@
@@ -55,11 +33,7 @@
                    ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
                    IsMoreOpen="@isMoreHubOpen"
                    ShellAuthState="@AuthState"
-                   LicensedBusinessLineKeys="@licensedBusinessLineKeys"
-                   NavigationMode="@navigationMode"
-                   NavigationModeChanged="SetNavigationModeAsync"
-                   UseGuidedNavigation="@IsFluentFlowNavigation"
-                   OnOpenGuidedNavigation="OpenMobileGuidedNavigation" />
+                   LicensedBusinessLineKeys="@licensedBusinessLineKeys" />
         
         <!-- Page Content -->
         @* <main class="flex-grow-1 p-3 overflow-auto bg-light" dir="@SharedDataService.PageDirection"> *@
@@ -77,7 +51,7 @@
     </div>
 
     <MobileActionBar IsMoreOpen="@isMoreHubOpen"
-                     IsWorkspaceOpen="@isMobileGuidedNavigationOpen"
+                     IsWorkspaceOpen="@(isMoreHubOpen && moreHubInitialView == MoreHub.ViewWorkspace)"
                      OnOpenCommand="OpenCommandPalette"
                      OnOpenWorkspace="OpenWorkspaceHub"
                      OnOpenRecent="OpenRecentHub"
@@ -114,12 +88,9 @@
     private string moreHubInitialView = MoreHub.ViewDirectory;
     private bool isMoreHubOpen;
     private bool isCommandPaletteOpen;
-    private bool isMobileGuidedNavigationOpen;
     private string? commandPaletteInitialSearchText;
     private DotNetObjectReference<AdminLayout>? shortcutReference;
     private IReadOnlySet<string>? licensedBusinessLineKeys;
-    private string navigationMode = NavigationShellState.NavigationModeClassic;
-    private bool IsFluentFlowNavigation => string.Equals(navigationMode, NavigationShellState.NavigationModeFluentFlow, StringComparison.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()
     {
@@ -140,7 +111,6 @@
                 await RunTaskDailyCheckSilentlyAsync();
             }
             activeWorkspace = await LoadActiveWorkspaceAsync();
-            navigationMode = await LoadNavigationModeAsync();
             shortcutReference = DotNetObjectReference.Create(this);
             await JSRuntime.InvokeVoidAsync("alafkarNavigation.bindShortcuts", shortcutReference);
             await InvokeAsync(StateHasChanged);
@@ -178,23 +148,6 @@
         return EnsureAuthorizedWorkspace(resolvedWorkspace);
     }
 
-    private async Task<string> LoadNavigationModeAsync()
-    {
-        try
-        {
-            var stored = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.NavigationModeStorageKey);
-            return NormalizeNavigationMode(stored);
-        }
-        catch (InvalidOperationException)
-        {
-        }
-        catch (JSException)
-        {
-        }
-
-        return NavigationShellState.NavigationModeClassic;
-    }
-
     private async Task LoadLicensedBusinessLinesAsync()
     {
         if (CompanyContext.IsPlatformScoped(AuthState?.User))
@@ -221,28 +174,6 @@
         }
     }
 
-    private async Task SetNavigationModeAsync(string mode)
-    {
-        navigationMode = NormalizeNavigationMode(mode);
-        if (!IsFluentFlowNavigation)
-        {
-            isMobileGuidedNavigationOpen = false;
-        }
-
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("localStorage.setItem", NavigationShellState.NavigationModeStorageKey, navigationMode);
-        }
-        catch (JSException)
-        {
-        }
-    }
-
-    private static string NormalizeNavigationMode(string? mode)
-        => string.Equals(mode, NavigationShellState.NavigationModeFluentFlow, StringComparison.OrdinalIgnoreCase)
-            ? NavigationShellState.NavigationModeFluentFlow
-            : NavigationShellState.NavigationModeClassic;
-
     private string EnsureAuthorizedWorkspace(string workspaceKey)
     {
         var authorizedWorkspaces = NavigationMenuResolver.GetAuthorizedWorkspaces(AuthState?.User, licensedBusinessLineKeys);
@@ -264,17 +195,10 @@
     {
         moreHubInitialView = MoreHub.ViewDirectory;
         isMoreHubOpen = true;
-        isMobileGuidedNavigationOpen = false;
     }
 
     private void OpenWorkspaceHub()
     {
-        if (IsFluentFlowNavigation)
-        {
-            OpenMobileGuidedNavigation();
-            return;
-        }
-
         moreHubInitialView = MoreHub.ViewWorkspace;
         isMoreHubOpen = true;
     }
@@ -283,25 +207,17 @@
     {
         moreHubInitialView = MoreHub.ViewRecent;
         isMoreHubOpen = true;
-        isMobileGuidedNavigationOpen = false;
     }
 
     private void OpenFavoritesHub()
     {
         moreHubInitialView = MoreHub.ViewFavorites;
         isMoreHubOpen = true;
-        isMobileGuidedNavigationOpen = false;
     }
 
     private void OpenCommandPalette()
     {
         commandPaletteInitialSearchText = null;
-        isCommandPaletteOpen = true;
-    }
-
-    private void OpenActionCommandPalette()
-    {
-        commandPaletteInitialSearchText = "> ";
         isCommandPaletteOpen = true;
     }
 
@@ -330,22 +246,9 @@
         return Task.CompletedTask;
     }
 
-    private Task CloseMobileGuidedNavigation()
-    {
-        isMobileGuidedNavigationOpen = false;
-        return Task.CompletedTask;
-    }
-
-    private void OpenMobileGuidedNavigation()
-    {
-        isMobileGuidedNavigationOpen = true;
-        isMoreHubOpen = false;
-    }
-
     private async Task OnNavigationItemSelectedAsync(MenuItem item)
     {
         await SetActiveWorkspaceAsync(NavigationMenuResolver.ResolveNavigationWorkspace(item, activeWorkspace));
-        isMobileGuidedNavigationOpen = false;
     }
 
     private async Task RunTaskDailyCheckSilentlyAsync()
@@ -362,7 +265,6 @@
     private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
     {
         activeWorkspace = EnsureAuthorizedWorkspace(NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri, activeWorkspace));
-        isMobileGuidedNavigationOpen = false;
         _ = InvokeAsync(StateHasChanged);
     }
 
