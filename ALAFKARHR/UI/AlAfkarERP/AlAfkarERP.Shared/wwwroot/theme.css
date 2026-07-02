@@ -1197,18 +1197,9 @@ body {
     .topbar-user-name {
         display: none;
     }
-
-    :root .enterprise-command-trigger kbd {
-        display: none;
-    }
 }
 
 @media (max-width: 1199.98px) {
-    :root .enterprise-command-trigger {
-        flex-basis: clamp(180px, 30vw, 320px);
-        inline-size: clamp(180px, 30vw, 320px);
-    }
-
     :root .enterprise-context-trail li {
         max-inline-size: 128px;
     }
@@ -5065,14 +5056,6 @@ video {
     min-width: 0;
 }
 
-:root .enterprise-context-primary {
-    align-items: center;
-    display: flex;
-    gap: var(--erp-space-2);
-    max-inline-size: 100%;
-    min-width: 0;
-}
-
 :root .enterprise-app-pill {
     align-items: center;
     background: var(--erp-primary-soft);
@@ -5088,57 +5071,42 @@ video {
     padding: var(--erp-space-1) var(--erp-space-2);
 }
 
-:root .enterprise-command-trigger {
-    align-items: center;
-    background: var(--erp-surface-muted);
-    border: 1px solid var(--erp-border);
-    border-radius: var(--erp-radius-full);
-    color: var(--erp-text-muted);
-    display: inline-flex;
-    flex: 1 1 clamp(220px, 34vw, 520px);
-    gap: var(--erp-space-2);
-    inline-size: clamp(220px, 34vw, 520px);
-    max-inline-size: 100%;
-    min-height: 30px;
-    min-width: 0;
-    padding: var(--erp-space-1) var(--erp-space-2);
-}
-
-:root .enterprise-command-trigger span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-:root .enterprise-command-trigger kbd {
-    background: var(--erp-surface);
-    border: 1px solid var(--erp-border);
-    border-radius: var(--erp-radius-default);
-    color: var(--erp-text-soft);
-    font-size: 10px;
-    margin-inline-start: auto;
-    padding: 1px 5px;
-}
-
 :root .enterprise-context-trail {
     align-items: center;
     color: var(--erp-text-soft);
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     font-size: 12px;
     gap: var(--erp-space-1);
     list-style: none;
     margin: 0;
     min-width: 0;
+    overflow: hidden;
     padding: 0;
 }
 
 :root .enterprise-context-trail li {
     align-items: center;
     display: inline-flex;
+    flex: 0 1 auto;
     gap: var(--erp-space-1);
     max-inline-size: 170px;
     min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+:root .enterprise-context-trail .enterprise-workspace-crumb {
+    flex: 0 0 auto;
+    max-inline-size: none;
+    overflow: visible;
+}
+
+:root .enterprise-workspace-crumb .enterprise-app-pill {
+    font-size: 11px;
+    min-height: 24px;
+    padding-block: 2px;
 }
 
 :root .enterprise-context-trail li:not(:last-child)::after {
@@ -5169,10 +5137,6 @@ video {
 
 @media (max-width: 991.98px) {
     :root .enterprise-nav-shell {
-        display: none;
-    }
-
-    :root .enterprise-command-trigger {
         display: none;
     }
 }
@@ -6187,23 +6151,10 @@ video {
     min-width: 0;
 }
 
-:root .enterprise-context-primary {
-    align-items: center;
-    display: flex;
-    gap: var(--erp-space-3);
-    min-width: 0;
-}
-
-:root .enterprise-command-trigger {
-    flex-basis: clamp(220px, 34vw, 520px);
-    inline-size: clamp(220px, 34vw, 520px);
-    min-width: 0;
-}
-
 :root .enterprise-context-trail {
     color: var(--erp-text-soft);
     font-size: var(--erp-type-label-md-size);
-    margin-block: var(--erp-space-1) 0;
+    margin-block: 0;
 }
 
 :root .enterprise-nav-section.is-open-functional-area {
@@ -6390,10 +6341,6 @@ video {
 }
 
 @media (max-width: 991.98px) {
-    :root .enterprise-command-trigger {
-        min-width: 0;
-    }
-
     :root .hr-dashboard-grid {
         grid-template-columns: minmax(0, 1fr);
     }
