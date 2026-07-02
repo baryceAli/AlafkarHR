@@ -1,0 +1,230 @@
+@page "/Catering/Projects"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Catering.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.Fleet.Services
+@using SharedWithUI.Catering.Dtos
+@using SharedWithUI.Catering.Enums
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Fleet.Dtos
+@inject ICateringService CateringService
+@inject IEmployeeService EmployeeService
+@inject IFleetService FleetService
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Catering Projects", "مشاريع الإعاشة")" Subtitle="@Text("Plan multi-contract campaigns, locations, resources, and daily execution.", "تخطيط حملات متعددة العقود والمواقع والموارد والتنفيذ اليومي.")" Icon="bi-diagram-3" />
+    @StatusBlock()
+
+    <div class="erp-card mb-3 allow-overflow">
+        <div class="erp-card-body">
+            <EditForm Model="project" OnValidSubmit="SaveProjectAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3"><label class="form-label">@Text("Project name", "اسم المشروع")</label><InputText class="form-control" @bind-Value="project.ProjectName" /></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Start", "البداية")</label><InputDate class="form-control" @bind-Value="project.StartDate" /></div>
+                    <div class="col-md-2"><label class="form-label">@Text("End", "النهاية")</label><InputDate class="form-control" @bind-Value="project.EndDate" /></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Status", "الحالة")</label><InputSelect class="form-select" @bind-Value="project.Status">@foreach (var status in Enum.GetValues<CateringProjectStatus>()) { <option value="@status">@status</option> }</InputSelect></div>
+                    <div class="col-md-3"><button class="btn btn-primary w-100" type="submit" disabled="@busy"><i class="bi bi-save"></i> @Text("Save project", "حفظ المشروع")</button></div>
+                    <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="project.Notes" /></div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-xl-6">
+            <div class="erp-card h-100">
+                <div class="erp-card-body">
+                    <h6 class="mb-2">@Text("Linked contracts", "العقود المرتبطة")</h6>
+                    <div class="row g-2">
+                        @foreach (var item in contracts)
+                        {
+                            <div class="col-md-6"><label class="form-check"><input class="form-check-input" type="checkbox" checked="@IsContractSelected(item.Id)" @onchange="args => ToggleContract(item.Id, args)" /> <span class="form-check-label">@ContractLabel(item)</span></label></div>
+                        }
+                    </div>
+                    @if (!contracts.Any()) { <div class="text-muted small">@Text("No draft or active contracts are available.", "لا توجد عقود مسودة أو نشطة.")</div> }
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="erp-card h-100">
+                <div class="erp-card-body">
+                    <h6 class="mb-2">@Text("Project squares", "مربعات المشروع")</h6>
+                    <div class="row g-2">
+                        @foreach (var square in squares)
+                        {
+                            <div class="col-md-6"><label class="form-check"><input class="form-check-input" type="checkbox" checked="@IsSquareSelected(square.Id)" @onchange="args => ToggleSquare(square.Id, args)" /> <span class="form-check-label">@square.Code - @Display(square.Name, square.NameEng)</span></label></div>
+                        }
+                    </div>
+                    @if (!squares.Any()) { <div class="text-muted small">@Text("No active squares are available.", "لا توجد مربعات نشطة.")</div> }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (selectedProject is not null)
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-xl-4">
+                <div class="erp-card h-100"><div class="erp-card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">@selectedProject.ProjectName</h6>@if (selectedProject.IsExtended) { <span class="badge text-bg-warning">@Text("Extended", "ممدد")</span> }</div>
+                    <div class="small text-muted">@selectedProject.StartDate.ToString("yyyy-MM-dd") - @selectedProject.EndDate.ToString("yyyy-MM-dd")</div>
+                    <div class="row g-2 mt-2">
+                        <div class="col-6"><strong>@selectedProject.ContractCount</strong><div class="small text-muted">@Text("Contracts", "العقود")</div></div>
+                        <div class="col-6"><strong>@selectedProject.PlannedDays</strong><div class="small text-muted">@Text("Project days", "أيام المشروع")</div></div>
+                        <div class="col-6"><strong>@selectedProject.ScheduledDays</strong><div class="small text-muted">@Text("Scheduled days", "أيام مجدولة")</div></div>
+                        <div class="col-6"><strong>@selectedProject.TotalPlannedMeals.ToString("N0")</strong><div class="small text-muted">@Text("Meals", "وجبات")</div></div>
+                    </div>
+                </div></div>
+            </div>
+            <div class="col-xl-8">
+                <div class="erp-card h-100"><div class="erp-card-body">
+                    <h6>@Text("Generate project days", "إنشاء أيام المشروع")</h6>
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="generateRequest.FromDate" /></div>
+                        <div class="col-md-3"><label class="form-label">@Text("To", "إلى")</label><InputDate class="form-control" @bind-Value="generateRequest.ToDate" /></div>
+                        <div class="col-md-3"><label class="form-label">@Text("Meals/day", "وجبات/يوم")</label><InputNumber class="form-control" @bind-Value="generateRequest.PlannedQuantity" /></div>
+                        <div class="col-md-3"><label class="form-check mt-4"><InputCheckbox class="form-check-input" @bind-Value="generateRequest.AllowExtensionDays" /> <span class="form-check-label">@Text("Allow extension", "السماح بالتمديد")</span></label></div>
+                        <div class="col-md-3"><label class="form-check"><InputCheckbox class="form-check-input" @bind-Value="generateRequest.UseProjectDuration" /> <span class="form-check-label">@Text("Project duration", "مدة المشروع")</span></label></div>
+                        <div class="col-md-3"><button class="btn btn-outline-primary w-100" @onclick="GenerateProjectDaysAsync" disabled="@busy"><i class="bi bi-calendar-plus"></i> @Text("Generate", "إنشاء")</button></div>
+                    </div>
+                </div></div>
+            </div>
+        </div>
+
+        <div class="erp-card mb-3"><div class="erp-card-body">
+            <h6>@Text("Project resources", "موارد المشروع")</h6>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3"><label class="form-label">@Text("Role", "الدور")</label><InputSelect class="form-select" @bind-Value="resource.ResourceType">@foreach (var role in Enum.GetValues<CateringPlanResourceType>()) { <option value="@role">@role</option> }</InputSelect></div>
+                @if (resource.ResourceType == CateringPlanResourceType.Truck)
+                {
+                    <div class="col-md-5"><label class="form-label">@Text("Truck", "الشاحنة")</label><select class="form-select" @onchange="OnVehicleChanged"><option value="">@Text("Select truck", "اختر الشاحنة")</option>@foreach (var vehicle in vehicles) { <option value="@vehicle.Id">@VehicleLabel(vehicle)</option> }</select></div>
+                }
+                else
+                {
+                    <div class="col-md-5"><label class="form-label">@Text("Employee", "الموظف")</label><select class="form-select" @onchange="OnEmployeeChanged"><option value="">@Text("Select employee", "اختر الموظف")</option>@foreach (var employee in employees) { <option value="@employee.Id">@EmployeeLabel(employee)</option> }</select></div>
+                }
+                <div class="col-md-2"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="resource.EffectiveFrom" /></div>
+                <div class="col-md-2"><button class="btn btn-primary w-100" @onclick="AddResourceAsync" disabled="@busy"><i class="bi bi-plus-lg"></i></button></div>
+            </div>
+            <div class="erp-table-wrap mt-3"><table class="table erp-table align-middle"><thead><tr><th>@Text("Role", "الدور")</th><th>@Text("Resource", "المورد")</th><th>@Text("Effective", "الفترة")</th><th></th></tr></thead><tbody>
+                @if (!selectedProject.Resources.Any()) { <tr><td colspan="4" class="text-muted">@Text("No resources assigned.", "لم يتم تعيين موارد.")</td></tr> }
+                @foreach (var item in selectedProject.Resources) { <tr><td>@item.ResourceType</td><td>@ResourceLabel(item)</td><td>@item.EffectiveFrom?.ToString("yyyy-MM-dd") - @item.EffectiveTo?.ToString("yyyy-MM-dd")</td><td class="text-end"><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteResourceAsync(item)" disabled="@busy"><i class="bi bi-trash"></i></button></td></tr> }
+            </tbody></table></div>
+        </div></div>
+
+        <div class="erp-card mb-3"><div class="erp-card-body">
+            <h6>@Text("Daily project plan", "الخطة اليومية للمشروع")</h6>
+            <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Planned", "المخطط")</th><th>@Text("Scheduled", "المجدول")</th><th>@Text("Status", "الحالة")</th><th>@Text("Contract schedules", "جداول العقود")</th><th></th></tr></thead><tbody>
+                @if (!selectedProject.DailyPlans.Any()) { <tr><td colspan="6" class="text-muted">@Text("No project days yet.", "لا توجد أيام مشروع بعد.")</td></tr> }
+                @foreach (var day in selectedProject.DailyPlans)
+                {
+                    <tr><td>@day.ServiceDate.ToString("yyyy-MM-dd") @if (day.IsExtensionDay) { <span class="badge text-bg-warning ms-1">@Text("Extension", "تمديد")</span> }</td><td>@day.PlannedQuantity.ToString("N0")</td><td>@day.ScheduledQuantity.ToString("N0")</td><td>@day.Status</td><td>@day.ContractSchedules.Count</td><td class="text-end"><button class="btn btn-sm btn-outline-primary" @onclick="() => SelectProjectDay(day)"><i class="bi bi-list-task"></i></button></td></tr>
+                }
+            </tbody></table></div>
+        </div></div>
+
+        @if (selectedDay is not null)
+        {
+            <div class="erp-card mb-3"><div class="erp-card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">@Text("Contract schedules", "جداول العقود") - @selectedDay.ServiceDate.ToString("yyyy-MM-dd")</h6><button class="btn btn-outline-secondary btn-sm" @onclick="() => selectedDay = null"><i class="bi bi-x-lg"></i></button></div>
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-5"><label class="form-label">@Text("Contract", "العقد")</label><select class="form-select" @bind="childSchedule.CateringContractId"><option value="@Guid.Empty">@Text("Select contract", "اختر العقد")</option>@foreach (var link in selectedProject.Contracts) { <option value="@link.CateringContractId">@link.ContractNumber - @Display(link.CustomerName ?? "", link.CustomerNameEng)</option> }</select></div>
+                    <div class="col-md-3"><label class="form-label">@Text("Planned meals", "الوجبات المخططة")</label><InputNumber class="form-control" @bind-Value="childSchedule.PlannedQuantity" /></div>
+                    <div class="col-md-3"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="childSchedule.Notes" /></div>
+                    <div class="col-md-1"><button class="btn btn-primary w-100" @onclick="SaveChildScheduleAsync" disabled="@busy"><i class="bi bi-plus-lg"></i></button></div>
+                </div>
+                <div class="erp-table-wrap mt-3"><table class="table erp-table align-middle"><thead><tr><th>@Text("Contract", "العقد")</th><th>@Text("Planned", "المخطط")</th><th>@Text("Allocations", "التوزيعات")</th><th>@Text("Status", "الحالة")</th></tr></thead><tbody>
+                    @if (!selectedDay.ContractSchedules.Any()) { <tr><td colspan="4" class="text-muted">@Text("No contract schedules for this day.", "لا توجد جداول عقود لهذا اليوم.")</td></tr> }
+                    @foreach (var item in selectedDay.ContractSchedules) { <tr><td>@ContractLabel(item.CateringContractId)</td><td>@item.PlannedQuantity.ToString("N0")</td><td>@item.Allocations.Count</td><td>@item.Status</td></tr> }
+                </tbody></table></div>
+            </div></div>
+        }
+    }
+
+    <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Project", "المشروع")</th><th>@Text("Duration", "المدة")</th><th>@Text("Contracts", "العقود")</th><th>@Text("Days", "الأيام")</th><th>@Text("Meals", "الوجبات")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>
+        @if (loading) { <tr><td colspan="7" class="text-muted">@Text("Loading projects...", "جاري تحميل المشاريع...")</td></tr> }
+        else if (!projects.Any()) { <tr><td colspan="7" class="text-muted">@Text("No catering projects found.", "لا توجد مشاريع إعاشة.")</td></tr> }
+        @foreach (var item in projects) { <tr><td>@item.ProjectName @if (item.IsExtended) { <span class="badge text-bg-warning ms-1">@Text("Extended", "ممدد")</span> }</td><td>@item.StartDate.ToString("yyyy-MM-dd") - @item.EndDate.ToString("yyyy-MM-dd")</td><td>@item.ContractCount</td><td>@item.PlannedDays / @item.ScheduledDays</td><td>@item.TotalPlannedMeals.ToString("N0")</td><td>@item.Status</td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditProject(item)"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-secondary" @onclick="() => SelectProjectAsync(item)"><i class="bi bi-diagram-3"></i></button></td></tr> }
+    </tbody></table></div>
+</div>
+
+@code {
+    private CateringProjectDto project = NewProject();
+    private CateringProjectDto? selectedProject;
+    private CateringProjectDailyPlanDto? selectedDay;
+    private CateringGenerateProjectDailyPlansRequestDto generateRequest = new();
+    private CateringPlanResourceAssignmentDto resource = NewResource();
+    private CateringDailyScheduleDto childSchedule = NewChildSchedule();
+    private List<CateringProjectDto> projects = [];
+    private List<CateringContractDto> contracts = [];
+    private List<CateringSquareDto> squares = [];
+    private List<EmployeeDto> employees = [];
+    private List<FleetVehicleDto> vehicles = [];
+    private bool loading;
+    private bool busy;
+    private string? message;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync() { SharedDataService.OnChange1 += HandleChangeAsync; await LoadLookupsAsync(); await LoadProjectsAsync(); }
+    private async Task LoadLookupsAsync()
+    {
+        Guid? companyId = ApiConfig.CompanyId == Guid.Empty ? null : ApiConfig.CompanyId;
+        var contractResult = await CateringService.GetContractsAsync(0, 1000, companyId, status: null);
+        if (contractResult.IsSuccess) contracts = (contractResult.Data?.Data ?? []).Where(x => x.Status is CateringContractStatus.Draft or CateringContractStatus.Active).ToList();
+        var squareResult = await CateringService.GetSquaresAsync(0, 1000, companyId, activeOnly: true);
+        if (squareResult.IsSuccess) squares = squareResult.Data?.Data.ToList() ?? [];
+        if (ApiConfig.CompanyId != Guid.Empty)
+        {
+            var employeeResult = await EmployeeService.GetByCompanyIdAsync(ApiConfig.CompanyId, 0, 500);
+            if (employeeResult.IsSuccess) employees = employeeResult.Data?.Data.ToList() ?? [];
+            var vehicleResult = await FleetService.GetVehiclesAsync(0, 500, companyId: ApiConfig.CompanyId);
+            if (vehicleResult.IsSuccess) vehicles = vehicleResult.Data?.Data.ToList() ?? [];
+        }
+    }
+    private async Task LoadProjectsAsync() { loading = true; Guid? companyId = ApiConfig.CompanyId == Guid.Empty ? null : ApiConfig.CompanyId; var result = await CateringService.GetProjectsAsync(0, 300, companyId); if (result.IsSuccess) projects = result.Data?.Data.ToList() ?? []; else errorMessage = Error(result.Error); loading = false; }
+    private async Task SaveProjectAsync()
+    {
+        if (!project.Contracts.Any()) { errorMessage = Text("Select at least one contract.", "اختر عقدا واحدا على الأقل."); return; }
+        var firstContract = contracts.FirstOrDefault(x => x.Id == project.Contracts.First().CateringContractId);
+        if (firstContract is not null) { project.CompanyId = firstContract.CompanyId; project.BranchId = firstContract.BranchId; }
+        busy = true;
+        var success = false; string? failure = null;
+        if (project.Id == Guid.Empty) { var result = await CateringService.CreateProjectAsync(project); success = result.IsSuccess; failure = Error(result.Error); }
+        else { var result = await CateringService.UpdateProjectAsync(project); success = result.IsSuccess; failure = Error(result.Error); }
+        SetStatus(success, Text("Project saved.", "تم حفظ المشروع."), failure); project = NewProject(); await LoadProjectsAsync(); busy = false;
+    }
+    private async Task SelectProjectAsync(CateringProjectDto item) { var result = await CateringService.GetProjectByIdAsync(item.Id); selectedProject = result.IsSuccess && result.Data is not null ? result.Data : item; selectedDay = null; resource = NewResource(); childSchedule = NewChildSchedule(); generateRequest = new() { CateringProjectId = selectedProject.Id, FromDate = selectedProject.StartDate, ToDate = selectedProject.EndDate, UseProjectDuration = true }; }
+    private void EditProject(CateringProjectDto item) => project = new() { Id = item.Id, CompanyId = item.CompanyId, BranchId = item.BranchId, ProjectName = item.ProjectName, StartDate = item.StartDate, EndDate = item.EndDate, Status = item.Status, Notes = item.Notes, Contracts = item.Contracts.Select(x => new CateringProjectContractLinkDto { CateringContractId = x.CateringContractId }).ToList(), Squares = item.Squares.Select(x => new CateringProjectSquareScopeDto { SquareId = x.SquareId }).ToList() };
+    private async Task GenerateProjectDaysAsync() { if (selectedProject is null) return; generateRequest.CateringProjectId = selectedProject.Id; busy = true; var result = await CateringService.GenerateProjectDailyPlansAsync(generateRequest); SetStatus(result.IsSuccess, result.IsSuccess && result.Data is not null ? Text($"Created {result.Data.CreatedCount:N0}, skipped {result.Data.SkippedCount:N0}.", $"تم إنشاء {result.Data.CreatedCount:N0} وتجاوز {result.Data.SkippedCount:N0}.") : Text("Project days generated.", "تم إنشاء أيام المشروع."), Error(result.Error)); await ReloadSelectedProjectAsync(); busy = false; }
+    private async Task AddResourceAsync() { if (selectedProject is null) return; busy = true; var result = await CateringService.AddPlanResourceAsync(selectedProject.Id, resource); SetStatus(result.IsSuccess, Text("Resource added.", "تمت إضافة المورد."), Error(result.Error)); resource = NewResource(); await ReloadSelectedProjectAsync(); busy = false; }
+    private async Task DeleteResourceAsync(CateringPlanResourceAssignmentDto item) { if (selectedProject is null) return; busy = true; var result = await CateringService.DeletePlanResourceAsync(selectedProject.Id, item.Id); SetStatus(result.IsSuccess, Text("Resource removed.", "تم حذف المورد."), Error(result.Error)); await ReloadSelectedProjectAsync(); busy = false; }
+    private void SelectProjectDay(CateringProjectDailyPlanDto day) { selectedDay = day; childSchedule = NewChildSchedule(); childSchedule.CateringProjectId = day.CateringProjectId; childSchedule.CateringProjectDailyPlanId = day.Id; childSchedule.ServiceDate = day.ServiceDate; childSchedule.PlannedQuantity = Math.Max(0, day.PlannedQuantity - day.ScheduledQuantity); }
+    private async Task SaveChildScheduleAsync() { if (selectedProject is null || selectedDay is null) return; if (childSchedule.CateringContractId == Guid.Empty) { errorMessage = Text("Select contract first.", "اختر العقد أولا."); return; } childSchedule.CateringProjectId = selectedProject.Id; childSchedule.CateringProjectDailyPlanId = selectedDay.Id; childSchedule.ServiceDate = selectedDay.ServiceDate; busy = true; var result = await CateringService.CreateScheduleAsync(childSchedule); SetStatus(result.IsSuccess, Text("Contract schedule added.", "تمت إضافة جدول العقد."), Error(result.Error)); await ReloadSelectedProjectAsync(); selectedDay = selectedProject?.DailyPlans.FirstOrDefault(x => x.Id == selectedDay.Id); childSchedule = NewChildSchedule(); busy = false; }
+    private async Task ReloadSelectedProjectAsync() { if (selectedProject is null) return; await LoadProjectsAsync(); var result = await CateringService.GetProjectByIdAsync(selectedProject.Id); if (result.IsSuccess) selectedProject = result.Data; }
+    private bool IsContractSelected(Guid id) => project.Contracts.Any(x => x.CateringContractId == id);
+    private void ToggleContract(Guid id, ChangeEventArgs args) { var isChecked = args.Value is bool value && value; if (isChecked && !IsContractSelected(id)) project.Contracts.Add(new() { CateringContractId = id }); if (!isChecked) project.Contracts.RemoveAll(x => x.CateringContractId == id); }
+    private bool IsSquareSelected(Guid id) => project.Squares.Any(x => x.SquareId == id);
+    private void ToggleSquare(Guid id, ChangeEventArgs args) { var isChecked = args.Value is bool value && value; if (isChecked && !IsSquareSelected(id)) project.Squares.Add(new() { SquareId = id }); if (!isChecked) project.Squares.RemoveAll(x => x.SquareId == id); }
+    private void OnEmployeeChanged(ChangeEventArgs args) { resource.EmployeeId = Guid.TryParse(args.Value?.ToString(), out var id) ? id : null; var employee = resource.EmployeeId.HasValue ? employees.FirstOrDefault(x => x.Id == resource.EmployeeId.Value) : null; resource.EmployeeName = employee is null ? null : EmployeeLabel(employee); }
+    private void OnVehicleChanged(ChangeEventArgs args) { resource.VehicleId = Guid.TryParse(args.Value?.ToString(), out var id) ? id : null; var vehicle = resource.VehicleId.HasValue ? vehicles.FirstOrDefault(x => x.Id == resource.VehicleId.Value) : null; resource.VehicleName = vehicle is null ? null : VehicleLabel(vehicle); resource.PlateNumber = vehicle?.PlateNumber; }
+    private RenderFragment StatusBlock() => @<div>@if (!string.IsNullOrWhiteSpace(message)) { <div class="alert alert-success py-2">@message</div> } @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger py-2">@errorMessage</div> }</div>;
+    private void SetStatus(bool success, string successMessage, string? failureMessage) { message = success ? successMessage : null; errorMessage = success ? null : failureMessage; }
+    private static CateringProjectDto NewProject() => new() { StartDate = DateTime.Today, EndDate = DateTime.Today, Status = CateringProjectStatus.Draft };
+    private static CateringPlanResourceAssignmentDto NewResource() => new() { ResourceType = CateringPlanResourceType.Truck, EffectiveFrom = DateTime.Today };
+    private static CateringDailyScheduleDto NewChildSchedule() => new() { ServiceDate = DateTime.Today, Status = CateringScheduleStatus.Draft };
+    private string ContractLabel(CateringContractDto item) => $"{item.Number} - {Display(item.CustomerName, item.CustomerNameEng)}";
+    private string ContractLabel(Guid id) { var contract = contracts.FirstOrDefault(x => x.Id == id); return contract is null ? id.ToString() : ContractLabel(contract); }
+    private string EmployeeLabel(EmployeeDto item) => Display(item.FullName, item.FullNameEng);
+    private string VehicleLabel(FleetVehicleDto item) => $"{item.VehicleCode} - {Display(item.Name, item.NameEng)} ({item.PlateNumber})";
+    private string ResourceLabel(CateringPlanResourceAssignmentDto item) => item.ResourceType == CateringPlanResourceType.Truck ? $"{item.VehicleName} {item.PlateNumber}" : item.EmployeeName ?? "-";
+    private string Display(string name, string? nameEng) => SharedDataService.Language == "Ar" ? name : (string.IsNullOrWhiteSpace(nameEng) ? name : nameEng);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Error(ErrorResponseDto? error) => error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Operation failed.", "تعذرت العملية.");
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

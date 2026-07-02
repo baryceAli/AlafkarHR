@@ -25,6 +25,11 @@
                     <div class="col-md-3"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="meal.Name" /></div>
                     <div class="col-md-3"><label class="form-label">@Text("English name", "الاسم الإنجليزي")</label><InputText class="form-control" @bind-Value="meal.NameEng" /></div>
                     <div class="col-md-2"><label class="form-label">@Text("Type", "النوع")</label><InputSelect class="form-select" @bind-Value="meal.MealType">@foreach (var type in Enum.GetValues<CateringMealType>()) { <option value="@type">@type</option> }</InputSelect></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Structure", "التركيب")</label><InputSelect class="form-select" @bind-Value="meal.StructureType"><option value="@CateringMealStructureType.Product">@Text("Product", "منتج")</option><option value="@CateringMealStructureType.Combo">@Text("Combo", "كومبو")</option></InputSelect></div>
+                    @if (meal.StructureType == CateringMealStructureType.Product)
+                    {
+                        <div class="col-md-4"><label class="form-label">@Text("Product SKU", "صنف المنتج")</label><select class="form-select" value="@meal.ProductSkuId?.ToString()" @onchange="OnMealSkuChanged"><option value="">@Text("Select SKU", "اختر الصنف")</option>@foreach (var sku in skus) { <option value="@sku.Id">@SkuName(sku)</option> }</select></div>
+                    }
                     <div class="col-md-2"><label class="form-label">@Text("Calories", "السعرات")</label><input class="form-control" value="@(meal.Calories?.ToString("N0") ?? Text("Calculated", "تحسب تلقائيا"))" readonly /></div>
                     <div class="col-md-1 d-flex align-items-end"><div class="form-check"><InputCheckbox class="form-check-input" @bind-Value="meal.IsActive" /><label class="form-check-label">@Text("Active", "نشط")</label></div></div>
                     <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit" disabled="@busy" title="@Text("Save", "حفظ")"><i class="bi bi-save"></i></button></div>
@@ -34,7 +39,7 @@
         </div>
     </div>
 
-    @if (selectedMeal is not null)
+    @if (selectedMeal is not null && selectedMeal.StructureType == CateringMealStructureType.Combo)
     {
         <div class="erp-card mb-3">
             <div class="erp-card-body">
@@ -57,12 +62,12 @@
         </div>
     }
 
-    <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Meal", "الوجبة")</th><th>@Text("Type", "النوع")</th><th>@Text("Calories", "السعرات")</th><th>@Text("Components", "المكونات")</th><th>@Text("State", "الحالة")</th><th></th></tr></thead><tbody>
-        @if (loading) { <tr><td colspan="6" class="text-muted">@Text("Loading meals...", "جاري تحميل الوجبات...")</td></tr> }
-        else if (!meals.Any()) { <tr><td colspan="6" class="text-muted">@Text("No meals found.", "لا توجد وجبات.")</td></tr> }
+    <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Meal", "الوجبة")</th><th>@Text("Type", "النوع")</th><th>@Text("Structure", "التركيب")</th><th>@Text("Calories", "السعرات")</th><th>@Text("Components", "المكونات")</th><th>@Text("State", "الحالة")</th><th></th></tr></thead><tbody>
+        @if (loading) { <tr><td colspan="7" class="text-muted">@Text("Loading meals...", "جاري تحميل الوجبات...")</td></tr> }
+        else if (!meals.Any()) { <tr><td colspan="7" class="text-muted">@Text("No meals found.", "لا توجد وجبات.")</td></tr> }
         @foreach (var item in meals)
         {
-            <tr><td>@Display(item.Name, item.NameEng)</td><td>@item.MealType</td><td>@(item.Calories?.ToString("N0") ?? "-")</td><td>@item.Components.Count</td><td>@(item.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))</td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditMeal(item)" disabled="@busy" title="@Text("Edit", "تعديل")"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => SelectMealAsync(item.Id)" disabled="@busy" title="@Text("Components", "المكونات")"><i class="bi bi-list-check"></i></button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteMealAsync(item)" disabled="@busy" title="@Text("Delete", "حذف")"><i class="bi bi-trash"></i></button></td></tr>
+            <tr><td>@Display(item.Name, item.NameEng)</td><td>@item.MealType</td><td>@item.StructureType</td><td>@(item.Calories?.ToString("N0") ?? "-")</td><td>@(item.StructureType == CateringMealStructureType.Product ? item.ProductSkuName : item.Components.Count)</td><td>@(item.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))</td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditMeal(item)" disabled="@busy" title="@Text("Edit", "تعديل")"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => SelectMealAsync(item.Id)" disabled="@(busy || item.StructureType != CateringMealStructureType.Combo)" title="@Text("Components", "المكونات")"><i class="bi bi-list-check"></i></button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteMealAsync(item)" disabled="@busy" title="@Text("Delete", "حذف")"><i class="bi bi-trash"></i></button></td></tr>
         }
     </tbody></table></div>
 </div>
@@ -93,6 +98,19 @@
 
     private async Task SaveMealAsync()
     {
+        if (meal.StructureType == CateringMealStructureType.Product && (!meal.ProductSkuId.HasValue || meal.ProductSkuId.Value == Guid.Empty))
+        {
+            errorMessage = Text("Select a product SKU for product meals.", "اختر صنف المنتج للوجبة المفردة.");
+            return;
+        }
+        if (meal.StructureType == CateringMealStructureType.Combo)
+        {
+            meal.ProductId = null;
+            meal.ProductSkuId = null;
+            meal.ProductPackageId = null;
+            meal.ProductSkuName = null;
+            meal.ProductSkuNameEng = null;
+        }
         busy = true; meal.CompanyId = ApiConfig.CompanyId;
         var success = false;
         string? failure = null;
@@ -112,8 +130,27 @@
         meal = NewMeal(); selectedMeal = null; await LoadAsync(); busy = false;
     }
 
-    private void EditMeal(MealDefinitionDto item) { meal = new() { Id = item.Id, CompanyId = item.CompanyId, MealType = item.MealType, Name = item.Name, NameEng = item.NameEng, Calories = item.Calories, IsActive = item.IsActive, Notes = item.Notes, Components = item.Components }; selectedMeal = item; }
+    private void EditMeal(MealDefinitionDto item) { meal = new() { Id = item.Id, CompanyId = item.CompanyId, MealType = item.MealType, StructureType = item.StructureType, ProductId = item.ProductId, ProductSkuId = item.ProductSkuId, ProductPackageId = item.ProductPackageId, ProductSkuName = item.ProductSkuName, ProductSkuNameEng = item.ProductSkuNameEng, Name = item.Name, NameEng = item.NameEng, Calories = item.Calories, IsActive = item.IsActive, Notes = item.Notes, Components = item.Components }; selectedMeal = item; }
     private async Task SelectMealAsync(Guid id) { var result = await CateringService.GetMealByIdAsync(id); if (result.IsSuccess) selectedMeal = result.Data; else errorMessage = Error(result.Error); }
+
+    private void OnMealSkuChanged(ChangeEventArgs args)
+    {
+        meal.ProductSkuId = Guid.TryParse(args.Value?.ToString(), out var skuId) ? skuId : null;
+        var sku = meal.ProductSkuId.HasValue ? skus.FirstOrDefault(x => x.Id == meal.ProductSkuId.Value) : null;
+        if (sku is null)
+        {
+            meal.ProductId = null;
+            meal.ProductPackageId = null;
+            meal.ProductSkuName = null;
+            meal.ProductSkuNameEng = null;
+            return;
+        }
+        meal.ProductId = sku.ProductId;
+        meal.ProductPackageId = sku.PackageId;
+        meal.ProductSkuName = SkuName(sku);
+        meal.ProductSkuNameEng = string.IsNullOrWhiteSpace(sku.NameEng) ? sku.Name : sku.NameEng;
+        meal.Calories = sku.Calories.HasValue ? (int)Math.Round(sku.Calories.Value, MidpointRounding.AwayFromZero) : meal.Calories;
+    }
 
     private void OnComponentSkuChanged(ChangeEventArgs args)
     {
@@ -136,7 +173,7 @@
 
     private RenderFragment StatusBlock() => @<div>@if (!string.IsNullOrWhiteSpace(message)) { <div class="alert alert-success py-2">@message</div> } @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger py-2">@errorMessage</div> }</div>;
     private void SetStatus(bool success, string successMessage, string? failureMessage) { message = success ? successMessage : null; errorMessage = success ? null : failureMessage; }
-    private static MealDefinitionDto NewMeal() => new() { MealType = CateringMealType.Dry, IsActive = true };
+    private static MealDefinitionDto NewMeal() => new() { MealType = CateringMealType.Dry, StructureType = CateringMealStructureType.Product, IsActive = true };
     private bool IsComponentAddDisabled => selectedMeal is null || componentSkuId is null || component.QuantityPerMeal <= 0 || string.IsNullOrWhiteSpace(component.UnitName);
     private ProductSkuDto? SelectedSku => componentSkuId.HasValue ? skus.FirstOrDefault(x => x.Id == componentSkuId.Value) : null;
     private string SkuName(ProductSkuDto sku) => Display($"{sku.SkuCode} - {sku.Name}", string.IsNullOrWhiteSpace(sku.NameEng) ? $"{sku.SkuCode} - {sku.Name}" : $"{sku.SkuCodeEng} - {sku.NameEng}");

@@ -7,6 +7,7 @@
 @inject ICateringService CateringService
 @inject ApiConfig ApiConfig
 @inject SharedDataService SharedDataService
+@inject NavigationManager NavigationManager
 
 <div class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("Catering Dashboard", "لوحة الإعاشة")" Subtitle="@Text("Track Ramadan catering contracts, schedules, receiving, and distribution variance.", "متابعة عقود الإعاشة والجداول والاستلام وفروقات التوزيع.")" Icon="bi-cup-hot" />
@@ -27,13 +28,22 @@
     else
     {
         <div class="row g-3">
-            @Metric(Text("Active contracts", "العقود النشطة"), dashboard.ActiveContracts.ToString("N0"), "bi-file-earmark-check")
-            @Metric(Text("Meals", "الوجبات"), dashboard.ActiveMeals.ToString("N0"), "bi-box-seam")
-            @Metric(Text("Squares", "المربعات"), dashboard.ActiveSquares.ToString("N0"), "bi-grid")
-            @Metric(Text("Contracted meals", "الوجبات المتعاقد عليها"), dashboard.ContractedQuantity.ToString("N0"), "bi-clipboard-data")
-            @Metric(Text("Scheduled", "المجدول"), dashboard.ScheduledQuantity.ToString("N0"), "bi-calendar-week")
-            @Metric(Text("Received", "المستلم"), dashboard.ReceivedQuantity.ToString("N0"), "bi-truck")
-            @Metric(Text("Distributed", "الموزع"), dashboard.DistributedQuantity.ToString("N0"), "bi-check2-circle")
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Active contracts", "العقود النشطة")" Value="@dashboard.ActiveContracts.ToString("N0")" Icon="bi-file-earmark-check" Tone="primary" OnClick="@(() => Go("/Catering/Contracts"))" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Meals", "الوجبات")" Value="@dashboard.ActiveMeals.ToString("N0")" Icon="bi-box-seam" Tone="success" OnClick="@(() => Go("/Catering/Meals"))" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Squares", "المربعات")" Value="@dashboard.ActiveSquares.ToString("N0")" Icon="bi-grid" Tone="info" OnClick="@(() => Go("/Catering/Locations"))" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Plans", "الخطط")" Value="@dashboard.TodaySchedules.ToString("N0")" Subtitle="@Text("Today schedules", "جداول اليوم")" Icon="bi-diagram-3" Tone="primary" OnClick="@(() => Go("/Catering/Plan"))" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Contracted meals", "الوجبات المتعاقد عليها")" Value="@dashboard.ContractedQuantity.ToString("N0")" Icon="bi-clipboard-data" OnClick="@(() => Go("/Catering/Contracts"))" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Scheduled", "المجدول")" Value="@dashboard.ScheduledQuantity.ToString("N0")" Icon="bi-calendar-week" Tone="info" OnClick="@(() => Go("/Catering/Schedules"))" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Prepared", "المجهز")" Value="@dashboard.PreparedQuantity.ToString("N0")" Icon="bi-box2-heart" Tone="success" OnClick="@(() => Go("/Catering/Packaging"))" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Loaded", "المحمل")" Value="@dashboard.LoadedQuantity.ToString("N0")" Icon="bi-truck-front" Tone="primary" OnClick="@(() => Go("/Catering/Deliveries"))" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Received", "المستلم")" Value="@dashboard.ReceivedQuantity.ToString("N0")" Icon="bi-truck" Tone="success" OnClick="@(() => Go("/Catering/Deliveries"))" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Distributed", "الموزع")" Value="@dashboard.DistributedQuantity.ToString("N0")" Icon="bi-check2-circle" Tone="success" OnClick="@(() => Go("/Catering/Schedules"))" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Packaging in progress", "التجهيز الجاري")" Value="@dashboard.PackagingInProgress.ToString("N0")" Icon="bi-hourglass-split" Tone="warning" OnClick="@(() => Go("/Catering/Packaging"))" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Trucks pending load", "شاحنات بانتظار التحميل")" Value="@dashboard.TrucksPendingLoad.ToString("N0")" Icon="bi-truck-flatbed" Tone="warning" OnClick="@(() => Go("/Catering/Deliveries"))" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Trucks in transit", "شاحنات في الطريق")" Value="@dashboard.TrucksInTransit.ToString("N0")" Icon="bi-signpost-split" Tone="info" OnClick="@(() => Go("/Catering/Deliveries"))" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Late dispatches", "رحلات متأخرة")" Value="@dashboard.LateDispatches.ToString("N0")" Icon="bi-exclamation-triangle" Tone="danger" OnClick="@(() => Go("/Catering/Deliveries"))" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Block variances", "فروقات المربعات")" Value="@dashboard.BlockVariances.ToString("N0")" Icon="bi-distribute-vertical" Tone="warning" OnClick="@(() => Go("/Catering/Reports"))" /></div>
+            <div class="col-12 col-md-6 col-xl-3"><StatsCard Title="@Text("Exceptions", "الاستثناءات")" Value="@dashboard.OperationalExceptions.ToString("N0")" Icon="bi-shield-exclamation" Tone="danger" OnClick="@(() => Go("/Catering/Reports"))" /></div>
         </div>
     }
 </div>
@@ -46,7 +56,7 @@
     protected override async Task OnInitializedAsync() { SharedDataService.OnChange1 += HandleChangeAsync; await LoadAsync(); }
     private async Task LoadAsync() { loading = true; errorMessage = null; var result = await CateringService.GetDashboardAsync(ApiConfig.CompanyId); if (result.IsSuccess && result.Data is not null) dashboard = result.Data; else errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load dashboard.", "تعذر تحميل اللوحة."); loading = false; }
 
-    private RenderFragment Metric(string title, string value, string icon) => @<div class="col-12 col-md-6 col-xl-3"><div class="erp-card h-100"><div class="erp-card-body d-flex align-items-center gap-3"><div class="erp-icon-surface"><i class="bi @icon"></i></div><div><div class="text-muted small">@title</div><div class="fs-4 fw-semibold">@value</div></div></div></div></div>;
+    private void Go(string url) => NavigationManager.NavigateTo(url);
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;

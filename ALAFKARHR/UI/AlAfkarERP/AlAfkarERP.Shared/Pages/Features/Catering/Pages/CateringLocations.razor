@@ -3,10 +3,12 @@
 @implements IDisposable
 @using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Catering.Services
+@using Microsoft.JSInterop
 @using SharedWithUI.Catering.Dtos
 @inject ICateringService CateringService
 @inject ApiConfig ApiConfig
 @inject SharedDataService SharedDataService
+@inject IJSRuntime JSRuntime
 
 <div class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("Locations", "مواقع التوزيع")" Subtitle="@Text("Manage Haram areas and distribution squares with their operational locations.", "إدارة الساحات والمربعات التشغيلية ومواقعها.")" Icon="bi-geo-alt" />
@@ -36,11 +38,13 @@
                     <div class="col-md-3"><label class="form-label">@Text("Name", "الاسم")</label><InputText class="form-control" @bind-Value="square.Name" /></div>
                     <div class="col-md-3"><label class="form-label">@Text("English name", "الاسم الإنجليزي")</label><InputText class="form-control" @bind-Value="square.NameEng" /></div>
                     <div class="col-md-4"><label class="form-label">@Text("Location", "الموقع")</label><InputText class="form-control" @bind-Value="square.LocationText" /></div>
-                    <div class="col-md-2"><label class="form-label">@Text("Latitude", "خط العرض")</label><InputNumber class="form-control" @bind-Value="square.Latitude" /></div>
-                    <div class="col-md-2"><label class="form-label">@Text("Longitude", "خط الطول")</label><InputNumber class="form-control" @bind-Value="square.Longitude" /></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Latitude", "خط العرض")</label><input class="form-control" type="number" step="0.000001" value="@square.Latitude" @onchange="OnLatitudeChanged" /></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Longitude", "خط الطول")</label><input class="form-control" type="number" step="0.000001" value="@square.Longitude" @onchange="OnLongitudeChanged" /></div>
                     <div class="col-md-2"><div class="form-check mt-4"><InputCheckbox class="form-check-input" @bind-Value="square.IsActive" /><label class="form-check-label">@Text("Active", "نشط")</label></div></div>
                     <div class="col-md-2 text-end"><button class="btn btn-primary w-100" type="submit" disabled="@busy"><i class="bi bi-save"></i></button></div>
                     <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="square.Notes" /></div>
+                    <div class="col-12"><div id="@mapElementId" class="catering-location-map"></div></div>
+                    <div class="col-12"><button class="btn btn-outline-secondary btn-sm" type="button" @onclick="UseCurrentLocationAsync"><i class="bi bi-crosshair"></i> @Text("Use current location", "استخدام الموقع الحالي")</button></div>
                 </div>
             </EditForm>
         </div></div></div>
@@ -69,11 +73,21 @@
     private Guid? selectedAreaId;
     private bool loading;
     private bool busy;
+    private bool mapReady;
+    private readonly string mapElementId = $"catering-square-map-{Guid.NewGuid():N}";
+    private DotNetObjectReference<CateringLocations>? dotNetReference;
     private string? message;
     private string? errorMessage;
     private IEnumerable<CateringSquareDto> VisibleSquares => selectedAreaId.HasValue ? squares.Where(x => x.AreaId == selectedAreaId.Value) : squares;
 
     protected override async Task OnInitializedAsync() { SharedDataService.OnChange1 += HandleChangeAsync; await LoadAsync(); }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (mapReady) return;
+        dotNetReference ??= DotNetObjectReference.Create(this);
+        await JSRuntime.InvokeVoidAsync("alafkarLocationPicker.init", mapElementId, (double)(square.Latitude ?? 24.7136m), (double)(square.Longitude ?? 46.6753m), 13, dotNetReference);
+        mapReady = true;
+    }
 
     private async Task LoadAsync()
     {
@@ -105,7 +119,7 @@
         SetStatus(success, Text("Square saved.", "تم حفظ المربع."), failure); square = NewSquare(); await LoadAsync(); busy = false;
     }
     private void EditArea(CateringAreaDto item) => area = new() { Id = item.Id, CompanyId = item.CompanyId, Name = item.Name, NameEng = item.NameEng, GenderGroup = item.GenderGroup, LocationText = item.LocationText, IsActive = item.IsActive };
-    private void EditSquare(CateringSquareDto item) => square = new() { Id = item.Id, AreaId = item.AreaId, AreaName = item.AreaName, AreaNameEng = item.AreaNameEng, Code = item.Code, Name = item.Name, NameEng = item.NameEng, LocationText = item.LocationText, Latitude = item.Latitude, Longitude = item.Longitude, IsActive = item.IsActive, Notes = item.Notes };
+    private async void EditSquare(CateringSquareDto item) { square = new() { Id = item.Id, AreaId = item.AreaId, AreaName = item.AreaName, AreaNameEng = item.AreaNameEng, Code = item.Code, Name = item.Name, NameEng = item.NameEng, LocationText = item.LocationText, Latitude = item.Latitude, Longitude = item.Longitude, IsActive = item.IsActive, Notes = item.Notes }; await SetMapCenterAsync(false); StateHasChanged(); }
     private async Task DeactivateAreaAsync(CateringAreaDto item) { item.IsActive = false; busy = true; var result = await CateringService.UpdateAreaAsync(item); SetStatus(result.IsSuccess, Text("Area deactivated.", "تم تعطيل الساحة."), Error(result.Error)); await LoadAsync(); busy = false; }
     private async Task DeactivateSquareAsync(CateringSquareDto item) { item.IsActive = false; busy = true; var result = await CateringService.UpdateSquareAsync(item); SetStatus(result.IsSuccess, Text("Square deactivated.", "تم تعطيل المربع."), Error(result.Error)); await LoadAsync(); busy = false; }
 
@@ -113,10 +127,75 @@
     private void SetStatus(bool success, string successMessage, string? failureMessage) { message = success ? successMessage : null; errorMessage = success ? null : failureMessage; }
     private static CateringAreaDto NewArea() => new() { IsActive = true };
     private static CateringSquareDto NewSquare() => new() { IsActive = true };
+    private async Task UseCurrentLocationAsync()
+    {
+        if (mapReady) await JSRuntime.InvokeAsync<bool>("alafkarLocationPicker.useCurrentLocation", mapElementId);
+    }
+    private async Task OnLatitudeChanged(ChangeEventArgs args)
+    {
+        square.Latitude = decimal.TryParse(args.Value?.ToString(), out var value) ? value : null;
+        await SetMapCenterAsync(false);
+    }
+    private async Task OnLongitudeChanged(ChangeEventArgs args)
+    {
+        square.Longitude = decimal.TryParse(args.Value?.ToString(), out var value) ? value : null;
+        await SetMapCenterAsync(false);
+    }
+    private async Task SetMapCenterAsync(bool notify)
+    {
+        if (mapReady) await JSRuntime.InvokeVoidAsync("alafkarLocationPicker.setCenter", mapElementId, (double)(square.Latitude ?? 24.7136m), (double)(square.Longitude ?? 46.6753m), notify);
+    }
+    [JSInvokable]
+    public Task OnMapLocationSelected(double latitude, double longitude)
+    {
+        square.Latitude = (decimal)Math.Round(latitude, 6);
+        square.Longitude = (decimal)Math.Round(longitude, 6);
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
     private string Display(string name, string? nameEng) => SharedDataService.Language == "Ar" ? name : (string.IsNullOrWhiteSpace(nameEng) ? name : nameEng);
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private string Error(ErrorResponseDto? error) => error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Operation failed.", "تعذرت العملية.");
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
-    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+    public void Dispose() { SharedDataService.OnChange1 -= HandleChangeAsync; dotNetReference?.Dispose(); }
 }
+
+<style>
+    .catering-location-map {
+        block-size: 280px;
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-lg);
+        inline-size: 100%;
+        overflow: hidden;
+    }
+
+    .location-picker-map {
+        cursor: grab;
+        position: relative;
+        touch-action: none;
+    }
+
+    .location-picker-map.is-dragging {
+        cursor: grabbing;
+    }
+
+    .location-picker-tile {
+        block-size: 256px;
+        inline-size: 256px;
+        position: absolute;
+        user-select: none;
+    }
+
+    .location-picker-marker {
+        color: var(--erp-danger);
+        font-size: 2rem;
+        inset-block-start: 50%;
+        inset-inline-start: 50%;
+        line-height: 1;
+        pointer-events: none;
+        position: absolute;
+        transform: translate(-50%, -100%);
+        z-index: 2;
+    }
+</style>
 

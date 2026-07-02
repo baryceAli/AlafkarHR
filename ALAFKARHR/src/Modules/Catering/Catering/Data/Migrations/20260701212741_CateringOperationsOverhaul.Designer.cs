@@ -4,6 +4,7 @@ using Catering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Catering.Data.Migrations
 {
     [DbContext(typeof(CateringDbContext))]
-    partial class CateringDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260701212741_CateringOperationsOverhaul")]
+    partial class CateringOperationsOverhaul
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -325,15 +328,6 @@ namespace Catering.Data.Migrations
                     b.Property<Guid>("CateringContractId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("CateringOperationalPlanId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CateringProjectDailyPlanId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CateringProjectId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -384,12 +378,6 @@ namespace Catering.Data.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CateringOperationalPlanId");
-
-                    b.HasIndex("CateringProjectDailyPlanId");
-
-                    b.HasIndex("CateringProjectId");
 
                     b.HasIndex("CateringContractId", "ServiceDate")
                         .IsUnique();
@@ -566,213 +554,6 @@ namespace Catering.Data.Migrations
                     b.ToTable("CateringExecutionEvents", "Catering");
                 });
 
-            modelBuilder.Entity("Catering.Models.CateringInventoryRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("BranchId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CateringOperationalPlanId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("DailyScheduleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("InventoryReferenceIdsCsv")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<Guid?>("PackagingPlanId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("PlannedMealCount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("RequestDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("RequestedByEmployeeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("RequestedByEmployeeName")
-                        .IsRequired()
-                        .HasMaxLength(180)
-                        .HasColumnType("nvarchar(180)");
-
-                    b.Property<Guid>("SourceWarehouseId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CompanyId", "DailyScheduleId");
-
-                    b.HasIndex("SourceWarehouseId", "Status");
-
-                    b.ToTable("CateringInventoryRequests", "Catering");
-                });
-
-            modelBuilder.Entity("Catering.Models.CateringInventoryRequestLine", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("ApprovedQuantity")
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<Guid>("CateringInventoryRequestId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<Guid?>("ProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ProductPackageId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ProductSkuId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ProductSkuName")
-                        .IsRequired()
-                        .HasMaxLength(180)
-                        .HasColumnType("nvarchar(180)");
-
-                    b.Property<string>("ProductSkuNameEng")
-                        .HasMaxLength(180)
-                        .HasColumnType("nvarchar(180)");
-
-                    b.Property<decimal>("QuantityPerMeal")
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<decimal>("RequiredQuantity")
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<string>("UnitName")
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CateringInventoryRequestId", "ProductSkuId");
-
-                    b.ToTable("CateringInventoryRequestLines", "Catering");
-                });
-
-            modelBuilder.Entity("Catering.Models.CateringOperationalPlan", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("BranchId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CateringContractId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CompanyId", "CateringContractId");
-
-                    b.ToTable("CateringOperationalPlans", "Catering");
-                });
-
             modelBuilder.Entity("Catering.Models.CateringPackagingPlan", b =>
                 {
                     b.Property<Guid>("Id")
@@ -857,268 +638,6 @@ namespace Catering.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("CateringPackagingPlans", "Catering");
-                });
-
-            modelBuilder.Entity("Catering.Models.CateringPlanResourceAssignment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CateringOperationalPlanId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("EffectiveFrom")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("EffectiveTo")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("EmployeeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("EmployeeName")
-                        .HasMaxLength(180)
-                        .HasColumnType("nvarchar(180)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("PlateNumber")
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
-
-                    b.Property<int>("ResourceType")
-                        .HasColumnType("int");
-
-                    b.Property<Guid?>("SquareId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("VehicleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("VehicleName")
-                        .HasMaxLength(180)
-                        .HasColumnType("nvarchar(180)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CateringOperationalPlanId", "ResourceType");
-
-                    b.ToTable("CateringPlanResourceAssignments", "Catering");
-                });
-
-            modelBuilder.Entity("Catering.Models.CateringProject", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("BranchId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("ProjectName")
-                        .IsRequired()
-                        .HasMaxLength(180)
-                        .HasColumnType("nvarchar(180)");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CompanyId", "ProjectName");
-
-                    b.ToTable("CateringProjects", "Catering");
-                });
-
-            modelBuilder.Entity("Catering.Models.CateringProjectContractLink", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CateringContractId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CateringProjectId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CateringProjectId", "CateringContractId")
-                        .IsUnique();
-
-                    b.ToTable("CateringProjectContractLinks", "Catering");
-                });
-
-            modelBuilder.Entity("Catering.Models.CateringProjectDailyPlan", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CateringProjectId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<decimal>("PlannedQuantity")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("ServiceDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CateringProjectId", "ServiceDate")
-                        .IsUnique();
-
-                    b.ToTable("CateringProjectDailyPlans", "Catering");
-                });
-
-            modelBuilder.Entity("Catering.Models.CateringProjectSquareScope", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CateringProjectId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("SquareId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CateringProjectId", "SquareId")
-                        .IsUnique();
-
-                    b.ToTable("CateringProjectSquareScopes", "Catering");
                 });
 
             modelBuilder.Entity("Catering.Models.CateringSquare", b =>
@@ -1463,28 +982,6 @@ namespace Catering.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<Guid?>("ProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ProductPackageId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ProductSkuId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ProductSkuName")
-                        .HasMaxLength(180)
-                        .HasColumnType("nvarchar(180)");
-
-                    b.Property<string>("ProductSkuNameEng")
-                        .HasMaxLength(180)
-                        .HasColumnType("nvarchar(180)");
-
-                    b.Property<int>("StructureType")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(2);
-
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyId", "Name");
@@ -1497,51 +994,6 @@ namespace Catering.Data.Migrations
                     b.HasOne("Catering.Models.CateringContract", null)
                         .WithMany("Addendums")
                         .HasForeignKey("CateringContractId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Catering.Models.CateringInventoryRequestLine", b =>
-                {
-                    b.HasOne("Catering.Models.CateringInventoryRequest", null)
-                        .WithMany("Lines")
-                        .HasForeignKey("CateringInventoryRequestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Catering.Models.CateringPlanResourceAssignment", b =>
-                {
-                    b.HasOne("Catering.Models.CateringOperationalPlan", null)
-                        .WithMany("Resources")
-                        .HasForeignKey("CateringOperationalPlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Catering.Models.CateringProjectContractLink", b =>
-                {
-                    b.HasOne("Catering.Models.CateringProject", null)
-                        .WithMany("Contracts")
-                        .HasForeignKey("CateringProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Catering.Models.CateringProjectDailyPlan", b =>
-                {
-                    b.HasOne("Catering.Models.CateringProject", null)
-                        .WithMany("DailyPlans")
-                        .HasForeignKey("CateringProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Catering.Models.CateringProjectSquareScope", b =>
-                {
-                    b.HasOne("Catering.Models.CateringProject", null)
-                        .WithMany("Squares")
-                        .HasForeignKey("CateringProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -1572,25 +1024,6 @@ namespace Catering.Data.Migrations
             modelBuilder.Entity("Catering.Models.CateringDailySchedule", b =>
                 {
                     b.Navigation("Allocations");
-                });
-
-            modelBuilder.Entity("Catering.Models.CateringInventoryRequest", b =>
-                {
-                    b.Navigation("Lines");
-                });
-
-            modelBuilder.Entity("Catering.Models.CateringOperationalPlan", b =>
-                {
-                    b.Navigation("Resources");
-                });
-
-            modelBuilder.Entity("Catering.Models.CateringProject", b =>
-                {
-                    b.Navigation("Contracts");
-
-                    b.Navigation("DailyPlans");
-
-                    b.Navigation("Squares");
                 });
 
             modelBuilder.Entity("Catering.Models.MealDefinition", b =>
