@@ -27,23 +27,16 @@
         }
 
         <div class="enterprise-topbar-context min-w-0">
-            <div class="enterprise-context-primary">
-                <span class="enterprise-app-pill">
-                    <i class="bi @ActiveWorkspaceIcon"></i>
-                    @WorkspaceLabel
-                </span>
-                <button type="button"
-                        class="enterprise-command-trigger"
-                        @onclick="() => OnOpenCommand.InvokeAsync()">
-                    <i class="bi bi-search"></i>
-                    <span>@SharedDataService.SelectViewLang("Search or jump to page", "\u0627\u0628\u062d\u062b \u0623\u0648 \u0627\u0646\u062a\u0642\u0644 \u0644\u0635\u0641\u062d\u0629")</span>
-                    <kbd>Ctrl K</kbd>
-                </button>
-            </div>
             <ol class="enterprise-context-trail" aria-label="Workspace trail">
+                <li class="enterprise-workspace-crumb">
+                    <span class="enterprise-app-pill">
+                        <i class="bi @ActiveWorkspaceIcon"></i>
+                        @WorkspaceLabel
+                    </span>
+                </li>
                 @if (ActivePath.Count == 0)
                 {
-                    <li>@CurrentTitle</li>
+                    <li class="is-current">@CurrentTitle</li>
                 }
                 else
                 {
