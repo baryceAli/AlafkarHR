@@ -560,8 +560,26 @@ public class MenuItem
                 },
                 new MenuItem
                 {
+                    TextEn = "Projects",
+                    TextAr = "المشاريع",
+                    Icon = "bi-diagram-3",
+                    Url = "/Catering/Projects",
+                    PermissionPolicy = PermissionList.CateringPlanPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.CateringFunctionalGroupSchedules
+                },
+                new MenuItem
+                {
+                    TextEn = "Packaging",
+                    TextAr = "التجهيز والتغليف",
+                    Icon = "bi-box2-heart",
+                    Url = "/Catering/Packaging",
+                    PermissionPolicy = PermissionList.CateringPackagingPermissions.View,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.CateringFunctionalGroupDeliveries
+                },
+                new MenuItem
+                {
                     TextEn = "Deliveries",
-                    TextAr = "استلام البرادات",
+                    TextAr = "التشغيل والرحلات",
                     Icon = "bi-truck",
                     Url = "/Catering/Deliveries",
                     PermissionPolicy = PermissionList.CateringDeliveryPermissions.View,

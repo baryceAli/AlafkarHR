@@ -12,6 +12,17 @@ public class CateringDbContext(DbContextOptions<CateringDbContext> options) : Db
     public DbSet<CateringSquare> CateringSquares => Set<CateringSquare>();
     public DbSet<CateringDailySchedule> CateringDailySchedules => Set<CateringDailySchedule>();
     public DbSet<CateringSquareAllocation> CateringSquareAllocations => Set<CateringSquareAllocation>();
+    public DbSet<CateringOperationalPlan> CateringOperationalPlans => Set<CateringOperationalPlan>();
+    public DbSet<CateringPlanResourceAssignment> CateringPlanResourceAssignments => Set<CateringPlanResourceAssignment>();
+    public DbSet<CateringProject> CateringProjects => Set<CateringProject>();
+    public DbSet<CateringProjectContractLink> CateringProjectContractLinks => Set<CateringProjectContractLink>();
+    public DbSet<CateringProjectSquareScope> CateringProjectSquareScopes => Set<CateringProjectSquareScope>();
+    public DbSet<CateringProjectDailyPlan> CateringProjectDailyPlans => Set<CateringProjectDailyPlan>();
+    public DbSet<CateringPackagingPlan> CateringPackagingPlans => Set<CateringPackagingPlan>();
+    public DbSet<CateringInventoryRequest> CateringInventoryRequests => Set<CateringInventoryRequest>();
+    public DbSet<CateringInventoryRequestLine> CateringInventoryRequestLines => Set<CateringInventoryRequestLine>();
+    public DbSet<CateringDispatchPlan> CateringDispatchPlans => Set<CateringDispatchPlan>();
+    public DbSet<CateringExecutionEvent> CateringExecutionEvents => Set<CateringExecutionEvent>();
     public DbSet<CateringVehicleDelivery> CateringVehicleDeliveries => Set<CateringVehicleDelivery>();
     public DbSet<CateringAssignment> CateringAssignments => Set<CateringAssignment>();
 

@@ -1,0 +1,309 @@
+@page "/Catering/Plan"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Catering.Services
+@using AlAfkarERP.Shared.Pages.Features.Employees.Services
+@using AlAfkarERP.Shared.Pages.Features.Fleet.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using SharedWithUI.Catering.Dtos
+@using SharedWithUI.Catering.Enums
+@using SharedWithUI.Employees.Dtos
+@using SharedWithUI.Fleet.Dtos
+@using SharedWithUI.Inventory.Dtos
+@inject ICateringService CateringService
+@inject IEmployeeService EmployeeService
+@inject IFleetService FleetService
+@inject IWarehouseService WarehouseService
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Catering Plan", "خطة الإعاشة")" Subtitle="@Text("Connect contract resources, daily schedules, and packaging inventory requests.", "ربط موارد العقد والجداول اليومية وطلبات مخزون التجهيز.")" Icon="bi-diagram-3" />
+    @StatusBlock()
+
+    <div class="erp-card mb-3">
+        <div class="erp-card-body">
+            <EditForm Model="plan" OnValidSubmit="SavePlanAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-4"><label class="form-label">@Text("Contract", "العقد")</label><select class="form-select" @bind="plan.CateringContractId" @bind:after="OnPlanContractChanged"><option value="@Guid.Empty">@Text("Select contract", "اختر العقد")</option>@foreach (var item in contracts) { <option value="@item.Id">@ContractLabel(item)</option> }</select></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Start", "البداية")</label><InputDate class="form-control" @bind-Value="plan.StartDate" /></div>
+                    <div class="col-md-2"><label class="form-label">@Text("End", "النهاية")</label><InputDate class="form-control" @bind-Value="plan.EndDate" /></div>
+                    <div class="col-md-2"><label class="form-label">@Text("Status", "الحالة")</label><InputSelect class="form-select" @bind-Value="plan.Status">@foreach (var status in Enum.GetValues<CateringPlanStatus>()) { <option value="@status">@status</option> }</InputSelect></div>
+                    <div class="col-md-2"><button class="btn btn-primary w-100" type="submit" disabled="@busy"><i class="bi bi-save"></i> @Text("Save", "حفظ")</button></div>
+                    <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="plan.Notes" /></div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    @if (selectedPlan is not null)
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-xl-7">
+                <div class="erp-card h-100">
+                    <div class="erp-card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">@Text("Resources", "الموارد") - @selectedPlan.ContractNumber</h6>
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="ClearSelection"><i class="bi bi-x-lg"></i></button>
+                        </div>
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-3"><label class="form-label">@Text("Role", "الدور")</label><InputSelect class="form-select" @bind-Value="resource.ResourceType">@foreach (var role in Enum.GetValues<CateringPlanResourceType>()) { <option value="@role">@role</option> }</InputSelect></div>
+                            @if (resource.ResourceType == CateringPlanResourceType.Truck)
+                            {
+                                <div class="col-md-5"><label class="form-label">@Text("Truck", "الشاحنة")</label><select class="form-select" @onchange="OnVehicleChanged"><option value="">@Text("Select truck", "اختر الشاحنة")</option>@foreach (var vehicle in vehicles) { <option value="@vehicle.Id">@VehicleLabel(vehicle)</option> }</select></div>
+                            }
+                            else
+                            {
+                                <div class="col-md-5"><label class="form-label">@Text("Employee", "الموظف")</label><select class="form-select" @onchange="OnEmployeeChanged"><option value="">@Text("Select employee", "اختر الموظف")</option>@foreach (var employee in employees) { <option value="@employee.Id">@EmployeeLabel(employee)</option> }</select></div>
+                            }
+                            <div class="col-md-2"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="resource.EffectiveFrom" /></div>
+                            <div class="col-md-2"><button class="btn btn-primary w-100" @onclick="AddResourceAsync" disabled="@busy"><i class="bi bi-plus-lg"></i></button></div>
+                        </div>
+                        <div class="erp-table-wrap mt-3"><table class="table erp-table align-middle"><thead><tr><th>@Text("Role", "الدور")</th><th>@Text("Resource", "المورد")</th><th>@Text("Effective", "الفترة")</th><th></th></tr></thead><tbody>
+                            @if (!selectedPlan.Resources.Any()) { <tr><td colspan="4" class="text-muted">@Text("No resources assigned.", "لم يتم تعيين موارد.")</td></tr> }
+                            @foreach (var item in selectedPlan.Resources) { <tr><td>@item.ResourceType</td><td>@ResourceLabel(item)</td><td>@item.EffectiveFrom?.ToString("yyyy-MM-dd") - @item.EffectiveTo?.ToString("yyyy-MM-dd")</td><td class="text-end"><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteResourceAsync(item)" disabled="@busy"><i class="bi bi-trash"></i></button></td></tr> }
+                        </tbody></table></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-5">
+                <div class="erp-card h-100">
+                    <div class="erp-card-body">
+                        <h6>@Text("Generate daily plans", "إنشاء الخطط اليومية")</h6>
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-6"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="generateRequest.FromDate" /></div>
+                            <div class="col-md-6"><label class="form-label">@Text("To", "إلى")</label><InputDate class="form-control" @bind-Value="generateRequest.ToDate" /></div>
+                            <div class="col-md-6"><label class="form-label">@Text("Planned meals/day", "الوجبات اليومية")</label><InputNumber class="form-control" @bind-Value="generateRequest.PlannedQuantity" /></div>
+                            <div class="col-md-6"><label class="form-check mt-4"><InputCheckbox class="form-check-input" @bind-Value="generateRequest.UseFullContractDuration" /> <span class="form-check-label">@Text("Full contract", "كامل العقد")</span></label></div>
+                            <div class="col-12"><button class="btn btn-outline-primary w-100" @onclick="GenerateDailyPlansAsync" disabled="@busy"><i class="bi bi-calendar-plus"></i> @Text("Generate schedules", "إنشاء الجداول")</button></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="erp-card mb-3"><div class="erp-card-body"><div class="row g-2 align-items-end">
+        <div class="col-md-4"><label class="form-label">@Text("Filter contract", "تصفية العقد")</label><select class="form-select" @bind="filterContractId"><option value="">@Text("All contracts", "كل العقود")</option>@foreach (var item in contracts) { <option value="@item.Id">@ContractLabel(item)</option> }</select></div>
+        <div class="col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadPlansAsync"><i class="bi bi-funnel"></i> @Text("Apply", "تطبيق")</button></div>
+    </div></div></div>
+
+    <div class="erp-table-wrap mb-3"><table class="table erp-table align-middle"><thead><tr><th>@Text("Contract", "العقد")</th><th>@Text("Dates", "التواريخ")</th><th>@Text("Resources", "الموارد")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>
+        @if (loading) { <tr><td colspan="5" class="text-muted">@Text("Loading plans...", "جاري تحميل الخطط...")</td></tr> }
+        else if (!plans.Any()) { <tr><td colspan="5" class="text-muted">@Text("No plans found.", "لا توجد خطط.")</td></tr> }
+        @foreach (var item in plans) { <tr><td>@item.ContractNumber - @Display(item.CustomerName ?? "", item.CustomerNameEng)</td><td>@item.StartDate.ToString("yyyy-MM-dd") - @item.EndDate.ToString("yyyy-MM-dd")</td><td>@item.Resources.Count</td><td>@item.Status</td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditPlan(item)"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-secondary" @onclick="() => SelectPlan(item)"><i class="bi bi-diagram-3"></i></button></td></tr> }
+    </tbody></table></div>
+
+    <div class="erp-card">
+        <div class="erp-card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">@Text("Packaging inventory requests", "طلبات مخزون التجهيز")</h6>
+                <button class="btn btn-outline-primary btn-sm" @onclick="CreateInventoryRequestAsync" disabled="@(busy || selectedPlan is null || inventoryRequest.DailyScheduleId == Guid.Empty || inventoryRequest.SourceWarehouseId == Guid.Empty || inventoryRequest.RequestedByEmployeeId == Guid.Empty)"><i class="bi bi-plus-lg"></i> @Text("Create request", "إنشاء طلب")</button>
+            </div>
+            <div class="row g-2 align-items-end mb-3">
+                <div class="col-md-4"><label class="form-label">@Text("Schedule", "الجدول")</label><select class="form-select" @bind="inventoryRequest.DailyScheduleId"><option value="@Guid.Empty">@Text("Select schedule", "اختر الجدول")</option>@foreach (var schedule in schedules) { <option value="@schedule.Id">@schedule.ServiceDate.ToString("yyyy-MM-dd") - @schedule.PlannedQuantity.ToString("N0")</option> }</select></div>
+                <div class="col-md-3"><label class="form-label">@Text("Source warehouse", "مستودع الصرف")</label><select class="form-select" @bind="inventoryRequest.SourceWarehouseId"><option value="@Guid.Empty">@Text("Select warehouse", "اختر المستودع")</option>@foreach (var warehouse in warehouses) { <option value="@warehouse.Id">@Display(warehouse.Name, warehouse.NameEng)</option> }</select></div>
+                <div class="col-md-3"><label class="form-label">@Text("Packaging responsible", "مسؤول التجهيز")</label><select class="form-select" @onchange="OnRequestEmployeeChanged"><option value="">@Text("Select employee", "اختر الموظف")</option>@foreach (var employee in employees) { <option value="@employee.Id">@EmployeeLabel(employee)</option> }</select></div>
+                <div class="col-md-2"><label class="form-label">@Text("Meals", "الوجبات")</label><InputNumber class="form-control" @bind-Value="inventoryRequest.PlannedMealCount" /></div>
+            </div>
+            <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Schedule", "الجدول")</th><th>@Text("Status", "الحالة")</th><th>@Text("Lines", "البنود")</th><th></th></tr></thead><tbody>
+                @if (!inventoryRequests.Any()) { <tr><td colspan="5" class="text-muted">@Text("No inventory requests.", "لا توجد طلبات مخزون.")</td></tr> }
+                @foreach (var item in inventoryRequests) { <tr><td>@item.RequestDate.ToString("yyyy-MM-dd")</td><td>@item.DailyScheduleId</td><td>@item.Status</td><td>@item.Lines.Count</td><td class="text-end"><button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => SubmitInventoryRequestAsync(item)" disabled="@(busy || item.Status != CateringInventoryRequestStatus.Draft)">@Text("Submit", "إرسال")</button><button class="btn btn-sm btn-outline-success me-1" @onclick="() => ApproveInventoryRequestAsync(item)" disabled="@(busy || item.Status != CateringInventoryRequestStatus.Submitted)">@Text("Approve", "اعتماد")</button><button class="btn btn-sm btn-outline-primary" @onclick="() => FulfillInventoryRequestAsync(item)" disabled="@(busy || item.Status != CateringInventoryRequestStatus.Approved)">@Text("Fulfill", "صرف")</button></td></tr> }
+            </tbody></table></div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CateringOperationalPlanDto plan = NewPlan();
+    private CateringOperationalPlanDto? selectedPlan;
+    private CateringPlanResourceAssignmentDto resource = NewResource();
+    private CateringGenerateDailyPlanRequestDto generateRequest = new();
+    private CateringInventoryRequestDto inventoryRequest = NewInventoryRequest();
+    private List<CateringOperationalPlanDto> plans = [];
+    private List<CateringContractDto> contracts = [];
+    private List<CateringDailyScheduleDto> schedules = [];
+    private List<CateringInventoryRequestDto> inventoryRequests = [];
+    private List<EmployeeDto> employees = [];
+    private List<FleetVehicleDto> vehicles = [];
+    private List<WarehouseDto> warehouses = [];
+    private Guid? filterContractId;
+    private bool loading;
+    private bool busy;
+    private string? message;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        await LoadLookupsAsync();
+        await LoadPlansAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        Guid? companyId = ApiConfig.CompanyId == Guid.Empty ? null : ApiConfig.CompanyId;
+        var contractResult = await CateringService.GetContractsAsync(0, 1000, companyId, status: null);
+        if (contractResult.IsSuccess) contracts = (contractResult.Data?.Data ?? []).Where(x => x.Status is CateringContractStatus.Draft or CateringContractStatus.Active).ToList();
+        if (ApiConfig.CompanyId != Guid.Empty)
+        {
+            var employeeResult = await EmployeeService.GetByCompanyIdAsync(ApiConfig.CompanyId, 0, 500);
+            if (employeeResult.IsSuccess) employees = employeeResult.Data?.Data.ToList() ?? [];
+            var vehicleResult = await FleetService.GetVehiclesAsync(0, 500, companyId: ApiConfig.CompanyId);
+            if (vehicleResult.IsSuccess) vehicles = vehicleResult.Data?.Data.ToList() ?? [];
+            var warehouseResult = await WarehouseService.GetAsync(ApiConfig.CompanyId, 0, 500);
+            if (warehouseResult.IsSuccess) warehouses = warehouseResult.Data?.Data.ToList() ?? [];
+        }
+    }
+
+    private async Task LoadPlansAsync()
+    {
+        loading = true;
+        Guid? companyId = ApiConfig.CompanyId == Guid.Empty ? null : ApiConfig.CompanyId;
+        var result = await CateringService.GetPlansAsync(0, 300, companyId, filterContractId);
+        if (result.IsSuccess) plans = result.Data?.Data.ToList() ?? []; else errorMessage = Error(result.Error);
+        await LoadInventoryRequestsAsync();
+        loading = false;
+    }
+
+    private async Task LoadSchedulesAsync()
+    {
+        var contractId = selectedPlan?.CateringContractId;
+        var result = await CateringService.GetSchedulesAsync(0, 500, contractId, selectedPlan?.StartDate, selectedPlan?.EndDate);
+        if (result.IsSuccess) schedules = result.Data?.Data.ToList() ?? [];
+    }
+
+    private async Task LoadInventoryRequestsAsync()
+    {
+        Guid? companyId = ApiConfig.CompanyId == Guid.Empty ? null : ApiConfig.CompanyId;
+        var result = await CateringService.GetInventoryRequestsAsync(0, 300, companyId, selectedPlan?.Id);
+        if (result.IsSuccess) inventoryRequests = result.Data?.Data.ToList() ?? [];
+    }
+
+    private async Task SavePlanAsync()
+    {
+        var contract = contracts.FirstOrDefault(x => x.Id == plan.CateringContractId);
+        if (contract is null) { errorMessage = Text("Select contract first.", "اختر العقد أولا."); return; }
+        plan.CompanyId = contract.CompanyId;
+        plan.BranchId = contract.BranchId;
+        busy = true;
+        var success = false;
+        string? failure = null;
+        if (plan.Id == Guid.Empty) { var result = await CateringService.CreatePlanAsync(plan); success = result.IsSuccess; failure = Error(result.Error); }
+        else { var result = await CateringService.UpdatePlanAsync(plan); success = result.IsSuccess; failure = Error(result.Error); }
+        SetStatus(success, Text("Plan saved.", "تم حفظ الخطة."), failure);
+        plan = NewPlan();
+        await LoadPlansAsync();
+        busy = false;
+    }
+
+    private void OnPlanContractChanged()
+    {
+        var contract = contracts.FirstOrDefault(x => x.Id == plan.CateringContractId);
+        if (contract is null) return;
+        plan.CompanyId = contract.CompanyId;
+        plan.BranchId = contract.BranchId;
+        plan.StartDate = contract.StartDate;
+        plan.EndDate = contract.EndDate;
+    }
+
+    private void EditPlan(CateringOperationalPlanDto item) => plan = new() { Id = item.Id, CompanyId = item.CompanyId, BranchId = item.BranchId, CateringContractId = item.CateringContractId, StartDate = item.StartDate, EndDate = item.EndDate, Status = item.Status, Notes = item.Notes, Resources = item.Resources };
+    private async Task SelectPlan(CateringOperationalPlanDto item) { selectedPlan = item; resource = NewResource(); generateRequest = new() { CateringOperationalPlanId = item.Id, FromDate = item.StartDate, ToDate = item.EndDate, UseFullContractDuration = false }; inventoryRequest = NewInventoryRequest(); inventoryRequest.CateringOperationalPlanId = item.Id; await LoadSchedulesAsync(); await LoadInventoryRequestsAsync(); }
+    private void ClearSelection() { selectedPlan = null; schedules = []; inventoryRequest = NewInventoryRequest(); }
+
+    private void OnEmployeeChanged(ChangeEventArgs args)
+    {
+        resource.EmployeeId = Guid.TryParse(args.Value?.ToString(), out var id) ? id : null;
+        var employee = resource.EmployeeId.HasValue ? employees.FirstOrDefault(x => x.Id == resource.EmployeeId.Value) : null;
+        resource.EmployeeName = employee is null ? null : EmployeeLabel(employee);
+    }
+
+    private void OnVehicleChanged(ChangeEventArgs args)
+    {
+        resource.VehicleId = Guid.TryParse(args.Value?.ToString(), out var id) ? id : null;
+        var vehicle = resource.VehicleId.HasValue ? vehicles.FirstOrDefault(x => x.Id == resource.VehicleId.Value) : null;
+        resource.VehicleName = vehicle is null ? null : VehicleLabel(vehicle);
+        resource.PlateNumber = vehicle?.PlateNumber;
+    }
+
+    private async Task AddResourceAsync()
+    {
+        if (selectedPlan is null) return;
+        busy = true;
+        var result = await CateringService.AddPlanResourceAsync(selectedPlan.Id, resource);
+        SetStatus(result.IsSuccess, Text("Resource added.", "تمت إضافة المورد."), Error(result.Error));
+        await ReloadSelectedPlanAsync();
+        resource = NewResource();
+        busy = false;
+    }
+
+    private async Task DeleteResourceAsync(CateringPlanResourceAssignmentDto item)
+    {
+        if (selectedPlan is null) return;
+        busy = true;
+        var result = await CateringService.DeletePlanResourceAsync(selectedPlan.Id, item.Id);
+        SetStatus(result.IsSuccess, Text("Resource removed.", "تم حذف المورد."), Error(result.Error));
+        await ReloadSelectedPlanAsync();
+        busy = false;
+    }
+
+    private async Task GenerateDailyPlansAsync()
+    {
+        if (selectedPlan is null) return;
+        generateRequest.CateringOperationalPlanId = selectedPlan.Id;
+        busy = true;
+        var result = await CateringService.GenerateDailyPlansAsync(generateRequest);
+        SetStatus(result.IsSuccess, result.IsSuccess && result.Data is not null ? Text($"Created {result.Data.CreatedCount:N0}, skipped {result.Data.SkippedCount:N0}.", $"تم إنشاء {result.Data.CreatedCount:N0} وتجاوز {result.Data.SkippedCount:N0}.") : Text("Schedules generated.", "تم إنشاء الجداول."), Error(result.Error));
+        await LoadSchedulesAsync();
+        busy = false;
+    }
+
+    private void OnRequestEmployeeChanged(ChangeEventArgs args)
+    {
+        inventoryRequest.RequestedByEmployeeId = Guid.TryParse(args.Value?.ToString(), out var id) ? id : Guid.Empty;
+        var employee = employees.FirstOrDefault(x => x.Id == inventoryRequest.RequestedByEmployeeId);
+        inventoryRequest.RequestedByEmployeeName = employee is null ? string.Empty : EmployeeLabel(employee);
+    }
+
+    private async Task CreateInventoryRequestAsync()
+    {
+        if (selectedPlan is null) return;
+        inventoryRequest.CateringOperationalPlanId = selectedPlan.Id;
+        var schedule = schedules.FirstOrDefault(x => x.Id == inventoryRequest.DailyScheduleId);
+        inventoryRequest.PlannedMealCount = inventoryRequest.PlannedMealCount <= 0 ? schedule?.PlannedQuantity ?? 0 : inventoryRequest.PlannedMealCount;
+        busy = true;
+        var result = await CateringService.CreateInventoryRequestAsync(inventoryRequest);
+        SetStatus(result.IsSuccess, Text("Inventory request created.", "تم إنشاء طلب المخزون."), Error(result.Error));
+        inventoryRequest = NewInventoryRequest();
+        inventoryRequest.CateringOperationalPlanId = selectedPlan.Id;
+        await LoadInventoryRequestsAsync();
+        busy = false;
+    }
+
+    private async Task SubmitInventoryRequestAsync(CateringInventoryRequestDto item) { busy = true; var result = await CateringService.SubmitInventoryRequestAsync(item.Id); SetStatus(result.IsSuccess, Text("Request submitted.", "تم إرسال الطلب."), Error(result.Error)); await LoadInventoryRequestsAsync(); busy = false; }
+    private async Task ApproveInventoryRequestAsync(CateringInventoryRequestDto item) { busy = true; var result = await CateringService.ApproveInventoryRequestAsync(item.Id); SetStatus(result.IsSuccess, Text("Request approved.", "تم اعتماد الطلب."), Error(result.Error)); await LoadInventoryRequestsAsync(); busy = false; }
+    private async Task FulfillInventoryRequestAsync(CateringInventoryRequestDto item) { busy = true; var result = await CateringService.FulfillInventoryRequestAsync(item.Id); SetStatus(result.IsSuccess, Text("Request fulfilled.", "تم صرف الطلب."), Error(result.Error)); await LoadInventoryRequestsAsync(); busy = false; }
+
+    private async Task ReloadSelectedPlanAsync()
+    {
+        await LoadPlansAsync();
+        if (selectedPlan is not null) selectedPlan = plans.FirstOrDefault(x => x.Id == selectedPlan.Id);
+    }
+
+    private RenderFragment StatusBlock() => @<div>@if (!string.IsNullOrWhiteSpace(message)) { <div class="alert alert-success py-2">@message</div> } @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger py-2">@errorMessage</div> }</div>;
+    private void SetStatus(bool success, string successMessage, string? failureMessage) { message = success ? successMessage : null; errorMessage = success ? null : failureMessage; }
+    private static CateringOperationalPlanDto NewPlan() => new() { StartDate = DateTime.Today, EndDate = DateTime.Today, Status = CateringPlanStatus.Draft };
+    private static CateringPlanResourceAssignmentDto NewResource() => new() { ResourceType = CateringPlanResourceType.Truck, EffectiveFrom = DateTime.Today };
+    private static CateringInventoryRequestDto NewInventoryRequest() => new() { RequestDate = DateTime.Today, Status = CateringInventoryRequestStatus.Draft };
+    private string ContractLabel(CateringContractDto item) => $"{item.Number} - {Display(item.CustomerName, item.CustomerNameEng)}";
+    private string EmployeeLabel(EmployeeDto item) => Display(item.FullName, item.FullNameEng);
+    private string VehicleLabel(FleetVehicleDto item) => $"{item.VehicleCode} - {Display(item.Name, item.NameEng)} ({item.PlateNumber})";
+    private string ResourceLabel(CateringPlanResourceAssignmentDto item) => item.ResourceType == CateringPlanResourceType.Truck ? $"{item.VehicleName} {item.PlateNumber}" : item.EmployeeName ?? "-";
+    private string Display(string name, string? nameEng) => SharedDataService.Language == "Ar" ? name : (string.IsNullOrWhiteSpace(nameEng) ? name : nameEng);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Error(ErrorResponseDto? error) => error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Operation failed.", "تعذرت العملية.");
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

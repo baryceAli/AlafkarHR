@@ -1,0 +1,104 @@
+@page "/Catering/Packaging"
+@layout AdminLayout
+@implements IDisposable
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Catering.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using SharedWithUI.Catering.Dtos
+@using SharedWithUI.Catering.Enums
+@using SharedWithUI.Inventory.Dtos
+@inject ICateringService CateringService
+@inject IWarehouseService WarehouseService
+@inject ApiConfig ApiConfig
+@inject SharedDataService SharedDataService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Packaging", "التجهيز والتغليف")" Subtitle="@Text("Release meal components from store and track packaging preparation.", "صرف مكونات الوجبات من المخزن ومتابعة التجهيز.")" Icon="bi-box2-heart" />
+    @StatusBlock()
+
+    <div class="erp-card mb-3"><div class="erp-card-body">
+        <EditForm Model="plan" OnValidSubmit="SavePlanAsync"><DataAnnotationsValidator />
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3"><label class="form-label">@Text("Schedule", "الجدول")</label><select class="form-select" @bind="plan.DailyScheduleId"><option value="@Guid.Empty">@Text("Select schedule", "اختر الجدول")</option>@foreach (var item in schedules) { <option value="@item.Id">@ScheduleLabel(item)</option> }</select></div>
+                <div class="col-md-3"><label class="form-label">@Text("Source warehouse", "مخزن الصرف")</label><select class="form-select" @bind="plan.SourceWarehouseId"><option value="@Guid.Empty">@Text("Select warehouse", "اختر المخزن")</option>@foreach (var item in warehouses) { <option value="@item.Id">@WarehouseName(item)</option> }</select></div>
+                <div class="col-md-3"><label class="form-label">@Text("Packaging area", "منطقة التجهيز")</label><select class="form-select" @bind="plan.PackagingWarehouseId"><option value="">@Text("Not selected", "غير محدد")</option>@foreach (var item in warehouses) { <option value="@item.Id">@WarehouseName(item)</option> }</select></div>
+                <div class="col-md-2"><label class="form-label">@Text("Required meals", "الوجبات المطلوبة")</label><InputNumber class="form-control" @bind-Value="plan.RequiredMealCount" /></div>
+                <div class="col-md-1"><button class="btn btn-primary w-100" type="submit" disabled="@busy"><i class="bi bi-save"></i></button></div>
+            </div>
+        </EditForm>
+    </div></div>
+
+    <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Schedule", "الجدول")</th><th>@Text("Source", "المصدر")</th><th>@Text("Required", "المطلوب")</th><th>@Text("Released", "المصروف")</th><th>@Text("Prepared", "المجهز")</th><th>@Text("Rejected/Damaged", "المرفوض/التالف")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead><tbody>
+        @if (loading) { <tr><td colspan="8" class="text-muted">@Text("Loading packaging plans...", "جاري تحميل خطط التجهيز...")</td></tr> }
+        else if (!plans.Any()) { <tr><td colspan="8" class="text-muted">@Text("No packaging plans found.", "لا توجد خطط تجهيز.")</td></tr> }
+        @foreach (var item in plans)
+        {
+            <tr>
+                <td>@ScheduleLabel(item.DailyScheduleId)</td>
+                <td>@WarehouseLabel(item.SourceWarehouseId)</td>
+                <td>@item.RequiredMealCount.ToString("N0")</td>
+                <td>@item.StockReleasedMealCount.ToString("N0")</td>
+                <td>@item.PreparedMealCount.ToString("N0")</td>
+                <td>@((item.RejectedMealCount + item.DamagedMealCount).ToString("N0"))</td>
+                <td>@item.Status</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => Edit(item)"><i class="bi bi-pencil-square"></i></button>
+                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => ReleaseStockAsync(item)"><i class="bi bi-box-arrow-up"></i></button>
+                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => StartAsync(item)"><i class="bi bi-play"></i></button>
+                    <button class="btn btn-sm btn-outline-success" @onclick="() => CompleteAsync(item)"><i class="bi bi-check2-circle"></i></button>
+                </td>
+            </tr>
+        }
+    </tbody></table></div>
+</div>
+
+@code {
+    private CateringPackagingPlanDto plan = NewPlan();
+    private List<CateringPackagingPlanDto> plans = [];
+    private List<CateringDailyScheduleDto> schedules = [];
+    private List<WarehouseDto> warehouses = [];
+    private bool loading;
+    private bool busy;
+    private string? message;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync() { SharedDataService.OnChange1 += HandleChangeAsync; await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        var scheduleResult = await CateringService.GetSchedulesAsync(0, 500);
+        var warehouseResult = await WarehouseService.GetAsync(ApiConfig.CompanyId, 0, 1000);
+        var planResult = await CateringService.GetPackagingPlansAsync(0, 500);
+        if (scheduleResult.IsSuccess) schedules = scheduleResult.Data?.Data.ToList() ?? [];
+        if (warehouseResult.IsSuccess) warehouses = warehouseResult.Data?.Data.ToList() ?? [];
+        if (planResult.IsSuccess) plans = planResult.Data?.Data.ToList() ?? []; else errorMessage = Error(planResult.Error);
+        loading = false;
+    }
+
+    private async Task SavePlanAsync()
+    {
+        if (plan.DailyScheduleId == Guid.Empty || plan.SourceWarehouseId == Guid.Empty) { errorMessage = Text("Select schedule and source warehouse.", "اختر الجدول ومخزن الصرف."); return; }
+        var schedule = schedules.FirstOrDefault(x => x.Id == plan.DailyScheduleId);
+        plan.IsPackagingRequired = true;
+        plan.RequiredMealCount = plan.RequiredMealCount <= 0 ? schedule?.PlannedQuantity ?? 0 : plan.RequiredMealCount;
+        busy = true; var result = await CateringService.UpsertPackagingPlanAsync(plan); SetStatus(result.IsSuccess, Text("Packaging plan saved.", "تم حفظ خطة التجهيز."), Error(result.Error)); plan = NewPlan(); await LoadAsync(); busy = false;
+    }
+
+    private void Edit(CateringPackagingPlanDto item) => plan = new() { Id = item.Id, DailyScheduleId = item.DailyScheduleId, IsPackagingRequired = item.IsPackagingRequired, SourceWarehouseId = item.SourceWarehouseId, PackagingWarehouseId = item.PackagingWarehouseId, RequiredMealCount = item.RequiredMealCount, Status = item.Status, Notes = item.Notes };
+    private async Task ReleaseStockAsync(CateringPackagingPlanDto item) { busy = true; var result = await CateringService.ReleasePackagingStockAsync(item.Id); SetStatus(result.IsSuccess, Text("Stock released.", "تم صرف المخزون."), Error(result.Error)); await LoadAsync(); busy = false; }
+    private async Task StartAsync(CateringPackagingPlanDto item) { busy = true; var result = await CateringService.StartPackagingAsync(item.Id); SetStatus(result.IsSuccess, Text("Packaging started.", "بدأ التجهيز."), Error(result.Error)); await LoadAsync(); busy = false; }
+    private async Task CompleteAsync(CateringPackagingPlanDto item) { busy = true; var result = await CateringService.CompletePackagingAsync(item.Id, item.RequiredMealCount, item.RejectedMealCount, item.DamagedMealCount, item.VarianceReason); SetStatus(result.IsSuccess, Text("Packaging completed.", "اكتمل التجهيز."), Error(result.Error)); await LoadAsync(); busy = false; }
+    private string ScheduleLabel(CateringDailyScheduleDto item) => $"{item.ServiceDate:yyyy-MM-dd} - {item.PlannedQuantity:N0}";
+    private string ScheduleLabel(Guid id) { var item = schedules.FirstOrDefault(x => x.Id == id); return item is null ? id.ToString() : ScheduleLabel(item); }
+    private string WarehouseName(WarehouseDto item) => Display(item.Name, item.NameEng);
+    private string WarehouseLabel(Guid id) => warehouses.FirstOrDefault(x => x.Id == id) is { } warehouse ? WarehouseName(warehouse) : id.ToString();
+    private RenderFragment StatusBlock() => @<div>@if (!string.IsNullOrWhiteSpace(message)) { <div class="alert alert-success py-2">@message</div> } @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger py-2">@errorMessage</div> }</div>;
+    private void SetStatus(bool success, string successMessage, string? failureMessage) { message = success ? successMessage : null; errorMessage = success ? null : failureMessage; }
+    private static CateringPackagingPlanDto NewPlan() => new() { IsPackagingRequired = true, Status = CateringPackagingStatus.Planned };
+    private string Display(string name, string? nameEng) => SharedDataService.Language == "Ar" ? name : (string.IsNullOrWhiteSpace(nameEng) ? name : nameEng);
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Error(ErrorResponseDto? error) => error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Operation failed.", "تعذرت العملية.");
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}
