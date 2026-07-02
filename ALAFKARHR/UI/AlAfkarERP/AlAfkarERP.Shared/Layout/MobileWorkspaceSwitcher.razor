@@ -51,8 +51,6 @@
     [Parameter] public IReadOnlySet<string>? LicensedBusinessLineKeys { get; set; }
     [Parameter] public EventCallback<string> ActiveWorkspaceChanged { get; set; }
     [Parameter] public EventCallback OnOpenMore { get; set; }
-    [Parameter] public bool UseGuidedNavigation { get; set; }
-    [Parameter] public EventCallback OnOpenGuidedNavigation { get; set; }
 
     private bool isOpen;
 
@@ -67,14 +65,8 @@
 
     private async Task ToggleAsync()
     {
-        if (UseGuidedNavigation && OnOpenGuidedNavigation.HasDelegate)
-        {
-            isOpen = false;
-            await OnOpenGuidedNavigation.InvokeAsync();
-            return;
-        }
-
         isOpen = !isOpen;
+        await Task.CompletedTask;
     }
 
     private void Close() => isOpen = false;
