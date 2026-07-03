@@ -18,15 +18,15 @@ public class UpdateBrandHandler(CatalogDbContext dbContext, IHttpContextAccessor
     public async Task<UpdateBrandResult> Handle(UpdateBrandCommand command, CancellationToken cancellationToken)
     {
 
+        var companyId = CatalogUserContext.GetCompanyId(httpContextAccessor);
         var brand = await dbContext.Brands
-                        .FindAsync([command.Brand.Id], cancellationToken);
+                        .FirstOrDefaultAsync(x => x.Id == command.Brand.Id && x.CompanyId == companyId, cancellationToken);
         
         if (brand == null)
             throw new Exception($"Brand Not found: {command.Brand.Id}");
 
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
-        var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value??throw new UnauthorizedAccessException("User is not authorized");
+        var userId = CatalogUserContext.GetUserId(httpContextAccessor);
 
         brand.Update(command.Brand.Name,command.Brand.NameEng, userId, command.Brand.Description);
 

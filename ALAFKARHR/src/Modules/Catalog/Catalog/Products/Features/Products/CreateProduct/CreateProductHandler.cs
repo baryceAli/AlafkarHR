@@ -24,8 +24,9 @@ public class CreateProductHandler(CatalogDbContext dbContext, IHttpContextAccess
     public async Task<CreateProductResult> Handle(CreateProductCommand command, CancellationToken cancellationToken)
     {
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
-        var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value??throw new UnauthorizedAccessException("User is not authorized");
+        var userId = CatalogUserContext.GetUserId(httpContextAccessor);
+        var companyId = CatalogUserContext.GetCompanyId(httpContextAccessor);
+        await CatalogOwnershipGuard.EnsureCategoryAsync(dbContext, command.Product.CategoryId, companyId, cancellationToken);
 
         var productId = Guid.NewGuid();
         //string[] PATH_SEGEMNT = ["wwwroot", "Images", "Products"];
@@ -37,7 +38,8 @@ public class CreateProductHandler(CatalogDbContext dbContext, IHttpContextAccess
                 command.Product.NameEng,
                 command.Product.CategoryId.Value,
                 //command.Product.UnitId.Value,
-                Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),
+                command.Product.ProductType,
+                companyId,
                 
                 userId);
 

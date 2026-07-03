@@ -10,6 +10,7 @@ public class ProductSkuDto
     public Guid ProductId { get; set; }
     public string? ProductName { get; set; }
     public string? ProductNameEng { get; set; }
+    public CatalogProductType ProductType { get; set; } = CatalogProductType.Goods;
     public Guid CategoryId { get; set; }
     public string? CategoryName { get; set; }
     public string? CategoryNameEng { get; set; }
@@ -20,6 +21,10 @@ public class ProductSkuDto
     public Guid? PackageId { get; set; } // optional (size: 250ml, 1L)
     public string? PackageName { get; set; }
     public string? PackageNameEng { get; set; }
+    public Guid? PackageUnitId { get; set; }
+    public string? PackageUnitName { get; set; }
+    public string? PackageUnitNameEng { get; set; }
+    public string? PackageBarcode { get; set; }
     public bool IsPackage => PackageId.HasValue || Packages.Any();
 
     public Guid? UnitId { get; set; }

@@ -22,12 +22,18 @@ public class GetVariantsHandler(CatalogDbContext dbContext)
             {
                 Id = x.Id,
                 Name = x.Name,
+                NameEng = x.NameEng,
+                DisplayType = x.DisplayType,
+                CreationMode = x.CreationMode,
+                CompanyId = x.CompanyId,
                 Values = x.Values
                     .Where(v => !v.IsDeleted)
                     .Select(v => new VariantValueDto
                     {
                         Id = v.Id,
-                        Value = v.Value
+                        VariantId = v.VariantId,
+                        Value = v.Value,
+                        ValueEng = v.ValueEng
                     }).ToList()
             })
             .Skip(pageIndex * pageSize)

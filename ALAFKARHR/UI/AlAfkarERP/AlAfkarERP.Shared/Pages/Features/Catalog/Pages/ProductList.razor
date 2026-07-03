@@ -9,6 +9,7 @@
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Catalog.Enums
 @using SharedWithUI.Permissions
 
 
@@ -104,6 +105,7 @@
                 </th>
                 <th @onclick="() => Sort(nameof(ProductDto.NameEng))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
                 <th @onclick="() => Sort(nameof(ProductDto.CategoryName))">@SharedDataService.SelectViewLang("category", "الصنف")</th>
+                <th>@SharedDataService.SelectViewLang("Type", "النوع")</th>
                 @* <th @onclick="() => Sort(nameof(ProductDto.UnitName))">@SharedDataService.SelectViewLang("Unit", "الوحدة")</th> *@
                 <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
             </tr>
@@ -155,6 +157,20 @@
                                         </div>
                                     </div>
                                     
+                                    <div class="mb-3 row">
+                                        <label class="col-sm-2 col-form-label">
+                                            @SharedDataService.SelectViewLang("Product Type", "نوع المنتج")
+                                        </label>
+                                        <div class="col-sm-10">
+                                            <InputSelect TValue="CatalogProductType" class="form-select" @bind-Value="editingItem.ProductType">
+                                                @foreach (var productType in Enum.GetValues<CatalogProductType>())
+                                                {
+                                                    <option value="@productType">@GetProductTypeLabel(productType)</option>
+                                                }
+                                            </InputSelect>
+                                        </div>
+                                    </div>
+
                                     <!--SKU-->
                                     @* <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label">
@@ -210,6 +226,7 @@
                     <td>@product.Name</td>
                     <td>@product.NameEng</td>
                     <td>@product.CategoryName</td>
+                    <td>@GetProductTypeLabel(product.ProductType)</td>
                     @* <td>@product.UnitName</td> *@
                     <td>
                         <div class="d-flex justify-content-end gap-2">
@@ -582,6 +599,15 @@
     {
 
         selectedCategory = category != null ? category : new();
+    }
+    private string GetProductTypeLabel(CatalogProductType productType)
+    {
+        return productType switch
+        {
+            CatalogProductType.Service => SharedDataService.SelectViewLang("Service", "خدمة"),
+            CatalogProductType.Combo => SharedDataService.SelectViewLang("Combo", "مركب"),
+            _ => SharedDataService.SelectViewLang("Goods", "بضائع")
+        };
     }
     // private void onUnitSelected(UnitDto unit)
     // {

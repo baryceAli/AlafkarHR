@@ -9,7 +9,10 @@ public class ProductPackageDto
     public string Name { get; set; } // 250ml, 1L, 500g
     public string NameEng { get; set; } // 250ml, 1L, 500g
     public decimal Quantity { get; set; }
-    //public Guid UnitId { get; set; }
+    public Guid? UnitId { get; set; }
+    public string? UnitName { get; set; }
+    public string? UnitNameEng { get; set; }
+    public string? Barcode { get; set; }
     public Guid CompanyId { get; set; }
 
 }

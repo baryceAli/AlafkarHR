@@ -26,8 +26,10 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
 {
     public async Task<AddProductSkuResult> Handle(AddProductSkuCommand command, CancellationToken cancellationToken)
     {
+        var userId = CatalogUserContext.GetUserId(httpContextAccessor);
+        var companyId = CatalogUserContext.GetCompanyId(httpContextAccessor);
         var prd = await dbContext.Products.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == command.ProductSku.ProductId, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == command.ProductSku.ProductId && x.CompanyId == companyId, cancellationToken);
 
         if ((prd is null))
             throw new NotFoundException($"Product not found: {command.ProductSku.ProductId}");
@@ -37,9 +39,12 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
         //if (unit is null)
             //throw new NotFoundException($"Unit not found: {command.ProductSku.UnitId}");
 
-        var brand = await dbContext.Brands.AsNoTracking().FirstOrDefaultAsync(x => x.Id == command.ProductSku.BrandId);
-        if ((brand is null))
-            throw new NotFoundException($"brand not found: {command.ProductSku.BrandId}");
+        await CatalogOwnershipGuard.EnsureBrandAsync(dbContext, command.ProductSku.BrandId, companyId, cancellationToken);
+        await CatalogOwnershipGuard.EnsureUnitAsync(dbContext, command.ProductSku.UnitId, companyId, cancellationToken);
+        await CatalogOwnershipGuard.EnsureVariantValuesAsync(dbContext, command.ProductSku.Variants, companyId, cancellationToken);
+
+        var brand = await dbContext.Brands.AsNoTracking()
+            .FirstAsync(x => x.Id == command.ProductSku.BrandId && x.CompanyId == companyId, cancellationToken);
 
         var packageIds = command.ProductSku.Packages
             .Select(p => p.Id)
@@ -51,14 +56,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
 
         if (packageIds.Any())
         {
-            var existingPackageIds = await dbContext.ProductPackages.AsNoTracking()
-                .Where(x => packageIds.Contains(x.Id))
-                .Select(x => x.Id)
-                .ToListAsync(cancellationToken);
-
-            var missingPackageId = packageIds.Except(existingPackageIds).FirstOrDefault();
-            if (missingPackageId != Guid.Empty)
-                throw new NotFoundException($"Package not found: {missingPackageId}");
+            await CatalogOwnershipGuard.EnsurePackagesAsync(dbContext, packageIds, companyId, cancellationToken);
         }
 
         var productionType = command.ProductSku.ProductionType == default
@@ -86,7 +84,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
             if (componentSkuIds.Any())
             {
                 var existingComponentSkuIds = await dbContext.ProductSkus.AsNoTracking()
-                    .Where(sku => sku.CompanyId == command.ProductSku.CompanyId && componentSkuIds.Contains(sku.Id))
+                    .Where(sku => sku.CompanyId == companyId && componentSkuIds.Contains(sku.Id))
                     .Select(sku => sku.Id)
                     .ToListAsync(cancellationToken);
 
@@ -95,13 +93,8 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
                     throw new NotFoundException($"Component SKU not found: {missingComponentSkuId}");
             }
         }
+        ValidateProductTypeCapabilities(prd.ProductType, productionType, command.ProductSku.IsInventoryTracked);
         
-        
-        var userId = httpContextAccessor.HttpContext?.User?
-                        .FindFirst(ClaimTypes.NameIdentifier)?
-                        .Value??
-                        throw new UnauthorizedAccessException("User is not authenticated");
-       
         List<(Guid variantId,Guid variantValueId)> variantValueIds=new List<(Guid,Guid)>();
         foreach(var v in command.ProductSku.Variants)
         {
@@ -113,7 +106,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
             packageIds.FirstOrDefault() == Guid.Empty ? null : packageIds.First(), 
             variantValueIds);
 
-        //var key = ProductSkuGenerator.BuildSkuKey(SkuBaseCntx);
+        var key = ProductSkuGenerator.BuildSkuKey(SkuBaseCntx);
         var variants=await dbContext.Variants.AsNoTracking().ToListAsync(cancellationToken);
         var variantValues=await dbContext.VariantValues.AsNoTracking().ToListAsync(cancellationToken);
         Dictionary<Guid, string> variantNames=variants.ToDictionary(x => x.Id, x => x.Name);
@@ -139,7 +132,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
             command.ProductSku.NameEng,
             skuCode,
             skuCodeEng,
-            Guid.NewGuid().ToString(),//key
+            key,
             command.ProductSku.Barcode,
             img,
             command.ProductSku.Price,
@@ -150,7 +143,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
             command.ProductSku.IsPurchasable,
             command.ProductSku.IsInventoryTracked,
             command.ProductSku.IsAssetTrackable,
-            command.ProductSku.CompanyId,
+            companyId,
             userId);
         
         foreach(var variant in command.ProductSku.Variants)
@@ -168,5 +161,14 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
 
         return new AddProductSkuResult(productSku.Id);
 
+    }
+
+    private static void ValidateProductTypeCapabilities(CatalogProductType productType, SkuProductionType productionType, bool isInventoryTracked)
+    {
+        if (productType == CatalogProductType.Service && isInventoryTracked)
+            throw new Exception("Service products cannot be inventory tracked.");
+
+        if (productType == CatalogProductType.Combo && productionType != SkuProductionType.CompositeBundle)
+            throw new Exception("Combo products must use Composite Bundle production type.");
     }
 }

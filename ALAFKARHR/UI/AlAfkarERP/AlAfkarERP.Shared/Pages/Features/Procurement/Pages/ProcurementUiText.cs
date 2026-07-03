@@ -90,7 +90,6 @@ public static class ProcurementUiText
             (ProcurementDocumentKind.PurchaseRequest, "approve") => PermissionList.PurchaseRequestPermissions.Approve,
             (ProcurementDocumentKind.PurchaseRequest, "reject") => PermissionList.PurchaseRequestPermissions.Reject,
             (ProcurementDocumentKind.PurchaseRequest, "cancel") => PermissionList.PurchaseRequestPermissions.Cancel,
-            (ProcurementDocumentKind.PurchaseRequest, "convert") => PermissionList.PurchaseRequestPermissions.Close,
             (ProcurementDocumentKind.RequestForQuotation, "send") => PermissionList.RequestForQuotationPermissions.Submit,
             (ProcurementDocumentKind.RequestForQuotation, "close") => PermissionList.RequestForQuotationPermissions.Close,
             (ProcurementDocumentKind.RequestForQuotation, "cancel") => PermissionList.RequestForQuotationPermissions.Cancel,

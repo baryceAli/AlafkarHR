@@ -2,6 +2,8 @@
 
 namespace SharedWithUI.Catalog.Dtos;
 
+using SharedWithUI.Catalog.Enums;
+
 public class VariantDto
     
 {
@@ -12,6 +14,9 @@ public class VariantDto
 
     [Required(ErrorMessage = "NameEng is required")]
     public string NameEng { get; set; }
+
+    public VariantDisplayType DisplayType { get; set; } = VariantDisplayType.Pills;
+    public VariantCreationMode CreationMode { get; set; } = VariantCreationMode.Instant;
 
     [Required(ErrorMessage ="Company is required")]
     public Guid? CompanyId { get; set; }

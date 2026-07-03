@@ -15,12 +15,12 @@ public class CreateBrandHandler (CatalogDbContext dbContext, IHttpContextAccesso
 {
     public async Task<CreateBrandResult> Handle(CreateBrandCommand command, CancellationToken cancellationToken)
     {
-        var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value?? throw new UnauthorizedAccessException("User is not authorized");
+        var userId = CatalogUserContext.GetUserId(httpContextAccessor);
+        var companyId = CatalogUserContext.GetCompanyId(httpContextAccessor);
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
         //var userEmail = user?.FindFirst(ClaimTypes.Email)?.Value;
 
-        var brand = Brand.Create(Guid.NewGuid(), command.Brand.Name,command.Brand.NameEng, Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), userId, command.Brand.Description);
+        var brand = Brand.Create(Guid.NewGuid(), command.Brand.Name,command.Brand.NameEng, companyId, userId, command.Brand.Description);
         await dbContext.AddAsync(brand);
         await dbContext.SaveChangesAsync(cancellationToken);
 

@@ -4,6 +4,8 @@ public class Variant : Aggregate<Guid>
 {
     public string Name { get; private set; } = default!;
     public string NameEng { get; private set; } = default!;
+    public VariantDisplayType DisplayType { get; private set; } = VariantDisplayType.Pills;
+    public VariantCreationMode CreationMode { get; private set; } = VariantCreationMode.Instant;
     public Guid CompanyId { get; private set; }
 
     private readonly List<VariantValue> _values = new();
@@ -28,13 +30,16 @@ public class Variant : Aggregate<Guid>
         NameEng = nameEng;
         CompanyId = companyId;
     }
-    public static Variant Create(Guid id, string name, string nameEng, Guid companyId, string createdBy)
+    public static Variant Create(Guid id, string name, string nameEng, VariantDisplayType displayType, VariantCreationMode creationMode, Guid companyId, string createdBy)
     {
+        ValidateVariantSettings(displayType, creationMode);
         return new Variant()
         {
             Id = id,
             Name = name,
             NameEng = nameEng,
+            DisplayType = NormalizeDisplayType(displayType),
+            CreationMode = NormalizeCreationMode(creationMode),
             CompanyId = companyId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy,
@@ -46,6 +51,9 @@ public class Variant : Aggregate<Guid>
     {
         Name = variantDto.Name;
         NameEng = variantDto.NameEng;
+        ValidateVariantSettings(variantDto.DisplayType, variantDto.CreationMode);
+        DisplayType = NormalizeDisplayType(variantDto.DisplayType);
+        CreationMode = NormalizeCreationMode(variantDto.CreationMode);
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
 
@@ -107,4 +115,17 @@ public class Variant : Aggregate<Guid>
         _values.Add(newVariantValue);
 
     }
+
+    private static void ValidateVariantSettings(VariantDisplayType displayType, VariantCreationMode creationMode)
+    {
+        if (NormalizeDisplayType(displayType) == VariantDisplayType.MultiCheckbox &&
+            NormalizeCreationMode(creationMode) != VariantCreationMode.Never)
+            throw new Exception("Multi-checkbox variants must use Never creation mode.");
+    }
+
+    private static VariantDisplayType NormalizeDisplayType(VariantDisplayType displayType)
+        => displayType == default ? VariantDisplayType.Pills : displayType;
+
+    private static VariantCreationMode NormalizeCreationMode(VariantCreationMode creationMode)
+        => creationMode == default ? VariantCreationMode.Instant : creationMode;
 }

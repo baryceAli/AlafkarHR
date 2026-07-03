@@ -10,6 +10,8 @@ public class UpdateUnitCommandValidator : AbstractValidator<UpdateUnitCommand>
     {
         RuleFor(x => x.Unit.UnitName).NotEmpty().WithMessage("UnitName is required");
         RuleFor(x => x.Unit.UnitNameEng).NotEmpty().WithMessage("UnitNameEng is required");
+        RuleFor(x => x.Unit.UnitCategory).NotEmpty().WithMessage("Unit category is required");
+        RuleFor(x => x.Unit.ConversionFactor).GreaterThan(0).WithMessage("Conversion factor must be greater than 0");
     }
 }
 public class UpdateUnitHandler(CatalogDbContext dbContext, IHttpContextAccessor httpContextAccessor)
@@ -17,17 +19,37 @@ public class UpdateUnitHandler(CatalogDbContext dbContext, IHttpContextAccessor 
 {
     public async Task<UpdateUnitResult> Handle(UpdateUnitCommand command, CancellationToken cancellationToken)
     {
-        var unit = await dbContext.Units.FindAsync([command.Unit.Id]);
+        var companyId = CatalogUserContext.GetCompanyId(httpContextAccessor);
+        var unit = await dbContext.Units.FirstOrDefaultAsync(x => x.Id == command.Unit.Id && x.CompanyId == companyId, cancellationToken);
         if (unit is null)
             throw new Exception($"Unit not found: {command.Unit.Id}");
 
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
-        var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value??throw new UnauthorizedAccessException("User is not authenticated");
+        var userId = CatalogUserContext.GetUserId(httpContextAccessor);
+        await EnsureSingleReferenceUnitAsync(command.Unit, companyId, cancellationToken);
 
-        unit.Update(command.Unit.UnitName, command.Unit.UnitNameEng, userId);
+        unit.Update(
+            command.Unit.UnitName,
+            command.Unit.UnitNameEng,
+            command.Unit.UnitCategory,
+            command.Unit.ConversionFactor,
+            command.Unit.IsReferenceUnit,
+            userId);
         await dbContext.SaveChangesAsync();
 
         return new UpdateUnitResult(true);
+    }
+
+    private async Task EnsureSingleReferenceUnitAsync(UnitDto unit, Guid companyId, CancellationToken cancellationToken)
+    {
+        if (!unit.IsReferenceUnit)
+            return;
+
+        var category = string.IsNullOrWhiteSpace(unit.UnitCategory) ? "General" : unit.UnitCategory.Trim();
+        var exists = await dbContext.Units.AsNoTracking()
+            .AnyAsync(x => x.Id != unit.Id && x.CompanyId == companyId && x.UnitCategory == category && x.IsReferenceUnit, cancellationToken);
+
+        if (exists)
+            throw new Exception($"Reference unit already exists for category: {category}");
     }
 }

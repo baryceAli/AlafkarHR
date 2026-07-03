@@ -19,18 +19,22 @@ public class UpdateProductPackageHandler (CatalogDbContext dbContext, IHttpConte
 {
     public async Task<UpdateProductPackageResult> Handle(UpdateProductPackageCommand command, CancellationToken cancellationToken)
     {
-        var package=await dbContext.ProductPackages.FindAsync([command.ProductPackage.Id], cancellationToken);
+        var companyId = CatalogUserContext.GetCompanyId(httpContextAccessor);
+        var package=await dbContext.ProductPackages.FirstOrDefaultAsync(x => x.Id == command.ProductPackage.Id && x.CompanyId == companyId, cancellationToken);
         if (package is null)
             throw new Exception($"ProductPackage not found: {command.ProductPackage.Id}");
 
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
-        var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = CatalogUserContext.GetUserId(httpContextAccessor);
+        if (command.ProductPackage.UnitId.HasValue && command.ProductPackage.UnitId.Value != Guid.Empty)
+            await CatalogOwnershipGuard.EnsureUnitAsync(dbContext, command.ProductPackage.UnitId, companyId, cancellationToken);
 
         package.Update(
             command.ProductPackage.Name, 
             command.ProductPackage.NameEng,
             command.ProductPackage.Quantity,
+            command.ProductPackage.UnitId,
+            command.ProductPackage.Barcode,
             //command.ProductPackage.PackagePrice, 
             userId);
 

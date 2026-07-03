@@ -5,7 +5,8 @@ public class ProductPackage : Aggregate<Guid>
     public string Name { get; private set; } // 250ml, 1L, 500g
     public string NameEng { get; private set; } // 250ml, 1L, 500g
     public decimal Quantity { get; private set; }
-    //public Guid UnitId { get; private set; }
+    public Guid? UnitId { get; private set; }
+    public string? Barcode { get; private set; }
     public Guid CompanyId { get; set; }
     private ProductPackage() { }
 
@@ -13,7 +14,8 @@ public class ProductPackage : Aggregate<Guid>
                             string name, 
                             string nameEng, 
                             decimal quantity,
-                            //Guid unitId,
+                            Guid? unitId,
+                            string? barcode,
                             Guid companyId,
                             string createdBy)
     {
@@ -26,6 +28,8 @@ public class ProductPackage : Aggregate<Guid>
         Name = name;
         NameEng = nameEng;
         Quantity = quantity;
+        UnitId = unitId;
+        Barcode = NormalizeBarcode(barcode);
         CompanyId = companyId;
         CreatedAt = DateTime.UtcNow;
         CreatedBy = createdBy;
@@ -52,6 +56,8 @@ public class ProductPackage : Aggregate<Guid>
         string name,
         string nameEng,
         decimal quantity,
+        Guid? unitId,
+        string? barcode,
         Guid companyId,
         string createdBy)
     {
@@ -66,6 +72,8 @@ public class ProductPackage : Aggregate<Guid>
             Name = name,
             NameEng = nameEng,
             Quantity = quantity,
+            UnitId = unitId,
+            Barcode = NormalizeBarcode(barcode),
             CompanyId=companyId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
@@ -75,6 +83,8 @@ public class ProductPackage : Aggregate<Guid>
     public void Update(string packageName, 
         string packageNameEng, 
         decimal quantity, 
+        Guid? unitId,
+        string? barcode,
         //decimal packagePrice, 
         string modifiedBy)
     {
@@ -87,6 +97,8 @@ public class ProductPackage : Aggregate<Guid>
         Name = packageName;
         NameEng = packageNameEng;
         Quantity = quantity;
+        UnitId = unitId;
+        Barcode = NormalizeBarcode(barcode);
         //PackagePrice = packagePrice;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
@@ -97,4 +109,7 @@ public class ProductPackage : Aggregate<Guid>
         DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;
     }
+
+    private static string? NormalizeBarcode(string? barcode)
+        => string.IsNullOrWhiteSpace(barcode) ? null : barcode.Trim();
 }

@@ -9,6 +9,9 @@ public class UpdateVariantCommandValidator : AbstractValidator<UpdateVariantComm
     {
         RuleFor(x => x.Variant.Name).NotEmpty().WithMessage("Name is required");
         RuleFor(x => x.Variant.NameEng).NotEmpty().WithMessage("NameEng is required");
+        RuleFor(x => x.Variant)
+            .Must(x => x.DisplayType != VariantDisplayType.MultiCheckbox || x.CreationMode == VariantCreationMode.Never)
+            .WithMessage("Multi-checkbox variants must use Never creation mode");
     }
 }
 public class UpdateVariantHandler (CatalogDbContext dbContext, IHttpContextAccessor httpContextAccessor)
@@ -16,16 +19,16 @@ public class UpdateVariantHandler (CatalogDbContext dbContext, IHttpContextAcces
 {
     public async Task<UpdateVariantResult> Handle(UpdateVariantCommand command, CancellationToken cancellationToken)
     {
+        var companyId = CatalogUserContext.GetCompanyId(httpContextAccessor);
         var variant = await dbContext.Variants
                         .Include(x=>x.Values)
-                        .FirstOrDefaultAsync(x => x.Id == command.Variant.Id && !x.IsDeleted, cancellationToken);
+                        .FirstOrDefaultAsync(x => x.Id == command.Variant.Id && x.CompanyId == companyId && !x.IsDeleted, cancellationToken);
 
         if ((variant is null))
             throw new Exception($"Variant not found: {command.Variant.Id}");
 
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
-        var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value??throw new UnauthorizedAccessException("User is not authorized");
+        var userId = CatalogUserContext.GetUserId(httpContextAccessor);
 
         variant.Update(command.Variant, userId );
 

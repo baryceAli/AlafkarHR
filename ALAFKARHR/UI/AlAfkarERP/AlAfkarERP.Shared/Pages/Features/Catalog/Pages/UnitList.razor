@@ -99,7 +99,9 @@
                     @SharedDataService.SelectViewLang("Name", "الاسم")
                 </th>
                 <th @onclick="() => Sort(nameof(UnitDto.UnitNameEng))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
-                <th>@SharedDataService.SelectViewLang("Description", "الوصف")</th>
+                <th>@SharedDataService.SelectViewLang("Category", "الفئة")</th>
+                <th>@SharedDataService.SelectViewLang("Factor", "معامل التحويل")</th>
+                <th>@SharedDataService.SelectViewLang("Reference", "مرجعية")</th>
                 <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
             </tr>
         </thead>
@@ -135,6 +137,25 @@
                                         </div>
                                     </div>
 
+                                    <div class="col-md-4">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Category", "الفئة")</label>
+                                        <InputText class="form-control" @bind-Value="editingItem.UnitCategory" />
+                                        <ValidationMessage For="() => editingItem.UnitCategory" />
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Conversion Factor", "معامل التحويل")</label>
+                                        <InputNumber class="form-control" @bind-Value="editingItem.ConversionFactor" />
+                                        <ValidationMessage For="() => editingItem.ConversionFactor" />
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Reference Unit", "وحدة مرجعية")</label>
+                                        <div>
+                                            <InputCheckbox class="form-check-input" @bind-Value="editingItem.IsReferenceUnit" />
+                                        </div>
+                                    </div>
+
                                     <div class="erp-form-actions">
                                         <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> @SharedDataService.SelectViewLang("Save", "حفظ")</button>
                                         <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelEdit"><i class="bi bi-x-lg"></i> @SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>
@@ -156,6 +177,9 @@
                 <tr>
                     <td>@unit.UnitName</td>
                     <td>@unit.UnitNameEng</td>
+                    <td>@unit.UnitCategory</td>
+                    <td>@unit.ConversionFactor</td>
+                    <td>@(unit.IsReferenceUnit ? SharedDataService.SelectViewLang("Yes", "نعم") : SharedDataService.SelectViewLang("No", "لا"))</td>
                     <td>
                         <div class="d-flex justify-content-end gap-2">
                         <button class="btn btn-outline-warning btn-sm erp-row-action"
@@ -228,7 +252,9 @@
         var newItem = new UnitDto()
         {
             Id = Guid.NewGuid(),
-            CompanyId = companyId
+            CompanyId = companyId,
+            UnitCategory = "General",
+            ConversionFactor = 1
         };
         units.Insert(0, newItem);
         editingUnitId = newItem.Id;

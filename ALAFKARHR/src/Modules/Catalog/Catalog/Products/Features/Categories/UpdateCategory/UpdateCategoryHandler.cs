@@ -17,14 +17,14 @@ public class UpdateCategoryHandler(CatalogDbContext dbContext, IHttpContextAcces
 {
     public async Task<UpdateCategoryResult> Handle(UpdateCategoryCommand command, CancellationToken cancellationToken)
     {
-        var category = await dbContext.Categories.FindAsync([command.Category.Id], cancellationToken);
+        var companyId = CatalogUserContext.GetCompanyId(httpContextAccessor);
+        var category = await dbContext.Categories.FirstOrDefaultAsync(x => x.Id == command.Category.Id && x.CompanyId == companyId, cancellationToken);
 
         if (category is null)
             throw new Exception($"Category not found: {command.Category.Id}");
 
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
-        var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = CatalogUserContext.GetUserId(httpContextAccessor);
 
         category.Update(command.Category.Name, command.Category.NameEng, userId, command.Category.Description);
 

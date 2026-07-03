@@ -28,12 +28,12 @@ public static class InitialData
     public static IEnumerable< Unit> Units =>
         new List<Unit>
         {
-            Unit.Create(Guid.Parse("9a4b92e6-7c2d-4722-9be6-5f2107bb5b3d"),"مل","ML",Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),"baryce@gmail.com"),
-            Unit.Create(Guid.NewGuid(),"لتر","Ltr",Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), "baryce@gmail.com"),
-            Unit.Create(Guid.Parse("a64630c2-d13d-42f0-9416-4f8aac39a8e6"), "جم", "MG",Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), "baryce@gmail.com"),
-            Unit.Create(Guid.NewGuid(), "كجم", "KG",Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), "baryce@gmail.com"),
-            Unit.Create(Guid.NewGuid(), "سم", "CM",Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), "baryce@gmail.com"),
-            Unit.Create(Guid.NewGuid(), "م", "M",Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), "baryce@gmail.com")
+            Unit.Create(Guid.Parse("9a4b92e6-7c2d-4722-9be6-5f2107bb5b3d"),"مل","ML","Volume",1,true,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),"baryce@gmail.com"),
+            Unit.Create(Guid.NewGuid(),"لتر","Ltr","Volume",1000,false,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), "baryce@gmail.com"),
+            Unit.Create(Guid.Parse("a64630c2-d13d-42f0-9416-4f8aac39a8e6"), "جم", "MG","Weight",1,true,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), "baryce@gmail.com"),
+            Unit.Create(Guid.NewGuid(), "كجم", "KG","Weight",1000,false,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), "baryce@gmail.com"),
+            Unit.Create(Guid.NewGuid(), "سم", "CM","Length",1,true,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), "baryce@gmail.com"),
+            Unit.Create(Guid.NewGuid(), "م", "M","Length",100,false,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"), "baryce@gmail.com")
         };
     public static IEnumerable<Product> Products =>
         new List<Product>
@@ -45,6 +45,7 @@ public static class InitialData
                
                 ,Guid.Parse("8af67c4b-fd17-4728-8ae6-f8cefc65da18")
                 //,Guid.Parse("9a4b92e6-7c2d-4722-9be6-5f2107bb5b3d")
+                ,CatalogProductType.Goods
                 ,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E")
                 
                 ,"baryce@gmail.com"),
@@ -56,6 +57,7 @@ public static class InitialData
                 
                 ,Guid.Parse("5b580de5-80b2-4955-8d82-0d0c725e44a2")
                 //,Guid.Parse("9a4b92e6-7c2d-4722-9be6-5f2107bb5b3d")
+                ,CatalogProductType.Goods
                 ,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E")
                 
                 ,"baryce@gmail.com"),
@@ -66,6 +68,7 @@ public static class InitialData
                 
                 ,Guid.Parse("8af67c4b-fd17-4728-8ae6-f8cefc65da18")
                 //,Guid.Parse("d0e96aa8-77cd-4e98-8a08-ff2a8f53abfc")
+                ,CatalogProductType.Goods
                 ,Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E")
                 
                 ,"baryce@gmail.com"),
@@ -80,6 +83,8 @@ public static class InitialData
                 "حبة",
                 "Single", 
                 1,
+                null,
+                null,
                 Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),
                 //Guid.Parse("a64630c2-d13d-42f0-9416-4f8aac39a8e6"),
                 "baryce@gmail.com"),
@@ -88,6 +93,8 @@ public static class InitialData
                 "كرتون ابو 10",
                 "Pack of 10", 
                 10,
+                null,
+                null,
                 Guid.Parse("4C3D205F-7E2B-42C2-A081-1700B229D91E"),
                 //Guid.Parse("a64630c2-d13d-42f0-9416-4f8aac39a8e6"),
                 "baryce@gmail.com"),

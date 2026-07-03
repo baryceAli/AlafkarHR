@@ -164,14 +164,36 @@
                     else if (IsPurchaseOrder)
                     {
                         <div class="col-md-3">
-                            <label class="form-label">@SharedDataService.SelectViewLang("Related Supplier Quotation", "Related Supplier Quotation")</label>
-                            <AutoCompleteComponent TItem="ProcurementDocumentDto"
-                                                   Items="acceptedSupplierQuotations"
-                                                   ItemText="SupplierQuotationText"
-                                                   Value="selectedSourceSupplierQuotation"
-                                                   ValueChanged="OnSourceSupplierQuotationChanged"
-                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select accepted supplier quotation...", "Select accepted supplier quotation...")" />
+                            <label class="form-label">@SharedDataService.SelectViewLang("Purchase Order Source", "مصدر أمر الشراء")</label>
+                            <select class="form-select" value="@purchaseOrderSourceMode" @onchange="OnPurchaseOrderSourceModeChanged">
+                                <option value="@PurchaseOrderSourceMode.SupplierQuotation">@SharedDataService.SelectViewLang("Supplier Quotation", "عرض سعر المورد")</option>
+                                <option value="@PurchaseOrderSourceMode.PurchaseRequest">@SharedDataService.SelectViewLang("Purchase Request", "طلب الشراء")</option>
+                            </select>
                         </div>
+                        @if (purchaseOrderSourceMode == PurchaseOrderSourceMode.SupplierQuotation)
+                        {
+                            <div class="col-md-3">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Related Supplier Quotation", "عرض سعر المورد المرتبط")</label>
+                                <AutoCompleteComponent TItem="ProcurementDocumentDto"
+                                                       Items="acceptedSupplierQuotations"
+                                                       ItemText="SupplierQuotationText"
+                                                       Value="selectedSourceSupplierQuotation"
+                                                       ValueChanged="OnSourceSupplierQuotationChanged"
+                                                       PlaceHolder="@SharedDataService.SelectViewLang("Select accepted supplier quotation...", "اختر عرض سعر مورد مقبول...")" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col-md-3">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Related Purchase Request", "طلب الشراء المرتبط")</label>
+                                <AutoCompleteComponent TItem="ProcurementDocumentDto"
+                                                       Items="approvedPurchaseRequests"
+                                                       ItemText="PurchaseRequestText"
+                                                       Value="selectedSourcePurchaseRequest"
+                                                       ValueChanged="OnSourcePurchaseRequestChanged"
+                                                       PlaceHolder="@SharedDataService.SelectViewLang("Select approved purchase request...", "اختر طلب شراء معتمد...")" />
+                            </div>
+                        }
                     }
                     else if (IsSupplierInvoice)
                     {
@@ -230,165 +252,196 @@
             </AppCard>
 
             <AppCard Title="@SharedDataService.SelectViewLang("Lines", "البنود")" CssClass="erp-form-section allow-overflow">
-                <div class="d-flex justify-content-end mb-3">
+                <div class="erp-table-toolbar mb-3">
+                    <div class="input-group erp-search-control">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input class="form-control"
+                               placeholder="@SharedDataService.SelectViewLang("Search lines...", "ابحث في البنود...")"
+                               @bind="lineSearchText"
+                               @bind:event="oninput" />
+                    </div>
                     <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddLine">
                         <i class="bi bi-plus-lg"></i>
                         @SharedDataService.SelectViewLang("Add line", "إضافة بند")
                     </button>
                 </div>
 
-                @if (document.Lines.Count == 0)
-                {
-                    <EmptyState Icon="bi-list-ul"
-                                Title="@SharedDataService.SelectViewLang("No lines added", "لا توجد بنود")"
-                                Message="@SharedDataService.SelectViewLang("Add the first procurement line to continue.", "أضف أول بند مشتريات للمتابعة.")" />
-                }
-                @foreach (var line in document.Lines)
-                {
-                    <div class="procurement-line-card" @key="line">
-                        <div class="procurement-line-header">
-                            <div class="procurement-line-title">
-                                <span class="procurement-line-number">@SharedDataService.SelectViewLang("Line", "بند") @LineDisplayNumber(line)</span>
-                                @if (line.IsSourceLine)
-                                {
-                                    <StatusChip Text="@SharedDataService.SelectViewLang("From source", "من مصدر")" Tone="info" />
-                                }
-                            </div>
-                            <div class="procurement-line-summary" title="@LineSummary(line)">
-                                @LineSummary(line)
-                            </div>
-                            <button type="button"
-                                    class="btn btn-outline-danger btn-sm procurement-line-remove"
-                                    title="@SharedDataService.SelectViewLang("Remove line", "حذف البند")"
-                                    @onclick="() => RemoveLine(line)">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-
-                        <div class="procurement-line-section">
-                            <div class="row g-3 align-items-end">
-                                <div class="col-lg-6">
-                                    <label class="form-label">@SharedDataService.SelectViewLang("Product", "المنتج")</label>
-                                    @if (line.IsSourceLine)
-                                    {
-                                        <div class="procurement-readonly-field" title="@ProductDisplay(line)">@ProductDisplay(line)</div>
-                                    }
-                                    else
-                                    {
-                                        <AutoCompleteComponent TItem="ProductDto"
-                                                               Items="products"
-                                                               ItemText="ProductText"
-                                                               Value="line.SelectedProduct"
-                                                               ValueChanged="product => OnProductChanged(line, product)"
-                                                               PlaceHolder="@SharedDataService.SelectViewLang("Select product...", "اختر المنتج...")" />
-                                    }
-                                </div>
-                                <div class="col-lg-6">
-                                    <label class="form-label">@SharedDataService.SelectViewLang("SKU", "SKU")</label>
-                                    @if (line.IsSourceLine)
-                                    {
-                                        <div class="procurement-readonly-field" title="@SkuDisplay(line)">@SkuDisplay(line)</div>
-                                    }
-                                    else
-                                    {
-                                        <AutoCompleteComponent TItem="ProductSkuDto"
-                                                               Items="SkuOptions(line)"
-                                                               ItemText="SkuText"
-                                                               Value="line.SelectedSku"
-                                                               ValueChanged="sku => OnSkuChanged(line, sku)"
-                                                               PlaceHolder="@SharedDataService.SelectViewLang("Select SKU...", "اختر SKU...")" />
-                                    }
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="procurement-line-section">
-                            <div class="row g-3 align-items-end">
-                                @if (ShowPackageInputs(line))
-                                {
-                                    <div class="col-lg-4 col-md-6">
-                                        <label class="form-label">@SharedDataService.SelectViewLang("Package", "العبوة")</label>
-                                        <AutoCompleteComponent TItem="ProductPackageDto"
-                                                               Items="PackageOptions(line)"
-                                                               ItemText="PackageText"
-                                                               Value="line.SelectedPackage"
-                                                               ValueChanged="package => OnPackageChanged(line, package)"
-                                                               PlaceHolder="@SharedDataService.SelectViewLang("Select package...", "اختر العبوة...")" />
-                                    </div>
-                                    <div class="col-lg-2 col-md-3">
-                                        <label class="form-label">@PackageQuantityLabel</label>
-                                        <InputNumber class="form-control"
-                                                     Value="line.PackageQuantity"
-                                                     ValueChanged="(decimal value) => OnPackageQuantityChanged(line, value)"
-                                                     ValueExpression="() => line.PackageQuantity" />
-                                    </div>
-                                    <div class="col-lg-2 col-md-3">
-                                        <label class="form-label">@TotalSkuQuantityLabel</label>
-                                        <InputNumber class="form-control" @bind-Value="line.Quantity" disabled />
-                                    </div>
-                                }
-                                @if (!IsPackageQuantityControlled(line))
-                                {
-                                    <div class="col-lg-2 col-md-4">
-                                        <label class="form-label">@QuantityLabel</label>
-                                        <InputNumber class="form-control" @bind-Value="line.Quantity" />
-                                    </div>
-                                }
+                <div class="erp-table-wrap procurement-lines-table-wrap allow-overflow">
+                    <table class="table erp-table procurement-lines-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>@SharedDataService.SelectViewLang("Line", "البند")</th>
+                                <th>@SharedDataService.SelectViewLang("Product", "المنتج")</th>
+                                <th>@SharedDataService.SelectViewLang("SKU", "SKU")</th>
+                                <th>@SharedDataService.SelectViewLang("Package", "العبوة")</th>
+                                <th>@PackageQuantityLabel</th>
+                                <th>@QuantityLabel</th>
                                 @if (ShowLineCommercialFields)
                                 {
-                                    <div class="col-lg-2 col-md-4">
-                                        <label class="form-label">@UnitCostLabel</label>
-                                        <InputNumber class="form-control" @bind-Value="line.UnitCost" />
-                                    </div>
-                                    <div class="col-lg-2 col-md-4">
-                                        <label class="form-label">@SharedDataService.SelectViewLang("Tax %", "الضريبة %")</label>
-                                        <InputNumber class="form-control" @bind-Value="line.TaxRate" />
-                                    </div>
+                                    <th>@UnitCostLabel</th>
+                                    <th>@SharedDataService.SelectViewLang("Tax %", "الضريبة %")</th>
                                 }
+                                @if (NeedsStockContext)
+                                {
+                                    <th>@SharedDataService.SelectViewLang("Batch", "الدفعة")</th>
+                                }
+                                <th>@SharedDataService.SelectViewLang("Notes", "ملاحظات")</th>
+                                <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (document.Lines.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="@LinesTableColumnCount">
+                                        <EmptyState Icon="bi-list-ul"
+                                                    Title="@SharedDataService.SelectViewLang("No lines added", "لا توجد بنود")"
+                                                    Message="@SharedDataService.SelectViewLang("Add the first procurement line to continue.", "أضف أول بند مشتريات للمتابعة.")" />
+                                    </td>
+                                </tr>
+                            }
+                            else if (VisibleLines.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="@LinesTableColumnCount">
+                                        <EmptyState Icon="bi-search"
+                                                    Title="@SharedDataService.SelectViewLang("No matching lines", "لا توجد بنود مطابقة")"
+                                                    Message="@SharedDataService.SelectViewLang("Adjust the line search to see more rows.", "غيّر البحث لعرض بنود أكثر.")" />
+                                    </td>
+                                </tr>
+                            }
+                            @foreach (var line in VisibleLines)
+                            {
+                                <tr @key="line">
+                                    <td class="procurement-line-index">
+                                        <span class="fw-semibold">@LineDisplayNumber(line)</span>
+                                        @if (line.IsSourceLine)
+                                        {
+                                            <StatusChip Text="@SharedDataService.SelectViewLang("Source", "مصدر")" Tone="info" />
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (line.IsSourceLine)
+                                        {
+                                            <div class="procurement-readonly-field" title="@ProductDisplay(line)">@ProductDisplay(line)</div>
+                                        }
+                                        else
+                                        {
+                                            <AutoCompleteComponent TItem="ProductDto"
+                                                                   Items="products"
+                                                                   ItemText="ProductText"
+                                                                   Value="line.SelectedProduct"
+                                                                   ValueChanged="product => OnProductChanged(line, product)"
+                                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select product...", "اختر المنتج...")" />
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (line.IsSourceLine)
+                                        {
+                                            <div class="procurement-readonly-field" title="@SkuDisplay(line)">@SkuDisplay(line)</div>
+                                        }
+                                        else
+                                        {
+                                            <AutoCompleteComponent TItem="ProductSkuDto"
+                                                                   Items="SkuOptions(line)"
+                                                                   ItemText="SkuText"
+                                                                   Value="line.SelectedSku"
+                                                                   ValueChanged="sku => OnSkuChanged(line, sku)"
+                                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select SKU...", "اختر SKU...")" />
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (ShowPackageInputs(line))
+                                        {
+                                            <AutoCompleteComponent TItem="ProductPackageDto"
+                                                                   Items="PackageOptions(line)"
+                                                                   ItemText="PackageText"
+                                                                   Value="line.SelectedPackage"
+                                                                   ValueChanged="package => OnPackageChanged(line, package)"
+                                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select package...", "اختر العبوة...")" />
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (ShowPackageInputs(line))
+                                        {
+                                            <InputNumber class="form-control procurement-line-number-input"
+                                                         Value="line.PackageQuantity"
+                                                         ValueChanged="(decimal value) => OnPackageQuantityChanged(line, value)"
+                                                         ValueExpression="() => line.PackageQuantity" />
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (IsPackageQuantityControlled(line))
+                                        {
+                                            <InputNumber class="form-control procurement-line-number-input" @bind-Value="line.Quantity" disabled />
+                                        }
+                                        else
+                                        {
+                                            <InputNumber class="form-control procurement-line-number-input" @bind-Value="line.Quantity" />
+                                        }
+                                    </td>
+                                    @if (ShowLineCommercialFields)
+                                    {
+                                        <td>
+                                            <InputNumber class="form-control procurement-line-number-input" @bind-Value="line.UnitCost" />
+                                        </td>
+                                        <td>
+                                            <InputNumber class="form-control procurement-line-number-input" @bind-Value="line.TaxRate" />
+                                        </td>
+                                    }
+                                    @if (NeedsStockContext)
+                                    {
+                                        <td>
+                                            <AutoCompleteComponent TItem="BatchDto"
+                                                                   @key="line.BatchSelectorKey"
+                                                                   Items="BatchOptions(line)"
+                                                                   ItemText="BatchText"
+                                                                   Value="line.SelectedBatch"
+                                                                   ValueChanged="batch => OnBatchChanged(line, batch)"
+                                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select batch...", "اختر الدفعة...")" />
+                                        </td>
+                                    }
+                                    <td>
+                                        <InputText class="form-control procurement-line-notes-input" @bind-Value="line.Notes" />
+                                    </td>
+                                    <td class="text-end">
+                                        <button type="button"
+                                                class="btn btn-outline-danger btn-sm erp-row-action"
+                                                title="@SharedDataService.SelectViewLang("Remove line", "حذف البند")"
+                                                @onclick="() => RemoveLine(line)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
                                 @if (IsGoodsReceipt && line.HasReceiptProgressInfo)
                                 {
-                                    <div class="col-12">
-                                        <div class="procurement-receipt-progress">
-                                            <span class="fw-semibold">@SharedDataService.SelectViewLang("PO Receiving Progress", "تقدم استلام أمر الشراء")</span>
-                                            <span>@ReceiptProgressText(line)</span>
-                                        </div>
-                                    </div>
-                                    @if (IsOverRemaining(line))
-                                    {
-                                        <div class="col-12">
-                                            <div class="alert alert-warning py-2 mb-0">
-                                                @SharedDataService.SelectViewLang("Receipt quantity is greater than the remaining purchase order quantity.", "كمية الاستلام أكبر من الكمية المتبقية في أمر الشراء.")
+                                    <tr class="procurement-line-helper-row">
+                                        <td colspan="@LinesTableColumnCount">
+                                            <div class="procurement-receipt-progress">
+                                                <span class="fw-semibold">@SharedDataService.SelectViewLang("PO Receiving Progress", "تقدم استلام أمر الشراء")</span>
+                                                <span>@ReceiptProgressText(line)</span>
                                             </div>
-                                        </div>
-                                    }
+                                            @if (IsOverRemaining(line))
+                                            {
+                                                <div class="alert alert-warning py-2 mb-0 mt-2">
+                                                    @SharedDataService.SelectViewLang("Receipt quantity is greater than the remaining purchase order quantity.", "كمية الاستلام أكبر من الكمية المتبقية في أمر الشراء.")
+                                                </div>
+                                            }
+                                        </td>
+                                    </tr>
                                 }
-                            </div>
-                        </div>
-
-                        @if (NeedsStockContext)
-                        {
-                            <div class="procurement-line-section">
-                                <div class="row g-3 align-items-end">
-                                    <div class="col-lg-6">
-                                        <label class="form-label">@SharedDataService.SelectViewLang("Batch", "الدفعة")</label>
-                                        <AutoCompleteComponent TItem="BatchDto"
-                                                               @key="line.BatchSelectorKey"
-                                                               Items="BatchOptions(line)"
-                                                               ItemText="BatchText"
-                                                               Value="line.SelectedBatch"
-                                                               ValueChanged="batch => OnBatchChanged(line, batch)"
-                                                               PlaceHolder="@SharedDataService.SelectViewLang("Select batch...", "اختر الدفعة...")" />
-                                    </div>
-                                </div>
-                            </div>
-                        }
-
-                        <div class="procurement-line-section">
-                            <label class="form-label">@SharedDataService.SelectViewLang("Line Notes", "ملاحظات البند")</label>
-                            <InputText class="form-control" @bind-Value="line.Notes" />
-                        </div>
-                    </div>
-                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </AppCard>
 
             <div class="d-flex justify-content-end gap-2 mt-4">
@@ -457,58 +510,29 @@
 }
 
 <style>
-    .procurement-line-card {
-        background: var(--erp-surface-level-1);
-        border: 1px solid var(--erp-border);
-        border-radius: var(--erp-radius-lg);
-        box-shadow: var(--erp-shadow-sm);
-        margin-bottom: var(--erp-space-3);
-        padding: var(--erp-space-4);
+    .procurement-lines-table-wrap {
+        overflow: visible;
     }
 
-    .procurement-line-header {
-        align-items: center;
-        border-bottom: 1px solid var(--erp-border);
-        display: grid;
-        gap: var(--erp-space-3);
-        grid-template-columns: minmax(150px, auto) minmax(0, 1fr) auto;
-        margin-bottom: var(--erp-space-3);
-        padding-bottom: var(--erp-space-3);
+    .procurement-lines-table {
+        min-width: 1180px;
     }
 
-    .procurement-line-title {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--erp-space-2);
-        min-width: 0;
+    .procurement-lines-table td {
+        vertical-align: top;
     }
 
-    .procurement-line-number {
-        color: var(--erp-text);
-        font-weight: 700;
+    .procurement-line-index {
         white-space: nowrap;
+        width: 5.5rem;
     }
 
-    .procurement-line-summary,
-    .procurement-readonly-field {
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+    .procurement-line-number-input {
+        min-width: 6rem;
     }
 
-    .procurement-line-summary {
-        color: var(--erp-text-muted);
-        font-size: .9rem;
-    }
-
-    .procurement-line-remove {
-        align-items: center;
-        aspect-ratio: 1;
-        display: inline-flex;
-        justify-content: center;
-        width: 2.35rem;
+    .procurement-line-notes-input {
+        min-width: 10rem;
     }
 
     .procurement-readonly-field {
@@ -517,11 +541,15 @@
         border-radius: var(--erp-radius-default);
         color: var(--erp-text);
         min-height: var(--erp-control-height);
+        min-width: 0;
+        overflow: hidden;
         padding: .45rem .75rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
-    .procurement-line-section + .procurement-line-section {
-        margin-top: var(--erp-space-3);
+    .procurement-line-helper-row td {
+        background: var(--erp-surface-muted);
     }
 
     .procurement-receipt-progress {
@@ -534,17 +562,6 @@
         flex-wrap: wrap;
         gap: var(--erp-space-2);
         padding: .6rem .75rem;
-    }
-
-    @@media (max-width: 767.98px) {
-        .procurement-line-header {
-            grid-template-columns: minmax(0, 1fr) auto;
-        }
-
-        .procurement-line-summary {
-            grid-column: 1 / -1;
-            order: 3;
-        }
     }
 </style>
 
@@ -581,7 +598,9 @@
     private ProcurementDocumentDto? selectedSourcePurchaseOrder;
     private ProcurementDocumentDto? selectedInvoicePurchaseOrder;
     private ProcurementDocumentDto? selectedInvoiceGoodsReceipt;
+    private PurchaseOrderSourceMode purchaseOrderSourceMode = PurchaseOrderSourceMode.SupplierQuotation;
     private InvoiceSourceMode invoiceSourceMode = InvoiceSourceMode.PurchaseOrder;
+    private string? lineSearchText;
     private Guid companyId;
     private CurrentUserBranchAccessDto branchAccess = new();
     private bool isLoading = true;
@@ -603,6 +622,10 @@
     private bool HideDocumentNumberField => IsSystemNumberedDocument && !Id.HasValue;
     private bool NeedsStockContext => kind is ProcurementDocumentKind.GoodsReceipt or ProcurementDocumentKind.PurchaseReturn;
     private bool NeedsCurrency => kind is ProcurementDocumentKind.SupplierQuotation or ProcurementDocumentKind.PurchaseOrder or ProcurementDocumentKind.GoodsReceipt or ProcurementDocumentKind.PurchaseReturn or ProcurementDocumentKind.SupplierInvoice;
+    private int LinesTableColumnCount => 8 + (ShowLineCommercialFields ? 2 : 0) + (NeedsStockContext ? 1 : 0);
+    private List<EditableProcurementLine> VisibleLines => string.IsNullOrWhiteSpace(lineSearchText)
+        ? document.Lines
+        : document.Lines.Where(LineMatchesSearch).ToList();
     private string QuantityLabel => kind switch
     {
         ProcurementDocumentKind.GoodsReceipt => SharedDataService.SelectViewLang("Received Quantity", "Received Quantity"),
@@ -761,13 +784,16 @@
             invoiceableGoodsReceipts.AddRange(postedGoodsReceipts.Where(IsInvoiceableGoodsReceipt));
         }
 
-        if (IsRequestForQuotation)
+        if (IsRequestForQuotation || IsPurchaseOrder)
         {
             var purchaseRequestResponse = await ProcurementService.GetAsync(ProcurementDocumentKind.PurchaseRequest, companyId, 1, 200, null);
             if (purchaseRequestResponse.IsSuccess)
             {
+                Func<ProcurementDocumentDto, bool> purchaseRequestFilter = IsPurchaseOrder
+                    ? IsPurchaseOrderSourcePurchaseRequest
+                    : IsApprovedPurchaseRequest;
                 approvedPurchaseRequests.AddRange((purchaseRequestResponse.Data?.Data ?? [])
-                    .Where(IsApprovedPurchaseRequest));
+                    .Where(purchaseRequestFilter));
             }
         }
 
@@ -946,6 +972,13 @@
         selectedInvoiceGoodsReceipt = invoiceableGoodsReceipts.FirstOrDefault(x => x.Id == document.SourceDocumentId)
             ?? invoiceableGoodsReceipts.FirstOrDefault(x => string.Equals(x.Number, document.SourceDocumentNumber, StringComparison.OrdinalIgnoreCase));
 
+        if (IsPurchaseOrder)
+        {
+            purchaseOrderSourceMode = selectedSourcePurchaseRequest is not null
+                ? PurchaseOrderSourceMode.PurchaseRequest
+                : PurchaseOrderSourceMode.SupplierQuotation;
+        }
+
         if (IsSupplierInvoice)
         {
             if (selectedInvoiceGoodsReceipt is not null)
@@ -985,9 +1018,40 @@
         return Task.CompletedTask;
     }
 
+    private async Task OnPurchaseOrderSourceModeChanged(ChangeEventArgs args)
+    {
+        if (Enum.TryParse<PurchaseOrderSourceMode>(args.Value?.ToString(), out var mode))
+            purchaseOrderSourceMode = mode;
+        else
+            purchaseOrderSourceMode = PurchaseOrderSourceMode.SupplierQuotation;
+
+        if (purchaseOrderSourceMode == PurchaseOrderSourceMode.SupplierQuotation)
+        {
+            selectedSourcePurchaseRequest = null;
+            if (selectedSourceSupplierQuotation is null)
+            {
+                document.SourceDocumentId = null;
+                document.SourceDocumentNumber = null;
+            }
+        }
+        else
+        {
+            selectedSourceSupplierQuotation = null;
+            if (selectedSourcePurchaseRequest is null)
+            {
+                document.SourceDocumentId = null;
+                document.SourceDocumentNumber = null;
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
     private Task OnSourcePurchaseRequestChanged(ProcurementDocumentDto? purchaseRequest)
     {
         selectedSourcePurchaseRequest = purchaseRequest;
+        if (IsPurchaseOrder)
+            selectedSourceSupplierQuotation = null;
 
         if (purchaseRequest is null)
         {
@@ -1050,6 +1114,8 @@
     private Task OnSourceSupplierQuotationChanged(ProcurementDocumentDto? supplierQuotation)
     {
         selectedSourceSupplierQuotation = supplierQuotation;
+        if (IsPurchaseOrder)
+            selectedSourcePurchaseRequest = null;
 
         if (supplierQuotation is null)
         {
@@ -1465,6 +1531,18 @@
         return index < 0 ? 1 : index + 1;
     }
 
+    private bool LineMatchesSearch(EditableProcurementLine line)
+    {
+        var search = lineSearchText?.Trim();
+        if (string.IsNullOrWhiteSpace(search))
+            return true;
+
+        return LineDisplayNumber(line).ToString().Contains(search, StringComparison.OrdinalIgnoreCase)
+            || ProductDisplay(line).Contains(search, StringComparison.OrdinalIgnoreCase)
+            || SkuDisplay(line).Contains(search, StringComparison.OrdinalIgnoreCase)
+            || (line.Notes?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
     private string LineSummary(EditableProcurementLine line)
     {
         var product = ProductDisplay(line);
@@ -1575,6 +1653,9 @@
 
     private static bool IsApprovedPurchaseRequest(ProcurementDocumentDto purchaseRequest) =>
         string.Equals(purchaseRequest.Status, PurchaseRequestStatus.Approved.ToString(), StringComparison.OrdinalIgnoreCase);
+    private static bool IsPurchaseOrderSourcePurchaseRequest(ProcurementDocumentDto purchaseRequest) =>
+        string.Equals(purchaseRequest.Status, PurchaseRequestStatus.Approved.ToString(), StringComparison.OrdinalIgnoreCase)
+        || string.Equals(purchaseRequest.Status, PurchaseRequestStatus.Converted.ToString(), StringComparison.OrdinalIgnoreCase);
     private static bool IsSentRfq(ProcurementDocumentDto rfq) =>
         string.Equals(rfq.Status, RequestForQuotationStatus.Sent.ToString(), StringComparison.OrdinalIgnoreCase);
     private static bool IsAcceptedSupplierQuotation(ProcurementDocumentDto supplierQuotation) =>
@@ -1702,7 +1783,7 @@
         };
 
     private void CreateSupplier() => NavigationManager.NavigateTo("/Suppliers/Supplier/Form");
-    private void AddLine() => document.Lines.Add(new EditableProcurementLine());
+    private void AddLine() => document.Lines.Insert(0, new EditableProcurementLine());
     private void RemoveLine(EditableProcurementLine line) => document.Lines.Remove(line);
     private static void ApplyPackageQuantity(EditableProcurementLine line)
     {
@@ -1718,6 +1799,12 @@
         PurchaseOrder,
         GoodsReceipt,
         Standalone
+    }
+
+    private enum PurchaseOrderSourceMode
+    {
+        SupplierQuotation,
+        PurchaseRequest
     }
 
     private void Cancel() => NavigationManager.NavigateTo($"/Procurement/{ProcurementUiText.Route(kind)}");
