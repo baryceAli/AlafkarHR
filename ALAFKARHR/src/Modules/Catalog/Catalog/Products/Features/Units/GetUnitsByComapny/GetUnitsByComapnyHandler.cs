@@ -12,6 +12,8 @@ public class GetUnitsByComapnyHandler(CatalogDbContext dbContext)
     {
         var query = dbContext.Units.AsQueryable();
         query = query.Where(x => x.CompanyId==request.CompanyId && x.IsDeleted == false);
+        if (!request.PaginationRequest.IncludeInactive)
+            query = query.Where(x => x.IsActive);
 
 
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
@@ -27,7 +29,6 @@ public class GetUnitsByComapnyHandler(CatalogDbContext dbContext)
 
         var units = await query
                 .AsNoTracking()
-                .Where(x => x.IsDeleted == false)
                 .OrderBy(x => x.UnitName)
                 .Skip(request.PaginationRequest.PageSize * request.PaginationRequest.PageIndex)
                 .Take(request.PaginationRequest.PageSize)

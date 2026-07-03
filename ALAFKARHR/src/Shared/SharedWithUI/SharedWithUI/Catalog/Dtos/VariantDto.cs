@@ -17,6 +17,7 @@ public class VariantDto
 
     public VariantDisplayType DisplayType { get; set; } = VariantDisplayType.Pills;
     public VariantCreationMode CreationMode { get; set; } = VariantCreationMode.Instant;
+    public bool IsActive { get; set; } = true;
 
     [Required(ErrorMessage ="Company is required")]
     public Guid? CompanyId { get; set; }

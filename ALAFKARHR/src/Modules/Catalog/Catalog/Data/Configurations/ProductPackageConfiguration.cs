@@ -22,6 +22,25 @@ public class ProductPackageConfiguration : IEntityTypeConfiguration<ProductPacka
         builder.Property(x => x.Barcode)
             .HasMaxLength(100);
 
+        builder.Property(x => x.Weight)
+            .HasColumnType("decimal(18,3)");
+
+        builder.Property(x => x.Length)
+            .HasColumnType("decimal(18,3)");
+
+        builder.Property(x => x.Width)
+            .HasColumnType("decimal(18,3)");
+
+        builder.Property(x => x.Height)
+            .HasColumnType("decimal(18,3)");
+
+        builder.Property(x => x.Notes)
+            .HasMaxLength(500);
+
+        builder.Property(x => x.IsActive)
+            .IsRequired()
+            .HasDefaultValue(true);
+
         builder.HasOne<Unit>()
             .WithMany()
             .HasForeignKey(x => x.UnitId)

@@ -15,7 +15,8 @@ public record PostInventoryStockInCommand(
     Guid CompanyId,
     string? Notes,
     string? ReferenceNumber = null,
-    string? SourceDocumentType = null) : ICommand<PostInventoryStockResult>;
+    string? SourceDocumentType = null,
+    Guid? UnitId = null) : ICommand<PostInventoryStockResult>;
 
 public record PostInventoryStockOutCommand(
     Guid ProductId,
@@ -31,7 +32,8 @@ public record PostInventoryStockOutCommand(
     string? Notes,
     string? ReferenceNumber = null,
     string? SourceDocumentType = null,
-    bool ConsumeReservedQuantity = false) : ICommand<PostInventoryStockResult>;
+    bool ConsumeReservedQuantity = false,
+    Guid? UnitId = null) : ICommand<PostInventoryStockResult>;
 
 public record PostInventoryStockOutBySkuCommand(
     Guid ProductId,
@@ -45,6 +47,33 @@ public record PostInventoryStockOutBySkuCommand(
     Guid CompanyId,
     string? Notes,
     string? ReferenceNumber = null,
-    string? SourceDocumentType = null) : ICommand<PostInventoryStockResult>;
+    string? SourceDocumentType = null,
+    Guid? UnitId = null) : ICommand<PostInventoryStockResult>;
 
 public record PostInventoryStockResult(Guid InventoryId);
+
+public record PostInventoryReservationCommand(
+    Guid ProductId,
+    Guid ProductSkuId,
+    Guid WarehouseId,
+    Guid BatchId,
+    decimal Quantity,
+    Guid CompanyId,
+    string? Notes,
+    string? ReferenceNumber = null,
+    string? SourceDocumentType = null,
+    Guid? UnitId = null,
+    Guid? CurrencyId = null) : ICommand<PostInventoryStockResult>;
+
+public record PostInventoryReleaseCommand(
+    Guid ProductId,
+    Guid ProductSkuId,
+    Guid WarehouseId,
+    Guid BatchId,
+    decimal Quantity,
+    Guid CompanyId,
+    string? Notes,
+    string? ReferenceNumber = null,
+    string? SourceDocumentType = null,
+    Guid? UnitId = null,
+    Guid? CurrencyId = null) : ICommand<PostInventoryStockResult>;

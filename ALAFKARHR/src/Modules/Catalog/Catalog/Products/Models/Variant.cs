@@ -6,6 +6,7 @@ public class Variant : Aggregate<Guid>
     public string NameEng { get; private set; } = default!;
     public VariantDisplayType DisplayType { get; private set; } = VariantDisplayType.Pills;
     public VariantCreationMode CreationMode { get; private set; } = VariantCreationMode.Instant;
+    public bool IsActive { get; private set; } = true;
     public Guid CompanyId { get; private set; }
 
     private readonly List<VariantValue> _values = new();
@@ -40,6 +41,7 @@ public class Variant : Aggregate<Guid>
             NameEng = nameEng,
             DisplayType = NormalizeDisplayType(displayType),
             CreationMode = NormalizeCreationMode(creationMode),
+            IsActive = true,
             CompanyId = companyId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy,
@@ -76,6 +78,10 @@ public class Variant : Aggregate<Guid>
 
             var existingValue = activeValues.First(ev => ev.Id == v.Id);
             existingValue.Update(v.Value, v.ValueEng, modifiedBy);
+            if (v.IsActive)
+                existingValue.Activate(modifiedBy);
+            else
+                existingValue.Archive(modifiedBy);
         }
 
         // Remove
@@ -92,6 +98,8 @@ public class Variant : Aggregate<Guid>
         {
             value.Remove(modifiedBy);
         }
+
+        EnsureNoDuplicateActiveValues();
     }
     public void Remove(string deletedBy)
     {
@@ -100,12 +108,26 @@ public class Variant : Aggregate<Guid>
         DeletedBy = deletedBy;
     }
 
+    public void Archive(string modifiedBy)
+    {
+        IsActive = false;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+
+    public void Activate(string modifiedBy)
+    {
+        IsActive = true;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+
     public void AddVariantValue(string value, string valueEng, string createdBy)
     {
-        var exists = _values.FirstOrDefault(v => v.Value == value && !v.IsDeleted);
+        var exists = _values.FirstOrDefault(v => v.Value == value && !v.IsDeleted && v.IsActive);
         if (exists != null)
             throw new Exception($"Variant value is already added to this variant: {value}");
-        exists = _values.FirstOrDefault(v => v.ValueEng == valueEng && !v.IsDeleted);
+        exists = _values.FirstOrDefault(v => v.ValueEng == valueEng && !v.IsDeleted && v.IsActive);
         if (exists != null)
             throw new Exception($"Variant value is already added to this variant: {valueEng}");
 
@@ -128,4 +150,23 @@ public class Variant : Aggregate<Guid>
 
     private static VariantCreationMode NormalizeCreationMode(VariantCreationMode creationMode)
         => creationMode == default ? VariantCreationMode.Instant : creationMode;
+
+    private void EnsureNoDuplicateActiveValues()
+    {
+        var duplicateValue = _values
+            .Where(v => !v.IsDeleted && v.IsActive)
+            .GroupBy(v => v.Value.Trim(), StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(group => group.Count() > 1);
+
+        if (duplicateValue is not null)
+            throw new Exception($"Variant value is already added to this variant: {duplicateValue.Key}");
+
+        var duplicateValueEng = _values
+            .Where(v => !v.IsDeleted && v.IsActive)
+            .GroupBy(v => v.ValueEng.Trim(), StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(group => group.Count() > 1);
+
+        if (duplicateValueEng is not null)
+            throw new Exception($"Variant value is already added to this variant: {duplicateValueEng.Key}");
+    }
 }

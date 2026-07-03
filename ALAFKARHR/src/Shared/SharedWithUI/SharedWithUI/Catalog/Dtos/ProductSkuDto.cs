@@ -30,6 +30,8 @@ public class ProductSkuDto
     public Guid? UnitId { get; set; }
     public string? UnitName { get; set; }
     public string? UnitNameEng { get; set; }
+    public string? UnitCategory { get; set; }
+    public decimal UnitConversionFactor { get; set; } = 1;
 
     [Required(ErrorMessage = "Calories is required")]
     [Range(0.01, 10000000, ErrorMessage = "Calories must be greater than 0")]
@@ -71,6 +73,7 @@ public class ProductSkuDto
     public bool IsPurchasable { get; set; } = true;
     public bool IsInventoryTracked { get; set; } = true;
     public bool IsAssetTrackable { get; set; }
+    public bool IsActive { get; set; } = true;
     public DateTime? CreatedAt { get; set; }
 
     public List<ProductSkuVariantDto> Variants { get; set; } = new();

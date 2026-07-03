@@ -42,6 +42,7 @@ public class GetProductByIdHandler(CatalogDbContext dbContext)
                     Name = p.Name,
                     NameEng = p.NameEng,
                     ProductType = p.ProductType,
+                    IsActive = p.IsActive,
                     //Price = p.Price,
                     //ImageUrl = p.ImageUrl,
 
@@ -77,6 +78,7 @@ public class GetProductByIdHandler(CatalogDbContext dbContext)
                             IsPurchasable = sku.IsPurchasable,
                             IsInventoryTracked = sku.IsInventoryTracked,
                             IsAssetTrackable = sku.IsAssetTrackable,
+                            IsActive = sku.IsActive,
                             // ✅ ADD THIS
                             Variants = sku.Variants
                                 .Where(v => !v.IsDeleted)
@@ -98,6 +100,12 @@ public class GetProductByIdHandler(CatalogDbContext dbContext)
                                     Quantity = p.ProductPackage.Quantity,
                                     UnitId = p.ProductPackage.UnitId,
                                     Barcode = p.ProductPackage.Barcode,
+                                    Weight = p.ProductPackage.Weight,
+                                    Length = p.ProductPackage.Length,
+                                    Width = p.ProductPackage.Width,
+                                    Height = p.ProductPackage.Height,
+                                    Notes = p.ProductPackage.Notes,
+                                    IsActive = p.ProductPackage.IsActive,
                                     CompanyId = p.ProductPackage.CompanyId
                                 })
                                 .ToList(),

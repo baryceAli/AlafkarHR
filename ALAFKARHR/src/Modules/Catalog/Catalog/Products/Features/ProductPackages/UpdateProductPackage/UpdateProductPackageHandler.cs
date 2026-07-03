@@ -10,6 +10,10 @@ public class UpdateProductPackageCommandValidator : AbstractValidator<UpdateProd
         RuleFor(x=> x.ProductPackage.Name).NotEmpty().WithMessage("PackageName is required");
         RuleFor(x=> x.ProductPackage.NameEng).NotEmpty().WithMessage("PackageNameEng is required");
         RuleFor(x => x.ProductPackage.Quantity).GreaterThan(0).WithMessage("UnitsCount must be greator than 0");
+        RuleFor(x => x.ProductPackage.Weight).GreaterThanOrEqualTo(0).When(x => x.ProductPackage.Weight.HasValue).WithMessage("Weight cannot be negative");
+        RuleFor(x => x.ProductPackage.Length).GreaterThanOrEqualTo(0).When(x => x.ProductPackage.Length.HasValue).WithMessage("Length cannot be negative");
+        RuleFor(x => x.ProductPackage.Width).GreaterThanOrEqualTo(0).When(x => x.ProductPackage.Width.HasValue).WithMessage("Width cannot be negative");
+        RuleFor(x => x.ProductPackage.Height).GreaterThanOrEqualTo(0).When(x => x.ProductPackage.Height.HasValue).WithMessage("Height cannot be negative");
         //RuleFor(x => x.ProductPackage.PackagePrice).GreaterThan(0).WithMessage("PackagePrice must be greator than 0");
         //RuleFor(x => x.ProductPackage.QuantityPerPackage).GreaterThan(0).WithMessage("UnitRate must be greator than 0");
     }
@@ -35,8 +39,18 @@ public class UpdateProductPackageHandler (CatalogDbContext dbContext, IHttpConte
             command.ProductPackage.Quantity,
             command.ProductPackage.UnitId,
             command.ProductPackage.Barcode,
+            command.ProductPackage.Weight,
+            command.ProductPackage.Length,
+            command.ProductPackage.Width,
+            command.ProductPackage.Height,
+            command.ProductPackage.Notes,
             //command.ProductPackage.PackagePrice, 
             userId);
+
+        if (command.ProductPackage.IsActive)
+            package.Activate(userId);
+        else
+            package.Archive(userId);
 
         await dbContext.SaveChangesAsync();
 

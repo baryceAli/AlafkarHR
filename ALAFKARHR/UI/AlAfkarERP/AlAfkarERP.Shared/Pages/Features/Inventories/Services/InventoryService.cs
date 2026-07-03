@@ -52,6 +52,21 @@ public class InventoryService : BaseApiService, IInventoryService
         return await SendAsync<InventoryAggregateDto>(request, "inventoryAggregate");
     }
 
+    public async Task<ApiResult<SkuAvailabilityDto>> GetSkuAvailabilityAsync(Guid companyId, Guid productSkuId, Guid? warehouseId = null, Guid? branchId = null)
+    {
+        var url = $"api/{_apiConfig.Version}/inventory/availability/company/{companyId}/sku/{productSkuId}";
+        var query = new List<string>();
+        if (warehouseId.HasValue)
+            query.Add($"warehouseId={warehouseId.Value}");
+        if (branchId.HasValue)
+            query.Add($"branchId={branchId.Value}");
+        if (query.Any())
+            url += $"?{string.Join("&", query)}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        return await SendAsync<SkuAvailabilityDto>(request, "availability");
+    }
+
     public async Task<ApiResult<CreateResponseDto>> ReserveAsync(CreateInventoryAggregateDto inventoryAggregateDto)
     {
         EnsureAudit(inventoryAggregateDto, "InventoryReservation");

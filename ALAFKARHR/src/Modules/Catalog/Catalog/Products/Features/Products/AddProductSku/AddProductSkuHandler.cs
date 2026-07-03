@@ -29,7 +29,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
         var userId = CatalogUserContext.GetUserId(httpContextAccessor);
         var companyId = CatalogUserContext.GetCompanyId(httpContextAccessor);
         var prd = await dbContext.Products.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == command.ProductSku.ProductId && x.CompanyId == companyId, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == command.ProductSku.ProductId && x.CompanyId == companyId && x.IsActive, cancellationToken);
 
         if ((prd is null))
             throw new NotFoundException($"Product not found: {command.ProductSku.ProductId}");
@@ -44,7 +44,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
         await CatalogOwnershipGuard.EnsureVariantValuesAsync(dbContext, command.ProductSku.Variants, companyId, cancellationToken);
 
         var brand = await dbContext.Brands.AsNoTracking()
-            .FirstAsync(x => x.Id == command.ProductSku.BrandId && x.CompanyId == companyId, cancellationToken);
+            .FirstAsync(x => x.Id == command.ProductSku.BrandId && x.CompanyId == companyId && x.IsActive, cancellationToken);
 
         var packageIds = command.ProductSku.Packages
             .Select(p => p.Id)
@@ -100,10 +100,21 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
         {
             variantValueIds.Add((v.VariantId,v.VariantValueId));
         }
+        Guid? primaryPackageId = packageIds.FirstOrDefault() == Guid.Empty ? null : packageIds.First();
+        await CatalogOwnershipGuard.EnsureUniqueActiveSkuCombinationAsync(
+            dbContext,
+            companyId,
+            command.ProductSku.ProductId,
+            command.ProductSku.BrandId,
+            primaryPackageId,
+            command.ProductSku.Variants,
+            null,
+            cancellationToken);
+
         var SkuBaseCntx = new SkuBuildContext(
             command.ProductSku.ProductId, 
             command.ProductSku.BrandId, 
-            packageIds.FirstOrDefault() == Guid.Empty ? null : packageIds.First(), 
+            primaryPackageId,
             variantValueIds);
 
         var key = ProductSkuGenerator.BuildSkuKey(SkuBaseCntx);
@@ -127,7 +138,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
             command.ProductSku.ProductId,
             command.ProductSku.BrandId,
             command.ProductSku.UnitId.Value,
-            packageIds.FirstOrDefault() == Guid.Empty ? null : packageIds.First(),
+            primaryPackageId,
             command.ProductSku.Name,
             command.ProductSku.NameEng,
             skuCode,

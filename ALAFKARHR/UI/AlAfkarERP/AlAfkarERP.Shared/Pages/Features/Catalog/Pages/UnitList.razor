@@ -55,6 +55,10 @@
             </div>
             </ChildContent>
             <Actions>
+                <label class="form-check d-flex align-items-center gap-2 mb-0">
+                    <input type="checkbox" class="form-check-input" checked="@includeInactive" @onchange="OnIncludeInactiveChanged" />
+                    <span class="form-check-label">@SharedDataService.SelectViewLang("Include inactive", "تضمين غير النشط")</span>
+                </label>
                 <TableExportActions />
                 <select class="form-select" @onchange="OnPageSizeChanged" aria-label="@SharedDataService.SelectViewLang("Page size", "حجم الصفحة")">
                     <option value="5">5</option>
@@ -102,6 +106,7 @@
                 <th>@SharedDataService.SelectViewLang("Category", "الفئة")</th>
                 <th>@SharedDataService.SelectViewLang("Factor", "معامل التحويل")</th>
                 <th>@SharedDataService.SelectViewLang("Reference", "مرجعية")</th>
+                <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
                 <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
             </tr>
         </thead>
@@ -156,6 +161,13 @@
                                         </div>
                                     </div>
 
+                                    <div class="col-md-4">
+                                        <label class="form-check d-flex align-items-center gap-2">
+                                            <InputCheckbox class="form-check-input" @bind-Value="editingItem.IsActive" />
+                                            <span class="form-check-label">@SharedDataService.SelectViewLang("Active", "نشط")</span>
+                                        </label>
+                                    </div>
+
                                     <div class="erp-form-actions">
                                         <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> @SharedDataService.SelectViewLang("Save", "حفظ")</button>
                                         <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelEdit"><i class="bi bi-x-lg"></i> @SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>
@@ -180,6 +192,7 @@
                     <td>@unit.UnitCategory</td>
                     <td>@unit.ConversionFactor</td>
                     <td>@(unit.IsReferenceUnit ? SharedDataService.SelectViewLang("Yes", "نعم") : SharedDataService.SelectViewLang("No", "لا"))</td>
+                    <td><StatusChip Tone="@GetActiveTone(unit.IsActive)" Text="@GetActiveLabel(unit.IsActive)" /></td>
                     <td>
                         <div class="d-flex justify-content-end gap-2">
                         <button class="btn btn-outline-warning btn-sm erp-row-action"
@@ -254,7 +267,8 @@
             Id = Guid.NewGuid(),
             CompanyId = companyId,
             UnitCategory = "General",
-            ConversionFactor = 1
+            ConversionFactor = 1,
+            IsActive = true
         };
         units.Insert(0, newItem);
         editingUnitId = newItem.Id;
@@ -383,7 +397,7 @@
         if (item != null && item.Id != Guid.Empty)
         {
             // existing record → keep it
-            var brRes = await UnitService.GetByCompanyAsync(companyId, 0, 1000);
+            var brRes = await UnitService.GetByCompanyAsync(companyId, 0, 1000, includeInactive: includeInactive);
             if (brRes.IsSuccess)
             {
                 units = brRes.Data?.Data?.ToList() ?? [];
@@ -403,6 +417,7 @@
 
     // Searching
     private string searchText = "";
+    private bool includeInactive;
 
     // Sorting
     private string sortColumn = nameof(UnitDto.UnitName);
@@ -415,7 +430,7 @@
     {
         // var request = new PaginationRequest(pageIndex, pageSize, searchText);
 
-        var response = await UnitService.GetByCompanyAsync(companyId, pageIndex, pageSize);//,searchText);
+        var response = await UnitService.GetByCompanyAsync(companyId, pageIndex, pageSize, includeInactive: includeInactive);//,searchText);
 
         if (response.IsSuccess)
         {
@@ -433,6 +448,16 @@
         pageIndex = 0;
         await LoadCategory();
     }
+    private async Task OnIncludeInactiveChanged(ChangeEventArgs args)
+    {
+        includeInactive = args.Value is bool value && value;
+        pageIndex = 0;
+        await LoadCategory();
+    }
+    private string GetActiveTone(bool isActive) => isActive ? "success" : "muted";
+    private string GetActiveLabel(bool isActive) => isActive
+        ? SharedDataService.SelectViewLang("Active", "نشط")
+        : SharedDataService.SelectViewLang("Inactive", "غير نشط");
     private IEnumerable<UnitDto> ProcessedUnits =>
     units
         // 🔍 Search

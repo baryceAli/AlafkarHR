@@ -12,6 +12,6 @@ public interface IVariantService
     Task<ApiResult<UpdateDeleteResponseDto>> UpdateAsync(VariantDto variant);
     Task<ApiResult<UpdateDeleteResponseDto>> DeleteAsync(Guid id);
     Task<ApiResult<VariantDto>> GetByIdAsync(Guid id);
-    Task<ApiResult<PaginatedResult<VariantDto>>> GetByCompanyAsync(Guid companyId,int pageIndex, int pageSize);
+    Task<ApiResult<PaginatedResult<VariantDto>>> GetByCompanyAsync(Guid companyId,int pageIndex, int pageSize, bool includeInactive = false);
     //Task<ApiResult<List<VariantDto>>> GetByProductAsync(Guid producId);
 }

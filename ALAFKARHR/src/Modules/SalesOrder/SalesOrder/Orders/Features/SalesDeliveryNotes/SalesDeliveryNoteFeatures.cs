@@ -1,4 +1,5 @@
 using SalesOrder.Orders.Features;
+using SalesOrder.Orders.Features.SalesOrderReservations;
 using SalesOrder.Orders.Models;
 using Shared.Pagination;
 
@@ -107,6 +108,20 @@ public class PostSalesDeliveryNoteHandler(SalesOrderDbContext dbContext, IHttpCo
         var deliveredLines = note.Post(userId);
         foreach (var line in note.Lines)
         {
+            var orderLine = order.Lines.FirstOrDefault(x => x.Id == line.SalesOrderLineId)
+                ?? throw new NotFoundException($"Sales order line not found: {line.SalesOrderLineId}");
+            var skuContext = await ReserveSalesOrderHandler.GetReservableSkuContextAsync(
+                sender,
+                order.CompanyId,
+                orderLine,
+                cancellationToken);
+
+            if (!skuContext.ShouldReserve)
+                continue;
+
+            if (line.Quantity > orderLine.ReservedQuantity)
+                throw new BadRequestException($"Delivery quantity exceeds reserved quantity for SKU {line.SkuCode}.");
+
             await sender.Send(new PostInventoryStockOutCommand(
                 line.ProductId,
                 line.ProductSkuId,
@@ -122,6 +137,8 @@ public class PostSalesDeliveryNoteHandler(SalesOrderDbContext dbContext, IHttpCo
                 note.Number,
                 "SalesDeliveryNote",
                 true), cancellationToken);
+
+            order.ConsumeLineReservation(orderLine.Id, line.Quantity);
         }
 
         order.Deliver(deliveredLines);

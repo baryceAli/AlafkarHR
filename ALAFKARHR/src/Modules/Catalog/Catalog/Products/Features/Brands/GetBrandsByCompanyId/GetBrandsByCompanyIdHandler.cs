@@ -10,6 +10,8 @@ public class GetBrandsByCompanyIdHandler(CatalogDbContext dbContext)
     {
         var query = dbContext.Brands.AsQueryable();
         query = query.Where(b => b.CompanyId == request.companyId && b.IsDeleted==false);
+        if (!request.PaginationRequest.IncludeInactive)
+            query = query.Where(b => b.IsActive);
 
     
         if(!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
@@ -33,7 +35,8 @@ public class GetBrandsByCompanyIdHandler(CatalogDbContext dbContext)
                 Name = b.Name,
                 NameEng = b.NameEng,
                 Description = b.Description,
-                CompanyId = b.CompanyId
+                CompanyId = b.CompanyId,
+                IsActive = b.IsActive
             })
             .ToListAsync(cancellationToken);
 

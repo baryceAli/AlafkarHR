@@ -16,6 +16,7 @@ public class ProductDto
     public string NameEng { get; set; }
 
     public CatalogProductType ProductType { get; set; } = CatalogProductType.Goods;
+    public bool IsActive { get; set; } = true;
 
 
     //[Required(ErrorMessage = "Category is required")]

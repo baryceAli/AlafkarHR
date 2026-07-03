@@ -7,7 +7,7 @@ namespace AlAfkarERP.Shared.Pages.Features.Catalog.Services;
 public interface IProductService
 {
     public Task<ApiResult<PaginatedResult<ProductDto>>> GetAsync(Guid CategoryId, int PageIndex, int PageSize);
-    public Task<ApiResult<PaginatedResult<ProductDto>>> GetByCompanyAsync(Guid companyId, int PageIndex, int PageSize);
+    public Task<ApiResult<PaginatedResult<ProductDto>>> GetByCompanyAsync(Guid companyId, int PageIndex, int PageSize, bool includeInactive = false);
     public Task<ApiResult<PaginatedResult<ProductDto>>> GetPricedByCompanyAsync(Guid companyId, Guid? customerId, int PageIndex, int PageSize, Guid? priceListId = null);
     public Task<ApiResult<PaginatedResult<ProductDto>>> GetAsync( int PageIndex, int PageSize);
     public Task<ApiResult<ProductDto>> GetByIdAsync(Guid productId);

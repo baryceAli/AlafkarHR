@@ -14,6 +14,18 @@ public class GetProductPackagesByCompanyHandler(CatalogDbContext dbContext)
 
         var query = dbContext.ProductPackages.AsQueryable();
         query = query.Where(x => x.IsDeleted == false && x.CompanyId == request.CompanyId);
+        if (!request.PaginationRequest.IncludeInactive)
+            query = query.Where(x => x.IsActive);
+
+        if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
+        {
+            var search = request.PaginationRequest.SearchText.Trim();
+            query = query.Where(x =>
+                x.Name.Contains(search) ||
+                x.NameEng.Contains(search) ||
+                (x.Barcode != null && x.Barcode.Contains(search)) ||
+                (x.Notes != null && x.Notes.Contains(search)));
+        }
 
         var totalCount = await query.AsNoTracking().LongCountAsync(cancellationToken);
         
@@ -29,6 +41,12 @@ public class GetProductPackagesByCompanyHandler(CatalogDbContext dbContext)
                 Quantity = package.Quantity,
                 UnitId = package.UnitId,
                 Barcode = package.Barcode,
+                Weight = package.Weight,
+                Length = package.Length,
+                Width = package.Width,
+                Height = package.Height,
+                Notes = package.Notes,
+                IsActive = package.IsActive,
                 CompanyId = package.CompanyId
             })
             .ToListAsync(cancellationToken);

@@ -867,6 +867,7 @@ public static class PermissionList
         public static string Complete { get; set; } = $"{GroupName}.Complete";
         public static string Cancel { get; set; } = $"{GroupName}.Cancel";
         public static string Return { get; set; } = $"{GroupName}.Return";
+        public static string Reserve { get; set; } = $"{GroupName}.Reserve";
         public static string ViewReports { get; set; } = $"{GroupName}.ViewReports";
 
         public static List<string> Permissions =>
@@ -883,6 +884,7 @@ public static class PermissionList
                 $"{Complete}",
                 $"{Cancel}",
                 $"{Return}",
+                $"{Reserve}",
                 $"{ViewReports}",
             };
     }

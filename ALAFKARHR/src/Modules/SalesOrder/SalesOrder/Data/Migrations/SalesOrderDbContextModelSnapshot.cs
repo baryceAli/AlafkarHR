@@ -401,6 +401,9 @@ namespace SalesOrder.Data.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<decimal>("ReservedQuantity")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("ReturnedQuantity")
                         .HasColumnType("decimal(18,2)");
 

@@ -15,7 +15,9 @@ public class SalesOrderLineDto
 
     public decimal Quantity { get; set; }
 
-    //public decimal ReservedQuantity { get; private set; }
+    public decimal ReservedQuantity { get; set; }
+    public decimal UnreservedQuantity => Math.Max(Quantity - DeliveredQuantity - ReservedQuantity, 0);
+    public decimal RemainingToDeliverQuantity => Math.Max(Quantity - DeliveredQuantity, 0);
 
     public decimal DeliveredQuantity { get; set; }
 
@@ -40,8 +42,8 @@ public class SalesOrderLineDto
         NetAmount + TaxAmount;
     public SalesPricingSnapshotDto Pricing { get; set; } = new();
 
-    //public bool IsFullyReserved =>
-    //    ReservedQuantity >= Quantity;
+    public bool IsFullyReserved =>
+        ReservedQuantity >= RemainingToDeliverQuantity;
 
     public bool IsFullyDelivered =>
         DeliveredQuantity >= Quantity;

@@ -6,6 +6,7 @@ public class VariantValue:Entity<Guid>
 
     public string Value { get; private set; } = default!;
     public string ValueEng { get; private set; } = default!;
+    public bool IsActive { get; private set; } = true;
 
     private VariantValue() { }
     internal VariantValue(Guid variantId, string value, string valueEng, string createdBy)
@@ -14,6 +15,7 @@ public class VariantValue:Entity<Guid>
         VariantId = variantId;
         Value = value;
         ValueEng = valueEng;
+        IsActive = true;
         CreatedAt = DateTime.UtcNow;
         CreatedBy = createdBy;
     }
@@ -29,6 +31,7 @@ public class VariantValue:Entity<Guid>
             VariantId = variantId,
             Value = value,
             ValueEng = valueEng,
+            IsActive = true,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
@@ -49,5 +52,19 @@ public class VariantValue:Entity<Guid>
         IsDeleted = true;
         DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;
+    }
+
+    public void Archive(string modifiedBy)
+    {
+        IsActive = false;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+
+    public void Activate(string modifiedBy)
+    {
+        IsActive = true;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
     }
 }

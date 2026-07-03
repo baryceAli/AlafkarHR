@@ -61,10 +61,10 @@ public class UnitService : BaseApiService, IUnitService
         return await SendAsync<PaginatedResult<UnitDto>>(request, "unitList");
     }
 
-    public async Task<ApiResult<PaginatedResult<UnitDto>>> GetByCompanyAsync(Guid companyId, int PageIndex, int PageSize, string? searchText = "")
+    public async Task<ApiResult<PaginatedResult<UnitDto>>> GetByCompanyAsync(Guid companyId, int PageIndex, int PageSize, string? searchText = "", bool includeInactive = false)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, 
-            $"api/{_apiConfig.Version}/catalog/units/company/{companyId}?PageIndex={PageIndex}&PageSize={PageSize}&searchText={searchText}");
+            $"api/{_apiConfig.Version}/catalog/units/company/{companyId}?PageIndex={PageIndex}&PageSize={PageSize}&searchText={Uri.EscapeDataString(searchText ?? string.Empty)}&IncludeInactive={includeInactive.ToString().ToLowerInvariant()}");
         return await SendAsync<PaginatedResult<UnitDto>>(request, "unitList");
 
     }

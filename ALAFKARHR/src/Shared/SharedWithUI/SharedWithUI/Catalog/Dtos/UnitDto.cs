@@ -19,6 +19,7 @@ public class UnitDto
     public decimal ConversionFactor { get; set; } = 1;
 
     public bool IsReferenceUnit { get; set; }
+    public bool IsActive { get; set; } = true;
 
     [Required(ErrorMessage = "Company is required")]
     public Guid? CompanyId { get; set; }

@@ -9,4 +9,6 @@ public interface ISalesOrderWorkflowService
     Task<ApiResult<bool>> DeliverAsync(SalesOrderDto order);
     Task<ApiResult<bool>> InvoiceAsync(SalesOrderDto order);
     Task<ApiResult<bool>> CancelAsync(Guid id, string reason);
+    Task<ApiResult<bool>> ReserveAsync(Guid id, SalesOrderReservationRequestDto reservation);
+    Task<ApiResult<bool>> ReleaseReservationAsync(Guid id, SalesOrderReservationRequestDto reservation);
 }

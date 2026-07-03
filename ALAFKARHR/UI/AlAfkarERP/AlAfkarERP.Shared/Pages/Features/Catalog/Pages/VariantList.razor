@@ -54,6 +54,10 @@
             </div>
             </ChildContent>
             <Actions>
+                <label class="form-check d-flex align-items-center gap-2 mb-0">
+                    <input type="checkbox" class="form-check-input" checked="@includeInactive" @onchange="OnIncludeInactiveChanged" />
+                    <span class="form-check-label">@SharedDataService.SelectViewLang("Include inactive", "تضمين غير النشط")</span>
+                </label>
                 <TableExportActions />
                 <select class="form-select" @onchange="OnPageSizeChanged" aria-label="@SharedDataService.SelectViewLang("Page size", "حجم الصفحة")">
                     <option value="5">5</option>
@@ -101,6 +105,7 @@
                 <th>@SharedDataService.SelectViewLang("Display", "العرض")</th>
                 <th>@SharedDataService.SelectViewLang("Creation", "الإنشاء")</th>
                 <th>@SharedDataService.SelectViewLang("Values", "القيم")</th>
+                <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
                 <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
             </tr>
         </thead>
@@ -112,7 +117,7 @@
                 if (editingItem != null)
                 {
                     <tr>
-                        <td colspan="6">
+                        <td colspan="7">
                             <EditForm Model="editingItem" OnValidSubmit="() => SaveVariant(editingItem)">
                                 <DataAnnotationsValidator />
                                 <ValidationSummary />
@@ -158,6 +163,16 @@
                                             </InputSelect>
                                         </div>
                                     </div>
+
+                                    <div class="mb-3 row">
+                                        <label class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Status", "الحالة")</label>
+                                        <div class="col-sm-10">
+                                            <label class="form-check d-flex align-items-center gap-2">
+                                                <InputCheckbox class="form-check-input" @bind-Value="editingItem.IsActive" />
+                                                <span class="form-check-label">@SharedDataService.SelectViewLang("Active", "نشط")</span>
+                                            </label>
+                                        </div>
+                                    </div>
                                     
                                     <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Variant Values", "القيم")</label>
@@ -178,6 +193,11 @@
                                                                                    placeholder="Value (En)"
                                                                                    @bind-Value="value.ValueEng" />
                                                                     </div>
+
+                                                                    <label class="form-check d-flex align-items-center gap-2 mb-0">
+                                                                        <InputCheckbox class="form-check-input" @bind-Value="value.IsActive" />
+                                                                        <span class="form-check-label">@SharedDataService.SelectViewLang("Active", "نشط")</span>
+                                                                    </label>
 
                                                                     <div class="erp-form-actions">
                                                                         <button type="button"
@@ -231,10 +251,11 @@
                         <div class="erp-chip-row">
                             @foreach(var value in variant.Values)
                             {
-                                <StatusChip Tone="primary" Text="@SharedDataService.SelectViewLang(value.ValueEng,value.Value)" />
+                                <StatusChip Tone="@(value.IsActive ? "primary" : "muted")" Text="@SharedDataService.SelectViewLang(value.ValueEng,value.Value)" />
                             }
                         </div>
                     </td>
+                    <td><StatusChip Tone="@GetActiveTone(variant.IsActive)" Text="@GetActiveLabel(variant.IsActive)" /></td>
                     <td>
                             <div class="d-flex justify-content-end gap-2">
                             <button class="btn btn-outline-warning btn-sm erp-row-action"
@@ -314,6 +335,7 @@
             CompanyId = companyId,
             DisplayType = VariantDisplayType.Pills,
             CreationMode = VariantCreationMode.Instant,
+            IsActive = true,
             Values = new List<VariantValueDto>()
         };
 
@@ -321,7 +343,8 @@
         newItem.Values.Add(new VariantValueDto
         {
             Id = Guid.Empty,
-            VariantId = newItem.Id
+            VariantId = newItem.Id,
+            IsActive = true
         });
 
         variants.Insert(0, newItem);
@@ -460,7 +483,7 @@
         if (item != null && item.Id != Guid.Empty)
         {
             // existing record → keep it
-            var varRes = await VariantService.GetByCompanyAsync(companyId, 0, 1000);
+            var varRes = await VariantService.GetByCompanyAsync(companyId, 0, 1000, includeInactive);
             if (varRes.IsSuccess)
             {
                 variants = varRes.Data?.Data?.ToList() ?? [];
@@ -480,6 +503,7 @@
 
     // Searching
     private string searchText = "";
+    private bool includeInactive;
 
     // Sorting
     private string sortColumn = nameof(VariantDto.Name);
@@ -492,7 +516,7 @@
     {
         // var request = new PaginationRequest(pageIndex, pageSize, searchText);
         LoadingService.Show();
-        var response = await VariantService.GetByCompanyAsync(companyId, pageIndex, pageSize);//,searchText);
+        var response = await VariantService.GetByCompanyAsync(companyId, pageIndex, pageSize, includeInactive);//,searchText);
 
         if (response.IsSuccess)
         {
@@ -511,6 +535,16 @@
         pageIndex = 0;
         await LoadVariants();
     }
+    private async Task OnIncludeInactiveChanged(ChangeEventArgs args)
+    {
+        includeInactive = args.Value is bool value && value;
+        pageIndex = 0;
+        await LoadVariants();
+    }
+    private string GetActiveTone(bool isActive) => isActive ? "success" : "muted";
+    private string GetActiveLabel(bool isActive) => isActive
+        ? SharedDataService.SelectViewLang("Active", "نشط")
+        : SharedDataService.SelectViewLang("Inactive", "غير نشط");
     private IEnumerable<VariantDto> ProcessedVariants =>
     variants
         // 🔍 Search
@@ -587,7 +621,8 @@
             Id = Guid.Empty, // VERY IMPORTANT
             VariantId = variant.Id,
             Value = "",
-            ValueEng = ""
+            ValueEng = "",
+            IsActive = true
         });
     }
 

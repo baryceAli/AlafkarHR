@@ -26,6 +26,10 @@ public class VariantConfiguration : IEntityTypeConfiguration<Variant>
             .HasConversion<int>()
             .HasDefaultValue(VariantCreationMode.Instant);
 
+        builder.Property(x => x.IsActive)
+            .IsRequired()
+            .HasDefaultValue(true);
+
         // 🔥 Values relationship
         //builder.HasMany(typeof(VariantValue), "_values")
         //    .WithOne()

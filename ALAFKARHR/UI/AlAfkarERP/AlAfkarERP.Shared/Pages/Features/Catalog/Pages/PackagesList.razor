@@ -55,6 +55,10 @@
             </div>
             </ChildContent>
             <Actions>
+                <label class="form-check d-flex align-items-center gap-2 mb-0">
+                    <input type="checkbox" class="form-check-input" checked="@includeInactive" @onchange="OnIncludeInactiveChanged" />
+                    <span class="form-check-label">@SharedDataService.SelectViewLang("Include inactive", "تضمين غير النشط")</span>
+                </label>
                 <TableExportActions />
                 <select class="form-select" @onchange="OnPageSizeChanged" aria-label="@SharedDataService.SelectViewLang("Page size", "حجم الصفحة")">
                     <option value="5">5</option>
@@ -102,6 +106,8 @@
                 <th>@SharedDataService.SelectViewLang("Quantity", "الكمية")</th>
                 <th>@SharedDataService.SelectViewLang("Unit","الوحدة")</th>
                 <th>@SharedDataService.SelectViewLang("Barcode","باركود")</th>
+                <th>@SharedDataService.SelectViewLang("Dimensions", "الأبعاد")</th>
+                <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
                 <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
             </tr>
         </thead>
@@ -158,8 +164,44 @@
                                     <div class="col-md-4">
                                         <label class="form-label">@SharedDataService.SelectViewLang("Barcode", "باركود")</label>
                                         <InputText class="form-control" @bind-Value="editingItem.Barcode" />
+                                        <ValidationMessage For="() => editingItem.Barcode" />
                                     </div>
 
+                                    <div class="col-md-3">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Weight", "الوزن")</label>
+                                        <InputNumber class="form-control" @bind-Value="editingItem.Weight" />
+                                        <ValidationMessage For="() => editingItem.Weight" />
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Length", "الطول")</label>
+                                        <InputNumber class="form-control" @bind-Value="editingItem.Length" />
+                                        <ValidationMessage For="() => editingItem.Length" />
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Width", "العرض")</label>
+                                        <InputNumber class="form-control" @bind-Value="editingItem.Width" />
+                                        <ValidationMessage For="() => editingItem.Width" />
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Height", "الارتفاع")</label>
+                                        <InputNumber class="form-control" @bind-Value="editingItem.Height" />
+                                        <ValidationMessage For="() => editingItem.Height" />
+                                    </div>
+
+                                    <div class="col-md-8">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Notes", "ملاحظات")</label>
+                                        <InputTextArea class="form-control" @bind-Value="editingItem.Notes" />
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-check d-flex align-items-center gap-2">
+                                            <InputCheckbox class="form-check-input" @bind-Value="editingItem.IsActive" />
+                                            <span class="form-check-label">@SharedDataService.SelectViewLang("Active", "نشط")</span>
+                                        </label>
+                                    </div>
 
 
                                     <div class="erp-form-actions">
@@ -184,6 +226,8 @@
                     <td>@brand.Quantity</td>
                     <td>@GetUnitLabel(brand.UnitId)</td>
                     <td>@(string.IsNullOrWhiteSpace(brand.Barcode) ? "-" : brand.Barcode)</td>
+                    <td>@GetPackageDimensions(brand)</td>
+                    <td><StatusChip Tone="@GetActiveTone(brand.IsActive)" Text="@GetActiveLabel(brand.IsActive)" /></td>
                     <td>
                         <div class="d-flex justify-content-end gap-2">
                         <button class="btn btn-outline-warning btn-sm erp-row-action"
@@ -261,7 +305,8 @@
     {
         var newItem = new ProductPackageDto()
         {
-            Id = Guid.NewGuid()
+            Id = Guid.NewGuid(),
+            IsActive = true
         };
         newItem.CompanyId = companyId;
         packages.Insert(0, newItem);
@@ -419,6 +464,7 @@
 
     // Searching
     private string searchText = "";
+    private bool includeInactive;
 
     // Sorting
     private string sortColumn = nameof(BranchDto.Name);
@@ -431,7 +477,7 @@
     {
         // var request = new PaginationRequest(pageIndex, pageSize, searchText);
 
-        var response = await PackageService.GetByCompanyAsync(companyId, pageIndex, pageSize);//,searchText);
+        var response = await PackageService.GetByCompanyAsync(companyId, pageIndex, pageSize, searchText, includeInactive);//,searchText);
 
         if (response.IsSuccess)
         {
@@ -464,19 +510,39 @@
             ? "-"
             : SharedDataService.SelectViewLang(unit.UnitNameEng, unit.UnitName);
     }
+    private string GetPackageDimensions(ProductPackageDto package)
+    {
+        var parts = new List<string>();
+        if (package.Weight.HasValue) parts.Add($"{package.Weight:g}w");
+        if (package.Length.HasValue) parts.Add($"{package.Length:g}l");
+        if (package.Width.HasValue) parts.Add($"{package.Width:g}w");
+        if (package.Height.HasValue) parts.Add($"{package.Height:g}h");
+        return parts.Count == 0 ? "-" : string.Join(" x ", parts);
+    }
     async Task OnPageSizeChanged(ChangeEventArgs e)
     {
         pageSize = int.Parse(e.Value!.ToString()!);
         pageIndex = 0;
         await LoadPackages();
     }
+    private async Task OnIncludeInactiveChanged(ChangeEventArgs args)
+    {
+        includeInactive = args.Value is bool value && value;
+        pageIndex = 0;
+        await LoadPackages();
+    }
+    private string GetActiveTone(bool isActive) => isActive ? "success" : "muted";
+    private string GetActiveLabel(bool isActive) => isActive
+        ? SharedDataService.SelectViewLang("Active", "نشط")
+        : SharedDataService.SelectViewLang("Inactive", "غير نشط");
     private IEnumerable<ProductPackageDto> ProcessedPackages =>
     packages
         // 🔍 Search
         .Where(b =>
             string.IsNullOrWhiteSpace(searchText) ||
             (b.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (b.NameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+            (b.NameEng?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (b.Barcode?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
 
         )
 

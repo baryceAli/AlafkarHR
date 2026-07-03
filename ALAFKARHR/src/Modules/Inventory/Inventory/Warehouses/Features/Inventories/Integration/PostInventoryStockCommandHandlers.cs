@@ -1,5 +1,7 @@
 using Accounting.Contracts.Accounting.Features;
 using Inventory.Contracts.Stock;
+using Inventory.Warehouses.Features.Inventories.StockRelease;
+using Inventory.Warehouses.Features.Inventories.StockReservation;
 using Inventory.Warehouses.Features.Inventories.StockIn;
 using Inventory.Warehouses.Features.Inventories.StockOut;
 using Shared.Contracts.CQRS;
@@ -68,6 +70,26 @@ public class PostInventoryStockOutCommandHandler(ISender sender)
     }
 }
 
+public class PostInventoryReservationCommandHandler(ISender sender)
+    : ICommandHandler<PostInventoryReservationCommand, PostInventoryStockResult>
+{
+    public async Task<PostInventoryStockResult> Handle(PostInventoryReservationCommand command, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new StockReservationCommand(command.ToInventoryAggregateDto(MovementType.ReserveAmount)), cancellationToken);
+        return new PostInventoryStockResult(result.Id);
+    }
+}
+
+public class PostInventoryReleaseCommandHandler(ISender sender)
+    : ICommandHandler<PostInventoryReleaseCommand, PostInventoryStockResult>
+{
+    public async Task<PostInventoryStockResult> Handle(PostInventoryReleaseCommand command, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new StockReleaseCommand(command.ToInventoryAggregateDto(MovementType.ReleaseAmount)), cancellationToken);
+        return new PostInventoryStockResult(result.Id);
+    }
+}
+
 internal static class InventoryStockCommandMapper
 {
     public static CreateInventoryAggregateDto ToInventoryAggregateDto(this PostInventoryStockInCommand command, MovementType movementType) =>
@@ -76,6 +98,7 @@ internal static class InventoryStockCommandMapper
             ProductId = command.ProductId,
             ProductSkuId = command.ProductSkuId,
             ProductPackageId = command.ProductPackageId,
+            UnitId = command.UnitId,
             WarehouseId = command.WarehouseId,
             InitialBatchId = command.BatchId,
             InitialQuantity = command.Quantity,
@@ -95,6 +118,7 @@ internal static class InventoryStockCommandMapper
             ProductId = command.ProductId,
             ProductSkuId = command.ProductSkuId,
             ProductPackageId = command.ProductPackageId,
+            UnitId = command.UnitId,
             WarehouseId = command.WarehouseId,
             InitialBatchId = command.BatchId,
             InitialQuantity = command.Quantity,
@@ -107,5 +131,43 @@ internal static class InventoryStockCommandMapper
             ReferenceNumber = command.ReferenceNumber ?? $"{movementType}-{command.WarehouseId:N}-{command.BatchId:N}",
             SourceDocumentType = command.SourceDocumentType ?? "Integration",
             ConsumeReservedQuantity = command.ConsumeReservedQuantity
+        };
+
+    public static CreateInventoryAggregateDto ToInventoryAggregateDto(this PostInventoryReservationCommand command, MovementType movementType) =>
+        new()
+        {
+            ProductId = command.ProductId,
+            ProductSkuId = command.ProductSkuId,
+            UnitId = command.UnitId,
+            WarehouseId = command.WarehouseId,
+            InitialBatchId = command.BatchId,
+            InitialQuantity = command.Quantity,
+            MovementType = movementType,
+            UnitCost = 0m,
+            TotalCost = 0m,
+            CurrencyId = command.CurrencyId ?? Guid.Empty,
+            CompanyId = command.CompanyId,
+            Notes = command.Notes,
+            ReferenceNumber = command.ReferenceNumber ?? $"SalesOrderReservation-{command.WarehouseId:N}-{command.BatchId:N}",
+            SourceDocumentType = command.SourceDocumentType ?? "SalesOrderReservation"
+        };
+
+    public static CreateInventoryAggregateDto ToInventoryAggregateDto(this PostInventoryReleaseCommand command, MovementType movementType) =>
+        new()
+        {
+            ProductId = command.ProductId,
+            ProductSkuId = command.ProductSkuId,
+            UnitId = command.UnitId,
+            WarehouseId = command.WarehouseId,
+            InitialBatchId = command.BatchId,
+            InitialQuantity = command.Quantity,
+            MovementType = movementType,
+            UnitCost = 0m,
+            TotalCost = 0m,
+            CurrencyId = command.CurrencyId ?? Guid.Empty,
+            CompanyId = command.CompanyId,
+            Notes = command.Notes,
+            ReferenceNumber = command.ReferenceNumber ?? $"SalesOrderReservationRelease-{command.WarehouseId:N}-{command.BatchId:N}",
+            SourceDocumentType = command.SourceDocumentType ?? "SalesOrderReservationRelease"
         };
 }

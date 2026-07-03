@@ -14,4 +14,5 @@ public class VariantValueDto
 
     [Required(ErrorMessage = "ValueEng is required")]
     public string ValueEng { get; set; }
+    public bool IsActive { get; set; } = true;
 }

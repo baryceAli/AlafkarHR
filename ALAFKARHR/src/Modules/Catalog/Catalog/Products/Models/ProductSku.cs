@@ -30,6 +30,7 @@ public class ProductSku : Entity<Guid>
     public bool IsPurchasable { get; private set; } = true;
     public bool IsInventoryTracked { get; private set; } = true;
     public bool IsAssetTrackable { get; private set; }
+    public bool IsActive { get; private set; } = true;
 
     private readonly List<ProductSkuVariant> _variants = new();
     public IReadOnlyCollection<ProductSkuVariant> Variants => _variants;
@@ -126,6 +127,7 @@ public class ProductSku : Entity<Guid>
             IsPurchasable = isPurchasable,
             IsInventoryTracked = isInventoryTracked,
             IsAssetTrackable = isAssetTrackable,
+            IsActive = true,
             ShowOnStore = showOnStore,
             CompanyId = companyId,
             CreatedBy = createdBy,
@@ -233,6 +235,21 @@ public class ProductSku : Entity<Guid>
         IsDeleted = true;
         DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;
+    }
+
+    public void Archive(string modifiedBy)
+    {
+        IsActive = false;
+        ShowOnStore = false;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+
+    public void Activate(string modifiedBy)
+    {
+        IsActive = true;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
     }
     public void AddVariant(Guid variantId, Guid variantValueId, string addedBy)
     {

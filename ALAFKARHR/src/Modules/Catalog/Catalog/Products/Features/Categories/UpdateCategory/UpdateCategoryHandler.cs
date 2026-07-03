@@ -27,6 +27,10 @@ public class UpdateCategoryHandler(CatalogDbContext dbContext, IHttpContextAcces
         var userId = CatalogUserContext.GetUserId(httpContextAccessor);
 
         category.Update(command.Category.Name, command.Category.NameEng, userId, command.Category.Description);
+        if (command.Category.IsActive)
+            category.Activate(userId);
+        else
+            category.Archive(userId);
 
         dbContext.Categories.Update(category);
 

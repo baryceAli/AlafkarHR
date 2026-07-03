@@ -7,6 +7,7 @@ public class Unit : Aggregate<Guid>
     public string UnitCategory { get; private set; } = "General";
     public decimal ConversionFactor { get; private set; } = 1;
     public bool IsReferenceUnit { get; private set; }
+    public bool IsActive { get; private set; } = true;
     public Guid CompanyId { get; set; }
     private Unit() { }
 
@@ -18,6 +19,7 @@ public class Unit : Aggregate<Guid>
         UnitCategory = NormalizeCategory(unitCategory);
         ConversionFactor = conversionFactor;
         IsReferenceUnit = isReferenceUnit;
+        IsActive = true;
         CreatedAt = DateTime.UtcNow;
         CreatedBy = createdBy;
         CompanyId = companyId;
@@ -43,6 +45,7 @@ public class Unit : Aggregate<Guid>
             UnitCategory = NormalizeCategory(unitCategory),
             ConversionFactor = conversionFactor,
             IsReferenceUnit = isReferenceUnit,
+            IsActive = true,
             CompanyId= companyId,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
@@ -68,6 +71,20 @@ public class Unit : Aggregate<Guid>
         IsDeleted = true;
         DeletedAt= DateTime.UtcNow;
         DeletedBy = deletedBy;
+    }
+
+    public void Archive(string modifiedBy)
+    {
+        IsActive = false;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+
+    public void Activate(string modifiedBy)
+    {
+        IsActive = true;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
     }
 
     private static string NormalizeCategory(string? unitCategory)

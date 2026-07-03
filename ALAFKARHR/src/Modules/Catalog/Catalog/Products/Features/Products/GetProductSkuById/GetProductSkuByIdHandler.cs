@@ -31,6 +31,14 @@ public class GetProductSkuByIdHandler(CatalogDbContext dbContext)
                 Name = p.ProductPackage.Name,
                 NameEng = p.ProductPackage.NameEng,
                 Quantity = p.ProductPackage.Quantity,
+                UnitId = p.ProductPackage.UnitId,
+                Barcode = p.ProductPackage.Barcode,
+                Weight = p.ProductPackage.Weight,
+                Length = p.ProductPackage.Length,
+                Width = p.ProductPackage.Width,
+                Height = p.ProductPackage.Height,
+                Notes = p.ProductPackage.Notes,
+                IsActive = p.ProductPackage.IsActive,
                 CompanyId = p.ProductPackage.CompanyId
             })
             .ToList();

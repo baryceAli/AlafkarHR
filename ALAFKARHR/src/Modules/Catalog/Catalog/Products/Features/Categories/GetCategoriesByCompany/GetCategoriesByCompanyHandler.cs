@@ -15,6 +15,8 @@ public class GetCategoriesByCompanyHandler(CatalogDbContext dbContext)
         var pageSize = request.PaginationRequest.PageSize;
 
         query = query.Where(x => x.CompanyId == request.companyId && x.IsDeleted == false);
+        if (!request.PaginationRequest.IncludeInactive)
+            query = query.Where(x => x.IsActive);
 
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
         {
@@ -36,7 +38,8 @@ public class GetCategoriesByCompanyHandler(CatalogDbContext dbContext)
                 Name = b.Name,
                 NameEng = b.NameEng,
                 Description = b.Description,
-                CompanyId = b.CompanyId
+                CompanyId = b.CompanyId,
+                IsActive = b.IsActive
             })
             .ToListAsync(cancellationToken);
 

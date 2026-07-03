@@ -29,6 +29,10 @@ public class UnitConfiguration : IEntityTypeConfiguration<Unit>
             .IsRequired()
             .HasDefaultValue(false);
 
+        builder.Property(x => x.IsActive)
+            .IsRequired()
+            .HasDefaultValue(true);
+
         builder.HasIndex(x => new { x.CompanyId, x.UnitName }).IsUnique();
         builder.HasIndex(x => new { x.CompanyId, x.UnitNameEng }).IsUnique();
         builder.HasIndex(x => new { x.CompanyId, x.UnitCategory, x.IsReferenceUnit })

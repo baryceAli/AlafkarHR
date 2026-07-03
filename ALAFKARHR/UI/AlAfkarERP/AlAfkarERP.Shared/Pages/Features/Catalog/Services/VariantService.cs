@@ -36,9 +36,9 @@ public class VariantService : BaseApiService, IVariantService
         return await SendAsync<UpdateDeleteResponseDto>(request, null);
     }
 
-    public async Task<ApiResult<PaginatedResult<VariantDto>>> GetByCompanyAsync(Guid companyId, int pageIndex, int pageSize)
+    public async Task<ApiResult<PaginatedResult<VariantDto>>> GetByCompanyAsync(Guid companyId, int pageIndex, int pageSize, bool includeInactive = false)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/company/{companyId}?pageIndex={pageIndex}&pageSize={pageSize}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/company/{companyId}?pageIndex={pageIndex}&pageSize={pageSize}&IncludeInactive={includeInactive.ToString().ToLowerInvariant()}");
         return await SendAsync<PaginatedResult<VariantDto>>(request, "variantList");
     }
 
