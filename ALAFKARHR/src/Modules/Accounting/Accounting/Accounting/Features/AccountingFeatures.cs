@@ -186,6 +186,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
       ICommandHandler<CreateAccountingDocumentCommand, CreateAccountingDocumentResult>,
       ICommandHandler<PostAccountingDocumentCommand, PostAccountingDocumentResult>,
       ICommandHandler<CreateAndPostJournalEntryCommand, CreateAndPostJournalEntryResult>,
+      IQueryHandler<EnsureAccountingPostingReadinessQuery, EnsureAccountingPostingReadinessResult>,
       IQueryHandler<GetAccountingCashAccountScopeQuery, GetAccountingCashAccountScopeResult>,
       ICommandHandler<CreateQuickJournalEntryCommand, CreateAndPostJournalEntryResult>,
       ICommandHandler<RecordAccountingReceiptCommand, CreateAccountingDocumentResult>,
@@ -591,6 +592,24 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
         document.Post(entry.Id, UserId);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new PostAccountingDocumentResult(entry.Id);
+    }
+
+    public async Task<EnsureAccountingPostingReadinessResult> Handle(EnsureAccountingPostingReadinessQuery query, CancellationToken cancellationToken)
+    {
+        await EnsureCanAccessBranchAsync(query.CompanyId, query.BranchId, cancellationToken);
+        var profile = await ResolvePostingProfileAsync(query.CompanyId, query.DocumentType, cancellationToken);
+        var accountIds = query.DocumentType switch
+        {
+            AccountingDocumentType.SupplierInvoice => [profile.ExpenseAccountId, profile.InputVatAccountId, profile.PayableAccountId],
+            AccountingDocumentType.SupplierCreditNote => [profile.PayableAccountId, profile.ExpenseAccountId, profile.InputVatAccountId],
+            AccountingDocumentType.CustomerReceipt => [profile.CashAccountId, profile.ReceivableAccountId],
+            AccountingDocumentType.SupplierPayment => [profile.PayableAccountId, profile.BankAccountId],
+            AccountingDocumentType.SalesCreditNote => [profile.RevenueAccountId, profile.OutputVatAccountId, profile.ReceivableAccountId],
+            _ => new[] { profile.ReceivableAccountId, profile.RevenueAccountId, profile.OutputVatAccountId }
+        };
+
+        await EnsurePostingAccountsAsync(query.CompanyId, query.BranchId, accountIds, cancellationToken);
+        return new EnsureAccountingPostingReadinessResult(true);
     }
 
     public async Task<ReverseAccountingDocumentResult> Handle(ReverseAccountingDocumentCommand command, CancellationToken cancellationToken)
@@ -2057,7 +2076,7 @@ public class AccountingCommandHandlers(AccountingDbContext dbContext, IHttpConte
             .ToListAsync(cancellationToken);
 
         if (valid.Count != ids.Count)
-            throw new BadRequestException("Only active ledger/posting accounts for the selected branch can be used for posting.");
+            throw new BadRequestException("Accounting setup is not ready for the selected branch. Check that the posting profile uses active ledger accounts available to this branch.");
     }
 
     private async Task<bool> IsPostingAccountAvailableForBranchAsync(Guid companyId, Guid? branchId, Guid accountId, CancellationToken cancellationToken) =>

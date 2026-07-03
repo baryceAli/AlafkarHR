@@ -114,6 +114,11 @@ public class CreatePosDirectSalesOrderHandler(SalesOrderDbContext dbContext, IHt
         order.Invoice(allLineQuantities);
         order.Complete();
 
+        await sender.Send(new EnsureAccountingPostingReadinessQuery(
+            order.CompanyId,
+            order.BranchId,
+            AccountingDocumentType.SalesInvoice), cancellationToken);
+
         await dbContext.SalesOrders.AddAsync(order, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 

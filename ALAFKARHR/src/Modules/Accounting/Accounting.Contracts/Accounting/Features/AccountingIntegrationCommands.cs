@@ -48,3 +48,10 @@ public record RecordAccountingReceiptCommand(
 public record GenerateZatcaInvoiceCommand(Guid AccountingDocumentId, ZatcaInvoiceType InvoiceType) : ICommand<GenerateZatcaInvoiceResult>;
 
 public record GenerateZatcaInvoiceResult(Guid EInvoiceId, string InvoiceHash, string QrPayload);
+
+public record EnsureAccountingPostingReadinessQuery(
+    Guid CompanyId,
+    Guid? BranchId,
+    AccountingDocumentType DocumentType) : IQuery<EnsureAccountingPostingReadinessResult>;
+
+public record EnsureAccountingPostingReadinessResult(bool IsReady);

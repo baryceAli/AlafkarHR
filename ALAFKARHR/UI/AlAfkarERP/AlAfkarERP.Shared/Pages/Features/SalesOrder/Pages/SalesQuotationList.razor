@@ -26,6 +26,12 @@
                 Overline="@Text("Sales", "المبيعات")"
                 Icon="bi-file-earmark-text">
         <Actions>
+            @if (CanCreate)
+            {
+                <a class="btn btn-primary" href="/Sales/Quotations/Create">
+                    <i class="bi bi-plus-lg"></i> @Text("New Quotation", "عرض سعر جديد")
+                </a>
+            }
             <a class="btn btn-outline-secondary" href="/Sales/Orders">
                 <i class="bi bi-list-check"></i> @Text("Sales Orders", "أوامر البيع")
             </a>
@@ -67,9 +73,15 @@
                                 <td>@(quotation.ValidUntil?.ToString("yyyy-MM-dd") ?? "-")</td>
                                 <td>@quotation.TotalAmount.ToString("N2")</td>
                                 <td class="text-end">
+                                    @if (CanEdit)
+                                    {
+                                        <a class="btn btn-sm btn-outline-secondary" href="@($"/Sales/Quotations/{quotation.Id}")">
+                                            <i class="bi bi-pencil"></i> @Text("Edit", "تعديل")
+                                        </a>
+                                    }
                                     @if (quotation.Status == SalesQuotationStatus.Draft && CanSend)
                                     {
-                                        <button class="btn btn-sm btn-outline-secondary" @onclick='() => ActionAsync(quotation.Id, "send")'>@Text("Send", "إرسال")</button>
+                                        <button class="btn btn-sm btn-outline-secondary" @onclick='() => SendAsync(quotation.Id)'>@Text("Send", "إرسال")</button>
                                     }
                                     @if (quotation.Status is SalesQuotationStatus.Draft or SalesQuotationStatus.Sent && CanConvert)
                                     {
@@ -89,6 +101,8 @@
 
 @code {
     private bool CanView;
+    private bool CanCreate;
+    private bool CanEdit;
     private bool CanSend;
     private bool CanConvert;
     private bool isLoading;
@@ -101,6 +115,8 @@
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var permissions = authState.User.Claims.Select(c => c.Value).ToHashSet();
         CanView = permissions.Contains(PermissionList.SalesQuotationPermissions.View);
+        CanCreate = permissions.Contains(PermissionList.SalesQuotationPermissions.Create);
+        CanEdit = permissions.Contains(PermissionList.SalesQuotationPermissions.Edit);
         CanSend = permissions.Contains(PermissionList.SalesQuotationPermissions.Send);
         CanConvert = permissions.Contains(PermissionList.SalesQuotationPermissions.Convert);
         if (!authState.User.Identity?.IsAuthenticated ?? true)
@@ -125,9 +141,9 @@
         isLoading = false;
     }
 
-    private async Task ActionAsync(Guid id, string action)
+    private async Task SendAsync(Guid id)
     {
-        var result = await SalesService.QuotationActionAsync(id, action);
+        var result = await SalesService.SendQuotationAsync(id);
         if (result.IsSuccess)
         {
             ToastService.ShowSuccess(Text("Quotation updated.", "تم تحديث عرض السعر."));

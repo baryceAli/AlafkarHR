@@ -217,5 +217,41 @@ public class SalesQuotationEndpoints : ICarterModule
         .WithName("SalesQuotationAction")
         .Produces<SalesQuotationActionResult>(StatusCodes.Status200OK)
         .RequireAuthorization(PermissionList.SalesQuotationPermissions.Edit);
+
+        app.MapPut("/api/v1/sales/quotations/{id:guid}/send", async (Guid id, ISender sender) =>
+        {
+            var result = await sender.Send(new SalesQuotationActionCommand(id, "send", null));
+            return Results.Ok(result);
+        })
+        .WithName("SendSalesQuotation")
+        .Produces<SalesQuotationActionResult>(StatusCodes.Status200OK)
+        .RequireAuthorization(PermissionList.SalesQuotationPermissions.Send);
+
+        app.MapPut("/api/v1/sales/quotations/{id:guid}/convert", async (Guid id, ISender sender) =>
+        {
+            var result = await sender.Send(new SalesQuotationActionCommand(id, "convert", null));
+            return Results.Ok(result);
+        })
+        .WithName("ConvertSalesQuotation")
+        .Produces<SalesQuotationActionResult>(StatusCodes.Status200OK)
+        .RequireAuthorization(PermissionList.SalesQuotationPermissions.Convert);
+
+        app.MapPut("/api/v1/sales/quotations/{id:guid}/cancel", async (Guid id, ISender sender) =>
+        {
+            var result = await sender.Send(new SalesQuotationActionCommand(id, "cancel", null));
+            return Results.Ok(result);
+        })
+        .WithName("CancelSalesQuotation")
+        .Produces<SalesQuotationActionResult>(StatusCodes.Status200OK)
+        .RequireAuthorization(PermissionList.SalesQuotationPermissions.Cancel);
+
+        app.MapPut("/api/v1/sales/quotations/{id:guid}/reject", async (Guid id, SalesQuotationActionRequest request, ISender sender) =>
+        {
+            var result = await sender.Send(new SalesQuotationActionCommand(id, "reject", request.Reason));
+            return Results.Ok(result);
+        })
+        .WithName("RejectSalesQuotation")
+        .Produces<SalesQuotationActionResult>(StatusCodes.Status200OK)
+        .RequireAuthorization(PermissionList.SalesQuotationPermissions.Reject);
     }
 }

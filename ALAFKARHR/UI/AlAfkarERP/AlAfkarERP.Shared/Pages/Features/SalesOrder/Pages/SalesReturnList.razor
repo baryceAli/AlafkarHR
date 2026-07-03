@@ -24,7 +24,16 @@
     <PageHeader Title="@Text("Sales Returns", "مرتجعات المبيعات")"
                 Subtitle="@Text("Post customer returns and optional credit notes.", "ترحيل مرتجعات العملاء وإشعارات الدائن عند الحاجة.")"
                 Overline="@Text("Sales", "المبيعات")"
-                Icon="bi-arrow-counterclockwise" />
+                Icon="bi-arrow-counterclockwise">
+        <Actions>
+            @if (CanCreate)
+            {
+                <a class="btn btn-primary" href="/Sales/Returns/Create">
+                    <i class="bi bi-plus-lg"></i> @Text("Register Return", "تسجيل مرتجع")
+                </a>
+            }
+        </Actions>
+    </PageHeader>
 
     <AppCard Title="@Text("Returns", "المرتجعات")">
         @if (isLoading)
@@ -85,6 +94,7 @@
 
 @code {
     private bool CanView;
+    private bool CanCreate;
     private bool CanPost;
     private bool CanCancel;
     private bool isLoading;
@@ -97,6 +107,7 @@
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var permissions = authState.User.Claims.Select(c => c.Value).ToHashSet();
         CanView = permissions.Contains(PermissionList.SalesReturnPermissions.View);
+        CanCreate = permissions.Contains(PermissionList.SalesReturnPermissions.Create);
         CanPost = permissions.Contains(PermissionList.SalesReturnPermissions.Post);
         CanCancel = permissions.Contains(PermissionList.SalesReturnPermissions.Cancel);
         if (!authState.User.Identity?.IsAuthenticated ?? true)
