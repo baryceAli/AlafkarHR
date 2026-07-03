@@ -3,11 +3,14 @@
 @implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
 @using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Pages.Features.Inventories.Services
 @using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Catalog.Enums
 @using SharedWithUI.Inventory.Dtos
 @using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
@@ -16,6 +19,7 @@
 
 @inject ISalesService SalesService
 @inject ISalesOrderWorkflowService WorkflowService
+@inject IProductService ProductService
 @inject ICurrencyService CurrencyService
 @inject IBranchService BranchService
 @inject IWarehouseService WarehouseService
@@ -87,6 +91,27 @@
                                         <td>@line.InvoicedQuantity</td>
                                         <td>@Money(line.TotalAmount)</td>
                                     </tr>
+                                    @if (TryGetComboSku(line.ProductSkuId, out var comboSku))
+                                    {
+                                        <tr class="kit-impact-row">
+                                            <td colspan="8">
+                                                <details>
+                                                    <summary>
+                                                        <span class="badge text-bg-info">@Text("Kit components", "Kit components")</span>
+                                                        <span class="text-muted small">@Text("Inventory is reserved and moved through component SKUs.", "Inventory is reserved and moved through component SKUs.")</span>
+                                                    </summary>
+                                                    <div class="kit-impact-list">
+                                                        @foreach (var component in comboSku.Components)
+                                                        {
+                                                            <span class="kit-impact-pill">
+                                                                @Text(component.ComponentSkuNameEng, component.ComponentSkuName) x @(component.Quantity * line.Quantity)
+                                                            </span>
+                                                        }
+                                                    </div>
+                                                </details>
+                                            </td>
+                                        </tr>
+                                    }
                                 }
                             </tbody>
                         </table>
@@ -174,6 +199,7 @@
     private string currencyCode = string.Empty;
     private List<BranchDto> branches = [];
     private List<WarehouseDto> warehouses = [];
+    private List<ProductSkuDto> catalogSkus = [];
     private List<ReservationLineModel> reservationLines = [];
     private Guid selectedWarehouseId;
     private SalesOrderDto? order;
@@ -205,6 +231,7 @@
         if (order is not null)
         {
             await LoadCurrencyAsync(order.CompanyId);
+            await LoadCatalogSkusAsync(order.CompanyId);
             await LoadBranchesAsync(order.CompanyId);
             await LoadWarehousesAsync(order.CompanyId, order.BranchId);
             ResetReservationLines();
@@ -226,6 +253,14 @@
         var result = await CurrencyService.GetAsync(companyId, 0, 1000);
         var currencies = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
         currencyCode = currencies.FirstOrDefault(c => c.IsDefault)?.Code ?? currencies.FirstOrDefault()?.Code ?? string.Empty;
+    }
+
+    private async Task LoadCatalogSkusAsync(Guid companyId)
+    {
+        var result = await ProductService.GetPricedByCompanyAsync(companyId, null, 0, 1000);
+        catalogSkus = result.IsSuccess
+            ? result.Data?.Data?.SelectMany(product => product.Skus).ToList() ?? []
+            : [];
     }
 
     private async Task LoadWarehousesAsync(Guid companyId, Guid? branchId)
@@ -323,6 +358,14 @@
     };
 
     private string Money(decimal value) => string.IsNullOrWhiteSpace(currencyCode) ? $"{value:N2}" : $"{value:N2} {currencyCode}";
+
+    private bool TryGetComboSku(Guid productSkuId, out ProductSkuDto sku)
+    {
+        sku = catalogSkus.FirstOrDefault(x => x.Id == productSkuId &&
+            (x.ProductType == CatalogProductType.Combo || x.ProductionType == SkuProductionType.CompositeBundle))!;
+        return sku is not null && sku.Components.Any();
+    }
+
     private string BranchName(Guid branchId)
     {
         var branch = branches.FirstOrDefault(x => x.Id == branchId);
@@ -373,5 +416,25 @@
         display: grid;
         gap: var(--erp-space-2);
         grid-template-columns: minmax(0, 1fr) 7rem;
+    }
+
+    .kit-impact-row td {
+        background: var(--erp-surface-muted);
+    }
+
+    .kit-impact-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--erp-space-2);
+        margin-block-start: var(--erp-space-2);
+    }
+
+    .kit-impact-pill {
+        background: var(--erp-surface);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-sm);
+        color: var(--erp-text-muted);
+        font-size: .8rem;
+        padding: .2rem .5rem;
     }
 </style>

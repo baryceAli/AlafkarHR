@@ -1,4 +1,5 @@
 using Catalog.Contracts.Products.Features.GetProductSkuInventoryContext;
+using SalesOrder.Orders.Features;
 using SharedWithUI.Catalog.Enums;
 
 namespace SalesOrder.Orders.Features.SalesOrderReservations;
@@ -46,6 +47,22 @@ public class ReserveSalesOrderHandler(SalesOrderDbContext dbContext, ISender sen
             var skuContext = await GetReservableSkuContextAsync(sender, order.CompanyId, line, cancellationToken);
             if (!skuContext.ShouldReserve)
                 continue;
+
+            if (SalesComboFulfillmentHelper.IsCombo(skuContext.Context))
+            {
+                await SalesComboFulfillmentHelper.ReserveAsync(
+                    sender,
+                    order.CompanyId,
+                    order.BranchId,
+                    command.Request.WarehouseId,
+                    line,
+                    quantity,
+                    order.Number,
+                    cancellationToken);
+
+                order.ReserveLine(line.Id, quantity);
+                continue;
+            }
 
             var availability = await sender.Send(
                 new GetSkuAvailabilityQuery(order.CompanyId, line.ProductSkuId, command.Request.WarehouseId, order.BranchId),
@@ -103,9 +120,6 @@ public class ReserveSalesOrderHandler(SalesOrderDbContext dbContext, ISender sen
         if (context.ProductType == CatalogProductType.Service || !context.IsInventoryTracked)
             return (false, context);
 
-        if (context.ProductType == CatalogProductType.Combo || context.ProductionType == SkuProductionType.CompositeBundle)
-            throw new BadRequestException($"SKU {line.SkuCode} is a combo/composite bundle and cannot be reserved in this tranche.");
-
         return (true, context);
     }
 }
@@ -139,6 +153,31 @@ public class ReleaseSalesOrderReservationHandler(SalesOrderDbContext dbContext, 
 
             if (quantity > line.ReservedQuantity)
                 throw new BadRequestException($"Cannot release more than reserved quantity for SKU {line.SkuCode}.");
+
+            var skuContext = await ReserveSalesOrderHandler.GetReservableSkuContextAsync(
+                sender,
+                order.CompanyId,
+                line,
+                cancellationToken);
+
+            if (!skuContext.ShouldReserve)
+                continue;
+
+            if (SalesComboFulfillmentHelper.IsCombo(skuContext.Context))
+            {
+                await SalesComboFulfillmentHelper.ReleaseAsync(
+                    sender,
+                    order.CompanyId,
+                    order.BranchId,
+                    command.Request.WarehouseId,
+                    line,
+                    quantity,
+                    order.Number,
+                    cancellationToken);
+
+                order.ReleaseLineReservation(line.Id, quantity);
+                continue;
+            }
 
             var availability = await sender.Send(
                 new GetSkuAvailabilityQuery(order.CompanyId, line.ProductSkuId, command.Request.WarehouseId, order.BranchId),

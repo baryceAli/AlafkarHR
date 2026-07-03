@@ -122,6 +122,23 @@ public class PostSalesDeliveryNoteHandler(SalesOrderDbContext dbContext, IHttpCo
             if (line.Quantity > orderLine.ReservedQuantity)
                 throw new BadRequestException($"Delivery quantity exceeds reserved quantity for SKU {line.SkuCode}.");
 
+            if (SalesComboFulfillmentHelper.IsCombo(skuContext.Context))
+            {
+                await SalesComboFulfillmentHelper.ConsumeReservedAsync(
+                    sender,
+                    order.CompanyId,
+                    order.BranchId,
+                    note.WarehouseId,
+                    orderLine,
+                    line.CurrencyId,
+                    line.Quantity,
+                    note.Number,
+                    cancellationToken);
+
+                order.ConsumeLineReservation(orderLine.Id, line.Quantity);
+                continue;
+            }
+
             await sender.Send(new PostInventoryStockOutCommand(
                 line.ProductId,
                 line.ProductSkuId,
