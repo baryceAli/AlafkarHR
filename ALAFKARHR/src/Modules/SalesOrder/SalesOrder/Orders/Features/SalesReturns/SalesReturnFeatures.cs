@@ -1,4 +1,5 @@
 using SalesOrder.Orders.Features;
+using SalesOrder.Orders.Features.SalesOrderReservations;
 using SalesOrder.Orders.Models;
 using Shared.Pagination;
 
@@ -107,6 +108,34 @@ public class PostSalesReturnHandler(SalesOrderDbContext dbContext, IHttpContextA
         var returnedLines = salesReturn.Post(userId);
         foreach (var line in salesReturn.Lines)
         {
+            var orderLine = order.Lines.FirstOrDefault(x => x.Id == line.SalesOrderLineId)
+                ?? throw new NotFoundException($"Sales order line not found: {line.SalesOrderLineId}");
+
+            var skuContext = await ReserveSalesOrderHandler.GetReservableSkuContextAsync(
+                sender,
+                order.CompanyId,
+                orderLine,
+                cancellationToken);
+
+            if (!skuContext.ShouldReserve)
+                continue;
+
+            if (SalesComboFulfillmentHelper.IsCombo(skuContext.Context))
+            {
+                await SalesComboFulfillmentHelper.StockInReturnAsync(
+                    sender,
+                    salesReturn.CompanyId,
+                    salesReturn.WarehouseId,
+                    orderLine,
+                    line.BatchId,
+                    line.CurrencyId,
+                    line.Quantity,
+                    salesReturn.Number,
+                    cancellationToken);
+
+                continue;
+            }
+
             await sender.Send(new PostInventoryStockInCommand(
                 line.ProductId,
                 line.ProductSkuId,

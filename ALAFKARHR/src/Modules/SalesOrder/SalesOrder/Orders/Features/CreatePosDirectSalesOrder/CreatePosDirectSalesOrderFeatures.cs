@@ -1,4 +1,5 @@
 using Catalog.Contracts.Products.Features.GetProductSkuInventoryContext;
+using SalesOrder.Orders.Features;
 using SharedWithUI.Catalog.Enums;
 
 namespace SalesOrder.Orders.Features.CreatePosDirectSalesOrder;
@@ -177,11 +178,25 @@ public class CreatePosDirectSalesOrderHandler(SalesOrderDbContext dbContext, IHt
 
         foreach (var line in order.Lines)
         {
-            var sku = await sender.Send(new GetProductSkuByIdQuery(line.ProductSkuId), cancellationToken);
-            if (sku.ProductSku.CompanyId != order.CompanyId)
-                throw new BadRequestException("POS sale SKU does not belong to the order company.");
-            if (!sku.ProductSku.IsInventoryTracked)
+            var context = await sender.Send(new GetProductSkuInventoryContextQuery(order.CompanyId, line.ProductSkuId), cancellationToken);
+            if (!context.ProductIsActive || !context.SkuIsActive || !context.CategoryIsActive || !context.BrandIsActive || !context.UnitIsActive)
+                throw new BadRequestException($"SKU {line.SkuCode} is archived or has archived Catalog references.");
+
+            if (context.ProductType == CatalogProductType.Service || !context.IsInventoryTracked)
                 continue;
+
+            if (SalesComboFulfillmentHelper.IsCombo(context))
+            {
+                await SalesComboFulfillmentHelper.ConsumePosAsync(
+                    sender,
+                    order.CompanyId,
+                    scope.DefaultWarehouseId,
+                    line,
+                    order.Number,
+                    cancellationToken);
+
+                continue;
+            }
 
             await sender.Send(new PostInventoryStockOutBySkuCommand(
                 line.ProductId,
@@ -220,8 +235,18 @@ public class CreatePosDirectSalesOrderHandler(SalesOrderDbContext dbContext, IHt
         if (context.ProductType == CatalogProductType.Service || !context.IsInventoryTracked)
             return;
 
-        if (context.ProductType == CatalogProductType.Combo || context.ProductionType == SkuProductionType.CompositeBundle)
-            throw new BadRequestException($"SKU {line.SkuCode} is a combo/composite bundle and cannot be stocked out in this tranche.");
+        if (SalesComboFulfillmentHelper.IsCombo(context))
+        {
+            await SalesComboFulfillmentHelper.EnsurePosAvailableAsync(
+                sender,
+                companyId,
+                branchId,
+                scope.DefaultWarehouseId,
+                line,
+                cancellationToken);
+
+            return;
+        }
 
         var availability = await sender.Send(
             new GetSkuAvailabilityQuery(companyId, line.ProductSkuId, scope.DefaultWarehouseId, branchId),

@@ -10,6 +10,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Cart.Dtos
 @using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Catalog.Enums
 @using SharedWithUI.Orders.Enums
 @using SharedWithUI.Payments.Enums
 @using SharedWithUI.Permissions
@@ -119,6 +120,20 @@
                                     </div>
                                     <h6 class="fw-bold mb-1">@Text(sku.NameEng, sku.Name)</h6>
                                     <div class="text-muted small mb-3">@Text(sku.SkuCodeEng, sku.SkuCode)</div>
+                                    @if (IsComboSku(sku))
+                                    {
+                                        <div class="kit-preview mb-3">
+                                            <span class="badge text-bg-info">@Text("Kit", "Kit")</span>
+                                            @foreach (var component in sku.Components.Take(3))
+                                            {
+                                                <span class="kit-component">@Text(component.ComponentSkuNameEng, component.ComponentSkuName) x @component.Quantity</span>
+                                            }
+                                            @if (sku.Components.Count > 3)
+                                            {
+                                                <span class="kit-component">@Text("More...", "More...")</span>
+                                            }
+                                        </div>
+                                    }
                                     <button class="btn btn-success mt-auto" @onclick="() => AddToCartAsync(sku)" disabled="@(isCartBusy || !CanManageCart)">
                                         <i class="bi bi-cart-plus"></i> @Text("Add To Cart", "إضافة للسلة")
                                     </button>
@@ -498,6 +513,10 @@
                 ? sku.ImageUrl
                 : $"{ApiConfig.BaseURL}/Images/Products/{sku.ImageUrl}";
 
+    private static bool IsComboSku(ProductSkuDto sku) =>
+        sku.ProductType == CatalogProductType.Combo ||
+        sku.ProductionType == SkuProductionType.CompositeBundle;
+
     private string Money(decimal amount) => string.IsNullOrWhiteSpace(currencyCode) ? $"{amount:N2}" : $"{amount:N2} {currencyCode}";
 
     private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
@@ -572,5 +591,20 @@
 
     .cart-grand-total {
         font-size: 1.1rem;
+    }
+
+    .kit-preview {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--erp-space-1);
+    }
+
+    .kit-component {
+        background: var(--erp-surface-muted);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-sm);
+        color: var(--erp-text-muted);
+        font-size: .75rem;
+        padding: .125rem .375rem;
     }
 </style>
