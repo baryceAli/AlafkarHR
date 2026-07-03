@@ -6,6 +6,7 @@ public class Brand : Aggregate<Guid>
     public string NameEng { get; private set; } = default!;
     public Guid CompanyId { get; private set; }
     public string? Description { get; private set; }
+    public bool IsActive { get; private set; } = true;
     private Brand() { }
 
     internal Brand (Guid id, string name, string nameEng,Guid companyId,string? createdBy, string? description = "")
@@ -32,6 +33,7 @@ public class Brand : Aggregate<Guid>
             CompanyId=companyId,
             CreatedBy = createdBy,
             Description = description,
+            IsActive = true,
             CreatedAt= DateTime.UtcNow
 
         };
@@ -44,6 +46,7 @@ public class Brand : Aggregate<Guid>
         NameEng = nameEng;
         CompanyId= companyId;
         Description = description;
+        IsActive = true;
     }
 
     public void Update(string name,string nameEng,string modifiedBy, string? description = "")
@@ -62,5 +65,19 @@ public class Brand : Aggregate<Guid>
         DeletedAt = DateTime.UtcNow;
         IsDeleted = true;
         DeletedBy = deletedBy;
+    }
+
+    public void Archive(string modifiedBy)
+    {
+        IsActive = false;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+
+    public void Activate(string modifiedBy)
+    {
+        IsActive = true;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
     }
 }

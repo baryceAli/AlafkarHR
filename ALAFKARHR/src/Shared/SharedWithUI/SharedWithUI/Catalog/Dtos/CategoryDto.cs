@@ -18,6 +18,7 @@ public class CategoryDto
     [Required(ErrorMessage = "Company is required")]
     public Guid? CompanyId { get; set; }
     public string? Description { get; set; }
+    public bool IsActive { get; set; } = true;
 
 
         }

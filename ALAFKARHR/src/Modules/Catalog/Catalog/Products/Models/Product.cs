@@ -10,6 +10,7 @@ public class Product : Aggregate<Guid>
     public string Name { get; private set; } = default!;
     public string NameEng { get; private set; } = default!;
     public CatalogProductType ProductType { get; private set; } = CatalogProductType.Goods;
+    public bool IsActive { get; private set; } = true;
 
     private readonly List<ProductSku> _skus = new();
     public IReadOnlyCollection<ProductSku> Skus => _skus;
@@ -37,6 +38,7 @@ public class Product : Aggregate<Guid>
             NameEng = nameEng,
             CategoryId = categoryId,
             ProductType = NormalizeProductType(productType),
+            IsActive = true,
             //UnitId = unitId,
             CompanyId = companyId,
             CreatedAt = DateTime.UtcNow,
@@ -68,6 +70,20 @@ public class Product : Aggregate<Guid>
         IsDeleted = true;
         DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;
+    }
+
+    public void Archive(string modifiedBy)
+    {
+        IsActive = false;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
+    }
+
+    public void Activate(string modifiedBy)
+    {
+        IsActive = true;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = modifiedBy;
     }
     public void AddProductVariant(ProductSku sku)
     {

@@ -56,10 +56,10 @@ public class BrandService : BaseApiService, IBrandService
         return await SendAsync<UpdateDeleteResponseDto>(request, null);
     }
 
-    public async Task<ApiResult<PaginatedResult<BrandDto>>> GetByCompanyIdAsync(Guid companyId, int pageIndex, int pageSize)
+    public async Task<ApiResult<PaginatedResult<BrandDto>>> GetByCompanyIdAsync(Guid companyId, int pageIndex, int pageSize, bool includeInactive = false)
     {
         ///api/v1/catalog/brands/company/
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/catalog/Brands/company/{companyId}?PageIndex={pageIndex}&PageSize={pageSize}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/catalog/Brands/company/{companyId}?PageIndex={pageIndex}&PageSize={pageSize}&IncludeInactive={includeInactive.ToString().ToLowerInvariant()}");
         return await SendAsync<PaginatedResult<BrandDto>>(request, "brandList");
     }
 }

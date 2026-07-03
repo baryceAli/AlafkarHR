@@ -29,6 +29,10 @@ public class UpdateBrandHandler(CatalogDbContext dbContext, IHttpContextAccessor
         var userId = CatalogUserContext.GetUserId(httpContextAccessor);
 
         brand.Update(command.Brand.Name,command.Brand.NameEng, userId, command.Brand.Description);
+        if (command.Brand.IsActive)
+            brand.Activate(userId);
+        else
+            brand.Archive(userId);
 
         dbContext.Brands.Update(brand);
         await dbContext.SaveChangesAsync();

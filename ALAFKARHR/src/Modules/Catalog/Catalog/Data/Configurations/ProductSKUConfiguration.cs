@@ -36,6 +36,10 @@ public class ProductSKUConfiguration : IEntityTypeConfiguration<ProductSku>
             .IsRequired()
             .HasDefaultValue(false);
 
+        builder.Property(x => x.IsActive)
+            .IsRequired()
+            .HasDefaultValue(true);
+
         builder.Property(x => x.SkuCode)
             .HasMaxLength(100);
 

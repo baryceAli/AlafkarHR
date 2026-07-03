@@ -12,12 +12,13 @@ public class GetVariantsHandler(CatalogDbContext dbContext)
 
         var pageIndex = request.PaginationRequest.PageIndex;
         var pageSize = request.PaginationRequest.PageSize;
-        var count = await dbContext.Variants.LongCountAsync(x => !x.IsDeleted, cancellationToken);
+        var query = dbContext.Variants.Where(x => !x.IsDeleted);
+        if (!request.PaginationRequest.IncludeInactive)
+            query = query.Where(x => x.IsActive);
 
+        var count = await query.LongCountAsync(cancellationToken);
 
-
-        var variants = await dbContext.Variants
-            .Where(x => !x.IsDeleted)
+        var variants = await query
             .Select(x => new VariantDto
             {
                 Id = x.Id,
@@ -25,15 +26,17 @@ public class GetVariantsHandler(CatalogDbContext dbContext)
                 NameEng = x.NameEng,
                 DisplayType = x.DisplayType,
                 CreationMode = x.CreationMode,
+                IsActive = x.IsActive,
                 CompanyId = x.CompanyId,
                 Values = x.Values
-                    .Where(v => !v.IsDeleted)
+                    .Where(v => !v.IsDeleted && (request.PaginationRequest.IncludeInactive || v.IsActive))
                     .Select(v => new VariantValueDto
                     {
                         Id = v.Id,
                         VariantId = v.VariantId,
                         Value = v.Value,
-                        ValueEng = v.ValueEng
+                        ValueEng = v.ValueEng,
+                        IsActive = v.IsActive
                     }).ToList()
             })
             .Skip(pageIndex * pageSize)

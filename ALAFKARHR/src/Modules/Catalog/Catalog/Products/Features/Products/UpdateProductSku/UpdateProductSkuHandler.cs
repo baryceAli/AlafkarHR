@@ -60,7 +60,7 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
 
 
         var prd = await dbContext.Products.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == command.ProductSku.ProductId && x.CompanyId == companyId, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == command.ProductSku.ProductId && x.CompanyId == companyId && x.IsActive, cancellationToken);
 
         if ((prd is null))
             throw new NotFoundException($"Product not found: {command.ProductSku.ProductId}");
@@ -75,7 +75,7 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
         await CatalogOwnershipGuard.EnsureVariantValuesAsync(dbContext, command.ProductSku.Variants, companyId, cancellationToken);
 
         var brand = await dbContext.Brands.AsNoTracking()
-            .FirstAsync(x => x.Id == command.ProductSku.BrandId && x.CompanyId == companyId, cancellationToken);
+            .FirstAsync(x => x.Id == command.ProductSku.BrandId && x.CompanyId == companyId && x.IsActive, cancellationToken);
 
 
         var packageIds = command.ProductSku.Packages
@@ -96,10 +96,21 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
         {
             variantValueIds.Add((v.VariantId, v.VariantValueId));
         }
+        Guid? primaryPackageId = packageIds.FirstOrDefault() == Guid.Empty ? null : packageIds.First();
+        await CatalogOwnershipGuard.EnsureUniqueActiveSkuCombinationAsync(
+            dbContext,
+            companyId,
+            command.ProductSku.ProductId,
+            command.ProductSku.BrandId,
+            primaryPackageId,
+            command.ProductSku.Variants,
+            productSku.Id,
+            cancellationToken);
+
         var SkuBaseCntx = new SkuBuildContext(
             command.ProductSku.ProductId,
             command.ProductSku.BrandId,
-            packageIds.FirstOrDefault() == Guid.Empty ? null : packageIds.First(),
+            primaryPackageId,
             variantValueIds);
 
 
@@ -175,6 +186,10 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
             packageIds.ToList(),
             componentDtos,
             userId);
+        if (command.ProductSku.IsActive)
+            productSku.Activate(userId);
+        else
+            productSku.Archive(userId);
         await dbContext.SaveChangesAsync();
 
         return new UpdateProductSkuResult(true);

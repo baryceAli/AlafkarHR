@@ -20,7 +20,7 @@ public class SalesOrderLine : Entity<Guid>
 
     public decimal Quantity { get; private set; }
 
-    //public decimal ReservedQuantity { get; private set; }
+    public decimal ReservedQuantity { get; private set; }
 
     public decimal DeliveredQuantity { get; private set; }
 
@@ -62,8 +62,11 @@ public class SalesOrderLine : Entity<Guid>
     public decimal TotalAmount =>
         NetAmount + TaxAmount;
 
-    //public bool IsFullyReserved =>
-    //    ReservedQuantity >= Quantity;
+    public decimal RemainingToDeliverQuantity => Math.Max(Quantity - DeliveredQuantity, 0);
+    public decimal UnreservedQuantity => Math.Max(RemainingToDeliverQuantity - ReservedQuantity, 0);
+
+    public bool IsFullyReserved =>
+        ReservedQuantity >= RemainingToDeliverQuantity;
 
     public bool IsFullyDelivered =>
         DeliveredQuantity >= Quantity;
@@ -142,14 +145,38 @@ public class SalesOrderLine : Entity<Guid>
         DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;
     }
-    //internal void Reserve(decimal quantity)
-    //{
-    //    if (ReservedQuantity + quantity > Quantity)
-    //        throw new Exception("Cannot over reserve.");
-    //        //throw new DomainException("Cannot over reserve.");
+    internal void Reserve(decimal quantity)
+    {
+        if (quantity <= 0)
+            throw new Exception("Invalid quantity.");
 
-    //    ReservedQuantity += quantity;
-    //}
+        if (ReservedQuantity + quantity > RemainingToDeliverQuantity)
+            throw new Exception("Cannot over reserve.");
+
+        ReservedQuantity += quantity;
+    }
+
+    internal void ReleaseReservation(decimal quantity)
+    {
+        if (quantity <= 0)
+            throw new Exception("Invalid quantity.");
+
+        if (quantity > ReservedQuantity)
+            throw new Exception("Cannot release more than reserved quantity.");
+
+        ReservedQuantity -= quantity;
+    }
+
+    internal void ConsumeReservation(decimal quantity)
+    {
+        if (quantity <= 0)
+            throw new Exception("Invalid quantity.");
+
+        if (quantity > ReservedQuantity)
+            throw new Exception("Cannot consume more than reserved quantity.");
+
+        ReservedQuantity -= quantity;
+    }
 
     internal void Deliver(decimal quantity)
     {
@@ -192,6 +219,8 @@ public class SalesOrderLine : Entity<Guid>
             throw new Exception("Invalid quantity.");
         if (quantity < DeliveredQuantity)
             throw new Exception("Invalid quantity");
+        if (quantity < DeliveredQuantity + ReservedQuantity)
+            throw new Exception("Quantity cannot be less than delivered plus reserved quantity.");
         Quantity = quantity;
     }
     internal void ChangePrice(decimal price)

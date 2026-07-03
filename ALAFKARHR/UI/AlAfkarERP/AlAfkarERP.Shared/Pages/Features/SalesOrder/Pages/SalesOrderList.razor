@@ -189,6 +189,8 @@
     private string StatusText(SalesOrderStatus status) => status switch
     {
         SalesOrderStatus.Confirmed => Text("Confirmed", "مؤكد"),
+        SalesOrderStatus.PartiallyReserved => Text("Partially reserved", "محجوز جزئيا"),
+        SalesOrderStatus.Reserved => Text("Reserved", "محجوز"),
         SalesOrderStatus.PartiallyDelivered => Text("Partially delivered", "مسلم جزئيا"),
         SalesOrderStatus.Delivered => Text("Delivered", "مسلم"),
         SalesOrderStatus.PartiallyInvoiced => Text("Partially invoiced", "مفوتر جزئيا"),
@@ -202,7 +204,7 @@
     {
         SalesOrderStatus.Completed or SalesOrderStatus.Invoiced or SalesOrderStatus.Delivered => "text-bg-success",
         SalesOrderStatus.Cancelled or SalesOrderStatus.Rejected => "text-bg-danger",
-        SalesOrderStatus.Confirmed or SalesOrderStatus.Reserved => "text-bg-primary",
+        SalesOrderStatus.Confirmed or SalesOrderStatus.PartiallyReserved or SalesOrderStatus.Reserved => "text-bg-primary",
         _ => "text-bg-secondary"
     };
 

@@ -49,6 +49,7 @@ public class PostInventoryStockOutBySkuHandler(InventoryDbContext dbContext, ISe
                 ProductId = command.ProductId,
                 ProductSkuId = command.ProductSkuId,
                 ProductPackageId = command.ProductPackageId,
+                UnitId = command.UnitId,
                 WarehouseId = command.WarehouseId,
                 InitialBatchId = batch.BatchId,
                 InitialQuantity = take,

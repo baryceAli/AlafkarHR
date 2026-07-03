@@ -53,6 +53,10 @@ public class UpdateProductHandler(CatalogDbContext dbContext, IHttpContextAccess
             //command.Product.UnitId.Value,
             command.Product.ProductType,
             userId);
+        if (command.Product.IsActive)
+            product.Activate(userId);
+        else
+            product.Archive(userId);
 
         await dbContext.SaveChangesAsync();
 

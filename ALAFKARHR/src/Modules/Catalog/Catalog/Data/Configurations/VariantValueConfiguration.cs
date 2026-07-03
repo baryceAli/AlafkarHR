@@ -16,6 +16,10 @@ public class VariantValueConfiguration : IEntityTypeConfiguration<VariantValue>
             .IsRequired()
             .HasMaxLength(100);
 
+        builder.Property(x => x.IsActive)
+            .IsRequired()
+            .HasDefaultValue(true);
+
         // 🔥 Prevent duplicate values per variant
         builder.HasIndex(x => new { x.VariantId, x.Value }).IsUnique();
         builder.HasIndex(x => new { x.VariantId, x.ValueEng }).IsUnique();

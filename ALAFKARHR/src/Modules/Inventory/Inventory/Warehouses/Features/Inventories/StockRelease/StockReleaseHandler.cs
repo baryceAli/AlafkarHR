@@ -16,7 +16,11 @@ public class StockReleaseCommandValidator : AbstractValidator<StockReleaseComman
         RuleFor(x=> x.InventoryAggregate.InitialQuantity).GreaterThan(0).WithMessage("Quantity must be greater than zero");
         RuleFor(x=> x.InventoryAggregate.InitialBatchId).NotEmpty().WithMessage("Batch is required");
         RuleFor(x => x.InventoryAggregate.ReferenceNumber).NotEmpty().MaximumLength(120).WithMessage("Reference number is required");
-        RuleFor(x => x.InventoryAggregate.SourceDocumentType).NotEmpty().MaximumLength(80).WithMessage("Source document type is required");
+        RuleFor(x => x.InventoryAggregate.SourceDocumentType)
+            .NotEmpty()
+            .MaximumLength(80)
+            .Must(global::Inventory.Warehouses.Features.Inventories.InventorySourceDocumentTypes.IsAllowed)
+            .WithMessage("Source document type is not allowed");
     }
 }
 public class StockReleaseHandler(InventoryDbContext dbContext, ISender sender, IHttpContextAccessor httpContextAccessor)
@@ -111,8 +115,10 @@ public class StockReleaseHandler(InventoryDbContext dbContext, ISender sender, I
             userId,
             command.InventoryAggregate.Notes ?? string.Empty,
             productPackageId: packageQuantity.ProductPackageId,
+            unitId: packageQuantity.UnitId,
             enteredQuantity: packageQuantity.EnteredQuantity,
             packageMultiplier: packageQuantity.PackageMultiplier,
+            unitMultiplier: packageQuantity.UnitMultiplier,
             normalizedQuantity: packageQuantity.NormalizedQuantity);
  
         await dbContext.StockMovements.AddAsync(movement, cancellationToken);

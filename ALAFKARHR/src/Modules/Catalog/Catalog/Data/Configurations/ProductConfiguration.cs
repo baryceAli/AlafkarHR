@@ -21,6 +21,10 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasConversion<int>()
             .HasDefaultValue(CatalogProductType.Goods);
 
+        builder.Property(x => x.IsActive)
+            .IsRequired()
+            .HasDefaultValue(true);
+
         builder.HasMany(p => p.Skus)
     .WithOne()
     .HasForeignKey(s => s.ProductId)

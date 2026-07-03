@@ -1,3 +1,6 @@
+using Catalog.Contracts.Products.Features.GetProductSkuInventoryContext;
+using SharedWithUI.Catalog.Enums;
+
 namespace SalesOrder.Orders.Features.CreatePosDirectSalesOrder;
 
 public record CreatePosDirectSalesOrderCommand(CreatePosDirectSalesOrderDto SalesOrder) : ICommand<CreatePosDirectSalesOrderResult>;
@@ -47,6 +50,13 @@ public class CreatePosDirectSalesOrderHandler(SalesOrderDbContext dbContext, IHt
 
         foreach (var line in request.SalesOrder.Lines)
         {
+            await EnsurePosLineIsAvailableAsync(
+                request.SalesOrder.CompanyId,
+                request.SalesOrder.BranchId,
+                request.SalesOrder.StoreFrontId,
+                line,
+                cancellationToken);
+
             var resolvedPrice = await sender.Send(
                 new ResolvePriceQuery(
                     request.SalesOrder.CustomerId,
@@ -182,5 +192,37 @@ public class CreatePosDirectSalesOrderHandler(SalesOrderDbContext dbContext, IHt
                 order.Number,
                 "POSDirectSale"), cancellationToken);
         }
+    }
+
+    private async Task EnsurePosLineIsAvailableAsync(
+        Guid companyId,
+        Guid? branchId,
+        Guid? storeFrontId,
+        SalesOrderLineDto line,
+        CancellationToken cancellationToken)
+    {
+        if (!storeFrontId.HasValue || !branchId.HasValue)
+            return;
+
+        var scope = await sender.Send(new GetStoreFrontBranchScopeQuery(storeFrontId.Value), cancellationToken);
+        if (scope.CompanyId != companyId || scope.BranchId != branchId.Value)
+            throw new BadRequestException("StoreFront branch scope does not match the POS sale.");
+
+        var context = await sender.Send(new GetProductSkuInventoryContextQuery(companyId, line.ProductSkuId), cancellationToken);
+        if (!context.ProductIsActive || !context.SkuIsActive || !context.CategoryIsActive || !context.BrandIsActive || !context.UnitIsActive)
+            throw new BadRequestException($"SKU {line.SkuCode} is archived or has archived Catalog references.");
+
+        if (context.ProductType == CatalogProductType.Service || !context.IsInventoryTracked)
+            return;
+
+        if (context.ProductType == CatalogProductType.Combo || context.ProductionType == SkuProductionType.CompositeBundle)
+            throw new BadRequestException($"SKU {line.SkuCode} is a combo/composite bundle and cannot be stocked out in this tranche.");
+
+        var availability = await sender.Send(
+            new GetSkuAvailabilityQuery(companyId, line.ProductSkuId, scope.DefaultWarehouseId, branchId),
+            cancellationToken);
+
+        if (availability.AvailableQuantity < line.Quantity)
+            throw new BadRequestException($"Insufficient available stock for SKU {line.SkuCode}.");
     }
 }

@@ -20,6 +20,7 @@ public class GetVariantByIdHandler(CatalogDbContext dbContext) : IQueryHandler<G
             NameEng = variant.NameEng,
             DisplayType = variant.DisplayType,
             CreationMode = variant.CreationMode,
+            IsActive = variant.IsActive,
             CompanyId = variant.CompanyId,
             Values = variant.Values
             .Where(v => !v.IsDeleted)
@@ -29,6 +30,7 @@ public class GetVariantByIdHandler(CatalogDbContext dbContext) : IQueryHandler<G
                 VariantId = v.VariantId,
                 Value = v.Value,
                 ValueEng = v.ValueEng,
+                IsActive = v.IsActive,
             }).ToList()
         };
    

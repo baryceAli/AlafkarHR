@@ -4,9 +4,11 @@
 
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
 @using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Inventory.Dtos
 @using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 @using SharedWithUI.SalesOrder.Dtos
@@ -16,6 +18,7 @@
 @inject ISalesOrderWorkflowService WorkflowService
 @inject ICurrencyService CurrencyService
 @inject IBranchService BranchService
+@inject IWarehouseService WarehouseService
 @inject ToastService ToastService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
@@ -64,7 +67,9 @@
                                     <th>@Text("Item", "الصنف")</th>
                                     <th>@Text("SKU", "الرمز")</th>
                                     <th>@Text("Qty", "الكمية")</th>
+                                    <th>@Text("Reserved", "محجوز")</th>
                                     <th>@Text("Delivered", "مسلم")</th>
+                                    <th>@Text("Remaining", "متبقي")</th>
                                     <th>@Text("Invoiced", "مفوتر")</th>
                                     <th>@Text("Total", "الإجمالي")</th>
                                 </tr>
@@ -76,7 +81,9 @@
                                         <td>@Text(line.ProductNameEng, line.ProductName)</td>
                                         <td>@line.SkuCode</td>
                                         <td>@line.Quantity</td>
+                                        <td>@line.ReservedQuantity</td>
                                         <td>@line.DeliveredQuantity</td>
+                                        <td>@line.RemainingToDeliverQuantity</td>
                                         <td>@line.InvoicedQuantity</td>
                                         <td>@Money(line.TotalAmount)</td>
                                     </tr>
@@ -108,6 +115,34 @@
                                 <i class="bi bi-check2-circle"></i> @Text("Confirm order", "تأكيد الأمر")
                             </button>
                         }
+                        @if (CanReserve && CanReserveOrder)
+                        {
+                            <label class="form-label">@Text("Reservation warehouse", "مستودع الحجز")</label>
+                            <select class="form-select mb-2" @bind="selectedWarehouseId" disabled="@(isSaving || warehouses.Count == 0)">
+                                <option value="@Guid.Empty">@Text("Select warehouse", "اختر المستودع")</option>
+                                @foreach (var warehouse in warehouses)
+                                {
+                                    <option value="@warehouse.Id">@Text(warehouse.NameEng, warehouse.Name)</option>
+                                }
+                            </select>
+
+                            <div class="reservation-lines mb-2">
+                                @foreach (var line in reservationLines)
+                                {
+                                    <div class="reservation-line">
+                                        <span>@line.SkuCode</span>
+                                        <input class="form-control form-control-sm" type="number" min="0" step="0.01" @bind="line.Quantity" />
+                                    </div>
+                                }
+                            </div>
+
+                            <button class="btn btn-outline-primary w-100 mb-2" @onclick="ReserveAsync" disabled="@(isSaving || selectedWarehouseId == Guid.Empty)">
+                                <i class="bi bi-box-seam"></i> @Text("Reserve stock", "حجز المخزون")
+                            </button>
+                            <button class="btn btn-outline-secondary w-100 mb-2" @onclick="ReleaseReservationAsync" disabled="@(isSaving || selectedWarehouseId == Guid.Empty)">
+                                <i class="bi bi-unlock"></i> @Text("Release reservation", "فك الحجز")
+                            </button>
+                        }
                         <button class="btn btn-outline-primary w-100 mb-2" @onclick="DeliverAsync" disabled="@(isSaving || order.Status == SalesOrderStatus.Draft || !CanEdit)">
                             <i class="bi bi-truck"></i> @Text("Mark delivered", "تحديد كمسلم")
                         </button>
@@ -132,11 +167,15 @@
     private bool CanView;
     private bool CanEdit;
     private bool CanConfirm;
+    private bool CanReserve;
     private bool isLoading;
     private bool isSaving;
     private string cancelReason = string.Empty;
     private string currencyCode = string.Empty;
     private List<BranchDto> branches = [];
+    private List<WarehouseDto> warehouses = [];
+    private List<ReservationLineModel> reservationLines = [];
+    private Guid selectedWarehouseId;
     private SalesOrderDto? order;
 
     protected override async Task OnInitializedAsync()
@@ -147,6 +186,7 @@
         CanView = permissions.Contains(PermissionList.SalesOrderPermissions.View);
         CanEdit = permissions.Contains(PermissionList.SalesOrderPermissions.Edit);
         CanConfirm = permissions.Contains(PermissionList.SalesOrderPermissions.Confirm);
+        CanReserve = permissions.Contains(PermissionList.SalesOrderPermissions.Reserve);
         if (!authState.User.Identity?.IsAuthenticated ?? true)
         {
             NavigationManager.NavigateTo("/login", true);
@@ -166,6 +206,8 @@
         {
             await LoadCurrencyAsync(order.CompanyId);
             await LoadBranchesAsync(order.CompanyId);
+            await LoadWarehousesAsync(order.CompanyId, order.BranchId);
+            ResetReservationLines();
         }
         isLoading = false;
     }
@@ -186,7 +228,22 @@
         currencyCode = currencies.FirstOrDefault(c => c.IsDefault)?.Code ?? currencies.FirstOrDefault()?.Code ?? string.Empty;
     }
 
+    private async Task LoadWarehousesAsync(Guid companyId, Guid? branchId)
+    {
+        var result = await WarehouseService.GetAsync(companyId, 0, 1000, string.Empty, branchId);
+        warehouses = result.IsSuccess ? result.Data?.Data?.ToList() ?? [] : [];
+        selectedWarehouseId = warehouses.FirstOrDefault()?.Id ?? Guid.Empty;
+    }
+
     private async Task ConfirmAsync() => await RunWorkflowAsync(() => WorkflowService.ConfirmAsync(Id), Text("Order confirmed.", "تم تأكيد الأمر."));
+
+    private async Task ReserveAsync() => await RunWorkflowAsync(
+        () => WorkflowService.ReserveAsync(Id, BuildReservationRequest()),
+        Text("Stock reserved.", "تم حجز المخزون."));
+
+    private async Task ReleaseReservationAsync() => await RunWorkflowAsync(
+        () => WorkflowService.ReleaseReservationAsync(Id, BuildReservationRequest()),
+        Text("Reservation released.", "تم فك الحجز."));
 
     private async Task DeliverAsync() => await RunWorkflowAsync(() => WorkflowService.DeliverAsync(order!), Text("Order delivered.", "تم تحديد الأمر كمسلم."));
 
@@ -222,9 +279,40 @@
         isSaving = false;
     }
 
+    private SalesOrderReservationRequestDto BuildReservationRequest() => new()
+    {
+        WarehouseId = selectedWarehouseId,
+        Lines = reservationLines
+            .Where(x => x.Quantity > 0)
+            .Select(x => new SalesOrderReservationLineDto
+            {
+                SalesOrderLineId = x.SalesOrderLineId,
+                Quantity = x.Quantity
+            })
+            .ToList()
+    };
+
+    private void ResetReservationLines()
+    {
+        reservationLines = order?.Lines
+            .Where(x => x.RemainingToDeliverQuantity > 0)
+            .Select(x => new ReservationLineModel
+            {
+                SalesOrderLineId = x.Id,
+                SkuCode = x.SkuCode,
+                Quantity = x.UnreservedQuantity > 0 ? x.UnreservedQuantity : x.ReservedQuantity
+            })
+            .ToList() ?? [];
+    }
+
+    private bool CanReserveOrder =>
+        order?.Status is SalesOrderStatus.Confirmed or SalesOrderStatus.PartiallyReserved or SalesOrderStatus.Reserved;
+
     private string StatusText(SalesOrderStatus status) => status switch
     {
         SalesOrderStatus.Confirmed => Text("Confirmed", "مؤكد"),
+        SalesOrderStatus.PartiallyReserved => Text("Partially reserved", "محجوز جزئيا"),
+        SalesOrderStatus.Reserved => Text("Reserved", "محجوز"),
         SalesOrderStatus.PartiallyDelivered => Text("Partially delivered", "مسلم جزئيا"),
         SalesOrderStatus.Delivered => Text("Delivered", "مسلم"),
         SalesOrderStatus.PartiallyInvoiced => Text("Partially invoiced", "مفوتر جزئيا"),
@@ -248,6 +336,13 @@
     {
         SharedDataService.OnChange1 -= HandleChangeAsync;
     }
+
+    private sealed class ReservationLineModel
+    {
+        public Guid SalesOrderLineId { get; set; }
+        public string SkuCode { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+    }
 }
 
 <style>
@@ -266,5 +361,17 @@
 
     .summary-total {
         font-size: 1.1rem;
+    }
+
+    .reservation-lines {
+        display: grid;
+        gap: var(--erp-space-2);
+    }
+
+    .reservation-line {
+        align-items: center;
+        display: grid;
+        gap: var(--erp-space-2);
+        grid-template-columns: minmax(0, 1fr) 7rem;
     }
 </style>

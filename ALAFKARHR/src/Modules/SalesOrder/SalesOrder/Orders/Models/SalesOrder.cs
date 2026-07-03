@@ -52,6 +52,12 @@ public class SalesOrder : Aggregate<Guid>
     public bool FullyDelivered =>
     _lines.All(x => x.IsFullyDelivered);
 
+    public bool FullyReserved =>
+        _lines.Where(x => !x.IsDeleted && x.RemainingToDeliverQuantity > 0).All(x => x.IsFullyReserved);
+
+    public bool HasAnyReservation =>
+        _lines.Any(x => !x.IsDeleted && x.ReservedQuantity > 0);
+
     public bool FullyInvoiced =>
         _lines.All(x => x.IsFullyInvoiced);
 
@@ -208,6 +214,8 @@ public class SalesOrder : Aggregate<Guid>
             throw new Exception("Order cancelled.");
 
         if (Status != SalesOrderStatus.Confirmed &&
+            Status != SalesOrderStatus.PartiallyReserved &&
+            Status != SalesOrderStatus.Reserved &&
             Status != SalesOrderStatus.Invoiced &&
             Status != SalesOrderStatus.PartiallyInvoiced &&
             Status != SalesOrderStatus.PartiallyDelivered)
@@ -294,6 +302,8 @@ public class SalesOrder : Aggregate<Guid>
         //throw new DomainException("Completed order cannot be cancelled.");
         if (_lines.Any(x => x.DeliveredQuantity > 0))
             throw new Exception("Delivered order cannot be cancelled.");
+        if (_lines.Any(x => x.ReservedQuantity > 0))
+            throw new Exception("Reserved order cannot be cancelled. Release reservations first.");
         Status = SalesOrderStatus.Cancelled;
         CancelledAt = DateTime.UtcNow;
         CancelledBy = canceledBy;
@@ -421,6 +431,58 @@ public class SalesOrder : Aggregate<Guid>
         //throw new DomainException("Line not found.");
 
         return line;
+    }
+
+    public void ReserveLine(Guid lineId, decimal quantity)
+    {
+        EnsureReservable();
+        var line = GetLine(lineId);
+        line.Reserve(quantity);
+        RefreshReservationStatus();
+    }
+
+    public void ReleaseLineReservation(Guid lineId, decimal quantity)
+    {
+        EnsureReservationEditable();
+        var line = GetLine(lineId);
+        line.ReleaseReservation(quantity);
+        RefreshReservationStatus();
+    }
+
+    public void ConsumeLineReservation(Guid lineId, decimal quantity)
+    {
+        EnsureReservationEditable();
+        var line = GetLine(lineId);
+        line.ConsumeReservation(quantity);
+        RefreshReservationStatus();
+    }
+
+    private void EnsureReservable()
+    {
+        if (Status != SalesOrderStatus.Confirmed &&
+            Status != SalesOrderStatus.PartiallyReserved &&
+            Status != SalesOrderStatus.Reserved)
+            throw new Exception("Order cannot be reserved.");
+    }
+
+    private void EnsureReservationEditable()
+    {
+        if (Status == SalesOrderStatus.Cancelled || Status == SalesOrderStatus.Completed)
+            throw new Exception("Order reservation cannot be changed.");
+    }
+
+    private void RefreshReservationStatus()
+    {
+        if (Status is SalesOrderStatus.Delivered or SalesOrderStatus.PartiallyDelivered or SalesOrderStatus.Invoiced or SalesOrderStatus.PartiallyInvoiced or SalesOrderStatus.Completed)
+            return;
+
+        if (!HasAnyReservation)
+        {
+            Status = SalesOrderStatus.Confirmed;
+            return;
+        }
+
+        Status = FullyReserved ? SalesOrderStatus.Reserved : SalesOrderStatus.PartiallyReserved;
     }
 
     public void Return(Dictionary<Guid, decimal> returnedLines)

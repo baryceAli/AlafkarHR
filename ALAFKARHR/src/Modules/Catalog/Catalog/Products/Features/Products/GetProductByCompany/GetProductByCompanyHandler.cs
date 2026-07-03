@@ -36,6 +36,9 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext, ISender send
                     .ThenInclude(c => c.ComponentProductSku)
             .Where(p => p.CompanyId == companyId && !p.IsDeleted);
 
+        if (!paginationRequest.IncludeInactive)
+            query = query.Where(p => p.IsActive);
+
         var count = await query.LongCountAsync(cancellationToken);
 
         var products = await query
@@ -48,6 +51,10 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext, ISender send
             .ToListAsync(cancellationToken);
 
         var categoryById = categories.ToDictionary(category => category.Id);
+        var units = await dbContext.Units
+            .Where(unit => unit.CompanyId == companyId && !unit.IsDeleted)
+            .ToListAsync(cancellationToken);
+        var unitById = units.ToDictionary(unit => unit.Id);
         var productDtos = products.Select(product =>
         {
             categoryById.TryGetValue(product.CategoryId, out var category);
@@ -58,13 +65,18 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext, ISender send
                 Name = product.Name,
                 NameEng = product.NameEng,
                 ProductType = product.ProductType,
+                IsActive = product.IsActive,
                 CategoryId = product.CategoryId,
                 CategoryName = category?.Name,
                 CategoryNameEng = category?.NameEng,
                 CompanyId = product.CompanyId,
                 Skus = product.Skus
-                    .Where(sku => !sku.IsDeleted)
-                    .Select(sku => new ProductSkuDto
+                    .Where(sku => !sku.IsDeleted && (paginationRequest.IncludeInactive || sku.IsActive))
+                    .Select(sku =>
+                    {
+                        unitById.TryGetValue(sku.UnitId, out var skuUnit);
+
+                        return new ProductSkuDto
                     {
                         Id = sku.Id,
                         BrandId = sku.BrandId,
@@ -84,6 +96,10 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext, ISender send
                         ImageUrl = sku.ImageUrl,
                         SkuKey = sku.SkuKey,
                         UnitId = sku.UnitId,
+                        UnitName = skuUnit?.UnitName,
+                        UnitNameEng = skuUnit?.UnitNameEng,
+                        UnitCategory = skuUnit?.UnitCategory,
+                        UnitConversionFactor = skuUnit?.ConversionFactor ?? 1,
                         Price = sku.Price,
                         Calories = sku.Calories,
                         BasePrice = sku.Price,
@@ -95,6 +111,7 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext, ISender send
                         IsPurchasable = sku.IsPurchasable,
                         IsInventoryTracked = sku.IsInventoryTracked,
                         IsAssetTrackable = sku.IsAssetTrackable,
+                        IsActive = sku.IsActive,
                         Variants = sku.Variants
                             .Where(v => !v.IsDeleted)
                             .Select(v => new ProductSkuVariantDto
@@ -107,15 +124,32 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext, ISender send
                             .ToList(),
                         Packages = sku.Packages
                             .Where(p => !p.IsDeleted && !p.ProductPackage.IsDeleted)
-                            .Select(p => new ProductPackageDto
+                            .Select(p =>
+                            {
+                                Catalog.Products.Models.Unit? packageUnit = null;
+                                if (p.ProductPackage.UnitId.HasValue)
+                                    unitById.TryGetValue(p.ProductPackage.UnitId.Value, out packageUnit);
+
+                                return new ProductPackageDto
                             {
                                 Id = p.ProductPackage.Id,
                                 Name = p.ProductPackage.Name,
                                 NameEng = p.ProductPackage.NameEng,
                                 Quantity = p.ProductPackage.Quantity,
                                 UnitId = p.ProductPackage.UnitId,
+                                UnitName = packageUnit?.UnitName,
+                                UnitNameEng = packageUnit?.UnitNameEng,
+                                UnitCategory = packageUnit?.UnitCategory,
+                                UnitConversionFactor = packageUnit?.ConversionFactor ?? 1,
                                 Barcode = p.ProductPackage.Barcode,
+                                Weight = p.ProductPackage.Weight,
+                                Length = p.ProductPackage.Length,
+                                Width = p.ProductPackage.Width,
+                                Height = p.ProductPackage.Height,
+                                Notes = p.ProductPackage.Notes,
+                                IsActive = p.ProductPackage.IsActive,
                                 CompanyId = p.ProductPackage.CompanyId
+                            };
                             })
                             .ToList(),
                         Components = sku.Components
@@ -132,8 +166,9 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext, ISender send
                                 Quantity = c.Quantity
                             })
                             .ToList()
+                        };
                     })
-                    .ToList()
+                        .ToList()
             };
         }).ToList();
 

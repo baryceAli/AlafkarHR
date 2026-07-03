@@ -31,6 +31,10 @@ public class UpdateVariantHandler (CatalogDbContext dbContext, IHttpContextAcces
         var userId = CatalogUserContext.GetUserId(httpContextAccessor);
 
         variant.Update(command.Variant, userId );
+        if (command.Variant.IsActive)
+            variant.Activate(userId);
+        else
+            variant.Archive(userId);
 
         foreach (var entry in dbContext.ChangeTracker.Entries())
         {

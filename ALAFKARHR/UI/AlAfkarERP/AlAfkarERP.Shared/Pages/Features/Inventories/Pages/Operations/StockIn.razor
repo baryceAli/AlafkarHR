@@ -10,6 +10,7 @@
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Catalog.Enums
 @using SharedWithUI.GeneralSettings.Dtos
 @using SharedWithUI.Inventory.Dtos
 @using SharedWithUI.Inventory.Enums
@@ -123,7 +124,23 @@
                                     }
                                 </select>
                             </div>
+                        }
 
+                        @if (selectedProductSku is not null)
+                        {
+                            <div class="col-md-4">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Unit", "الوحدة")</label>
+                                <select class="form-select" value="@inventoryDto.UnitId" @onchange="OnUnitChanged">
+                                    @foreach (var unit in UnitOptions())
+                                    {
+                                        <option value="@unit.Id">@unit.Label</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+
+                        @if (selectedProductSku?.Packages.Any() == true)
+                        {
                             @if (inventoryDto.ProductPackageId.HasValue)
                             {
                                 <div class="col-md-4">
@@ -207,12 +224,23 @@
 
                         <div class="col-md-4">
                             <label class="form-label">@SharedDataService.SelectViewLang("Source Type", "نوع المصدر")</label>
-                            <InputText class="form-control" @bind-Value="inventoryDto.SourceDocumentType" />
+                            <InputSelect class="form-select" TValue="string" Value="inventoryDto.SourceDocumentType" ValueChanged="OnSourceTypeChanged" ValueExpression="() => inventoryDto.SourceDocumentType">
+                                @foreach (var sourceType in SourceTypeOptions)
+                                {
+                                    <option value="@sourceType.Value">@SourceTypeLabel(sourceType)</option>
+                                }
+                            </InputSelect>
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label">@SharedDataService.SelectViewLang("Reference", "المرجع")</label>
-                            <InputText class="form-control" @bind-Value="inventoryDto.ReferenceNumber" />
+                            <input class="form-control" value="@inventoryDto.ReferenceNumber" readonly />
+                            <div class="form-text">@SharedDataService.SelectViewLang("Generated automatically for audit tracking.", "يتم إنشاؤه تلقائياً لتتبع التدقيق.")</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">@SharedDataService.SelectViewLang("External Reference", "مرجع خارجي")</label>
+                            <InputText class="form-control" @bind-Value="externalReference" />
                         </div>
 
                         <div class="col-md-12">
@@ -238,6 +266,7 @@
 @code {
 
     private CreateInventoryAggregateDto inventoryDto = new CreateInventoryAggregateDto();
+    private string? externalReference;
 
     private List<BatchDto> allBatches = new();
     private List<BatchDto> batches = new();
@@ -310,7 +339,9 @@
             // Id = Guid.NewGuid(),
             CompanyId = companyId,
             InitialQuantity = 0,
-            CurrencyId=selectedCurrency?.Id??null
+            CurrencyId=selectedCurrency?.Id??null,
+            SourceDocumentType = InventorySourceTypeOptions.StockIn,
+            ReferenceNumber = GenerateReference(InventorySourceTypeOptions.StockIn)
         };
 
 
@@ -327,6 +358,7 @@
 
     async Task SaveInventory(CreateInventoryAggregateDto inventory)
     {
+        PrepareAudit(inventory, InventorySourceTypeOptions.StockIn);
         LoadingService.Show();
         var bResponse = await InventoryService.StockInAsync(inventory);
         if (bResponse.IsSuccess)
@@ -365,7 +397,7 @@
 
             selectedProduct = product;
             inventoryDto.ProductId = product.Id;
-            productSkus = product.Skus;
+            productSkus = product.Skus.Where(IsInventoryOperationSku).ToList();
         }
     }
     private void onProductSkuChanged(ProductSkuDto productSku)
@@ -378,6 +410,7 @@
             selectedProductSku = productSku;
             inventoryDto.ProductSkuId = productSku.Id;
             inventoryDto.ProductPackageId = null;
+            inventoryDto.UnitId = productSku.UnitId;
             inventoryDto.UnitCost = productSku.Price;
             batches = new List<BatchDto>
             (allBatches.Where(b => b.ProductSkuId == productSku.Id));
@@ -454,11 +487,44 @@
             // Id = Guid.NewGuid(),
             CompanyId = companyId,
             InitialQuantity = 0,
+            CurrencyId = selectedCurrency?.Id,
+            SourceDocumentType = InventorySourceTypeOptions.StockIn,
+            ReferenceNumber = GenerateReference(InventorySourceTypeOptions.StockIn)
 
         };
         inventoryDto.CompanyId = companyId;
+        externalReference = null;
 
     }
+    private void OnSourceTypeChanged(string sourceDocumentType)
+    {
+        inventoryDto.SourceDocumentType = sourceDocumentType;
+        inventoryDto.ReferenceNumber = GenerateReference(sourceDocumentType);
+    }
+
+    private void PrepareAudit(CreateInventoryAggregateDto dto, string defaultSourceType)
+    {
+        dto.SourceDocumentType = string.IsNullOrWhiteSpace(dto.SourceDocumentType)
+            ? defaultSourceType
+            : dto.SourceDocumentType;
+        dto.ReferenceNumber = string.IsNullOrWhiteSpace(dto.ReferenceNumber)
+            ? GenerateReference(dto.SourceDocumentType)
+            : dto.ReferenceNumber;
+
+        if (!string.IsNullOrWhiteSpace(externalReference))
+        {
+            var externalReferenceNote = $"External Reference: {externalReference.Trim()}";
+            dto.Notes = string.IsNullOrWhiteSpace(dto.Notes)
+                ? externalReferenceNote
+                : dto.Notes.Contains(externalReferenceNote, StringComparison.OrdinalIgnoreCase)
+                    ? dto.Notes
+                    : $"{externalReferenceNote}{Environment.NewLine}{dto.Notes}";
+        }
+    }
+
+    private static string GenerateReference(string? sourceDocumentType) =>
+        $"{(string.IsNullOrWhiteSpace(sourceDocumentType) ? InventorySourceTypeOptions.StockIn : sourceDocumentType)}-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
+
     private void OnQuantityChanged(decimal value)
     {
         inventoryDto.InitialQuantity = value;
@@ -470,6 +536,15 @@
         inventoryDto.ProductPackageId = Guid.TryParse(args.Value?.ToString(), out var packageId)
             ? packageId
             : null;
+        inventoryDto.UnitId = GetDefaultUnitId();
+        RecalculateTotalCost();
+    }
+
+    private void OnUnitChanged(ChangeEventArgs args)
+    {
+        inventoryDto.UnitId = Guid.TryParse(args.Value?.ToString(), out var unitId)
+            ? unitId
+            : selectedProductSku?.UnitId;
         RecalculateTotalCost();
     }
 
@@ -488,12 +563,73 @@
 
     private decimal GetNormalizedQuantity(decimal quantity)
     {
-        if (!inventoryDto.ProductPackageId.HasValue || selectedProductSku is null)
+        if (selectedProductSku is null)
             return quantity;
 
-        var selectedPackage = selectedProductSku.Packages.FirstOrDefault(p => p.Id == inventoryDto.ProductPackageId.Value);
-        return selectedPackage is null ? quantity : quantity * selectedPackage.Quantity;
+        var packageMultiplier = 1m;
+        if (inventoryDto.ProductPackageId.HasValue)
+        {
+            var selectedPackage = selectedProductSku.Packages.FirstOrDefault(p => p.Id == inventoryDto.ProductPackageId.Value);
+            packageMultiplier = selectedPackage?.Quantity ?? 1m;
+        }
+
+        var unitMultiplier = GetSelectedUnitConversionFactor() / Math.Max(selectedProductSku.UnitConversionFactor, 0.000001m);
+        return quantity * packageMultiplier * unitMultiplier;
     }
+
+    private Guid? GetDefaultUnitId()
+    {
+        var selectedPackage = inventoryDto.ProductPackageId.HasValue
+            ? selectedProductSku?.Packages.FirstOrDefault(p => p.Id == inventoryDto.ProductPackageId.Value)
+            : null;
+        return selectedPackage?.UnitId ?? selectedProductSku?.UnitId;
+    }
+
+    private decimal GetSelectedUnitConversionFactor()
+    {
+        var unitId = inventoryDto.UnitId ?? selectedProductSku?.UnitId;
+        var selectedPackage = inventoryDto.ProductPackageId.HasValue
+            ? selectedProductSku?.Packages.FirstOrDefault(p => p.Id == inventoryDto.ProductPackageId.Value)
+            : null;
+
+        if (selectedPackage?.UnitId == unitId)
+            return selectedPackage.UnitConversionFactor;
+
+        return selectedProductSku?.UnitConversionFactor ?? 1m;
+    }
+
+    private IEnumerable<UnitOption> UnitOptions()
+    {
+        if (selectedProductSku is null || !selectedProductSku.UnitId.HasValue)
+            yield break;
+
+        yield return new UnitOption(
+            selectedProductSku.UnitId.Value,
+            SharedDataService.SelectViewLang(selectedProductSku.UnitNameEng ?? "", selectedProductSku.UnitName ?? ""));
+
+        var selectedPackage = inventoryDto.ProductPackageId.HasValue
+            ? selectedProductSku.Packages.FirstOrDefault(p => p.Id == inventoryDto.ProductPackageId.Value)
+            : null;
+
+        if (selectedPackage?.UnitId is Guid packageUnitId && packageUnitId != selectedProductSku.UnitId)
+        {
+            yield return new UnitOption(
+                packageUnitId,
+                SharedDataService.SelectViewLang(selectedPackage.UnitNameEng ?? "", selectedPackage.UnitName ?? ""));
+        }
+    }
+
+    private static bool IsInventoryOperationSku(ProductSkuDto sku) =>
+        sku.IsActive
+        && sku.IsInventoryTracked
+        && sku.ProductType == CatalogProductType.Goods
+        && sku.ProductionType != SkuProductionType.CompositeBundle;
+
+    private sealed record UnitOption(Guid Id, string Label);
+    private static readonly IReadOnlyList<InventorySourceTypeOption> SourceTypeOptions = InventorySourceTypeOptions.StockInOptions;
+    private string SourceTypeLabel(InventorySourceTypeOption sourceType) =>
+        SharedDataService.SelectViewLang(sourceType.LabelEn, sourceType.LabelAr);
+
     private static readonly List<MovementType> StockInMovementTypes =
     [
         MovementType.OpeningBalance,

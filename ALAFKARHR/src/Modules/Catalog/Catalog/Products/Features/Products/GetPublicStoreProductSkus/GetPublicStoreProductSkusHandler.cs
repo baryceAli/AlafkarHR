@@ -96,6 +96,13 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISende
                   && !product.IsDeleted
                   && !category.IsDeleted
                   && !brand.IsDeleted
+                  && !skuPackage.IsDeleted
+                  && !skuPackage.ProductPackage.IsDeleted
+                  && sku.IsActive
+                  && product.IsActive
+                  && category.IsActive
+                  && brand.IsActive
+                  && skuPackage.ProductPackage.IsActive
             select new PublicStoreFilterOptionDto
             {
                 Id = skuPackage.ProductPackageId,
@@ -144,6 +151,11 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISende
                   && !category.IsDeleted
                   && !brand.IsDeleted
                   && !unit.IsDeleted
+                  && sku.IsActive
+                  && product.IsActive
+                  && category.IsActive
+                  && brand.IsActive
+                  && unit.IsActive
             select new ProductSkuDto
             {
                 Id = sku.Id,
@@ -157,15 +169,15 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISende
                 BrandName = brand.Name,
                 BrandNameEng = brand.NameEng,
                 PackageId = dbContext.ProductSkuPackages
-                    .Where(p => p.ProductSkuId == sku.Id)
+                    .Where(p => p.ProductSkuId == sku.Id && p.ProductPackage.IsActive)
                     .Select(p => p.ProductPackageId)
                     .FirstOrDefault(),
                 PackageName = dbContext.ProductSkuPackages
-                    .Where(p => p.ProductSkuId == sku.Id)
+                    .Where(p => p.ProductSkuId == sku.Id && p.ProductPackage.IsActive)
                     .Select(p => p.ProductPackage.Name)
                     .FirstOrDefault(),
                 PackageNameEng = dbContext.ProductSkuPackages
-                    .Where(p => p.ProductSkuId == sku.Id)
+                    .Where(p => p.ProductSkuId == sku.Id && p.ProductPackage.IsActive)
                     .Select(p => p.ProductPackage.NameEng)
                     .FirstOrDefault(),
                 UnitId = sku.UnitId,
@@ -190,15 +202,17 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISende
                 IsPurchasable = sku.IsPurchasable,
                 IsInventoryTracked = sku.IsInventoryTracked,
                 IsAssetTrackable = sku.IsAssetTrackable,
+                IsActive = sku.IsActive,
                 CreatedAt = sku.CreatedAt,
                 Packages = dbContext.ProductSkuPackages
-                    .Where(p => p.ProductSkuId == sku.Id)
+                    .Where(p => p.ProductSkuId == sku.Id && p.ProductPackage.IsActive)
                     .Select(p => new ProductPackageDto
                     {
                         Id = p.ProductPackage.Id,
                         Name = p.ProductPackage.Name,
                         NameEng = p.ProductPackage.NameEng,
                         Quantity = p.ProductPackage.Quantity,
+                        IsActive = p.ProductPackage.IsActive,
                         CompanyId = p.ProductPackage.CompanyId
                     })
                     .ToList()

@@ -66,6 +66,11 @@ public class CreateInventoryAggregateDto
     public Guid? ProductSkuId { get; set; }
 
     public Guid? ProductPackageId { get; set; }
+    public Guid? UnitId { get; set; }
+    public string? UnitName { get; set; }
+    public string? UnitNameEng { get; set; }
+    public decimal UnitMultiplier { get; set; } = 1;
+    public decimal NormalizedQuantity { get; set; }
 
     [Required(ErrorMessage = "Warehouse is required")]
     public Guid? WarehouseId { get; set; }

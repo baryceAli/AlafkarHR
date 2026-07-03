@@ -35,6 +35,10 @@ public class UpdateUnitHandler(CatalogDbContext dbContext, IHttpContextAccessor 
             command.Unit.ConversionFactor,
             command.Unit.IsReferenceUnit,
             userId);
+        if (command.Unit.IsActive)
+            unit.Activate(userId);
+        else
+            unit.Archive(userId);
         await dbContext.SaveChangesAsync();
 
         return new UpdateUnitResult(true);

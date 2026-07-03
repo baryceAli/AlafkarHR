@@ -46,4 +46,22 @@ public class SalesOrderWorkflowService : BaseApiService, ISalesOrderWorkflowServ
         };
         return await SendAsync<bool>(request, "isSuccess");
     }
+
+    public async Task<ApiResult<bool>> ReserveAsync(Guid id, SalesOrderReservationRequestDto reservation)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/sales/orders/{id}/reserve")
+        {
+            Content = JsonContent.Create(new { Reservation = reservation })
+        };
+        return await SendAsync<bool>(request, "isSuccess");
+    }
+
+    public async Task<ApiResult<bool>> ReleaseReservationAsync(Guid id, SalesOrderReservationRequestDto reservation)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/sales/orders/{id}/release-reservation")
+        {
+            Content = JsonContent.Create(new { Reservation = reservation })
+        };
+        return await SendAsync<bool>(request, "isSuccess");
+    }
 }

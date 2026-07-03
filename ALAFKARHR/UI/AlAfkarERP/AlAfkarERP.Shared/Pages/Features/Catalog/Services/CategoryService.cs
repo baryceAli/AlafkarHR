@@ -59,9 +59,9 @@ public class CategoryService : BaseApiService, ICategoryService
         return await SendAsync<UpdateDeleteResponseDto>(request,null);
     }
 
-    public async Task<ApiResult<PaginatedResult<CategoryDto>>> GetByCompanyIdAsync(Guid companyId, int PageIndex, int PageSize)
+    public async Task<ApiResult<PaginatedResult<CategoryDto>>> GetByCompanyIdAsync(Guid companyId, int PageIndex, int PageSize, bool includeInactive = false)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/catalog/categories/company/{companyId}?PageIndex={PageIndex}&PageSize={PageSize}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/catalog/categories/company/{companyId}?PageIndex={PageIndex}&PageSize={PageSize}&IncludeInactive={includeInactive.ToString().ToLowerInvariant()}");
         return await SendAsync<PaginatedResult<CategoryDto>>(request, "categoryList");
     }
 }

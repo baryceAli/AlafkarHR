@@ -54,6 +54,10 @@
             </div>
             </ChildContent>
             <Actions>
+                <label class="form-check d-flex align-items-center gap-2 mb-0">
+                    <input type="checkbox" class="form-check-input" checked="@includeInactive" @onchange="OnIncludeInactiveChanged" />
+                    <span class="form-check-label">@SharedDataService.SelectViewLang("Include inactive", "تضمين غير النشط")</span>
+                </label>
                 <TableExportActions />
                 <select class="form-select" @onchange="OnPageSizeChanged" aria-label="@SharedDataService.SelectViewLang("Page size", "حجم الصفحة")">
                     <option value="5">5</option>
@@ -99,6 +103,7 @@
                 </th>
                 <th @onclick="() => Sort(nameof(CategoryDto.NameEng))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
                 <th>@SharedDataService.SelectViewLang("Description", "الوصف")</th>
+                <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
                 <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
             </tr>
         </thead>
@@ -139,6 +144,12 @@
                                 </div>
 
 
+                                <div class="col-12">
+                                    <label class="form-check d-flex align-items-center gap-2">
+                                        <InputCheckbox class="form-check-input" @bind-Value="category.IsActive" />
+                                        <span class="form-check-label">@SharedDataService.SelectViewLang("Active", "نشط")</span>
+                                    </label>
+                                </div>
 
                                 <div class="erp-form-actions">
                                     <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> @SharedDataService.SelectViewLang("Save", "حفظ")</button>
@@ -157,6 +168,7 @@
                         <td>@category.Name</td>
                         <td>@category.NameEng</td>
                         <td>@category.Description</td>
+                        <td><StatusChip Tone="@GetActiveTone(category.IsActive)" Text="@GetActiveLabel(category.IsActive)" /></td>
                         <td>
                             <div class="d-flex justify-content-end gap-2">
                             <button class="btn btn-outline-warning btn-sm erp-row-action"
@@ -230,7 +242,8 @@
         var newItem = new CategoryDto()
         {
             Id = Guid.NewGuid(),
-            CompanyId = companyId
+            CompanyId = companyId,
+            IsActive = true
         };
         categories.Insert(0, newItem);
         editingCategoryId = newItem.Id;
@@ -358,7 +371,7 @@
         if (item != null && item.Id != Guid.Empty)
         {
             // existing record → keep it
-            var brRes = await CategoryService.GetByCompanyIdAsync(companyId, 0, 1000);
+            var brRes = await CategoryService.GetByCompanyIdAsync(companyId, 0, 1000, includeInactive);
             if (brRes.IsSuccess)
             {
                 categories = brRes.Data?.Data?.ToList() ?? [];
@@ -378,6 +391,7 @@
 
     // Searching
     private string searchText = "";
+    private bool includeInactive;
 
     // Sorting
     private string sortColumn = nameof(BranchDto.Name);
@@ -390,7 +404,7 @@
     {
         // var request = new PaginationRequest(pageIndex, pageSize, searchText);
 
-        var response = await CategoryService.GetByCompanyIdAsync(companyId, pageIndex, pageSize);//,searchText);
+        var response = await CategoryService.GetByCompanyIdAsync(companyId, pageIndex, pageSize, includeInactive);//,searchText);
 
         if (response.IsSuccess)
         {
@@ -408,6 +422,16 @@
         pageIndex = 0;
         await LoadCategory();
     }
+    private async Task OnIncludeInactiveChanged(ChangeEventArgs args)
+    {
+        includeInactive = args.Value is bool value && value;
+        pageIndex = 0;
+        await LoadCategory();
+    }
+    private string GetActiveTone(bool isActive) => isActive ? "success" : "muted";
+    private string GetActiveLabel(bool isActive) => isActive
+        ? SharedDataService.SelectViewLang("Active", "نشط")
+        : SharedDataService.SelectViewLang("Inactive", "غير نشط");
     private IEnumerable<CategoryDto> ProcessedCategories =>
     categories
         // 🔍 Search

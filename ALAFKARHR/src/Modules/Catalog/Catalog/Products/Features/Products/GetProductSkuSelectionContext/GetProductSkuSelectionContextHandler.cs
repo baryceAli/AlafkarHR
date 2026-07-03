@@ -17,6 +17,8 @@ public class GetProductSkuSelectionContextHandler(CatalogDbContext dbContext)
                   && productSku.CompanyId == request.CompanyId
                   && !productSku.IsDeleted
                   && !unit.IsDeleted
+                  && productSku.IsActive
+                  && unit.IsActive
             select new GetProductSkuSelectionContextResult(
                 productSku.Id,
                 productSku.ProductId,

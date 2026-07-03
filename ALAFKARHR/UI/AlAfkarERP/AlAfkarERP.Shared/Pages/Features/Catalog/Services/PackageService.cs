@@ -26,9 +26,9 @@ public class PackageService : BaseApiService, IPackageService
         return await SendAsync<PaginatedResult<ProductPackageDto>>(request, "productPackageList");
     }
 
-    public async Task<ApiResult<PaginatedResult<ProductPackageDto>>> GetByCompanyAsync(Guid companyId,int PageIndex, int PageSize)
+    public async Task<ApiResult<PaginatedResult<ProductPackageDto>>> GetByCompanyAsync(Guid companyId,int PageIndex, int PageSize, string? searchText = "", bool includeInactive = false)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/company/{companyId}?PageIndex={PageIndex}&PageSize={PageSize}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/company/{companyId}?PageIndex={PageIndex}&PageSize={PageSize}&SearchText={Uri.EscapeDataString(searchText ?? string.Empty)}&IncludeInactive={includeInactive.ToString().ToLowerInvariant()}");
         return await SendAsync<PaginatedResult<ProductPackageDto>>(request, "productPackageList");
     }
     public async Task<ApiResult<ProductPackageDto>> GetByIdAsync(Guid id)
