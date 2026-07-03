@@ -5,6 +5,7 @@
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Catalog.Enums
 @using SharedWithUI.Permissions
 @using AlAfkarERP.Shared.Pages.Reuable2
 
@@ -97,6 +98,8 @@
                     @SharedDataService.SelectViewLang("Name", "الاسم")
                 </th>
                 <th @onclick="() => Sort(nameof(VariantDto.NameEng))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
+                <th>@SharedDataService.SelectViewLang("Display", "العرض")</th>
+                <th>@SharedDataService.SelectViewLang("Creation", "الإنشاء")</th>
                 <th>@SharedDataService.SelectViewLang("Values", "القيم")</th>
                 <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
             </tr>
@@ -109,7 +112,7 @@
                 if (editingItem != null)
                 {
                     <tr>
-                        <td colspan="4">
+                        <td colspan="6">
                             <EditForm Model="editingItem" OnValidSubmit="() => SaveVariant(editingItem)">
                                 <DataAnnotationsValidator />
                                 <ValidationSummary />
@@ -129,6 +132,30 @@
                                         <div class="col-sm-10">
                                             <InputText class="form-control" @bind-Value="editingItem.NameEng" />
                                             <ValidationMessage For="() => editingItem.NameEng" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Display Type", "نوع العرض")</label>
+                                        <div class="col-sm-10">
+                                            <InputSelect class="form-select" @bind-Value="editingItem.DisplayType">
+                                                @foreach (var displayType in Enum.GetValues<VariantDisplayType>())
+                                                {
+                                                    <option value="@displayType">@GetDisplayTypeLabel(displayType)</option>
+                                                }
+                                            </InputSelect>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Creation Mode", "نمط الإنشاء")</label>
+                                        <div class="col-sm-10">
+                                            <InputSelect class="form-select" @bind-Value="editingItem.CreationMode">
+                                                @foreach (var creationMode in Enum.GetValues<VariantCreationMode>())
+                                                {
+                                                    <option value="@creationMode">@GetCreationModeLabel(creationMode)</option>
+                                                }
+                                            </InputSelect>
                                         </div>
                                     </div>
                                     
@@ -198,6 +225,8 @@
                 <tr>
                     <td>@variant.Name</td>
                     <td>@variant.NameEng</td>
+                    <td>@GetDisplayTypeLabel(variant.DisplayType)</td>
+                    <td>@GetCreationModeLabel(variant.CreationMode)</td>
                     <td>
                         <div class="erp-chip-row">
                             @foreach(var value in variant.Values)
@@ -283,6 +312,8 @@
         {
             Id = Guid.NewGuid(),
             CompanyId = companyId,
+            DisplayType = VariantDisplayType.Pills,
+            CreationMode = VariantCreationMode.Instant,
             Values = new List<VariantValueDto>()
         };
 
@@ -307,7 +338,8 @@
     }
     async Task SaveVariant(VariantDto variant)
     {
-            LoadingService.Show();
+        NormalizeVariantSettings(variant);
+        LoadingService.Show();
         if (variant.Id == editingVariantId && !isEdit)
         {
             //Create new
@@ -563,6 +595,33 @@
     {
         variant.Values.Remove(value);
     }
+
+    private void NormalizeVariantSettings(VariantDto variant)
+    {
+        if (variant.DisplayType == VariantDisplayType.MultiCheckbox)
+        {
+            variant.CreationMode = VariantCreationMode.Never;
+        }
+    }
+
+    private string GetDisplayTypeLabel(VariantDisplayType displayType) => displayType switch
+    {
+        VariantDisplayType.Pills => SharedDataService.SelectViewLang("Pills", "أزرار"),
+        VariantDisplayType.Color => SharedDataService.SelectViewLang("Color", "لون"),
+        VariantDisplayType.Radio => SharedDataService.SelectViewLang("Radio", "اختيار"),
+        VariantDisplayType.Select => SharedDataService.SelectViewLang("Select", "قائمة"),
+        VariantDisplayType.Image => SharedDataService.SelectViewLang("Image", "صورة"),
+        VariantDisplayType.MultiCheckbox => SharedDataService.SelectViewLang("Multi checkbox", "اختيار متعدد"),
+        _ => displayType.ToString()
+    };
+
+    private string GetCreationModeLabel(VariantCreationMode creationMode) => creationMode switch
+    {
+        VariantCreationMode.Instant => SharedDataService.SelectViewLang("Instant", "فوري"),
+        VariantCreationMode.Dynamic => SharedDataService.SelectViewLang("Dynamic", "ديناميكي"),
+        VariantCreationMode.Never => SharedDataService.SelectViewLang("Never", "أبدا"),
+        _ => creationMode.ToString()
+    };
 
     protected override void OnInitialized()
     {

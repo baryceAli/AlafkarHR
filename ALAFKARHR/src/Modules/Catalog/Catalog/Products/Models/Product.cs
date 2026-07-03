@@ -9,6 +9,7 @@ public class Product : Aggregate<Guid>
 
     public string Name { get; private set; } = default!;
     public string NameEng { get; private set; } = default!;
+    public CatalogProductType ProductType { get; private set; } = CatalogProductType.Goods;
 
     private readonly List<ProductSku> _skus = new();
     public IReadOnlyCollection<ProductSku> Skus => _skus;
@@ -23,6 +24,7 @@ public class Product : Aggregate<Guid>
         string nameEng, 
         Guid categoryId, 
         //Guid unitId,
+        CatalogProductType productType,
         Guid companyId, 
         string createdBy)
     {
@@ -34,6 +36,7 @@ public class Product : Aggregate<Guid>
             Name = name,
             NameEng = nameEng,
             CategoryId = categoryId,
+            ProductType = NormalizeProductType(productType),
             //UnitId = unitId,
             CompanyId = companyId,
             CreatedAt = DateTime.UtcNow,
@@ -46,6 +49,7 @@ public class Product : Aggregate<Guid>
         string nameEng, 
         Guid categoryId,
         //Guid unitId,
+        CatalogProductType productType,
         string modifiedBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -54,6 +58,7 @@ public class Product : Aggregate<Guid>
         Name = name;
         NameEng = nameEng;
         CategoryId = categoryId;
+        ProductType = NormalizeProductType(productType);
         //UnitId = unitId;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
@@ -67,6 +72,13 @@ public class Product : Aggregate<Guid>
     public void AddProductVariant(ProductSku sku)
     {
         _skus.Add(sku);
+    }
+
+    private static CatalogProductType NormalizeProductType(CatalogProductType productType)
+    {
+        return productType == default
+            ? CatalogProductType.Goods
+            : productType;
     }
     //public void AddPackage(Guid packageId)
     //{

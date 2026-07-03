@@ -41,6 +41,7 @@ public class GetProductByIdHandler(CatalogDbContext dbContext)
                     //UnitNameEng=u.UnitNameEng,
                     Name = p.Name,
                     NameEng = p.NameEng,
+                    ProductType = p.ProductType,
                     //Price = p.Price,
                     //ImageUrl = p.ImageUrl,
 
@@ -52,9 +53,12 @@ public class GetProductByIdHandler(CatalogDbContext dbContext)
                             Id = sku.Id,
                             BrandId=sku.BrandId,
                             ProductId = sku.ProductId,
+                            ProductType = p.ProductType,
                             PackageId = sku.Packages.Select(p => p.ProductPackageId).FirstOrDefault(),
                             PackageName = sku.Packages.Select(p => p.ProductPackage.Name).FirstOrDefault(),
                             PackageNameEng = sku.Packages.Select(p => p.ProductPackage.NameEng).FirstOrDefault(),
+                            PackageUnitId = sku.Packages.Select(p => p.ProductPackage.UnitId).FirstOrDefault(),
+                            PackageBarcode = sku.Packages.Select(p => p.ProductPackage.Barcode).FirstOrDefault(),
                             Name=sku.Name,
                             NameEng=sku.NameEng,
                             SkuCode = sku.SkuCode,
@@ -92,6 +96,8 @@ public class GetProductByIdHandler(CatalogDbContext dbContext)
                                     Name = p.ProductPackage.Name,
                                     NameEng = p.ProductPackage.NameEng,
                                     Quantity = p.ProductPackage.Quantity,
+                                    UnitId = p.ProductPackage.UnitId,
+                                    Barcode = p.ProductPackage.Barcode,
                                     CompanyId = p.ProductPackage.CompanyId
                                 })
                                 .ToList(),

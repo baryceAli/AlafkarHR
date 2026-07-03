@@ -23,6 +23,8 @@ public class GetVariantByCompanyHandler(CatalogDbContext dbContext)
                 Id = x.Id,
                 Name = x.Name,
                 NameEng=x.NameEng,
+                DisplayType = x.DisplayType,
+                CreationMode = x.CreationMode,
                 CompanyId = x.CompanyId,
                 
                 Values = x.Values

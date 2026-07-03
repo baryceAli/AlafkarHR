@@ -746,7 +746,7 @@ public sealed class DemoDataSeeder(
             var product = await catalogDbContext.Products.FirstOrDefaultAsync(x => x.CompanyId == companyId && x.NameEng == nameEng, cancellationToken);
             if (product is null)
             {
-                product = Product.Create(StableGuid("product", companyId, productKey), name, nameEng, category.Id, companyId, DemoActorName);
+                product = Product.Create(StableGuid("product", companyId, productKey), name, nameEng, category.Id, CatalogProductType.Goods, companyId, DemoActorName);
                 await catalogDbContext.Products.AddAsync(product, cancellationToken);
             }
 

@@ -9,6 +9,9 @@ public class CreateVariantCommandValidator : AbstractValidator<CreateVariantComm
     {
         RuleFor(x=> x.Variant.Name).NotEmpty().WithMessage("Name is required");
         RuleFor(x=> x.Variant.NameEng).NotEmpty().WithMessage("NameEng is required");
+        RuleFor(x => x.Variant)
+            .Must(x => x.DisplayType != VariantDisplayType.MultiCheckbox || x.CreationMode == VariantCreationMode.Never)
+            .WithMessage("Multi-checkbox variants must use Never creation mode");
     }
 }
 public class CreateVariantHandler (CatalogDbContext dbContext, IHttpContextAccessor httpContextAccessor)
@@ -16,13 +19,10 @@ public class CreateVariantHandler (CatalogDbContext dbContext, IHttpContextAcces
 {
     public async Task<CreateVariantResult> Handle(CreateVariantCommand command, CancellationToken cancellationToken)
     {
-        //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
-        var userId = httpContextAccessor.HttpContext?
-                        .User?.FindFirst(ClaimTypes.NameIdentifier)?
-                        .Value??
-                        throw new UnauthorizedAccessException("User is not authenticated");
+        var userId = CatalogUserContext.GetUserId(httpContextAccessor);
+        var companyId = CatalogUserContext.GetCompanyId(httpContextAccessor);
         
-        var newVariant= CreateNewVariant(command.Variant, userId);
+        var newVariant= CreateNewVariant(command.Variant, companyId, userId);
         
         dbContext.Variants.Add(newVariant);
 
@@ -32,13 +32,15 @@ public class CreateVariantHandler (CatalogDbContext dbContext, IHttpContextAcces
         return new CreateVariantResult(newVariant.Id);
     }
 
-    private Variant CreateNewVariant(VariantDto variantDto, string userId)
+    private Variant CreateNewVariant(VariantDto variantDto, Guid companyId, string userId)
     {
         var newVariant = Variant.Create(
             Guid.NewGuid(),
             variantDto.Name,
             variantDto.NameEng,
-            variantDto.CompanyId.Value,
+            variantDto.DisplayType,
+            variantDto.CreationMode,
+            companyId,
             userId);
         variantDto.Values.ForEach(value =>
         {

@@ -84,6 +84,9 @@ public class ProductSKUConfiguration : IEntityTypeConfiguration<ProductSku>
         builder.HasIndex(x => new { x.CompanyId, x.SkuKey })
             .IsUnique();
 
+        builder.HasIndex(x => new { x.CompanyId, x.ProductId, x.BrandId, x.PackageId, x.SkuCode })
+            .IsUnique();
+
         // 🔥 Soft delete
         builder.HasQueryFilter(x => !x.IsDeleted);
     }

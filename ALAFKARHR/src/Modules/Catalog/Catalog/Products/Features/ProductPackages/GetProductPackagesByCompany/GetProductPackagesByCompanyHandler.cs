@@ -15,15 +15,25 @@ public class GetProductPackagesByCompanyHandler(CatalogDbContext dbContext)
         var query = dbContext.ProductPackages.AsQueryable();
         query = query.Where(x => x.IsDeleted == false && x.CompanyId == request.CompanyId);
 
-        var totalCount = await dbContext.ProductPackages.AsNoTracking().LongCountAsync();
+        var totalCount = await query.AsNoTracking().LongCountAsync(cancellationToken);
         
         var productPackages= await query
             .AsNoTracking()
             .Skip(pageSize*pageIndex)
             .Take(pageSize)
-            .ToListAsync();
+            .Select(package => new ProductPackageDto
+            {
+                Id = package.Id,
+                Name = package.Name,
+                NameEng = package.NameEng,
+                Quantity = package.Quantity,
+                UnitId = package.UnitId,
+                Barcode = package.Barcode,
+                CompanyId = package.CompanyId
+            })
+            .ToListAsync(cancellationToken);
 
         return new GetProductPackagesByCompanyResult(
-            new PaginatedResult<ProductPackageDto> (pageIndex,pageSize,totalCount,productPackages.Adapt<List<ProductPackageDto>>()));
+            new PaginatedResult<ProductPackageDto> (pageIndex,pageSize,totalCount,productPackages));
     }
 }

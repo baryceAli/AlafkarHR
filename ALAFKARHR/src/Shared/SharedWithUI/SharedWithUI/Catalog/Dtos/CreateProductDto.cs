@@ -2,6 +2,8 @@
 
 namespace SharedWithUI.Catalog.Dtos;
 
+using SharedWithUI.Catalog.Enums;
+
 public class CreateProductDto
 {
     public Guid Id { get; set; }
@@ -24,6 +26,8 @@ public class CreateProductDto
     
     [Required(ErrorMessage = "NameEng is required")]
     public string NameEng { get; set; }
+    public CatalogProductType ProductType { get; set; } = CatalogProductType.Goods;
+
     [Required(ErrorMessage ="Price is required")]
     [Range(0.01,10000000,ErrorMessage ="Price must be greator than 0")]
     public decimal Price { get; set; }

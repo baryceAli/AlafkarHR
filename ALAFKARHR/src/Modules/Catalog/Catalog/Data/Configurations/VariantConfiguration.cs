@@ -16,6 +16,16 @@ public class VariantConfiguration : IEntityTypeConfiguration<Variant>
             .IsRequired()
             .HasMaxLength(200);
 
+        builder.Property(x => x.DisplayType)
+            .IsRequired()
+            .HasConversion<int>()
+            .HasDefaultValue(VariantDisplayType.Pills);
+
+        builder.Property(x => x.CreationMode)
+            .IsRequired()
+            .HasConversion<int>()
+            .HasDefaultValue(VariantCreationMode.Instant);
+
         // 🔥 Values relationship
         //builder.HasMany(typeof(VariantValue), "_values")
         //    .WithOne()

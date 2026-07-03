@@ -103,6 +103,7 @@ public class ProductSku : Entity<Guid>
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(skuCode);
         ArgumentException.ThrowIfNullOrWhiteSpace(skuCodeEng);
+        ValidateCapabilityFlags(productionType, isInventoryTracked);
 
         return new ProductSku
         {
@@ -141,6 +142,7 @@ public class ProductSku : Entity<Guid>
         string nameEng,
         string skuCode, 
         string skuCodeEng,
+        string skuKey,
         SkuProductionType productionType,
         Guid companyId,
         bool isSellable,
@@ -156,9 +158,11 @@ public class ProductSku : Entity<Guid>
         NameEng = nameEng;
         SkuCode=skuCode;
         SkuCodeEng=skuCodeEng;
+        SkuKey = skuKey;
         Price = price;
         Calories = calories;
         ProductionType = NormalizeProductionType(productionType);
+        ValidateCapabilityFlags(ProductionType, isInventoryTracked);
         ImageUrl = imageUrl;
         IsSellable = showOnStore || isSellable;
         IsPurchasable = isPurchasable;
@@ -335,6 +339,12 @@ public class ProductSku : Entity<Guid>
         return productionType == default
             ? SkuProductionType.PurchasedRawMaterial
             : productionType;
+    }
+
+    public static void ValidateCapabilityFlags(SkuProductionType productionType, bool isInventoryTracked)
+    {
+        if (NormalizeProductionType(productionType) == SkuProductionType.CompositeBundle && !isInventoryTracked)
+            throw new Exception("Composite bundle SKUs must be inventory tracked.");
     }
     //public void AddProductPackage(Guid id, Guid productId, string packageName, string packageNameEng, double quantityPerPackage, decimal packagePrice, bool showOnStore, string createdBy)
     //{

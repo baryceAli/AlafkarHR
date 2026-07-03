@@ -11,7 +11,7 @@
 
 
 @inject IPackageService PackageService
-@* @inject IUnitService UnitService *@
+@inject IUnitService UnitService
 @inject ToastService ToastService
 @inject ModalService ModalService
 
@@ -100,7 +100,8 @@
                 </th>
                 <th @onclick="() => Sort(nameof(ProductPackageDto.NameEng))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
                 <th>@SharedDataService.SelectViewLang("Quantity", "الكمية")</th>
-                @* <th>@SharedDataService.SelectViewLang("Unit","الوحدة")</th> *@
+                <th>@SharedDataService.SelectViewLang("Unit","الوحدة")</th>
+                <th>@SharedDataService.SelectViewLang("Barcode","باركود")</th>
                 <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
             </tr>
         </thead>
@@ -143,6 +144,22 @@
                                         </div>
                                     </div>
 
+                                    <div class="col-md-4">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Reference Unit", "الوحدة المرجعية")</label>
+                                        <InputSelect TValue="Guid?" class="form-select" @bind-Value="editingItem.UnitId">
+                                            <option value="">@SharedDataService.SelectViewLang("No unit", "بدون وحدة")</option>
+                                            @foreach (var unit in units)
+                                            {
+                                                <option value="@unit.Id">@SharedDataService.SelectViewLang(unit.UnitNameEng, unit.UnitName)</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Barcode", "باركود")</label>
+                                        <InputText class="form-control" @bind-Value="editingItem.Barcode" />
+                                    </div>
+
 
 
                                     <div class="erp-form-actions">
@@ -165,6 +182,8 @@
                     <td>@brand.Name</td>
                     <td>@brand.NameEng</td>
                     <td>@brand.Quantity</td>
+                    <td>@GetUnitLabel(brand.UnitId)</td>
+                    <td>@(string.IsNullOrWhiteSpace(brand.Barcode) ? "-" : brand.Barcode)</td>
                     <td>
                         <div class="d-flex justify-content-end gap-2">
                         <button class="btn btn-outline-warning btn-sm erp-row-action"
@@ -230,6 +249,7 @@
             return;
         }
         await LoadPackages();
+        await LoadUnits();
         // var branchResponse = await BranchService.GetByCompanyIdAsync(companyId);
         // if (branchResponse.IsSuccess)
         // {
@@ -422,6 +442,27 @@
             // TotalPages = (int)response.Data!.Count;
             TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
         }
+    }
+    private async Task LoadUnits()
+    {
+        var response = await UnitService.GetByCompanyAsync(companyId, 0, 1000);
+        if (response.IsSuccess)
+        {
+            units = response.Data?.Data?.ToList() ?? [];
+        }
+    }
+
+    private string GetUnitLabel(Guid? unitId)
+    {
+        if (!unitId.HasValue || unitId.Value == Guid.Empty)
+        {
+            return "-";
+        }
+
+        var unit = units.FirstOrDefault(x => x.Id == unitId.Value);
+        return unit is null
+            ? "-"
+            : SharedDataService.SelectViewLang(unit.UnitNameEng, unit.UnitName);
     }
     async Task OnPageSizeChanged(ChangeEventArgs e)
     {

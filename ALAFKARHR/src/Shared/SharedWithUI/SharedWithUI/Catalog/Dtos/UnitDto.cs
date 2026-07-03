@@ -12,6 +12,14 @@ public class UnitDto
     [Required (ErrorMessage = "UnitNameEng is required")]
     public string UnitNameEng { get; set; }
 
+    [Required(ErrorMessage = "Unit category is required")]
+    public string UnitCategory { get; set; } = "General";
+
+    [Range(0.000001, 10000000, ErrorMessage = "Conversion factor must be greater than 0")]
+    public decimal ConversionFactor { get; set; } = 1;
+
+    public bool IsReferenceUnit { get; set; }
+
     [Required(ErrorMessage = "Company is required")]
     public Guid? CompanyId { get; set; }
 

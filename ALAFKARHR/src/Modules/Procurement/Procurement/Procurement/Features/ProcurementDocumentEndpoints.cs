@@ -111,8 +111,7 @@ public record ProcurementPermissionSet(
                 new("submit", "submit", PermissionList.PurchaseRequestPermissions.Submit),
                 new("approve", "approve", PermissionList.PurchaseRequestPermissions.Approve),
                 new("reject", "reject", PermissionList.PurchaseRequestPermissions.Reject),
-                new("cancel", "cancel", PermissionList.PurchaseRequestPermissions.Cancel),
-                new("convert", "convert", PermissionList.PurchaseRequestPermissions.Close)
+                new("cancel", "cancel", PermissionList.PurchaseRequestPermissions.Cancel)
             ]);
 
     public static ProcurementPermissionSet ForRequestsForQuotation() =>

@@ -19,9 +19,20 @@ public class ProductPackageConfiguration : IEntityTypeConfiguration<ProductPacka
         builder.Property(x => x.Quantity)
             .HasColumnType("decimal(18,2)");
 
+        builder.Property(x => x.Barcode)
+            .HasMaxLength(100);
+
+        builder.HasOne<Unit>()
+            .WithMany()
+            .HasForeignKey(x => x.UnitId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // 🔥 Multi-tenant uniqueness
         builder.HasIndex(x => new { x.CompanyId, x.Name }).IsUnique();
         builder.HasIndex(x => new { x.CompanyId, x.NameEng }).IsUnique();
+        builder.HasIndex(x => new { x.CompanyId, x.Barcode })
+            .IsUnique()
+            .HasFilter("[Barcode] IS NOT NULL");
 
         builder.HasQueryFilter(x => !x.IsDeleted);
     }

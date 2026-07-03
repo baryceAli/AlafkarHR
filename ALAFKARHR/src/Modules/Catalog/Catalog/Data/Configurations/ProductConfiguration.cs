@@ -16,7 +16,10 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .IsRequired()
             .HasMaxLength(200);
 
-        
+        builder.Property(x => x.ProductType)
+            .IsRequired()
+            .HasConversion<int>()
+            .HasDefaultValue(CatalogProductType.Goods);
 
         builder.HasMany(p => p.Skus)
     .WithOne()

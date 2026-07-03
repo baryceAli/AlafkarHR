@@ -221,7 +221,7 @@
         {
             ProcurementDocumentKind.PurchaseRequest when Is(status, "Draft") => [new("submit")],
             ProcurementDocumentKind.PurchaseRequest when Is(status, "Submitted") => [new("approve"), new("reject"), new("cancel")],
-            ProcurementDocumentKind.PurchaseRequest when Is(status, "Approved") => [new("convert"), new("cancel")],
+            ProcurementDocumentKind.PurchaseRequest when Is(status, "Approved") => [new("cancel")],
             ProcurementDocumentKind.RequestForQuotation when Is(status, "Draft") => [new("send"), new("cancel")],
             ProcurementDocumentKind.RequestForQuotation when Is(status, "Sent") => [new("close"), new("cancel")],
             ProcurementDocumentKind.SupplierQuotation when Is(status, "Received") => [new("accept"), new("reject")],
@@ -243,7 +243,6 @@
             "approve" => SharedDataService.SelectViewLang("Approve", "اعتماد"),
             "reject" => SharedDataService.SelectViewLang("Reject", "رفض"),
             "cancel" => SharedDataService.SelectViewLang("Cancel", "إلغاء"),
-            "convert" => SharedDataService.SelectViewLang("Convert", "تحويل"),
             "send" => SharedDataService.SelectViewLang("Send", "إرسال"),
             "close" when kind == ProcurementDocumentKind.PurchaseOrder && Is(document.Status ?? string.Empty, "PartiallyReceived") => SharedDataService.SelectViewLang("Close Remaining", "إغلاق المتبقي"),
             "close" => SharedDataService.SelectViewLang("Close", "إغلاق"),

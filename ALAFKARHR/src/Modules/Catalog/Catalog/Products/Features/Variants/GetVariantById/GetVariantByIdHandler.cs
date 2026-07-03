@@ -18,6 +18,8 @@ public class GetVariantByIdHandler(CatalogDbContext dbContext) : IQueryHandler<G
             Id = variant.Id,
             Name = variant.Name,
             NameEng = variant.NameEng,
+            DisplayType = variant.DisplayType,
+            CreationMode = variant.CreationMode,
             CompanyId = variant.CompanyId,
             Values = variant.Values
             .Where(v => !v.IsDeleted)

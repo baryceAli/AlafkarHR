@@ -22,11 +22,12 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
 {
     public async Task<UpdateProductSkuResult> Handle(UpdateProductSkuCommand command, CancellationToken cancellationToken)
     {
+        var companyId = CatalogUserContext.GetCompanyId(httpContextAccessor);
         var productSku = await dbContext.ProductSkus
             .Include(sku=> sku.Variants)
             .Include(sku => sku.Packages)
             .Include(sku => sku.Components)
-            .FirstOrDefaultAsync(sku=>sku.Id==command.ProductSku.Id, cancellationToken);
+            .FirstOrDefaultAsync(sku=>sku.Id==command.ProductSku.Id && sku.CompanyId == companyId, cancellationToken);
         if (productSku is null)
             throw new Exception($"ProductSku not found: {command.ProductSku.Id}");
 
@@ -41,8 +42,7 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
             .LoadAsync(cancellationToken);
 
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
-        var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException("User is not authorized");
+        var userId = CatalogUserContext.GetUserId(httpContextAccessor);
 
 
 
@@ -60,7 +60,7 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
 
 
         var prd = await dbContext.Products.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == command.ProductSku.ProductId, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == command.ProductSku.ProductId && x.CompanyId == companyId, cancellationToken);
 
         if ((prd is null))
             throw new NotFoundException($"Product not found: {command.ProductSku.ProductId}");
@@ -70,9 +70,12 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
         //if (unit is null)
         //throw new NotFoundException($"Unit not found: {command.ProductSku.UnitId}");
 
-        var brand = await dbContext.Brands.AsNoTracking().FirstOrDefaultAsync(x => x.Id == command.ProductSku.BrandId);
-        if ((brand is null))
-            throw new NotFoundException($"brand not found: {command.ProductSku.BrandId}");
+        await CatalogOwnershipGuard.EnsureBrandAsync(dbContext, command.ProductSku.BrandId, companyId, cancellationToken);
+        await CatalogOwnershipGuard.EnsureUnitAsync(dbContext, command.ProductSku.UnitId, companyId, cancellationToken);
+        await CatalogOwnershipGuard.EnsureVariantValuesAsync(dbContext, command.ProductSku.Variants, companyId, cancellationToken);
+
+        var brand = await dbContext.Brands.AsNoTracking()
+            .FirstAsync(x => x.Id == command.ProductSku.BrandId && x.CompanyId == companyId, cancellationToken);
 
 
         var packageIds = command.ProductSku.Packages
@@ -85,14 +88,7 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
 
         if (packageIds.Any())
         {
-            var existingPackageIds = await dbContext.ProductPackages.AsNoTracking()
-                .Where(x => packageIds.Contains(x.Id))
-                .Select(x => x.Id)
-                .ToListAsync(cancellationToken);
-
-            var missingPackageId = packageIds.Except(existingPackageIds).FirstOrDefault();
-            if (missingPackageId != Guid.Empty)
-                throw new NotFoundException($"Package not found: {missingPackageId}");
+            await CatalogOwnershipGuard.EnsurePackagesAsync(dbContext, packageIds, companyId, cancellationToken);
         }
 
         List<(Guid variantId, Guid variantValueId)> variantValueIds = new List<(Guid, Guid)>();
@@ -146,7 +142,7 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
             if (componentSkuIds.Any())
             {
                 var existingComponentSkuIds = await dbContext.ProductSkus.AsNoTracking()
-                    .Where(sku => sku.CompanyId == command.ProductSku.CompanyId && componentSkuIds.Contains(sku.Id))
+                    .Where(sku => sku.CompanyId == companyId && componentSkuIds.Contains(sku.Id))
                     .Select(sku => sku.Id)
                     .ToListAsync(cancellationToken);
 
@@ -155,6 +151,8 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
                     throw new NotFoundException($"Component SKU not found: {missingComponentSkuId}");
             }
         }
+        ValidateProductTypeCapabilities(prd.ProductType, productionType, command.ProductSku.IsInventoryTracked);
+        var key = ProductSkuGenerator.BuildSkuKey(SkuBaseCntx);
 
         productSku.Update(
             command.ProductSku.Price, 
@@ -166,8 +164,9 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
             command.ProductSku.NameEng,
             skuCode,
             skuCodeEng,
+            key,
             productionType,
-            command.ProductSku.CompanyId,
+            companyId,
             command.ProductSku.IsSellable,
             command.ProductSku.IsPurchasable,
             command.ProductSku.IsInventoryTracked,
@@ -181,6 +180,15 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
         return new UpdateProductSkuResult(true);
 
 
+    }
+
+    private static void ValidateProductTypeCapabilities(CatalogProductType productType, SkuProductionType productionType, bool isInventoryTracked)
+    {
+        if (productType == CatalogProductType.Service && isInventoryTracked)
+            throw new Exception("Service products cannot be inventory tracked.");
+
+        if (productType == CatalogProductType.Combo && productionType != SkuProductionType.CompositeBundle)
+            throw new Exception("Combo products must use Composite Bundle production type.");
     }
     private bool IsBase64Image(string input)
     {

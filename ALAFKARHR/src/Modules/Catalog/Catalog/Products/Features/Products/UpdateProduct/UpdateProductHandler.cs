@@ -21,13 +21,14 @@ public class UpdateProductHandler(CatalogDbContext dbContext, IHttpContextAccess
 {
     public async Task<UpdateProductResult> Handle(UpdateProductCommand command, CancellationToken cancellationToken)
     {
-        var product = await dbContext.Products.FirstOrDefaultAsync(p=>p.Id== command.Product.Id, cancellationToken);
+        var companyId = CatalogUserContext.GetCompanyId(httpContextAccessor);
+        var product = await dbContext.Products.FirstOrDefaultAsync(p=>p.Id== command.Product.Id && p.CompanyId == companyId, cancellationToken);
         if (product is null)
             throw new Exception($"Product not found: {command.Product.Id}");
 
         //string userName = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Unknown";
-        var user = httpContextAccessor.HttpContext?.User;
-        var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException("User is not authorized");
+        var userId = CatalogUserContext.GetUserId(httpContextAccessor);
+        await CatalogOwnershipGuard.EnsureCategoryAsync(dbContext, command.Product.CategoryId, companyId, cancellationToken);
 
         //string finalImagePath = product.ImageUrl;
         //var incomingImage = command.Product.ImageUrl;
@@ -50,6 +51,7 @@ public class UpdateProductHandler(CatalogDbContext dbContext, IHttpContextAccess
             command.Product.NameEng, 
             command.Product.CategoryId.Value,
             //command.Product.UnitId.Value,
+            command.Product.ProductType,
             userId);
 
         await dbContext.SaveChangesAsync();

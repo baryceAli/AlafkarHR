@@ -2,6 +2,8 @@
 
 namespace SharedWithUI.Catalog.Dtos;
 
+using SharedWithUI.Catalog.Enums;
+
 public class ProductDto
 {
     public Guid Id { get; set; }
@@ -12,6 +14,8 @@ public class ProductDto
 
     [Required(ErrorMessage = "NameEng is required")]
     public string NameEng { get; set; }
+
+    public CatalogProductType ProductType { get; set; } = CatalogProductType.Goods;
 
 
     //[Required(ErrorMessage = "Category is required")]

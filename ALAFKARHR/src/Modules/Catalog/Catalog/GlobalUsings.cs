@@ -1,4 +1,5 @@
 ﻿global using Catalog.Data;
+global using Catalog.Products.Helpers;
 global using Catalog.Products.Models;
 global using FluentValidation;
 global using Microsoft.AspNetCore.Builder;

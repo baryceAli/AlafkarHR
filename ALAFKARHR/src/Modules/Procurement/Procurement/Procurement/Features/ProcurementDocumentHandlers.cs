@@ -44,30 +44,32 @@ public class CreateProcurementDocumentHandler(ProcurementDbContext dbContext, IH
         var userId = GetUserId(httpContextAccessor);
         await EnsureCanMutateBranchAsync(sender, command.Document.CompanyId, command.Document.BranchId, cancellationToken);
         await EnsureWarehousesMatchBranchAsync(sender, command.Document, cancellationToken);
+        var sourceDocument = await EnsureValidSourceDocumentAsync(dbContext, sender, command.Kind, command.Document, cancellationToken);
         command.Document.Kind = command.Kind;
         if (command.Kind == ProcurementDocumentKind.PurchaseRequest)
-            return await CreateNumberedDocumentAsync(command, userId, "PR", 4, "purchase request", cancellationToken);
+            return await CreateNumberedDocumentAsync(command, userId, sourceDocument, "PR", 4, "purchase request", cancellationToken);
 
         if (command.Kind == ProcurementDocumentKind.RequestForQuotation)
-            return await CreateNumberedDocumentAsync(command, userId, "RFQ", 5, "request for quotation", cancellationToken);
+            return await CreateNumberedDocumentAsync(command, userId, sourceDocument, "RFQ", 5, "request for quotation", cancellationToken);
 
         if (command.Kind == ProcurementDocumentKind.SupplierQuotation)
-            return await CreateNumberedDocumentAsync(command, userId, "SQ", 5, "supplier quotation", cancellationToken);
+            return await CreateNumberedDocumentAsync(command, userId, sourceDocument, "SQ", 5, "supplier quotation", cancellationToken);
 
         if (command.Kind == ProcurementDocumentKind.PurchaseOrder)
-            return await CreateNumberedDocumentAsync(command, userId, "PO", 5, "purchase order", cancellationToken);
+            return await CreateNumberedDocumentAsync(command, userId, sourceDocument, "PO", 5, "purchase order", cancellationToken);
 
         if (command.Kind == ProcurementDocumentKind.GoodsReceipt)
-            return await CreateNumberedDocumentAsync(command, userId, "GR", 5, "goods receipt", cancellationToken);
+            return await CreateNumberedDocumentAsync(command, userId, sourceDocument, "GR", 5, "goods receipt", cancellationToken);
 
         if (command.Kind == ProcurementDocumentKind.SupplierInvoice)
         {
             await ProcurementReceiptRules.EnsureSupplierInvoiceDoesNotExceedReceivedQuantitiesAsync(dbContext, command.Document, cancellationToken);
-            return await CreateNumberedDocumentAsync(command, userId, "INV", 5, "supplier invoice", cancellationToken);
+            return await CreateNumberedDocumentAsync(command, userId, sourceDocument, "INV", 5, "supplier invoice", cancellationToken);
         }
 
         var document = ProcurementDocumentFactory.Create(command.Kind, command.Document, userId);
         await dbContext.ProcurementDocuments.AddAsync(document, cancellationToken);
+        MarkSourcePurchaseRequestConverted(sourceDocument, userId);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new CreateProcurementDocumentResult(document.Id);
     }
@@ -75,6 +77,7 @@ public class CreateProcurementDocumentHandler(ProcurementDbContext dbContext, IH
     private async Task<CreateProcurementDocumentResult> CreateNumberedDocumentAsync(
         CreateProcurementDocumentCommand command,
         string userId,
+        ProcurementDocument? sourceDocument,
         string prefixCode,
         int sequenceDigits,
         string documentName,
@@ -93,6 +96,7 @@ public class CreateProcurementDocumentHandler(ProcurementDbContext dbContext, IH
                 cancellationToken);
             var document = ProcurementDocumentFactory.Create(command.Kind, command.Document, userId);
             await dbContext.ProcurementDocuments.AddAsync(document, cancellationToken);
+            MarkSourcePurchaseRequestConverted(sourceDocument, userId);
 
             try
             {
@@ -156,6 +160,72 @@ public class CreateProcurementDocumentHandler(ProcurementDbContext dbContext, IH
         accessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? throw new UnauthorizedAccessException("User is not authenticated");
 
+    internal static async Task<ProcurementDocument?> EnsureValidSourceDocumentAsync(
+        ProcurementDbContext dbContext,
+        ISender sender,
+        ProcurementDocumentKind kind,
+        ProcurementDocumentDto document,
+        CancellationToken cancellationToken)
+    {
+        if (!document.SourceDocumentId.HasValue)
+            return null;
+
+        var source = await dbContext.ProcurementDocuments.Include(x => x.Lines)
+            .FirstOrDefaultAsync(x => x.Id == document.SourceDocumentId.Value, cancellationToken)
+            ?? throw new NotFoundException("Source procurement document", document.SourceDocumentId.Value);
+
+        if (source.CompanyId != document.CompanyId)
+            throw new BadRequestException("Source procurement document must belong to the same company.");
+
+        await EnsureCanReadBranchAsync(sender, source.CompanyId, source.BranchId, cancellationToken);
+        await EnsureCanMutateBranchAsync(sender, source.CompanyId, source.BranchId, cancellationToken);
+
+        if (!IsValidSourceDocument(kind, source))
+            throw new BadRequestException($"Invalid source document '{source.Number}' for {kind}.");
+
+        return source;
+    }
+
+    internal static void MarkSourcePurchaseRequestConverted(ProcurementDocument? sourceDocument, string userId)
+    {
+        if (sourceDocument?.Kind == ProcurementDocumentKind.PurchaseRequest
+            && IsStatus(sourceDocument.Status, PurchaseRequestStatus.Approved.ToString()))
+            sourceDocument.ChangeStatus(PurchaseRequestStatus.Converted.ToString(), userId);
+    }
+
+    private static bool IsValidSourceDocument(ProcurementDocumentKind kind, ProcurementDocument source) =>
+        kind switch
+        {
+            ProcurementDocumentKind.RequestForQuotation =>
+                source.Kind == ProcurementDocumentKind.PurchaseRequest
+                && (IsStatus(source.Status, PurchaseRequestStatus.Approved.ToString())
+                    || IsStatus(source.Status, PurchaseRequestStatus.Converted.ToString())),
+            ProcurementDocumentKind.SupplierQuotation =>
+                source.Kind == ProcurementDocumentKind.RequestForQuotation
+                && IsStatus(source.Status, RequestForQuotationStatus.Sent.ToString()),
+            ProcurementDocumentKind.PurchaseOrder =>
+                (source.Kind == ProcurementDocumentKind.SupplierQuotation
+                    && IsStatus(source.Status, SupplierQuotationStatus.Accepted.ToString()))
+                || (source.Kind == ProcurementDocumentKind.PurchaseRequest
+                    && (IsStatus(source.Status, PurchaseRequestStatus.Approved.ToString())
+                        || IsStatus(source.Status, PurchaseRequestStatus.Converted.ToString()))),
+            ProcurementDocumentKind.GoodsReceipt =>
+                source.Kind == ProcurementDocumentKind.PurchaseOrder
+                && (IsStatus(source.Status, PurchaseOrderStatus.Sent.ToString())
+                    || IsStatus(source.Status, PurchaseOrderStatus.PartiallyReceived.ToString())),
+            ProcurementDocumentKind.SupplierInvoice =>
+                (source.Kind == ProcurementDocumentKind.PurchaseOrder
+                    && (IsStatus(source.Status, PurchaseOrderStatus.PartiallyReceived.ToString())
+                        || IsStatus(source.Status, PurchaseOrderStatus.Received.ToString())
+                        || IsStatus(source.Status, PurchaseOrderStatus.Closed.ToString())))
+                || (source.Kind == ProcurementDocumentKind.GoodsReceipt
+                    && IsStatus(source.Status, PostedDocumentStatus.Posted.ToString())),
+            _ => true
+        };
+
+    private static bool IsStatus(string? status, string expected) =>
+        string.Equals(status, expected, StringComparison.OrdinalIgnoreCase);
+
     internal static async Task EnsureCanMutateBranchAsync(ISender sender, Guid companyId, Guid? branchId, CancellationToken cancellationToken)
     {
         var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
@@ -211,6 +281,7 @@ public class UpdateProcurementDocumentHandler(ProcurementDbContext dbContext, IH
         await CreateProcurementDocumentHandler.EnsureCanMutateBranchAsync(sender, document.CompanyId, document.BranchId, cancellationToken);
         await CreateProcurementDocumentHandler.EnsureCanMutateBranchAsync(sender, command.Document.CompanyId, command.Document.BranchId, cancellationToken);
         await CreateProcurementDocumentHandler.EnsureWarehousesMatchBranchAsync(sender, command.Document, cancellationToken);
+        var sourceDocument = await CreateProcurementDocumentHandler.EnsureValidSourceDocumentAsync(dbContext, sender, command.Kind, command.Document, cancellationToken);
 
         command.Document.Kind = command.Kind;
         if (command.Kind is ProcurementDocumentKind.PurchaseRequest
@@ -224,7 +295,9 @@ public class UpdateProcurementDocumentHandler(ProcurementDbContext dbContext, IH
         if (command.Kind == ProcurementDocumentKind.SupplierInvoice)
             await ProcurementReceiptRules.EnsureSupplierInvoiceDoesNotExceedReceivedQuantitiesAsync(dbContext, command.Document, cancellationToken);
 
-        document.Update(command.Document, CreateProcurementDocumentHandler.GetUserId(httpContextAccessor));
+        var userId = CreateProcurementDocumentHandler.GetUserId(httpContextAccessor);
+        document.Update(command.Document, userId);
+        CreateProcurementDocumentHandler.MarkSourcePurchaseRequestConverted(sourceDocument, userId);
         await dbContext.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }
@@ -687,7 +760,6 @@ internal static class ProcurementWorkflow
             ("Submitted", "approve") => PurchaseRequestStatus.Approved.ToString(),
             ("Submitted", "reject") => PurchaseRequestStatus.Rejected.ToString(),
             (_, "cancel") => PurchaseRequestStatus.Cancelled.ToString(),
-            ("Approved", "convert") => PurchaseRequestStatus.Converted.ToString(),
             _ => throw new Exception($"Invalid purchase request workflow action '{action}' from status '{status}'.")
         };
 
