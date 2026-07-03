@@ -33,10 +33,12 @@ public class CheckoutCartHandler(CartDbContext dbContext, ISender sender, IHttpC
             PermissionList.StoreFrontPosPermissions.Checkout,
             cancellationToken);
         if (!cart.Lines.Any())
-            throw new Exception("Cart is empty.");
+            throw new BadRequestException("Cart is empty.");
 
         if (!cart.CustomerId.HasValue)
-            throw new Exception("Customer is required for checkout pricing and payment.");
+            throw new BadRequestException("Customer is required for checkout pricing and payment.");
+
+        var userId = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "checkout";
 
         var scope = await CartAuthorization.ResolveStoreFrontScopeAsync(sender, cart.Channel, cancellationToken);
         Guid? posSessionId = null;
@@ -53,10 +55,25 @@ public class CheckoutCartHandler(CartDbContext dbContext, ISender sender, IHttpC
                 (int)request.PaymentMethod), cancellationToken);
             posSessionId = session.SessionId;
             cashAccountId = session.CashAccountId;
-            cart.ApplyStoreFrontScope(scope.StoreFrontId, scope.BranchId, posSessionId, "checkout");
+            cart.ApplyStoreFrontScope(scope.StoreFrontId, scope.BranchId, posSessionId, userId);
         }
 
-        var userId = "checkout";
+        if (scope is null && cart.Source == OrderIntakeSource.Pos)
+        {
+            var mainBranch = await sender.Send(new EnsureMainBranchCommand(cart.CompanyId, userId), cancellationToken);
+            var branches = await sender.Send(new GetCompanyBranchesForAccountingQuery(cart.CompanyId), cancellationToken);
+            var branch = branches.Branches.FirstOrDefault(x => x.BranchId == mainBranch.BranchId)
+                ?? throw new BadRequestException("Company main branch is required before POS checkout.");
+
+            await sender.Send(new EnsureBranchAccountingCommand(
+                cart.CompanyId,
+                branch.BranchId,
+                branch.Code,
+                branch.Name,
+                branch.NameEng), cancellationToken);
+            cart.ApplyBranchScope(branch.BranchId, userId);
+        }
+
         var cartSubtotal = cart.Lines.Where(x => !x.IsDeleted).Sum(x => x.Quantity * x.UnitPrice);
         foreach (var line in cart.Lines.Where(x => !x.IsDeleted))
         {
@@ -83,6 +100,14 @@ public class CheckoutCartHandler(CartDbContext dbContext, ISender sender, IHttpC
         }
 
         var repricedCart = cart.ToDto();
+        if (cart.Source == OrderIntakeSource.Pos)
+        {
+            await sender.Send(new EnsureAccountingPostingReadinessQuery(
+                cart.CompanyId,
+                cart.BranchId,
+                AccountingDocumentType.SalesInvoice), cancellationToken);
+        }
+
         var paymentResult = await sender.Send(new ConfirmCheckoutPaymentCommand(new CheckoutPaymentRequestDto
         {
             CompanyId = cart.CompanyId,

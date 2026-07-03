@@ -15,6 +15,7 @@ public interface ISalesService
     Task<ApiResult<Guid>> CreateQuotationAsync(SalesQuotationDto quotation);
     Task<ApiResult<bool>> UpdateQuotationAsync(SalesQuotationDto quotation);
     Task<ApiResult<bool>> QuotationActionAsync(Guid id, string action, string? reason = null);
+    Task<ApiResult<bool>> SendQuotationAsync(Guid id);
     Task<ApiResult<Guid?>> ConvertQuotationAsync(Guid id);
     Task<ApiResult<PaginatedResult<SalesDeliveryNoteDto>>> GetDeliveryNotesByCompanyAsync(Guid companyId, int pageIndex, int pageSize);
     Task<ApiResult<SalesDeliveryNoteDto>> GetDeliveryNoteByIdAsync(Guid id);

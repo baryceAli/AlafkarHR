@@ -83,12 +83,15 @@ public class SalesService : BaseApiService, ISalesService
         return await SendAsync<bool>(request, "isSuccess");
     }
 
+    public async Task<ApiResult<bool>> SendQuotationAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/quotations/{id}/send");
+        return await SendAsync<bool>(request, "isSuccess");
+    }
+
     public async Task<ApiResult<Guid?>> ConvertQuotationAsync(Guid id)
     {
-        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/quotations/{id}/action")
-        {
-            Content = JsonContent.Create(new { Action = "convert", Reason = (string?)null })
-        };
+        var request = new HttpRequestMessage(HttpMethod.Put, $"{_path}/quotations/{id}/convert");
         return await SendAsync<Guid?>(request, "salesOrderId");
     }
 

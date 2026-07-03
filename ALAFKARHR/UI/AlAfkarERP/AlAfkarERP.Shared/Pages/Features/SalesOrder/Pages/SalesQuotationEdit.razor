@@ -1,0 +1,367 @@
+@layout AdminLayout
+@page "/Sales/Quotations/Create"
+@page "/Sales/Quotations/{Id:guid}"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Customers.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Customers.Dtos
+@using SharedWithUI.Permissions
+@using SharedWithUI.SalesOrder.Dtos
+@using SharedWithUI.SalesOrder.Enums
+
+@inject ISalesService SalesService
+@inject ICustomerService CustomerService
+@inject IProductService ProductService
+@inject ICurrencyService CurrencyService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+<section class="sales-page" dir="@SharedDataService.PageDirection">
+    @if (!CanUsePage)
+    {
+        <div class="alert alert-warning">@Text("You don't have permission to save quotations.", "You don't have permission to save quotations.")</div>
+        return;
+    }
+
+    <PageHeader Title="@Text(IsEdit ? "Edit Quotation" : "New Quotation", IsEdit ? "Edit Quotation" : "New Quotation")"
+                Subtitle="@Text("Create and maintain customer quotations before converting them to sales orders.", "Create and maintain customer quotations before converting them to sales orders.")"
+                Overline="@Text("Sales", "Sales")"
+                Icon="bi-file-earmark-plus">
+        <Actions>
+            <a class="btn btn-outline-secondary" href="/Sales/Quotations">
+                <i class="bi bi-arrow-left"></i> @Text("Back", "Back")
+            </a>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <div class="erp-loading py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2">@Text("Loading quotation form...", "Loading quotation form...")</div>
+        </div>
+    }
+    else
+    {
+        <EditForm Model="quotation" OnValidSubmit="SaveAsync">
+            <DataAnnotationsValidator />
+            <div class="row g-3">
+                <div class="col-xl-8">
+                    <AppCard Title="@Text("Quotation Details", "Quotation Details")" CssClass="mb-3">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Quotation number", "Quotation number")</label>
+                                <input class="form-control" @bind="quotation.Number" disabled="@IsEdit" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Quotation date", "Quotation date")</label>
+                                <InputDate class="form-control" @bind-Value="quotation.QuotationDate" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Valid until", "Valid until")</label>
+                                <InputDate class="form-control" @bind-Value="quotation.ValidUntil" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Customer", "Customer")</label>
+                                <select class="form-select" @onchange="OnCustomerChanged">
+                                    <option value="">@Text("Select customer", "Select customer")</option>
+                                    @foreach (var customer in customers)
+                                    {
+                                        <option value="@customer.Id" selected="@(customer.Id == quotation.CustomerId)">@customer.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Coupon code", "Coupon code")</label>
+                                <input class="form-control" @bind="quotation.CouponCode" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Notes", "Notes")</label>
+                                <textarea class="form-control" rows="3" @bind="quotation.Notes"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Terms", "Terms")</label>
+                                <textarea class="form-control" rows="3" @bind="quotation.Terms"></textarea>
+                            </div>
+                        </div>
+                    </AppCard>
+
+                    <AppCard Title="@Text("Quotation Lines", "Quotation Lines")">
+                        <div class="d-flex justify-content-end mb-2">
+                            <button class="btn btn-outline-primary btn-sm" type="button" @onclick="AddLine">
+                                <i class="bi bi-plus-lg"></i> @Text("Add line", "Add line")
+                            </button>
+                        </div>
+                        <div class="erp-table-wrap">
+                            <table class="table erp-table align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>@Text("SKU", "SKU")</th>
+                                        <th>@Text("Qty", "Qty")</th>
+                                        <th>@Text("Unit price", "Unit price")</th>
+                                        <th>@Text("Discount", "Discount")</th>
+                                        <th>@Text("Tax", "Tax")</th>
+                                        <th>@Text("Total", "Total")</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var line in quotation.Lines)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <select class="form-select form-select-sm" @onchange="e => SelectSku(line, e.Value?.ToString())">
+                                                    <option value="">@Text("Select SKU", "Select SKU")</option>
+                                                    @foreach (var sku in skus)
+                                                    {
+                                                        <option value="@sku.Id" selected="@(sku.Id == line.ProductSkuId)">@Text(sku.NameEng, sku.Name) - @sku.SkuCode</option>
+                                                    }
+                                                </select>
+                                                @if (!string.IsNullOrWhiteSpace(line.ProductName))
+                                                {
+                                                    <div class="text-muted small mt-1">@Text(line.ProductNameEng, line.ProductName)</div>
+                                                }
+                                            </td>
+                                            <td><input class="form-control form-control-sm" type="number" min="0.01" step="0.01" @bind="line.Quantity" @bind:after="Recalculate" /></td>
+                                            <td>@Money(line.UnitPrice)</td>
+                                            <td>@($"{line.DiscountRate:N2}%")</td>
+                                            <td>@($"{line.TaxRate:N2}%")</td>
+                                            <td class="fw-semibold">@Money(line.TotalAmount)</td>
+                                            <td class="text-end">
+                                                <button class="btn btn-sm btn-outline-danger" type="button" @onclick="() => RemoveLine(line)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </AppCard>
+                </div>
+                <div class="col-xl-4">
+                    <AppCard Title="@Text("Totals", "Totals")">
+                        <div class="summary-row"><span>@Text("Subtotal", "Subtotal")</span><strong>@Money(quotation.Subtotal)</strong></div>
+                        <div class="summary-row"><span>@Text("Tax", "Tax")</span><strong>@Money(quotation.TaxAmount)</strong></div>
+                        <div class="summary-row summary-total"><span>@Text("Total", "Total")</span><strong>@Money(quotation.TotalAmount)</strong></div>
+                        <button class="btn btn-primary w-100 mt-3" type="submit" disabled="@isSaving">
+                            <i class="bi bi-save"></i> @Text("Save Quotation", "Save Quotation")
+                        </button>
+                    </AppCard>
+                </div>
+            </div>
+        </EditForm>
+    }
+</section>
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+
+    private bool IsEdit => Id.HasValue && Id.Value != Guid.Empty;
+    private bool CanCreate;
+    private bool CanEdit;
+    private bool CanUsePage => IsEdit ? CanEdit : CanCreate;
+    private bool isLoading;
+    private bool isSaving;
+    private Guid companyId;
+    private string currencyCode = string.Empty;
+    private SalesQuotationDto quotation = new();
+    private List<CustomerDto> customers = [];
+    private List<ProductDto> products = [];
+    private List<ProductSkuDto> skus = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var permissions = authState.User.Claims.Select(c => c.Value).ToHashSet();
+        CanCreate = permissions.Contains(PermissionList.SalesQuotationPermissions.Create);
+        CanEdit = permissions.Contains(PermissionList.SalesQuotationPermissions.Edit);
+        if (!authState.User.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+
+        if (CanUsePage)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var customerTask = CustomerService.GetByCompany(companyId, 0, 1000);
+        var productTask = ProductService.GetPricedByCompanyAsync(companyId, null, 0, 1000);
+        var currencyTask = CurrencyService.GetAsync(companyId, 0, 1000);
+        await Task.WhenAll(customerTask, productTask, currencyTask);
+
+        customers = customerTask.Result.IsSuccess ? customerTask.Result.Data?.Data.ToList() ?? [] : [];
+        products = productTask.Result.IsSuccess ? productTask.Result.Data?.Data.ToList() ?? [] : [];
+        skus = products.SelectMany(x => x.Skus).Where(x => x.IsActive && x.IsSellable).OrderBy(x => Text(x.NameEng, x.Name)).ToList();
+        var currencies = currencyTask.Result.IsSuccess ? currencyTask.Result.Data?.Data.ToList() ?? [] : [];
+        currencyCode = currencies.FirstOrDefault(c => c.IsDefault)?.Code ?? currencies.FirstOrDefault()?.Code ?? string.Empty;
+
+        if (IsEdit)
+        {
+            var result = await SalesService.GetQuotationByIdAsync(Id!.Value);
+            quotation = result.IsSuccess && result.Data is not null ? result.Data : NewQuotation();
+            await ReloadProductsForCustomerAsync();
+        }
+        else
+        {
+            quotation = NewQuotation();
+            AddLine();
+        }
+
+        isLoading = false;
+    }
+
+    private SalesQuotationDto NewQuotation() => new()
+    {
+        Number = $"QUO-{DateTime.UtcNow:yyyyMMddHHmmss}",
+        CompanyId = companyId,
+        QuotationDate = DateTime.Today,
+        ValidUntil = DateTime.Today.AddDays(14),
+        Lines = []
+    };
+
+    private async Task OnCustomerChanged(ChangeEventArgs args)
+    {
+        quotation.CustomerId = Guid.TryParse(args.Value?.ToString(), out var id) ? id : Guid.Empty;
+        await ReloadProductsForCustomerAsync();
+    }
+
+    private async Task ReloadProductsForCustomerAsync()
+    {
+        var customerId = quotation.CustomerId == Guid.Empty ? (Guid?)null : quotation.CustomerId;
+        var productResult = await ProductService.GetPricedByCompanyAsync(companyId, customerId, 0, 1000, quotation.PriceListId);
+        if (productResult.IsSuccess)
+        {
+            products = productResult.Data?.Data.ToList() ?? [];
+            skus = products.SelectMany(x => x.Skus).Where(x => x.IsActive && x.IsSellable).OrderBy(x => Text(x.NameEng, x.Name)).ToList();
+        }
+    }
+
+    private void AddLine()
+    {
+        quotation.Lines.Add(new SalesQuotationLineDto { Quantity = 1 });
+        Recalculate();
+    }
+
+    private void RemoveLine(SalesQuotationLineDto line)
+    {
+        quotation.Lines.Remove(line);
+        Recalculate();
+    }
+
+    private void SelectSku(SalesQuotationLineDto line, string? value)
+    {
+        if (!Guid.TryParse(value, out var skuId))
+            return;
+
+        var sku = skus.FirstOrDefault(x => x.Id == skuId);
+        if (sku is null)
+            return;
+
+        line.ProductId = sku.ProductId;
+        line.ProductSkuId = sku.Id;
+        line.ProductName = sku.Name;
+        line.ProductNameEng = sku.NameEng;
+        line.SkuCode = sku.SkuCode;
+        line.UnitOfMeasureId = sku.UnitId ?? Guid.Empty;
+        line.UnitPrice = sku.Price;
+        line.DiscountRate = sku.DiscountRate;
+        line.TaxRate = sku.TaxRate;
+        Recalculate();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (quotation.CustomerId == Guid.Empty)
+        {
+            ToastService.ShowWarning(Text("Select a customer.", "Select a customer."));
+            return;
+        }
+
+        quotation.CompanyId = companyId;
+        quotation.Lines = quotation.Lines.Where(x => x.ProductSkuId != Guid.Empty && x.Quantity > 0).ToList();
+        if (quotation.Lines.Count == 0)
+        {
+            ToastService.ShowWarning(Text("Add at least one SKU line.", "Add at least one SKU line."));
+            AddLine();
+            return;
+        }
+
+        Recalculate();
+        isSaving = true;
+        var isSuccess = false;
+        string? errorDetail = null;
+        if (IsEdit)
+        {
+            var updateResult = await SalesService.UpdateQuotationAsync(quotation);
+            isSuccess = updateResult.IsSuccess;
+            errorDetail = updateResult.Error?.Detail;
+        }
+        else
+        {
+            var createResult = await SalesService.CreateQuotationAsync(quotation);
+            isSuccess = createResult.IsSuccess;
+            errorDetail = createResult.Error?.Detail;
+        }
+
+        if (isSuccess)
+        {
+            ToastService.ShowSuccess(Text("Quotation saved.", "Quotation saved."));
+            NavigationManager.NavigateTo("/Sales/Quotations");
+        }
+        else
+        {
+            ToastService.ShowError(errorDetail ?? Text("Unable to save quotation.", "Unable to save quotation."));
+        }
+        isSaving = false;
+    }
+
+    private void Recalculate()
+    {
+        quotation.Subtotal = quotation.Lines.Sum(x => x.NetAmount);
+        quotation.TaxAmount = quotation.Lines.Sum(x => x.TaxAmount);
+        quotation.TotalAmount = quotation.Subtotal + quotation.TaxAmount;
+    }
+
+    private string Money(decimal value) => string.IsNullOrWhiteSpace(currencyCode) ? $"{value:N2}" : $"{value:N2} {currencyCode}";
+    private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
+
+<style>
+    .summary-row {
+        align-items: center;
+        border-block-end: 1px solid var(--erp-border);
+        display: flex;
+        justify-content: space-between;
+        padding-block: .5rem;
+    }
+
+    .summary-total {
+        border-block-end: 0;
+        font-size: 1.05rem;
+    }
+</style>

@@ -1,0 +1,317 @@
+@layout AdminLayout
+@page "/Sales/Returns/Create"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Permissions
+@using SharedWithUI.SalesOrder.Dtos
+@using SharedWithUI.SalesOrder.Enums
+
+@inject ISalesService SalesService
+@inject ICurrencyService CurrencyService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+<section class="sales-page" dir="@SharedDataService.PageDirection">
+    @if (!CanCreate)
+    {
+        <div class="alert alert-warning">@Text("You don't have permission to register sales returns.", "You don't have permission to register sales returns.")</div>
+        return;
+    }
+
+    <PageHeader Title="@Text("Register Sales Return", "Register Sales Return")"
+                Subtitle="@Text("Create a draft return from a posted delivery note.", "Create a draft return from a posted delivery note.")"
+                Overline="@Text("Sales", "Sales")"
+                Icon="bi-arrow-counterclockwise">
+        <Actions>
+            <a class="btn btn-outline-secondary" href="/Sales/Returns">
+                <i class="bi bi-arrow-left"></i> @Text("Back", "Back")
+            </a>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <div class="erp-loading py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2">@Text("Loading return form...", "Loading return form...")</div>
+        </div>
+    }
+    else
+    {
+        <EditForm Model="salesReturn" OnValidSubmit="SaveAsync">
+            <DataAnnotationsValidator />
+            <div class="row g-3">
+                <div class="col-xl-8">
+                    <AppCard Title="@Text("Source Delivery", "Source Delivery")" CssClass="mb-3">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Delivery note", "Delivery note")</label>
+                                <select class="form-select" @onchange="OnDeliveryNoteChanged">
+                                    <option value="">@Text("Select posted delivery note", "Select posted delivery note")</option>
+                                    @foreach (var note in deliveryNotes)
+                                    {
+                                        <option value="@note.Id" selected="@(note.Id == salesReturn.DeliveryNoteId)">
+                                            @note.Number - @(note.SalesOrderNumber ?? note.SalesOrderId.ToString("N")[..8])
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">@Text("Return date", "Return date")</label>
+                                <InputDate class="form-control" @bind-Value="salesReturn.ReturnDate" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">@Text("Credit note", "Credit note")</label>
+                                <div class="form-check mt-2">
+                                    <InputCheckbox class="form-check-input" @bind-Value="salesReturn.CreateCreditNote" />
+                                    <label class="form-check-label">@Text("Create", "Create")</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">@Text("Reason", "Reason")</label>
+                                <textarea class="form-control" rows="3" @bind="salesReturn.Reason"></textarea>
+                            </div>
+                        </div>
+                    </AppCard>
+
+                    <AppCard Title="@Text("Return Lines", "Return Lines")">
+                        @if (!salesReturn.Lines.Any())
+                        {
+                            <EmptyState Title="@Text("No return lines", "No return lines")"
+                                        Message="@Text("Select a posted delivery note to load returnable lines.", "Select a posted delivery note to load returnable lines.")"
+                                        Icon="bi-arrow-counterclockwise" />
+                        }
+                        else
+                        {
+                            <div class="erp-table-wrap">
+                                <table class="table erp-table align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>@Text("Item", "Item")</th>
+                                            <th>@Text("SKU", "SKU")</th>
+                                            <th>@Text("Qty", "Qty")</th>
+                                            <th>@Text("Unit price", "Unit price")</th>
+                                            <th>@Text("Total", "Total")</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var line in salesReturn.Lines)
+                                        {
+                                            <tr>
+                                                <td>@Text(line.ProductNameEng, line.ProductName)</td>
+                                                <td>@line.SkuCode</td>
+                                                <td><input class="form-control form-control-sm" type="number" min="0.01" step="0.01" @bind="line.Quantity" @bind:after="Recalculate" /></td>
+                                                <td>@Money(line.UnitPrice)</td>
+                                                <td class="fw-semibold">@Money(line.TotalAmount)</td>
+                                                <td class="text-end">
+                                                    <button class="btn btn-sm btn-outline-danger" type="button" @onclick="() => RemoveLine(line)">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </AppCard>
+                </div>
+                <div class="col-xl-4">
+                    <AppCard Title="@Text("Totals", "Totals")">
+                        <div class="summary-row"><span>@Text("Subtotal", "Subtotal")</span><strong>@Money(salesReturn.Subtotal)</strong></div>
+                        <div class="summary-row"><span>@Text("Tax", "Tax")</span><strong>@Money(salesReturn.TaxAmount)</strong></div>
+                        <div class="summary-row summary-total"><span>@Text("Total", "Total")</span><strong>@Money(salesReturn.TotalAmount)</strong></div>
+                        <button class="btn btn-primary w-100 mt-3" type="submit" disabled="@isSaving">
+                            <i class="bi bi-save"></i> @Text("Save Draft Return", "Save Draft Return")
+                        </button>
+                    </AppCard>
+                </div>
+            </div>
+        </EditForm>
+    }
+</section>
+
+@code {
+    private bool CanCreate;
+    private bool isLoading;
+    private bool isSaving;
+    private Guid companyId;
+    private string currencyCode = string.Empty;
+    private SalesReturnDto salesReturn = new() { ReturnDate = DateTime.Today };
+    private List<SalesDeliveryNoteDto> deliveryNotes = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        CanCreate = authState.User.Claims.Any(c => c.Value == PermissionList.SalesReturnPermissions.Create);
+        if (!authState.User.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+
+        if (CanCreate)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var deliveryTask = SalesService.GetDeliveryNotesByCompanyAsync(companyId, 0, 200);
+        var currencyTask = CurrencyService.GetAsync(companyId, 0, 1000);
+        await Task.WhenAll(deliveryTask, currencyTask);
+        deliveryNotes = deliveryTask.Result.IsSuccess
+            ? deliveryTask.Result.Data?.Data
+                .Where(x => x.Status is SalesDeliveryNoteStatus.Delivered or SalesDeliveryNoteStatus.PartiallyDelivered)
+                .ToList() ?? []
+            : [];
+        var currencies = currencyTask.Result.IsSuccess ? currencyTask.Result.Data?.Data.ToList() ?? [] : [];
+        currencyCode = currencies.FirstOrDefault(c => c.IsDefault)?.Code ?? currencies.FirstOrDefault()?.Code ?? string.Empty;
+        isLoading = false;
+    }
+
+    private async Task OnDeliveryNoteChanged(ChangeEventArgs args)
+    {
+        if (!Guid.TryParse(args.Value?.ToString(), out var deliveryNoteId))
+        {
+            salesReturn = new SalesReturnDto { CompanyId = companyId, ReturnDate = DateTime.Today, Lines = [] };
+            return;
+        }
+
+        var noteResult = await SalesService.GetDeliveryNoteByIdAsync(deliveryNoteId);
+        if (!noteResult.IsSuccess || noteResult.Data is null)
+        {
+            ToastService.ShowError(noteResult.Error?.Detail ?? Text("Unable to load delivery note.", "Unable to load delivery note."));
+            return;
+        }
+
+        var note = noteResult.Data;
+        var orderResult = await SalesService.GetOrderByIdAsync(note.SalesOrderId);
+        if (!orderResult.IsSuccess || orderResult.Data is null)
+        {
+            ToastService.ShowError(orderResult.Error?.Detail ?? Text("Unable to load source sales order.", "Unable to load source sales order."));
+            return;
+        }
+
+        var order = orderResult.Data;
+        salesReturn = new SalesReturnDto
+        {
+            CompanyId = companyId,
+            CustomerId = note.CustomerId,
+            SalesOrderId = note.SalesOrderId,
+            DeliveryNoteId = note.Id,
+            WarehouseId = note.WarehouseId,
+            ReturnDate = DateTime.Today,
+            Lines = note.Lines.Select((deliveryLine, index) =>
+            {
+                var orderLine = order.Lines.FirstOrDefault(x => x.Id == deliveryLine.SalesOrderLineId);
+                return new SalesReturnLineDto
+                {
+                    LineNumber = index + 1,
+                    SalesOrderLineId = deliveryLine.SalesOrderLineId,
+                    DeliveryNoteLineId = deliveryLine.Id,
+                    ProductId = deliveryLine.ProductId,
+                    ProductSkuId = deliveryLine.ProductSkuId,
+                    ProductName = deliveryLine.ProductName,
+                    ProductNameEng = deliveryLine.ProductNameEng,
+                    SkuCode = deliveryLine.SkuCode,
+                    UnitOfMeasureId = deliveryLine.UnitOfMeasureId,
+                    BatchId = deliveryLine.BatchId,
+                    CurrencyId = deliveryLine.CurrencyId,
+                    Quantity = deliveryLine.Quantity,
+                    UnitPrice = orderLine?.UnitPrice ?? 0m,
+                    DiscountRate = orderLine?.DiscountRate ?? 0m,
+                    TaxRate = orderLine?.TaxRate ?? 0m,
+                    UnitCost = deliveryLine.UnitCost,
+                    TotalCost = deliveryLine.TotalCost,
+                    Notes = deliveryLine.Notes
+                };
+            }).ToList()
+        };
+        Recalculate();
+    }
+
+    private void RemoveLine(SalesReturnLineDto line)
+    {
+        salesReturn.Lines.Remove(line);
+        Recalculate();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!salesReturn.DeliveryNoteId.HasValue)
+        {
+            ToastService.ShowWarning(Text("Select a posted delivery note.", "Select a posted delivery note."));
+            return;
+        }
+
+        salesReturn.Lines = salesReturn.Lines.Where(x => x.Quantity > 0).ToList();
+        if (salesReturn.Lines.Count == 0)
+        {
+            ToastService.ShowWarning(Text("Keep at least one return line.", "Keep at least one return line."));
+            return;
+        }
+
+        salesReturn.CompanyId = companyId;
+        Recalculate();
+        isSaving = true;
+        var result = await SalesService.CreateReturnAsync(salesReturn);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Sales return draft created.", "Sales return draft created."));
+            NavigationManager.NavigateTo("/Sales/Returns");
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to create sales return.", "Unable to create sales return."));
+        }
+        isSaving = false;
+    }
+
+    private void Recalculate()
+    {
+        foreach (var line in salesReturn.Lines)
+            line.TotalCost = line.Quantity * line.UnitCost;
+
+        salesReturn.Subtotal = salesReturn.Lines.Sum(x => x.NetAmount);
+        salesReturn.TaxAmount = salesReturn.Lines.Sum(x => x.TaxAmount);
+        salesReturn.TotalAmount = salesReturn.Subtotal + salesReturn.TaxAmount;
+    }
+
+    private string Money(decimal value) => string.IsNullOrWhiteSpace(currencyCode) ? $"{value:N2}" : $"{value:N2} {currencyCode}";
+    private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
+
+<style>
+    .summary-row {
+        align-items: center;
+        border-block-end: 1px solid var(--erp-border);
+        display: flex;
+        justify-content: space-between;
+        padding-block: .5rem;
+    }
+
+    .summary-total {
+        border-block-end: 0;
+        font-size: 1.05rem;
+    }
+</style>

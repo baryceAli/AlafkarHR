@@ -16,13 +16,26 @@ public class ConfirmOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcce
             new GetCustomerSalesEligibilityQuery(order.CustomerId, order.CompanyId, order.TotalAmount),
             cancellationToken);
 
-        if (!eligibility.Exists || !eligibility.IsActive || !eligibility.IsCreditAllowed)
-            throw new Exception(eligibility.BlockReason ?? "Customer is not eligible for sales confirmation.");
+        if (!eligibility.Exists)
+            throw new BadRequestException("Customer was not found for this sales order.");
+
+        if (!eligibility.IsActive)
+            throw new BadRequestException(eligibility.BlockReason ?? "Customer is not active.");
+
+        if (!eligibility.IsCreditAllowed)
+            throw new BadRequestException(eligibility.BlockReason ?? "Customer credit is not sufficient or is on hold.");
 
         var user = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
                    ?? throw new UnauthorizedAccessException("User is not authenticated");
 
-        order.Confirm();
+        try
+        {
+            order.Confirm();
+        }
+        catch (Exception ex)
+        {
+            throw new BadRequestException(ex.Message);
+        }
         order.ConfirmedBy = user;
         await dbContext.SaveChangesAsync(cancellationToken);
         return new ConfirmOrderResult(true);

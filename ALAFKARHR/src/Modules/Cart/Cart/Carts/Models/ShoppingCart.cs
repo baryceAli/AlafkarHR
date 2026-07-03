@@ -68,6 +68,13 @@ public class ShoppingCart : Aggregate<Guid>
         ModifiedBy = userId;
     }
 
+    public void ApplyBranchScope(Guid branchId, string userId)
+    {
+        BranchId = branchId;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+
     public void UpdateLineQuantity(Guid lineId, decimal quantity, string userId)
     {
         var line = Lines.FirstOrDefault(x => !x.IsDeleted && x.Id == lineId)
