@@ -107,6 +107,12 @@ public class CreateInventoryAggregateDto
     public string? Notes { get; set; }
     public string? ReferenceNumber { get; set; }
     public string? SourceDocumentType { get; set; }
+    public Guid? SourceDocumentId { get; set; }
+    public Guid? SourceDocumentLineId { get; set; }
+    public Guid? ParentProductSkuId { get; set; }
+    public Guid? ParentSalesOrderLineId { get; set; }
+    public Guid? SourceLocationId { get; set; }
+    public Guid? DestinationLocationId { get; set; }
     public bool ConsumeReservedQuantity { get; set; }
 }
 

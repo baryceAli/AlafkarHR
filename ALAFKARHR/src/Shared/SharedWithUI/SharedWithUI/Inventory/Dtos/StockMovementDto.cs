@@ -10,10 +10,20 @@ public record StockMovementDto
     public Guid ProductSkuId { get; set; }
     public Guid WarehouseId { get; set; }
     public Guid BatchId { get; set; }
+    public Guid? SourceLocationId { get; set; }
+    public string? SourceLocationName { get; set; }
+    public string? SourceLocationNameEng { get; set; }
+    public Guid? DestinationLocationId { get; set; }
+    public string? DestinationLocationName { get; set; }
+    public string? DestinationLocationNameEng { get; set; }
     public MovementType MovementType { get; set; }
 
     public string ReferenceNumber { get; set; }
     public string SourceDocumentType { get; set; }
+    public Guid? SourceDocumentId { get; set; }
+    public Guid? SourceDocumentLineId { get; set; }
+    public Guid? ParentProductSkuId { get; set; }
+    public Guid? ParentSalesOrderLineId { get; set; }
 
     public decimal QuantityBefore { get; set; }
 
@@ -46,8 +56,13 @@ public class StockMovementFilterDto
     public Guid? WarehouseId { get; set; }
     public Guid? ProductSkuId { get; set; }
     public Guid? BatchId { get; set; }
+    public Guid? SourceLocationId { get; set; }
+    public Guid? DestinationLocationId { get; set; }
     public string? SourceDocumentType { get; set; }
+    public Guid? SourceDocumentId { get; set; }
     public string? ReferenceNumber { get; set; }
+    public Guid? ParentProductSkuId { get; set; }
+    public bool? ExpiredOnly { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
 }

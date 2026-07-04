@@ -145,6 +145,7 @@ public class ProcurementDocumentLine : Entity<Guid>
     public Guid? UnitOfMeasureId { get; private set; }
     public Guid? WarehouseId { get; private set; }
     public Guid? BatchId { get; private set; }
+    public Guid? ReorderingRuleId { get; private set; }
     public decimal Quantity { get; private set; }
     public decimal UnitCost { get; private set; }
     public decimal DiscountRate { get; private set; }
@@ -169,6 +170,7 @@ public class ProcurementDocumentLine : Entity<Guid>
             UnitOfMeasureId = dto.UnitOfMeasureId,
             WarehouseId = dto.WarehouseId,
             BatchId = dto.BatchId,
+            ReorderingRuleId = dto.ReorderingRuleId,
             Quantity = dto.Quantity,
             UnitCost = dto.UnitCost,
             DiscountRate = dto.DiscountRate,
@@ -203,6 +205,7 @@ public class ProcurementDocumentLine : Entity<Guid>
             UnitOfMeasureId = UnitOfMeasureId,
             WarehouseId = WarehouseId,
             BatchId = BatchId,
+            ReorderingRuleId = ReorderingRuleId,
             Quantity = Quantity,
             UnitCost = UnitCost,
             DiscountRate = DiscountRate,

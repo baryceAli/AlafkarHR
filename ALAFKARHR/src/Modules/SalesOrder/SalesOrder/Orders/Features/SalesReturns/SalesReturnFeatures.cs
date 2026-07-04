@@ -127,9 +127,13 @@ public class PostSalesReturnHandler(SalesOrderDbContext dbContext, IHttpContextA
                     salesReturn.CompanyId,
                     salesReturn.WarehouseId,
                     orderLine,
-                    line.BatchId,
+                    salesReturn.DeliveryNoteId,
+                    line.DeliveryNoteLineId,
+                    salesReturn.Id,
+                    line.Id,
                     line.CurrencyId,
                     line.Quantity,
+                    await GetDeliveredParentQuantityAsync(dbContext, salesReturn.DeliveryNoteId, line.DeliveryNoteLineId, cancellationToken),
                     salesReturn.Number,
                     cancellationToken);
 
@@ -149,7 +153,10 @@ public class PostSalesReturnHandler(SalesOrderDbContext dbContext, IHttpContextA
                 salesReturn.CompanyId,
                 line.Notes,
                 salesReturn.Number,
-                "SalesReturn"), cancellationToken);
+                "SalesReturn",
+                line.UnitOfMeasureId,
+                salesReturn.Id,
+                line.Id), cancellationToken);
         }
 
         order.Return(returnedLines);
@@ -187,6 +194,23 @@ public class PostSalesReturnHandler(SalesOrderDbContext dbContext, IHttpContextA
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return new PostSalesReturnResult(true);
+    }
+
+    private static async Task<decimal> GetDeliveredParentQuantityAsync(
+        SalesOrderDbContext dbContext,
+        Guid? deliveryNoteId,
+        Guid? deliveryNoteLineId,
+        CancellationToken cancellationToken)
+    {
+        if (!deliveryNoteId.HasValue || !deliveryNoteLineId.HasValue)
+            return 0m;
+
+        return await dbContext.SalesDeliveryNotes.AsNoTracking()
+            .Where(x => x.Id == deliveryNoteId.Value)
+            .SelectMany(x => x.Lines)
+            .Where(x => x.Id == deliveryNoteLineId.Value)
+            .Select(x => x.Quantity)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }
 

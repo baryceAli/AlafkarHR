@@ -36,6 +36,19 @@ public class ProcurementEnhancementEndpoints : ICarterModule
             Results.Ok(new { items = (await sender.Send(new GetReorderingRulesQuery(companyId))).Items }))
             .RequireAuthorization(PermissionList.PurchaseRequestPermissions.View);
 
+        app.MapGet("/api/v1/procurement/replenishment/company/{companyId:guid}", async (
+                Guid companyId,
+                Guid? branchId,
+                Guid? warehouseId,
+                Guid? productSkuId,
+                ISender sender) =>
+            Results.Ok(new { items = (await sender.Send(new GetReplenishmentSuggestionsQuery(companyId, branchId, warehouseId, productSkuId))).Items }))
+            .RequireAuthorization(PermissionList.PurchaseRequestPermissions.View);
+
+        app.MapPost("/api/v1/procurement/replenishment/purchase-requests", async (CreatePurchaseRequestFromReplenishmentDto request, ISender sender) =>
+            Results.Ok(await sender.Send(new CreatePurchaseRequestFromReplenishmentCommand(request))))
+            .RequireAuthorization(PermissionList.PurchaseRequestPermissions.Create);
+
         app.MapPost("/api/v1/procurement/reordering-rules", async (ReorderingRuleDto item, ISender sender) =>
             Results.Ok(await sender.Send(new UpsertReorderingRuleCommand(item))))
             .RequireAuthorization(PermissionList.PurchaseRequestPermissions.Create);

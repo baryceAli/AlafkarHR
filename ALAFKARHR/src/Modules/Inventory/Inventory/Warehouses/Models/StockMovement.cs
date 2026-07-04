@@ -8,10 +8,17 @@ public class StockMovement : Entity<Guid>
     public Guid ProductSkuId { get; private set; }
     public Guid WarehouseId { get; private set; }
     public Guid BatchId { get; private set; }
+    public Guid? SourceLocationId { get; private set; }
+    public Guid? DestinationLocationId { get; private set; }
+    public Batch Batch { get; private set; } = null!;
     public MovementType MovementType { get; private set; }
 
     public string ReferenceNumber { get; private set; }
     public string SourceDocumentType { get; private set; }
+    public Guid? SourceDocumentId { get; private set; }
+    public Guid? SourceDocumentLineId { get; private set; }
+    public Guid? ParentProductSkuId { get; private set; }
+    public Guid? ParentSalesOrderLineId { get; private set; }
 
     public decimal QuantityBefore { get; private set; }
 
@@ -67,7 +74,13 @@ public class StockMovement : Entity<Guid>
         decimal? enteredQuantity = null,
         decimal? packageMultiplier = null,
         decimal? unitMultiplier = null,
-        decimal? normalizedQuantity = null)
+        decimal? normalizedQuantity = null,
+        Guid? sourceDocumentId = null,
+        Guid? sourceDocumentLineId = null,
+        Guid? parentProductSkuId = null,
+        Guid? parentSalesOrderLineId = null,
+        Guid? sourceLocationId = null,
+        Guid? destinationLocationId = null)
     {
         ArgumentNullException.ThrowIfNull(productSkuId);
         ArgumentNullException.ThrowIfNull(warehouseId);
@@ -83,6 +96,8 @@ public class StockMovement : Entity<Guid>
             ProductSkuId = productSkuId,
             WarehouseId = warehouseId,
             BatchId = batchId,
+            SourceLocationId = sourceLocationId,
+            DestinationLocationId = destinationLocationId,
             MovementType = movementType,
 
             QuantityBefore = quantityBefore,
@@ -104,6 +119,10 @@ public class StockMovement : Entity<Guid>
 
             ReferenceNumber = referenceNumber,
             SourceDocumentType = sourceDocumentType,
+            SourceDocumentId = sourceDocumentId,
+            SourceDocumentLineId = sourceDocumentLineId,
+            ParentProductSkuId = parentProductSkuId,
+            ParentSalesOrderLineId = parentSalesOrderLineId,
             //MovementDate = movementDate,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy,

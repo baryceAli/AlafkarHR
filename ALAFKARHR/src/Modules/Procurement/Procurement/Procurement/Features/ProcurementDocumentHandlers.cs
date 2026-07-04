@@ -430,19 +430,25 @@ public class ChangeProcurementDocumentStatusHandler(ProcurementDbContext dbConte
                 await sender.Send(new EnsureWarehouseBranchScopeQuery(document.CompanyId, warehouseId, document.BranchId.Value), cancellationToken);
             var batchId = line.BatchId ?? throw new Exception("Batch is required for goods receipt lines.");
             var currencyId = document.CurrencyId ?? throw new Exception("Currency is required for goods receipt.");
+            await EnsureInventoryPostableAsync(document.CompanyId, line.ProductSkuId, cancellationToken);
             var inventoryQuantity = await ResolveInventoryPackageEnteredQuantityAsync(line, cancellationToken);
             await sender.Send(new PostInventoryStockInCommand(
-                line.ProductId,
-                line.ProductSkuId,
-                line.ProductPackageId,
-                warehouseId,
-                batchId,
-                inventoryQuantity,
-                line.UnitCost,
-                line.TotalAmount,
-                currencyId,
-                document.CompanyId,
-                $"Goods receipt {document.Number}"), cancellationToken);
+                ProductId: line.ProductId,
+                ProductSkuId: line.ProductSkuId,
+                ProductPackageId: line.ProductPackageId,
+                WarehouseId: warehouseId,
+                BatchId: batchId,
+                Quantity: inventoryQuantity,
+                UnitCost: line.UnitCost,
+                TotalCost: line.TotalAmount,
+                CurrencyId: currencyId,
+                CompanyId: document.CompanyId,
+                Notes: $"Goods receipt {document.Number}",
+                ReferenceNumber: document.Number,
+                SourceDocumentType: "PurchaseReceipt",
+                UnitId: line.UnitOfMeasureId,
+                SourceDocumentId: document.Id,
+                SourceDocumentLineId: line.Id), cancellationToken);
         }
     }
 
@@ -455,22 +461,45 @@ public class ChangeProcurementDocumentStatusHandler(ProcurementDbContext dbConte
                 await sender.Send(new EnsureWarehouseBranchScopeQuery(document.CompanyId, warehouseId, document.BranchId.Value), cancellationToken);
             var batchId = line.BatchId ?? throw new Exception("Batch is required for purchase return lines.");
             var currencyId = document.CurrencyId ?? throw new Exception("Currency is required for purchase return.");
+            await EnsureInventoryPostableAsync(document.CompanyId, line.ProductSkuId, cancellationToken);
             var inventoryQuantity = await ResolveInventoryPackageEnteredQuantityAsync(line, cancellationToken);
             await sender.Send(new PostInventoryStockOutCommand(
-                line.ProductId,
-                line.ProductSkuId,
-                line.ProductPackageId,
-                warehouseId,
-                batchId,
-                inventoryQuantity,
-                line.UnitCost,
-                line.TotalAmount,
-                currencyId,
-                document.CompanyId,
-                $"Purchase return {document.Number}"), cancellationToken);
+                ProductId: line.ProductId,
+                ProductSkuId: line.ProductSkuId,
+                ProductPackageId: line.ProductPackageId,
+                WarehouseId: warehouseId,
+                BatchId: batchId,
+                Quantity: inventoryQuantity,
+                UnitCost: line.UnitCost,
+                TotalCost: line.TotalAmount,
+                CurrencyId: currencyId,
+                CompanyId: document.CompanyId,
+                Notes: $"Purchase return {document.Number}",
+                ReferenceNumber: document.Number,
+                SourceDocumentType: "SupplierReturn",
+                UnitId: line.UnitOfMeasureId,
+                SourceDocumentId: document.Id,
+                SourceDocumentLineId: line.Id), cancellationToken);
         }
 
         await PostPurchaseReturnAccountingAsync(document, cancellationToken);
+    }
+
+    private async Task EnsureInventoryPostableAsync(Guid companyId, Guid productSkuId, CancellationToken cancellationToken)
+    {
+        var context = await sender.Send(new GetProductSkuInventoryContextQuery(companyId, productSkuId), cancellationToken);
+        if (!context.ProductIsActive || !context.SkuIsActive || !context.CategoryIsActive || !context.BrandIsActive || !context.UnitIsActive)
+            throw new BadRequestException("Catalog product, SKU, category, brand, or unit is inactive and cannot be posted to Inventory.");
+
+        if (context.ProductType == SharedWithUI.Catalog.Enums.CatalogProductType.Service)
+            throw new BadRequestException("Service products cannot be posted to Inventory.");
+
+        if (context.ProductType == SharedWithUI.Catalog.Enums.CatalogProductType.Combo
+            || context.ProductionType == SharedWithUI.Catalog.Enums.SkuProductionType.CompositeBundle)
+            throw new BadRequestException("Combo parent SKUs cannot be directly received or returned. Post their component SKUs instead.");
+
+        if (!context.IsInventoryTracked)
+            throw new BadRequestException("Only inventory-tracked SKUs can be posted to Inventory.");
     }
 
     private async Task PostSupplierInvoiceAccountingAsync(ProcurementDocument document, CancellationToken cancellationToken)

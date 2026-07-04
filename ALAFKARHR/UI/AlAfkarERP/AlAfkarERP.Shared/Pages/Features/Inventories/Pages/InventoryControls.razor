@@ -195,6 +195,153 @@
                     </EditForm>
                 </AppCard>
             </div>
+            <div class="col-12">
+                <AppCard Title="@SharedDataService.SelectViewLang("Recent Cycle Counts", "Recent Cycle Counts")">
+                    <div class="erp-table-wrap">
+                        <table class="erp-table table">
+                            <thead>
+                                <tr>
+                                    <th>@SharedDataService.SelectViewLang("Number", "Number")</th>
+                                    <th>@SharedDataService.SelectViewLang("Warehouse", "Warehouse")</th>
+                                    <th>@SharedDataService.SelectViewLang("Location", "Location")</th>
+                                    <th>@SharedDataService.SelectViewLang("Lines", "Lines")</th>
+                                    <th>@SharedDataService.SelectViewLang("Status", "Status")</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var count in cycleCounts.Take(25))
+                                {
+                                    <tr>
+                                        <td>@count.CountNumber</td>
+                                        <td>@WarehouseName(count.WarehouseId)</td>
+                                        <td>@LocationName(count.WarehouseLocationId)</td>
+                                        <td>@count.Lines.Count</td>
+                                        <td>
+                                            <span class="badge @(count.IsPosted ? "bg-success" : "bg-warning text-dark")">
+                                                @(count.IsPosted ? SharedDataService.SelectViewLang("Posted", "Posted") : SharedDataService.SelectViewLang("Draft", "Draft"))
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            @if (!count.IsPosted)
+                                            {
+                                                <button class="btn btn-sm btn-primary" type="button" @onclick="() => PostCycleCountAsync(count.Id)">
+                                                    <i class="bi bi-check2-circle"></i>
+                                                    @SharedDataService.SelectViewLang("Post", "Post")
+                                                </button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-xl-4">
+                <AppCard Title="@SharedDataService.SelectViewLang("Cycle Count", "Cycle Count")" CssClass="h-100 allow-overflow">
+                    <EditForm Model="cycleCount" OnValidSubmit="SaveCycleCountAsync">
+                        <DataAnnotationsValidator />
+                        <div class="vstack gap-2">
+                            <AutoCompleteComponent TItem="WarehouseDto"
+                                                   Items="warehouses"
+                                                   Value="selectedCycleWarehouse"
+                                                   ItemText="WarehouseText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse", "Select warehouse")"
+                                                   ValueChanged="OnCycleWarehouseChanged" />
+                            <AutoCompleteComponent TItem="WarehouseLocationDto"
+                                                   Items="cycleLocations"
+                                                   Value="selectedCycleLocation"
+                                                   ItemText="LocationText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select location", "Select location")"
+                                                   ValueChanged="OnCycleLocationChanged" />
+                            <AutoCompleteComponent TItem="ProductDto"
+                                                   Items="products"
+                                                   Value="selectedCycleProduct"
+                                                   ItemText="ProductText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select product", "Select product")"
+                                                   ValueChanged="OnCycleProductChanged" />
+                            <AutoCompleteComponent TItem="ProductSkuDto"
+                                                   Items="cycleSkus"
+                                                   Value="selectedCycleSku"
+                                                   ItemText="SkuText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select SKU", "Select SKU")"
+                                                   ValueChanged="OnCycleSkuChanged" />
+                            <AutoCompleteComponent TItem="BatchDto"
+                                                   Items="cycleBatches"
+                                                   Value="selectedCycleBatch"
+                                                   ItemText="BatchText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select batch", "Select batch")"
+                                                   ValueChanged="OnCycleBatchChanged" />
+                            <InputNumber class="form-control" @bind-Value="cycleCountQuantity" placeholder="@SharedDataService.SelectViewLang("Counted quantity", "Counted quantity")" />
+                            <InputText class="form-control" placeholder="@SharedDataService.SelectViewLang("Reason", "Reason")" @bind-Value="cycleCount.Reason" />
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-outline-secondary" type="button" @onclick="AddCycleCountLine">
+                                    <i class="bi bi-plus"></i>
+                                    @SharedDataService.SelectViewLang("Add line", "Add line")
+                                </button>
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="bi bi-save"></i>
+                                    @SharedDataService.SelectViewLang("Save count", "Save count")
+                                </button>
+                            </div>
+                            @if (cycleCount.Lines.Any())
+                            {
+                                <div class="erp-table-wrap">
+                                    <table class="erp-table table">
+                                        <tbody>
+                                            @foreach (var line in cycleCount.Lines)
+                                            {
+                                                <tr>
+                                                    <td>@SkuName(line.ProductSkuId)</td>
+                                                    <td>@line.CountedQuantity</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+            <div class="col-xl-8">
+                <AppCard Title="@SharedDataService.SelectViewLang("Location Stock", "Location Stock")">
+                    <div class="erp-table-wrap">
+                        <table class="erp-table table">
+                            <thead>
+                                <tr>
+                                    <th>@SharedDataService.SelectViewLang("Location", "Location")</th>
+                                    <th>SKU</th>
+                                    <th>@SharedDataService.SelectViewLang("Batch", "Batch")</th>
+                                    <th>@SharedDataService.SelectViewLang("Qty", "Qty")</th>
+                                    <th>@SharedDataService.SelectViewLang("Reserved", "Reserved")</th>
+                                    <th>@SharedDataService.SelectViewLang("Available", "Available")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in locationBalances.Take(50))
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">@row.WarehouseLocationCode</div>
+                                            <div class="text-muted small">@SharedDataService.SelectViewLang(row.WarehouseLocationNameEng ?? string.Empty, row.WarehouseLocationName ?? string.Empty)</div>
+                                        </td>
+                                        <td>@SkuName(row.ProductSkuId)</td>
+                                        <td>@row.BatchNumber</td>
+                                        <td>@row.Quantity</td>
+                                        <td>@row.ReservedQuantity</td>
+                                        <td>@row.AvailableQuantity</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
         </div>
 
         <div class="row g-3 mt-1">
@@ -273,6 +420,8 @@
     private PutawayRuleDto putawayRule = new();
     private QualityInspectionDto inspection = new();
     private LandedCostVoucherDto landedCost = new();
+    private CycleCountDto cycleCount = new();
+    private decimal cycleCountQuantity = 1;
     private List<WarehouseDto> warehouses = [];
     private List<ProductDto> products = [];
     private List<ProductSkuDto> putawaySkus = [];
@@ -281,9 +430,12 @@
     private List<BatchDto> inspectionBatches = [];
     private List<WarehouseLocationDto> warehouseLocations = [];
     private List<WarehouseLocationDto> putawayLocations = [];
+    private List<WarehouseLocationDto> cycleLocations = [];
     private List<ProcurementDocumentDto> postedGoodsReceipts = [];
     private List<ProjectedStockRowDto> projectedStock = [];
     private List<InventoryValuationLayerDto> valuationLayers = [];
+    private List<InventoryLocationBalanceDto> locationBalances = [];
+    private List<CycleCountDto> cycleCounts = [];
     private WarehouseDto? selectedLocationWarehouse;
     private WarehouseDto? selectedPutawayWarehouse;
     private ProductDto? selectedPutawayProduct;
@@ -294,6 +446,13 @@
     private ProductSkuDto? selectedInspectionSku;
     private BatchDto? selectedInspectionBatch;
     private ProcurementDocumentDto? selectedLandedCostReceipt;
+    private WarehouseDto? selectedCycleWarehouse;
+    private WarehouseLocationDto? selectedCycleLocation;
+    private ProductDto? selectedCycleProduct;
+    private ProductSkuDto? selectedCycleSku;
+    private BatchDto? selectedCycleBatch;
+    private List<ProductSkuDto> cycleSkus = [];
+    private List<BatchDto> cycleBatches = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -323,14 +482,24 @@
         selectedInspectionSku = null;
         selectedInspectionBatch = null;
         selectedLandedCostReceipt = null;
+        selectedCycleWarehouse = null;
+        selectedCycleLocation = null;
+        selectedCycleProduct = null;
+        selectedCycleSku = null;
+        selectedCycleBatch = null;
         putawaySkus = [];
         inspectionSkus = [];
         inspectionBatches = [];
         putawayLocations = [];
+        cycleLocations = [];
+        cycleSkus = [];
+        cycleBatches = [];
         location = new WarehouseLocationDto { CompanyId = companyId, IsActive = true };
         putawayRule = new PutawayRuleDto { CompanyId = companyId, IsActive = true };
         inspection = new QualityInspectionDto { CompanyId = companyId, InspectionDate = DateTime.UtcNow, Quantity = 1 };
         landedCost = new LandedCostVoucherDto { CompanyId = companyId, VoucherDate = DateTime.UtcNow };
+        cycleCount = new CycleCountDto { CompanyId = companyId, CountDate = DateTime.UtcNow };
+        cycleCountQuantity = 1;
     }
 
     private async Task LoadLookupsAsync()
@@ -369,12 +538,21 @@
         var valuation = await InventoryService.GetValuationLayersAsync(companyId);
         if (valuation.IsSuccess)
             valuationLayers = valuation.Data ?? [];
+
+        var locations = await InventoryService.GetLocationBalancesAsync(companyId);
+        if (locations.IsSuccess)
+            locationBalances = locations.Data ?? [];
+
+        var counts = await InventoryService.GetCycleCountsAsync(companyId);
+        if (counts.IsSuccess)
+            cycleCounts = counts.Data ?? [];
     }
 
     private async Task SaveLocationAsync() => await SaveAsync(() => InventoryService.SaveWarehouseLocationAsync(location));
     private async Task SavePutawayRuleAsync() => await SaveAsync(() => InventoryService.SavePutawayRuleAsync(putawayRule));
     private async Task SaveInspectionAsync() => await SaveAsync(() => InventoryService.SaveQualityInspectionAsync(inspection));
     private async Task SaveLandedCostAsync() => await SaveAsync(() => InventoryService.SaveLandedCostVoucherAsync(landedCost));
+    private async Task SaveCycleCountAsync() => await SaveAsync(() => InventoryService.SaveCycleCountAsync(cycleCount));
 
     private async Task SaveAsync(Func<Task<ApiResult<CreateResponseDto>>> action)
     {
@@ -473,6 +651,84 @@
         landedCost.SourceDocumentNumber = receipt?.Number ?? string.Empty;
     }
 
+    private void OnCycleWarehouseChanged(WarehouseDto? warehouse)
+    {
+        selectedCycleWarehouse = warehouse;
+        cycleCount.WarehouseId = warehouse?.Id ?? Guid.Empty;
+        cycleLocations = warehouse is null
+            ? []
+            : warehouseLocations.Where(x => x.WarehouseId == warehouse.Id && x.IsActive).ToList();
+        OnCycleLocationChanged(null);
+    }
+
+    private void OnCycleLocationChanged(WarehouseLocationDto? warehouseLocation)
+    {
+        selectedCycleLocation = warehouseLocation;
+        cycleCount.WarehouseLocationId = warehouseLocation?.Id ?? Guid.Empty;
+    }
+
+    private void OnCycleProductChanged(ProductDto? product)
+    {
+        selectedCycleProduct = product;
+        cycleSkus = product?.Skus ?? [];
+        OnCycleSkuChanged(null);
+    }
+
+    private void OnCycleSkuChanged(ProductSkuDto? sku)
+    {
+        selectedCycleSku = sku;
+        cycleBatches = sku is null
+            ? []
+            : batches.Where(x => x.ProductSkuId == sku.Id).ToList();
+        OnCycleBatchChanged(null);
+    }
+
+    private void OnCycleBatchChanged(BatchDto? batch)
+    {
+        selectedCycleBatch = batch;
+    }
+
+    private void AddCycleCountLine()
+    {
+        if (selectedCycleProduct is null || selectedCycleSku is null || selectedCycleBatch is null || cycleCountQuantity < 0)
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Type = "error",
+                Message = SharedDataService.SelectViewLang("Select product, SKU, batch, and counted quantity.", "Select product, SKU, batch, and counted quantity.")
+            });
+            return;
+        }
+
+        cycleCount.Lines.Add(new CycleCountLineDto
+        {
+            ProductId = selectedCycleProduct.Id,
+            ProductSkuId = selectedCycleSku.Id,
+            BatchId = selectedCycleBatch.Id,
+            ProductName = selectedCycleProduct.Name,
+            ProductNameEng = selectedCycleProduct.NameEng,
+            ProductSkuName = selectedCycleSku.Name,
+            ProductSkuNameEng = selectedCycleSku.NameEng,
+            BatchNumber = selectedCycleBatch.BatchNumber,
+            CountedQuantity = cycleCountQuantity
+        });
+    }
+
+    private async Task PostCycleCountAsync(Guid id)
+    {
+        var result = await InventoryService.PostCycleCountAsync(id);
+        ToastService.Show(new ToastMessage
+        {
+            Type = result.IsSuccess ? "success" : "error",
+            Message = result.IsSuccess
+                ? SharedDataService.SelectViewLang("Cycle count posted.", "Cycle count posted.")
+                : result.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Posting failed.", "Posting failed.")
+        });
+
+        if (result.IsSuccess)
+            await LoadReportsAsync();
+    }
+
     private string WarehouseText(WarehouseDto warehouse) =>
         SharedDataService.SelectViewLang(warehouse.NameEng, warehouse.Name);
 
@@ -498,6 +754,11 @@
         warehouses.FirstOrDefault(x => x.Id == warehouseId) is { } warehouse
             ? WarehouseText(warehouse)
             : ShortId(warehouseId);
+
+    private string LocationName(Guid locationId) =>
+        warehouseLocations.FirstOrDefault(x => x.Id == locationId) is { } warehouseLocation
+            ? LocationText(warehouseLocation)
+            : ShortId(locationId);
 
     private string SkuName(Guid skuId)
     {

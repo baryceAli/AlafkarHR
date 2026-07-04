@@ -6,6 +6,12 @@ public class TransferItemDto
     public Guid ProductId { get;  set; }
     public Guid ProductSkuId { get;  set; }
     public Guid BatchId { get; set; }
+    public Guid? SourceLocationId { get; set; }
+    public string? SourceLocationName { get; set; }
+    public string? SourceLocationNameEng { get; set; }
+    public Guid? DestinationLocationId { get; set; }
+    public string? DestinationLocationName { get; set; }
+    public string? DestinationLocationNameEng { get; set; }
     //public Guid WarehouseId { get; set; }
     public decimal Quantity { get; set; }
     public decimal ReceivedQuantity { get; set; }

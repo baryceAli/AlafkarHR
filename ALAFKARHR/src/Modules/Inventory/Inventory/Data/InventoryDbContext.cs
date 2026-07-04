@@ -19,6 +19,9 @@ public class InventoryDbContext:DbContext
     public DbSet<WarehouseTransfer> WarehouseTransfers => Set<WarehouseTransfer>();
     public DbSet<TransferItem> TransferItems => Set<TransferItem>();
     public DbSet<WarehouseLocation> WarehouseLocations => Set<WarehouseLocation>();
+    public DbSet<InventoryLocationBalance> InventoryLocationBalances => Set<InventoryLocationBalance>();
+    public DbSet<CycleCount> CycleCounts => Set<CycleCount>();
+    public DbSet<CycleCountLine> CycleCountLines => Set<CycleCountLine>();
     public DbSet<PutawayRule> PutawayRules => Set<PutawayRule>();
     public DbSet<QualityInspection> QualityInspections => Set<QualityInspection>();
     public DbSet<LandedCostVoucher> LandedCostVouchers => Set<LandedCostVoucher>();

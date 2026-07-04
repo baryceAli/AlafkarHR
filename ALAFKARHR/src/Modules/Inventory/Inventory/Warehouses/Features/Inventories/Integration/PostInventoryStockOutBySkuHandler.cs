@@ -32,8 +32,9 @@ public class PostInventoryStockOutBySkuHandler(InventoryDbContext dbContext, ISe
 
         var remaining = command.Quantity;
         Guid lastInventoryId = inventory.Id;
+        var today = DateTime.UtcNow.Date;
         var allocations = inventory.Batches
-            .Where(x => x.Available > 0)
+            .Where(x => x.Available > 0 && x.Batch.ExpiryDate.Date >= today)
             .OrderBy(x => x.Batch.ExpiryDate)
             .ThenBy(x => x.CreatedAt ?? DateTime.MaxValue)
             .ToList();
@@ -60,7 +61,11 @@ public class PostInventoryStockOutBySkuHandler(InventoryDbContext dbContext, ISe
                 CompanyId = command.CompanyId,
                 Notes = command.Notes,
                 ReferenceNumber = command.ReferenceNumber ?? $"POS-{command.WarehouseId:N}-{command.ProductSkuId:N}",
-                SourceDocumentType = command.SourceDocumentType ?? "POSDirectSale"
+                SourceDocumentType = command.SourceDocumentType ?? "POSDirectSale",
+                SourceDocumentId = command.SourceDocumentId,
+                SourceDocumentLineId = command.SourceDocumentLineId,
+                ParentProductSkuId = command.ParentProductSkuId,
+                ParentSalesOrderLineId = command.ParentSalesOrderLineId
             }), cancellationToken);
 
             lastInventoryId = result.Id;

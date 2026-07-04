@@ -1,6 +1,7 @@
 global using Accounting.Contracts.Accounting.Features;
 global using Carter;
 global using Catalog.Contracts.Products.Features.GetProductById;
+global using Catalog.Contracts.Products.Features.GetProductSkuInventoryContext;
 global using FluentValidation;
 global using Inventory.Contracts.Stock;
 global using Mapster;

@@ -93,6 +93,28 @@
                     <InputText class="form-control" @bind-Value="referenceNumber" />
                 </div>
                 <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Source ID", "معرف المصدر")</label>
+                    <InputText class="form-control" @bind-Value="sourceDocumentIdText" />
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Parent Combo SKU", "منتج الباقة")</label>
+                    <InputSelect class="form-select" @bind-Value="parentProductSkuId">
+                        <option value="">@SharedDataService.SelectViewLang("All parent SKUs", "كل منتجات الباقات")</option>
+                        @foreach (var sku in products.SelectMany(p => p.Skus))
+                        {
+                            <option value="@sku.Id">@DisplaySku(sku)</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Batch Expiry", "صلاحية الدفعة")</label>
+                    <InputSelect class="form-select" @bind-Value="expiryFilter">
+                        <option value="">@SharedDataService.SelectViewLang("All batches", "كل الدفعات")</option>
+                        <option value="active">@SharedDataService.SelectViewLang("Non-expired", "غير منتهية")</option>
+                        <option value="expired">@SharedDataService.SelectViewLang("Expired only", "المنتهية فقط")</option>
+                    </InputSelect>
+                </div>
+                <div class="col-lg-3 col-md-6">
                     <label class="form-label">@SharedDataService.SelectViewLang("From", "من")</label>
                     <InputDate class="form-control" @bind-Value="fromDate" />
                 </div>
@@ -128,6 +150,8 @@
                             <th>@SharedDataService.SelectViewLang("Date", "التاريخ")</th>
                             <th>@SharedDataService.SelectViewLang("Reference", "المرجع")</th>
                             <th>@SharedDataService.SelectViewLang("Source", "المصدر")</th>
+                            <th>@SharedDataService.SelectViewLang("Source ID", "معرف المصدر")</th>
+                            <th>@SharedDataService.SelectViewLang("Parent SKU", "المنتج الأصل")</th>
                             <th>@SharedDataService.SelectViewLang("Warehouse", "المستودع")</th>
                             <th>@SharedDataService.SelectViewLang("SKU", "المنتج المخزني")</th>
                             <th>@SharedDataService.SelectViewLang("Batch", "الدفعة")</th>
@@ -141,7 +165,7 @@
                         @if (movements.Count == 0)
                         {
                             <tr>
-                                <td colspan="10" class="text-muted text-center py-4">@SharedDataService.SelectViewLang("No movements found", "لا توجد حركات")</td>
+                                <td colspan="12" class="text-muted text-center py-4">@SharedDataService.SelectViewLang("No movements found", "لا توجد حركات")</td>
                             </tr>
                         }
                         @foreach (var movement in movements)
@@ -149,7 +173,9 @@
                             <tr>
                                 <td>@movement.CreatedAt?.ToLocalTime().ToString("g")</td>
                                 <td>@movement.ReferenceNumber</td>
-                                <td>@movement.SourceDocumentType</td>
+                                <td>@DisplaySource(movement)</td>
+                                <td>@DisplayShortId(movement.SourceDocumentId)</td>
+                                <td>@DisplayParentSkuName(movement.ParentProductSkuId)</td>
                                 <td>@DisplayWarehouseName(movement.WarehouseId)</td>
                                 <td>@DisplaySkuName(movement.ProductSkuId)</td>
                                 <td>@DisplayBatchName(movement.BatchId)</td>
@@ -195,7 +221,10 @@
     private Guid? batchId;
     private string? searchText;
     private string? sourceDocumentType;
+    private string? sourceDocumentIdText;
     private string? referenceNumber;
+    private Guid? parentProductSkuId;
+    private string? expiryFilter;
     private DateTime? fromDate;
     private DateTime? toDate;
     private int pageIndex;
@@ -260,7 +289,31 @@
 
     private async Task LoadMovementsAsync()
     {
-        var result = await MovementService.GetAsync(companyId, pageIndex, PageSize, searchText, warehouseId, productSkuId, batchId, sourceDocumentType, referenceNumber, fromDate, toDate);
+        Guid? sourceDocumentId = Guid.TryParse(sourceDocumentIdText, out var parsedSourceDocumentId)
+            ? parsedSourceDocumentId
+            : null;
+        bool? expiredOnly = expiryFilter switch
+        {
+            "expired" => true,
+            "active" => false,
+            _ => null
+        };
+
+        var result = await MovementService.GetAsync(
+            companyId,
+            pageIndex,
+            PageSize,
+            searchText,
+            warehouseId,
+            productSkuId,
+            batchId,
+            sourceDocumentType,
+            sourceDocumentId,
+            referenceNumber,
+            parentProductSkuId,
+            expiredOnly,
+            fromDate,
+            toDate);
         if (result.IsSuccess)
         {
             movements = result.Data?.Data?.ToList() ?? [];
@@ -286,7 +339,10 @@
         batchId = null;
         searchText = null;
         sourceDocumentType = null;
+        sourceDocumentIdText = null;
         referenceNumber = null;
+        parentProductSkuId = null;
+        expiryFilter = null;
         fromDate = null;
         toDate = null;
         filteredSkus = products.SelectMany(p => p.Skus).ToList();
@@ -358,6 +414,18 @@
     }
 
     private string DisplayBatchName(Guid id) => batches.FirstOrDefault(b => b.Id == id)?.BatchNumber ?? id.ToString();
+
+    private string DisplayShortId(Guid? id) => id.HasValue ? id.Value.ToString("N")[..8] : "-";
+
+    private string DisplayParentSkuName(Guid? id) => id.HasValue ? DisplaySkuName(id.Value) : "-";
+
+    private string DisplaySource(StockMovementDto movement)
+    {
+        if (movement.SourceDocumentId.HasValue)
+            return $"{movement.SourceDocumentType} / {DisplayShortId(movement.SourceDocumentId)}";
+
+        return movement.SourceDocumentType;
+    }
 
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
 

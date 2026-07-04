@@ -58,6 +58,8 @@ public class ReserveSalesOrderHandler(SalesOrderDbContext dbContext, ISender sen
                     line,
                     quantity,
                     order.Number,
+                    order.Id,
+                    line.Id,
                     cancellationToken);
 
                 order.ReserveLine(line.Id, quantity);
@@ -91,7 +93,10 @@ public class ReserveSalesOrderHandler(SalesOrderDbContext dbContext, ISender sen
                     $"Sales order reservation {order.Number}",
                     order.Number,
                     "SalesOrderReservation",
-                    line.UnitOfMeasureId), cancellationToken);
+                    line.UnitOfMeasureId,
+                    null,
+                    order.Id,
+                    line.Id), cancellationToken);
 
                 remaining -= take;
             }
@@ -173,6 +178,8 @@ public class ReleaseSalesOrderReservationHandler(SalesOrderDbContext dbContext, 
                     line,
                     quantity,
                     order.Number,
+                    order.Id,
+                    line.Id,
                     cancellationToken);
 
                 order.ReleaseLineReservation(line.Id, quantity);
@@ -203,7 +210,10 @@ public class ReleaseSalesOrderReservationHandler(SalesOrderDbContext dbContext, 
                     $"Sales order reservation release {order.Number}",
                     order.Number,
                     "SalesOrderReservationRelease",
-                    line.UnitOfMeasureId), cancellationToken);
+                    line.UnitOfMeasureId,
+                    null,
+                    order.Id,
+                    line.Id), cancellationToken);
 
                 remaining -= take;
             }

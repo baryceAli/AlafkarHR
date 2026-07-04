@@ -53,6 +53,58 @@ public class ReorderingRuleDto
     public bool IsActive { get; set; } = true;
 }
 
+public class ReplenishmentSuggestionDto
+{
+    public Guid ReorderingRuleId { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid ProductId { get; set; }
+    public Guid ProductSkuId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string ProductNameEng { get; set; } = string.Empty;
+    public string SkuCode { get; set; } = string.Empty;
+    public Guid? WarehouseId { get; set; }
+    public string? WarehouseName { get; set; }
+    public string? WarehouseNameEng { get; set; }
+    public Guid? BranchId { get; set; }
+    public Guid? SupplierId { get; set; }
+    public string? SupplierName { get; set; }
+    public Guid? CurrencyId { get; set; }
+    public decimal UnitCost { get; set; }
+    public decimal MinimumQuantity { get; set; }
+    public decimal MaximumQuantity { get; set; }
+    public decimal ReorderQuantity { get; set; }
+    public decimal MinimumOrderQuantity { get; set; }
+    public decimal CurrentQuantity { get; set; }
+    public decimal ReservedQuantity { get; set; }
+    public decimal AvailableQuantity { get; set; }
+    public decimal SuggestedQuantity { get; set; }
+    public int LeadTimeDays { get; set; }
+    public DateTime ExpectedDate { get; set; }
+    public bool CanCreatePurchaseRequest { get; set; }
+    public string WarningCode { get; set; } = string.Empty;
+    public string WarningMessage { get; set; } = string.Empty;
+}
+
+public class CreatePurchaseRequestFromReplenishmentDto
+{
+    public Guid CompanyId { get; set; }
+    public Guid? BranchId { get; set; }
+    public Guid? WarehouseId { get; set; }
+    public Guid? SupplierId { get; set; }
+    public Guid? CurrencyId { get; set; }
+    public string? Notes { get; set; }
+    public List<CreatePurchaseRequestFromReplenishmentLineDto> Lines { get; set; } = new();
+}
+
+public class CreatePurchaseRequestFromReplenishmentLineDto
+{
+    public Guid ReorderingRuleId { get; set; }
+    public Guid ProductSkuId { get; set; }
+    public Guid? WarehouseId { get; set; }
+    public Guid? SupplierId { get; set; }
+    public decimal Quantity { get; set; }
+}
+
 public class ProcurementTrackerRowDto
 {
     public Guid Id { get; set; }

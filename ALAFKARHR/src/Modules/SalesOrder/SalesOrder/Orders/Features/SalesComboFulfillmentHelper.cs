@@ -1,5 +1,6 @@
 using Catalog.Contracts.Products.Features.GetProductSkuComponentBreakdown;
 using Catalog.Contracts.Products.Features.GetProductSkuInventoryContext;
+using Inventory.Contracts.Stock;
 using SharedWithUI.Catalog.Enums;
 
 namespace SalesOrder.Orders.Features;
@@ -18,6 +19,8 @@ internal static class SalesComboFulfillmentHelper
         SalesOrder.Orders.Models.SalesOrderLine line,
         decimal parentQuantity,
         string referenceNumber,
+        Guid? sourceDocumentId,
+        Guid? sourceDocumentLineId,
         CancellationToken cancellationToken)
     {
         var components = await GetTrackedComponentsAsync(sender, companyId, line, parentQuantity, cancellationToken);
@@ -50,7 +53,12 @@ internal static class SalesComboFulfillmentHelper
                     $"Sales order reservation {referenceNumber} for combo {line.SkuCode}",
                     referenceNumber,
                     "SalesOrderReservation",
-                    component.UnitId), cancellationToken);
+                    component.UnitId,
+                    null,
+                    sourceDocumentId,
+                    sourceDocumentLineId,
+                    line.ProductSkuId,
+                    line.Id), cancellationToken);
 
                 remaining -= take;
             }
@@ -68,6 +76,8 @@ internal static class SalesComboFulfillmentHelper
         SalesOrder.Orders.Models.SalesOrderLine line,
         decimal parentQuantity,
         string referenceNumber,
+        Guid? sourceDocumentId,
+        Guid? sourceDocumentLineId,
         CancellationToken cancellationToken)
     {
         var components = await GetTrackedComponentsAsync(sender, companyId, line, parentQuantity, cancellationToken);
@@ -97,7 +107,12 @@ internal static class SalesComboFulfillmentHelper
                     $"Sales order reservation release {referenceNumber} for combo {line.SkuCode}",
                     referenceNumber,
                     "SalesOrderReservationRelease",
-                    component.UnitId), cancellationToken);
+                    component.UnitId,
+                    null,
+                    sourceDocumentId,
+                    sourceDocumentLineId,
+                    line.ProductSkuId,
+                    line.Id), cancellationToken);
 
                 remaining -= take;
             }
@@ -116,6 +131,8 @@ internal static class SalesComboFulfillmentHelper
         Guid currencyId,
         decimal parentQuantity,
         string referenceNumber,
+        Guid sourceDocumentId,
+        Guid sourceDocumentLineId,
         CancellationToken cancellationToken)
     {
         var components = await GetTrackedComponentsAsync(sender, companyId, orderLine, parentQuantity, cancellationToken);
@@ -150,7 +167,11 @@ internal static class SalesComboFulfillmentHelper
                     referenceNumber,
                     "SalesDeliveryNote",
                     true,
-                    component.UnitId), cancellationToken);
+                    component.UnitId,
+                    sourceDocumentId,
+                    sourceDocumentLineId,
+                    orderLine.ProductSkuId,
+                    orderLine.Id), cancellationToken);
 
                 remaining -= take;
             }
@@ -165,22 +186,50 @@ internal static class SalesComboFulfillmentHelper
         Guid companyId,
         Guid warehouseId,
         SalesOrder.Orders.Models.SalesOrderLine orderLine,
-        Guid batchId,
+        Guid? deliveryNoteId,
+        Guid? deliveryNoteLineId,
+        Guid salesReturnId,
+        Guid salesReturnLineId,
         Guid currencyId,
         decimal parentQuantity,
+        decimal deliveredParentQuantity,
         string referenceNumber,
         CancellationToken cancellationToken)
     {
-        var components = await GetTrackedComponentsAsync(sender, companyId, orderLine, parentQuantity, cancellationToken);
-        foreach (var component in components)
+        if (!deliveryNoteId.HasValue || !deliveryNoteLineId.HasValue)
+            throw new BadRequestException($"Combo return for SKU {orderLine.SkuCode} must reference the original delivery note line.");
+
+        var deliveredMovements = await sender.Send(
+            new GetStockMovementsBySourceQuery(companyId, "SalesDeliveryNote", deliveryNoteId.Value),
+            cancellationToken);
+
+        var componentMovements = deliveredMovements.Movements
+            .Where(x => x.SourceDocumentLineId == deliveryNoteLineId.Value
+                && x.ParentProductSkuId == orderLine.ProductSkuId
+                && x.ParentSalesOrderLineId == orderLine.Id
+                && x.QuantityAfter < x.QuantityBefore)
+            .ToList();
+
+        if (componentMovements.Count == 0)
+            throw new BadRequestException($"Original component movement trace was not found for combo return {orderLine.SkuCode}. Create a return from a traced delivery note line.");
+
+        if (deliveredParentQuantity <= 0)
+            throw new BadRequestException($"Original delivered quantity is required for combo return {orderLine.SkuCode}.");
+
+        var ratio = parentQuantity / deliveredParentQuantity;
+        foreach (var movement in componentMovements)
         {
+            var returnQuantity = decimal.Round(movement.NormalizedQuantity * ratio, 4, MidpointRounding.AwayFromZero);
+            if (returnQuantity <= 0)
+                continue;
+
             await sender.Send(new PostInventoryStockInCommand(
-                component.ComponentProductId,
-                component.ComponentProductSkuId,
+                movement.ProductId,
+                movement.ProductSkuId,
                 null,
                 warehouseId,
-                batchId,
-                component.RequiredQuantity,
+                movement.BatchId,
+                returnQuantity,
                 0m,
                 0m,
                 currencyId,
@@ -188,7 +237,11 @@ internal static class SalesComboFulfillmentHelper
                 $"Sales return {referenceNumber} for combo {orderLine.SkuCode}",
                 referenceNumber,
                 "SalesReturn",
-                component.UnitId), cancellationToken);
+                movement.UnitId,
+                salesReturnId,
+                salesReturnLineId,
+                orderLine.ProductSkuId,
+                orderLine.Id), cancellationToken);
         }
     }
 
@@ -217,6 +270,8 @@ internal static class SalesComboFulfillmentHelper
         Guid companyId,
         Guid warehouseId,
         SalesOrder.Orders.Models.SalesOrderLine line,
+        Guid sourceDocumentId,
+        Guid sourceDocumentLineId,
         string referenceNumber,
         CancellationToken cancellationToken)
     {
@@ -236,7 +291,11 @@ internal static class SalesComboFulfillmentHelper
                 $"POS sale {referenceNumber} for combo {line.SkuCode}",
                 referenceNumber,
                 "POSDirectSale",
-                component.UnitId), cancellationToken);
+                component.UnitId,
+                sourceDocumentId,
+                sourceDocumentLineId,
+                line.ProductSkuId,
+                line.Id), cancellationToken);
         }
     }
 

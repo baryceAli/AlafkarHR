@@ -42,6 +42,7 @@ public class ProcurementDocumentLineDto
     public Guid? UnitOfMeasureId { get; set; }
     public Guid? WarehouseId { get; set; }
     public Guid? BatchId { get; set; }
+    public Guid? ReorderingRuleId { get; set; }
     public decimal Quantity { get; set; }
     public decimal UnitCost { get; set; }
     public decimal DiscountRate { get; set; }

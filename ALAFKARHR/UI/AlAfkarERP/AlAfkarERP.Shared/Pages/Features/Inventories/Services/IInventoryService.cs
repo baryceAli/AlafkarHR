@@ -30,5 +30,12 @@ public interface IInventoryService
     Task<ApiResult<string>> DeleteLandedCostVoucherAsync(Guid id);
     Task<ApiResult<List<InventoryValuationLayerDto>>> GetValuationLayersAsync(Guid companyId);
     Task<ApiResult<List<ProjectedStockRowDto>>> GetProjectedStockAsync(Guid companyId);
+    Task<ApiResult<List<InventoryLocationBalanceDto>>> GetLocationBalancesAsync(Guid companyId);
+    Task<ApiResult<List<CycleCountDto>>> GetCycleCountsAsync(Guid companyId);
+    Task<ApiResult<CreateResponseDto>> SaveCycleCountAsync(CycleCountDto item);
+    Task<ApiResult<string>> PostCycleCountAsync(Guid id);
+    Task<ApiResult<string>> DeleteCycleCountAsync(Guid id);
+    Task<ApiResult<LocationAvailabilityDto>> GetSkuLocationAvailabilityAsync(Guid companyId, Guid productSkuId, Guid? warehouseId = null, Guid? warehouseLocationId = null, Guid? batchId = null, Guid? branchId = null);
+    Task<ApiResult<PutawaySuggestionDto>> GetPutawaySuggestionAsync(Guid companyId, Guid warehouseId, Guid productId, Guid productSkuId);
     //public Task<ApiResult<CreateResponseDto>> AdjustmentAsync(CreateInventoryAggregateDto inventoryAggregateDto);
 }

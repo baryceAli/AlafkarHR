@@ -14,4 +14,5 @@ public interface IWarehouseTransferService
     Task<ApiResult<UpdateDeleteResponseDto>> ShipAsync(Guid transferId);
     Task<ApiResult<UpdateDeleteResponseDto>> ReceiveAsync(Guid transferId, ReceiveWarehouseTransferItemDto item);
     Task<ApiResult<UpdateDeleteResponseDto>> CancelAsync(Guid transferId);
+    Task<ApiResult<List<TransferFefoBatchSuggestionDto>>> GetFefoBatchSuggestionsAsync(Guid companyId, Guid sourceWarehouseId, Guid productSkuId, decimal quantity);
 }

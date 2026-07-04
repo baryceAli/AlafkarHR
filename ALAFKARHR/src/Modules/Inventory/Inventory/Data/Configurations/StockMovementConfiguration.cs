@@ -15,11 +15,21 @@ public class StockMovementConfiguration : IEntityTypeConfiguration<StockMovement
         builder.Property(x => x.ProductSkuId).IsRequired();
         builder.Property(x => x.WarehouseId).IsRequired();
         builder.Property(x => x.BatchId).IsRequired();
+        builder.Property(x => x.SourceLocationId).IsRequired(false);
+        builder.Property(x => x.DestinationLocationId).IsRequired(false);
+        builder.HasOne(x => x.Batch)
+            .WithMany()
+            .HasForeignKey(x => x.BatchId)
+            .OnDelete(DeleteBehavior.Restrict);
         builder.Property(x => x.MovementType).IsRequired();
         builder.Property(x => x.MovementDirection).IsRequired();
         //builder.Property(x => x.MovementCategory).IsRequired();
         builder.Property(x => x.ReferenceNumber).HasMaxLength(120).IsRequired();
         builder.Property(x => x.SourceDocumentType).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.SourceDocumentId).IsRequired(false);
+        builder.Property(x => x.SourceDocumentLineId).IsRequired(false);
+        builder.Property(x => x.ParentProductSkuId).IsRequired(false);
+        builder.Property(x => x.ParentSalesOrderLineId).IsRequired(false);
         builder.Property(x => x.QuantityBefore).HasColumnType("decimal(18,4)").IsRequired();
         builder.Property(x => x.QuantityAfter).HasColumnType("decimal(18,4)").IsRequired();
         builder.Property(x => x.ProductPackageId).IsRequired(false);
@@ -31,8 +41,13 @@ public class StockMovementConfiguration : IEntityTypeConfiguration<StockMovement
         builder.Property(x => x.CurrencyId).IsRequired();
         builder.HasIndex(x => x.CurrencyId);
         builder.HasIndex(x => x.UnitId);
+        builder.HasIndex(x => x.SourceLocationId);
+        builder.HasIndex(x => x.DestinationLocationId);
         builder.HasIndex(x => new { x.WarehouseId, x.ProductSkuId, x.BatchId });
         builder.HasIndex(x => new { x.SourceDocumentType, x.ReferenceNumber });
+        builder.HasIndex(x => new { x.SourceDocumentType, x.SourceDocumentId });
+        builder.HasIndex(x => x.ParentProductSkuId);
+        builder.HasIndex(x => x.ParentSalesOrderLineId);
         //builder.Property(x => x.MovementDate).IsRequired();
         builder.Property(x => x.Notes).IsRequired(false);
 

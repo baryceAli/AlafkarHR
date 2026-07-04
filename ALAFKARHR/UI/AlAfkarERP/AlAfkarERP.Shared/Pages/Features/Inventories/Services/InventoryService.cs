@@ -190,6 +190,52 @@ public class InventoryService : BaseApiService, IInventoryService
         return await SendAsync<List<ProjectedStockRowDto>>(request, "rows");
     }
 
+    public async Task<ApiResult<List<InventoryLocationBalanceDto>>> GetLocationBalancesAsync(Guid companyId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/inventory/controls/location-balances/company/{companyId}");
+        return await SendAsync<List<InventoryLocationBalanceDto>>(request, "rows");
+    }
+
+    public async Task<ApiResult<List<CycleCountDto>>> GetCycleCountsAsync(Guid companyId) =>
+        await GetControlListAsync<CycleCountDto>("cycle-counts", companyId);
+
+    public async Task<ApiResult<CreateResponseDto>> SaveCycleCountAsync(CycleCountDto item) =>
+        await SaveControlAsync("cycle-counts", item);
+
+    public async Task<ApiResult<string>> PostCycleCountAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/inventory/controls/cycle-counts/{id}/post");
+        return await SendAsync<string>(request, null);
+    }
+
+    public async Task<ApiResult<string>> DeleteCycleCountAsync(Guid id) =>
+        await DeleteControlAsync("cycle-counts", id);
+
+    public async Task<ApiResult<LocationAvailabilityDto>> GetSkuLocationAvailabilityAsync(Guid companyId, Guid productSkuId, Guid? warehouseId = null, Guid? warehouseLocationId = null, Guid? batchId = null, Guid? branchId = null)
+    {
+        var url = $"api/{_apiConfig.Version}/inventory/location-availability/company/{companyId}/sku/{productSkuId}";
+        var query = new List<string>();
+        if (warehouseId.HasValue)
+            query.Add($"warehouseId={warehouseId.Value}");
+        if (warehouseLocationId.HasValue)
+            query.Add($"warehouseLocationId={warehouseLocationId.Value}");
+        if (batchId.HasValue)
+            query.Add($"batchId={batchId.Value}");
+        if (branchId.HasValue)
+            query.Add($"branchId={branchId.Value}");
+        if (query.Any())
+            url += $"?{string.Join("&", query)}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        return await SendAsync<LocationAvailabilityDto>(request, "availability");
+    }
+
+    public async Task<ApiResult<PutawaySuggestionDto>> GetPutawaySuggestionAsync(Guid companyId, Guid warehouseId, Guid productId, Guid productSkuId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/inventory/controls/putaway-suggestion/company/{companyId}/warehouse/{warehouseId}/product/{productId}/sku/{productSkuId}");
+        return await SendAsync<PutawaySuggestionDto>(request, "suggestion");
+    }
+
     private async Task<ApiResult<List<T>>> GetControlListAsync<T>(string route, Guid companyId)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/inventory/controls/{route}/company/{companyId}");

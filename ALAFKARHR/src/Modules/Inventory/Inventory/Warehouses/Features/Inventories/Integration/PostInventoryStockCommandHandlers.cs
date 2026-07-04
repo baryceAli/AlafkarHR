@@ -109,7 +109,12 @@ internal static class InventoryStockCommandMapper
             CompanyId = command.CompanyId,
             Notes = command.Notes,
             ReferenceNumber = command.ReferenceNumber ?? $"{movementType}-{command.WarehouseId:N}-{command.BatchId:N}",
-            SourceDocumentType = command.SourceDocumentType ?? "Integration"
+            SourceDocumentType = command.SourceDocumentType ?? "Integration",
+            SourceDocumentId = command.SourceDocumentId,
+            SourceDocumentLineId = command.SourceDocumentLineId,
+            ParentProductSkuId = command.ParentProductSkuId,
+            ParentSalesOrderLineId = command.ParentSalesOrderLineId,
+            DestinationLocationId = command.DestinationLocationId
         };
 
     public static CreateInventoryAggregateDto ToInventoryAggregateDto(this PostInventoryStockOutCommand command, MovementType movementType) =>
@@ -130,7 +135,12 @@ internal static class InventoryStockCommandMapper
             Notes = command.Notes,
             ReferenceNumber = command.ReferenceNumber ?? $"{movementType}-{command.WarehouseId:N}-{command.BatchId:N}",
             SourceDocumentType = command.SourceDocumentType ?? "Integration",
-            ConsumeReservedQuantity = command.ConsumeReservedQuantity
+            ConsumeReservedQuantity = command.ConsumeReservedQuantity,
+            SourceDocumentId = command.SourceDocumentId,
+            SourceDocumentLineId = command.SourceDocumentLineId,
+            ParentProductSkuId = command.ParentProductSkuId,
+            ParentSalesOrderLineId = command.ParentSalesOrderLineId,
+            SourceLocationId = command.SourceLocationId
         };
 
     public static CreateInventoryAggregateDto ToInventoryAggregateDto(this PostInventoryReservationCommand command, MovementType movementType) =>
@@ -149,7 +159,12 @@ internal static class InventoryStockCommandMapper
             CompanyId = command.CompanyId,
             Notes = command.Notes,
             ReferenceNumber = command.ReferenceNumber ?? $"SalesOrderReservation-{command.WarehouseId:N}-{command.BatchId:N}",
-            SourceDocumentType = command.SourceDocumentType ?? "SalesOrderReservation"
+            SourceDocumentType = command.SourceDocumentType ?? "SalesOrderReservation",
+            SourceDocumentId = command.SourceDocumentId,
+            SourceDocumentLineId = command.SourceDocumentLineId,
+            ParentProductSkuId = command.ParentProductSkuId,
+            ParentSalesOrderLineId = command.ParentSalesOrderLineId,
+            SourceLocationId = command.SourceLocationId
         };
 
     public static CreateInventoryAggregateDto ToInventoryAggregateDto(this PostInventoryReleaseCommand command, MovementType movementType) =>
@@ -168,6 +183,11 @@ internal static class InventoryStockCommandMapper
             CompanyId = command.CompanyId,
             Notes = command.Notes,
             ReferenceNumber = command.ReferenceNumber ?? $"SalesOrderReservationRelease-{command.WarehouseId:N}-{command.BatchId:N}",
-            SourceDocumentType = command.SourceDocumentType ?? "SalesOrderReservationRelease"
+            SourceDocumentType = command.SourceDocumentType ?? "SalesOrderReservationRelease",
+            SourceDocumentId = command.SourceDocumentId,
+            SourceDocumentLineId = command.SourceDocumentLineId,
+            ParentProductSkuId = command.ParentProductSkuId,
+            ParentSalesOrderLineId = command.ParentSalesOrderLineId,
+            SourceLocationId = command.SourceLocationId
         };
 }

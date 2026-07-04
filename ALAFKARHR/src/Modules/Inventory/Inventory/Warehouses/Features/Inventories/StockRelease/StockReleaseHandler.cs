@@ -84,11 +84,32 @@ public class StockReleaseHandler(InventoryDbContext dbContext, ISender sender, I
         {
             quantityBefore = inventory.TotalQuantity;
             reservedBefore = inventory.TotalReserved;
+            var sourceLocationId = await InventoryLocationBalanceService.ResolveSourceLocationAsync(
+                dbContext,
+                command.InventoryAggregate.CompanyId,
+                command.InventoryAggregate.WarehouseId.Value,
+                command.InventoryAggregate.ProductSkuId.Value,
+                command.InventoryAggregate.InitialBatchId,
+                command.InventoryAggregate.SourceLocationId,
+                packageQuantity.NormalizedQuantity,
+                requireReserved: true,
+                cancellationToken);
             
             inventory.Release(
                 command.InventoryAggregate.InitialBatchId,
                 packageQuantity.NormalizedQuantity,
                 userId);
+            await InventoryLocationBalanceService.ReleaseAsync(
+                dbContext,
+                command.InventoryAggregate.CompanyId,
+                command.InventoryAggregate.ProductSkuId.Value,
+                command.InventoryAggregate.WarehouseId.Value,
+                sourceLocationId,
+                command.InventoryAggregate.InitialBatchId,
+                packageQuantity.NormalizedQuantity,
+                userId,
+                cancellationToken);
+            command.InventoryAggregate.SourceLocationId = sourceLocationId;
         }
 
 
@@ -119,7 +140,12 @@ public class StockReleaseHandler(InventoryDbContext dbContext, ISender sender, I
             enteredQuantity: packageQuantity.EnteredQuantity,
             packageMultiplier: packageQuantity.PackageMultiplier,
             unitMultiplier: packageQuantity.UnitMultiplier,
-            normalizedQuantity: packageQuantity.NormalizedQuantity);
+            normalizedQuantity: packageQuantity.NormalizedQuantity,
+            sourceDocumentId: command.InventoryAggregate.SourceDocumentId,
+            sourceDocumentLineId: command.InventoryAggregate.SourceDocumentLineId,
+            parentProductSkuId: command.InventoryAggregate.ParentProductSkuId,
+            parentSalesOrderLineId: command.InventoryAggregate.ParentSalesOrderLineId,
+            sourceLocationId: command.InventoryAggregate.SourceLocationId);
  
         await dbContext.StockMovements.AddAsync(movement, cancellationToken);
 

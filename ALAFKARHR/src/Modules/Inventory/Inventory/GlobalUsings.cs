@@ -2,6 +2,8 @@
 global using SharedWithUI.Maintenance.Enums;
 global using Shared.Contracts.CQRS;
 global using Shared.Contracts.Inventory;
+global using Inventory.Contracts.Stock;
+global using Catalog.Contracts.Products.Features.GetProductSkuInventoryContext;
 global using Shared.Contracts.Organization;
 global using Inventory.Warehouses.Models;
 global using FluentValidation;
@@ -19,6 +21,7 @@ global using Microsoft.AspNetCore.Mvc;
 global using System.Security.Claims;
 global using SharedWithUI.Permissions;
 global using SharedWithUI.Inventory.Enums;
+global using SharedWithUI.Catalog.Enums;
 global using Maintenance.Contracts.Assets;
 global using Shared.Exceptions;
 global using Shared.DDD;

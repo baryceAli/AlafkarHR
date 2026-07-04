@@ -40,6 +40,7 @@ public class ProcurementDocumentConfiguration : IEntityTypeConfiguration<Procure
             line.Property(x => x.ProductName).IsRequired().HasMaxLength(200);
             line.Property(x => x.ProductNameEng).HasMaxLength(200);
             line.Property(x => x.SkuCode).HasMaxLength(100);
+            line.Property(x => x.ReorderingRuleId);
             line.Property(x => x.Quantity).HasPrecision(18, 4);
             line.Property(x => x.UnitCost).HasPrecision(18, 4);
             line.Property(x => x.DiscountRate).HasPrecision(18, 4);
@@ -51,6 +52,7 @@ public class ProcurementDocumentConfiguration : IEntityTypeConfiguration<Procure
             line.Property(x => x.CreatedBy).HasMaxLength(100);
             line.Property(x => x.ModifiedBy).HasMaxLength(100);
             line.Property(x => x.DeletedBy).HasMaxLength(100);
+            line.HasIndex(x => x.ReorderingRuleId);
         });
 
         builder.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);

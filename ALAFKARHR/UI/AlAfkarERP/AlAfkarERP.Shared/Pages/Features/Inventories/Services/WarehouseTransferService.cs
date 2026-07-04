@@ -75,4 +75,10 @@ public class WarehouseTransferService : BaseApiService, IWarehouseTransferServic
         var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/{transferId}/cancel");
         return await SendAsync<UpdateDeleteResponseDto>(request, null);
     }
+
+    public async Task<ApiResult<List<TransferFefoBatchSuggestionDto>>> GetFefoBatchSuggestionsAsync(Guid companyId, Guid sourceWarehouseId, Guid productSkuId, decimal quantity)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/fefo-suggestions/company/{companyId}/warehouse/{sourceWarehouseId}/sku/{productSkuId}?quantity={quantity}");
+        return await SendAsync<List<TransferFefoBatchSuggestionDto>>(request, "suggestions");
+    }
 }
