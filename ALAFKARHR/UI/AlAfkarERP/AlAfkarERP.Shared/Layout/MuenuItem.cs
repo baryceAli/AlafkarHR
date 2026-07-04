@@ -1487,6 +1487,16 @@ public class MenuItem
                         },
                         new MenuItem
                         {
+                            TextEn = "Barcode Workbench",
+                            TextAr = "منصة الباركود",
+                            Icon = "bi-upc-scan",
+                            Url = "/Inventory/Barcode",
+                            PermissionPolicy = PermissionList.InventoryPermissions.View,
+                            KeywordsEn = "barcode scanner scan warehouse inventory locations batches cycle count",
+                            KeywordsAr = "باركود ماسح مسح مستودع مخزون مواقع دفعات جرد",
+                        },
+                        new MenuItem
+                        {
                             TextEn = "Asset Instances",
                             TextAr = "الأصول المخزنية",
                             Icon = "bi-hdd-rack",

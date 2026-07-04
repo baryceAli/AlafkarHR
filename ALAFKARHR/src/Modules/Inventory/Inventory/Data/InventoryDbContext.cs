@@ -22,6 +22,8 @@ public class InventoryDbContext:DbContext
     public DbSet<InventoryLocationBalance> InventoryLocationBalances => Set<InventoryLocationBalance>();
     public DbSet<CycleCount> CycleCounts => Set<CycleCount>();
     public DbSet<CycleCountLine> CycleCountLines => Set<CycleCountLine>();
+    public DbSet<BarcodeOperationSession> BarcodeOperationSessions => Set<BarcodeOperationSession>();
+    public DbSet<BarcodeOperationLine> BarcodeOperationLines => Set<BarcodeOperationLine>();
     public DbSet<PutawayRule> PutawayRules => Set<PutawayRule>();
     public DbSet<QualityInspection> QualityInspections => Set<QualityInspection>();
     public DbSet<LandedCostVoucher> LandedCostVouchers => Set<LandedCostVoucher>();

@@ -1,0 +1,419 @@
+@layout AdminLayout
+@page "/Inventory/Barcode"
+
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Inventory.Dtos
+
+@implements IDisposable
+@inject IInventoryService InventoryService
+@inject IWarehouseService WarehouseService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Barcode Workbench", "منصة الباركود")"
+                Subtitle="@Text("Scan SKU, package, location, batch, transfer, and cycle count codes into auditable warehouse sessions.", "امسح رموز الأصناف والعبوات والمواقع والدفعات والتحويلات والجرد ضمن جلسات مستودعية قابلة للتدقيق.")"
+                Overline="@Text("Inventory", "المخزون")"
+                Icon="bi bi-upc-scan" />
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3"></div>
+                <div class="fw-semibold">@Text("Loading scanner workbench...", "جاري تحميل منصة المسح...")</div>
+            </div>
+        </AppCard>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-xl-4">
+                <AppCard Title="@Text("Session", "الجلسة")" CssClass="h-100">
+                    <div class="vstack gap-3">
+                        <div>
+                            <label class="form-label">@Text("Operation", "العملية")</label>
+                            <select class="form-select" @bind="session.OperationType" disabled="@(currentSession is not null)">
+                                @foreach (var operation in Enum.GetValues<BarcodeOperationType>())
+                                {
+                                    <option value="@operation">@OperationText(operation)</option>
+                                }
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">@Text("Warehouse", "المستودع")</label>
+                            <select class="form-select" @bind="selectedWarehouseIdText" disabled="@(currentSession is not null)">
+                                <option value="">@Text("No warehouse selected", "لم يتم اختيار مستودع")</option>
+                                @foreach (var warehouse in warehouses)
+                                {
+                                    <option value="@warehouse.Id">@WarehouseText(warehouse)</option>
+                                }
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">@Text("Reference", "المرجع")</label>
+                            <InputText class="form-control" @bind-Value="session.ReferenceNumber" disabled="@(currentSession is not null)" />
+                        </div>
+                        <div>
+                            <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                            <InputTextArea class="form-control" @bind-Value="session.Notes" disabled="@(currentSession is not null)" />
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-primary" type="button" @onclick="StartSessionAsync" disabled="@(currentSession is not null || isBusy)">
+                                <i class="bi bi-play-circle"></i>
+                                @Text("Start Session", "بدء الجلسة")
+                            </button>
+                            <button class="btn btn-outline-secondary" type="button" @onclick="ResetSession" disabled="@isBusy">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                                @Text("Reset", "إعادة ضبط")
+                            </button>
+                        </div>
+                    </div>
+                </AppCard>
+            </div>
+
+            <div class="col-xl-8">
+                <AppCard Title="@Text("Scan", "المسح")" CssClass="h-100">
+                    <div class="vstack gap-3">
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+                            <input @ref="scanInput"
+                                   class="form-control"
+                                   value="@scanText"
+                                   @oninput="OnScanInput"
+                                   @onkeydown="OnScanKeyDown"
+                                   disabled="@(currentSession is null || isBusy)"
+                                   placeholder="@Text("Scan or type barcode, then press Enter", "امسح أو اكتب الباركود ثم اضغط Enter")" />
+                            <button class="btn btn-primary" type="button" @onclick="ScanAsync" disabled="@(currentSession is null || isBusy || string.IsNullOrWhiteSpace(scanText))">
+                                <i class="bi bi-check2"></i>
+                                @Text("Scan", "مسح")
+                            </button>
+                        </div>
+
+                        @if (lastScan is not null)
+                        {
+                            <div class="border rounded p-3">
+                                <div class="d-flex flex-wrap justify-content-between gap-2">
+                                    <div>
+                                        <div class="fw-semibold">@Display(lastScan.LabelEng, lastScan.Label, lastScan.NormalizedBarcode)</div>
+                                        <div class="text-muted small">@ScanTypeText(lastScan.EntityType) · @lastScan.Code</div>
+                                    </div>
+                                    <span class="badge @ScanBadgeClass(lastScan)">
+                                        @(lastScan.IsRejected ? Text("Rejected", "مرفوض") : lastScan.Warnings.Any() ? Text("Warning", "تنبيه") : Text("Accepted", "مقبول"))
+                                    </span>
+                                </div>
+                                @if (lastScan.Warnings.Any())
+                                {
+                                    <div class="alert alert-warning mt-3 mb-0 py-2">
+                                        @foreach (var warning in lastScan.Warnings)
+                                        {
+                                            <div>@warning</div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @if (currentSession is null)
+                        {
+                            <EmptyState Title="@Text("No active scan session", "لا توجد جلسة مسح نشطة")"
+                                        Message="@Text("Start a session, then keep the scanner input focused for keyboard-wedge scanning.", "ابدأ جلسة ثم أبق حقل المسح نشطا لاستخدام ماسح لوحة المفاتيح.")"
+                                        Icon="bi-upc-scan" />
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div>
+                                    <div class="fw-semibold">@OperationText(currentSession.OperationType)</div>
+                                    <div class="text-muted small">@currentSession.ReferenceNumber · @currentSession.Status</div>
+                                </div>
+                                <button class="btn btn-success" type="button" @onclick="ApplySessionAsync" disabled="@isBusy">
+                                    <i class="bi bi-check2-circle"></i>
+                                    @Text("Apply", "تطبيق")
+                                </button>
+                            </div>
+
+                            <div class="erp-table-wrap">
+                                <table class="erp-table table">
+                                    <thead>
+                                        <tr>
+                                            <th>@Text("Time", "الوقت")</th>
+                                            <th>@Text("Barcode", "الباركود")</th>
+                                            <th>@Text("Type", "النوع")</th>
+                                            <th>@Text("Resolved", "النتيجة")</th>
+                                            <th>@Text("Qty", "الكمية")</th>
+                                            <th>@Text("Status", "الحالة")</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var line in currentSession.Lines.OrderByDescending(x => x.ScannedAt))
+                                        {
+                                            <tr>
+                                                <td>@line.ScannedAt.ToLocalTime().ToString("HH:mm:ss")</td>
+                                                <td>@line.RawBarcode</td>
+                                                <td>@ScanTypeText(line.EntityType)</td>
+                                                <td>
+                                                    <div class="fw-semibold">@Display(line.DisplayLabelEng, line.DisplayLabel, line.BatchNumber ?? string.Empty)</div>
+                                                    @if (!string.IsNullOrWhiteSpace(line.Warning))
+                                                    {
+                                                        <div class="text-warning small">@line.Warning</div>
+                                                    }
+                                                </td>
+                                                <td>@line.NormalizedQuantity</td>
+                                                <td><span class="badge @LineBadgeClass(line.Status)">@LineStatusText(line.Status)</span></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </AppCard>
+            </div>
+
+            <div class="col-12">
+                <AppCard Title="@Text("Recent Sessions", "الجلسات الأخيرة")">
+                    <div class="erp-table-wrap">
+                        <table class="erp-table table">
+                            <thead>
+                                <tr>
+                                    <th>@Text("Started", "بدأت")</th>
+                                    <th>@Text("Operation", "العملية")</th>
+                                    <th>@Text("Reference", "المرجع")</th>
+                                    <th>@Text("Lines", "الأسطر")</th>
+                                    <th>@Text("Status", "الحالة")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in sessions.Take(25))
+                                {
+                                    <tr>
+                                        <td>@item.StartedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>@OperationText(item.OperationType)</td>
+                                        <td>@item.ReferenceNumber</td>
+                                        <td>@item.Lines.Count</td>
+                                        <td><span class="badge @SessionBadgeClass(item.Status)">@item.Status</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private bool isLoading = true;
+    private bool isBusy;
+    private string scanText = string.Empty;
+    private string selectedWarehouseIdText = string.Empty;
+    private ElementReference scanInput;
+    private BarcodeOperationSessionDto session = new();
+    private BarcodeOperationSessionDto? currentSession;
+    private BarcodeScanResultDto? lastScan;
+    private List<WarehouseDto> warehouses = [];
+    private List<BarcodeOperationSessionDto> sessions = [];
+
+    private Guid? SelectedWarehouseId => Guid.TryParse(selectedWarehouseIdText, out var id) ? id : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var auth = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (!CompanyContext.TryGetCompanyId(auth.User, out companyId))
+        {
+            isLoading = false;
+            return;
+        }
+
+        ResetSession();
+        await LoadDataAsync();
+        isLoading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (currentSession is not null && !isBusy)
+            await scanInput.FocusAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        var warehouseResponse = await WarehouseService.GetAsync(companyId, 0, 10000);
+        if (warehouseResponse.IsSuccess)
+            warehouses = warehouseResponse.Data?.Data?.ToList() ?? [];
+
+        var sessionsResponse = await InventoryService.GetBarcodeSessionsAsync(companyId);
+        if (sessionsResponse.IsSuccess)
+            sessions = sessionsResponse.Data ?? [];
+    }
+
+    private async Task StartSessionAsync()
+    {
+        isBusy = true;
+        session.CompanyId = companyId;
+        session.WarehouseId = SelectedWarehouseId;
+        var result = await InventoryService.CreateBarcodeSessionAsync(session);
+        if (result.IsSuccess)
+        {
+            var id = result.Data?.Id ?? Guid.Empty;
+            await LoadDataAsync();
+            currentSession = sessions.FirstOrDefault(x => x.Id == id)
+                ?? new BarcodeOperationSessionDto { Id = id, CompanyId = companyId, OperationType = session.OperationType, WarehouseId = session.WarehouseId, ReferenceNumber = session.ReferenceNumber };
+            ToastService.ShowSuccess(Text("Barcode session started.", "تم بدء جلسة الباركود."));
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not start barcode session.", "تعذر بدء جلسة الباركود."));
+        }
+
+        isBusy = false;
+    }
+
+    private async Task ScanAsync()
+    {
+        if (currentSession is null || string.IsNullOrWhiteSpace(scanText))
+            return;
+
+        isBusy = true;
+        var request = new BarcodeScanRequestDto
+        {
+            CompanyId = companyId,
+            Barcode = scanText,
+            OperationType = currentSession.OperationType,
+            WarehouseId = currentSession.WarehouseId,
+            WarehouseLocationId = currentSession.SourceLocationId ?? currentSession.DestinationLocationId
+        };
+
+        var sessionResult = await InventoryService.ScanBarcodeSessionAsync(currentSession.Id, request);
+        if (sessionResult.IsSuccess && sessionResult.Data is not null)
+        {
+            currentSession = sessionResult.Data;
+            lastScan = currentSession.Lines.OrderByDescending(x => x.ScannedAt)
+                .Select(x => new BarcodeScanResultDto
+                {
+                    RawBarcode = x.RawBarcode,
+                    NormalizedBarcode = x.RawBarcode,
+                    EntityType = x.EntityType,
+                    Label = x.DisplayLabel,
+                    LabelEng = x.DisplayLabelEng,
+                    Code = x.BatchNumber,
+                    IsRejected = x.Status == BarcodeLineStatus.Rejected,
+                    Warning = x.Warning,
+                    Warnings = string.IsNullOrWhiteSpace(x.Warning) ? [] : [x.Warning]
+                })
+                .FirstOrDefault();
+            scanText = string.Empty;
+            await LoadDataAsync();
+        }
+        else
+        {
+            ToastService.ShowError(sessionResult.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Scan failed.", "فشل المسح."));
+        }
+
+        isBusy = false;
+    }
+
+    private async Task ApplySessionAsync()
+    {
+        if (currentSession is null)
+            return;
+
+        isBusy = true;
+        var result = await InventoryService.ApplyBarcodeSessionAsync(currentSession.Id, confirmWarnings: true);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(result.Data?.Message ?? Text("Barcode session applied.", "تم تطبيق جلسة الباركود."));
+            ResetSession();
+            await LoadDataAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Apply failed.", "فشل التطبيق."));
+        }
+
+        isBusy = false;
+    }
+
+    private void ResetSession()
+    {
+        session = new BarcodeOperationSessionDto
+        {
+            CompanyId = companyId,
+            OperationType = BarcodeOperationType.StockIn,
+            ReferenceNumber = $"BAR-{DateTime.UtcNow:yyyyMMddHHmmss}"
+        };
+        currentSession = null;
+        lastScan = null;
+        scanText = string.Empty;
+        selectedWarehouseIdText = string.Empty;
+    }
+
+    private void OnScanInput(ChangeEventArgs args) => scanText = args.Value?.ToString() ?? string.Empty;
+
+    private async Task OnScanKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+            await ScanAsync();
+    }
+
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Display(string? en, string? ar, string fallback) => string.IsNullOrWhiteSpace(en) && string.IsNullOrWhiteSpace(ar) ? fallback : Text(en ?? fallback, ar ?? fallback);
+    private string WarehouseText(WarehouseDto warehouse) => Text(warehouse.NameEng, warehouse.Name);
+    private string OperationText(BarcodeOperationType value) => value switch
+    {
+        BarcodeOperationType.Receipt => Text("Receipt", "استلام"),
+        BarcodeOperationType.Delivery => Text("Delivery", "تسليم"),
+        BarcodeOperationType.TransferShip => Text("Transfer Ship", "شحن تحويل"),
+        BarcodeOperationType.TransferReceive => Text("Transfer Receive", "استلام تحويل"),
+        BarcodeOperationType.StockIn => Text("Stock In", "إدخال مخزون"),
+        BarcodeOperationType.StockOut => Text("Stock Out", "إخراج مخزون"),
+        BarcodeOperationType.Adjustment => Text("Adjustment", "تسوية"),
+        BarcodeOperationType.CycleCount => Text("Cycle Count", "جرد دوري"),
+        _ => value.ToString()
+    };
+    private string ScanTypeText(BarcodeScanEntityType value) => value switch
+    {
+        BarcodeScanEntityType.ProductSku => Text("SKU", "صنف"),
+        BarcodeScanEntityType.ProductPackage => Text("Package", "عبوة"),
+        BarcodeScanEntityType.WarehouseLocation => Text("Location", "موقع"),
+        BarcodeScanEntityType.Batch => Text("Batch", "دفعة"),
+        BarcodeScanEntityType.WarehouseTransfer => Text("Transfer", "تحويل"),
+        BarcodeScanEntityType.DeliveryNote => Text("Delivery", "تسليم"),
+        BarcodeScanEntityType.GoodsReceipt => Text("Receipt", "استلام"),
+        BarcodeScanEntityType.CycleCount => Text("Cycle Count", "جرد دوري"),
+        BarcodeScanEntityType.Gs1 => "GS1",
+        _ => Text("Unknown", "غير معروف")
+    };
+    private string LineStatusText(BarcodeLineStatus status) => status switch
+    {
+        BarcodeLineStatus.Accepted => Text("Accepted", "مقبول"),
+        BarcodeLineStatus.Warning => Text("Warning", "تنبيه"),
+        BarcodeLineStatus.Rejected => Text("Rejected", "مرفوض"),
+        _ => status.ToString()
+    };
+    private static string LineBadgeClass(BarcodeLineStatus status) => status switch
+    {
+        BarcodeLineStatus.Accepted => "bg-success",
+        BarcodeLineStatus.Warning => "bg-warning text-dark",
+        BarcodeLineStatus.Rejected => "bg-danger",
+        _ => "bg-secondary"
+    };
+    private static string SessionBadgeClass(BarcodeSessionStatus status) => status switch
+    {
+        BarcodeSessionStatus.Ready => "bg-primary",
+        BarcodeSessionStatus.Applied => "bg-success",
+        BarcodeSessionStatus.Cancelled => "bg-secondary",
+        _ => "bg-warning text-dark"
+    };
+    private static string ScanBadgeClass(BarcodeScanResultDto scan) => scan.IsRejected ? "bg-danger" : scan.Warnings.Any() ? "bg-warning text-dark" : "bg-success";
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

@@ -37,5 +37,10 @@ public interface IInventoryService
     Task<ApiResult<string>> DeleteCycleCountAsync(Guid id);
     Task<ApiResult<LocationAvailabilityDto>> GetSkuLocationAvailabilityAsync(Guid companyId, Guid productSkuId, Guid? warehouseId = null, Guid? warehouseLocationId = null, Guid? batchId = null, Guid? branchId = null);
     Task<ApiResult<PutawaySuggestionDto>> GetPutawaySuggestionAsync(Guid companyId, Guid warehouseId, Guid productId, Guid productSkuId);
+    Task<ApiResult<BarcodeScanResultDto>> ResolveBarcodeAsync(BarcodeScanRequestDto request);
+    Task<ApiResult<CreateResponseDto>> CreateBarcodeSessionAsync(BarcodeOperationSessionDto session);
+    Task<ApiResult<BarcodeOperationSessionDto>> ScanBarcodeSessionAsync(Guid sessionId, BarcodeScanRequestDto request);
+    Task<ApiResult<BarcodeApplyResultDto>> ApplyBarcodeSessionAsync(Guid sessionId, bool confirmWarnings);
+    Task<ApiResult<List<BarcodeOperationSessionDto>>> GetBarcodeSessionsAsync(Guid companyId);
     //public Task<ApiResult<CreateResponseDto>> AdjustmentAsync(CreateInventoryAggregateDto inventoryAggregateDto);
 }

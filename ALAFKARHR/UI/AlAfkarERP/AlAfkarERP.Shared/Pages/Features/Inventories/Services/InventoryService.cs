@@ -236,6 +236,48 @@ public class InventoryService : BaseApiService, IInventoryService
         return await SendAsync<PutawaySuggestionDto>(request, "suggestion");
     }
 
+    public async Task<ApiResult<BarcodeScanResultDto>> ResolveBarcodeAsync(BarcodeScanRequestDto scanRequest)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/inventory/barcode/resolve")
+        {
+            Content = JsonContent.Create(scanRequest)
+        };
+        return await SendAsync<BarcodeScanResultDto>(request, "result");
+    }
+
+    public async Task<ApiResult<CreateResponseDto>> CreateBarcodeSessionAsync(BarcodeOperationSessionDto session)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/inventory/barcode/sessions")
+        {
+            Content = JsonContent.Create(session)
+        };
+        return await SendAsync<CreateResponseDto>(request, null);
+    }
+
+    public async Task<ApiResult<BarcodeOperationSessionDto>> ScanBarcodeSessionAsync(Guid sessionId, BarcodeScanRequestDto scanRequest)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/inventory/barcode/sessions/{sessionId}/scan")
+        {
+            Content = JsonContent.Create(scanRequest)
+        };
+        return await SendAsync<BarcodeOperationSessionDto>(request, "session");
+    }
+
+    public async Task<ApiResult<BarcodeApplyResultDto>> ApplyBarcodeSessionAsync(Guid sessionId, bool confirmWarnings)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/inventory/barcode/sessions/{sessionId}/apply")
+        {
+            Content = JsonContent.Create(new ApplyBarcodeSessionDto { SessionId = sessionId, ConfirmWarnings = confirmWarnings })
+        };
+        return await SendAsync<BarcodeApplyResultDto>(request, "result");
+    }
+
+    public async Task<ApiResult<List<BarcodeOperationSessionDto>>> GetBarcodeSessionsAsync(Guid companyId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/inventory/barcode/sessions/company/{companyId}");
+        return await SendAsync<List<BarcodeOperationSessionDto>>(request, "sessions");
+    }
+
     private async Task<ApiResult<List<T>>> GetControlListAsync<T>(string route, Guid companyId)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/inventory/controls/{route}/company/{companyId}");
