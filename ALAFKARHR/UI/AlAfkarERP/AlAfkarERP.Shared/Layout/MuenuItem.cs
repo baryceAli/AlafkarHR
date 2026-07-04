@@ -1631,6 +1631,14 @@ public class MenuItem
                         },
                         new MenuItem
                         {
+                            TextEn = "Replenishment",
+                            TextAr = "تجديد المخزون",
+                            Icon = "bi-basket",
+                            Url = "/Procurement/Replenishment",
+                            PermissionPolicy = PermissionList.PurchaseRequestPermissions.View,
+                        },
+                        new MenuItem
+                        {
                             TextEn = "Procurement Tracker",
                             TextAr = "متتبع المشتريات",
                             Icon = "bi-activity",

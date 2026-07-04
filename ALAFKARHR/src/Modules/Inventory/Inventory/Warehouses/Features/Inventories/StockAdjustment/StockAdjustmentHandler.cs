@@ -91,19 +91,60 @@ public class StockAdjustmentHandler(InventoryDbContext dbContext, ISender sender
             reservedBefore = inventory.TotalReserved;
             if (command.InventoryAggregate.MovementType == MovementType.AdjustmentIncrease)
             {
+                var destinationLocationId = await InventoryLocationBalanceService.ResolveDestinationLocationAsync(
+                    dbContext,
+                    command.InventoryAggregate.CompanyId,
+                    command.InventoryAggregate.WarehouseId.Value,
+                    command.InventoryAggregate.ProductId.Value,
+                    command.InventoryAggregate.ProductSkuId.Value,
+                    command.InventoryAggregate.DestinationLocationId,
+                    cancellationToken);
                 inventory.StockIn(new BatchStock(
                 command.InventoryAggregate.InitialBatchId,
                 command.InventoryAggregate.WarehouseId.Value,
                 packageQuantity.NormalizedQuantity,
                 userId));
+                await InventoryLocationBalanceService.IncreaseAsync(
+                    dbContext,
+                    command.InventoryAggregate.CompanyId,
+                    command.InventoryAggregate.ProductId.Value,
+                    command.InventoryAggregate.ProductSkuId.Value,
+                    command.InventoryAggregate.WarehouseId.Value,
+                    destinationLocationId,
+                    command.InventoryAggregate.InitialBatchId,
+                    packageQuantity.NormalizedQuantity,
+                    userId,
+                    cancellationToken);
+                command.InventoryAggregate.DestinationLocationId = destinationLocationId;
             }
             else
             {
+                var sourceLocationId = await InventoryLocationBalanceService.ResolveSourceLocationAsync(
+                    dbContext,
+                    command.InventoryAggregate.CompanyId,
+                    command.InventoryAggregate.WarehouseId.Value,
+                    command.InventoryAggregate.ProductSkuId.Value,
+                    command.InventoryAggregate.InitialBatchId,
+                    command.InventoryAggregate.SourceLocationId,
+                    packageQuantity.NormalizedQuantity,
+                    requireReserved: false,
+                    cancellationToken);
                 inventory.StockOut(new BatchStock(
                 command.InventoryAggregate.InitialBatchId,
                 command.InventoryAggregate.WarehouseId.Value,
                 packageQuantity.NormalizedQuantity,
                 userId));
+                await InventoryLocationBalanceService.DecreaseAsync(
+                    dbContext,
+                    command.InventoryAggregate.CompanyId,
+                    command.InventoryAggregate.ProductSkuId.Value,
+                    command.InventoryAggregate.WarehouseId.Value,
+                    sourceLocationId,
+                    command.InventoryAggregate.InitialBatchId,
+                    packageQuantity.NormalizedQuantity,
+                    userId,
+                    cancellationToken);
+                command.InventoryAggregate.SourceLocationId = sourceLocationId;
             }
         }
 
@@ -135,7 +176,13 @@ public class StockAdjustmentHandler(InventoryDbContext dbContext, ISender sender
             enteredQuantity: packageQuantity.EnteredQuantity,
             packageMultiplier: packageQuantity.PackageMultiplier,
             unitMultiplier: packageQuantity.UnitMultiplier,
-            normalizedQuantity: packageQuantity.NormalizedQuantity);
+            normalizedQuantity: packageQuantity.NormalizedQuantity,
+            sourceDocumentId: command.InventoryAggregate.SourceDocumentId,
+            sourceDocumentLineId: command.InventoryAggregate.SourceDocumentLineId,
+            parentProductSkuId: command.InventoryAggregate.ParentProductSkuId,
+            parentSalesOrderLineId: command.InventoryAggregate.ParentSalesOrderLineId,
+            sourceLocationId: command.InventoryAggregate.SourceLocationId,
+            destinationLocationId: command.InventoryAggregate.DestinationLocationId);
         await dbContext.StockMovements.AddAsync(movement, cancellationToken);
         await dbContext.InventoryValuationLayers.AddAsync(
             InventoryValuationLayer.FromMovement(movement, command.InventoryAggregate.CompanyId, userId),

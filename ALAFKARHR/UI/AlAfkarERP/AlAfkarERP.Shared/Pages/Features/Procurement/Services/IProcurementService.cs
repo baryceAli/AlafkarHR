@@ -22,6 +22,8 @@ public interface IProcurementService
     Task<ApiResult<List<ReorderingRuleDto>>> GetReorderingRulesAsync(Guid companyId);
     Task<ApiResult<CreateResponseDto>> SaveReorderingRuleAsync(ReorderingRuleDto item);
     Task<ApiResult<string>> DeleteReorderingRuleAsync(Guid id);
+    Task<ApiResult<List<ReplenishmentSuggestionDto>>> GetReplenishmentSuggestionsAsync(Guid companyId, Guid? branchId, Guid? warehouseId, Guid? productSkuId);
+    Task<ApiResult<CreateResponseDto>> CreatePurchaseRequestFromReplenishmentAsync(CreatePurchaseRequestFromReplenishmentDto request);
     Task<ApiResult<List<ProcurementTrackerRowDto>>> GetTrackerAsync(Guid companyId);
     Task<ApiResult<List<SupplierScorecardRowDto>>> GetSupplierScorecardAsync(Guid companyId);
 }

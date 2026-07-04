@@ -1,0 +1,310 @@
+@layout AdminLayout
+@page "/Procurement/Replenishment"
+
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Organization.Dtos
+@using SharedWithUI.Permissions
+@using SharedWithUI.Procurement.Dtos
+
+@implements IDisposable
+@inject IProcurementService ProcurementService
+@inject IWarehouseService WarehouseService
+@inject IBranchService BranchService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Replenishment", "تجديد المخزون")"
+                Subtitle="@Text("Review shortages from active reordering rules and create purchase requests.", "مراجعة النواقص من قواعد إعادة الطلب النشطة وإنشاء طلبات شراء.")"
+                Overline="@Text("Procurement Controls", "ضوابط المشتريات")"
+                Icon="bi bi-basket">
+        <Actions>
+            <button class="btn btn-outline-secondary" @onclick="LoadAsync" disabled="@isLoading">
+                <i class="bi bi-arrow-repeat"></i>
+                @Text("Refresh", "تحديث")
+            </button>
+            <button class="btn btn-primary" @onclick="CreatePurchaseRequestAsync" disabled="@(!CanCreateSelected)">
+                <i class="bi bi-card-checklist"></i>
+                @Text("Create Purchase Request", "إنشاء طلب شراء")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3"></div>
+                <div class="fw-semibold">@Text("Loading replenishment suggestions...", "جاري تحميل اقتراحات تجديد المخزون...")</div>
+            </div>
+        </AppCard>
+    }
+    else if (!CanView)
+    {
+        <div class="alert alert-warning">@Text("You don't have permission to view replenishment.", "ليست لديك صلاحية عرض تجديد المخزون.")</div>
+    }
+    else
+    {
+        <AppCard CssClass="mb-3 allow-overflow">
+            <FilterBar>
+                <ChildContent>
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-lg-4">
+                            <label class="form-label">@Text("Branch", "الفرع")</label>
+                            <select class="form-select" @bind="selectedBranchIdText">
+                                <option value="">@Text("All permitted branches", "كل الفروع المسموحة")</option>
+                                @foreach (var branch in VisibleBranches)
+                                {
+                                    <option value="@branch.Id">@BranchText(branch)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12 col-lg-4">
+                            <label class="form-label">@Text("Warehouse", "المستودع")</label>
+                            <select class="form-select" @bind="selectedWarehouseIdText">
+                                <option value="">@Text("All warehouses", "كل المستودعات")</option>
+                                @foreach (var warehouse in VisibleWarehouses)
+                                {
+                                    <option value="@warehouse.Id">@WarehouseText(warehouse)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12 col-lg-4">
+                            <label class="form-label">@Text("Search", "بحث")</label>
+                            <div class="input-group erp-search-control">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input class="form-control" placeholder="@Text("Product, SKU, supplier", "منتج، وحدة، مورد")" @bind="searchText" @bind:event="oninput" />
+                            </div>
+                        </div>
+                    </div>
+                </ChildContent>
+                <Actions>
+                    <button class="btn btn-outline-secondary" @onclick="LoadAsync">
+                        <i class="bi bi-funnel"></i>
+                        @Text("Apply", "تطبيق")
+                    </button>
+                </Actions>
+            </FilterBar>
+        </AppCard>
+
+        <AppCard Title="@Text("Suggestions", "الاقتراحات")">
+            <div class="erp-table-wrap">
+                <table class="table erp-table mb-0">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>@Text("SKU", "وحدة المنتج")</th>
+                            <th>@Text("Warehouse", "المستودع")</th>
+                            <th>@Text("Available", "المتاح")</th>
+                            <th>@Text("Min / Max", "الأدنى / الأقصى")</th>
+                            <th>@Text("Suggested", "المقترح")</th>
+                            <th>@Text("Supplier", "المورد")</th>
+                            <th>@Text("Expected", "المتوقع")</th>
+                            <th>@Text("Status", "الحالة")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (FilteredSuggestions.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">
+                                    @Text("No replenishment suggestions found.", "لا توجد اقتراحات تجديد مخزون.")
+                                </td>
+                            </tr>
+                        }
+                        @foreach (var item in FilteredSuggestions)
+                        {
+                            <tr>
+                                <td>
+                                    <input class="form-check-input" type="checkbox" checked="@selectedRuleIds.Contains(item.ReorderingRuleId)" disabled="@(!item.CanCreatePurchaseRequest)" @onchange="args => ToggleSelection(item, args)" />
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">@Display(FirstNonEmpty(DisplayName(item.ProductNameEng, item.ProductName), item.SkuCode))</div>
+                                    <div class="text-muted small">@Display(item.SkuCode)</div>
+                                </td>
+                                <td>@Display(DisplayName(item.WarehouseNameEng, item.WarehouseName))</td>
+                                <td>
+                                    <div>@item.AvailableQuantity.ToString("N2")</div>
+                                    <div class="text-muted small">@Text("Reserved", "محجوز"): @item.ReservedQuantity.ToString("N2")</div>
+                                </td>
+                                <td>@item.MinimumQuantity.ToString("N2") / @item.MaximumQuantity.ToString("N2")</td>
+                                <td class="fw-semibold">@item.SuggestedQuantity.ToString("N2")</td>
+                                <td>@Display(item.SupplierName)</td>
+                                <td>@item.ExpectedDate.ToString("yyyy-MM-dd")</td>
+                                <td>
+                                    <StatusChip Text="@StatusText(item)" Tone="@(item.CanCreatePurchaseRequest ? "success" : "warning")" />
+                                    @if (!string.IsNullOrWhiteSpace(item.WarningMessage))
+                                    {
+                                        <div class="text-muted small mt-1">@item.WarningMessage</div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </AppCard>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private bool isLoading = true;
+    private string? searchText;
+    private string selectedBranchIdText = string.Empty;
+    private string selectedWarehouseIdText = string.Empty;
+    private AuthenticationState? authState;
+    private CurrentUserBranchAccessDto branchAccess = new();
+    private List<BranchDto> branches = [];
+    private List<WarehouseDto> warehouses = [];
+    private List<ReplenishmentSuggestionDto> suggestions = [];
+    private readonly HashSet<Guid> selectedRuleIds = [];
+
+    private bool CanView => HasPermission(PermissionList.PurchaseRequestPermissions.View);
+    private bool CanCreate => HasPermission(PermissionList.PurchaseRequestPermissions.Create);
+    private Guid? SelectedBranchId => Guid.TryParse(selectedBranchIdText, out var id) ? id : null;
+    private Guid? SelectedWarehouseId => Guid.TryParse(selectedWarehouseIdText, out var id) ? id : null;
+    private IEnumerable<BranchDto> VisibleBranches => branchAccess.CanViewAllBranches
+        ? branches
+        : branches.Where(branch => branchAccess.BranchIds.Contains(branch.Id));
+    private IEnumerable<WarehouseDto> VisibleWarehouses => warehouses
+        .Where(warehouse => !SelectedBranchId.HasValue || warehouse.BranchId == null || warehouse.BranchId == SelectedBranchId.Value);
+    private List<ReplenishmentSuggestionDto> FilteredSuggestions => string.IsNullOrWhiteSpace(searchText)
+        ? suggestions
+        : suggestions.Where(item =>
+            Contains(item.ProductName, searchText)
+            || Contains(item.ProductNameEng, searchText)
+            || Contains(item.SkuCode, searchText)
+            || Contains(item.SupplierName, searchText)).ToList();
+    private bool CanCreateSelected => CanCreate
+        && selectedRuleIds.Count > 0
+        && SelectedSuggestions.Count != 0
+        && SelectedSuggestions.All(x => x.CanCreatePurchaseRequest)
+        && SelectedSuggestions.Select(x => x.SupplierId).Distinct().Count() == 1;
+    private List<ReplenishmentSuggestionDto> SelectedSuggestions => suggestions.Where(x => selectedRuleIds.Contains(x.ReorderingRuleId)).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
+        {
+            isLoading = false;
+            return;
+        }
+
+        await LoadLookupsAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var accessResponse = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        branchAccess = accessResponse.IsSuccess ? accessResponse.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+
+        var branchResponse = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        if (branchResponse.IsSuccess)
+            branches = branchResponse.Data?.Data?.ToList() ?? [];
+
+        var warehouseResponse = await WarehouseService.GetAsync(companyId, 0, 10000);
+        if (warehouseResponse.IsSuccess)
+        {
+            var loadedWarehouses = warehouseResponse.Data?.Data ?? [];
+            warehouses = branchAccess.CanViewAllBranches
+                ? loadedWarehouses.ToList()
+                : loadedWarehouses.Where(warehouse => warehouse.BranchId == null || (warehouse.BranchId.HasValue && branchAccess.BranchIds.Contains(warehouse.BranchId.Value))).ToList();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        if (!CanView)
+        {
+            isLoading = false;
+            return;
+        }
+
+        isLoading = true;
+        selectedRuleIds.Clear();
+        var result = await ProcurementService.GetReplenishmentSuggestionsAsync(companyId, SelectedBranchId, SelectedWarehouseId, null);
+        if (result.IsSuccess)
+            suggestions = result.Data ?? [];
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load replenishment suggestions.", "تعذر تحميل اقتراحات تجديد المخزون."));
+
+        isLoading = false;
+    }
+
+    private async Task CreatePurchaseRequestAsync()
+    {
+        if (!CanCreateSelected)
+        {
+            ToastService.ShowWarning(Text("Select ready rows for one supplier.", "اختر صفوفا جاهزة لمورد واحد."));
+            return;
+        }
+
+        var selected = SelectedSuggestions;
+        var first = selected.First();
+        var request = new CreatePurchaseRequestFromReplenishmentDto
+        {
+            CompanyId = companyId,
+            BranchId = SelectedBranchId,
+            WarehouseId = SelectedWarehouseId ?? first.WarehouseId,
+            SupplierId = first.SupplierId,
+            CurrencyId = first.CurrencyId,
+            Notes = Text("Created from replenishment suggestions.", "تم إنشاؤه من اقتراحات تجديد المخزون."),
+            Lines = selected.Select(item => new CreatePurchaseRequestFromReplenishmentLineDto
+            {
+                ReorderingRuleId = item.ReorderingRuleId,
+                ProductSkuId = item.ProductSkuId,
+                WarehouseId = item.WarehouseId,
+                SupplierId = item.SupplierId,
+                Quantity = item.SuggestedQuantity
+            }).ToList()
+        };
+
+        var result = await ProcurementService.CreatePurchaseRequestFromReplenishmentAsync(request);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Purchase request created.", "تم إنشاء طلب الشراء."));
+            NavigationManager.NavigateTo($"/Procurement/purchase-requests/Detail/{result.Data?.Id}");
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not create purchase request.", "تعذر إنشاء طلب الشراء."));
+        }
+    }
+
+    private void ToggleSelection(ReplenishmentSuggestionDto item, ChangeEventArgs args)
+    {
+        var isChecked = args.Value is bool value && value;
+        if (isChecked)
+            selectedRuleIds.Add(item.ReorderingRuleId);
+        else
+            selectedRuleIds.Remove(item.ReorderingRuleId);
+    }
+
+    private string StatusText(ReplenishmentSuggestionDto item) =>
+        item.CanCreatePurchaseRequest ? Text("Ready", "جاهز") : Text("Review", "مراجعة");
+
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string DisplayName(string? nameEng, string? name) => SharedDataService.SelectViewLang(nameEng ?? string.Empty, name ?? string.Empty);
+    private string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private string BranchText(BranchDto branch) => DisplayName(branch.NameEng, branch.Name);
+    private string WarehouseText(WarehouseDto warehouse) => warehouse.BranchId.HasValue
+        ? $"{DisplayName(warehouse.NameEng, warehouse.Name)} - {BranchName(warehouse.BranchId.Value)}"
+        : $"{DisplayName(warehouse.NameEng, warehouse.Name)} - {Text("Company", "الشركة")}";
+    private string BranchName(Guid branchId) => DisplayName(branches.FirstOrDefault(x => x.Id == branchId)?.NameEng, branches.FirstOrDefault(x => x.Id == branchId)?.Name);
+    private static string FirstNonEmpty(params string?[] values) => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+    private static bool Contains(string? value, string? query) => !string.IsNullOrWhiteSpace(value) && !string.IsNullOrWhiteSpace(query) && value.Contains(query, StringComparison.OrdinalIgnoreCase);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

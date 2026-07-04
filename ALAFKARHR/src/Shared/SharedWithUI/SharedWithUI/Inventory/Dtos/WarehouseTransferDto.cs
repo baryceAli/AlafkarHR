@@ -48,6 +48,8 @@ public class WarehouseTransferItemInputDto
     public Guid ProductId { get; set; }
     public Guid ProductSkuId { get; set; }
     public Guid BatchId { get; set; }
+    public Guid? SourceLocationId { get; set; }
+    public Guid? DestinationLocationId { get; set; }
     public decimal Quantity { get; set; }
     public decimal UnitCost { get; set; }
     public Guid CurrencyId { get; set; }
@@ -57,4 +59,5 @@ public class ReceiveWarehouseTransferItemDto
 {
     public Guid ItemId { get; set; }
     public decimal Quantity { get; set; }
+    public Guid? DestinationLocationId { get; set; }
 }

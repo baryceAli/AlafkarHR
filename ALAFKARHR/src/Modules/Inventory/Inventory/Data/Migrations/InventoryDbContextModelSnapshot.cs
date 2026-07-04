@@ -249,6 +249,127 @@ namespace Inventory.Data.Migrations
                     b.ToTable("BatchStocks", "Inventory");
                 });
 
+            modelBuilder.Entity("Inventory.Warehouses.Models.CycleCount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CountDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CountNumber")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPosted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("WarehouseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("WarehouseLocationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "CountNumber")
+                        .IsUnique();
+
+                    b.HasIndex("CompanyId", "WarehouseId", "WarehouseLocationId", "CountDate");
+
+                    b.ToTable("CycleCounts", "Inventory");
+                });
+
+            modelBuilder.Entity("Inventory.Warehouses.Models.CycleCountLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("CountedQuantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("CycleCountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductSkuId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CycleCountId", "ProductSkuId", "BatchId");
+
+                    b.ToTable("CycleCountLines", "Inventory");
+                });
+
             modelBuilder.Entity("Inventory.Warehouses.Models.InventoryAggregate", b =>
                 {
                     b.Property<Guid>("Id")
@@ -307,6 +428,81 @@ namespace Inventory.Data.Migrations
                         .HasDatabaseName("UX_InventoryAggregate_Company_Warehouse_Sku");
 
                     b.ToTable("Inventories", "Inventory");
+                });
+
+            modelBuilder.Entity("Inventory.Warehouses.Models.InventoryLocationBalance", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductSkuId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("ReservedQuantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("WarehouseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("WarehouseLocationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("CompanyId", "ProductSkuId", "WarehouseId");
+
+                    b.HasIndex("CompanyId", "WarehouseId", "WarehouseLocationId", "ProductSkuId", "BatchId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_InventoryLocationBalance_Key");
+
+                    b.ToTable("InventoryLocationBalances", "Inventory");
                 });
 
             modelBuilder.Entity("Inventory.Warehouses.Models.InventorySnapshot", b =>
@@ -690,6 +886,9 @@ namespace Inventory.Data.Migrations
                     b.Property<string>("DeletedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("DestinationLocationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<decimal>("EnteredQuantity")
                         .HasColumnType("decimal(18,4)");
 
@@ -725,6 +924,12 @@ namespace Inventory.Data.Migrations
                         .HasColumnType("decimal(18,4)")
                         .HasDefaultValue(1m);
 
+                    b.Property<Guid?>("ParentProductSkuId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ParentSalesOrderLineId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
@@ -751,10 +956,19 @@ namespace Inventory.Data.Migrations
                     b.Property<decimal>("ReservedBefore")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<Guid?>("SourceDocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SourceDocumentLineId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("SourceDocumentType")
                         .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
+
+                    b.Property<Guid?>("SourceLocationId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("TotalCost")
                         .HasColumnType("decimal(18,2)");
@@ -775,11 +989,23 @@ namespace Inventory.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BatchId");
+
                     b.HasIndex("CurrencyId");
+
+                    b.HasIndex("DestinationLocationId");
+
+                    b.HasIndex("ParentProductSkuId");
+
+                    b.HasIndex("ParentSalesOrderLineId");
+
+                    b.HasIndex("SourceLocationId");
 
                     b.HasIndex("UnitId");
 
                     b.HasIndex("SourceDocumentType", "ReferenceNumber");
+
+                    b.HasIndex("SourceDocumentType", "SourceDocumentId");
 
                     b.HasIndex("WarehouseId", "ProductSkuId", "BatchId");
 
@@ -810,6 +1036,9 @@ namespace Inventory.Data.Migrations
                     b.Property<string>("DeletedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("DestinationLocationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -833,6 +1062,9 @@ namespace Inventory.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<Guid?>("SourceLocationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<decimal>("UnitCost")
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
@@ -844,9 +1076,13 @@ namespace Inventory.Data.Migrations
 
                     b.HasIndex("BatchId");
 
+                    b.HasIndex("DestinationLocationId");
+
                     b.HasIndex("ProductId");
 
                     b.HasIndex("ProductSkuId");
+
+                    b.HasIndex("SourceLocationId");
 
                     b.HasIndex("WarehouseTransferId");
 
@@ -1099,12 +1335,48 @@ namespace Inventory.Data.Migrations
                     b.Navigation("Batch");
                 });
 
+            modelBuilder.Entity("Inventory.Warehouses.Models.CycleCountLine", b =>
+                {
+                    b.HasOne("Inventory.Warehouses.Models.CycleCount", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("CycleCountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Inventory.Warehouses.Models.InventoryLocationBalance", b =>
+                {
+                    b.HasOne("Inventory.Warehouses.Models.Batch", "Batch")
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Batch");
+                });
+
+            modelBuilder.Entity("Inventory.Warehouses.Models.StockMovement", b =>
+                {
+                    b.HasOne("Inventory.Warehouses.Models.Batch", "Batch")
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Batch");
+                });
+
             modelBuilder.Entity("Inventory.Warehouses.Models.TransferItem", b =>
                 {
                     b.HasOne("WarehouseTransfer", null)
                         .WithMany("Items")
                         .HasForeignKey("WarehouseTransferId")
                         .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("Inventory.Warehouses.Models.CycleCount", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("Inventory.Warehouses.Models.InventoryAggregate", b =>

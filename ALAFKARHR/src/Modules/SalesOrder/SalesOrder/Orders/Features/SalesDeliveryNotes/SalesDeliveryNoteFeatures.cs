@@ -133,6 +133,8 @@ public class PostSalesDeliveryNoteHandler(SalesOrderDbContext dbContext, IHttpCo
                     line.CurrencyId,
                     line.Quantity,
                     note.Number,
+                    note.Id,
+                    line.Id,
                     cancellationToken);
 
                 order.ConsumeLineReservation(orderLine.Id, line.Quantity);
@@ -153,7 +155,10 @@ public class PostSalesDeliveryNoteHandler(SalesOrderDbContext dbContext, IHttpCo
                 line.Notes,
                 note.Number,
                 "SalesDeliveryNote",
-                true), cancellationToken);
+                true,
+                line.UnitOfMeasureId,
+                note.Id,
+                line.Id), cancellationToken);
 
             order.ConsumeLineReservation(orderLine.Id, line.Quantity);
         }

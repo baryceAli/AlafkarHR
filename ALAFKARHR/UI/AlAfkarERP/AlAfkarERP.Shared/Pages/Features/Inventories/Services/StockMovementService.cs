@@ -22,7 +22,10 @@ public class StockMovementService : BaseApiService, IStockMovementService
         Guid? productSkuId = null,
         Guid? batchId = null,
         string? sourceDocumentType = null,
+        Guid? sourceDocumentId = null,
         string? referenceNumber = null,
+        Guid? parentProductSkuId = null,
+        bool? expiredOnly = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,
         Guid? branchId = null)
@@ -38,8 +41,14 @@ public class StockMovementService : BaseApiService, IStockMovementService
             query += $"&batchId={batchId.Value}";
         if (!string.IsNullOrWhiteSpace(sourceDocumentType))
             query += $"&sourceDocumentType={Uri.EscapeDataString(sourceDocumentType)}";
+        if (sourceDocumentId.HasValue)
+            query += $"&sourceDocumentId={sourceDocumentId.Value}";
         if (!string.IsNullOrWhiteSpace(referenceNumber))
             query += $"&referenceNumber={Uri.EscapeDataString(referenceNumber)}";
+        if (parentProductSkuId.HasValue)
+            query += $"&parentProductSkuId={parentProductSkuId.Value}";
+        if (expiredOnly.HasValue)
+            query += $"&expiredOnly={expiredOnly.Value}";
         if (fromDate.HasValue)
             query += $"&fromDate={Uri.EscapeDataString(fromDate.Value.ToString("O"))}";
         if (toDate.HasValue)

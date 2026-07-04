@@ -16,7 +16,12 @@ public record PostInventoryStockInCommand(
     string? Notes,
     string? ReferenceNumber = null,
     string? SourceDocumentType = null,
-    Guid? UnitId = null) : ICommand<PostInventoryStockResult>;
+    Guid? UnitId = null,
+    Guid? SourceDocumentId = null,
+    Guid? SourceDocumentLineId = null,
+    Guid? ParentProductSkuId = null,
+    Guid? ParentSalesOrderLineId = null,
+    Guid? DestinationLocationId = null) : ICommand<PostInventoryStockResult>;
 
 public record PostInventoryStockOutCommand(
     Guid ProductId,
@@ -33,7 +38,12 @@ public record PostInventoryStockOutCommand(
     string? ReferenceNumber = null,
     string? SourceDocumentType = null,
     bool ConsumeReservedQuantity = false,
-    Guid? UnitId = null) : ICommand<PostInventoryStockResult>;
+    Guid? UnitId = null,
+    Guid? SourceDocumentId = null,
+    Guid? SourceDocumentLineId = null,
+    Guid? ParentProductSkuId = null,
+    Guid? ParentSalesOrderLineId = null,
+    Guid? SourceLocationId = null) : ICommand<PostInventoryStockResult>;
 
 public record PostInventoryStockOutBySkuCommand(
     Guid ProductId,
@@ -48,7 +58,12 @@ public record PostInventoryStockOutBySkuCommand(
     string? Notes,
     string? ReferenceNumber = null,
     string? SourceDocumentType = null,
-    Guid? UnitId = null) : ICommand<PostInventoryStockResult>;
+    Guid? UnitId = null,
+    Guid? SourceDocumentId = null,
+    Guid? SourceDocumentLineId = null,
+    Guid? ParentProductSkuId = null,
+    Guid? ParentSalesOrderLineId = null,
+    Guid? SourceLocationId = null) : ICommand<PostInventoryStockResult>;
 
 public record PostInventoryStockResult(Guid InventoryId);
 
@@ -63,7 +78,12 @@ public record PostInventoryReservationCommand(
     string? ReferenceNumber = null,
     string? SourceDocumentType = null,
     Guid? UnitId = null,
-    Guid? CurrencyId = null) : ICommand<PostInventoryStockResult>;
+    Guid? CurrencyId = null,
+    Guid? SourceDocumentId = null,
+    Guid? SourceDocumentLineId = null,
+    Guid? ParentProductSkuId = null,
+    Guid? ParentSalesOrderLineId = null,
+    Guid? SourceLocationId = null) : ICommand<PostInventoryStockResult>;
 
 public record PostInventoryReleaseCommand(
     Guid ProductId,
@@ -76,4 +96,9 @@ public record PostInventoryReleaseCommand(
     string? ReferenceNumber = null,
     string? SourceDocumentType = null,
     Guid? UnitId = null,
-    Guid? CurrencyId = null) : ICommand<PostInventoryStockResult>;
+    Guid? CurrencyId = null,
+    Guid? SourceDocumentId = null,
+    Guid? SourceDocumentLineId = null,
+    Guid? ParentProductSkuId = null,
+    Guid? ParentSalesOrderLineId = null,
+    Guid? SourceLocationId = null) : ICommand<PostInventoryStockResult>;

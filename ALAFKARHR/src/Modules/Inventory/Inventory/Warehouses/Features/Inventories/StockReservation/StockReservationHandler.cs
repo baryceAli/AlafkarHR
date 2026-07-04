@@ -55,6 +55,7 @@ public class StockReservationHandler(InventoryDbContext dbContext, ISender sende
             .ResolveAsync(sender, command.InventoryAggregate, cancellationToken);
 
         var inventory = await dbContext.Inventories.Include(i=>i.Batches)
+                                .ThenInclude(b => b.Batch)
                                 .FirstOrDefaultAsync(i => i.WarehouseId == command.InventoryAggregate.WarehouseId &&
                                                          i.ProductSkuId == command.InventoryAggregate.ProductSkuId, cancellationToken);
 
@@ -84,11 +85,35 @@ public class StockReservationHandler(InventoryDbContext dbContext, ISender sende
         {
             quantityBefore = inventory.TotalQuantity;
             reservedBefore = inventory.TotalReserved;
+            global::Inventory.Warehouses.Features.Inventories.InventoryBatchExpiryGuard.EnsureUsableForOutbound(
+                inventory,
+                command.InventoryAggregate.InitialBatchId);
+            var sourceLocationId = await InventoryLocationBalanceService.ResolveSourceLocationAsync(
+                dbContext,
+                command.InventoryAggregate.CompanyId,
+                command.InventoryAggregate.WarehouseId.Value,
+                command.InventoryAggregate.ProductSkuId.Value,
+                command.InventoryAggregate.InitialBatchId,
+                command.InventoryAggregate.SourceLocationId,
+                packageQuantity.NormalizedQuantity,
+                requireReserved: false,
+                cancellationToken);
             
             inventory.Reserve(
                 command.InventoryAggregate.InitialBatchId,
                 packageQuantity.NormalizedQuantity,
                 userId);
+            await InventoryLocationBalanceService.ReserveAsync(
+                dbContext,
+                command.InventoryAggregate.CompanyId,
+                command.InventoryAggregate.ProductSkuId.Value,
+                command.InventoryAggregate.WarehouseId.Value,
+                sourceLocationId,
+                command.InventoryAggregate.InitialBatchId,
+                packageQuantity.NormalizedQuantity,
+                userId,
+                cancellationToken);
+            command.InventoryAggregate.SourceLocationId = sourceLocationId;
         }
 
 
@@ -119,7 +144,12 @@ public class StockReservationHandler(InventoryDbContext dbContext, ISender sende
             enteredQuantity: packageQuantity.EnteredQuantity,
             packageMultiplier: packageQuantity.PackageMultiplier,
             unitMultiplier: packageQuantity.UnitMultiplier,
-            normalizedQuantity: packageQuantity.NormalizedQuantity);
+            normalizedQuantity: packageQuantity.NormalizedQuantity,
+            sourceDocumentId: command.InventoryAggregate.SourceDocumentId,
+            sourceDocumentLineId: command.InventoryAggregate.SourceDocumentLineId,
+            parentProductSkuId: command.InventoryAggregate.ParentProductSkuId,
+            parentSalesOrderLineId: command.InventoryAggregate.ParentSalesOrderLineId,
+            sourceLocationId: command.InventoryAggregate.SourceLocationId);
  
         await dbContext.StockMovements.AddAsync(movement, cancellationToken);
 

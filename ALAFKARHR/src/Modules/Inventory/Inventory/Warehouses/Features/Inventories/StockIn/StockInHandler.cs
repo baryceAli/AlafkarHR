@@ -89,6 +89,26 @@ public class StockInHandler(InventoryDbContext dbContext, ISender sender, IHttpC
 
         // Add movement
         // Later this should be done through DDD events
+        var destinationLocationId = await InventoryLocationBalanceService.ResolveDestinationLocationAsync(
+            dbContext,
+            command.InventoryAggregate.CompanyId,
+            command.InventoryAggregate.WarehouseId.Value,
+            packageQuantity.ProductId,
+            packageQuantity.ProductSkuId,
+            command.InventoryAggregate.DestinationLocationId,
+            cancellationToken);
+        await InventoryLocationBalanceService.IncreaseAsync(
+            dbContext,
+            command.InventoryAggregate.CompanyId,
+            command.InventoryAggregate.ProductId.Value,
+            command.InventoryAggregate.ProductSkuId.Value,
+            command.InventoryAggregate.WarehouseId.Value,
+            destinationLocationId,
+            command.InventoryAggregate.InitialBatchId,
+            packageQuantity.NormalizedQuantity,
+            userId,
+            cancellationToken);
+
         var movement = StockMovement.Create(
             Guid.NewGuid(),
             command.InventoryAggregate.WarehouseId.Value,
@@ -113,7 +133,12 @@ public class StockInHandler(InventoryDbContext dbContext, ISender sender, IHttpC
             enteredQuantity: packageQuantity.EnteredQuantity,
             packageMultiplier: packageQuantity.PackageMultiplier,
             unitMultiplier: packageQuantity.UnitMultiplier,
-            normalizedQuantity: packageQuantity.NormalizedQuantity);
+            normalizedQuantity: packageQuantity.NormalizedQuantity,
+            sourceDocumentId: command.InventoryAggregate.SourceDocumentId,
+            sourceDocumentLineId: command.InventoryAggregate.SourceDocumentLineId,
+            parentProductSkuId: command.InventoryAggregate.ParentProductSkuId,
+            parentSalesOrderLineId: command.InventoryAggregate.ParentSalesOrderLineId,
+            destinationLocationId: destinationLocationId);
         await dbContext.StockMovements.AddAsync(movement, cancellationToken);
         await dbContext.InventoryValuationLayers.AddAsync(
             InventoryValuationLayer.FromMovement(movement, command.InventoryAggregate.CompanyId, userId),

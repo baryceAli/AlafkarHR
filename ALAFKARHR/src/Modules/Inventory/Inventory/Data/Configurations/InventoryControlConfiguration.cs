@@ -19,6 +19,66 @@ public class WarehouseLocationConfiguration : IEntityTypeConfiguration<Warehouse
     }
 }
 
+public class InventoryLocationBalanceConfiguration : IEntityTypeConfiguration<InventoryLocationBalance>
+{
+    public void Configure(EntityTypeBuilder<InventoryLocationBalance> builder)
+    {
+        builder.ToTable("InventoryLocationBalances", "Inventory");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Quantity).HasPrecision(18, 4);
+        builder.Property(x => x.ReservedQuantity).HasPrecision(18, 4);
+        builder.Property(x => x.RowVersion).IsRowVersion();
+        builder.Property(x => x.CreatedBy).HasMaxLength(100);
+        builder.Property(x => x.ModifiedBy).HasMaxLength(100);
+        builder.Property(x => x.DeletedBy).HasMaxLength(100);
+        builder.HasIndex(x => new { x.CompanyId, x.WarehouseId, x.WarehouseLocationId, x.ProductSkuId, x.BatchId })
+            .IsUnique()
+            .HasDatabaseName("UX_InventoryLocationBalance_Key");
+        builder.HasIndex(x => new { x.CompanyId, x.ProductSkuId, x.WarehouseId });
+        builder.HasQueryFilter(x => !x.IsDeleted);
+    }
+}
+
+public class CycleCountConfiguration : IEntityTypeConfiguration<CycleCount>
+{
+    public void Configure(EntityTypeBuilder<CycleCount> builder)
+    {
+        builder.ToTable("CycleCounts", "Inventory");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.CountNumber).IsRequired().HasMaxLength(120);
+        builder.Property(x => x.Reason).HasMaxLength(500);
+        builder.Property(x => x.CreatedBy).HasMaxLength(100);
+        builder.Property(x => x.ModifiedBy).HasMaxLength(100);
+        builder.Property(x => x.DeletedBy).HasMaxLength(100);
+        builder.HasIndex(x => new { x.CompanyId, x.CountNumber }).IsUnique();
+        builder.HasIndex(x => new { x.CompanyId, x.WarehouseId, x.WarehouseLocationId, x.CountDate });
+        builder.HasQueryFilter(x => !x.IsDeleted);
+        builder.HasMany(x => x.Lines)
+            .WithOne()
+            .HasForeignKey(x => x.CycleCountId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(x => x.Lines)
+            .HasField("_lines")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class CycleCountLineConfiguration : IEntityTypeConfiguration<CycleCountLine>
+{
+    public void Configure(EntityTypeBuilder<CycleCountLine> builder)
+    {
+        builder.ToTable("CycleCountLines", "Inventory");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.CountedQuantity).HasPrecision(18, 4);
+        builder.Property(x => x.Notes).HasMaxLength(500);
+        builder.Property(x => x.CreatedBy).HasMaxLength(100);
+        builder.Property(x => x.ModifiedBy).HasMaxLength(100);
+        builder.Property(x => x.DeletedBy).HasMaxLength(100);
+        builder.HasIndex(x => new { x.CycleCountId, x.ProductSkuId, x.BatchId });
+        builder.HasQueryFilter(x => !x.IsDeleted);
+    }
+}
+
 public class PutawayRuleConfiguration : IEntityTypeConfiguration<PutawayRule>
 {
     public void Configure(EntityTypeBuilder<PutawayRule> builder)

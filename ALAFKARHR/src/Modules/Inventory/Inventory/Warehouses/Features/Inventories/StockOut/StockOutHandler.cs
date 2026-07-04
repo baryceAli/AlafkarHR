@@ -48,6 +48,7 @@ public class StockOutHandler(InventoryDbContext dbContext, ISender sender, IHttp
             .ResolveAsync(sender, command.InventoryAggregate, cancellationToken);
 
         var inventory = await dbContext.Inventories.Include(i=>i.Batches)
+                                .ThenInclude(b => b.Batch)
                                 .FirstOrDefaultAsync(i => i.WarehouseId == command.InventoryAggregate.WarehouseId &&
                                                          i.ProductSkuId == command.InventoryAggregate.ProductSkuId, cancellationToken);
 
@@ -66,6 +67,21 @@ public class StockOutHandler(InventoryDbContext dbContext, ISender sender, IHttp
         {
             quantityBefore = inventory.TotalQuantity;
             reservedBefore = inventory.TotalReserved;
+            global::Inventory.Warehouses.Features.Inventories.InventoryBatchExpiryGuard.EnsureUsableForOutbound(
+                inventory,
+                command.InventoryAggregate.InitialBatchId,
+                command.InventoryAggregate.SourceDocumentType);
+
+            var sourceLocationId = await InventoryLocationBalanceService.ResolveSourceLocationAsync(
+                dbContext,
+                command.InventoryAggregate.CompanyId,
+                command.InventoryAggregate.WarehouseId.Value,
+                command.InventoryAggregate.ProductSkuId.Value,
+                command.InventoryAggregate.InitialBatchId,
+                command.InventoryAggregate.SourceLocationId,
+                packageQuantity.NormalizedQuantity,
+                command.InventoryAggregate.ConsumeReservedQuantity,
+                cancellationToken);
 
             if (command.InventoryAggregate.ConsumeReservedQuantity)
             {
@@ -73,6 +89,16 @@ public class StockOutHandler(InventoryDbContext dbContext, ISender sender, IHttp
                     command.InventoryAggregate.InitialBatchId,
                     packageQuantity.NormalizedQuantity,
                     userId);
+                await InventoryLocationBalanceService.ConsumeReservedAsync(
+                    dbContext,
+                    command.InventoryAggregate.CompanyId,
+                    command.InventoryAggregate.ProductSkuId.Value,
+                    command.InventoryAggregate.WarehouseId.Value,
+                    sourceLocationId,
+                    command.InventoryAggregate.InitialBatchId,
+                    packageQuantity.NormalizedQuantity,
+                    userId,
+                    cancellationToken);
             }
             else
             {
@@ -81,7 +107,19 @@ public class StockOutHandler(InventoryDbContext dbContext, ISender sender, IHttp
                     command.InventoryAggregate.WarehouseId.Value,
                     packageQuantity.NormalizedQuantity,
                     userId));
+                await InventoryLocationBalanceService.DecreaseAsync(
+                    dbContext,
+                    command.InventoryAggregate.CompanyId,
+                    command.InventoryAggregate.ProductSkuId.Value,
+                    command.InventoryAggregate.WarehouseId.Value,
+                    sourceLocationId,
+                    command.InventoryAggregate.InitialBatchId,
+                    packageQuantity.NormalizedQuantity,
+                    userId,
+                    cancellationToken);
             }
+
+            command.InventoryAggregate.SourceLocationId = sourceLocationId;
         }
 
 
@@ -112,7 +150,12 @@ public class StockOutHandler(InventoryDbContext dbContext, ISender sender, IHttp
             enteredQuantity: packageQuantity.EnteredQuantity,
             packageMultiplier: packageQuantity.PackageMultiplier,
             unitMultiplier: packageQuantity.UnitMultiplier,
-            normalizedQuantity: packageQuantity.NormalizedQuantity);
+            normalizedQuantity: packageQuantity.NormalizedQuantity,
+            sourceDocumentId: command.InventoryAggregate.SourceDocumentId,
+            sourceDocumentLineId: command.InventoryAggregate.SourceDocumentLineId,
+            parentProductSkuId: command.InventoryAggregate.ParentProductSkuId,
+            parentSalesOrderLineId: command.InventoryAggregate.ParentSalesOrderLineId,
+            sourceLocationId: command.InventoryAggregate.SourceLocationId);
  
         await dbContext.StockMovements.AddAsync(movement, cancellationToken);
         await dbContext.InventoryValuationLayers.AddAsync(

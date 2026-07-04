@@ -7,6 +7,8 @@ public class TransferItem:Entity<Guid>
     public Guid ProductId { get; private set; }
     public Guid ProductSkuId { get; private set; }
     public Guid BatchId { get; private set; }
+    public Guid? SourceLocationId { get; private set; }
+    public Guid? DestinationLocationId { get; private set; }
     //public Guid WarehouseId { get; set; }
     public decimal Quantity { get; private set; }
     public decimal ReceivedQuantity { get; private set; }
@@ -18,6 +20,8 @@ public class TransferItem:Entity<Guid>
     internal TransferItem(Guid productId,
         Guid productSkuId,
         Guid batchId,
+        Guid? sourceLocationId,
+        Guid? destinationLocationId,
         //Guid warehouseId,
         decimal quantity,
         decimal unitCost,
@@ -32,6 +36,8 @@ public class TransferItem:Entity<Guid>
         ProductId = productId;
         ProductSkuId = productSkuId;
         BatchId = batchId;
+        SourceLocationId = sourceLocationId;
+        DestinationLocationId = destinationLocationId;
         //WarehouseId = warehouseId,
         Quantity = quantity;
         UnitCost = unitCost;
@@ -46,6 +52,8 @@ public class TransferItem:Entity<Guid>
         Guid productId,
         Guid productSkuId,
         Guid batchId,
+        Guid? sourceLocationId,
+        Guid? destinationLocationId,
         //Guid warehouseId,
         decimal quantity,
         decimal unitCost,
@@ -64,6 +72,8 @@ public class TransferItem:Entity<Guid>
             ProductId = productId,
             ProductSkuId = productSkuId,
             BatchId = batchId,
+            SourceLocationId = sourceLocationId,
+            DestinationLocationId = destinationLocationId,
             //WarehouseId = warehouseId,
             Quantity = quantity,
             UnitCost = unitCost,
@@ -73,6 +83,20 @@ public class TransferItem:Entity<Guid>
             CreatedAt= DateTime.UtcNow,
             CreatedBy= createdBy
         };
+    }
+
+    public void SetDestinationLocation(Guid? destinationLocationId, string user)
+    {
+        DestinationLocationId = destinationLocationId;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = user;
+    }
+
+    public void SetSourceLocation(Guid? sourceLocationId, string user)
+    {
+        SourceLocationId = sourceLocationId;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = user;
     }
 
     public void Receive(decimal quantity, string user)

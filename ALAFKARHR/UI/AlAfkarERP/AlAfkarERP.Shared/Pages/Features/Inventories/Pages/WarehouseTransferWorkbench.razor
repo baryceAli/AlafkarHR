@@ -18,6 +18,7 @@
 
 @inject IWarehouseTransferService TransferService
 @inject IWarehouseService WarehouseService
+@inject IInventoryService InventoryService
 @inject IBranchService BranchService
 @inject IProductService ProductService
 @inject IBatchService BatchService
@@ -182,6 +183,16 @@
                             </div>
                         </div>
 
+                        @if (ProjectedWarnings().Any())
+                        {
+                            <div class="alert alert-warning py-2">
+                                @foreach (var warning in ProjectedWarnings())
+                                {
+                                    <div>@warning</div>
+                                }
+                            </div>
+                        }
+
                         @if (selectedTransfer.Status == TransferStatus.Pending && Can(PermissionList.WarehouseTransferPermissions.Edit))
                         {
                             <EditForm Model="newItem" OnValidSubmit="AddItemAsync">
@@ -214,6 +225,26 @@
                                                                PlaceHolder="@SharedDataService.SelectViewLang("Select batch","اختر دفعة")"
                                                                ValueChanged="OnBatchSelected" />
                                     </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Source Location", "موقع المصدر")</label>
+                                        <InputSelect class="form-select" @bind-Value="newItem.SourceLocationId">
+                                            <option value="">@SharedDataService.SelectViewLang("Optional", "اختياري")</option>
+                                            @foreach (var location in ActiveLocationsFor(selectedTransfer.SourceWarehouseId))
+                                            {
+                                                <option value="@location.Id">@DisplayLocation(location)</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">@SharedDataService.SelectViewLang("Destination Location", "موقع الوجهة")</label>
+                                        <InputSelect class="form-select" @bind-Value="newItem.DestinationLocationId">
+                                            <option value="">@SharedDataService.SelectViewLang("Suggested on receive", "يقترح عند الاستلام")</option>
+                                            @foreach (var location in ActiveLocationsFor(selectedTransfer.DestinationWarehouseId))
+                                            {
+                                                <option value="@location.Id">@DisplayLocation(location)</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
                                     <div class="col-md-2">
                                         <label class="form-label">@SharedDataService.SelectViewLang("Quantity", "الكمية")</label>
                                         <InputNumber class="form-control" @bind-Value="newItem.Quantity" />
@@ -231,11 +262,32 @@
                                                                PlaceHolder="@SharedDataService.SelectViewLang("Select currency","اختر العملة")"
                                                                ValueChanged="OnCurrencySelected" />
                                     </div>
+                                    <div class="col-md-2">
+                                        <button class="btn btn-outline-secondary w-100" type="button" @onclick="SuggestFefoBatchAsync">
+                                            <i class="bi bi-calendar2-check"></i>
+                                            @SharedDataService.SelectViewLang("FEFO", "FEFO")
+                                        </button>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button class="btn btn-outline-secondary w-100" type="button" @onclick="ApplyPutawaySuggestionAsync">
+                                            <i class="bi bi-signpost-split"></i>
+                                            @SharedDataService.SelectViewLang("Putaway", "توجيه")
+                                        </button>
+                                    </div>
                                     <div class="col-md-1">
                                         <button class="btn btn-primary w-100" type="submit">
                                             <i class="bi bi-plus-lg"></i>
                                         </button>
                                     </div>
+                                    @if (fefoSuggestions.Count > 0)
+                                    {
+                                        <div class="col-12">
+                                            <div class="alert alert-info py-2 mb-0">
+                                                @SharedDataService.SelectViewLang("FEFO suggestion", "اقتراح FEFO"):
+                                                @string.Join(", ", fefoSuggestions.Select(x => $"{x.BatchNumber} ({x.SuggestedQuantity})"))
+                                            </div>
+                                        </div>
+                                    }
                                 </div>
                             </EditForm>
                         }
@@ -246,6 +298,7 @@
                                     <tr>
                                         <th>@SharedDataService.SelectViewLang("Product", "المنتج")</th>
                                         <th>@SharedDataService.SelectViewLang("Batch", "الدفعة")</th>
+                                        <th>@SharedDataService.SelectViewLang("Locations", "المواقع")</th>
                                         <th>@SharedDataService.SelectViewLang("Qty", "الكمية")</th>
                                         <th>@SharedDataService.SelectViewLang("Received", "المستلم")</th>
                                         <th>@SharedDataService.SelectViewLang("Cost", "التكلفة")</th>
@@ -256,7 +309,7 @@
                                     @if (selectedTransfer.Items.Count == 0)
                                     {
                                         <tr>
-                                            <td colspan="6" class="text-muted text-center py-4">@SharedDataService.SelectViewLang("No items added", "لم تتم إضافة بنود")</td>
+                                            <td colspan="7" class="text-muted text-center py-4">@SharedDataService.SelectViewLang("No items added", "لم تتم إضافة بنود")</td>
                                         </tr>
                                     }
                                     @foreach (var item in selectedTransfer.Items)
@@ -267,11 +320,22 @@
                                                 <div class="text-muted small">@DisplayProduct(item.ProductId)</div>
                                             </td>
                                             <td>@DisplayBatch(item.BatchId)</td>
+                                            <td>
+                                                <div class="small">@SharedDataService.SelectViewLang("From", "من"): @DisplayItemLocation(item.SourceLocationId, item.SourceLocationName, item.SourceLocationNameEng)</div>
+                                                <div class="small text-muted">@SharedDataService.SelectViewLang("To", "إلى"): @DisplayItemLocation(item.DestinationLocationId, item.DestinationLocationName, item.DestinationLocationNameEng)</div>
+                                            </td>
                                             <td>@item.Quantity</td>
                                             <td>
                                                 <div>@item.ReceivedQuantity</div>
                                                 @if (CanReceive(item))
                                                 {
+                                                    <InputSelect class="form-select form-select-sm mt-1" @bind-Value="receiveDestinationLocations[item.Id]">
+                                                        <option value="">@SharedDataService.SelectViewLang("Use putaway suggestion", "استخدم الاقتراح")</option>
+                                                        @foreach (var location in ActiveLocationsFor(selectedTransfer.DestinationWarehouseId))
+                                                        {
+                                                            <option value="@location.Id">@DisplayLocation(location)</option>
+                                                        }
+                                                    </InputSelect>
                                                     <div class="input-group input-group-sm mt-1">
                                                         <InputNumber class="form-control" @bind-Value="receiveQuantities[item.Id]" />
                                                         <button class="btn btn-outline-success" type="button" @onclick="() => ReceiveAsync(item.Id)">
@@ -312,6 +376,9 @@
     private List<ProductSkuDto> productSkus = [];
     private List<BatchDto> batches = [];
     private List<BatchDto> filteredBatches = [];
+    private List<WarehouseLocationDto> warehouseLocations = [];
+    private List<TransferFefoBatchSuggestionDto> fefoSuggestions = [];
+    private List<ProjectedStockRowDto> projectedStock = [];
     private List<CurrencyDto> currencies = [];
     private CreateWarehouseTransferDto newTransfer = new();
     private WarehouseTransferDto? selectedTransfer;
@@ -321,6 +388,7 @@
     private BatchDto? selectedBatch;
     private CurrencyDto? selectedCurrency;
     private readonly Dictionary<Guid, decimal> receiveQuantities = new();
+    private readonly Dictionary<Guid, Guid?> receiveDestinationLocations = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -365,6 +433,14 @@
         if (batchResult.IsSuccess)
             batches = batchResult.Data?.Data?.ToList() ?? [];
 
+        var locationResult = await InventoryService.GetWarehouseLocationsAsync(companyId);
+        if (locationResult.IsSuccess)
+            warehouseLocations = locationResult.Data?.Where(x => x.IsActive).ToList() ?? [];
+
+        var projectedResult = await InventoryService.GetProjectedStockAsync(companyId);
+        if (projectedResult.IsSuccess)
+            projectedStock = projectedResult.Data ?? [];
+
         var currencyResult = await CurrencyService.GetAsync(companyId, 0, 10000);
         if (currencyResult.IsSuccess)
         {
@@ -404,8 +480,12 @@
 
         selectedTransfer = result.Data;
         receiveQuantities.Clear();
+        receiveDestinationLocations.Clear();
         foreach (var item in selectedTransfer.Items.Where(x => !x.IsCompleted))
+        {
             receiveQuantities[item.Id] = Math.Max(0, item.Quantity - item.ReceivedQuantity);
+            receiveDestinationLocations[item.Id] = item.DestinationLocationId;
+        }
     }
 
     private async Task CreateTransferAsync()
@@ -467,6 +547,10 @@
 
     private async Task ShipAsync(Guid transferId)
     {
+        var projectedResult = await InventoryService.GetProjectedStockAsync(companyId);
+        if (projectedResult.IsSuccess)
+            projectedStock = projectedResult.Data ?? [];
+
         var result = await TransferService.ShipAsync(transferId);
         ShowToast(result.IsSuccess, "Transfer shipped", "تم شحن التحويل");
         await LoadTransfersAsync();
@@ -480,7 +564,8 @@
             return;
         }
 
-        var result = await TransferService.ReceiveAsync(selectedTransfer.Id, new ReceiveWarehouseTransferItemDto { ItemId = itemId, Quantity = quantity });
+        receiveDestinationLocations.TryGetValue(itemId, out var destinationLocationId);
+        var result = await TransferService.ReceiveAsync(selectedTransfer.Id, new ReceiveWarehouseTransferItemDto { ItemId = itemId, Quantity = quantity, DestinationLocationId = destinationLocationId });
         ShowToast(result.IsSuccess, "Item received", "تم استلام البند");
         if (result.IsSuccess)
         {
@@ -503,6 +588,7 @@
         selectedBatch = null;
         productSkus = product?.Skus ?? [];
         filteredBatches = [];
+        fefoSuggestions = [];
         newItem.ProductId = product?.Id ?? Guid.Empty;
         newItem.ProductSkuId = Guid.Empty;
         newItem.BatchId = Guid.Empty;
@@ -515,6 +601,7 @@
         newItem.ProductSkuId = sku?.Id ?? Guid.Empty;
         newItem.BatchId = Guid.Empty;
         newItem.UnitCost = sku?.Price ?? 0;
+        fefoSuggestions = [];
         filteredBatches = batches.Where(b => b.ProductSkuId == newItem.ProductSkuId).ToList();
     }
 
@@ -522,6 +609,53 @@
     {
         selectedBatch = batch;
         newItem.BatchId = batch?.Id ?? Guid.Empty;
+    }
+
+    private async Task SuggestFefoBatchAsync()
+    {
+        if (selectedTransfer == null || newItem.ProductSkuId == Guid.Empty || newItem.Quantity <= 0)
+        {
+            ShowToast(false, "Select SKU and quantity first", "اختر المنتج المخزني والكمية أولا");
+            return;
+        }
+
+        var result = await TransferService.GetFefoBatchSuggestionsAsync(companyId, selectedTransfer.SourceWarehouseId, newItem.ProductSkuId, newItem.Quantity);
+        if (!result.IsSuccess)
+        {
+            ShowToast(false, "Could not load FEFO suggestions", "تعذر تحميل اقتراحات FEFO");
+            return;
+        }
+
+        fefoSuggestions = result.Data ?? [];
+        var first = fefoSuggestions.FirstOrDefault();
+        if (first is null)
+        {
+            ShowToast(false, "No available non-expired batch found", "لا توجد دفعة متاحة غير منتهية");
+            return;
+        }
+
+        selectedBatch = filteredBatches.FirstOrDefault(x => x.Id == first.BatchId) ?? batches.FirstOrDefault(x => x.Id == first.BatchId);
+        newItem.BatchId = first.BatchId;
+        ShowToast(true, "FEFO batch selected", "تم اختيار دفعة FEFO");
+    }
+
+    private async Task ApplyPutawaySuggestionAsync()
+    {
+        if (selectedTransfer == null || newItem.ProductId == Guid.Empty || newItem.ProductSkuId == Guid.Empty)
+        {
+            ShowToast(false, "Select product and SKU first", "اختر المنتج والمنتج المخزني أولا");
+            return;
+        }
+
+        var result = await InventoryService.GetPutawaySuggestionAsync(companyId, selectedTransfer.DestinationWarehouseId, newItem.ProductId, newItem.ProductSkuId);
+        if (!result.IsSuccess || result.Data?.DestinationLocationId is null)
+        {
+            ShowToast(false, "No active putaway destination found", "لا يوجد موقع توجيه نشط");
+            return;
+        }
+
+        newItem.DestinationLocationId = result.Data.DestinationLocationId;
+        ShowToast(true, "Putaway destination applied", "تم تطبيق موقع التوجيه");
     }
 
     private void OnCurrencySelected(CurrencyDto currency)
@@ -557,6 +691,7 @@
         selectedBatch = null;
         productSkus = [];
         filteredBatches = [];
+        fefoSuggestions = [];
     }
 
     private string DisplayWarehouse(WarehouseDto warehouse)
@@ -587,6 +722,53 @@
     }
 
     private string DisplayBatch(Guid id) => batches.FirstOrDefault(x => x.Id == id)?.BatchNumber ?? id.ToString();
+
+    private IEnumerable<WarehouseLocationDto> ActiveLocationsFor(Guid warehouseId) =>
+        warehouseLocations.Where(x => x.WarehouseId == warehouseId && x.IsActive);
+
+    private string DisplayLocation(WarehouseLocationDto location)
+    {
+        var name = SharedDataService.Language == "Ar" ? location.Name : location.NameEng;
+        return string.IsNullOrWhiteSpace(location.Code) ? name : $"{location.Code} - {name}";
+    }
+
+    private string DisplayItemLocation(Guid? locationId, string? nameAr, string? nameEn)
+    {
+        if (!locationId.HasValue || locationId.Value == Guid.Empty)
+            return SharedDataService.SelectViewLang("Not set", "غير محدد");
+
+        var displayName = SharedDataService.Language == "Ar" ? nameAr : nameEn;
+        if (!string.IsNullOrWhiteSpace(displayName))
+            return displayName;
+
+        var location = warehouseLocations.FirstOrDefault(x => x.Id == locationId.Value);
+        return location is null ? locationId.Value.ToString("N")[..8] : DisplayLocation(location);
+    }
+
+    private IEnumerable<string> ProjectedWarnings()
+    {
+        if (selectedTransfer is null || selectedTransfer.Status != TransferStatus.Pending)
+            yield break;
+
+        foreach (var item in selectedTransfer.Items)
+        {
+            var row = projectedStock.FirstOrDefault(x => x.WarehouseId == selectedTransfer.SourceWarehouseId && x.ProductSkuId == item.ProductSkuId);
+            if (row is null)
+            {
+                yield return SharedDataService.SelectViewLang(
+                    $"No projected stock row found for {DisplayProductSku(item.ProductSkuId)} in the source warehouse.",
+                    $"لا يوجد رصيد متوقع للمنتج {DisplayProductSku(item.ProductSkuId)} في مستودع المصدر.");
+                continue;
+            }
+
+            if (row.AvailableQuantity < item.Quantity)
+            {
+                yield return SharedDataService.SelectViewLang(
+                    $"{DisplayProductSku(item.ProductSkuId)} has {row.AvailableQuantity} available before this transfer quantity {item.Quantity}.",
+                    $"{DisplayProductSku(item.ProductSkuId)} لديه {row.AvailableQuantity} متاح قبل كمية التحويل {item.Quantity}.");
+            }
+        }
+    }
 
     private void ShowToast(bool isSuccess, string en, string ar)
     {

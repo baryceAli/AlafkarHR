@@ -127,6 +127,30 @@ public class ProcurementService : BaseApiService, IProcurementService
         return await SendAsync<string>(request, null);
     }
 
+    public async Task<ApiResult<List<ReplenishmentSuggestionDto>>> GetReplenishmentSuggestionsAsync(Guid companyId, Guid? branchId, Guid? warehouseId, Guid? productSkuId)
+    {
+        var query = new List<string>();
+        if (branchId.HasValue)
+            query.Add($"branchId={branchId.Value}");
+        if (warehouseId.HasValue)
+            query.Add($"warehouseId={warehouseId.Value}");
+        if (productSkuId.HasValue)
+            query.Add($"productSkuId={productSkuId.Value}");
+
+        var suffix = query.Count == 0 ? string.Empty : $"?{string.Join("&", query)}";
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/procurement/replenishment/company/{companyId}{suffix}");
+        return await SendAsync<List<ReplenishmentSuggestionDto>>(request, "items");
+    }
+
+    public async Task<ApiResult<CreateResponseDto>> CreatePurchaseRequestFromReplenishmentAsync(CreatePurchaseRequestFromReplenishmentDto replenishmentRequest)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/procurement/replenishment/purchase-requests")
+        {
+            Content = JsonContent.Create(replenishmentRequest)
+        };
+        return await SendAsync<CreateResponseDto>(request, null);
+    }
+
     public async Task<ApiResult<List<ProcurementTrackerRowDto>>> GetTrackerAsync(Guid companyId)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/procurement/tracker/company/{companyId}");

@@ -14,7 +14,10 @@ public interface IStockMovementService
         Guid? productSkuId = null,
         Guid? batchId = null,
         string? sourceDocumentType = null,
+        Guid? sourceDocumentId = null,
         string? referenceNumber = null,
+        Guid? parentProductSkuId = null,
+        bool? expiredOnly = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,
         Guid? branchId = null);

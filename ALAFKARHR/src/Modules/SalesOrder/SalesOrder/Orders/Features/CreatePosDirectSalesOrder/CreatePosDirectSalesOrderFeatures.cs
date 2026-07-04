@@ -192,6 +192,8 @@ public class CreatePosDirectSalesOrderHandler(SalesOrderDbContext dbContext, IHt
                     order.CompanyId,
                     scope.DefaultWarehouseId,
                     line,
+                    order.Id,
+                    line.Id,
                     order.Number,
                     cancellationToken);
 
@@ -210,7 +212,10 @@ public class CreatePosDirectSalesOrderHandler(SalesOrderDbContext dbContext, IHt
                 order.CompanyId,
                 $"POS sale {order.Number}",
                 order.Number,
-                "POSDirectSale"), cancellationToken);
+                "POSDirectSale",
+                line.UnitOfMeasureId,
+                order.Id,
+                line.Id), cancellationToken);
         }
     }
 

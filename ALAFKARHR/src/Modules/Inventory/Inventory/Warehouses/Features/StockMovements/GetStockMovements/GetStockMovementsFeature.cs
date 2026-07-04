@@ -13,8 +13,13 @@ public class GetStockMovementsEndpoint : ICarterModule
                 Guid? warehouseId,
                 Guid? productSkuId,
                 Guid? batchId,
+                Guid? sourceLocationId,
+                Guid? destinationLocationId,
                 string? sourceDocumentType,
+                Guid? sourceDocumentId,
                 string? referenceNumber,
+                Guid? parentProductSkuId,
+                bool? expiredOnly,
                 DateTime? fromDate,
                 DateTime? toDate,
                 [AsParameters] PaginationRequest paginationRequest,
@@ -28,8 +33,13 @@ public class GetStockMovementsEndpoint : ICarterModule
                         WarehouseId = warehouseId,
                         ProductSkuId = productSkuId,
                         BatchId = batchId,
+                        SourceLocationId = sourceLocationId,
+                        DestinationLocationId = destinationLocationId,
                         SourceDocumentType = sourceDocumentType,
+                        SourceDocumentId = sourceDocumentId,
                         ReferenceNumber = referenceNumber,
+                        ParentProductSkuId = parentProductSkuId,
+                        ExpiredOnly = expiredOnly,
                         FromDate = fromDate,
                         ToDate = toDate
                     },
@@ -92,11 +102,31 @@ public class GetStockMovementsHandler(InventoryDbContext dbContext, ISender send
         if (request.Filter.BatchId.HasValue)
             query = query.Where(x => x.BatchId == request.Filter.BatchId.Value);
 
+        if (request.Filter.SourceLocationId.HasValue)
+            query = query.Where(x => x.SourceLocationId == request.Filter.SourceLocationId.Value);
+
+        if (request.Filter.DestinationLocationId.HasValue)
+            query = query.Where(x => x.DestinationLocationId == request.Filter.DestinationLocationId.Value);
+
         if (!string.IsNullOrWhiteSpace(request.Filter.SourceDocumentType))
             query = query.Where(x => x.SourceDocumentType == request.Filter.SourceDocumentType);
 
+        if (request.Filter.SourceDocumentId.HasValue)
+            query = query.Where(x => x.SourceDocumentId == request.Filter.SourceDocumentId.Value);
+
         if (!string.IsNullOrWhiteSpace(request.Filter.ReferenceNumber))
             query = query.Where(x => x.ReferenceNumber.Contains(request.Filter.ReferenceNumber));
+
+        if (request.Filter.ParentProductSkuId.HasValue)
+            query = query.Where(x => x.ParentProductSkuId == request.Filter.ParentProductSkuId.Value);
+
+        if (request.Filter.ExpiredOnly.HasValue)
+        {
+            var today = DateTime.UtcNow.Date;
+            query = request.Filter.ExpiredOnly.Value
+                ? query.Where(x => x.Batch.ExpiryDate.Date < today)
+                : query.Where(x => x.Batch.ExpiryDate.Date >= today);
+        }
 
         if (request.Filter.FromDate.HasValue)
             query = query.Where(x => x.CreatedAt >= request.Filter.FromDate.Value);
@@ -115,6 +145,34 @@ public class GetStockMovementsHandler(InventoryDbContext dbContext, ISender send
             .Take(request.PaginationRequest.PageSize)
             .ProjectToType<StockMovementDto>()
             .ToListAsync(cancellationToken);
+
+        var locationIds = movements
+            .SelectMany(x => new[] { x.SourceLocationId, x.DestinationLocationId })
+            .Where(x => x.HasValue && x.Value != Guid.Empty)
+            .Select(x => x!.Value)
+            .Distinct()
+            .ToList();
+        if (locationIds.Count > 0)
+        {
+            var locations = await dbContext.WarehouseLocations.AsNoTracking()
+                .Where(x => locationIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x, cancellationToken);
+
+            foreach (var movement in movements)
+            {
+                if (movement.SourceLocationId.HasValue && locations.TryGetValue(movement.SourceLocationId.Value, out var sourceLocation))
+                {
+                    movement.SourceLocationName = sourceLocation.Name;
+                    movement.SourceLocationNameEng = sourceLocation.NameEng;
+                }
+
+                if (movement.DestinationLocationId.HasValue && locations.TryGetValue(movement.DestinationLocationId.Value, out var destinationLocation))
+                {
+                    movement.DestinationLocationName = destinationLocation.Name;
+                    movement.DestinationLocationNameEng = destinationLocation.NameEng;
+                }
+            }
+        }
 
         return new GetStockMovementsResult(new PaginatedResult<StockMovementDto>(
             request.PaginationRequest.PageIndex,

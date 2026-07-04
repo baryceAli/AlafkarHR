@@ -488,6 +488,9 @@ namespace Procurement.Data.Migrations
                                 .HasPrecision(18, 4)
                                 .HasColumnType("decimal(18,4)");
 
+                            b1.Property<Guid?>("ReorderingRuleId")
+                                .HasColumnType("uniqueidentifier");
+
                             b1.Property<string>("SkuCode")
                                 .IsRequired()
                                 .HasMaxLength(100)
@@ -518,6 +521,8 @@ namespace Procurement.Data.Migrations
                             b1.HasKey("Id");
 
                             b1.HasIndex("ProcurementDocumentId");
+
+                            b1.HasIndex("ReorderingRuleId");
 
                             b1.ToTable("ProcurementDocumentLines", "Procurement");
 

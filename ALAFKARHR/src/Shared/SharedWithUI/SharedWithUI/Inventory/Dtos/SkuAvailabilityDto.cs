@@ -25,10 +25,25 @@ public class SkuAvailabilityWarehouseDto
     public decimal ReservedQuantity { get; set; }
     public decimal AvailableQuantity { get; set; }
     public List<SkuAvailabilityBatchDto> Batches { get; set; } = [];
+    public List<SkuAvailabilityLocationDto> Locations { get; set; } = [];
 }
 
 public class SkuAvailabilityBatchDto
 {
+    public Guid BatchId { get; set; }
+    public string? BatchNumber { get; set; }
+    public DateTime? ExpiryDate { get; set; }
+    public decimal Quantity { get; set; }
+    public decimal ReservedQuantity { get; set; }
+    public decimal AvailableQuantity { get; set; }
+}
+
+public class SkuAvailabilityLocationDto
+{
+    public Guid WarehouseLocationId { get; set; }
+    public string? LocationCode { get; set; }
+    public string? LocationName { get; set; }
+    public string? LocationNameEng { get; set; }
     public Guid BatchId { get; set; }
     public string? BatchNumber { get; set; }
     public DateTime? ExpiryDate { get; set; }

@@ -29,11 +29,24 @@ public record SkuAvailabilityWarehouseRow(
     decimal TotalQuantity,
     decimal ReservedQuantity,
     decimal AvailableQuantity,
-    IReadOnlyList<SkuAvailabilityBatchRow> Batches);
+    IReadOnlyList<SkuAvailabilityBatchRow> Batches,
+    IReadOnlyList<SkuAvailabilityLocationRow>? Locations = null);
 
 public record SkuAvailabilityBatchRow(
     Guid BatchId,
     string BatchNumber,
+    DateTime? ExpiryDate,
+    decimal Quantity,
+    decimal ReservedQuantity,
+    decimal AvailableQuantity);
+
+public record SkuAvailabilityLocationRow(
+    Guid WarehouseLocationId,
+    string? LocationCode,
+    string? LocationName,
+    string? LocationNameEng,
+    Guid BatchId,
+    string? BatchNumber,
     DateTime? ExpiryDate,
     decimal Quantity,
     decimal ReservedQuantity,

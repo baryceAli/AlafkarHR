@@ -75,6 +75,81 @@ public class InventoryValuationLayerDto
     public DateTime LayerDate { get; set; } = DateTime.UtcNow;
 }
 
+public class InventoryLocationBalanceDto
+{
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid ProductId { get; set; }
+    public string? ProductName { get; set; }
+    public string? ProductNameEng { get; set; }
+    public Guid ProductSkuId { get; set; }
+    public string? ProductSkuName { get; set; }
+    public string? ProductSkuNameEng { get; set; }
+    public Guid WarehouseId { get; set; }
+    public string? WarehouseName { get; set; }
+    public string? WarehouseNameEng { get; set; }
+    public Guid WarehouseLocationId { get; set; }
+    public string? WarehouseLocationCode { get; set; }
+    public string? WarehouseLocationName { get; set; }
+    public string? WarehouseLocationNameEng { get; set; }
+    public Guid BatchId { get; set; }
+    public string? BatchNumber { get; set; }
+    public DateTime? ExpiryDate { get; set; }
+    public decimal Quantity { get; set; }
+    public decimal ReservedQuantity { get; set; }
+    public decimal AvailableQuantity { get; set; }
+}
+
+public class LocationAvailabilityDto
+{
+    public Guid CompanyId { get; set; }
+    public Guid ProductSkuId { get; set; }
+    public Guid? WarehouseId { get; set; }
+    public Guid? WarehouseLocationId { get; set; }
+    public Guid? BatchId { get; set; }
+    public decimal TotalQuantity { get; set; }
+    public decimal ReservedQuantity { get; set; }
+    public decimal AvailableQuantity { get; set; }
+    public List<InventoryLocationBalanceDto> Rows { get; set; } = [];
+}
+
+public class CycleCountDto
+{
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid WarehouseId { get; set; }
+    public string? WarehouseName { get; set; }
+    public string? WarehouseNameEng { get; set; }
+    public Guid WarehouseLocationId { get; set; }
+    public string? WarehouseLocationName { get; set; }
+    public string? WarehouseLocationNameEng { get; set; }
+    public string CountNumber { get; set; } = string.Empty;
+    public string? Reason { get; set; }
+    public bool IsPosted { get; set; }
+    public DateTime CountDate { get; set; } = DateTime.UtcNow;
+    public List<CycleCountLineDto> Lines { get; set; } = [];
+}
+
+public class CycleCountLineDto
+{
+    public Guid Id { get; set; }
+    public Guid ProductId { get; set; }
+    public string? ProductName { get; set; }
+    public string? ProductNameEng { get; set; }
+    public Guid ProductSkuId { get; set; }
+    public string? ProductSkuName { get; set; }
+    public string? ProductSkuNameEng { get; set; }
+    public Guid BatchId { get; set; }
+    public string? BatchNumber { get; set; }
+    public decimal CountedQuantity { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class PostCycleCountDto
+{
+    public Guid CycleCountId { get; set; }
+}
+
 public class ProjectedStockRowDto
 {
     public Guid ProductSkuId { get; set; }
@@ -85,6 +160,34 @@ public class ProjectedStockRowDto
     public decimal IncomingQuantity { get; set; }
     public decimal OutgoingQuantity { get; set; }
     public decimal ForecastedQuantity { get; set; }
+}
+
+public class PutawaySuggestionDto
+{
+    public Guid CompanyId { get; set; }
+    public Guid WarehouseId { get; set; }
+    public Guid ProductId { get; set; }
+    public Guid ProductSkuId { get; set; }
+    public Guid? PutawayRuleId { get; set; }
+    public Guid? DestinationLocationId { get; set; }
+    public string? DestinationLocationCode { get; set; }
+    public string? DestinationLocationName { get; set; }
+    public string? DestinationLocationNameEng { get; set; }
+    public int? Priority { get; set; }
+    public string? Warning { get; set; }
+}
+
+public class TransferFefoBatchSuggestionDto
+{
+    public Guid BatchId { get; set; }
+    public string BatchNumber { get; set; } = string.Empty;
+    public DateTime? ExpiryDate { get; set; }
+    public decimal AvailableQuantity { get; set; }
+    public decimal SuggestedQuantity { get; set; }
+    public Guid? WarehouseLocationId { get; set; }
+    public string? LocationCode { get; set; }
+    public string? LocationName { get; set; }
+    public string? LocationNameEng { get; set; }
 }
 
 public enum WarehouseLocationType
