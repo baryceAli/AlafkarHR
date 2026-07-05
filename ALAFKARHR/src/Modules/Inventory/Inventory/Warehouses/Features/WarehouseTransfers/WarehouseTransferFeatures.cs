@@ -1,4 +1,5 @@
 using Inventory.Warehouses.Models;
+using Inventory.Warehouses.Features.Inventories;
 using Shared.Exceptions;
 
 namespace Inventory.Warehouses.Features.WarehouseTransfers;
@@ -39,7 +40,6 @@ public class AddWarehouseTransferItemValidator : AbstractValidator<AddWarehouseT
         RuleFor(x => x.TransferId).NotEmpty();
         RuleFor(x => x.Item.ProductId).NotEmpty();
         RuleFor(x => x.Item.ProductSkuId).NotEmpty();
-        RuleFor(x => x.Item.BatchId).NotEmpty();
         RuleFor(x => x.Item.Quantity).GreaterThan(0);
         RuleFor(x => x.Item.UnitCost).GreaterThanOrEqualTo(0);
         RuleFor(x => x.Item.CurrencyId).NotEmpty();
@@ -189,14 +189,26 @@ public class AddWarehouseTransferItemHandler(InventoryDbContext dbContext, IHttp
         var transfer = await WarehouseTransferFeatureHelpers.LoadTransferAsync(dbContext, request.TransferId, cancellationToken);
         await WarehouseTransferFeatureHelpers.EnsureCanMutateTransferAsync(dbContext, sender, transfer, cancellationToken);
         var userId = WarehouseTransferFeatureHelpers.GetUserId(httpContextAccessor);
-        await WarehouseTransferFeatureHelpers.EnsureTransferSkuAllowedAsync(sender, transfer.CompanyId, request.Item.ProductId, request.Item.ProductSkuId, cancellationToken);
+        var context = await WarehouseTransferFeatureHelpers.EnsureTransferSkuAllowedAsync(sender, transfer.CompanyId, request.Item.ProductId, request.Item.ProductSkuId, cancellationToken);
+        var batchId = request.Item.BatchId;
+        if (context.TrackingMode == CatalogTrackingMode.Quantity && batchId == Guid.Empty)
+        {
+            batchId = await global::Inventory.Warehouses.Features.Inventories.InventoryTrackingModeGuard.EnsureQuantityCompatibilityBatchAsync(
+                dbContext,
+                transfer.CompanyId,
+                request.Item.ProductId,
+                request.Item.ProductSkuId,
+                userId,
+                cancellationToken);
+        }
+        WarehouseTransferFeatureHelpers.EnsureTransferTrackingInput(context, batchId, request.Item.Quantity, request.Item.SerialNumbers);
         await WarehouseTransferFeatureHelpers.EnsureTransferLocationAsync(dbContext, transfer.CompanyId, transfer.SourceWarehouseId, request.Item.SourceLocationId, "Source location", cancellationToken);
         await WarehouseTransferFeatureHelpers.EnsureTransferLocationAsync(dbContext, transfer.CompanyId, transfer.DestinationWarehouseId, request.Item.DestinationLocationId, "Destination location", cancellationToken);
 
         transfer.AddItem(
             request.Item.ProductId,
             request.Item.ProductSkuId,
-            request.Item.BatchId,
+            batchId,
             request.Item.SourceLocationId,
             request.Item.DestinationLocationId,
             transfer.SourceWarehouseId,
@@ -204,6 +216,7 @@ public class AddWarehouseTransferItemHandler(InventoryDbContext dbContext, IHttp
             request.Item.UnitCost,
             request.Item.CurrencyId,
             null,
+            request.Item.SerialNumbers,
             userId);
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -235,7 +248,8 @@ public class ShipWarehouseTransferHandler(InventoryDbContext dbContext, IHttpCon
 
         foreach (var item in transfer.Items)
         {
-            await WarehouseTransferFeatureHelpers.EnsureTransferSkuAllowedAsync(sender, transfer.CompanyId, item.ProductId, item.ProductSkuId, cancellationToken);
+            var context = await WarehouseTransferFeatureHelpers.EnsureTransferSkuAllowedAsync(sender, transfer.CompanyId, item.ProductId, item.ProductSkuId, cancellationToken);
+            WarehouseTransferFeatureHelpers.EnsureTransferTrackingInput(context, item.BatchId, item.Quantity, item.SerialNumbers);
             var inventory = await WarehouseTransferFeatureHelpers.LoadInventoryAsync(dbContext, transfer.SourceWarehouseId, item.ProductSkuId, cancellationToken);
             global::Inventory.Warehouses.Features.Inventories.InventoryBatchExpiryGuard.EnsureUsableForOutbound(inventory, item.BatchId, "WarehouseTransfer");
             WarehouseTransferFeatureHelpers.EnsureBatchAvailable(inventory, item.BatchId, item.Quantity);
@@ -263,7 +277,16 @@ public class ShipWarehouseTransferHandler(InventoryDbContext dbContext, IHttpCon
                 item.Quantity,
                 userId,
                 cancellationToken);
-            await WarehouseTransferFeatureHelpers.AddTransferMovementAsync(dbContext, transfer, item, transfer.SourceWarehouseId, item.Quantity, quantityBefore, inventory.TotalQuantity, reservedBefore, inventory.TotalReserved, MovementType.TransferOut, MovementDirection.OUT, userId, cancellationToken);
+            var movement = await WarehouseTransferFeatureHelpers.AddTransferMovementAsync(dbContext, transfer, item, transfer.SourceWarehouseId, item.Quantity, quantityBefore, inventory.TotalQuantity, reservedBefore, inventory.TotalReserved, MovementType.TransferOut, MovementDirection.OUT, userId, cancellationToken);
+            await global::Inventory.Warehouses.Features.Inventories.InventoryTrackingModeGuard.ApplySerialMovementAsync(
+                dbContext,
+                movement,
+                transfer.CompanyId,
+                sourceLocationId,
+                InventorySerialOperation.TransferShip,
+                item.SerialNumbers.Select(x => new InventorySerialSelectionDto { SerialNumber = x, BatchId = item.BatchId, WarehouseId = transfer.SourceWarehouseId, WarehouseLocationId = sourceLocationId }).ToList(),
+                userId,
+                cancellationToken);
         }
 
         transfer.Ship(userId);
@@ -282,7 +305,9 @@ public class ReceiveWarehouseTransferHandler(InventoryDbContext dbContext, IHttp
         var userId = WarehouseTransferFeatureHelpers.GetUserId(httpContextAccessor);
         var item = transfer.Items.FirstOrDefault(x => x.Id == request.Item.ItemId)
             ?? throw new NotFoundException($"Transfer item not found: {request.Item.ItemId}");
-        await WarehouseTransferFeatureHelpers.EnsureTransferSkuAllowedAsync(sender, transfer.CompanyId, item.ProductId, item.ProductSkuId, cancellationToken);
+        var context = await WarehouseTransferFeatureHelpers.EnsureTransferSkuAllowedAsync(sender, transfer.CompanyId, item.ProductId, item.ProductSkuId, cancellationToken);
+        var receiveSerials = request.Item.SerialNumbers.Count > 0 ? request.Item.SerialNumbers : item.SerialNumbers.ToList();
+        WarehouseTransferFeatureHelpers.EnsureTransferTrackingInput(context, item.BatchId, request.Item.Quantity, receiveSerials);
         var destinationLocationId = request.Item.DestinationLocationId ?? item.DestinationLocationId;
         if (!destinationLocationId.HasValue || destinationLocationId.Value == Guid.Empty)
         {
@@ -333,7 +358,16 @@ public class ReceiveWarehouseTransferHandler(InventoryDbContext dbContext, IHttp
             request.Item.Quantity,
             userId,
             cancellationToken);
-        await WarehouseTransferFeatureHelpers.AddTransferMovementAsync(dbContext, transfer, item, transfer.DestinationWarehouseId, request.Item.Quantity, quantityBefore, inventory.TotalQuantity, reservedBefore, inventory.TotalReserved, MovementType.TransferIn, MovementDirection.IN, userId, cancellationToken);
+        var movement = await WarehouseTransferFeatureHelpers.AddTransferMovementAsync(dbContext, transfer, item, transfer.DestinationWarehouseId, request.Item.Quantity, quantityBefore, inventory.TotalQuantity, reservedBefore, inventory.TotalReserved, MovementType.TransferIn, MovementDirection.IN, userId, cancellationToken);
+        await global::Inventory.Warehouses.Features.Inventories.InventoryTrackingModeGuard.ApplySerialMovementAsync(
+            dbContext,
+            movement,
+            transfer.CompanyId,
+            destinationLocationId,
+            InventorySerialOperation.TransferReceive,
+            receiveSerials.Select(x => new InventorySerialSelectionDto { SerialNumber = x, BatchId = item.BatchId, WarehouseId = transfer.DestinationWarehouseId, WarehouseLocationId = destinationLocationId }).ToList(),
+            userId,
+            cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return new ReceiveWarehouseTransferResult(true);
     }
@@ -652,7 +686,32 @@ file static class WarehouseTransferFeatureHelpers
             throw new BadRequestException($"Insufficient available stock in batch {batchStock.Batch.BatchNumber}.");
     }
 
-    public static async Task AddTransferMovementAsync(
+    public static void EnsureTransferTrackingInput(
+        GetProductSkuInventoryContextResult context,
+        Guid batchId,
+        decimal quantity,
+        IReadOnlyCollection<string> serialNumbers)
+    {
+        if (context.TrackingMode is CatalogTrackingMode.Batch or CatalogTrackingMode.Serial && batchId == Guid.Empty)
+            throw new BadRequestException("Batch is required for batch/serial tracked transfer items.");
+
+        if (context.TrackingMode != CatalogTrackingMode.Serial)
+            return;
+
+        if (quantity != Math.Truncate(quantity))
+            throw new BadRequestException("Serial-tracked transfer quantity must be a whole number.");
+
+        var count = serialNumbers
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count();
+
+        if (count != quantity)
+            throw new BadRequestException("Serial number count must match the transfer quantity.");
+    }
+
+    public static async Task<StockMovement> AddTransferMovementAsync(
         InventoryDbContext dbContext,
         WarehouseTransfer transfer,
         TransferItem item,
@@ -698,6 +757,7 @@ file static class WarehouseTransferFeatureHelpers
         await dbContext.InventoryValuationLayers.AddAsync(
             InventoryValuationLayer.FromMovement(movement, transfer.CompanyId, userId),
             cancellationToken);
+        return movement;
     }
 
     public static async Task<WarehouseTransferDto> MapTransferAsync(InventoryDbContext dbContext, WarehouseTransfer transfer, CancellationToken cancellationToken)
@@ -722,6 +782,10 @@ file static class WarehouseTransferFeatureHelpers
 
         foreach (var item in dto.Items)
         {
+            var sourceItem = transfer.Items.FirstOrDefault(x => x.Id == item.Id);
+            if (sourceItem is not null)
+                item.SerialNumbers = sourceItem.SerialNumbers.ToList();
+
             if (item.SourceLocationId.HasValue && locations.TryGetValue(item.SourceLocationId.Value, out var sourceLocation))
             {
                 item.SourceLocationName = sourceLocation.Name;

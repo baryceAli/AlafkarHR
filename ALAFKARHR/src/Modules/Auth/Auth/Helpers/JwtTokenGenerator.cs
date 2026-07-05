@@ -16,17 +16,20 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 {
     private readonly JwtOptions _options;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly AuthDbContext _authDbContext;
     private readonly ISender _sender;
 
     public JwtTokenGenerator(
         IOptions<JwtOptions> options,
         UserManager<ApplicationUser> userManager,
+        RoleManager<ApplicationRole> roleManager,
         AuthDbContext authDbContext,
         ISender sender)
     {
         _options = options.Value;
         _userManager = userManager;
+        _roleManager = roleManager;
         _authDbContext = authDbContext;
         _sender = sender;
     }
@@ -60,6 +63,11 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             .Where(role => !string.IsNullOrWhiteSpace(role))
             .Distinct(StringComparer.Ordinal)
             .ToList();
+
+        if (user.CompanyId.HasValue)
+        {
+            await CompanyRoleTemplates.SyncAssignedTemplateRolesAsync(_roleManager, user.CompanyId.Value, roleNames);
+        }
 
         foreach (var role in roleNames)
         {

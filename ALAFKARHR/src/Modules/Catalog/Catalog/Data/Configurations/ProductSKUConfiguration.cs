@@ -20,6 +20,11 @@ public class ProductSKUConfiguration : IEntityTypeConfiguration<ProductSku>
             .HasConversion<int>()
             .HasDefaultValue(SkuProductionType.PurchasedRawMaterial);
 
+        builder.Property(x => x.TrackingMode)
+            .IsRequired()
+            .HasConversion<int>()
+            .HasDefaultValue(CatalogTrackingMode.Quantity);
+
         builder.Property(x => x.IsSellable)
             .IsRequired()
             .HasDefaultValue(true);

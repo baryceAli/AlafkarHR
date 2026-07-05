@@ -55,7 +55,7 @@ public class ResolveCatalogBarcodeHandler(CatalogDbContext dbContext)
             join brand in dbContext.Brands.AsNoTracking() on sku.BrandId equals brand.Id
             join unit in dbContext.Units.AsNoTracking() on sku.UnitId equals unit.Id
             where package.CompanyId == request.CompanyId
-                && package.Barcode == barcode
+                && (link.Barcode == barcode || package.Barcode == barcode)
                 && !package.IsDeleted
                 && !link.IsDeleted
                 && !sku.IsDeleted
@@ -68,23 +68,23 @@ public class ResolveCatalogBarcodeHandler(CatalogDbContext dbContext)
                 product.Id,
                 sku.Id,
                 package.Id,
-                package.Barcode ?? package.NameEng,
+                link.Barcode ?? package.Barcode ?? package.NameEng,
                 package.Name,
                 package.NameEng,
                 product.ProductType,
                 sku.ProductionType,
                 product.IsActive,
                 sku.IsActive,
-                package.IsActive,
+                link.IsActive && package.IsActive,
                 category.IsActive,
                 brand.IsActive,
                 unit.IsActive,
                 sku.IsInventoryTracked,
-                package.Quantity,
-                package.UnitId,
-                package.UnitId.HasValue
+                link.Quantity,
+                link.UnitId ?? package.UnitId,
+                (link.UnitId ?? package.UnitId).HasValue
                     ? dbContext.Units.AsNoTracking()
-                        .Where(packageUnit => packageUnit.Id == package.UnitId.Value && !packageUnit.IsDeleted)
+                        .Where(packageUnit => packageUnit.Id == (link.UnitId ?? package.UnitId)!.Value && !packageUnit.IsDeleted)
                         .Select(packageUnit => (decimal?)packageUnit.ConversionFactor)
                         .FirstOrDefault()
                     : null))

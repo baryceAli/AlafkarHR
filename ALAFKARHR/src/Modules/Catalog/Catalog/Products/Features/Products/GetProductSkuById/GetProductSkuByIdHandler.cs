@@ -23,6 +23,7 @@ public class GetProductSkuByIdHandler(CatalogDbContext dbContext)
             .FirstOrDefaultAsync(x => x.Id == productSku.UnitId, cancellationToken);
         productSkuDto.UnitName = unit?.UnitName;
         productSkuDto.UnitNameEng = unit?.UnitNameEng;
+        productSkuDto.TrackingMode = productSku.TrackingMode;
         productSkuDto.Packages = productSku.Packages
             .Where(p => !p.IsDeleted && !p.ProductPackage.IsDeleted)
             .Select(p => new ProductPackageDto
@@ -30,16 +31,33 @@ public class GetProductSkuByIdHandler(CatalogDbContext dbContext)
                 Id = p.ProductPackage.Id,
                 Name = p.ProductPackage.Name,
                 NameEng = p.ProductPackage.NameEng,
-                Quantity = p.ProductPackage.Quantity,
-                UnitId = p.ProductPackage.UnitId,
-                Barcode = p.ProductPackage.Barcode,
+                Quantity = p.Quantity,
+                UnitId = p.UnitId ?? p.ProductPackage.UnitId,
+                Barcode = p.Barcode ?? p.ProductPackage.Barcode,
                 Weight = p.ProductPackage.Weight,
                 Length = p.ProductPackage.Length,
                 Width = p.ProductPackage.Width,
                 Height = p.ProductPackage.Height,
                 Notes = p.ProductPackage.Notes,
-                IsActive = p.ProductPackage.IsActive,
+                IsActive = p.IsActive && p.ProductPackage.IsActive,
                 CompanyId = p.ProductPackage.CompanyId
+            })
+            .ToList();
+        productSkuDto.PackageAssignments = productSku.Packages
+            .Where(p => !p.IsDeleted && !p.ProductPackage.IsDeleted)
+            .Select(p => new ProductSkuPackageDto
+            {
+                Id = p.Id,
+                ProductSkuId = p.ProductSkuId,
+                ProductPackageId = p.ProductPackageId,
+                Name = p.ProductPackage.Name,
+                NameEng = p.ProductPackage.NameEng,
+                Quantity = p.Quantity,
+                UnitId = p.UnitId ?? p.ProductPackage.UnitId,
+                Barcode = p.Barcode ?? p.ProductPackage.Barcode,
+                SalesEnabled = p.SalesEnabled,
+                PurchaseEnabled = p.PurchaseEnabled,
+                IsActive = p.IsActive && p.ProductPackage.IsActive
             })
             .ToList();
         productSkuDto.PackageId = productSkuDto.Packages.Select(p => p.Id).FirstOrDefault();

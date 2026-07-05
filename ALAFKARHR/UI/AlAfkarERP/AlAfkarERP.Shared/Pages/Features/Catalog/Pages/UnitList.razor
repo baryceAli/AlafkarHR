@@ -145,12 +145,14 @@
                                     <div class="col-md-4">
                                         <label class="form-label">@SharedDataService.SelectViewLang("Category", "الفئة")</label>
                                         <InputText class="form-control" @bind-Value="editingItem.UnitCategory" />
+                                        <div class="form-text">@SharedDataService.SelectViewLang("Only units in the same category can convert between each other.", "Only units in the same category can convert between each other.")</div>
                                         <ValidationMessage For="() => editingItem.UnitCategory" />
                                     </div>
 
                                     <div class="col-md-4">
                                         <label class="form-label">@SharedDataService.SelectViewLang("Conversion Factor", "معامل التحويل")</label>
                                         <InputNumber class="form-control" @bind-Value="editingItem.ConversionFactor" />
+                                        <div class="form-text">@SharedDataService.SelectViewLang("Use 1 for the reference unit in each category.", "Use 1 for the reference unit in each category.")</div>
                                         <ValidationMessage For="() => editingItem.ConversionFactor" />
                                     </div>
 

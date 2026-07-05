@@ -16,6 +16,8 @@ public class InventoryDbContext:DbContext
     public DbSet<InventoryAggregate> Inventories=> Set<InventoryAggregate>();
     public DbSet<InventorySnapshot> InventorySnapshots => Set<InventorySnapshot>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<InventorySerialNumber> InventorySerialNumbers => Set<InventorySerialNumber>();
+    public DbSet<StockMovementSerial> StockMovementSerials => Set<StockMovementSerial>();
     public DbSet<WarehouseTransfer> WarehouseTransfers => Set<WarehouseTransfer>();
     public DbSet<TransferItem> TransferItems => Set<TransferItem>();
     public DbSet<WarehouseLocation> WarehouseLocations => Set<WarehouseLocation>();

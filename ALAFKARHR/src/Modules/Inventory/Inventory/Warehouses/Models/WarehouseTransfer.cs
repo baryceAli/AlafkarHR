@@ -83,6 +83,7 @@ public class WarehouseTransfer : Aggregate<Guid>
         decimal unitCost,
         Guid currencyId,
         decimal? receivedQuantity,
+        IEnumerable<string>? serialNumbers,
         //bool isCompleted,
         string user)
     {
@@ -109,6 +110,7 @@ public class WarehouseTransfer : Aggregate<Guid>
             quantity,
             unitCost,
             currencyId,
+            serialNumbers,
             //receivedQuantity,
             //isCompleted,
             user);

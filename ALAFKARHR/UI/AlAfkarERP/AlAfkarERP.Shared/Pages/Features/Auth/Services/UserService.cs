@@ -59,10 +59,13 @@ public class UserService : BaseApiService, IUserService
         throw new NotImplementedException();
     }
 
-    public async Task<ApiResult<PaginatedResult<UserDto>>> GetUsersByCompany(Guid companyId,int pageIndex, int pageSize)
+    public async Task<ApiResult<PaginatedResult<UserDto>>> GetUsersByCompany(Guid companyId,int pageIndex, int pageSize, string? searchText = null)
     {
         ///api/v1/auth/Users/company/{companyId}
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/users/company/{companyId}?pageIndex={pageIndex}&pageSize={pageSize}");
+        var searchQuery = string.IsNullOrWhiteSpace(searchText)
+            ? string.Empty
+            : $"&searchText={Uri.EscapeDataString(searchText.Trim())}";
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_path}/users/company/{companyId}?pageIndex={pageIndex}&pageSize={pageSize}{searchQuery}");
         return await SendAsync<PaginatedResult<UserDto>>(request, "userList");
 
         //var request = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/auth/Users/company/{companyId}?pageIndex={pageIndex}&pageSize={pageSize}");

@@ -19,7 +19,6 @@ public class StockInCommandValidator : AbstractValidator<StockAdjustmentCommand>
         RuleFor(x=> x.InventoryAggregate.ProductSkuId).NotEmpty().WithMessage("Sku is required");
         RuleFor(x=> x.InventoryAggregate.WarehouseId).NotEmpty().WithMessage("Warehouse is required");
         RuleFor(x=> x.InventoryAggregate.InitialQuantity).GreaterThan(0).WithMessage("Quantity must be greater than zero");
-        RuleFor(x=> x.InventoryAggregate.InitialBatchId).NotEmpty().WithMessage("Batch is required");
         RuleFor(x => x.InventoryAggregate.ReferenceNumber).NotEmpty().MaximumLength(120).WithMessage("Reference number is required");
         RuleFor(x => x.InventoryAggregate.SourceDocumentType)
             .NotEmpty()
@@ -56,17 +55,22 @@ public class StockAdjustmentHandler(InventoryDbContext dbContext, ISender sender
         //if (sku is null)
         //    throw new NotFoundException($"SKU not found: {command.InventoryAggregate.ProductSkuId}");
 
-        var packageQuantity = await global::Inventory.Warehouses.Features.Inventories.InventoryPackageQuantityResolver
-            .ResolveAsync(sender, command.InventoryAggregate, cancellationToken);
-
-        var inventory = await dbContext.Inventories.Include(i => i.Batches)
-                                .FirstOrDefaultAsync(i => i.WarehouseId == command.InventoryAggregate.WarehouseId &&
-                                                         i.ProductSkuId == command.InventoryAggregate.ProductSkuId, cancellationToken);
-
         var userId = httpContextAccessor.HttpContext
                         .User?
                         .FindFirst(ClaimTypes.NameIdentifier)?
                         .Value ?? throw new UnauthorizedAccessException("User is not authenticated");
+
+        var serialOperation = command.InventoryAggregate.MovementType == MovementType.AdjustmentIncrease
+            ? InventorySerialOperation.StockIn
+            : InventorySerialOperation.Scrap;
+
+        var tracking = await global::Inventory.Warehouses.Features.Inventories.InventoryTrackingModeGuard
+            .ResolveAndValidateAsync(dbContext, sender, command.InventoryAggregate, serialOperation, userId, cancellationToken);
+        var packageQuantity = tracking.Quantity;
+
+        var inventory = await dbContext.Inventories.Include(i => i.Batches)
+                                .FirstOrDefaultAsync(i => i.WarehouseId == command.InventoryAggregate.WarehouseId &&
+                                                         i.ProductSkuId == command.InventoryAggregate.ProductSkuId, cancellationToken);
 
         decimal quantityBefore = 0;
         decimal reservedBefore = 0;
@@ -184,6 +188,17 @@ public class StockAdjustmentHandler(InventoryDbContext dbContext, ISender sender
             sourceLocationId: command.InventoryAggregate.SourceLocationId,
             destinationLocationId: command.InventoryAggregate.DestinationLocationId);
         await dbContext.StockMovements.AddAsync(movement, cancellationToken);
+        await global::Inventory.Warehouses.Features.Inventories.InventoryTrackingModeGuard.ApplySerialMovementAsync(
+            dbContext,
+            movement,
+            command.InventoryAggregate.CompanyId,
+            command.InventoryAggregate.MovementType == MovementType.AdjustmentIncrease
+                ? command.InventoryAggregate.DestinationLocationId
+                : command.InventoryAggregate.SourceLocationId,
+            serialOperation,
+            tracking.Serials,
+            userId,
+            cancellationToken);
         await dbContext.InventoryValuationLayers.AddAsync(
             InventoryValuationLayer.FromMovement(movement, command.InventoryAggregate.CompanyId, userId),
             cancellationToken);

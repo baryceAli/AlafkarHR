@@ -65,7 +65,19 @@ public class PostInventoryStockOutBySkuHandler(InventoryDbContext dbContext, ISe
                 SourceDocumentId = command.SourceDocumentId,
                 SourceDocumentLineId = command.SourceDocumentLineId,
                 ParentProductSkuId = command.ParentProductSkuId,
-                ParentSalesOrderLineId = command.ParentSalesOrderLineId
+                ParentSalesOrderLineId = command.ParentSalesOrderLineId,
+                SerialNumbers = command.SerialNumbers?
+                    .Where(x => x.BatchId == batch.BatchId || !x.BatchId.HasValue)
+                    .Take((int)take)
+                    .Select(x => new InventorySerialSelectionDto
+                    {
+                        InventorySerialNumberId = x.InventorySerialNumberId,
+                        SerialNumber = x.SerialNumber,
+                        BatchId = x.BatchId,
+                        WarehouseId = x.WarehouseId,
+                        WarehouseLocationId = x.WarehouseLocationId
+                    })
+                    .ToList() ?? []
             }), cancellationToken);
 
             lastInventoryId = result.Id;

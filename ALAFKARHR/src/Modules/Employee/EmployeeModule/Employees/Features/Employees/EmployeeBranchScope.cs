@@ -1,3 +1,6 @@
+using Auth.Contracts.Features.UserCompanyMembership;
+using Shared.Contracts.Organization;
+
 namespace EmployeeModule.Employees.Features.Employees;
 
 internal static class EmployeeBranchScope
@@ -22,5 +25,25 @@ internal static class EmployeeBranchScope
         return access.CanViewAllBranches
             ? query
             : query.Where(x => access.BranchIds.Contains(x.BranchId));
+    }
+
+    public static async Task EnsureLinkedUserBranchAccessAsync(
+        ISender sender,
+        Guid companyId,
+        Guid? linkedUserId,
+        Guid? branchId,
+        bool makeDefault,
+        CancellationToken cancellationToken)
+    {
+        if (!linkedUserId.HasValue || linkedUserId.Value == Guid.Empty || !branchId.HasValue || branchId.Value == Guid.Empty)
+            return;
+
+        var membership = await sender.Send(new UserBelongsToCompanyQuery(linkedUserId.Value, companyId), cancellationToken);
+        if (!membership.BelongsToCompany)
+            throw new BadRequestException("Linked user does not belong to the employee company.");
+
+        await sender.Send(
+            new EnsureUserBranchAccessCommand(linkedUserId.Value, companyId, branchId.Value, makeDefault),
+            cancellationToken);
     }
 }

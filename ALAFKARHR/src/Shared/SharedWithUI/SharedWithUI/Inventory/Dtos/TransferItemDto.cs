@@ -10,6 +10,7 @@ public class TransferItemDto
     public string? SourceLocationName { get; set; }
     public string? SourceLocationNameEng { get; set; }
     public Guid? DestinationLocationId { get; set; }
+    public List<string> SerialNumbers { get; set; } = [];
     public string? DestinationLocationName { get; set; }
     public string? DestinationLocationNameEng { get; set; }
     //public Guid WarehouseId { get; set; }

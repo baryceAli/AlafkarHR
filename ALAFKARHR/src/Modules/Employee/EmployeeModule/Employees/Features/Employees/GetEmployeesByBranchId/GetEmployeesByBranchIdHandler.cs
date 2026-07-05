@@ -34,7 +34,9 @@ public class GetEmployeesByBranchIdHandler(EmployeeDbContext dbContext)
 
         // 📄 Pagination
         var branches = await query
-            .OrderBy(b => b.FullName) // default sorting (important!)
+            .OrderBy(b => b.FirstName) // default sorting (important!)
+            .ThenBy(b => b.MiddleName)
+            .ThenBy(b => b.LastName)
             .Skip(request.PaginationRequest.PageIndex * request.PaginationRequest.PageSize)
             .Take(request.PaginationRequest.PageSize)
             .ToListAsync(cancellationToken);

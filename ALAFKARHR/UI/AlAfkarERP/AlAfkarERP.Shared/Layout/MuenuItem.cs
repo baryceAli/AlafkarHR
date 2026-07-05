@@ -1385,7 +1385,7 @@ public class MenuItem
                           },
                           new MenuItem
                           {
-                              TextEn = "Pakcages",
+                              TextEn = "Packagings",
                             TextAr = "العبوات",
                             Icon = "bi-archive-fill",
                             Url = "/Warehouse/Product/Packages/List",
@@ -2344,8 +2344,8 @@ public class MenuItem
                 },
                 new MenuItem
                 {
-                    TextEn = "Assign User Roles",
-                    TextAr = "تعيين صلاحيات المستخدمين",
+                    TextEn = "Manage User Roles",
+                    TextAr = "إدارة صلاحيات المستخدمين",
                     Icon = "bi-person-gear",
                     Url = "/Auth/User/AssignRole",
                     PermissionPolicy = PermissionList.UsersPermissions.View,

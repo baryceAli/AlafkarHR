@@ -53,6 +53,7 @@ public class WarehouseTransferItemInputDto
     public decimal Quantity { get; set; }
     public decimal UnitCost { get; set; }
     public Guid CurrencyId { get; set; }
+    public List<string> SerialNumbers { get; set; } = [];
 }
 
 public class ReceiveWarehouseTransferItemDto
@@ -60,4 +61,5 @@ public class ReceiveWarehouseTransferItemDto
     public Guid ItemId { get; set; }
     public decimal Quantity { get; set; }
     public Guid? DestinationLocationId { get; set; }
+    public List<string> SerialNumbers { get; set; } = [];
 }

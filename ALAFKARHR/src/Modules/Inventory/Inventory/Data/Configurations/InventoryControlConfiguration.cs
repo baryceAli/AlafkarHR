@@ -70,6 +70,7 @@ public class CycleCountLineConfiguration : IEntityTypeConfiguration<CycleCountLi
         builder.ToTable("CycleCountLines", "Inventory");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.CountedQuantity).HasPrecision(18, 4);
+        builder.Property(x => x.SerialNumbersCsv).HasMaxLength(4000);
         builder.Property(x => x.Notes).HasMaxLength(500);
         builder.Property(x => x.CreatedBy).HasMaxLength(100);
         builder.Property(x => x.ModifiedBy).HasMaxLength(100);

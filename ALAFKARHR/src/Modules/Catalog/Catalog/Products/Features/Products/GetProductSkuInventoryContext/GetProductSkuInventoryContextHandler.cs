@@ -29,6 +29,7 @@ public class GetProductSkuInventoryContextHandler(CatalogDbContext dbContext)
                 sku.Id,
                 product.ProductType,
                 sku.ProductionType,
+                sku.TrackingMode,
                 product.IsActive,
                 sku.IsActive,
                 category.IsActive,

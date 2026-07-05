@@ -245,6 +245,13 @@ public class Employee : Aggregate<Guid>
         ModifiedAt = DateTime.UtcNow;
     }
 
+    public void LinkUser(Guid? linkedUserId, string modifiedBy)
+    {
+        LinkedUserId = linkedUserId;
+        ModifiedBy = modifiedBy;
+        ModifiedAt = DateTime.UtcNow;
+    }
+
     public void TransferDepartment(Guid branchId, Guid? administrationId, Guid? departmentId, string modifiedBy)
     {
         BranchId = branchId;

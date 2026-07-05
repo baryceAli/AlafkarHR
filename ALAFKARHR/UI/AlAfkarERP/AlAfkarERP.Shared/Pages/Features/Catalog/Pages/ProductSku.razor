@@ -183,6 +183,8 @@
                                 editingItem.Packages.Add(legacyPackage);
                             }
                         }
+                        SyncPackageAssignments(editingItem);
+                        SyncSkuTracking(editingItem);
                     }
                     <tr>
                         <td colspan="11">
@@ -228,6 +230,55 @@
                                                     </label>
                                                 }
                                             </div>
+                                            @if (editingItem.PackageAssignments.Any())
+                                            {
+                                                <div class="erp-subpanel mt-3">
+                                                    <div class="fw-semibold mb-3">@SharedDataService.SelectViewLang("Packaging Assignments", "Packaging Assignments")</div>
+                                                    @foreach (var assignment in editingItem.PackageAssignments)
+                                                    {
+                                                        <div class="row g-2 align-items-end mb-3">
+                                                            <div class="col-md-3">
+                                                                <label class="form-label small text-muted">@SharedDataService.SelectViewLang("Packaging", "Packaging")</label>
+                                                                <div class="fw-semibold">@GetPackageAssignmentName(assignment)</div>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label small text-muted">@SharedDataService.SelectViewLang("Quantity", "Quantity")</label>
+                                                                <InputNumber class="form-control" min="0.0001" @bind-Value="assignment.Quantity" />
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label small text-muted">@SharedDataService.SelectViewLang("Unit", "Unit")</label>
+                                                                <InputSelect class="form-select" TValue="Guid?" @bind-Value="assignment.UnitId">
+                                                                    <option value="">@SharedDataService.SelectViewLang("SKU unit", "SKU unit")</option>
+                                                                    @foreach (var unit in units)
+                                                                    {
+                                                                        <option value="@unit.Id">@SharedDataService.SelectViewLang(unit.UnitNameEng, unit.UnitName)</option>
+                                                                    }
+                                                                </InputSelect>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label small text-muted">@SharedDataService.SelectViewLang("Barcode", "Barcode")</label>
+                                                                <InputText class="form-control" @bind-Value="assignment.Barcode" />
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <div class="erp-check-tile-group">
+                                                                    <label class="erp-check-tile">
+                                                                        <InputCheckbox class="form-check-input" @bind-Value="assignment.SalesEnabled" />
+                                                                        <span>@SharedDataService.SelectViewLang("Sales", "Sales")</span>
+                                                                    </label>
+                                                                    <label class="erp-check-tile">
+                                                                        <InputCheckbox class="form-check-input" @bind-Value="assignment.PurchaseEnabled" />
+                                                                        <span>@SharedDataService.SelectViewLang("Purchase", "Purchase")</span>
+                                                                    </label>
+                                                                    <label class="erp-check-tile">
+                                                                        <InputCheckbox class="form-check-input" @bind-Value="assignment.IsActive" />
+                                                                        <span>@SharedDataService.SelectViewLang("Active", "Active")</span>
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
                                         </div>
                                     </div>
 
@@ -295,6 +346,21 @@
                                             <div class="form-text">
                                                 @SharedDataService.SelectViewLang("Product type", "نوع المنتج"):
                                                 @GetProductTypeLabel(selectedProduct?.ProductType ?? CatalogProductType.Goods)
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 row">
+                                        <label class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Tracking", "Tracking")</label>
+                                        <div class="col-sm-10">
+                                            <InputSelect TValue="CatalogTrackingMode" class="form-select" @bind-Value="editingItem.TrackingMode">
+                                                @foreach (var trackingMode in Enum.GetValues<CatalogTrackingMode>())
+                                                {
+                                                    <option value="@trackingMode">@GetTrackingModeLabel(trackingMode)</option>
+                                                }
+                                            </InputSelect>
+                                            <div class="form-text">
+                                                @SharedDataService.SelectViewLang("Services are not tracked. Batch and serial tracking are used by inventory flows.", "Services are not tracked. Batch and serial tracking are used by inventory flows.")
                                             </div>
                                         </div>
                                     </div>
@@ -421,7 +487,7 @@
                                                     <span>@SharedDataService.SelectViewLang("Purchasable", "قابل للشراء")</span>
                                                 </label>
                                                 <label class="erp-check-tile">
-                                                    <InputCheckbox class="form-check-input" @bind-Value="editingItem.IsInventoryTracked" />
+                                                    <InputCheckbox class="form-check-input" @bind-Value="editingItem.IsInventoryTracked" disabled />
                                                     <span>@SharedDataService.SelectViewLang("Inventory tracked", "متابعة مخزونيا")</span>
                                                 </label>
                                                 <label class="erp-check-tile">
@@ -536,6 +602,9 @@
 
 
                                     <div class="erp-form-actions">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => GenerateVariantMatrix(editingItem)">
+                                            <i class="bi bi-grid-3x3-gap"></i> @SharedDataService.SelectViewLang("Generate Matrix", "Generate Matrix")
+                                        </button>
                                         <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> @SharedDataService.SelectViewLang("Save", "حفظ")</button>
                                         <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelEdit"><i class="bi bi-x-lg"></i> @SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>
                                     </div>
@@ -746,9 +815,13 @@
             ProductionType = selectedProduct.ProductType == CatalogProductType.Combo
                 ? SkuProductionType.CompositeBundle
                 : SkuProductionType.PurchasedRawMaterial,
+            TrackingMode = selectedProduct.ProductType == CatalogProductType.Service
+                ? CatalogTrackingMode.None
+                : CatalogTrackingMode.Quantity,
             IsInventoryTracked = selectedProduct.ProductType != CatalogProductType.Service,
             IsActive = true,
             Variants = [],
+            PackageAssignments = [],
             Components = []
         };
 
@@ -809,7 +882,14 @@
         productSku.ProductType = selectedProduct.ProductType;
         productSku.BrandId = selectedBrand.Id;
         productSku.UnitId = selectedUnit.Id;
+        SyncSkuTracking(productSku);
+        SyncPackageAssignments(productSku);
         productSku.PackageId = productSku.Packages.FirstOrDefault()?.Id;
+
+        if (!await ValidateSkuBarcodesAsync(productSku))
+        {
+            return;
+        }
 
         if (selectedProduct.ProductType == CatalogProductType.Service && productSku.IsInventoryTracked)
         {
@@ -826,6 +906,11 @@
         if (selectedProduct.ProductType == CatalogProductType.Combo)
         {
             productSku.ProductionType = SkuProductionType.CompositeBundle;
+            if (productSku.TrackingMode == CatalogTrackingMode.None)
+            {
+                productSku.TrackingMode = CatalogTrackingMode.Quantity;
+                productSku.IsInventoryTracked = true;
+            }
         }
 
         if (!await ValidateBundleComponentsAsync(productSku))
@@ -1136,13 +1221,188 @@
         if (isChecked && existingPackage is null)
         {
             sku.Packages.Add(package);
+        }
+        else if (!isChecked && existingPackage is not null)
+        {
+            sku.Packages.Remove(existingPackage);
+            var assignment = sku.PackageAssignments.FirstOrDefault(p => p.ProductPackageId == package.Id);
+            if (assignment is not null)
+            {
+                sku.PackageAssignments.Remove(assignment);
+            }
+        }
+
+        SyncPackageAssignments(sku);
+    }
+
+    private void SyncPackageAssignments(ProductSkuDto sku)
+    {
+        foreach (var package in sku.Packages.Where(package => package.Id != Guid.Empty).ToList())
+        {
+            var assignment = sku.PackageAssignments.FirstOrDefault(x => x.ProductPackageId == package.Id);
+            if (assignment is null)
+            {
+                sku.PackageAssignments.Add(new ProductSkuPackageDto
+                {
+                    ProductSkuId = isEdit ? sku.Id : Guid.Empty,
+                    ProductPackageId = package.Id,
+                    Name = package.Name,
+                    NameEng = package.NameEng,
+                    Quantity = package.Quantity <= 0 ? 1 : package.Quantity,
+                    UnitId = package.UnitId,
+                    UnitName = package.UnitName,
+                    UnitNameEng = package.UnitNameEng,
+                    UnitCategory = package.UnitCategory,
+                    UnitConversionFactor = package.UnitConversionFactor,
+                    SalesEnabled = true,
+                    PurchaseEnabled = true,
+                    IsActive = package.IsActive
+                });
+                continue;
+            }
+
+            assignment.Name ??= package.Name;
+            assignment.NameEng ??= package.NameEng;
+            if (assignment.Quantity <= 0)
+                assignment.Quantity = package.Quantity <= 0 ? 1 : package.Quantity;
+        }
+
+        var selectedPackageIds = sku.Packages.Select(package => package.Id).ToHashSet();
+        sku.PackageAssignments.RemoveAll(assignment => !selectedPackageIds.Contains(assignment.ProductPackageId));
+    }
+
+    private void SyncSkuTracking(ProductSkuDto sku)
+    {
+        if (selectedProduct?.ProductType == CatalogProductType.Service)
+        {
+            sku.TrackingMode = CatalogTrackingMode.None;
+        }
+
+        if (sku.ProductionType == SkuProductionType.CompositeBundle && sku.TrackingMode == CatalogTrackingMode.None)
+        {
+            sku.TrackingMode = CatalogTrackingMode.Quantity;
+        }
+
+        sku.IsInventoryTracked = sku.TrackingMode != CatalogTrackingMode.None;
+    }
+
+    private string GetPackageAssignmentName(ProductSkuPackageDto assignment)
+    {
+        var package = packages.FirstOrDefault(x => x.Id == assignment.ProductPackageId);
+        return SharedDataService.SelectViewLang(
+            assignment.NameEng ?? package?.NameEng ?? string.Empty,
+            assignment.Name ?? package?.Name ?? string.Empty);
+    }
+
+    private async Task<bool> ValidateSkuBarcodesAsync(ProductSkuDto sku)
+    {
+        if (!string.IsNullOrWhiteSpace(sku.Barcode))
+        {
+            var skuValidation = await ProductService.ValidateCatalogBarcodeAsync(companyId, sku.Barcode, isEdit ? sku.Id : null);
+            if (skuValidation.IsSuccess && skuValidation.Data?.IsAvailable == false)
+            {
+                await ShowBarcodeConflictAsync(skuValidation.Data);
+                return false;
+            }
+        }
+
+        foreach (var assignment in sku.PackageAssignments.Where(x => !string.IsNullOrWhiteSpace(x.Barcode)))
+        {
+            var validation = await ProductService.ValidateCatalogBarcodeAsync(
+                companyId,
+                assignment.Barcode!,
+                isEdit ? sku.Id : null,
+                assignment.Id == Guid.Empty ? null : assignment.Id);
+
+            if (validation.IsSuccess && validation.Data?.IsAvailable == false)
+            {
+                await ShowBarcodeConflictAsync(validation.Data);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private async Task ShowBarcodeConflictAsync(CatalogBarcodeValidationResultDto validation)
+    {
+        await ModalService.ShowAsync(new ModalOptions
+        {
+            Title = SharedDataService.SelectViewLang("Barcode conflict", "Barcode conflict"),
+            Message = SharedDataService.SelectViewLang(
+                $"Barcode is already used by {validation.ConflictType}: {validation.ConflictLabel ?? validation.ConflictId?.ToString()}",
+                $"Barcode is already used by {validation.ConflictType}: {validation.ConflictLabel ?? validation.ConflictId?.ToString()}"),
+            IsError = true,
+            OnOk = async () => { }
+        });
+    }
+
+    private async Task GenerateVariantMatrix(ProductSkuDto template)
+    {
+        if (selectedProduct is null || selectedBrand is null || selectedUnit is null)
+        {
+            await ShowBundleValidationMessageAsync(SharedDataService.SelectViewLang("Select product, brand, and unit before generating a matrix.", "Select product, brand, and unit before generating a matrix."));
             return;
         }
 
-        if (!isChecked && existingPackage is not null)
+        SyncSkuTracking(template);
+        SyncPackageAssignments(template);
+
+        var matrixOptions = variants
+            .Where(variant => variant.IsActive && variant.CreationMode != VariantCreationMode.Never)
+            .Select(variant => new VariantMatrixOptionDto
+            {
+                VariantId = variant.Id,
+                VariantValueIds = variant.Values
+                    .Where(value => value.IsActive)
+                    .Select(value => value.Id)
+                    .ToList()
+            })
+            .Where(option => option.VariantValueIds.Any())
+            .ToList();
+
+        if (!matrixOptions.Any())
         {
-            sku.Packages.Remove(existingPackage);
+            await ShowBundleValidationMessageAsync(SharedDataService.SelectViewLang("No active option values are available for matrix generation.", "No active option values are available for matrix generation."));
+            return;
         }
+
+        var response = await ProductService.GenerateVariantMatrixAsync(new ProductSkuVariantMatrixRequest
+        {
+            ProductId = selectedProduct.Id,
+            BrandId = selectedBrand.Id,
+            UnitId = selectedUnit.Id,
+            PackageId = template.PackageId,
+            Price = template.Price,
+            Calories = template.Calories,
+            ProductionType = template.ProductionType,
+            TrackingMode = template.TrackingMode,
+            ShowOnStore = template.ShowOnStore,
+            IsSellable = template.IsSellable,
+            IsPurchasable = template.IsPurchasable,
+            IsAssetTrackable = template.IsAssetTrackable,
+            PackageAssignments = template.PackageAssignments,
+            Options = matrixOptions
+        });
+
+        if (response.IsSuccess && response.Data is not null)
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Message = SharedDataService.SelectViewLang(
+                    $"Created {response.Data.CreatedCount} SKU(s), skipped {response.Data.SkippedCount}.",
+                    $"Created {response.Data.CreatedCount} SKU(s), skipped {response.Data.SkippedCount}."),
+                Type = "success"
+            });
+            await Reset();
+            return;
+        }
+
+        ToastService.Show(new ToastMessage
+        {
+            Message = SharedDataService.SelectViewLang("Matrix generation failed", "Matrix generation failed"),
+            Type = "error"
+        });
     }
 
     private async Task LoadCompanyProductsAsync()
@@ -1310,6 +1570,17 @@
             SkuProductionType.ManufacturedItem => SharedDataService.SelectViewLang("Manufactured Item", "صنف مصنع"),
             SkuProductionType.CompositeBundle => SharedDataService.SelectViewLang("Composite Bundle", "حزمة مركبة"),
             _ => SharedDataService.SelectViewLang("Purchased Raw Material", "مادة خام مشتراة")
+        };
+    }
+
+    private string GetTrackingModeLabel(CatalogTrackingMode trackingMode)
+    {
+        return trackingMode switch
+        {
+            CatalogTrackingMode.None => SharedDataService.SelectViewLang("No Tracking", "No Tracking"),
+            CatalogTrackingMode.Batch => SharedDataService.SelectViewLang("By Batch", "By Batch"),
+            CatalogTrackingMode.Serial => SharedDataService.SelectViewLang("By Serial Number", "By Serial Number"),
+            _ => SharedDataService.SelectViewLang("By Quantity", "By Quantity")
         };
     }
 

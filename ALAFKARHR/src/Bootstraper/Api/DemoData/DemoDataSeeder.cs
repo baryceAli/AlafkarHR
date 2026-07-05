@@ -768,9 +768,11 @@ public sealed class DemoDataSeeder(
                     price,
                     null,
                     SkuProductionType.PurchasedRawMaterial,
+                    productKey.EndsWith("SVC", StringComparison.Ordinal)
+                        ? CatalogTrackingMode.None
+                        : CatalogTrackingMode.Quantity,
                     true,
                     true,
-                    !productKey.EndsWith("SVC", StringComparison.Ordinal),
                     !productKey.EndsWith("SVC", StringComparison.Ordinal),
                     false,
                     companyId,

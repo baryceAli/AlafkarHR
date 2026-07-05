@@ -2,8 +2,10 @@
 @page "/Sales/Dashboard"
 @implements IDisposable
 
+@using AlAfkarERP.Shared.Pages.Features.Auth.Services
 @using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
 @using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Permissions
 @using SharedWithUI.Sales.Dtos
@@ -11,6 +13,7 @@
 @inject ISalesService SalesService
 @inject ICurrencyService CurrencyService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
@@ -18,8 +21,9 @@
     @if (!CanView)
     {
         <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
-        return;
     }
+    else
+    {
 
     <PageHeader Title="@Text("Sales Dashboard", "لوحة المبيعات")"
                 Subtitle="@Text("Monitor sales order volume and open/completed value.", "متابعة حجم أوامر البيع وقيمتها.")"
@@ -67,6 +71,7 @@
             </div>
         </div>
     }
+    }
 </section>
 
 @code {
@@ -79,22 +84,23 @@
     protected override async Task OnInitializedAsync()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        CanView = authState.User.Claims.Any(c => c.Value == PermissionList.SalesOrderPermissions.ViewReports);
-        if (!authState.User.Identity?.IsAuthenticated ?? true)
+        var authState = await PermissionAuthStateRefresher.RefreshOnceIfMissingPermissionAsync(
+            AuthenticationStateProvider,
+            AuthService,
+            PermissionList.SalesOrderPermissions.ViewReports);
+        if (authState.User.Identity?.IsAuthenticated != true)
         {
             NavigationManager.NavigateTo("/login", true);
             return;
         }
+
+        CanView = authState.User.HasClaim("Permission", PermissionList.SalesOrderPermissions.ViewReports);
         if (!CompanyContext.TryGetCompanyId(authState.User, out companyId))
-
         {
-
             NavigationManager.NavigateTo("/Dashboard");
-
             return;
-
         }
+
         if (CanView)
         {
             await LoadCurrencyAsync();

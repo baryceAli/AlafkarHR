@@ -25,6 +25,7 @@ public class StockMovementService : BaseApiService, IStockMovementService
         Guid? sourceDocumentId = null,
         string? referenceNumber = null,
         Guid? parentProductSkuId = null,
+        string? serialNumber = null,
         bool? expiredOnly = null,
         DateTime? fromDate = null,
         DateTime? toDate = null,
@@ -47,6 +48,8 @@ public class StockMovementService : BaseApiService, IStockMovementService
             query += $"&referenceNumber={Uri.EscapeDataString(referenceNumber)}";
         if (parentProductSkuId.HasValue)
             query += $"&parentProductSkuId={parentProductSkuId.Value}";
+        if (!string.IsNullOrWhiteSpace(serialNumber))
+            query += $"&serialNumber={Uri.EscapeDataString(serialNumber)}";
         if (expiredOnly.HasValue)
             query += $"&expiredOnly={expiredOnly.Value}";
         if (fromDate.HasValue)

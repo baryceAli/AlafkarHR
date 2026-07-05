@@ -51,6 +51,155 @@ internal static class CatalogOwnershipGuard
             throw new Exception($"Package not found for company: {missingId}");
     }
 
+    public static async Task EnsureSkuPackageAssignmentsAsync(
+        CatalogDbContext dbContext,
+        IEnumerable<ProductSkuPackageDto> packageAssignments,
+        Guid? skuUnitId,
+        Guid companyId,
+        Guid? excludingSkuId,
+        CancellationToken cancellationToken)
+    {
+        var assignments = packageAssignments
+            .Where(assignment => assignment.ProductPackageId != Guid.Empty)
+            .ToList();
+
+        if (!assignments.Any())
+            return;
+
+        await EnsurePackagesAsync(
+            dbContext,
+            assignments.Select(assignment => assignment.ProductPackageId),
+            companyId,
+            cancellationToken);
+
+        var unitIds = assignments
+            .Select(assignment => assignment.UnitId)
+            .Where(id => id.HasValue && id.Value != Guid.Empty)
+            .Select(id => id!.Value)
+            .ToHashSet();
+
+        if (skuUnitId.HasValue && skuUnitId.Value != Guid.Empty)
+            unitIds.Add(skuUnitId.Value);
+
+        var units = await dbContext.Units.AsNoTracking()
+            .Where(unit => unit.CompanyId == companyId && unitIds.Contains(unit.Id) && unit.IsActive)
+            .ToDictionaryAsync(unit => unit.Id, cancellationToken);
+
+        foreach (var unitId in unitIds)
+        {
+            if (!units.ContainsKey(unitId))
+                throw new Exception($"Unit not found for company: {unitId}");
+        }
+
+        if (skuUnitId.HasValue && skuUnitId.Value != Guid.Empty && units.TryGetValue(skuUnitId.Value, out var skuUnit))
+        {
+            foreach (var assignment in assignments.Where(x => x.UnitId.HasValue && x.UnitId.Value != Guid.Empty))
+            {
+                var packageUnit = units[assignment.UnitId!.Value];
+                if (!string.Equals(skuUnit.UnitCategory, packageUnit.UnitCategory, StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("SKU unit and packaging unit must use the same unit category.");
+            }
+        }
+
+        foreach (var assignment in assignments)
+        {
+            if (assignment.Quantity <= 0)
+                throw new Exception("Packaging quantity must be greater than zero.");
+
+            if (!string.IsNullOrWhiteSpace(assignment.Barcode))
+            {
+                await EnsureBarcodeAvailableAsync(
+                    dbContext,
+                    companyId,
+                    assignment.Barcode,
+                    excludingSkuId,
+                    assignment.Id == Guid.Empty ? null : assignment.Id,
+                    cancellationToken);
+            }
+        }
+    }
+
+    public static async Task EnsureBarcodeAvailableAsync(
+        CatalogDbContext dbContext,
+        Guid companyId,
+        string? barcode,
+        Guid? excludingSkuId,
+        Guid? excludingSkuPackageId,
+        CancellationToken cancellationToken)
+    {
+        var result = await GetBarcodeValidationResultAsync(
+            dbContext,
+            companyId,
+            barcode,
+            excludingSkuId,
+            excludingSkuPackageId,
+            cancellationToken);
+
+        if (!result.IsAvailable)
+            throw new Exception($"Barcode is already used by {result.ConflictType}: {result.ConflictLabel ?? result.ConflictId?.ToString()}");
+    }
+
+    public static async Task<CatalogBarcodeValidationResultDto> GetBarcodeValidationResultAsync(
+        CatalogDbContext dbContext,
+        Guid companyId,
+        string? barcode,
+        Guid? excludingSkuId,
+        Guid? excludingSkuPackageId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(barcode))
+            return new CatalogBarcodeValidationResultDto { IsAvailable = true };
+
+        var normalizedBarcode = barcode.Trim();
+
+        var skuConflict = await dbContext.ProductSkus.AsNoTracking()
+            .Where(sku => sku.CompanyId == companyId
+                && sku.Barcode == normalizedBarcode
+                && (!excludingSkuId.HasValue || sku.Id != excludingSkuId.Value))
+            .Select(sku => new CatalogBarcodeValidationResultDto
+            {
+                IsAvailable = false,
+                ConflictType = "SKU",
+                ConflictId = sku.Id,
+                ConflictLabel = sku.SkuCodeEng
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (skuConflict is not null)
+            return skuConflict;
+
+        var packageConflict = await dbContext.ProductPackages.AsNoTracking()
+            .Where(package => package.CompanyId == companyId && package.Barcode == normalizedBarcode)
+            .Select(package => new CatalogBarcodeValidationResultDto
+            {
+                IsAvailable = false,
+                ConflictType = "Package",
+                ConflictId = package.Id,
+                ConflictLabel = package.NameEng
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (packageConflict is not null)
+            return packageConflict;
+
+        var skuPackageConflict = await (
+            from assignment in dbContext.ProductSkuPackages.AsNoTracking()
+            join sku in dbContext.ProductSkus.AsNoTracking() on assignment.ProductSkuId equals sku.Id
+            where sku.CompanyId == companyId
+                && assignment.Barcode == normalizedBarcode
+                && (!excludingSkuPackageId.HasValue || assignment.Id != excludingSkuPackageId.Value)
+            select new CatalogBarcodeValidationResultDto
+            {
+                IsAvailable = false,
+                ConflictType = "SKU Packaging",
+                ConflictId = assignment.Id,
+                ConflictLabel = sku.SkuCodeEng
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return skuPackageConflict ?? new CatalogBarcodeValidationResultDto { IsAvailable = true };
+    }
+
     public static async Task EnsureProductAsync(CatalogDbContext dbContext, Guid productId, Guid companyId, CancellationToken cancellationToken)
     {
         var exists = await dbContext.Products.AsNoTracking()

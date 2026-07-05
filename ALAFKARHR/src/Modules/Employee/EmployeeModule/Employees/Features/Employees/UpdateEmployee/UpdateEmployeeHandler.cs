@@ -60,6 +60,14 @@ public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
         if (!placement.IsValid)
             throw new BadRequestException(placement.Message ?? "Invalid organization placement.");
 
+        await EmployeeModule.Employees.Features.Employees.EmployeeBranchScope.EnsureLinkedUserBranchAccessAsync(
+            sender,
+            employee.CompanyId,
+            request.Employee.LinkedUserId,
+            request.Employee.BranchId,
+            makeDefault: false,
+            cancellationToken);
+
         var userId = httpContextAccessor.HttpContext?
                         .User?
                         .FindFirst(ClaimTypes.NameIdentifier)?

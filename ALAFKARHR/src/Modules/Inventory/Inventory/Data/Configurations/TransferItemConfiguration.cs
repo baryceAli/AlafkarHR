@@ -44,6 +44,9 @@ public class TransferItemConfiguration : IEntityTypeConfiguration<TransferItem>
 
         builder.Property(x => x.CurrencyId)
                .IsRequired();
+        builder.Property(x => x.SerialNumbersCsv)
+               .HasMaxLength(4000)
+               .IsRequired(false);
 
         // Indexes (optional but useful)
         builder.HasIndex(x => x.ProductId);

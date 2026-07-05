@@ -124,6 +124,37 @@ public class ProductService : BaseApiService, IProductService
         return await SendAsync<UpdateDeleteResponseDto>(request, null);
     }
 
+    public async Task<ApiResult<ProductSkuVariantMatrixResultDto>> GenerateVariantMatrixAsync(ProductSkuVariantMatrixRequest requestModel)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/catalog/products/skus/generate-variant-matrix")
+        {
+            Content = JsonContent.Create(new
+            {
+                Request = requestModel
+            })
+        };
+
+        return await SendAsync<ProductSkuVariantMatrixResultDto>(request, "result");
+    }
+
+    public async Task<ApiResult<CatalogBarcodeValidationResultDto>> ValidateCatalogBarcodeAsync(Guid companyId, string barcode, Guid? excludeSkuId = null, Guid? excludeSkuPackageId = null)
+    {
+        var query = new List<string>
+        {
+            $"companyId={companyId}",
+            $"barcode={Uri.EscapeDataString(barcode)}"
+        };
+
+        if (excludeSkuId.HasValue && excludeSkuId.Value != Guid.Empty)
+            query.Add($"excludeSkuId={excludeSkuId.Value}");
+
+        if (excludeSkuPackageId.HasValue && excludeSkuPackageId.Value != Guid.Empty)
+            query.Add($"excludeSkuPackageId={excludeSkuPackageId.Value}");
+
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/catalog/barcodes/validate?{string.Join("&", query)}");
+        return await SendAsync<CatalogBarcodeValidationResultDto>(request, "validation");
+    }
+
     public async Task<ApiResult<PaginatedResult<ProductDto>>> SearchProductsAsync(string searchTerm, int page, int size)    {
         var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/catalog/products/search/{searchTerm}");
         return await SendAsync<PaginatedResult<ProductDto>>(request, "productList");

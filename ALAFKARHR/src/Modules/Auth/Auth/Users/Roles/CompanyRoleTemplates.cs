@@ -63,6 +63,34 @@ public static class CompanyRoleTemplates
         }
     }
 
+    public static async Task SyncAssignedTemplateRolesAsync(
+        RoleManager<ApplicationRole> roleManager,
+        Guid companyId,
+        IReadOnlyCollection<string> roleNames)
+    {
+        if (roleNames.Count == 0)
+        {
+            return;
+        }
+
+        var templatesByKey = All.ToDictionary(template => template.Key, StringComparer.OrdinalIgnoreCase);
+        var roles = await roleManager.Roles
+            .Where(role => role.CompanyId == companyId
+                && role.Name != null
+                && roleNames.Contains(role.Name)
+                && role.TemplateKey != null)
+            .ToListAsync();
+
+        foreach (var role in roles)
+        {
+            if (!string.IsNullOrWhiteSpace(role.TemplateKey)
+                && templatesByKey.TryGetValue(role.TemplateKey, out var template))
+            {
+                await SyncPermissionClaimsAsync(roleManager, role, template.Permissions, removeObsolete: true);
+            }
+        }
+    }
+
     public static async Task<ApplicationRole> EnsurePlatformSystemUserRoleAsync(RoleManager<ApplicationRole> roleManager)
     {
         var role = await roleManager.FindByNameAsync(PlatformSystemUserRoleName)

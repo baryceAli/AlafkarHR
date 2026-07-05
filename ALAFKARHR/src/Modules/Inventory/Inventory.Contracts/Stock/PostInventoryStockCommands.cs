@@ -2,6 +2,13 @@ using Shared.Contracts.CQRS;
 
 namespace Inventory.Contracts.Stock;
 
+public record InventorySerialSelection(
+    Guid? InventorySerialNumberId,
+    string SerialNumber,
+    Guid? BatchId = null,
+    Guid? WarehouseId = null,
+    Guid? WarehouseLocationId = null);
+
 public record PostInventoryStockInCommand(
     Guid ProductId,
     Guid ProductSkuId,
@@ -21,7 +28,8 @@ public record PostInventoryStockInCommand(
     Guid? SourceDocumentLineId = null,
     Guid? ParentProductSkuId = null,
     Guid? ParentSalesOrderLineId = null,
-    Guid? DestinationLocationId = null) : ICommand<PostInventoryStockResult>;
+    Guid? DestinationLocationId = null,
+    IReadOnlyList<InventorySerialSelection>? SerialNumbers = null) : ICommand<PostInventoryStockResult>;
 
 public record PostInventoryStockOutCommand(
     Guid ProductId,
@@ -43,7 +51,8 @@ public record PostInventoryStockOutCommand(
     Guid? SourceDocumentLineId = null,
     Guid? ParentProductSkuId = null,
     Guid? ParentSalesOrderLineId = null,
-    Guid? SourceLocationId = null) : ICommand<PostInventoryStockResult>;
+    Guid? SourceLocationId = null,
+    IReadOnlyList<InventorySerialSelection>? SerialNumbers = null) : ICommand<PostInventoryStockResult>;
 
 public record PostInventoryStockOutBySkuCommand(
     Guid ProductId,
@@ -63,7 +72,8 @@ public record PostInventoryStockOutBySkuCommand(
     Guid? SourceDocumentLineId = null,
     Guid? ParentProductSkuId = null,
     Guid? ParentSalesOrderLineId = null,
-    Guid? SourceLocationId = null) : ICommand<PostInventoryStockResult>;
+    Guid? SourceLocationId = null,
+    IReadOnlyList<InventorySerialSelection>? SerialNumbers = null) : ICommand<PostInventoryStockResult>;
 
 public record PostInventoryStockResult(Guid InventoryId);
 
@@ -83,7 +93,8 @@ public record PostInventoryReservationCommand(
     Guid? SourceDocumentLineId = null,
     Guid? ParentProductSkuId = null,
     Guid? ParentSalesOrderLineId = null,
-    Guid? SourceLocationId = null) : ICommand<PostInventoryStockResult>;
+    Guid? SourceLocationId = null,
+    IReadOnlyList<InventorySerialSelection>? SerialNumbers = null) : ICommand<PostInventoryStockResult>;
 
 public record PostInventoryReleaseCommand(
     Guid ProductId,
@@ -101,4 +112,5 @@ public record PostInventoryReleaseCommand(
     Guid? SourceDocumentLineId = null,
     Guid? ParentProductSkuId = null,
     Guid? ParentSalesOrderLineId = null,
-    Guid? SourceLocationId = null) : ICommand<PostInventoryStockResult>;
+    Guid? SourceLocationId = null,
+    IReadOnlyList<InventorySerialSelection>? SerialNumbers = null) : ICommand<PostInventoryStockResult>;

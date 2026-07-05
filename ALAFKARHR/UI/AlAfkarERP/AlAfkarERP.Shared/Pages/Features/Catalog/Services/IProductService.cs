@@ -26,6 +26,8 @@ public interface IProductService
     public Task<ApiResult<CreateResponseDto>> AddProductSkuAsync(ProductSkuDto productSku);
     public Task<ApiResult<UpdateDeleteResponseDto>> UpdateProductSkuAsync(ProductSkuDto productSku);
     public Task<ApiResult<UpdateDeleteResponseDto>> RemoveProductSkuAsync(Guid id);
+    public Task<ApiResult<ProductSkuVariantMatrixResultDto>> GenerateVariantMatrixAsync(ProductSkuVariantMatrixRequest request);
+    public Task<ApiResult<CatalogBarcodeValidationResultDto>> ValidateCatalogBarcodeAsync(Guid companyId, string barcode, Guid? excludeSkuId = null, Guid? excludeSkuPackageId = null);
 
     public Task<ApiResult<PaginatedResult<ProductDto>>> SearchProductsAsync(string searchTerm, int page, int size);
 

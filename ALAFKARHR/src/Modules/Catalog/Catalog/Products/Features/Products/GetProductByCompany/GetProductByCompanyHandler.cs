@@ -106,6 +106,7 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext, ISender send
                         PriceSource = "Catalog",
                         FinalUnitAmount = sku.Price,
                         ProductionType = sku.ProductionType,
+                        TrackingMode = sku.TrackingMode,
                         ShowOnStore = sku.ShowOnStore,
                         IsSellable = sku.IsSellable,
                         IsPurchasable = sku.IsPurchasable,
@@ -127,29 +128,59 @@ public class GetProductByCompanyHandler(CatalogDbContext dbContext, ISender send
                             .Select(p =>
                             {
                                 Catalog.Products.Models.Unit? packageUnit = null;
-                                if (p.ProductPackage.UnitId.HasValue)
-                                    unitById.TryGetValue(p.ProductPackage.UnitId.Value, out packageUnit);
+                                var unitId = p.UnitId ?? p.ProductPackage.UnitId;
+                                if (unitId.HasValue)
+                                    unitById.TryGetValue(unitId.Value, out packageUnit);
 
                                 return new ProductPackageDto
                             {
                                 Id = p.ProductPackage.Id,
                                 Name = p.ProductPackage.Name,
                                 NameEng = p.ProductPackage.NameEng,
-                                Quantity = p.ProductPackage.Quantity,
-                                UnitId = p.ProductPackage.UnitId,
+                                Quantity = p.Quantity,
+                                UnitId = unitId,
                                 UnitName = packageUnit?.UnitName,
                                 UnitNameEng = packageUnit?.UnitNameEng,
                                 UnitCategory = packageUnit?.UnitCategory,
                                 UnitConversionFactor = packageUnit?.ConversionFactor ?? 1,
-                                Barcode = p.ProductPackage.Barcode,
+                                Barcode = p.Barcode ?? p.ProductPackage.Barcode,
                                 Weight = p.ProductPackage.Weight,
                                 Length = p.ProductPackage.Length,
                                 Width = p.ProductPackage.Width,
                                 Height = p.ProductPackage.Height,
                                 Notes = p.ProductPackage.Notes,
-                                IsActive = p.ProductPackage.IsActive,
+                                IsActive = p.IsActive && p.ProductPackage.IsActive,
                                 CompanyId = p.ProductPackage.CompanyId
                             };
+                            })
+                            .ToList(),
+                        PackageAssignments = sku.Packages
+                            .Where(p => !p.IsDeleted && !p.ProductPackage.IsDeleted)
+                            .Select(p =>
+                            {
+                                Catalog.Products.Models.Unit? packageUnit = null;
+                                var unitId = p.UnitId ?? p.ProductPackage.UnitId;
+                                if (unitId.HasValue)
+                                    unitById.TryGetValue(unitId.Value, out packageUnit);
+
+                                return new ProductSkuPackageDto
+                                {
+                                    Id = p.Id,
+                                    ProductSkuId = p.ProductSkuId,
+                                    ProductPackageId = p.ProductPackageId,
+                                    Name = p.ProductPackage.Name,
+                                    NameEng = p.ProductPackage.NameEng,
+                                    Quantity = p.Quantity,
+                                    UnitId = unitId,
+                                    UnitName = packageUnit?.UnitName,
+                                    UnitNameEng = packageUnit?.UnitNameEng,
+                                    UnitCategory = packageUnit?.UnitCategory,
+                                    UnitConversionFactor = packageUnit?.ConversionFactor ?? 1,
+                                    Barcode = p.Barcode ?? p.ProductPackage.Barcode,
+                                    SalesEnabled = p.SalesEnabled,
+                                    PurchaseEnabled = p.PurchaseEnabled,
+                                    IsActive = p.IsActive && p.ProductPackage.IsActive
+                                };
                             })
                             .ToList(),
                         Components = sku.Components

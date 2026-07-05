@@ -23,6 +23,7 @@ public class ProductSku : Entity<Guid>
     public decimal Price { get; private set; }
     public decimal? Calories { get; private set; }
     public SkuProductionType ProductionType { get; private set; } = SkuProductionType.PurchasedRawMaterial;
+    public CatalogTrackingMode TrackingMode { get; private set; } = CatalogTrackingMode.Quantity;
     public string ImageUrl { get; set; }
     public Guid CompanyId { get; set; }
     public bool ShowOnStore { get; private set; }
@@ -94,17 +95,17 @@ public class ProductSku : Entity<Guid>
         decimal price,
         decimal? calories,
         SkuProductionType productionType,
+        CatalogTrackingMode trackingMode,
         bool showOnStore,
         bool isSellable,
         bool isPurchasable,
-        bool isInventoryTracked,
         bool isAssetTrackable,
         Guid companyId,
         string createdBy)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(skuCode);
         ArgumentException.ThrowIfNullOrWhiteSpace(skuCodeEng);
-        ValidateCapabilityFlags(productionType, isInventoryTracked);
+        ValidateCapabilityFlags(productionType, trackingMode);
 
         return new ProductSku
         {
@@ -121,12 +122,13 @@ public class ProductSku : Entity<Guid>
             ImageUrl = imageUrl,
             Barcode = barcode,
             Price = price,
-            Calories = calories,
-            ProductionType = NormalizeProductionType(productionType),
-            IsSellable = showOnStore || isSellable,
-            IsPurchasable = isPurchasable,
-            IsInventoryTracked = isInventoryTracked,
-            IsAssetTrackable = isAssetTrackable,
+        Calories = calories,
+        ProductionType = NormalizeProductionType(productionType),
+        TrackingMode = NormalizeTrackingMode(trackingMode),
+        IsSellable = showOnStore || isSellable,
+        IsPurchasable = isPurchasable,
+        IsInventoryTracked = IsTracked(NormalizeTrackingMode(trackingMode)),
+        IsAssetTrackable = isAssetTrackable,
             IsActive = true,
             ShowOnStore = showOnStore,
             CompanyId = companyId,
@@ -146,13 +148,13 @@ public class ProductSku : Entity<Guid>
         string skuCodeEng,
         string skuKey,
         SkuProductionType productionType,
+        CatalogTrackingMode trackingMode,
         Guid companyId,
         bool isSellable,
         bool isPurchasable,
-        bool isInventoryTracked,
         bool isAssetTrackable,
         List<ProductSkuVariantDto> variantDtos,
-        List<Guid> packageIds,
+        List<ProductSkuPackageDto> packageAssignments,
         List<ProductSkuComponentDto> componentDtos,
         string modifiedBy)
     {
@@ -164,17 +166,18 @@ public class ProductSku : Entity<Guid>
         Price = price;
         Calories = calories;
         ProductionType = NormalizeProductionType(productionType);
-        ValidateCapabilityFlags(ProductionType, isInventoryTracked);
+        TrackingMode = NormalizeTrackingMode(trackingMode);
+        ValidateCapabilityFlags(ProductionType, TrackingMode);
         ImageUrl = imageUrl;
         IsSellable = showOnStore || isSellable;
         IsPurchasable = isPurchasable;
-        IsInventoryTracked = isInventoryTracked;
+        IsInventoryTracked = IsTracked(TrackingMode);
         IsAssetTrackable = isAssetTrackable;
         ShowOnStore = showOnStore;
         CompanyId = companyId;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
-        SetPackages(packageIds, modifiedBy);
+        SetPackages(packageAssignments, modifiedBy);
         SetComponents(
             ProductionType == SkuProductionType.CompositeBundle
                 ? componentDtos
@@ -260,20 +263,46 @@ public class ProductSku : Entity<Guid>
     }
 
     public void SetPackages(IEnumerable<Guid> packageIds, string modifiedBy)
+        => SetPackages(
+            packageIds.Select(id => new ProductSkuPackageDto
+            {
+                ProductPackageId = id,
+                Quantity = 1,
+                SalesEnabled = true,
+                PurchaseEnabled = true,
+                IsActive = true
+            }),
+            modifiedBy);
+
+    public void SetPackages(IEnumerable<ProductSkuPackageDto> packageAssignments, string modifiedBy)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(modifiedBy);
 
-        var requestedIds = packageIds
-            .Where(id => id != Guid.Empty)
-            .Distinct()
+        var requestedPackages = packageAssignments
+            .Where(assignment => assignment.ProductPackageId != Guid.Empty)
+            .GroupBy(assignment => assignment.ProductPackageId)
+            .Select(group => group.First())
+            .ToList();
+
+        var requestedIds = requestedPackages
+            .Select(assignment => assignment.ProductPackageId)
             .ToHashSet();
 
-        foreach (var packageId in requestedIds)
+        foreach (var packageAssignment in requestedPackages)
         {
-            var existingPackage = _packages.FirstOrDefault(p => p.ProductPackageId == packageId);
+            var existingPackage = _packages.FirstOrDefault(p => p.ProductPackageId == packageAssignment.ProductPackageId);
             if (existingPackage is null)
             {
-                _packages.Add(ProductSkuPackage.Create(Id, packageId, modifiedBy));
+                _packages.Add(ProductSkuPackage.Create(
+                    Id,
+                    packageAssignment.ProductPackageId,
+                    packageAssignment.Quantity <= 0 ? 1 : packageAssignment.Quantity,
+                    packageAssignment.UnitId,
+                    packageAssignment.Barcode,
+                    packageAssignment.SalesEnabled,
+                    packageAssignment.PurchaseEnabled,
+                    packageAssignment.IsActive,
+                    modifiedBy));
                 continue;
             }
 
@@ -281,6 +310,15 @@ public class ProductSku : Entity<Guid>
             {
                 existingPackage.Restore(modifiedBy);
             }
+
+            existingPackage.Update(
+                packageAssignment.Quantity <= 0 ? 1 : packageAssignment.Quantity,
+                packageAssignment.UnitId,
+                packageAssignment.Barcode,
+                packageAssignment.SalesEnabled,
+                packageAssignment.PurchaseEnabled,
+                packageAssignment.IsActive,
+                modifiedBy);
         }
 
         foreach (var existingPackage in _packages.Where(p => !p.IsDeleted && !requestedIds.Contains(p.ProductPackageId)).ToList())
@@ -359,10 +397,19 @@ public class ProductSku : Entity<Guid>
     }
 
     public static void ValidateCapabilityFlags(SkuProductionType productionType, bool isInventoryTracked)
+        => ValidateCapabilityFlags(productionType, isInventoryTracked ? CatalogTrackingMode.Quantity : CatalogTrackingMode.None);
+
+    public static void ValidateCapabilityFlags(SkuProductionType productionType, CatalogTrackingMode trackingMode)
     {
-        if (NormalizeProductionType(productionType) == SkuProductionType.CompositeBundle && !isInventoryTracked)
+        if (NormalizeProductionType(productionType) == SkuProductionType.CompositeBundle && !IsTracked(NormalizeTrackingMode(trackingMode)))
             throw new Exception("Composite bundle SKUs must be inventory tracked.");
     }
+
+    public static CatalogTrackingMode NormalizeTrackingMode(CatalogTrackingMode trackingMode)
+        => trackingMode == default ? CatalogTrackingMode.Quantity : trackingMode;
+
+    public static bool IsTracked(CatalogTrackingMode trackingMode)
+        => NormalizeTrackingMode(trackingMode) != CatalogTrackingMode.None;
     //public void AddProductPackage(Guid id, Guid productId, string packageName, string packageNameEng, double quantityPerPackage, decimal packagePrice, bool showOnStore, string createdBy)
     //{
     //    ArgumentNullException.ThrowIfNullOrEmpty(packageName);

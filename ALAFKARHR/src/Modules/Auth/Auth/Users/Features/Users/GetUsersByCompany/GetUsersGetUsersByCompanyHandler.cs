@@ -17,10 +17,9 @@ public class GetUsersGetUsersByCompanyHandler(AuthDbContext dbContext) : IQueryH
             var search = request.PaginationRequest.SearchText.ToLower();
 
             query = query.Where(b =>
-                b.UserName.ToLower().Contains(search)
-                //|| b.NameEng.ToLower().Contains(search)
-            //|| (b.Email != null && b.Email.ToLower().Contains(search)) 
-            //|| (b.Phone != null && b.Phone.Contains(search))
+                (b.UserName != null && b.UserName.ToLower().Contains(search)) ||
+                (b.Email != null && b.Email.ToLower().Contains(search)) ||
+                (b.PhoneNumber != null && b.PhoneNumber.Contains(search))
             );
         }
 

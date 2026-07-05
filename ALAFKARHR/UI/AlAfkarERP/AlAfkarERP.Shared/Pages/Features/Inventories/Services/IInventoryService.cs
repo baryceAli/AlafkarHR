@@ -36,6 +36,8 @@ public interface IInventoryService
     Task<ApiResult<string>> PostCycleCountAsync(Guid id);
     Task<ApiResult<string>> DeleteCycleCountAsync(Guid id);
     Task<ApiResult<LocationAvailabilityDto>> GetSkuLocationAvailabilityAsync(Guid companyId, Guid productSkuId, Guid? warehouseId = null, Guid? warehouseLocationId = null, Guid? batchId = null, Guid? branchId = null);
+    Task<ApiResult<SkuSerialAvailabilityDto>> GetSkuSerialAvailabilityAsync(Guid companyId, Guid productSkuId, Guid? warehouseId = null, Guid? warehouseLocationId = null, Guid? batchId = null, Guid? branchId = null);
+    Task<ApiResult<SerialNumberTraceDto>> GetSerialNumberTraceAsync(Guid companyId, Guid? productSkuId, string serialNumber);
     Task<ApiResult<PutawaySuggestionDto>> GetPutawaySuggestionAsync(Guid companyId, Guid warehouseId, Guid productId, Guid productSkuId);
     Task<ApiResult<BarcodeScanResultDto>> ResolveBarcodeAsync(BarcodeScanRequestDto request);
     Task<ApiResult<CreateResponseDto>> CreateBarcodeSessionAsync(BarcodeOperationSessionDto session);

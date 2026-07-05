@@ -3,6 +3,7 @@
 @implements IDisposable
 
 @using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Auth.Services
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @using AlAfkarERP.Shared.Pages.Features.LeavesManagement.Services
@@ -33,6 +34,7 @@
 @inject IPerformanceService PerformanceService
 @inject ITrainingService TrainingService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IAuthService AuthService
 @inject SharedDataService SharedDataService
 @inject NavigationManager NavigationManager
 
@@ -226,7 +228,10 @@
     protected override async Task OnInitializedAsync()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
-        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var auth = await PermissionAuthStateRefresher.RefreshOnceIfMissingPermissionAsync(
+            AuthenticationStateProvider,
+            AuthService,
+            PermissionList.EmployeeLifecyclePermissions.Select);
         user = auth.User;
         CompanyContext.TryGetCompanyId(auth.User, out companyId);
         await LoadData();
