@@ -114,6 +114,16 @@ public class CreateInventoryAggregateDto
     public Guid? SourceLocationId { get; set; }
     public Guid? DestinationLocationId { get; set; }
     public bool ConsumeReservedQuantity { get; set; }
+    public List<InventorySerialSelectionDto> SerialNumbers { get; set; } = [];
+}
+
+public class InventorySerialSelectionDto
+{
+    public Guid? InventorySerialNumberId { get; set; }
+    public string SerialNumber { get; set; } = string.Empty;
+    public Guid? BatchId { get; set; }
+    public Guid? WarehouseId { get; set; }
+    public Guid? WarehouseLocationId { get; set; }
 }
 
 

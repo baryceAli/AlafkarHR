@@ -51,6 +51,14 @@ public class TransferDepartmentHandler(EmployeeDbContext dbContext, IHttpContext
             request.TransferDepartment.departmentId, 
             userId);
 
+        await EmployeeModule.Employees.Features.Employees.EmployeeBranchScope.EnsureLinkedUserBranchAccessAsync(
+            sender,
+            employee.CompanyId,
+            employee.LinkedUserId,
+            request.TransferDepartment.branchId,
+            makeDefault: false,
+            cancellationToken);
+
         await dbContext.SaveChangesAsync();
         return new TransferDepartmentRresult(true);
     }

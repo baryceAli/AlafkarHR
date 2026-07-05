@@ -1,3 +1,5 @@
+using Inventory.Warehouses.Features.Inventories;
+
 namespace Inventory.Warehouses.Features.InventoryControls;
 
 public record GetWarehouseLocationsQuery(Guid CompanyId) : IQuery<GetWarehouseLocationsResult>;
@@ -606,6 +608,21 @@ public class PostCycleCountHandler(InventoryDbContext dbContext, IHttpContextAcc
                 sourceLocationId: delta < 0 ? count.WarehouseLocationId : null,
                 destinationLocationId: delta > 0 ? count.WarehouseLocationId : null);
             await dbContext.StockMovements.AddAsync(movement, cancellationToken);
+            await global::Inventory.Warehouses.Features.Inventories.InventoryTrackingModeGuard.ApplySerialMovementAsync(
+                dbContext,
+                movement,
+                count.CompanyId,
+                count.WarehouseLocationId,
+                delta >= 0 ? InventorySerialOperation.StockIn : InventorySerialOperation.Scrap,
+                line.SerialNumbers.Select(x => new InventorySerialSelectionDto
+                {
+                    SerialNumber = x,
+                    BatchId = line.BatchId,
+                    WarehouseId = count.WarehouseId,
+                    WarehouseLocationId = count.WarehouseLocationId
+                }).ToList(),
+                userId,
+                cancellationToken);
         }
 
         count.Post(userId);

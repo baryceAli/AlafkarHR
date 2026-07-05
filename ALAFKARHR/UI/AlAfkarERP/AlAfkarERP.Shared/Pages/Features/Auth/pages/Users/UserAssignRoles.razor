@@ -12,8 +12,10 @@
 @using SharedWithUI.Permissions
 @using System.ComponentModel.DataAnnotations
 @using System.Globalization
+@using System.Security.Claims
 @using System.Text
 
+@inject IAuthService AuthService
 @inject IRoleService RoleService
 @inject IUserService UserService
 @inject IBranchService BranchService
@@ -32,8 +34,8 @@
 }
 
 <div class="erp-page" dir="@SharedDataService.PageDirection">
-    <PageHeader Title="@Text("Assign roles to users", "تعيين الصلاحيات للمستخدمين")"
-                Subtitle="@Text("Manage company user role assignments and password resets.", "إدارة صلاحيات مستخدمي الشركة وإعادة تعيين كلمات المرور.")"
+    <PageHeader Title="@Text("Manage user roles", "إدارة صلاحيات المستخدمين")"
+                Subtitle="@Text("Assign or revoke company roles and reset user passwords.", "تعيين أو إلغاء صلاحيات الشركة وإعادة تعيين كلمات مرور المستخدمين.")"
                 Icon="bi-person-check">
         <Actions>
             <button class="btn btn-primary"
@@ -244,7 +246,7 @@
                                         <button class="btn btn-outline-danger btn-sm erp-row-action"
                                                 @onclick="() => OpenUnassignRoles(row)"
                                                 disabled="@(!CanUnassign || isBusy || !DisplayRoles(row).Any())"
-                                                title="@Text("Unassign roles", "إلغاء تعيين الصلاحيات")">
+                                                title="@UnassignRoleTitle(row)">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     }
@@ -781,7 +783,7 @@
 
             if (failedCount == 0)
             {
-                ShowToast(Text("Roles have been assigned successfully", "تم تعيين الصلاحيات بنجاح"), "success");
+                await RefreshCurrentSessionIfNeeded(targetRow.User);
                 await LoadData();
                 CancelEdit();
             }
@@ -796,6 +798,35 @@
         {
             isBusy = false;
         }
+    }
+
+    private async Task RefreshCurrentSessionIfNeeded(UserDto assignedUser)
+    {
+        if (IsCurrentSignedInUser(assignedUser))
+        {
+            var refreshed = await AuthService.RefreshTokenAsync();
+            if (refreshed)
+            {
+                AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                ShowToast(Text(
+                    "Roles have been assigned successfully. Your current session was refreshed with the new permissions.",
+                    "تم تعيين الصلاحيات بنجاح. تم تحديث جلستك الحالية بالصلاحيات الجديدة."),
+                    "success");
+                return;
+            }
+        }
+
+        ShowToast(Text(
+            "Roles have been assigned successfully. The user must sign out and sign in again to receive the new permissions.",
+            "تم تعيين الصلاحيات بنجاح. يجب على المستخدم تسجيل الخروج ثم تسجيل الدخول مرة أخرى لاستلام الصلاحيات الجديدة."),
+            "success");
+    }
+
+    private bool IsCurrentSignedInUser(UserDto user)
+    {
+        var currentUserName = AuthState?.User.FindFirst(ClaimTypes.Name)?.Value;
+        return !string.IsNullOrWhiteSpace(currentUserName)
+            && string.Equals(NormalizeUserNameKey(currentUserName), NormalizeUserNameKey(user.UserName), StringComparison.OrdinalIgnoreCase);
     }
 
     private void OpenUnassignRoles(UserRolesRow row)
@@ -1219,11 +1250,26 @@
         => row.AssignedRoles
             .Where(role => !IsCompanyAdminRole(role.RoleName));
 
+    private string UnassignRoleTitle(UserRolesRow row)
+    {
+        if (!CanUnassign)
+        {
+            return Text("Requires Authentication.Users.Delete permission", "يتطلب صلاحية Authentication.Users.Delete");
+        }
+
+        if (!DisplayRoles(row).Any())
+        {
+            return Text("No assigned roles to revoke", "لا توجد صلاحيات معينة لإلغائها");
+        }
+
+        return Text("Unassign roles", "إلغاء تعيين الصلاحيات");
+    }
+
     private async Task ShowValidationModal(string message)
     {
         await ModalService.ShowAsync(new ModalOptions
         {
-            Title = Text("Assign Role", "تعيين صلاحية"),
+            Title = Text("Manage user roles", "إدارة صلاحيات المستخدمين"),
             IsError = true,
             Message = message,
             OnOk = async () => { await Task.CompletedTask; }

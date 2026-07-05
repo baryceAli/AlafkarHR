@@ -114,7 +114,8 @@ internal static class InventoryStockCommandMapper
             SourceDocumentLineId = command.SourceDocumentLineId,
             ParentProductSkuId = command.ParentProductSkuId,
             ParentSalesOrderLineId = command.ParentSalesOrderLineId,
-            DestinationLocationId = command.DestinationLocationId
+            DestinationLocationId = command.DestinationLocationId,
+            SerialNumbers = command.SerialNumbers.ToDtoList()
         };
 
     public static CreateInventoryAggregateDto ToInventoryAggregateDto(this PostInventoryStockOutCommand command, MovementType movementType) =>
@@ -140,7 +141,8 @@ internal static class InventoryStockCommandMapper
             SourceDocumentLineId = command.SourceDocumentLineId,
             ParentProductSkuId = command.ParentProductSkuId,
             ParentSalesOrderLineId = command.ParentSalesOrderLineId,
-            SourceLocationId = command.SourceLocationId
+            SourceLocationId = command.SourceLocationId,
+            SerialNumbers = command.SerialNumbers.ToDtoList()
         };
 
     public static CreateInventoryAggregateDto ToInventoryAggregateDto(this PostInventoryReservationCommand command, MovementType movementType) =>
@@ -164,7 +166,8 @@ internal static class InventoryStockCommandMapper
             SourceDocumentLineId = command.SourceDocumentLineId,
             ParentProductSkuId = command.ParentProductSkuId,
             ParentSalesOrderLineId = command.ParentSalesOrderLineId,
-            SourceLocationId = command.SourceLocationId
+            SourceLocationId = command.SourceLocationId,
+            SerialNumbers = command.SerialNumbers.ToDtoList()
         };
 
     public static CreateInventoryAggregateDto ToInventoryAggregateDto(this PostInventoryReleaseCommand command, MovementType movementType) =>
@@ -188,6 +191,19 @@ internal static class InventoryStockCommandMapper
             SourceDocumentLineId = command.SourceDocumentLineId,
             ParentProductSkuId = command.ParentProductSkuId,
             ParentSalesOrderLineId = command.ParentSalesOrderLineId,
-            SourceLocationId = command.SourceLocationId
+            SourceLocationId = command.SourceLocationId,
+            SerialNumbers = command.SerialNumbers.ToDtoList()
         };
+
+    private static List<InventorySerialSelectionDto> ToDtoList(this IReadOnlyList<InventorySerialSelection>? serials) =>
+        serials?
+            .Select(x => new InventorySerialSelectionDto
+            {
+                InventorySerialNumberId = x.InventorySerialNumberId,
+                SerialNumber = x.SerialNumber,
+                BatchId = x.BatchId,
+                WarehouseId = x.WarehouseId,
+                WarehouseLocationId = x.WarehouseLocationId
+            })
+            .ToList() ?? [];
 }

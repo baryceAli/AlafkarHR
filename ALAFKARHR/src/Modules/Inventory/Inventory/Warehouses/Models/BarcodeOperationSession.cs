@@ -152,6 +152,8 @@ public class BarcodeOperationLine : Entity<Guid>
     public Guid? ProductSkuId { get; private set; }
     public Guid? ProductPackageId { get; private set; }
     public Guid? BatchId { get; private set; }
+    public Guid? InventorySerialNumberId { get; private set; }
+    public string? SerialNumber { get; private set; }
     public Guid? WarehouseId { get; private set; }
     public Guid? SourceLocationId { get; private set; }
     public Guid? DestinationLocationId { get; private set; }
@@ -184,6 +186,8 @@ public class BarcodeOperationLine : Entity<Guid>
             ProductSkuId = dto.ProductSkuId,
             ProductPackageId = dto.ProductPackageId,
             BatchId = dto.BatchId,
+            InventorySerialNumberId = dto.InventorySerialNumberId,
+            SerialNumber = string.IsNullOrWhiteSpace(dto.SerialNumber) ? null : dto.SerialNumber.Trim().ToUpperInvariant(),
             WarehouseId = dto.WarehouseId,
             SourceLocationId = dto.SourceLocationId,
             DestinationLocationId = dto.DestinationLocationId,
@@ -213,6 +217,8 @@ public class BarcodeOperationLine : Entity<Guid>
         ProductSkuId = ProductSkuId,
         ProductPackageId = ProductPackageId,
         BatchId = BatchId,
+        InventorySerialNumberId = InventorySerialNumberId,
+        SerialNumber = SerialNumber,
         WarehouseId = WarehouseId,
         SourceLocationId = SourceLocationId,
         DestinationLocationId = DestinationLocationId,

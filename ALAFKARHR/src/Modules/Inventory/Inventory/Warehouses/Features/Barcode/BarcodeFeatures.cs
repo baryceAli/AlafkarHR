@@ -55,6 +55,10 @@ public class ResolveBarcodeHandler(InventoryDbContext dbContext, ISender sender)
         if (batchResult is not null)
             return batchResult;
 
+        var serialResult = await ResolveSerialAsync(request, barcode, cancellationToken);
+        if (serialResult is not null)
+            return serialResult;
+
         var transferResult = await ResolveTransferAsync(request, barcode, cancellationToken);
         if (transferResult is not null)
             return transferResult;
@@ -67,7 +71,7 @@ public class ResolveBarcodeHandler(InventoryDbContext dbContext, ISender sender)
         if (sourceDocumentResult is not null)
             return sourceDocumentResult;
 
-        return Rejected(request.Barcode, "No active SKU, package, location, batch, transfer, cycle count, delivery note, or goods receipt matches this barcode.");
+        return Rejected(request.Barcode, "No active SKU, package, location, batch, serial number, transfer, cycle count, delivery note, or goods receipt matches this barcode.");
     }
 
     private async Task<BarcodeScanResultDto?> ResolveCatalogAsync(BarcodeScanRequestDto request, string barcode, CancellationToken cancellationToken)
@@ -192,6 +196,81 @@ public class ResolveBarcodeHandler(InventoryDbContext dbContext, ISender sender)
             IsExpired = expired,
             IsActive = true,
             IsRejected = reject,
+            Warning = warnings.FirstOrDefault(),
+            Warnings = warnings
+        };
+    }
+
+    private async Task<BarcodeScanResultDto?> ResolveSerialAsync(BarcodeScanRequestDto request, string barcode, CancellationToken cancellationToken)
+    {
+        var serialQuery = from serial in dbContext.InventorySerialNumbers.AsNoTracking()
+                          join batch in dbContext.Batches.AsNoTracking() on serial.BatchId equals batch.Id into batchJoin
+                          from batch in batchJoin.DefaultIfEmpty()
+                          where serial.CompanyId == request.CompanyId
+                              && serial.SerialNumber == barcode
+                          select new { serial, batch };
+
+        if (request.ProductSkuId.HasValue)
+            serialQuery = serialQuery.Where(x => x.serial.ProductSkuId == request.ProductSkuId.Value);
+        if (request.WarehouseId.HasValue)
+            serialQuery = serialQuery.Where(x => x.serial.WarehouseId == request.WarehouseId.Value);
+
+        var match = await serialQuery.FirstOrDefaultAsync(cancellationToken);
+        if (match is null)
+            return null;
+
+        if (match.serial.WarehouseId.HasValue)
+        {
+            try
+            {
+                await global::Inventory.Warehouses.Features.Inventories.InventoryBranchScope.EnsureCanReadWarehouseAsync(
+                    dbContext, sender, request.CompanyId, match.serial.WarehouseId, cancellationToken);
+            }
+            catch (Exception ex) when (ex is ForbiddenException or NotFoundException or BadRequestException)
+            {
+                return Rejected(request.Barcode, ex.Message, BarcodeScanEntityType.SerialNumber, match.serial.Id);
+            }
+        }
+
+        var warnings = new List<string>();
+        var isRejected = false;
+        var isExpired = match.batch?.ExpiryDate.Date < DateTime.UtcNow.Date;
+        if (isExpired)
+            warnings.Add("Serial batch is expired.");
+        if (request.IsOutbound && isExpired && request.OperationType is not BarcodeOperationType.Adjustment)
+        {
+            warnings.Add("Expired serial batches cannot be used for normal outbound scans.");
+            isRejected = true;
+        }
+        if (request.IsOutbound && match.serial.Status is not InventorySerialStatus.Available and not InventorySerialStatus.Returned and not InventorySerialStatus.Reserved)
+        {
+            warnings.Add("Serial number is not available for outbound scanning.");
+            isRejected = true;
+        }
+
+        return new BarcodeScanResultDto
+        {
+            RawBarcode = request.Barcode,
+            NormalizedBarcode = barcode,
+            EntityType = BarcodeScanEntityType.SerialNumber,
+            EntityId = match.serial.Id,
+            CompanyId = match.serial.CompanyId,
+            ProductId = match.serial.ProductId,
+            ProductSkuId = match.serial.ProductSkuId,
+            BatchId = match.serial.BatchId,
+            InventorySerialNumberId = match.serial.Id,
+            SerialNumber = match.serial.SerialNumber,
+            WarehouseId = match.serial.WarehouseId,
+            WarehouseLocationId = match.serial.WarehouseLocationId,
+            Code = match.serial.SerialNumber,
+            Label = match.serial.SerialNumber,
+            LabelEng = match.serial.SerialNumber,
+            BatchNumber = match.batch?.BatchNumber,
+            ExpiryDate = match.batch?.ExpiryDate,
+            Quantity = 1m,
+            IsActive = !isRejected,
+            IsExpired = isExpired,
+            IsRejected = isRejected,
             Warning = warnings.FirstOrDefault(),
             Warnings = warnings
         };
@@ -440,6 +519,8 @@ public class ScanBarcodeSessionHandler(InventoryDbContext dbContext, IHttpContex
             ProductSkuId = scan.ProductSkuId,
             ProductPackageId = scan.ProductPackageId,
             BatchId = scan.BatchId,
+            InventorySerialNumberId = scan.InventorySerialNumberId,
+            SerialNumber = scan.SerialNumber,
             WarehouseId = scan.WarehouseId ?? session.WarehouseId,
             SourceLocationId = sourceLocationId,
             DestinationLocationId = destinationLocationId,
@@ -500,8 +581,17 @@ public class ApplyBarcodeSessionHandler(InventoryDbContext dbContext, IHttpConte
                     ProductId = group.Key.ProductId,
                     ProductSkuId = group.Key.ProductSkuId,
                     BatchId = group.Key.BatchId,
-                    CountedQuantity = group.Sum(x => x.NormalizedQuantity),
+                    CountedQuantity = group.Any(x => !string.IsNullOrWhiteSpace(x.SerialNumber))
+                        ? group.Where(x => !string.IsNullOrWhiteSpace(x.SerialNumber))
+                            .Select(x => x.SerialNumber!)
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .Count()
+                        : group.Sum(x => x.NormalizedQuantity),
                     BatchNumber = group.FirstOrDefault()?.BatchNumber,
+                    SerialNumbers = group.Where(x => !string.IsNullOrWhiteSpace(x.SerialNumber))
+                        .Select(x => x.SerialNumber!)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList(),
                     Notes = "Created from barcode scan session."
                 })
                 .ToList();

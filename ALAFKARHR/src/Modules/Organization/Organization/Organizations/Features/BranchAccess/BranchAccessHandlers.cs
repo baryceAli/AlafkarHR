@@ -32,6 +32,7 @@ public class BranchAccessCommandValidator : AbstractValidator<AssignUserBranches
 public class BranchAccessHandlers(OrganizationDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<EnsureMainBranchCommand, EnsureMainBranchResult>,
       ICommandHandler<AssignUserBranchesCommand, AssignUserBranchesResult>,
+      ICommandHandler<EnsureUserBranchAccessCommand, EnsureUserBranchAccessResult>,
       ICommandHandler<AssignUserBranchRoleCommand, AssignUserBranchRoleResult>,
       ICommandHandler<AssignStoreFrontBranchRoleCommand, AssignStoreFrontBranchRoleResult>,
       ICommandHandler<RevokeStoreFrontBranchRoleCommand, RevokeStoreFrontBranchRoleResult>,
@@ -140,6 +141,51 @@ public class BranchAccessHandlers(OrganizationDbContext dbContext, IHttpContextA
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return new AssignUserBranchesResult(branchIds.Count);
+    }
+
+    public async Task<EnsureUserBranchAccessResult> Handle(EnsureUserBranchAccessCommand request, CancellationToken cancellationToken)
+    {
+        if (request.UserId == Guid.Empty)
+            throw new BadRequestException("User is required.");
+        if (request.CompanyId == Guid.Empty)
+            throw new BadRequestException("Company is required.");
+        if (request.BranchId == Guid.Empty)
+            throw new BadRequestException("Branch is required.");
+
+        var currentUserId = CurrentUserId();
+        var userMembership = await sender.Send(new UserBelongsToCompanyQuery(request.UserId, request.CompanyId), cancellationToken);
+        if (!userMembership.BelongsToCompany)
+            throw new BadRequestException("User does not belong to the selected company.");
+
+        var branchExists = await dbContext.Branches.AsNoTracking()
+            .AnyAsync(x => x.Id == request.BranchId && x.CompanyId == request.CompanyId, cancellationToken);
+        if (!branchExists)
+            throw new BadRequestException("Branch does not belong to the selected company.");
+
+        var assignments = await dbContext.UserBranchAssignments
+            .Where(x => x.CompanyId == request.CompanyId && x.UserId == request.UserId)
+            .ToListAsync(cancellationToken);
+
+        var assignment = assignments.FirstOrDefault(x => x.BranchId == request.BranchId);
+        if (assignment is null)
+        {
+            await dbContext.UserBranchAssignments.AddAsync(
+                UserBranchAssignment.Create(request.UserId, request.CompanyId, request.BranchId, request.MakeDefault, currentUserId),
+                cancellationToken);
+        }
+        else if (request.MakeDefault && !assignment.IsDefault)
+        {
+            assignment.SetDefault(true, currentUserId);
+        }
+
+        if (request.MakeDefault)
+        {
+            foreach (var otherAssignment in assignments.Where(x => x.BranchId != request.BranchId && x.IsDefault))
+                otherAssignment.SetDefault(false, currentUserId);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new EnsureUserBranchAccessResult(true);
     }
 
     public async Task<GetCurrentUserBranchAccessResult> Handle(GetCurrentUserBranchAccessQuery request, CancellationToken cancellationToken)

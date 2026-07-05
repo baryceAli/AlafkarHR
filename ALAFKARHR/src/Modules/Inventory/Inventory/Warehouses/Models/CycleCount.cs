@@ -100,6 +100,10 @@ public class CycleCountLine : Entity<Guid>
     public Guid ProductSkuId { get; private set; }
     public Guid BatchId { get; private set; }
     public decimal CountedQuantity { get; private set; }
+    public string? SerialNumbersCsv { get; private set; }
+    public IReadOnlyList<string> SerialNumbers => string.IsNullOrWhiteSpace(SerialNumbersCsv)
+        ? []
+        : SerialNumbersCsv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     public string? Notes { get; private set; }
 
     public static CycleCountLine Create(Guid cycleCountId, CycleCountLineDto dto, string userId)
@@ -118,6 +122,7 @@ public class CycleCountLine : Entity<Guid>
             ProductSkuId = dto.ProductSkuId,
             BatchId = dto.BatchId,
             CountedQuantity = dto.CountedQuantity,
+            SerialNumbersCsv = NormalizeSerialNumbers(dto.SerialNumbers),
             Notes = dto.Notes,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = userId
@@ -131,6 +136,18 @@ public class CycleCountLine : Entity<Guid>
         ProductSkuId = ProductSkuId,
         BatchId = BatchId,
         CountedQuantity = CountedQuantity,
+        SerialNumbers = SerialNumbers.ToList(),
         Notes = Notes
     };
+
+    private static string? NormalizeSerialNumbers(IEnumerable<string>? serialNumbers)
+    {
+        var cleaned = serialNumbers?
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim().ToUpperInvariant())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList() ?? [];
+
+        return cleaned.Count == 0 ? null : string.Join(",", cleaned);
+    }
 }

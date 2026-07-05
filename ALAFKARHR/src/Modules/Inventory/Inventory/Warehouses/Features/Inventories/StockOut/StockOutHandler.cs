@@ -15,7 +15,6 @@ public class StockInCommandValidator : AbstractValidator<StockOutCommand>
         RuleFor(x=> x.InventoryAggregate.ProductSkuId).NotEmpty().WithMessage("Sku is required");
         RuleFor(x=> x.InventoryAggregate.WarehouseId).NotEmpty().WithMessage("Warehouse is required");
         RuleFor(x=> x.InventoryAggregate.InitialQuantity).GreaterThan(0).WithMessage("Quantity must be greater than zero");
-        RuleFor(x=> x.InventoryAggregate.InitialBatchId).NotEmpty().WithMessage("Batch is required");
         RuleFor(x => x.InventoryAggregate.ReferenceNumber).NotEmpty().MaximumLength(120).WithMessage("Reference number is required");
         RuleFor(x => x.InventoryAggregate.SourceDocumentType)
             .NotEmpty()
@@ -44,18 +43,19 @@ public class StockOutHandler(InventoryDbContext dbContext, ISender sender, IHttp
         //if (warehouse is null)
         //    throw new NotFoundException($"Warehouse not found: {command.InventoryAggregate.WarehouseId}");
 
-        var packageQuantity = await global::Inventory.Warehouses.Features.Inventories.InventoryPackageQuantityResolver
-            .ResolveAsync(sender, command.InventoryAggregate, cancellationToken);
+        var userId = httpContextAccessor.HttpContext
+                        .User?
+                        .FindFirst(ClaimTypes.NameIdentifier)?
+                        .Value ?? throw new UnauthorizedAccessException("User is not authenticated");
+
+        var tracking = await global::Inventory.Warehouses.Features.Inventories.InventoryTrackingModeGuard
+            .ResolveAndValidateAsync(dbContext, sender, command.InventoryAggregate, InventorySerialOperation.StockOut, userId, cancellationToken);
+        var packageQuantity = tracking.Quantity;
 
         var inventory = await dbContext.Inventories.Include(i=>i.Batches)
                                 .ThenInclude(b => b.Batch)
                                 .FirstOrDefaultAsync(i => i.WarehouseId == command.InventoryAggregate.WarehouseId &&
                                                          i.ProductSkuId == command.InventoryAggregate.ProductSkuId, cancellationToken);
-
-        var userId = httpContextAccessor.HttpContext
-                        .User?
-                        .FindFirst(ClaimTypes.NameIdentifier)?
-                        .Value ?? throw new UnauthorizedAccessException("User is not authenticated");
 
         decimal quantityBefore = 0;
         decimal reservedBefore = 0;
@@ -158,6 +158,15 @@ public class StockOutHandler(InventoryDbContext dbContext, ISender sender, IHttp
             sourceLocationId: command.InventoryAggregate.SourceLocationId);
  
         await dbContext.StockMovements.AddAsync(movement, cancellationToken);
+        await global::Inventory.Warehouses.Features.Inventories.InventoryTrackingModeGuard.ApplySerialMovementAsync(
+            dbContext,
+            movement,
+            command.InventoryAggregate.CompanyId,
+            command.InventoryAggregate.SourceLocationId,
+            InventorySerialOperation.StockOut,
+            tracking.Serials,
+            userId,
+            cancellationToken);
         await dbContext.InventoryValuationLayers.AddAsync(
             InventoryValuationLayer.FromMovement(movement, command.InventoryAggregate.CompanyId, userId),
             cancellationToken);

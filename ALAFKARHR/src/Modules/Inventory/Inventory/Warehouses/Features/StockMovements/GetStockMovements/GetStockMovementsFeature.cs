@@ -19,6 +19,7 @@ public class GetStockMovementsEndpoint : ICarterModule
                 Guid? sourceDocumentId,
                 string? referenceNumber,
                 Guid? parentProductSkuId,
+                string? serialNumber,
                 bool? expiredOnly,
                 DateTime? fromDate,
                 DateTime? toDate,
@@ -39,6 +40,7 @@ public class GetStockMovementsEndpoint : ICarterModule
                         SourceDocumentId = sourceDocumentId,
                         ReferenceNumber = referenceNumber,
                         ParentProductSkuId = parentProductSkuId,
+                        SerialNumber = serialNumber,
                         ExpiredOnly = expiredOnly,
                         FromDate = fromDate,
                         ToDate = toDate
@@ -120,6 +122,15 @@ public class GetStockMovementsHandler(InventoryDbContext dbContext, ISender send
         if (request.Filter.ParentProductSkuId.HasValue)
             query = query.Where(x => x.ParentProductSkuId == request.Filter.ParentProductSkuId.Value);
 
+        if (!string.IsNullOrWhiteSpace(request.Filter.SerialNumber))
+        {
+            var normalizedSerial = InventorySerialNumber.Normalize(request.Filter.SerialNumber);
+            var movementIds = dbContext.StockMovementSerials.AsNoTracking()
+                .Where(x => x.SerialNumber == normalizedSerial)
+                .Select(x => x.StockMovementId);
+            query = query.Where(x => movementIds.Contains(x.Id));
+        }
+
         if (request.Filter.ExpiredOnly.HasValue)
         {
             var today = DateTime.UtcNow.Date;
@@ -171,6 +182,24 @@ public class GetStockMovementsHandler(InventoryDbContext dbContext, ISender send
                     movement.DestinationLocationName = destinationLocation.Name;
                     movement.DestinationLocationNameEng = destinationLocation.NameEng;
                 }
+            }
+        }
+
+        var movementIdsForSerials = movements.Select(x => x.Id).ToList();
+        if (movementIdsForSerials.Count > 0)
+        {
+            var serialRows = await dbContext.StockMovementSerials.AsNoTracking()
+                .Where(x => movementIdsForSerials.Contains(x.StockMovementId))
+                .OrderBy(x => x.SerialNumber)
+                .ProjectToType<StockMovementSerialDto>()
+                .ToListAsync(cancellationToken);
+
+            foreach (var movement in movements)
+            {
+                movement.Serials = serialRows.Where(x => x.StockMovementId == movement.Id).ToList();
+                movement.SerialNumberSummary = movement.Serials.Count == 0
+                    ? null
+                    : string.Join(", ", movement.Serials.Select(x => x.SerialNumber));
             }
         }
 

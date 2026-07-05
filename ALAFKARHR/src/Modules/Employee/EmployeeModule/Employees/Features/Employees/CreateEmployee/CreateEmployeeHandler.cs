@@ -134,7 +134,16 @@ public class CreateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
         await dbContext.Employees.AddAsync(employee, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        await sender.Send(new RegisterUserCommand(register), cancellationToken);
+        var registeredUser = await sender.Send(new RegisterUserCommand(register), cancellationToken);
+        employee.LinkUser(registeredUser.Id, userId);
+        await EmployeeModule.Employees.Features.Employees.EmployeeBranchScope.EnsureLinkedUserBranchAccessAsync(
+            sender,
+            employee.CompanyId,
+            employee.LinkedUserId,
+            employee.BranchId,
+            makeDefault: true,
+            cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         transaction.Complete();
 

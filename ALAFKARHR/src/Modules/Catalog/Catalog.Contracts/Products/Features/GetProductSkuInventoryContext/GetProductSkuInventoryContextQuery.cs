@@ -12,6 +12,7 @@ public record GetProductSkuInventoryContextResult(
     Guid ProductSkuId,
     CatalogProductType ProductType,
     SkuProductionType ProductionType,
+    CatalogTrackingMode TrackingMode,
     bool ProductIsActive,
     bool SkuIsActive,
     bool CategoryIsActive,

@@ -37,6 +37,8 @@ public record StockMovementDto
     public decimal NormalizedQuantity { get; set; }
     public decimal ReservedBefore { get; set; }
     public decimal ReservedAfter { get; set; }
+    public string? SerialNumberSummary { get; set; }
+    public List<StockMovementSerialDto> Serials { get; set; } = [];
     public decimal UnitCost { get; set; }
     public decimal TotalCost { get; set; }
     public Guid CurrencyId { get; set; }
@@ -62,7 +64,17 @@ public class StockMovementFilterDto
     public Guid? SourceDocumentId { get; set; }
     public string? ReferenceNumber { get; set; }
     public Guid? ParentProductSkuId { get; set; }
+    public string? SerialNumber { get; set; }
     public bool? ExpiredOnly { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
+}
+
+public class StockMovementSerialDto
+{
+    public Guid Id { get; set; }
+    public Guid StockMovementId { get; set; }
+    public Guid InventorySerialNumberId { get; set; }
+    public string SerialNumber { get; set; } = string.Empty;
+    public InventorySerialStatus StatusAfterMovement { get; set; }
 }

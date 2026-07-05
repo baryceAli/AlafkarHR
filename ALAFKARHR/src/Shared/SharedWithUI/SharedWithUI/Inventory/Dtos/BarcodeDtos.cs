@@ -24,6 +24,8 @@ public class BarcodeScanResultDto
     public Guid? WarehouseId { get; set; }
     public Guid? WarehouseLocationId { get; set; }
     public Guid? BatchId { get; set; }
+    public Guid? InventorySerialNumberId { get; set; }
+    public string? SerialNumber { get; set; }
     public string? Code { get; set; }
     public string? Label { get; set; }
     public string? LabelEng { get; set; }
@@ -67,6 +69,8 @@ public class BarcodeOperationLineDto
     public Guid? ProductSkuId { get; set; }
     public Guid? ProductPackageId { get; set; }
     public Guid? BatchId { get; set; }
+    public Guid? InventorySerialNumberId { get; set; }
+    public string? SerialNumber { get; set; }
     public Guid? WarehouseId { get; set; }
     public Guid? SourceLocationId { get; set; }
     public Guid? DestinationLocationId { get; set; }
@@ -108,7 +112,8 @@ public enum BarcodeScanEntityType
     DeliveryNote = 6,
     GoodsReceipt = 7,
     CycleCount = 8,
-    Gs1 = 9
+    Gs1 = 9,
+    SerialNumber = 10
 }
 
 public enum BarcodeOperationType

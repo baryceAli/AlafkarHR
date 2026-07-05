@@ -1,6 +1,7 @@
 ﻿using Shared.Exceptions;
 using Shared.SaveImages;
 using SharedWithUI.Catalog.SKUGenerator;
+using Catalog.Products.Features.Products.AddProductSku;
 
 namespace Catalog.Products.Features.Products.UpdateProductSku;
 
@@ -73,13 +74,16 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
         await CatalogOwnershipGuard.EnsureBrandAsync(dbContext, command.ProductSku.BrandId, companyId, cancellationToken);
         await CatalogOwnershipGuard.EnsureUnitAsync(dbContext, command.ProductSku.UnitId, companyId, cancellationToken);
         await CatalogOwnershipGuard.EnsureVariantValuesAsync(dbContext, command.ProductSku.Variants, companyId, cancellationToken);
+        await CatalogOwnershipGuard.EnsureBarcodeAvailableAsync(dbContext, companyId, command.ProductSku.Barcode, productSku.Id, null, cancellationToken);
 
         var brand = await dbContext.Brands.AsNoTracking()
             .FirstAsync(x => x.Id == command.ProductSku.BrandId && x.CompanyId == companyId && x.IsActive, cancellationToken);
 
 
-        var packageIds = command.ProductSku.Packages
-            .Select(p => p.Id)
+        var packageAssignments = AddProductSkuHandler.BuildPackageAssignments(command.ProductSku);
+
+        var packageIds = packageAssignments
+            .Select(p => p.ProductPackageId)
             .Where(id => id != Guid.Empty)
             .ToHashSet();
 
@@ -90,6 +94,7 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
         {
             await CatalogOwnershipGuard.EnsurePackagesAsync(dbContext, packageIds, companyId, cancellationToken);
         }
+        await CatalogOwnershipGuard.EnsureSkuPackageAssignmentsAsync(dbContext, packageAssignments, command.ProductSku.UnitId, companyId, productSku.Id, cancellationToken);
 
         List<(Guid variantId, Guid variantValueId)> variantValueIds = new List<(Guid, Guid)>();
         foreach (var v in command.ProductSku.Variants)
@@ -162,7 +167,8 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
                     throw new NotFoundException($"Component SKU not found: {missingComponentSkuId}");
             }
         }
-        ValidateProductTypeCapabilities(prd.ProductType, productionType, command.ProductSku.IsInventoryTracked);
+        var trackingMode = AddProductSkuHandler.ResolveTrackingMode(prd.ProductType, productionType, command.ProductSku.TrackingMode);
+        AddProductSkuHandler.ValidateProductTypeCapabilities(prd.ProductType, productionType, trackingMode);
         var key = ProductSkuGenerator.BuildSkuKey(SkuBaseCntx);
 
         productSku.Update(
@@ -177,13 +183,13 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
             skuCodeEng,
             key,
             productionType,
+            trackingMode,
             companyId,
             command.ProductSku.IsSellable,
             command.ProductSku.IsPurchasable,
-            command.ProductSku.IsInventoryTracked,
             command.ProductSku.IsAssetTrackable,
             command.ProductSku.Variants,
-            packageIds.ToList(),
+            packageAssignments,
             componentDtos,
             userId);
         if (command.ProductSku.IsActive)
@@ -195,15 +201,6 @@ public class UpdateProductSkuHandler(CatalogDbContext dbContext, IHttpContextAcc
         return new UpdateProductSkuResult(true);
 
 
-    }
-
-    private static void ValidateProductTypeCapabilities(CatalogProductType productType, SkuProductionType productionType, bool isInventoryTracked)
-    {
-        if (productType == CatalogProductType.Service && isInventoryTracked)
-            throw new Exception("Service products cannot be inventory tracked.");
-
-        if (productType == CatalogProductType.Combo && productionType != SkuProductionType.CompositeBundle)
-            throw new Exception("Combo products must use Composite Bundle production type.");
     }
     private bool IsBase64Image(string input)
     {

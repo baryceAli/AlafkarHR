@@ -32,6 +32,12 @@ public class AssignRoleToUserHandler(UserManager<ApplicationUser> userManager, R
         if (IsCompanyAdminRole(user, role.Name))
             throw new BadRequestException("Admin role assignments cannot be changed from this page.");
 
+        await CompanyRoleTemplates.SeedDefaultRolesAsync(roleManager, user.CompanyId.Value);
+
+        role = await ResolveRoleAfterTemplateSync(role, user.CompanyId.Value, cancellationToken);
+        if (role is null)
+            throw new NotFoundException($"Role not found: {request.UserRole.RoleName}");
+
         var isExist = await userManager.IsInRoleAsync(user, role.Name!);
         if (isExist)
             throw new BadRequestException($"Role ({role.DisplayName}) is already assigned to user ({userName}).");
@@ -39,6 +45,20 @@ public class AssignRoleToUserHandler(UserManager<ApplicationUser> userManager, R
         var result = await userManager.AddToRoleAsync(user, role.Name!);
 
         return new AssignRoleToUserResult(result.Succeeded);
+    }
+
+    private async Task<ApplicationRole?> ResolveRoleAfterTemplateSync(
+        ApplicationRole role,
+        Guid companyId,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(role.TemplateKey))
+        {
+            return await roleManager.Roles
+                .FirstOrDefaultAsync(r => r.CompanyId == companyId && r.TemplateKey == role.TemplateKey, cancellationToken);
+        }
+
+        return await roleManager.FindByIdAsync(role.Id.ToString());
     }
 
     private async Task<bool> IsProtectedAdmin(ApplicationUser user)

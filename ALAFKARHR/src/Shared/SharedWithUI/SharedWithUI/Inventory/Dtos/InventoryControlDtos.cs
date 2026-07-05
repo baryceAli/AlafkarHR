@@ -1,3 +1,5 @@
+using SharedWithUI.Inventory.Enums;
+
 namespace SharedWithUI.Inventory.Dtos;
 
 public class WarehouseLocationDto
@@ -113,6 +115,54 @@ public class LocationAvailabilityDto
     public List<InventoryLocationBalanceDto> Rows { get; set; } = [];
 }
 
+public class InventorySerialNumberDto
+{
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid ProductId { get; set; }
+    public Guid ProductSkuId { get; set; }
+    public string SerialNumber { get; set; } = string.Empty;
+    public Guid? BatchId { get; set; }
+    public string? BatchNumber { get; set; }
+    public DateTime? ExpiryDate { get; set; }
+    public Guid? WarehouseId { get; set; }
+    public string? WarehouseName { get; set; }
+    public string? WarehouseNameEng { get; set; }
+    public Guid? WarehouseLocationId { get; set; }
+    public string? WarehouseLocationCode { get; set; }
+    public string? WarehouseLocationName { get; set; }
+    public string? WarehouseLocationNameEng { get; set; }
+    public InventorySerialStatus Status { get; set; } = InventorySerialStatus.Available;
+    public bool IsReserved => Status == InventorySerialStatus.Reserved;
+    public bool IsAvailable => Status == InventorySerialStatus.Available || Status == InventorySerialStatus.Returned;
+    public Guid? SourceDocumentId { get; set; }
+    public Guid? SourceDocumentLineId { get; set; }
+    public Guid? LastStockMovementId { get; set; }
+    public DateTime? LastMovementAt { get; set; }
+}
+
+public class SkuSerialAvailabilityDto
+{
+    public Guid CompanyId { get; set; }
+    public Guid ProductSkuId { get; set; }
+    public Guid? WarehouseId { get; set; }
+    public Guid? WarehouseLocationId { get; set; }
+    public Guid? BatchId { get; set; }
+    public int TotalCount { get; set; }
+    public int ReservedCount { get; set; }
+    public int AvailableCount { get; set; }
+    public List<InventorySerialNumberDto> Serials { get; set; } = [];
+}
+
+public class SerialNumberTraceDto
+{
+    public Guid InventorySerialNumberId { get; set; }
+    public string SerialNumber { get; set; } = string.Empty;
+    public Guid ProductSkuId { get; set; }
+    public InventorySerialStatus CurrentStatus { get; set; }
+    public List<StockMovementDto> Movements { get; set; } = [];
+}
+
 public class CycleCountDto
 {
     public Guid Id { get; set; }
@@ -142,6 +192,7 @@ public class CycleCountLineDto
     public Guid BatchId { get; set; }
     public string? BatchNumber { get; set; }
     public decimal CountedQuantity { get; set; }
+    public List<string> SerialNumbers { get; set; } = [];
     public string? Notes { get; set; }
 }
 

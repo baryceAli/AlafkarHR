@@ -230,6 +230,35 @@ public class InventoryService : BaseApiService, IInventoryService
         return await SendAsync<LocationAvailabilityDto>(request, "availability");
     }
 
+    public async Task<ApiResult<SkuSerialAvailabilityDto>> GetSkuSerialAvailabilityAsync(Guid companyId, Guid productSkuId, Guid? warehouseId = null, Guid? warehouseLocationId = null, Guid? batchId = null, Guid? branchId = null)
+    {
+        var url = $"api/{_apiConfig.Version}/inventory/availability/serials/company/{companyId}/sku/{productSkuId}";
+        var query = new List<string>();
+        if (warehouseId.HasValue)
+            query.Add($"warehouseId={warehouseId.Value}");
+        if (warehouseLocationId.HasValue)
+            query.Add($"warehouseLocationId={warehouseLocationId.Value}");
+        if (batchId.HasValue)
+            query.Add($"batchId={batchId.Value}");
+        if (branchId.HasValue)
+            query.Add($"branchId={branchId.Value}");
+        if (query.Any())
+            url += $"?{string.Join("&", query)}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        return await SendAsync<SkuSerialAvailabilityDto>(request, null);
+    }
+
+    public async Task<ApiResult<SerialNumberTraceDto>> GetSerialNumberTraceAsync(Guid companyId, Guid? productSkuId, string serialNumber)
+    {
+        var url = $"api/{_apiConfig.Version}/inventory/serial-trace/company/{companyId}?serialNumber={Uri.EscapeDataString(serialNumber)}";
+        if (productSkuId.HasValue)
+            url += $"&productSkuId={productSkuId.Value}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        return await SendAsync<SerialNumberTraceDto>(request, null);
+    }
+
     public async Task<ApiResult<PutawaySuggestionDto>> GetPutawaySuggestionAsync(Guid companyId, Guid warehouseId, Guid productId, Guid productSkuId)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/inventory/controls/putaway-suggestion/company/{companyId}/warehouse/{warehouseId}/product/{productId}/sku/{productSkuId}");

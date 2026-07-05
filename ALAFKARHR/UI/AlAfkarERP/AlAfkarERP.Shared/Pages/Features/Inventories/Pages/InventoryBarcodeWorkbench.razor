@@ -101,6 +101,10 @@
                                     <div>
                                         <div class="fw-semibold">@Display(lastScan.LabelEng, lastScan.Label, lastScan.NormalizedBarcode)</div>
                                         <div class="text-muted small">@ScanTypeText(lastScan.EntityType) · @lastScan.Code</div>
+                                        @if (!string.IsNullOrWhiteSpace(lastScan.SerialNumber))
+                                        {
+                                            <div class="text-muted small">@Text("Serial", "Serial"): @lastScan.SerialNumber</div>
+                                        }
                                     </div>
                                     <span class="badge @ScanBadgeClass(lastScan)">
                                         @(lastScan.IsRejected ? Text("Rejected", "مرفوض") : lastScan.Warnings.Any() ? Text("Warning", "تنبيه") : Text("Accepted", "مقبول"))
@@ -157,7 +161,11 @@
                                                 <td>@line.RawBarcode</td>
                                                 <td>@ScanTypeText(line.EntityType)</td>
                                                 <td>
-                                                    <div class="fw-semibold">@Display(line.DisplayLabelEng, line.DisplayLabel, line.BatchNumber ?? string.Empty)</div>
+                                                    <div class="fw-semibold">@Display(line.DisplayLabelEng, line.DisplayLabel, line.BatchNumber ?? line.SerialNumber ?? string.Empty)</div>
+                                                    @if (!string.IsNullOrWhiteSpace(line.SerialNumber))
+                                                    {
+                                                        <div class="text-muted small">@Text("Serial", "Serial"): @line.SerialNumber</div>
+                                                    }
                                                     @if (!string.IsNullOrWhiteSpace(line.Warning))
                                                     {
                                                         <div class="text-warning small">@line.Warning</div>
@@ -304,7 +312,8 @@
                     EntityType = x.EntityType,
                     Label = x.DisplayLabel,
                     LabelEng = x.DisplayLabelEng,
-                    Code = x.BatchNumber,
+                    Code = x.BatchNumber ?? x.SerialNumber,
+                    SerialNumber = x.SerialNumber,
                     IsRejected = x.Status == BarcodeLineStatus.Rejected,
                     Warning = x.Warning,
                     Warnings = string.IsNullOrWhiteSpace(x.Warning) ? [] : [x.Warning]
@@ -390,6 +399,7 @@
         BarcodeScanEntityType.GoodsReceipt => Text("Receipt", "استلام"),
         BarcodeScanEntityType.CycleCount => Text("Cycle Count", "جرد دوري"),
         BarcodeScanEntityType.Gs1 => "GS1",
+        BarcodeScanEntityType.SerialNumber => Text("Serial", "Serial"),
         _ => Text("Unknown", "غير معروف")
     };
     private string LineStatusText(BarcodeLineStatus status) => status switch

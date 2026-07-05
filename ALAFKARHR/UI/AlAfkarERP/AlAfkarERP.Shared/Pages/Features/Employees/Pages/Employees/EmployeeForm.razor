@@ -3,12 +3,14 @@
 @page "/Employee/Employee/Form/{Id:guid?}"
 
 @using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.Auth.Services
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.Employees.Services
 @* @using AlAfkarERP.Shared.Pages.Reuable *@
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Auth.Dtos
 @using SharedWithUI.Employees.Dtos
 @using SharedWithUI.Employees.Enums
 @using SharedWithUI.Organization.Dtos
@@ -18,6 +20,7 @@
 @inject IAdministrationService AdministrationService
 @inject IDepartmentService DepartmentService
 @inject IEmployeeService EmployeeService
+@inject IUserService UserService
 @inject IPositionService PositionService
 @inject IAcademicInistitutionService AcademicInistitutionService
 @inject ISpecializationService SpecializationService
@@ -395,8 +398,17 @@
                     </div>
 
                     <div class="employee-field">
-                        <label for="employee-linked-user" class="form-label">@SharedDataService.SelectViewLang("Linked User Id", "معرف المستخدم المرتبط")</label>
-                        <input class="form-control" id="employee-linked-user" @bind="linkedUserIdText" placeholder="@SharedDataService.SelectViewLang("Optional user id", "معرف مستخدم اختياري")" />
+                        <label class="form-label">@SharedDataService.SelectViewLang("Linked User", "المستخدم المرتبط")</label>
+                        <AutoCompleteComponent TItem="UserDto"
+                                               Items="companyUsers"
+                                               Value="selectedLinkedUser"
+                                               ValueChanged="OnLinkedUserSelected"
+                                               ItemText="UserDisplay"
+                                               PlaceHolder="@SharedDataService.SelectViewLang("Search users ...", "ابحث عن المستخدمين ...")">
+                        </AutoCompleteComponent>
+                        <div class="employee-help-text">
+                            @SharedDataService.SelectViewLang("The linked user receives access to this employee branch.", "يحصل المستخدم المرتبط على صلاحية الفرع الخاص بالموظف.")
+                        </div>
                     </div>
 
                     <div class="employee-field">
@@ -475,6 +487,7 @@
     private List<DepartmentDto> DepartmentOptions => selectedAdministration is null ? [] : departments;
     private List<PositionDto> positions = [];
     private List<EmployeeDto> managerEmployees = [];
+    private List<UserDto> companyUsers = [];
     private List<AcademicInstitutionDto> academicInstitutions = [];
     private List<SpecializationDto> specializations = [];
     private List<int> graduationYears = [];
@@ -482,7 +495,7 @@
     private CurrentUserBranchAccessDto branchAccess = new();
     private bool canViewAllBranches;
     private string managerEmployeeIdText = string.Empty;
-    private string linkedUserIdText = string.Empty;
+    private UserDto? selectedLinkedUser;
 
     private Guid companyId;
 
@@ -510,6 +523,11 @@
         if (managerResponse.IsSuccess)
         {
             managerEmployees = managerResponse.Data?.Data?.ToList() ?? [];
+        }
+        var userResponse = await UserService.GetUsersByCompany(companyId, 0, 1000);
+        if (userResponse.IsSuccess)
+        {
+            companyUsers = userResponse.Data?.Data?.ToList() ?? [];
         }
         var academicResponse = await AcademicInistitutionService.GetByCompanyAsync(companyId, 0, 1000);
         if (academicResponse.IsSuccess)
@@ -554,7 +572,7 @@
                     departments = [];
                 }
                 managerEmployeeIdText = employee.ManagerEmployeeId?.ToString() ?? string.Empty;
-                linkedUserIdText = employee.LinkedUserId?.ToString() ?? string.Empty;
+                selectedLinkedUser = companyUsers.FirstOrDefault(user => user.Id == employee.LinkedUserId);
                 StateHasChanged();
             }
             else
@@ -648,14 +666,15 @@
         selectedAdministration=null;
         selectedDepartment = null;
         managerEmployeeIdText = string.Empty;
-        linkedUserIdText = string.Empty;
+        selectedLinkedUser = null;
 
     }
     private async Task HandleSubmit()
     {
         LoadingService.Show();
         employee.ManagerEmployeeId = Guid.TryParse(managerEmployeeIdText, out var managerId) ? managerId : null;
-        employee.LinkedUserId = Guid.TryParse(linkedUserIdText, out var linkedUserId) ? linkedUserId : null;
+        if (selectedLinkedUser is not null)
+            employee.LinkedUserId = selectedLinkedUser.Id;
 
         if (!Id.HasValue || Id == Guid.Empty)
         {
@@ -739,6 +758,13 @@
         LoadingService.Hide();
     }
     private BranchDto? selectedBranch;
+    private Task OnLinkedUserSelected(UserDto? user)
+    {
+        selectedLinkedUser = user;
+        employee.LinkedUserId = user?.Id;
+        return Task.CompletedTask;
+    }
+
     private async Task OnBranchSelected(BranchDto? branch)
     {
         if(branch is null)
@@ -834,6 +860,14 @@
         }
 
         return string.IsNullOrWhiteSpace(manager.EmployeeNo) ? name : $"{name} ({manager.EmployeeNo})";
+    }
+
+    private static string UserDisplay(UserDto user)
+    {
+        if (string.IsNullOrWhiteSpace(user.Email))
+            return user.UserName;
+
+        return $"{user.UserName} ({user.Email})";
     }
 
 

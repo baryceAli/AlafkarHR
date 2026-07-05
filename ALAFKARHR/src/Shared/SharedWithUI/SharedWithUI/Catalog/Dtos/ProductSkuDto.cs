@@ -64,6 +64,7 @@ public class ProductSkuDto
     public decimal FinalUnitAmount { get; set; }
 
     public SkuProductionType ProductionType { get; set; } = SkuProductionType.PurchasedRawMaterial;
+    public CatalogTrackingMode TrackingMode { get; set; } = CatalogTrackingMode.Quantity;
 
 
     public string ImageUrl { get; set; }
@@ -78,6 +79,7 @@ public class ProductSkuDto
 
     public List<ProductSkuVariantDto> Variants { get; set; } = new();
     public List<ProductPackageDto> Packages { get; set; } = new();
+    public List<ProductSkuPackageDto> PackageAssignments { get; set; } = new();
     public List<ProductSkuComponentDto> Components { get; set; } = new();
     
 
@@ -85,6 +87,64 @@ public class ProductSkuDto
     //SKU2 Milk    Almarai      No Cream	    3
     //SKU3 Milk    Alsafi       Full Cream	    1.5
 
+}
+
+public class ProductSkuPackageDto
+{
+    public Guid Id { get; set; }
+    public Guid ProductSkuId { get; set; }
+    public Guid ProductPackageId { get; set; }
+    public string? Name { get; set; }
+    public string? NameEng { get; set; }
+    public decimal Quantity { get; set; } = 1;
+    public Guid? UnitId { get; set; }
+    public string? UnitName { get; set; }
+    public string? UnitNameEng { get; set; }
+    public string? UnitCategory { get; set; }
+    public decimal UnitConversionFactor { get; set; } = 1;
+    public string? Barcode { get; set; }
+    public bool SalesEnabled { get; set; } = true;
+    public bool PurchaseEnabled { get; set; } = true;
+    public bool IsActive { get; set; } = true;
+}
+
+public class ProductSkuVariantMatrixRequest
+{
+    public Guid ProductId { get; set; }
+    public Guid BrandId { get; set; }
+    public Guid? UnitId { get; set; }
+    public Guid? PackageId { get; set; }
+    public decimal Price { get; set; }
+    public decimal? Calories { get; set; }
+    public SkuProductionType ProductionType { get; set; } = SkuProductionType.PurchasedRawMaterial;
+    public CatalogTrackingMode TrackingMode { get; set; } = CatalogTrackingMode.Quantity;
+    public bool ShowOnStore { get; set; }
+    public bool IsSellable { get; set; } = true;
+    public bool IsPurchasable { get; set; } = true;
+    public bool IsAssetTrackable { get; set; }
+    public List<ProductSkuPackageDto> PackageAssignments { get; set; } = new();
+    public List<VariantMatrixOptionDto> Options { get; set; } = new();
+}
+
+public class VariantMatrixOptionDto
+{
+    public Guid VariantId { get; set; }
+    public List<Guid> VariantValueIds { get; set; } = new();
+}
+
+public class ProductSkuVariantMatrixResultDto
+{
+    public int CreatedCount { get; set; }
+    public int SkippedCount { get; set; }
+    public List<Guid> CreatedSkuIds { get; set; } = new();
+}
+
+public class CatalogBarcodeValidationResultDto
+{
+    public bool IsAvailable { get; set; }
+    public string? ConflictType { get; set; }
+    public Guid? ConflictId { get; set; }
+    public string? ConflictLabel { get; set; }
 }
 
 public class ProductSkuComponentDto

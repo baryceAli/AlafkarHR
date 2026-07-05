@@ -42,12 +42,15 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
         await CatalogOwnershipGuard.EnsureBrandAsync(dbContext, command.ProductSku.BrandId, companyId, cancellationToken);
         await CatalogOwnershipGuard.EnsureUnitAsync(dbContext, command.ProductSku.UnitId, companyId, cancellationToken);
         await CatalogOwnershipGuard.EnsureVariantValuesAsync(dbContext, command.ProductSku.Variants, companyId, cancellationToken);
+        await CatalogOwnershipGuard.EnsureBarcodeAvailableAsync(dbContext, companyId, command.ProductSku.Barcode, null, null, cancellationToken);
 
         var brand = await dbContext.Brands.AsNoTracking()
             .FirstAsync(x => x.Id == command.ProductSku.BrandId && x.CompanyId == companyId && x.IsActive, cancellationToken);
 
-        var packageIds = command.ProductSku.Packages
-            .Select(p => p.Id)
+        var packageAssignments = BuildPackageAssignments(command.ProductSku);
+
+        var packageIds = packageAssignments
+            .Select(p => p.ProductPackageId)
             .Where(id => id != Guid.Empty)
             .ToHashSet();
 
@@ -58,6 +61,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
         {
             await CatalogOwnershipGuard.EnsurePackagesAsync(dbContext, packageIds, companyId, cancellationToken);
         }
+        await CatalogOwnershipGuard.EnsureSkuPackageAssignmentsAsync(dbContext, packageAssignments, command.ProductSku.UnitId, companyId, null, cancellationToken);
 
         var productionType = command.ProductSku.ProductionType == default
             ? SkuProductionType.PurchasedRawMaterial
@@ -93,7 +97,8 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
                     throw new NotFoundException($"Component SKU not found: {missingComponentSkuId}");
             }
         }
-        ValidateProductTypeCapabilities(prd.ProductType, productionType, command.ProductSku.IsInventoryTracked);
+        var trackingMode = ResolveTrackingMode(prd.ProductType, productionType, command.ProductSku.TrackingMode);
+        ValidateProductTypeCapabilities(prd.ProductType, productionType, trackingMode);
         
         List<(Guid variantId,Guid variantValueId)> variantValueIds=new List<(Guid,Guid)>();
         foreach(var v in command.ProductSku.Variants)
@@ -149,10 +154,10 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
             command.ProductSku.Price,
             command.ProductSku.Calories,
             productionType,
+            trackingMode,
             command.ProductSku.ShowOnStore,
             command.ProductSku.IsSellable,
             command.ProductSku.IsPurchasable,
-            command.ProductSku.IsInventoryTracked,
             command.ProductSku.IsAssetTrackable,
             companyId,
             userId);
@@ -163,7 +168,7 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
             productSku.AddVariant(variant.VariantId, variant.VariantValueId, userId);
         }
 
-        productSku.SetPackages(packageIds, userId);
+        productSku.SetPackages(packageAssignments, userId);
         productSku.SetComponents(componentDtos, userId);
 
         dbContext.ProductSkus.Add(productSku);
@@ -174,12 +179,80 @@ public class AddProductSkuHandler(CatalogDbContext dbContext, IHttpContextAccess
 
     }
 
-    private static void ValidateProductTypeCapabilities(CatalogProductType productType, SkuProductionType productionType, bool isInventoryTracked)
+    internal static List<ProductSkuPackageDto> BuildPackageAssignments(ProductSkuDto productSku)
     {
-        if (productType == CatalogProductType.Service && isInventoryTracked)
+        var assignments = productSku.PackageAssignments
+            .Where(assignment => assignment.ProductPackageId != Guid.Empty)
+            .Select(assignment => new ProductSkuPackageDto
+            {
+                Id = assignment.Id,
+                ProductSkuId = assignment.ProductSkuId,
+                ProductPackageId = assignment.ProductPackageId,
+                Quantity = assignment.Quantity <= 0 ? 1 : assignment.Quantity,
+                UnitId = assignment.UnitId,
+                Barcode = assignment.Barcode,
+                SalesEnabled = assignment.SalesEnabled,
+                PurchaseEnabled = assignment.PurchaseEnabled,
+                IsActive = assignment.IsActive
+            })
+            .ToList();
+
+        foreach (var package in productSku.Packages.Where(package => package.Id != Guid.Empty))
+        {
+            if (assignments.Any(assignment => assignment.ProductPackageId == package.Id))
+                continue;
+
+            assignments.Add(new ProductSkuPackageDto
+            {
+                ProductPackageId = package.Id,
+                Quantity = package.Quantity <= 0 ? 1 : package.Quantity,
+                UnitId = package.UnitId,
+                Barcode = null,
+                SalesEnabled = true,
+                PurchaseEnabled = true,
+                IsActive = package.IsActive
+            });
+        }
+
+        if (productSku.PackageId.HasValue
+            && productSku.PackageId.Value != Guid.Empty
+            && assignments.All(assignment => assignment.ProductPackageId != productSku.PackageId.Value))
+        {
+            assignments.Add(new ProductSkuPackageDto
+            {
+                ProductPackageId = productSku.PackageId.Value,
+                Quantity = 1,
+                SalesEnabled = true,
+                PurchaseEnabled = true,
+                IsActive = true
+            });
+        }
+
+        return assignments;
+    }
+
+    internal static CatalogTrackingMode ResolveTrackingMode(
+        CatalogProductType productType,
+        SkuProductionType productionType,
+        CatalogTrackingMode requestedTrackingMode)
+    {
+        if (productType == CatalogProductType.Service)
+            return CatalogTrackingMode.None;
+
+        if (productionType == SkuProductionType.CompositeBundle && requestedTrackingMode == CatalogTrackingMode.None)
+            return CatalogTrackingMode.Quantity;
+
+        return ProductSku.NormalizeTrackingMode(requestedTrackingMode);
+    }
+
+    internal static void ValidateProductTypeCapabilities(CatalogProductType productType, SkuProductionType productionType, CatalogTrackingMode trackingMode)
+    {
+        if (productType == CatalogProductType.Service && trackingMode != CatalogTrackingMode.None)
             throw new Exception("Service products cannot be inventory tracked.");
 
         if (productType == CatalogProductType.Combo && productionType != SkuProductionType.CompositeBundle)
             throw new Exception("Combo products must use Composite Bundle production type.");
+
+        ProductSku.ValidateCapabilityFlags(productionType, trackingMode);
     }
 }

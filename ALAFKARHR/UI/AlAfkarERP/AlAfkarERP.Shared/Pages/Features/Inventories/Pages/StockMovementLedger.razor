@@ -93,6 +93,10 @@
                     <InputText class="form-control" @bind-Value="referenceNumber" />
                 </div>
                 <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Serial Number", "Serial Number")</label>
+                    <InputText class="form-control" @bind-Value="serialNumber" />
+                </div>
+                <div class="col-lg-3 col-md-6">
                     <label class="form-label">@SharedDataService.SelectViewLang("Source ID", "معرف المصدر")</label>
                     <InputText class="form-control" @bind-Value="sourceDocumentIdText" />
                 </div>
@@ -155,6 +159,7 @@
                             <th>@SharedDataService.SelectViewLang("Warehouse", "المستودع")</th>
                             <th>@SharedDataService.SelectViewLang("SKU", "المنتج المخزني")</th>
                             <th>@SharedDataService.SelectViewLang("Batch", "الدفعة")</th>
+                            <th>@SharedDataService.SelectViewLang("Serials", "Serials")</th>
                             <th>@SharedDataService.SelectViewLang("Type", "النوع")</th>
                             <th>@SharedDataService.SelectViewLang("Before", "قبل")</th>
                             <th>@SharedDataService.SelectViewLang("After", "بعد")</th>
@@ -165,7 +170,7 @@
                         @if (movements.Count == 0)
                         {
                             <tr>
-                                <td colspan="12" class="text-muted text-center py-4">@SharedDataService.SelectViewLang("No movements found", "لا توجد حركات")</td>
+                                <td colspan="13" class="text-muted text-center py-4">@SharedDataService.SelectViewLang("No movements found", "لا توجد حركات")</td>
                             </tr>
                         }
                         @foreach (var movement in movements)
@@ -179,6 +184,7 @@
                                 <td>@DisplayWarehouseName(movement.WarehouseId)</td>
                                 <td>@DisplaySkuName(movement.ProductSkuId)</td>
                                 <td>@DisplayBatchName(movement.BatchId)</td>
+                                <td>@movement.SerialNumberSummary</td>
                                 <td>@movement.MovementType</td>
                                 <td>@movement.QuantityBefore</td>
                                 <td>@movement.QuantityAfter</td>
@@ -223,6 +229,7 @@
     private string? sourceDocumentType;
     private string? sourceDocumentIdText;
     private string? referenceNumber;
+    private string? serialNumber;
     private Guid? parentProductSkuId;
     private string? expiryFilter;
     private DateTime? fromDate;
@@ -311,6 +318,7 @@
             sourceDocumentId,
             referenceNumber,
             parentProductSkuId,
+            serialNumber,
             expiredOnly,
             fromDate,
             toDate);
@@ -341,6 +349,7 @@
         sourceDocumentType = null;
         sourceDocumentIdText = null;
         referenceNumber = null;
+        serialNumber = null;
         parentProductSkuId = null;
         expiryFilter = null;
         fromDate = null;

@@ -44,6 +44,7 @@ public class BarcodeOperationLineConfiguration : IEntityTypeConfiguration<Barcod
         builder.Property(x => x.DisplayLabel).HasMaxLength(250);
         builder.Property(x => x.DisplayLabelEng).HasMaxLength(250);
         builder.Property(x => x.BatchNumber).HasMaxLength(120);
+        builder.Property(x => x.SerialNumber).HasMaxLength(120);
         builder.Property(x => x.Warning).HasMaxLength(1000);
         builder.Property(x => x.CreatedBy).HasMaxLength(100);
         builder.Property(x => x.ModifiedBy).HasMaxLength(100);
@@ -51,6 +52,8 @@ public class BarcodeOperationLineConfiguration : IEntityTypeConfiguration<Barcod
         builder.HasIndex(x => new { x.BarcodeOperationSessionId, x.EntityType });
         builder.HasIndex(x => x.ProductSkuId);
         builder.HasIndex(x => x.BatchId);
+        builder.HasIndex(x => x.InventorySerialNumberId);
+        builder.HasIndex(x => x.SerialNumber);
         builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }
