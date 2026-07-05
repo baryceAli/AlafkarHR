@@ -19,23 +19,39 @@ public class LoginHandler(
 {
     public async Task<LoginResult> Handle(LoginCommand command, CancellationToken cancellationToken)
     {
+        var loginIdentifier = command.Login.Email?.Trim();
+
         try
         {
-            logger.LogInformation("Login attempt for {Email}", command.Login.Email);
+            logger.LogInformation("Login attempt for {LoginIdentifier}", loginIdentifier);
 
-            var user = await userManager.FindByEmailAsync(command.Login.Email);
-
-            if (user == null)
+            if (string.IsNullOrWhiteSpace(loginIdentifier))
             {
-                logger.LogInformation("User not found by email. Trying username.");
+                logger.LogWarning("Login identifier is empty.");
+                throw new Exception("Invalid credentials");
+            }
 
-                user = await userManager.FindByNameAsync(command.Login.Email);
+            ApplicationUser? user;
+
+            if (loginIdentifier.Contains('@'))
+            {
+                user = await userManager.FindByEmailAsync(loginIdentifier);
 
                 if (user == null)
                 {
-                    logger.LogWarning("User not found.");
-                    throw new Exception("Invalid credentials");
+                    logger.LogInformation("User not found by email. Trying username.");
+                    user = await userManager.FindByNameAsync(loginIdentifier);
                 }
+            }
+            else
+            {
+                user = await userManager.FindByNameAsync(loginIdentifier);
+            }
+
+            if (user == null)
+            {
+                logger.LogWarning("User not found.");
+                throw new Exception("Invalid credentials");
             }
 
             if (user.CompanyId.HasValue)
@@ -90,7 +106,7 @@ public class LoginHandler(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Login failed for {Email}", command.Login.Email);
+            logger.LogError(ex, "Login failed for {LoginIdentifier}", loginIdentifier);
             throw;
         }
     }
