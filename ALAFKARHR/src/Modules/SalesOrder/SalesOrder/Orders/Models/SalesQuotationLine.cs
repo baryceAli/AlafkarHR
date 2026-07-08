@@ -18,6 +18,7 @@ public class SalesQuotationLine : Entity<Guid>
     public decimal DiscountRate { get; private set; }
     public decimal TaxRate { get; private set; }
     public string? Notes { get; private set; }
+    public bool IsOptional { get; private set; }
     public string? PriceSource { get; private set; }
     public Guid? PriceSourceId { get; private set; }
     public decimal? SourceUnitPrice { get; private set; }
@@ -60,6 +61,7 @@ public class SalesQuotationLine : Entity<Guid>
             DiscountRate = dto.DiscountRate,
             TaxRate = dto.TaxRate,
             Notes = dto.Notes,
+            IsOptional = dto.IsOptional,
             PriceSource = dto.Pricing.PriceSource,
             PriceSourceId = dto.Pricing.PriceSourceId,
             SourceUnitPrice = dto.Pricing.SourceUnitPrice,

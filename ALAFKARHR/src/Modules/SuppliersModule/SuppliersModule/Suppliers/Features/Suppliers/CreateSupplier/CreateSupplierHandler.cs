@@ -35,18 +35,23 @@ public class CreateSupplierHandler(SupplierDbContext dbContext, IHttpContextAcce
             command.Supplier.TaxNumber,
             command.Supplier.CreditLimit,
             command.Supplier.OpeningBalance,
+            command.Supplier.PayableAccountId,
+            command.Supplier.ExpenseAccountId,
+            command.Supplier.DefaultCurrencyId,
+            command.Supplier.FiscalPosition,
+            command.Supplier.VendorPaymentReference,
             command.Supplier.Notes,
             companyId,
             user);
 
         foreach (var address in command.Supplier.Addresses)
         {
-            supplier.AddAddress(address.Title, address.AddressLine1, address.AddressLine2, address.Longitude, address.Latitude, address.City, address.State, address.Country, address.PostalCode, address.IsDefaultBilling, user);
+            supplier.AddAddress(address.Title, address.AddressLine1, address.AddressLine2, address.Longitude, address.Latitude, address.City, address.State, address.Country, address.PostalCode, address.IsDefaultBilling, address.AddressType, user);
         }
 
         foreach (var contact in command.Supplier.Contacts)
         {
-            supplier.AddContact(contact.FullName, contact.JobTitle, contact.Email, contact.PhoneNumber, contact.IsPrimaryContact, user);
+            supplier.AddContact(contact.FullName, contact.JobTitle, contact.Email, contact.PhoneNumber, contact.IsPrimaryContact, contact.ContactType, user);
         }
 
         await dbContext.Suppliers.AddAsync(supplier, cancellationToken);

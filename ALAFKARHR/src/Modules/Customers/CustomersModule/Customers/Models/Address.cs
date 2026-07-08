@@ -22,6 +22,7 @@ public class Address:Entity<Guid>
     public bool IsDefaultBilling { get; private set; }
 
     public bool IsDefaultShipping { get; private set; }
+    public PartnerAddressType AddressType { get; private set; } = PartnerAddressType.Contact;
     protected Address(){}
     internal Address(
         string title, 
@@ -33,8 +34,9 @@ public class Address:Entity<Guid>
         string state, 
         string country, 
         string postalCode,
-        bool isDefaultBilling, 
-        bool isDefaultShipping)
+        bool isDefaultBilling,
+        bool isDefaultShipping,
+        PartnerAddressType addressType)
     {
         Id = Guid.Empty;
         Title = title;
@@ -48,6 +50,7 @@ public class Address:Entity<Guid>
         PostalCode = postalCode;
         IsDefaultBilling = isDefaultBilling;
         IsDefaultShipping = isDefaultShipping;
+        AddressType = addressType;
     }
     internal static Address Create(
         string title,
@@ -61,6 +64,7 @@ public class Address:Entity<Guid>
         string postalCode,
         bool isDefaultBilling,
         bool isDefaultShipping,
+        PartnerAddressType addressType,
         string createdBy)
     {
         return new Address
@@ -77,6 +81,7 @@ public class Address:Entity<Guid>
             PostalCode = postalCode,
             IsDefaultBilling = isDefaultBilling,
             IsDefaultShipping = isDefaultShipping,
+            AddressType = addressType,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
 
@@ -93,7 +98,8 @@ public class Address:Entity<Guid>
         string country,
         string postalCode,
         bool isDefaultBilling, 
-        bool isDefaultShipping)
+        bool isDefaultShipping,
+        PartnerAddressType addressType)
     {
         Title = title;
         AddressLine1 = addressLine1;
@@ -106,6 +112,7 @@ public class Address:Entity<Guid>
         PostalCode = postalCode;
         IsDefaultBilling = isDefaultBilling;
         IsDefaultShipping = isDefaultShipping;
+        AddressType = addressType;
     }
 
     public void Remove(string deletedBy)

@@ -10,6 +10,7 @@ public class SalesQuotationDto
     public Guid CustomerId { get; set; }
     public string? CustomerName { get; set; }
     public Guid? PriceListId { get; set; }
+    public Guid? QuotationTemplateId { get; set; }
     public string? CouponCode { get; set; }
     public string? SalespersonId { get; set; }
     public SalesQuotationStatus Status { get; set; } = SalesQuotationStatus.Draft;
@@ -26,6 +27,11 @@ public class SalesQuotationDto
     public DateTime? RejectedAt { get; set; }
     public DateTime? ConvertedAt { get; set; }
     public string? RejectionReason { get; set; }
+    public bool RequiresCustomerSignature { get; set; }
+    public bool RequiresOnlinePayment { get; set; }
+    public decimal DownPaymentAmount { get; set; }
+    public decimal DownPaymentPercent { get; set; }
+    public bool IsProForma { get; set; }
     public List<SalesQuotationLineDto> Lines { get; set; } = [];
 }
 
@@ -48,5 +54,6 @@ public class SalesQuotationLineDto
     public decimal TaxAmount => NetAmount * TaxRate / 100m;
     public decimal TotalAmount => NetAmount + TaxAmount;
     public string? Notes { get; set; }
+    public bool IsOptional { get; set; }
     public SalesPricingSnapshotDto Pricing { get; set; } = new();
 }

@@ -69,6 +69,12 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(x => x.IsTaxExempt)
             .IsRequired();
 
+        builder.Property(x => x.FiscalPosition)
+            .HasMaxLength(100);
+
+        builder.Property(x => x.CustomerPaymentReference)
+            .HasMaxLength(100);
+
         builder.Property(x=> x.CompanyId) .IsRequired();
 
         builder.HasIndex(x => new { x.CompanyId, x.CustomerCode })
@@ -141,6 +147,11 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             address.Property(x => x.IsDefaultBilling)
                 .IsRequired();
 
+            address.Property(x => x.AddressType)
+                .HasConversion<int>()
+                .HasDefaultValue(PartnerAddressType.Contact)
+                .IsRequired();
+
             // Audit
             address.Property(x => x.CreatedBy)
                 .HasMaxLength(100);
@@ -183,6 +194,11 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
                 .HasMaxLength(50);
 
             contact.Property(x => x.IsPrimaryContact)
+                .IsRequired();
+
+            contact.Property(x => x.ContactType)
+                .HasConversion<int>()
+                .HasDefaultValue(PartnerContactType.Contact)
                 .IsRequired();
             
             // Audit

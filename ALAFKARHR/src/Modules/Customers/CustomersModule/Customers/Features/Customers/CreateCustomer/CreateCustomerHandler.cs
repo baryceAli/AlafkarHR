@@ -76,6 +76,11 @@ public class CreateCustomerHandler(CustomerDbContext dbContext, IHttpContextAcce
             command.Customer.AvailableCredit,
             command.Customer.Notes,
             command.Customer.IsTaxExempt,
+            command.Customer.ReceivableAccountId,
+            command.Customer.IncomeAccountId,
+            command.Customer.DefaultCurrencyId,
+            command.Customer.FiscalPosition,
+            command.Customer.CustomerPaymentReference,
             command.Customer.CompanyId.Value,
             command.Customer.CustomerGroupId,
             user);
@@ -94,6 +99,7 @@ public class CreateCustomerHandler(CustomerDbContext dbContext, IHttpContextAcce
                 add.PostalCode,
                 add.IsDefaultBilling,
                 add.IsDefaultShipping,
+                add.AddressType,
                 user);
         }
 
@@ -105,6 +111,7 @@ public class CreateCustomerHandler(CustomerDbContext dbContext, IHttpContextAcce
                 contact.Email,
                 contact.PhoneNumber,
                 contact.IsPrimaryContact,
+                contact.ContactType,
                 user);
         }
 

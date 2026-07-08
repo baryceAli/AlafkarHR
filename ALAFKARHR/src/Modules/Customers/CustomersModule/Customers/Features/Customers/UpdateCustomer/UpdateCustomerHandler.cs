@@ -80,6 +80,11 @@ public class UpdateCustomerHandler(CustomerDbContext dbContext, IHttpContextAcce
             request.Customer.AvailableCredit,
             request.Customer.Notes,
             request.Customer.IsTaxExempt,
+            request.Customer.ReceivableAccountId,
+            request.Customer.IncomeAccountId,
+            request.Customer.DefaultCurrencyId,
+            request.Customer.FiscalPosition,
+            request.Customer.CustomerPaymentReference,
             request.Customer.Addresses,
             request.Customer.Contacts,
             user);

@@ -46,10 +46,20 @@ namespace SuppliersModule.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<Guid?>("DefaultCurrencyId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("ExpenseAccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FiscalPosition")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -76,6 +86,9 @@ namespace SuppliersModule.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<Guid?>("PayableAccountId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("PaymentTerm")
                         .HasColumnType("int");
 
@@ -96,6 +109,10 @@ namespace SuppliersModule.Data.Migrations
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
+
+                    b.Property<string>("VendorPaymentReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
@@ -176,6 +193,11 @@ namespace SuppliersModule.Data.Migrations
                                 .HasMaxLength(300)
                                 .HasColumnType("nvarchar(300)");
 
+                            b1.Property<int>("AddressType")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("int")
+                                .HasDefaultValue(1);
+
                             b1.Property<string>("City")
                                 .IsRequired()
                                 .HasMaxLength(100)
@@ -253,6 +275,11 @@ namespace SuppliersModule.Data.Migrations
                         {
                             b1.Property<Guid>("Id")
                                 .HasColumnType("uniqueidentifier");
+
+                            b1.Property<int>("ContactType")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("int")
+                                .HasDefaultValue(1);
 
                             b1.Property<DateTime?>("CreatedAt")
                                 .HasColumnType("datetime2");

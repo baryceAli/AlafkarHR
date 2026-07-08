@@ -17,6 +17,14 @@ public class ProductDto
 
     public CatalogProductType ProductType { get; set; } = CatalogProductType.Goods;
     public bool IsActive { get; set; } = true;
+    public string? SalesDescription { get; set; }
+    public string? PurchaseDescription { get; set; }
+    public decimal CustomerTaxRate { get; set; }
+    public decimal VendorTaxRate { get; set; }
+    public Guid? IncomeAccountId { get; set; }
+    public Guid? ExpenseAccountId { get; set; }
+    public ProductCostingPolicy CostingPolicy { get; set; } = ProductCostingPolicy.Standard;
+    public string? ImageUrl { get; set; }
 
 
     //[Required(ErrorMessage = "Category is required")]

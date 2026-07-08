@@ -22,6 +22,14 @@ public class ProcurementDocumentDto
     public Guid? CurrencyId { get; set; }
     public Guid? SourceDocumentId { get; set; }
     public string? SourceDocumentNumber { get; set; }
+    public DateTime? SentAt { get; set; }
+    public string? SentBy { get; set; }
+    public Guid? PurchaseTemplateId { get; set; }
+    public Guid? BlanketOrderId { get; set; }
+    public Guid? TenderId { get; set; }
+    public PurchaseBillControlPolicy BillControlPolicy { get; set; } = PurchaseBillControlPolicy.OrderedQuantities;
+    public ThreeWayMatchStatus ThreeWayMatchStatus { get; set; } = ThreeWayMatchStatus.NotRequired;
+    public bool IsBillable { get; set; }
     public string? Notes { get; set; }
     public decimal Subtotal { get; set; }
     public decimal TaxAmount { get; set; }
@@ -43,6 +51,10 @@ public class ProcurementDocumentLineDto
     public Guid? WarehouseId { get; set; }
     public Guid? BatchId { get; set; }
     public Guid? ReorderingRuleId { get; set; }
+    public PurchaseBillControlPolicy? BillControlPolicy { get; set; }
+    public ThreeWayMatchStatus ThreeWayMatchStatus { get; set; } = ThreeWayMatchStatus.NotRequired;
+    public decimal ReceivedQuantity { get; set; }
+    public decimal BilledQuantity { get; set; }
     public decimal Quantity { get; set; }
     public decimal UnitCost { get; set; }
     public decimal DiscountRate { get; set; }

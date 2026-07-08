@@ -24,7 +24,12 @@ public class ProductSku : Entity<Guid>
     public decimal? Calories { get; private set; }
     public SkuProductionType ProductionType { get; private set; } = SkuProductionType.PurchasedRawMaterial;
     public CatalogTrackingMode TrackingMode { get; private set; } = CatalogTrackingMode.Quantity;
+    public DateTime? ExpirationDate { get; private set; }
+    public int? ShelfLifeDays { get; private set; }
+    public int? RemovalTimeDays { get; private set; }
+    public int? AlertTimeDays { get; private set; }
     public string ImageUrl { get; set; }
+    public string? GalleryImageUrls { get; private set; }
     public Guid CompanyId { get; set; }
     public bool ShowOnStore { get; private set; }
     public bool IsSellable { get; private set; } = true;
@@ -103,6 +108,65 @@ public class ProductSku : Entity<Guid>
         Guid companyId,
         string createdBy)
     {
+        return Create(
+            id,
+            productId,
+            brandId,
+            unitId,
+            packageId,
+            name,
+            nameEng,
+            skuCode,
+            skuCodeEng,
+            skuKey,
+            barcode,
+            imageUrl,
+            price,
+            calories,
+            productionType,
+            trackingMode,
+            null,
+            null,
+            null,
+            null,
+            null,
+            showOnStore,
+            isSellable,
+            isPurchasable,
+            isAssetTrackable,
+            companyId,
+            createdBy);
+    }
+
+    public static ProductSku Create(
+    Guid id,
+    Guid productId,
+    Guid brandId,
+    Guid unitId,
+    Guid? packageId,
+    string name,
+    string nameEng,
+    string skuCode,
+    string skuCodeEng,
+    string skuKey,
+    string? barcode,
+    string imageUrl,
+        decimal price,
+        decimal? calories,
+        SkuProductionType productionType,
+        CatalogTrackingMode trackingMode,
+        DateTime? expirationDate,
+        int? shelfLifeDays,
+        int? removalTimeDays,
+        int? alertTimeDays,
+        IEnumerable<string>? galleryImageUrls,
+        bool showOnStore,
+        bool isSellable,
+        bool isPurchasable,
+        bool isAssetTrackable,
+        Guid companyId,
+        string createdBy)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(skuCode);
         ArgumentException.ThrowIfNullOrWhiteSpace(skuCodeEng);
         ValidateCapabilityFlags(productionType, trackingMode);
@@ -125,6 +189,11 @@ public class ProductSku : Entity<Guid>
         Calories = calories,
         ProductionType = NormalizeProductionType(productionType),
         TrackingMode = NormalizeTrackingMode(trackingMode),
+        ExpirationDate = expirationDate,
+        ShelfLifeDays = shelfLifeDays,
+        RemovalTimeDays = removalTimeDays,
+        AlertTimeDays = alertTimeDays,
+        GalleryImageUrls = SerializeGalleryImageUrls(galleryImageUrls),
         IsSellable = showOnStore || isSellable,
         IsPurchasable = isPurchasable,
         IsInventoryTracked = IsTracked(NormalizeTrackingMode(trackingMode)),
@@ -149,6 +218,11 @@ public class ProductSku : Entity<Guid>
         string skuKey,
         SkuProductionType productionType,
         CatalogTrackingMode trackingMode,
+        DateTime? expirationDate,
+        int? shelfLifeDays,
+        int? removalTimeDays,
+        int? alertTimeDays,
+        IEnumerable<string>? galleryImageUrls,
         Guid companyId,
         bool isSellable,
         bool isPurchasable,
@@ -168,6 +242,11 @@ public class ProductSku : Entity<Guid>
         ProductionType = NormalizeProductionType(productionType);
         TrackingMode = NormalizeTrackingMode(trackingMode);
         ValidateCapabilityFlags(ProductionType, TrackingMode);
+        ExpirationDate = expirationDate;
+        ShelfLifeDays = shelfLifeDays;
+        RemovalTimeDays = removalTimeDays;
+        AlertTimeDays = alertTimeDays;
+        GalleryImageUrls = SerializeGalleryImageUrls(galleryImageUrls);
         ImageUrl = imageUrl;
         IsSellable = showOnStore || isSellable;
         IsPurchasable = isPurchasable;
@@ -410,6 +489,19 @@ public class ProductSku : Entity<Guid>
 
     public static bool IsTracked(CatalogTrackingMode trackingMode)
         => NormalizeTrackingMode(trackingMode) != CatalogTrackingMode.None;
+
+    private static string? SerializeGalleryImageUrls(IEnumerable<string>? galleryImageUrls)
+    {
+        var values = galleryImageUrls?
+            .Where(url => !string.IsNullOrWhiteSpace(url))
+            .Select(url => url.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return values is { Count: > 0 }
+            ? string.Join('\n', values)
+            : null;
+    }
     //public void AddProductPackage(Guid id, Guid productId, string packageName, string packageNameEng, double quantityPerPackage, decimal packagePrice, bool showOnStore, string createdBy)
     //{
     //    ArgumentNullException.ThrowIfNullOrEmpty(packageName);

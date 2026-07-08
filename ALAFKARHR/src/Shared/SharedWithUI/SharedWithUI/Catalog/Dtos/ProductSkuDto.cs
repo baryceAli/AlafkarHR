@@ -65,9 +65,14 @@ public class ProductSkuDto
 
     public SkuProductionType ProductionType { get; set; } = SkuProductionType.PurchasedRawMaterial;
     public CatalogTrackingMode TrackingMode { get; set; } = CatalogTrackingMode.Quantity;
+    public DateTime? ExpirationDate { get; set; }
+    public int? ShelfLifeDays { get; set; }
+    public int? RemovalTimeDays { get; set; }
+    public int? AlertTimeDays { get; set; }
 
 
     public string ImageUrl { get; set; }
+    public List<string> GalleryImageUrls { get; set; } = new();
     public Guid CompanyId { get; set; }
     public bool ShowOnStore { get; set; }
     public bool IsSellable { get; set; } = true;
@@ -118,6 +123,11 @@ public class ProductSkuVariantMatrixRequest
     public decimal? Calories { get; set; }
     public SkuProductionType ProductionType { get; set; } = SkuProductionType.PurchasedRawMaterial;
     public CatalogTrackingMode TrackingMode { get; set; } = CatalogTrackingMode.Quantity;
+    public DateTime? ExpirationDate { get; set; }
+    public int? ShelfLifeDays { get; set; }
+    public int? RemovalTimeDays { get; set; }
+    public int? AlertTimeDays { get; set; }
+    public List<string> GalleryImageUrls { get; set; } = new();
     public bool ShowOnStore { get; set; }
     public bool IsSellable { get; set; } = true;
     public bool IsPurchasable { get; set; } = true;

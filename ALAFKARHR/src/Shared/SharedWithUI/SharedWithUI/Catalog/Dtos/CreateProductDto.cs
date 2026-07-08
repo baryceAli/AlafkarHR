@@ -27,6 +27,13 @@ public class CreateProductDto
     [Required(ErrorMessage = "NameEng is required")]
     public string NameEng { get; set; }
     public CatalogProductType ProductType { get; set; } = CatalogProductType.Goods;
+    public string? SalesDescription { get; set; }
+    public string? PurchaseDescription { get; set; }
+    public decimal CustomerTaxRate { get; set; }
+    public decimal VendorTaxRate { get; set; }
+    public Guid? IncomeAccountId { get; set; }
+    public Guid? ExpenseAccountId { get; set; }
+    public ProductCostingPolicy CostingPolicy { get; set; } = ProductCostingPolicy.Standard;
 
     [Required(ErrorMessage ="Price is required")]
     [Range(0.01,10000000,ErrorMessage ="Price must be greator than 0")]

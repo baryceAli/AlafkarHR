@@ -21,6 +21,26 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasConversion<int>()
             .HasDefaultValue(CatalogProductType.Goods);
 
+        builder.Property(x => x.SalesDescription)
+            .HasMaxLength(2000);
+
+        builder.Property(x => x.PurchaseDescription)
+            .HasMaxLength(2000);
+
+        builder.Property(x => x.CustomerTaxRate)
+            .HasPrecision(18, 4);
+
+        builder.Property(x => x.VendorTaxRate)
+            .HasPrecision(18, 4);
+
+        builder.Property(x => x.CostingPolicy)
+            .IsRequired()
+            .HasConversion<int>()
+            .HasDefaultValue(ProductCostingPolicy.Standard);
+
+        builder.Property(x => x.ImageUrl)
+            .HasMaxLength(1000);
+
         builder.Property(x => x.IsActive)
             .IsRequired()
             .HasDefaultValue(true);

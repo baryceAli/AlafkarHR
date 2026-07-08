@@ -25,6 +25,15 @@ public class ProductSKUConfiguration : IEntityTypeConfiguration<ProductSku>
             .HasConversion<int>()
             .HasDefaultValue(CatalogTrackingMode.Quantity);
 
+        builder.Property(x => x.ShelfLifeDays);
+
+        builder.Property(x => x.RemovalTimeDays);
+
+        builder.Property(x => x.AlertTimeDays);
+
+        builder.Property(x => x.GalleryImageUrls)
+            .HasMaxLength(4000);
+
         builder.Property(x => x.IsSellable)
             .IsRequired()
             .HasDefaultValue(true);
